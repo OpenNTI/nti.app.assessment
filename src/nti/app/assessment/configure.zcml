@@ -12,4 +12,13 @@
 
 	<i18n:registerTranslations directory="locales" />
 
+	<!-- Object transformers -->
+	<adapter factory=".adapters._question_submission_transformer"
+			 for="nti.assessment.interfaces.IQuestionSubmission"
+			 provides="nti.appserver.interfaces.INewObjectTransformer" />
+
+	<adapter factory=".adapters._question_set_submission_transformer"
+			 for="nti.assessment.interfaces.IQuestionSetSubmission"
+			 provides="nti.appserver.interfaces.INewObjectTransformer" />
+
 </configure>

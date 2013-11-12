@@ -12,6 +12,17 @@
 
 	<i18n:registerTranslations directory="locales" />
 
+	<utility factory="._question_map.QuestionMap"
+			 provides="._question_map.IFileQuestionMap"/>
+	<subscriber	handler="._question_map.add_assessment_items_from_new_content" />
+	<subscriber	handler="._question_map.remove_assessment_items_from_oldcontent" />
+	<adapter factory="._question_map._QuestionACLProvider" />
+	<adapter factory="._question_map.ContentUnitAssessmentItems" />
+
+	<subscriber factory=".adapters._ContentUnitAssessmentItemDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"/>
+
+
 	<!-- Object transformers -->
 	<adapter factory=".adapters._question_submission_transformer"
 			 for="nti.assessment.interfaces.IQuestionSubmission"

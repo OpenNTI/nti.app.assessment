@@ -18,16 +18,16 @@ from nti.appserver import interfaces as app_interfaces
 from nti.assessment import interfaces as asm_interfaces
 from nti.externalization import interfaces as ext_interfaces
 
-from nti.assessment.interfaces import IQAssessmentItemContainer
 from nti.externalization.externalization import to_external_object
 from nti.externalization.singleton import SingletonDecorator
 
-
+@component.adapter(asm_interfaces.IQuestionSubmission)
 @interface.implementer(app_interfaces.INewObjectTransformer)
 def _question_submission_transformer( obj ):
 	# Grade it, by adapting the object into an IAssessedQuestion
 	return asm_interfaces.IQAssessedQuestion
 
+@component.adapter(asm_interfaces.IQuestionSetSubmission)
 @interface.implementer(app_interfaces.INewObjectTransformer)
 def _question_set_submission_transformer( obj ):
 	# Grade it, by adapting the object into an IAssessedQuestionSet
@@ -69,6 +69,26 @@ class _ContentUnitAssessmentItemDecorator(object):
 		recur( context.contentUnit, result )
 
 		if result:
-			### XXX FIXME: We need to be sure we don't send back the
-			# solutions and explanations right now
-			result_map['AssessmentItems'] = to_external_object( result  )
+			### XXX We need to be sure we don't send back the
+			# solutions and explanations right now. This is
+			# done in a very hacky way, need something more
+			# context sensitive (would the named externalizers
+			# work here? like personal-summary for users?)
+			### XXX We may not be able to do this yet, the
+			# app may be depending on this information. We
+			# need to make this available only as part of an assessed
+			# value, not in general.
+			def _strip(item):
+				cls = item.get('Class')
+				if cls == 'Question':
+					for part in item['parts']:
+						part['solutions'] = None
+						part['explanation'] = None
+				elif cls == 'QuestionSet':
+					for q in item['questions']:
+						_strip(q)
+
+			ext_items = to_external_object( result )
+			#for item in ext_items:
+			#	_strip(item)
+			result_map['AssessmentItems'] = ext_items

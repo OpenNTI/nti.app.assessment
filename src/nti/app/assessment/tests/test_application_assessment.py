@@ -13,6 +13,7 @@ from hamcrest import has_key
 from hamcrest import has_entries
 from hamcrest import greater_than
 from hamcrest import not_none
+from hamcrest import none
 from hamcrest.library import has_property
 
 from hamcrest import is_not
@@ -122,8 +123,19 @@ class TestApplicationAssessment(SharedApplicationTestBase):
 
 			assert_that( res.content_type, is_( 'application/vnd.nextthought.pageinfo+json' ) )
 			assert_that( res.json_body, has_entry( 'MimeType', 'application/vnd.nextthought.pageinfo' ) )
-			assert_that( res.json_body, has_entry( 'AssessmentItems', has_item( has_entry( 'NTIID', self.child_ntiid ) ) ) )
+			assert_that( res.json_body,
+						 has_entry( 'AssessmentItems',
+									has_item( has_entry( 'NTIID', self.child_ntiid ) ) ) )
 			assert_that( res.json_body, has_entry( 'Last Modified', greater_than( 0 ) ) )
+
+			# And the solutions do not come with it...except that right now,
+			# pending the app work, they do
+			items = res.json_body['AssessmentItems']
+			for i in items:
+				assert_that( i, has_key( 'parts' ) )
+				for part in i["parts"]:
+					assert_that( part, has_entry( 'solutions', not_none() ))
+					assert_that( part, has_entry( 'explanation', not_none() ))
 
 
 	def _check_submission( self, res ):

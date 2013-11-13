@@ -24,12 +24,13 @@
 
 
 	<!-- Object transformers -->
-	<adapter factory=".adapters._question_submission_transformer"
-			 for="nti.assessment.interfaces.IQuestionSubmission"
-			 provides="nti.appserver.interfaces.INewObjectTransformer" />
+	<adapter factory=".adapters._question_submission_transformer" />
 
-	<adapter factory=".adapters._question_set_submission_transformer"
-			 for="nti.assessment.interfaces.IQuestionSetSubmission"
-			 provides="nti.appserver.interfaces.INewObjectTransformer" />
+	<adapter factory=".adapters._question_set_submission_transformer" />
+
+	<adapter factory=".adapters._assignment_submission_transformer" />
+
+	<adapter factory=".adapters._begin_assessment_for_assignment_submission" />
+
 
 </configure>

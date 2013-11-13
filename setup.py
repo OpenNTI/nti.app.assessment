@@ -29,7 +29,8 @@ setup(
 	namespace_packages=['nti', 'nti.app'],
 	install_requires=[
 		'setuptools',
-		'nti.assessment'
+		'nti.assessment',
+		'nti.contenttypes.courses'
 		# NOTE: We actually depend on nti.dataserver
 		# as well, but for the sake of legacy
 		# deployments, we do not yet declare that.

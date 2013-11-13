@@ -14,24 +14,102 @@ logger = __import__('logging').getLogger(__name__)
 from zope import interface
 from zope import component
 
+import datetime
+
 from nti.appserver import interfaces as app_interfaces
 from nti.assessment import interfaces as asm_interfaces
 from nti.externalization import interfaces as ext_interfaces
 
+from zope.location.interfaces import ILocationInfo
+from nti.contenttypes.courses.interfaces import ICourseInstance
+
 from nti.externalization.externalization import to_external_object
 from nti.externalization.singleton import SingletonDecorator
+
+from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
 
 @component.adapter(asm_interfaces.IQuestionSubmission)
 @interface.implementer(app_interfaces.INewObjectTransformer)
 def _question_submission_transformer( obj ):
-	# Grade it, by adapting the object into an IAssessedQuestion
+	"Grade it, by adapting the object into an IAssessedQuestion"
 	return asm_interfaces.IQAssessedQuestion
 
 @component.adapter(asm_interfaces.IQuestionSetSubmission)
 @interface.implementer(app_interfaces.INewObjectTransformer)
 def _question_set_submission_transformer( obj ):
-	# Grade it, by adapting the object into an IAssessedQuestionSet
+	"Grade it, by adapting the object into an IAssessedQuestionSet"
 	return asm_interfaces.IQAssessedQuestionSet
+
+
+@component.adapter(asm_interfaces.IQAssignmentSubmission)
+@interface.implementer(app_interfaces.INewObjectTransformer)
+def _assignment_submission_transformer(obj):
+	"Begin the grading process by adapting it to an IQAssignmentSubmissionPendingAssessment"
+	return asm_interfaces.IQAssignmentSubmissionPendingAssessment
+
+@component.adapter(asm_interfaces.IQAssignmentSubmission)
+@interface.implementer(asm_interfaces.IQAssignmentSubmissionPendingAssessment)
+def _begin_assessment_for_assignment_submission(submission):
+	"""
+	Begins the assessment process for an assignment by handling
+	what can be done automatically. What cannot be done automatically
+	is deferred to the assignment's enclosing course (recall
+	that assignments live in exactly one location and are not referenced
+	outside the context of their enclosing course).
+	"""
+
+	# Get the assignment
+	assignment = component.getUtility(asm_interfaces.IQAssignment,
+									  name=submission.assignmentId)
+
+	# Check that the submission has something for all parts
+	assignment_part_ids = [part.ntiid for part in assignment.parts]
+	submission_part_ids = [part.questionSetId for part in submission.parts]
+
+	if sorted(assignment_part_ids) != sorted(submission_part_ids):
+		raise ValueError("Incorrect submission parts") # XXX Better exception
+
+	# We only need to check that the submission is not too early;
+	# if it is late, we still allow it at this level, leaving
+	# it to the instructor to handle it
+	if assignment.available_for_submission_beginning is not None:
+		if datetime.datetime.now() < assignment.available_for_submission_beginning:
+			raise ValueError("Submitting too early") # XXX Better exception
+
+	# Now, try to find the enclosing course for this assignment.
+	# If one does not exist, we cannot grade because we have nowhere
+	# to dispatch to.
+	# Ideally, the assignment itself knows its enclosing course...
+	course = ICourseInstance(assignment, None)
+	# But if not, it should be located somewhere that can be
+	# adapted to a course instance. For legacy-style courses,
+	# the parent of the assignment will be a IContentUnit,
+	# and eventually an ILegacyCourseConflatedContentPackage
+	# which can become the course
+	if course is None:
+		location = ILocationInfo(assignment)
+		for parent in location.getParents():
+			course = ICourseInstance(parent, None)
+			if course is None:
+				break
+	if course is None:
+		raise ValueError() # XXX Better exception
+
+
+	# Ok, now for each part that can be auto graded, do so, leaving all the others
+	# as-they-are
+	new_parts = list()
+	for submission_part in submission.parts:
+		assignment_part, = [p for p in assignment.parts if p.question_set.questionSetId == submission_part.questionSetId]
+		if assignment_part.auto_grade:
+			submission_part = asm_interfaces.IQAssessedQuestionSet(submission_part)
+
+		new_parts.append( submission_part )
+
+	# TODO: Now how to correctly associate this with the course?
+	# Alter containerId of the returned object?
+
+	return QAssignmentSubmissionPendingAssessment( parts=new_parts )
 
 
 @interface.implementer(ext_interfaces.IExternalMappingDecorator)

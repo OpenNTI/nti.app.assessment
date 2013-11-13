@@ -13,6 +13,9 @@ logger = __import__('logging').getLogger(__name__)
 
 from zope import interface
 from zope import component
+from zope.location import LocationIterator # aka pyramid.location.lineage
+
+from persistent.list import PersistentList
 
 import datetime
 
@@ -63,7 +66,7 @@ def _begin_assessment_for_assignment_submission(submission):
 									  name=submission.assignmentId)
 
 	# Check that the submission has something for all parts
-	assignment_part_ids = [part.ntiid for part in assignment.parts]
+	assignment_part_ids = [part.question_set.ntiid for part in assignment.parts]
 	submission_part_ids = [part.questionSetId for part in submission.parts]
 
 	if sorted(assignment_part_ids) != sorted(submission_part_ids):
@@ -85,22 +88,31 @@ def _begin_assessment_for_assignment_submission(submission):
 	# adapted to a course instance. For legacy-style courses,
 	# the parent of the assignment will be a IContentUnit,
 	# and eventually an ILegacyCourseConflatedContentPackage
-	# which can become the course
+	# which can become the course (However, these may not
+	# be within an IRoot, so using ILocationInfo may not be safe;
+	# in that case, fall back to straightforward lineage)
 	if course is None:
 		location = ILocationInfo(assignment)
-		for parent in location.getParents():
+		try:
+			parents = location.getParents()
+		except TypeError: # Not enough info
+			parents = LocationIterator(assignment)
+
+		for parent in parents:
 			course = ICourseInstance(parent, None)
-			if course is None:
+			if course is not None:
 				break
 	if course is None:
-		raise ValueError() # XXX Better exception
+		raise ValueError("Course cannot be found") # XXX Better exception
 
+	# TODO: XXX: Now we need to ensure that a given assignment is
+	# only submitted once to the course.
 
 	# Ok, now for each part that can be auto graded, do so, leaving all the others
 	# as-they-are
-	new_parts = list()
+	new_parts = PersistentList()
 	for submission_part in submission.parts:
-		assignment_part, = [p for p in assignment.parts if p.question_set.questionSetId == submission_part.questionSetId]
+		assignment_part, = [p for p in assignment.parts if p.question_set.ntiid == submission_part.questionSetId]
 		if assignment_part.auto_grade:
 			submission_part = asm_interfaces.IQAssessedQuestionSet(submission_part)
 
@@ -109,7 +121,7 @@ def _begin_assessment_for_assignment_submission(submission):
 	# TODO: Now how to correctly associate this with the course?
 	# Alter containerId of the returned object?
 
-	return QAssignmentSubmissionPendingAssessment( parts=new_parts )
+	return QAssignmentSubmissionPendingAssessment( assignmentId=submission.assignmentId, parts=new_parts )
 
 
 @interface.implementer(ext_interfaces.IExternalMappingDecorator)

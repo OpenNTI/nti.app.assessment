@@ -40,6 +40,8 @@ from nti.app.testing.decorators import WithSharedApplicationMockDS
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 from nti.contentlibrary.filesystem import CachedNotifyingStaticFilesystemLibrary as Library
 
+from nti.dataserver.users import User
+
 from nti.app.products.courseware.tests import test_catalog_from_content
 
 from nti.assessment.assignment import QAssignmentPart, QAssignment
@@ -121,12 +123,27 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 			self.assignment.available_for_submission_beginning = None
 
 
-	@WithSharedApplicationMockDS
+	@WithSharedApplicationMockDS(users=True)
 	def test_pending(self):
 		qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id)
 		submission = AssignmentSubmission(assignmentId='a', parts=(qs_submission,))
 
 		with mock_dataserver.mock_db_trans(self.ds):
+			# No creator
+			assert_that( calling( IQAssignmentSubmissionPendingAssessment ).with_args(submission),
+						 raises( TypeError ))
+
+			user = User.get_user( self.extra_environ_default_user )
+			submission.creator = user
 			pending = IQAssignmentSubmissionPendingAssessment(submission)
-		assert_that( pending, validly_provides(IQAssignmentSubmissionPendingAssessment))
-		assert_that( pending.parts, contains(qs_submission))
+			assert_that( pending, validly_provides(IQAssignmentSubmissionPendingAssessment))
+			assert_that( pending.parts, contains(qs_submission))
+
+		# If we try again, we fail
+		submission = AssignmentSubmission(assignmentId='a', parts=(qs_submission,))
+		with mock_dataserver.mock_db_trans(self.ds):
+
+			user = User.get_user( self.extra_environ_default_user )
+			submission.creator = user
+			assert_that( calling(IQAssignmentSubmissionPendingAssessment).with_args(submission),
+						 raises(ValueError, 'already submitted') )

@@ -32,5 +32,6 @@
 
 	<adapter factory=".adapters._begin_assessment_for_assignment_submission" />
 
+	<adapter factory=".adapters._history_for_user_in_course" />
 
 </configure>

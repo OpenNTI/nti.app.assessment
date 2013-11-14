@@ -16,12 +16,16 @@ from zope import component
 from zope.location import LocationIterator # aka pyramid.location.lineage
 
 from persistent.list import PersistentList
+from BTrees.OOBTree import BTree as OOBTree
 
 import datetime
 
 from nti.appserver import interfaces as app_interfaces
 from nti.assessment import interfaces as asm_interfaces
 from nti.externalization import interfaces as ext_interfaces
+from .interfaces import IUsersCourseAssignmentHistory
+from zope.annotation.interfaces import IAnnotations
+from nti.dataserver.interfaces import IUser
 
 from zope.location.interfaces import ILocationInfo
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -30,6 +34,7 @@ from nti.externalization.externalization import to_external_object
 from nti.externalization.singleton import SingletonDecorator
 
 from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
+from .history import UsersCourseAssignmentHistory
 
 @component.adapter(asm_interfaces.IQuestionSubmission)
 @interface.implementer(app_interfaces.INewObjectTransformer)
@@ -105,8 +110,10 @@ def _begin_assessment_for_assignment_submission(submission):
 	if course is None:
 		raise ValueError("Course cannot be found") # XXX Better exception
 
-	# TODO: XXX: Now we need to ensure that a given assignment is
-	# only submitted once to the course.
+	assignment_history = component.getMultiAdapter( (course, submission.creator),
+													IUsersCourseAssignmentHistory )
+	if submission.assignmentId in assignment_history:
+		raise ValueError("Assignment already submitted") # XXX Better exception
 
 	# Ok, now for each part that can be auto graded, do so, leaving all the others
 	# as-they-are
@@ -118,10 +125,48 @@ def _begin_assessment_for_assignment_submission(submission):
 
 		new_parts.append( submission_part )
 
-	# TODO: Now how to correctly associate this with the course?
-	# Alter containerId of the returned object?
 
-	return QAssignmentSubmissionPendingAssessment( assignmentId=submission.assignmentId, parts=new_parts )
+	pending_assessment = QAssignmentSubmissionPendingAssessment( assignmentId=submission.assignmentId,
+																 parts=new_parts )
+
+	# Now record the submission. This will broadcast created and
+	# added events for the HistoryItem. The HistoryItem will have
+	# the course in its lineage.
+	assignment_history.recordSubmission( submission, pending_assessment )
+
+	return pending_assessment
+
+@interface.implementer(IUsersCourseAssignmentHistory)
+@component.adapter(ICourseInstance,IUser)
+def _history_for_user_in_course(course,user):
+	"""
+	We use an annotation on the course to store a map
+	from username to history object.
+
+	Although our history object can theoretically be used
+	across all courses, because assignment IDs are unique, there
+	are data locality reasons to keep it on the course: it goes
+	away after the course does, and it makes it easy to see
+	\"progress\" within a course.
+	"""
+
+	annotations = IAnnotations(course)
+	try:
+		KEY = 'nti.app.assessment.AssignmentHistory'
+		histories = annotations[KEY]
+	except KeyError:
+		histories = OOBTree()
+		annotations[KEY] = histories
+
+	try:
+		history = histories[user.username]
+	except KeyError:
+		history = UsersCourseAssignmentHistory()
+		history.__name__ = 'AssignmentHistory'
+		history.__parent__ = course
+		histories[user.username] = history
+
+	return history
 
 
 @interface.implementer(ext_interfaces.IExternalMappingDecorator)

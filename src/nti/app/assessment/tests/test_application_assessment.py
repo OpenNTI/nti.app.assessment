@@ -114,9 +114,10 @@ class TestApplicationAssessment(SharedApplicationTestBase):
 
 	@WithSharedApplicationMockDS(users=True,testapp=True)
 	def test_fetch_pageinfo_with_questions(self):
+		page_ntiid = 'tag:nextthought.com,2011-10:mathcounts-HTML-MN.2012.0'
 		for accept_type in (b'application/json',b'application/vnd.nextthought.pageinfo',b'application/vnd.nextthought.pageinfo+json'):
 			__traceback_info__ = accept_type
-			res = self.fetch_by_ntiid( 'tag:nextthought.com,2011-10:mathcounts-HTML-MN.2012.0',
+			res = self.fetch_by_ntiid( page_ntiid,
 									   headers={b"Accept": accept_type} )
 			assert_that( res.status_int, is_( 200 ) )
 			assert_that( res.last_modified, is_( not_none() ) )
@@ -125,7 +126,10 @@ class TestApplicationAssessment(SharedApplicationTestBase):
 			assert_that( res.json_body, has_entry( 'MimeType', 'application/vnd.nextthought.pageinfo' ) )
 			assert_that( res.json_body,
 						 has_entry( 'AssessmentItems',
-									has_item( has_entry( 'NTIID', self.child_ntiid ) ) ) )
+									has_item( has_entry( 'NTIID', self.question_ntiid ) ) ) )
+			assert_that( res.json_body['AssessmentItems'],
+						 has_item( has_entry('containerId',
+											 'tag:nextthought.com,2011-10:MN-HTML-MiladyCosmetology.why_study_cosmetology_history_and_career_opportunities_') ) )
 			assert_that( res.json_body, has_entry( 'Last Modified', greater_than( 0 ) ) )
 
 			# And the solutions do not come with it...except that right now,

@@ -19,7 +19,7 @@ from hamcrest import assert_that
 from hamcrest import is_
 from hamcrest import is_not
 from hamcrest import none
-from hamcrest import has_key
+from hamcrest import has_entry
 from hamcrest import has_entries
 from hamcrest import has_length
 from hamcrest import has_properties
@@ -39,6 +39,9 @@ from nti.app.testing.decorators import WithSharedApplicationMockDS
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 from nti.contentlibrary.filesystem import CachedNotifyingStaticFilesystemLibrary as Library
+
+from nti.externalization.externalization import to_external_object
+from nti.externalization.interfaces import StandardExternalFields
 
 from nti.dataserver.users import User
 
@@ -88,7 +91,7 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 
 		cls.question_set = question_set
 		cls.assignment = assignment
-		cls.question_set_id = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.set.qset:QUIZ1_aristotle"
+		cls.question_set_id = question_set_id
 
 	@WithSharedApplicationMockDS
 	def test_wrong_id(self):
@@ -147,3 +150,21 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 			submission.creator = user
 			assert_that( calling(IQAssignmentSubmissionPendingAssessment).with_args(submission),
 						 raises(ValueError, 'already submitted') )
+
+	@WithSharedApplicationMockDS(users=True,testapp=True)
+	def test_pending_application(self):
+		# Sends an assignment through the application
+		qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id)
+		submission = AssignmentSubmission(assignmentId='a', parts=(qs_submission,))
+
+		ext_obj = to_external_object( submission )
+		# Currently, these must have ContainerIds because they go in the user's
+		# data for storage, but the container ID doesn't actually matter (has no relationship
+		# to anything)
+		ext_obj['ContainerId'] = 'tag:nextthought.com,2011-10:mathcounts-HTML-MN.2012.0'
+
+		res = self.post_user_data( ext_obj )
+
+		assert_that( res.json_body, has_entry( StandardExternalFields.CREATED_TIME, is_( float ) ) )
+		assert_that( res.json_body, has_entry( StandardExternalFields.LAST_MODIFIED, is_( float ) ) )
+		assert_that( res.json_body, has_entry( StandardExternalFields.MIMETYPE, 'application/vnd.nextthought.assessment.assignmentsubmissionpendingassessment' ) )

@@ -41,7 +41,7 @@ from nti.app.testing.webtest import TestApp
 from nti.appserver.tests import test_application
 
 class TestApplicationAssessment(SharedApplicationTestBase):
-	child_ntiid =  b'tag:nextthought.com,2011-10:MN-NAQ-MiladyCosmetology.naq.1'
+	child_ntiid =  'tag:nextthought.com,2011-10:MN-NAQ-MiladyCosmetology.naq.1'
 
 	question_ntiid = child_ntiid
 

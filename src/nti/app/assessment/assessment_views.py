@@ -21,18 +21,30 @@ from nti.appserver.contentlibrary.library_views import PAGE_INFO_MT_JSON
 # ... this in particular could be a view.
 from nti.appserver.contentlibrary.library_views import find_page_info_view_helper
 
+from nti.assessment.interfaces import IQuestion
+from nti.assessment.interfaces import IQAssignment
+
 ####
 ## In pyramid 1.4, there is some minor wonkiness with the accept= request predicate.
 ## Your view can get called even if no Accept header is present if all the defined
 ## views include a non-matching accept predicate. Stil, this is much better than
 ## the behaviour under 1.3.
 ####
-_view_defaults = dict( route_name='objects.generic.traversal',
-					   renderer='rest',
-					   context='nti.assessment.interfaces.IQuestion',
-					   permission=nauth.ACT_READ,
-					   request_method='GET' )
-@view_config(accept=PAGE_INFO_MT_JSON.encode('ascii'), **_view_defaults)
+_read_view_defaults = dict( route_name='objects.generic.traversal',
+							renderer='rest',
+							permission=nauth.ACT_READ,
+							request_method='GET' )
+_question_view = dict(context=IQuestion)
+_question_view.update(_read_view_defaults)
+
+_assignment_view = dict(context=IQAssignment)
+_assignment_view.update(_read_view_defaults)
+
+
+@view_config(accept=str(PAGE_INFO_MT_JSON),
+			 **_question_view)
+@view_config(accept=str(PAGE_INFO_MT_JSON),
+			 **_assignment_view)
 def pageinfo_from_question_view( request ):
 	assert request.accept
 	# questions are now generally held within their containing IContentUnit,
@@ -41,15 +53,23 @@ def pageinfo_from_question_view( request ):
 	return find_page_info_view_helper( request, content_unit_or_ntiid )
 
 
-@view_config(accept=b'application/vnd.nextthought.link+json', **_view_defaults)
+@view_config(accept=str('application/vnd.nextthought.link+json'),
+			 **_question_view )
+@view_config(accept=str('application/vnd.nextthought.link+json'),
+			 **_assignment_view )
 def get_question_view_link( request ):
 	# Not supported.
 	return hexc.HTTPBadRequest()
 
-@view_config(accept=b'', 		# explicit empty accept, else we get a ConfigurationConflict
-			 **_view_defaults)	# and/or no-Accept header goes to the wrong place
-@view_config(**_view_defaults)
+@view_config(accept=str(''), 	# explicit empty accept, else we get a ConfigurationConflict
+			 **_question_view)	# and/or no-Accept header goes to the wrong place
+@view_config(**_question_view)
+@view_config(accept=str(''),
+			 **_assignment_view)
+@view_config(**_assignment_view)
 def get_question_view( request ):
 	return request.context
 
-del _view_defaults
+del _read_view_defaults
+del _question_view
+del _assignment_view

@@ -33,6 +33,7 @@ from ..interfaces import IUsersCourseAssignmentHistoryItem
 from ..interfaces import IUsersCourseAssignmentHistory
 
 from nti.assessment.submission import AssignmentSubmission
+from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
 
 def test_provides():
 	history = UsersCourseAssignmentHistory()
@@ -48,8 +49,10 @@ def test_provides():
 def test_record():
 	history = UsersCourseAssignmentHistory()
 	submission = AssignmentSubmission(assignmentId='b')
+	pending =  QAssignmentSubmissionPendingAssessment( assignmentId='b',
+													   parts=() )
 
-	item = history.recordSubmission( submission, None )
+	item = history.recordSubmission( submission, pending )
 	assert_that( item, has_property( 'Submission', is_( submission )))
 	assert_that( item, has_property( '__name__', is_( submission.assignmentId)) )
 

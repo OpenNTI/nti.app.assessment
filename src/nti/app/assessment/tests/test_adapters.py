@@ -168,6 +168,9 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 
 		res = self.post_user_data( ext_obj )
 
+		self._check_submission(res)
+
+	def _check_submission(self, res):
 		assert_that( res.status_int, is_( 201 ))
 		assert_that( res.json_body, has_entry( StandardExternalFields.CREATED_TIME, is_( float ) ) )
 		assert_that( res.json_body, has_entry( StandardExternalFields.LAST_MODIFIED, is_( float ) ) )
@@ -177,3 +180,15 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 		assert_that( res.json_body, has_key( 'NTIID' ) )
 
 		assert_that( res, has_property( 'location', contains_string('Objects/')))
+
+	@WithSharedApplicationMockDS(users=True,testapp=True)
+	def test_pending_application_assignment(self):
+		# Sends an assignment through the application by posting to the assignment
+		qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id)
+		submission = AssignmentSubmission(assignmentId=self.assignment_id, parts=(qs_submission,))
+
+		ext_obj = to_external_object( submission )
+
+		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id,
+									  ext_obj)
+		self._check_submission(res)

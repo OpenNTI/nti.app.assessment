@@ -11,6 +11,8 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+from zope import component
+
 import pyramid.httpexceptions as hexc
 from pyramid.view import view_config
 
@@ -23,6 +25,7 @@ from nti.appserver.contentlibrary.library_views import find_page_info_view_helpe
 
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQAssignmentSubmission
 
 ####
 ## In pyramid 1.4, there is some minor wonkiness with the accept= request predicate.
@@ -73,3 +76,33 @@ def get_question_view( request ):
 del _read_view_defaults
 del _question_view
 del _assignment_view
+
+from nti.appserver._view_utils import AbstractAuthenticatedView
+from nti.appserver._view_utils import ModeledContentUploadRequestUtilsMixin
+from pyramid.interfaces import IExceptionResponse
+
+@view_config(route_name="objects.generic.traversal",
+			 renderer='rest',
+			 permission=nauth.ACT_CREATE,
+			 request_method='POST')
+class AssignmentSubmissionPostView(AbstractAuthenticatedView,
+								   ModeledContentUploadRequestUtilsMixin):
+	"""
+	Students can POST to the assignment to create their submission.
+
+	The ACL on an assignment will generally limit this to people that
+	are enrolled in the course.
+
+	.. note:: The ACL is currently not implemented; a test will fail when it is.
+
+	"""
+
+	content_predicate = IQAssignmentSubmission.providedBy
+
+	def _do_call(self):
+		creator = self.remoteUser
+
+		submission = self.readCreateUpdateContentObject(creator)
+		# Re-use the same code for putting to a user
+		return component.getMultiAdapter( (self.request, submission),
+										  IExceptionResponse)

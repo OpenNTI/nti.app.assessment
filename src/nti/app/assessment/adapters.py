@@ -51,6 +51,7 @@ def _question_set_submission_transformer( obj ):
 
 from functools import partial
 from pyramid.interfaces import IRequest
+from pyramid.interfaces import IExceptionResponse
 from pyramid.httpexceptions import HTTPCreated
 from pyramid import renderers
 from nti.externalization.oids import to_external_oid
@@ -61,7 +62,8 @@ def _assignment_submission_transformer_factory(request, obj):
 	"Begin the grading process by adapting it to an IQAssignmentSubmissionPendingAssessment."
 	return partial(_assignment_submission_transformer, request)
 
-@interface.implementer(app_interfaces.INewObjectTransformer)
+@component.adapter(IRequest, asm_interfaces.IQAssignmentSubmission)
+@interface.implementer(IExceptionResponse)
 def _assignment_submission_transformer(request, obj):
 	"""
 	Begin the grading process by adapting it to an IQAssignmentSubmissionPendingAssessment.
@@ -114,28 +116,11 @@ def _begin_assessment_for_assignment_submission(submission):
 	# Now, try to find the enclosing course for this assignment.
 	# If one does not exist, we cannot grade because we have nowhere
 	# to dispatch to.
-	# Ideally, the assignment itself knows its enclosing course...
 	course = ICourseInstance(assignment, None)
-	# But if not, it should be located somewhere that can be
-	# adapted to a course instance. For legacy-style courses,
-	# the parent of the assignment will be a IContentUnit,
-	# and eventually an ILegacyCourseConflatedContentPackage
-	# which can become the course (However, these may not
-	# be within an IRoot, so using ILocationInfo may not be safe;
-	# in that case, fall back to straightforward lineage)
-	if course is None:
-		location = ILocationInfo(assignment)
-		try:
-			parents = location.getParents()
-		except TypeError: # Not enough info
-			parents = LocationIterator(assignment)
-
-		for parent in parents:
-			course = ICourseInstance(parent, None)
-			if course is not None:
-				break
 	if course is None:
 		raise ValueError("Course cannot be found") # XXX Better exception
+
+	# TODO: Verify that the assignment belongs to this course
 
 	assignment_history = component.getMultiAdapter( (course, submission.creator),
 													IUsersCourseAssignmentHistory )
@@ -167,6 +152,35 @@ def _begin_assessment_for_assignment_submission(submission):
 	assignment_history.recordSubmission( submission, pending_assessment )
 
 	return pending_assessment
+
+@interface.implementer(ICourseInstance)
+@component.adapter(asm_interfaces.IQAssignment)
+def _course_from_assignment_lineage(assignment):
+	"""
+	Given a generic assignment, we look through
+	its lineage to find a course instance.
+
+	.. note:: Expect this to change. For legacy-style courses,
+	   the parent of the assignment will be a IContentUnit,
+	   and eventually an ILegacyCourseConflatedContentPackage
+	   which can become the course (However, these may not
+	   be within an IRoot, so using ILocationInfo may not be safe;
+       in that case, fall back to straightforward lineage)
+	"""
+	location = ILocationInfo(assignment)
+	try:
+		parents = location.getParents()
+	except TypeError: # Not enough info
+		# Return just the parents; the default returns this object
+		# too
+		parents = LocationIterator(assignment.__parent__)
+
+	course = None
+	for parent in parents:
+		course = ICourseInstance(parent, None)
+		if course is not None:
+			break
+	return course
 
 @interface.implementer(IUsersCourseAssignmentHistory)
 @component.adapter(ICourseInstance,IUser)

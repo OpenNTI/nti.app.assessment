@@ -12,18 +12,23 @@
 
 	<i18n:registerTranslations directory="locales" />
 
+	<!-- Populating questions from content -->
 	<utility factory="._question_map.QuestionMap"
 			 provides="._question_map.IFileQuestionMap"/>
 	<subscriber	handler="._question_map.add_assessment_items_from_new_content" />
 	<subscriber	handler="._question_map.remove_assessment_items_from_oldcontent" />
-	<adapter factory="._question_map._QuestionACLProvider" />
 	<adapter factory="._question_map.ContentUnitAssessmentItems" />
 
+	<!-- Acls -->
+	<adapter factory="._question_map._QuestionACLProvider" />
+
+
+	<!-- Externalization -->
 	<subscriber factory=".adapters._ContentUnitAssessmentItemDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"/>
 
 
-	<!-- Object transformers -->
+	<!-- Object transformers (internalization) -->
 	<adapter factory=".adapters._question_submission_transformer" />
 
 	<adapter factory=".adapters._question_set_submission_transformer" />
@@ -33,5 +38,9 @@
 	<adapter factory=".adapters._begin_assessment_for_assignment_submission" />
 
 	<adapter factory=".adapters._history_for_user_in_course" />
+
+	<!-- Traversal-ish stuff -->
+	<utility factory=".ntiids._AssessmentResolver" name="NAQ" />
+
 
 </configure>

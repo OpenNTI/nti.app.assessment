@@ -71,7 +71,8 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 	def setUpClass(cls):
 		super(TestAssignmentGrading,cls).setUpClass()
 
-		question_set_id = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.set.qset:QUIZ1_aristotle"
+		question_set_id  = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.set.qset:QUIZ1_aristotle"
+		assignment_ntiid = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.asg:QUIZ1_aristotle"
 
 		lib = component.getUtility(IContentPackageLibrary)
 
@@ -83,15 +84,16 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 		assignment_part = QAssignmentPart(question_set=question_set)
 		assignment = QAssignment( parts=(assignment_part,) )
 		assignment.__parent__ = clc
-		assignment.__name__ = 'a'
+		assignment.__name__ = assignment_ntiid
 
 		component.provideUtility( assignment,
 								  provides=asm_interfaces.IQAssignment,
-								  name="a" )
+								  name=assignment_ntiid )
 
 		cls.question_set = question_set
 		cls.assignment = assignment
 		cls.question_set_id = question_set_id
+		cls.assignment_id = assignment_ntiid
 
 	@WithSharedApplicationMockDS
 	def test_wrong_id(self):
@@ -107,7 +109,7 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 
 	@WithSharedApplicationMockDS
 	def test_wrong_parts(self):
-		submission = AssignmentSubmission(assignmentId='a')
+		submission = AssignmentSubmission(assignmentId=self.assignment_id)
 
 		assert_that( calling(IQAssignmentSubmissionPendingAssessment).with_args(submission),
 					 raises(ValueError, 'parts') )
@@ -115,7 +117,7 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 	@WithSharedApplicationMockDS
 	def test_before_open(self):
 		qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id)
-		submission = AssignmentSubmission(assignmentId='a', parts=(qs_submission,))
+		submission = AssignmentSubmission(assignmentId=self.assignment_id, parts=(qs_submission,))
 
 		# Open tomorrow
 		self.assignment.available_for_submission_beginning = (datetime.datetime.now() + datetime.timedelta(days=1))
@@ -129,7 +131,7 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 	@WithSharedApplicationMockDS(users=True)
 	def test_pending(self):
 		qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id)
-		submission = AssignmentSubmission(assignmentId='a', parts=(qs_submission,))
+		submission = AssignmentSubmission(assignmentId=self.assignment_id, parts=(qs_submission,))
 
 		with mock_dataserver.mock_db_trans(self.ds):
 			# No creator
@@ -143,7 +145,7 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 			assert_that( pending.parts, contains(qs_submission))
 
 		# If we try again, we fail
-		submission = AssignmentSubmission(assignmentId='a', parts=(qs_submission,))
+		submission = AssignmentSubmission(assignmentId=self.assignment_id, parts=(qs_submission,))
 		with mock_dataserver.mock_db_trans(self.ds):
 
 			user = User.get_user( self.extra_environ_default_user )
@@ -155,7 +157,7 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 	def test_pending_application(self):
 		# Sends an assignment through the application
 		qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id)
-		submission = AssignmentSubmission(assignmentId='a', parts=(qs_submission,))
+		submission = AssignmentSubmission(assignmentId=self.assignment_id, parts=(qs_submission,))
 
 		ext_obj = to_external_object( submission )
 		# Currently, these must have ContainerIds because they go in the user's

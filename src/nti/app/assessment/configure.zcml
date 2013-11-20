@@ -33,7 +33,7 @@
 
 	<adapter factory=".adapters._question_set_submission_transformer" />
 
-	<adapter factory=".adapters._assignment_submission_transformer" />
+	<adapter factory=".adapters._assignment_submission_transformer_factory" />
 
 	<adapter factory=".adapters._begin_assessment_for_assignment_submission" />
 

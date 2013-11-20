@@ -42,10 +42,22 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 
 
 	def recordSubmission( self, submission, pending ):
+		if submission.__parent__ is not None or pending.__parent__ is not None:
+			raise ValueError("Objects already parented")
+
 		item = UsersCourseAssignmentHistoryItem(Submission=submission,
 												pendingAssessment=pending )
+		submission.__parent__ = item
+		pending.__parent__ = item
+
 		lifecycleevent.created(item)
-		self[submission.assignmentId] = item
+		self[submission.assignmentId] = item # fire object added
+
+		# Fire object added for the submission and assessment, now that they have
+		# homes in the containment tree
+		lifecycleevent.added(submission)
+		lifecycleevent.added(pending)
+
 		return item
 
 

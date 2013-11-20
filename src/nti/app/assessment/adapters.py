@@ -13,6 +13,7 @@ logger = __import__('logging').getLogger(__name__)
 
 from zope import interface
 from zope import component
+from zope import lifecycleevent
 from zope.location import LocationIterator # aka pyramid.location.lineage
 
 from persistent.list import PersistentList
@@ -48,12 +49,38 @@ def _question_set_submission_transformer( obj ):
 	"Grade it, by adapting the object into an IAssessedQuestionSet"
 	return asm_interfaces.IQAssessedQuestionSet
 
+from functools import partial
+from pyramid.interfaces import IRequest
+from pyramid.httpexceptions import HTTPCreated
+from pyramid import renderers
+from nti.externalization.oids import to_external_oid
 
-@component.adapter(asm_interfaces.IQAssignmentSubmission)
+@component.adapter(IRequest, asm_interfaces.IQAssignmentSubmission)
 @interface.implementer(app_interfaces.INewObjectTransformer)
-def _assignment_submission_transformer(obj):
-	"Begin the grading process by adapting it to an IQAssignmentSubmissionPendingAssessment"
-	return asm_interfaces.IQAssignmentSubmissionPendingAssessment
+def _assignment_submission_transformer_factory(request, obj):
+	"Begin the grading process by adapting it to an IQAssignmentSubmissionPendingAssessment."
+	return partial(_assignment_submission_transformer, request)
+
+@interface.implementer(app_interfaces.INewObjectTransformer)
+def _assignment_submission_transformer(request, obj):
+	"""
+	Begin the grading process by adapting it to an IQAssignmentSubmissionPendingAssessment.
+
+	Because the submission and pending assessment is not stored on the
+	user as contained data, we do not actually returned the transformed
+	value. Instead, we take control as documented in our
+	interface and raise a Created exception
+	"""
+	pending = asm_interfaces.IQAssignmentSubmissionPendingAssessment(obj)
+
+	result = request.response = HTTPCreated()
+	# TODO: Shouldn't this be the external NTIID? This is what ugd_edit_views does though
+	result.location = request.resource_url( obj.creator,
+											'Objects',
+											to_external_oid( pending ) )
+	# TODO: Assuming things about the client and renderer.
+	renderers.render_to_response('rest', pending, request)
+	raise result
 
 @component.adapter(asm_interfaces.IQAssignmentSubmission)
 @interface.implementer(asm_interfaces.IQAssignmentSubmissionPendingAssessment)
@@ -115,6 +142,8 @@ def _begin_assessment_for_assignment_submission(submission):
 	if submission.assignmentId in assignment_history:
 		raise ValueError("Assignment already submitted") # XXX Better exception
 
+	submission.containerId = submission.assignmentId
+
 	# Ok, now for each part that can be auto graded, do so, leaving all the others
 	# as-they-are
 	new_parts = PersistentList()
@@ -128,9 +157,12 @@ def _begin_assessment_for_assignment_submission(submission):
 
 	pending_assessment = QAssignmentSubmissionPendingAssessment( assignmentId=submission.assignmentId,
 																 parts=new_parts )
+	pending_assessment.containerId = submission.assignmentId
+	lifecycleevent.created(pending_assessment)
 
 	# Now record the submission. This will broadcast created and
-	# added events for the HistoryItem. The HistoryItem will have
+	# added events for the HistoryItem and an added event for the pending assessment.
+	# The HistoryItem will have
 	# the course in its lineage.
 	assignment_history.recordSubmission( submission, pending_assessment )
 

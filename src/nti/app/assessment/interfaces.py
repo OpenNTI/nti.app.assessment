@@ -15,6 +15,7 @@ logger = __import__('logging').getLogger(__name__)
 from zope import interface
 from zope.interface.common.mapping import IReadMapping
 from zope.container.interfaces import IContained
+from zope.container.interfaces import IContainer
 from zope.container.constraints import contains
 from zope.container.constraints import containers
 
@@ -27,25 +28,27 @@ from nti.assessment.interfaces import IQAssignmentSubmission
 from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 
 
-class IUsersCourseAssignmentHistory(IReadMapping):
+class IUsersCourseAssignmentHistory(IContainer):
 	"""
-	A :class:`IContainer`-like object that stores the history
-	of assignments for a particular user in a course. The keys
-	of this object are :class:`IAssignment` IDs (this class may or may
-	not enforce that the assignment ID is actually scoped to the course
-	it is registered for). The values are instances of :class:`.IUsersCourseAssignmentHistoryItem`.
+	A :class:`IContainer`-like object that stores the history of
+	assignments for a particular user in a course. The keys of this
+	object are :class:`IAssignment` IDs (this class may or may not
+	enforce that the assignment ID is actually scoped to the course it
+	is registered for). The values are instances of
+	:class:`.IUsersCourseAssignmentHistoryItem`.
 
-	Implementations of this object are typically found as a multi-adapter
-	between a particular :class:`.ICourseInstance` and an :class:`.IUser`.
-	Their ``__parent__`` will be the course instance; therefore, items
-	stored in this object will have the course they were assigned by
-	in their lineage.
+	Implementations of this object are typically found as a
+	multi-adapter between a particular :class:`.ICourseInstance` and
+	an :class:`.IUser`. Their ``__parent__`` will be the course
+	instance; therefore, items stored in this object will have the
+	course they were assigned by in their lineage.
 
-	This object is not an :class:`.IContainer` in the sense that it
-	does not emit lifecycle events or otherwise take ownership
-	(claim ``__parent__``) of the objects given to it (though it
-	will take ownership and emit events for the :class:`.IUsersCourseAssignmentHistoryItem`
-	it creates and manages).
+	This object claims storage and ownership of the objects given to it through
+	:meth:`recordSubmission`. Lifecycle events will be emitted for
+	the creation of the :class:`IUsersCourseAssignmentHistoryItem`,
+	the addition of that item, and finally the addition of the pending assessment
+	(at that point, the submission's and pending assessment's ``__parent__``
+	will be the history item which in turn will be parented by this object.)
 	"""
 
 	contains(b'.IUsersCourseAssignmentHistoryItem')

@@ -20,9 +20,9 @@ from hamcrest import is_
 from hamcrest import is_not
 from hamcrest import none
 from hamcrest import has_entry
-from hamcrest import has_entries
-from hamcrest import has_length
-from hamcrest import has_properties
+from hamcrest import has_key
+from hamcrest import contains_string
+from hamcrest import has_property
 from hamcrest import contains
 from hamcrest import calling
 from hamcrest import raises
@@ -154,19 +154,26 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 						 raises(ValueError, 'already submitted') )
 
 	@WithSharedApplicationMockDS(users=True,testapp=True)
-	def test_pending_application(self):
-		# Sends an assignment through the application
+	def test_pending_application_user_data(self):
+		# Sends an assignment through the application by sending it to the user.
 		qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id)
 		submission = AssignmentSubmission(assignmentId=self.assignment_id, parts=(qs_submission,))
 
 		ext_obj = to_external_object( submission )
-		# Currently, these must have ContainerIds because they go in the user's
-		# data for storage, but the container ID doesn't actually matter (has no relationship
+		# If these are posted to the user, they should have a container ID,
+		# but because we are not storing them on the user, it doesn't matter...
+		# it gets replacen anyway
 		# to anything)
 		ext_obj['ContainerId'] = 'tag:nextthought.com,2011-10:mathcounts-HTML-MN.2012.0'
 
 		res = self.post_user_data( ext_obj )
 
+		assert_that( res.status_int, is_( 201 ))
 		assert_that( res.json_body, has_entry( StandardExternalFields.CREATED_TIME, is_( float ) ) )
 		assert_that( res.json_body, has_entry( StandardExternalFields.LAST_MODIFIED, is_( float ) ) )
 		assert_that( res.json_body, has_entry( StandardExternalFields.MIMETYPE, 'application/vnd.nextthought.assessment.assignmentsubmissionpendingassessment' ) )
+
+		assert_that( res.json_body, has_entry( 'ContainerId', self.assignment_id ))
+		assert_that( res.json_body, has_key( 'NTIID' ) )
+
+		assert_that( res, has_property( 'location', contains_string('Objects/')))

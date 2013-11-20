@@ -12,9 +12,14 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 from zope import component
+from zope import interface
+from zope.container.contained import Contained
 
 import pyramid.httpexceptions as hexc
 from pyramid.view import view_config
+from pyramid.view import view_defaults
+
+from nti.utils.property import alias
 
 from nti.dataserver import authorization as nauth
 
@@ -26,6 +31,14 @@ from nti.appserver.contentlibrary.library_views import find_page_info_view_helpe
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssignmentSubmission
+
+from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.app.products.courseware.interfaces import ICourseInstanceEnrollment
+
+from .interfaces import IUsersCourseAssignmentHistory
+
+from nti.appserver.interfaces import IContainerCollection
+
 
 ####
 ## In pyramid 1.4, there is some minor wonkiness with the accept= request predicate.
@@ -82,6 +95,7 @@ from nti.appserver._view_utils import ModeledContentUploadRequestUtilsMixin
 from pyramid.interfaces import IExceptionResponse
 
 @view_config(route_name="objects.generic.traversal",
+			 context=IQAssignment,
 			 renderer='rest',
 			 permission=nauth.ACT_CREATE,
 			 request_method='POST')
@@ -106,3 +120,35 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 		# Re-use the same code for putting to a user
 		return component.getMultiAdapter( (self.request, submission),
 										  IExceptionResponse)
+@view_config(context=ICourseInstance)
+@view_config(context=ICourseInstanceEnrollment)
+@view_defaults(route_name="objects.generic.traversal",
+			   renderer='rest',
+			   permission=nauth.ACT_READ,
+			   request_method='GET',
+			   name='AssignmentHistory')
+class AssignmentHistoryGetView(AbstractAuthenticatedView):
+	"""
+	Students can view their assignment history as ``path/to/course/AssignmentHistory``
+	"""
+
+	@interface.implementer(IContainerCollection)
+	class _HistoryCollection(Contained):
+		"We use a collection for the purposes of externalization. That may not last too long."
+		name = alias('__name__')
+		accepts = ()
+		def __init__(self, container):
+			self.container = container
+
+
+	def __call__(self):
+		user = self.remoteUser
+		course = ICourseInstance(self.request.context)
+		history = component.getMultiAdapter( (course, user),
+											 IUsersCourseAssignmentHistory )
+
+		collection = self._HistoryCollection(history)
+		collection.__parent__ = self.request.context
+		collection.__name__ = self.request.view_name
+
+		return collection

@@ -17,7 +17,7 @@ logger = __import__('logging').getLogger(__name__)
 
 from hamcrest import assert_that
 from hamcrest import is_
-from hamcrest import is_not
+from hamcrest import has_length
 from hamcrest import none
 from hamcrest import has_entry
 from hamcrest import has_key
@@ -170,7 +170,7 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 
 		self._check_submission(res)
 
-	def _check_submission(self, res):
+	def _check_submission(self, res, history=False):
 		assert_that( res.status_int, is_( 201 ))
 		assert_that( res.json_body, has_entry( StandardExternalFields.CREATED_TIME, is_( float ) ) )
 		assert_that( res.json_body, has_entry( StandardExternalFields.LAST_MODIFIED, is_( float ) ) )
@@ -181,6 +181,16 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 
 		assert_that( res, has_property( 'location', contains_string('Objects/')))
 
+		# This object can be found in my history
+		if history:
+			res = self._fetch_user_url( '/Courses/EnrolledCourses/CLC3403/AssignmentHistory' )
+			assert_that( res.json_body, has_entry('href', contains_string('/Courses/EnrolledCourses/CLC3403/AssignmentHistory' )))
+			assert_that( res.json_body, has_entry('Items', has_length(1)))
+		else:
+			# Because we're not enrolled...actually, we shouldn't
+			# have been able to submit
+			self._fetch_user_url( '/Courses/EnrolledCourses/CLC3403/AssignmentHistory', status=404 )
+
 	@WithSharedApplicationMockDS(users=True,testapp=True)
 	def test_pending_application_assignment(self):
 		# Sends an assignment through the application by posting to the assignment
@@ -189,6 +199,11 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 
 		ext_obj = to_external_object( submission )
 
+		# Make sure we're enrolled
+		self.testapp.post_json( '/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses',
+								'CLC 3403',
+								status=201 )
+
 		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id,
 									  ext_obj)
-		self._check_submission(res)
+		self._check_submission(res, True)

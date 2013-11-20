@@ -195,7 +195,6 @@ def _history_for_user_in_course(course,user):
 	away after the course does, and it makes it easy to see
 	\"progress\" within a course.
 	"""
-
 	annotations = IAnnotations(course)
 	try:
 		KEY = 'nti.app.assessment.AssignmentHistory'

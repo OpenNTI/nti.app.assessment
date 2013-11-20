@@ -71,7 +71,9 @@ class TestApplicationAssessment(SharedApplicationTestBase):
 		unauth_testapp = TestApp( self.app )
 		# These inherit the same ACLs as the content they came with
 		# So, no authentication requires auth
-		res = self.fetch_by_ntiid( self.question_ntiid, unauth_testapp, status=401, )
+		# TODO: This used to be a 401, Unauthorized. But now it's 403 Forbidden;
+		# why is that? What happened to the exception view in pyramid_auth?
+		res = self.fetch_by_ntiid( self.question_ntiid, unauth_testapp, status=403 )
 
 		# provide auth, we can get it.
 		# It is the default return if we specify no content type

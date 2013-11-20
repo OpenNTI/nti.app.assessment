@@ -19,7 +19,6 @@ from zope import component
 from zope.annotation import factory as an_factory
 from zope.lifecycleevent.interfaces import IObjectAddedEvent, IObjectRemovedEvent
 
-from nti.appserver import interfaces as app_interfaces
 from nti.assessment import interfaces as asm_interfaces
 from nti.contentfragments import interfaces as cfg_interfaces
 from nti.contentlibrary import interfaces as lib_interfaces
@@ -50,6 +49,9 @@ def _ntiid_object_hook( k, v, x ):
 class _AssessmentItemContainer(list): # non persistent
 	__name__ = None
 	__parent__ = None
+
+	def __reduce__(self):
+		raise TypeError()
 
 ContentUnitAssessmentItems = an_factory(_AssessmentItemContainer)
 

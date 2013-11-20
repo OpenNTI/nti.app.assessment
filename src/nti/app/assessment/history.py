@@ -66,3 +66,5 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 									   Contained,
 									   SchemaConfigured):
 	createDirectFieldProperties(IUsersCourseAssignmentHistoryItem)
+
+	__external_can_create__ = False

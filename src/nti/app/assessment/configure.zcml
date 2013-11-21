@@ -31,8 +31,14 @@
 		modules=".history"
 		/>
 
-	<subscriber factory=".adapters._ContentUnitAssessmentItemDecorator"
+	<subscriber factory=".decorators._ContentUnitAssessmentItemDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"/>
+	<subscriber factory=".decorators._AssignmentHistoryItemDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="nti.contenttypes.courses.interfaces.ICourseInstance"/>
+	<subscriber factory=".decorators._AssignmentHistoryItemDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="nti.app.products.courseware.interfaces.ICourseInstanceEnrollment"/>
 
 
 	<!-- Object transformers (internalization) -->

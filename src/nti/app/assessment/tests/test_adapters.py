@@ -170,7 +170,7 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 
 		self._check_submission(res)
 
-	def _check_submission(self, res, history=False):
+	def _check_submission(self, res, history=None):
 		assert_that( res.status_int, is_( 201 ))
 		assert_that( res.json_body, has_entry( StandardExternalFields.CREATED_TIME, is_( float ) ) )
 		assert_that( res.json_body, has_entry( StandardExternalFields.LAST_MODIFIED, is_( float ) ) )
@@ -183,12 +183,13 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 
 		# This object can be found in my history
 		if history:
-			res = self._fetch_user_url( '/Courses/EnrolledCourses/CLC3403/AssignmentHistory' )
+			res = self.testapp.get(history)
 			assert_that( res.json_body, has_entry('href', contains_string('/Courses/EnrolledCourses/CLC3403/AssignmentHistory' )))
 			assert_that( res.json_body, has_entry('Items', has_length(1)))
 		else:
 			# Because we're not enrolled...actually, we shouldn't
-			# have been able to submit
+			# have been able to submit...this is here to make sure something
+			# breaks when acls change
 			self._fetch_user_url( '/Courses/EnrolledCourses/CLC3403/AssignmentHistory', status=404 )
 
 	@WithSharedApplicationMockDS(users=True,testapp=True)
@@ -200,10 +201,11 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 		ext_obj = to_external_object( submission )
 
 		# Make sure we're enrolled
-		self.testapp.post_json( '/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses',
-								'CLC 3403',
-								status=201 )
+		res = self.testapp.post_json( '/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses',
+									  'CLC 3403',
+									  status=201 )
+		history_link = self.require_link_href_with_rel( res.json_body, 'AssignmentHistory')
 
 		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id,
 									  ext_obj)
-		self._check_submission(res, True)
+		self._check_submission(res, history_link)

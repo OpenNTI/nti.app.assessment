@@ -120,6 +120,8 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 		# Re-use the same code for putting to a user
 		return component.getMultiAdapter( (self.request, submission),
 										  IExceptionResponse)
+
+
 @view_config(context=ICourseInstance)
 @view_config(context=ICourseInstanceEnrollment)
 @view_defaults(route_name="objects.generic.traversal",
@@ -131,6 +133,8 @@ class AssignmentHistoryGetView(AbstractAuthenticatedView):
 	"""
 	Students can view their assignment history as ``path/to/course/AssignmentHistory``
 	"""
+
+	# Note the view_config above overlaps with things in decorators.
 
 	@interface.implementer(IContainerCollection)
 	class _HistoryCollection(Contained):

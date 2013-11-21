@@ -55,8 +55,9 @@
 
 	<adapter factory=".adapters._course_from_assignment_lineage" />
 
+	<adapter factory=".adapters._historyitem_to_course" />
+	
 	<!-- Traversal-ish stuff -->
 	<utility factory=".ntiids._AssessmentResolver" name="NAQ" />
-
 
 </configure>

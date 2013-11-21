@@ -5,37 +5,37 @@ Adapters for application-level events.
 
 $Id$
 """
-
 from __future__ import print_function, unicode_literals, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+import datetime
+
 from zope import interface
 from zope import component
 from zope import lifecycleevent
 from zope.location import LocationIterator # aka pyramid.location.lineage
+from zope.location.interfaces import ILocationInfo
+from zope.annotation.interfaces import IAnnotations
 
-from persistent.list import PersistentList
 from BTrees.OOBTree import BTree as OOBTree
 
-import datetime
+from persistent.list import PersistentList
 
 from nti.appserver import interfaces as app_interfaces
+
 from nti.assessment import interfaces as asm_interfaces
-from nti.externalization import interfaces as ext_interfaces
-from .interfaces import IUsersCourseAssignmentHistory
-from zope.annotation.interfaces import IAnnotations
-from nti.dataserver.interfaces import IUser
-
-from zope.location.interfaces import ILocationInfo
-from nti.contenttypes.courses.interfaces import ICourseInstance
-
-from nti.externalization.externalization import to_external_object
-from nti.externalization.singleton import SingletonDecorator
 
 from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
+
+from nti.contenttypes.courses.interfaces import ICourseInstance
+
+from nti.dataserver.interfaces import IUser
+
 from .history import UsersCourseAssignmentHistory
+from .interfaces import IUsersCourseAssignmentHistory
+from .interfaces import IUsersCourseAssignmentHistoryItem
 
 @component.adapter(asm_interfaces.IQuestionSubmission)
 @interface.implementer(app_interfaces.INewObjectTransformer)
@@ -206,9 +206,16 @@ def _history_for_user_in_course(course,user):
 	try:
 		history = histories[user.username]
 	except KeyError:
-		history = UsersCourseAssignmentHistory()
+		history = UsersCourseAssignmentHistory(user.username)
 		history.__name__ = 'AssignmentHistory'
 		history.__parent__ = course
 		histories[user.username] = history
 
 	return history
+
+@interface.implementer(ICourseInstance)
+@component.adapter(IUsersCourseAssignmentHistoryItem)
+def _historyitem_to_course(item):
+	history = getattr(item, '__parent__', None)
+	course = getattr(history, '__parent__', None)
+	return course

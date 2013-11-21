@@ -22,6 +22,7 @@ from zope.cachedescriptors.property import Lazy
 
 from .interfaces import IUsersCourseAssignmentHistory
 from .interfaces import IUsersCourseAssignmentHistoryItem
+from .feedback import UsersCourseAssignmentHistoryItemFeedbackContainer
 
 from zope.container.contained import Contained
 

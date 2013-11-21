@@ -208,6 +208,7 @@ def _history_for_user_in_course(course,user):
 		history = UsersCourseAssignmentHistory()
 		history.__name__ = 'AssignmentHistory'
 		history.__parent__ = course
+		history.owner = user
 		histories[user.username] = history
 
 	return history

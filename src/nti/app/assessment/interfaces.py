@@ -13,7 +13,7 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 from zope import interface
-from zope.interface.common.mapping import IReadMapping
+
 from zope.container.interfaces import IContained
 from zope.container.interfaces import IContainer
 from zope.container.interfaces import IContainerNamesContainer
@@ -22,12 +22,13 @@ from zope.container.constraints import containers
 
 from nti.utils import schema
 
-from nti.dataserver.interfaces import ILastModified
-from nti.dataserver.interfaces import ICreated
-from nti.dataserver.interfaces import IModeledContent
-from nti.dataserver.interfaces import ITitledContent
-from nti.dataserver.interfaces import INeverStoredInSharedStream
 from nti.dataserver.interfaces import CompoundModeledContentBody
+from nti.dataserver.interfaces import ICreated
+from nti.dataserver.interfaces import ILastModified
+from nti.dataserver.interfaces import IModeledContent
+from nti.dataserver.interfaces import INeverStoredInSharedStream
+from nti.dataserver.interfaces import ITitledContent
+from nti.dataserver.interfaces import IUser
 
 
 from nti.assessment.interfaces import IQAssignmentSubmission
@@ -58,6 +59,10 @@ class IUsersCourseAssignmentHistory(IContainer):
 	"""
 
 	contains(b'.IUsersCourseAssignmentHistoryItem')
+
+	owner = schema.Object(IUser,
+						  required=False,
+						  title="The user this history is for.")
 
 	def recordSubmission( submission, pending_assessment ):
 		"""

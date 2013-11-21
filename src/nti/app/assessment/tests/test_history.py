@@ -23,9 +23,6 @@ from hamcrest import has_entry
 from nti.testing import base
 from nti.testing.matchers import validly_provides
 
-setUpModule = lambda: base.module_setup(set_up_packages=(__name__,))
-tearDownModule = base.module_teardown
-
 from ..history import UsersCourseAssignmentHistory
 from ..history import UsersCourseAssignmentHistoryItem
 
@@ -35,8 +32,19 @@ from ..interfaces import IUsersCourseAssignmentHistory
 from nti.assessment.submission import AssignmentSubmission
 from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
 
+from nti.dataserver.users import User
+from nti.dataserver.interfaces import IUser
+import weakref
+
+setUpModule = lambda: base.module_setup(set_up_packages=(__name__,))
+tearDownModule = base.module_teardown
+
+
 def test_provides():
 	history = UsersCourseAssignmentHistory()
+	# Set an owner; use a python wref instead of the default
+	# adapter to wref as it requires an intid utility
+	history.owner = weakref.ref(User('sjohnson@nextthought.com'))
 	item = UsersCourseAssignmentHistoryItem()
 	item.creator = 'foo'
 	item.__parent__ = history
@@ -45,6 +53,8 @@ def test_provides():
 
 	assert_that( history,
 				 validly_provides(IUsersCourseAssignmentHistory))
+	assert_that( IUser(item), is_(history.owner))
+	assert_that( IUser(history), is_(history.owner))
 
 def test_record():
 	history = UsersCourseAssignmentHistory()

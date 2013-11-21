@@ -28,9 +28,14 @@ from zope.container.contained import Contained
 
 from nti.utils.schema import SchemaConfigured
 from nti.utils.schema import createDirectFieldProperties
+from nti.utils.property import alias
 
 from nti.dataserver.datastructures import PersistentCreatedModDateTrackingObject
 from nti.dataserver.containers import CheckingLastModifiedBTreeContainer
+
+from nti.dataserver.interfaces import IUser
+
+from nti.wref.interfaces import IWeakRef
 
 @interface.implementer(IUsersCourseAssignmentHistory)
 class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
@@ -43,6 +48,18 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 	container interface, we do provide it as a side effect.
 	"""
 
+	#: An :class:`.IWeakRef` to the owning user, who is probably
+	#: not in our lineage.
+	_owner_ref = None
+
+	def _get_owner(self):
+		return self._owner_ref() if self._owner_ref else None
+	def _set_owner(self,owner):
+		self._owner_ref = IWeakRef(owner)
+	owner = property(_get_owner,_set_owner)
+
+	#: A non-interface attribute for convenience
+	creator = alias('owner')
 
 	def recordSubmission( self, submission, pending ):
 		if submission.__parent__ is not None or pending.__parent__ is not None:
@@ -63,6 +80,10 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 
 		return item
 
+	def __conform__(self, iface):
+		if IUser.isOrExtends(iface):
+			return self.owner
+
 
 @interface.implementer(IUsersCourseAssignmentHistoryItem)
 class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
@@ -79,3 +100,10 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 		container.__name__ = 'Feedback'
 		self._p_changed = True
 		return container
+
+	def __conform__(self, iface):
+		if IUser.isOrExtends(iface):
+			try:
+				return self.__parent__.owner
+			except AttributeError:
+				return None

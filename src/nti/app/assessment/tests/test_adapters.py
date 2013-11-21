@@ -184,7 +184,7 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 		# This object can be found in my history
 		if history:
 			res = self.testapp.get(history)
-			assert_that( res.json_body, has_entry('href', contains_string('/Courses/EnrolledCourses/CLC3403/AssignmentHistory' )))
+			assert_that( res.json_body, has_entry('href', contains_string(history) ) )
 			assert_that( res.json_body, has_entry('Items', has_length(1)))
 		else:
 			# Because we're not enrolled...actually, we shouldn't
@@ -204,8 +204,12 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 		res = self.testapp.post_json( '/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses',
 									  'CLC 3403',
 									  status=201 )
-		history_link = self.require_link_href_with_rel( res.json_body, 'AssignmentHistory')
+		enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'AssignmentHistory')
+		course_history_link = self.require_link_href_with_rel( res.json_body['CourseInstance'], 'AssignmentHistory')
 
 		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id,
 									  ext_obj)
-		self._check_submission(res, history_link)
+		self._check_submission(res, enrollment_history_link)
+
+
+		self._check_submission( res, course_history_link )

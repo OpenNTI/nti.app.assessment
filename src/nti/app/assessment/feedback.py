@@ -23,6 +23,7 @@ from nti.dataserver.datastructures import ContainedMixin
 from nti.dataserver.datastructures import PersistentCreatedModDateTrackingObject
 
 from nti.utils.schema import AdaptingFieldProperty
+from nti.utils.schema import SchemaConfigured
 from nti.dataserver.contenttypes.note import BodyFieldProperty
 
 from zope.container.ordered import OrderedContainer
@@ -34,6 +35,7 @@ from nti.wref.interfaces import IWeakRef
 @interface.implementer(IUsersCourseAssignmentHistoryItemFeedback,
 					   IAttributeAnnotatable)
 class UsersCourseAssignmentHistoryItemFeedback(PersistentCreatedModDateTrackingObject,
+											   SchemaConfigured,
 											   ContainedMixin):
 
 	mimeType = None

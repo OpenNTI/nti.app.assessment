@@ -18,7 +18,7 @@ logger = __import__('logging').getLogger(__name__)
 from hamcrest import assert_that
 from hamcrest import is_
 from hamcrest import has_length
-from hamcrest import none
+from hamcrest import has_item
 from hamcrest import has_entry
 from hamcrest import has_key
 from hamcrest import contains_string
@@ -231,3 +231,4 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 		history_res = self.testapp.get(course_history_link)
 		feedback = history_res.json_body['Items'].items()[0][1]['Feedback']
 		assert_that( feedback, has_entry('Items', has_length(1)))
+		assert_that( feedback['Items'], has_item( has_entry( 'body', ['Some feedback'])))

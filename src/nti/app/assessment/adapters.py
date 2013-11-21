@@ -16,17 +16,16 @@ from zope import interface
 from zope import component
 from zope import lifecycleevent
 from zope.location import LocationIterator # aka pyramid.location.lineage
+from pyramid.traversal import find_interface
 from zope.location.interfaces import ILocationInfo
 from zope.annotation.interfaces import IAnnotations
 
 from BTrees.OOBTree import BTree as OOBTree
-
 from persistent.list import PersistentList
 
 from nti.appserver import interfaces as app_interfaces
 
 from nti.assessment import interfaces as asm_interfaces
-
 from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -206,7 +205,7 @@ def _history_for_user_in_course(course,user):
 	try:
 		history = histories[user.username]
 	except KeyError:
-		history = UsersCourseAssignmentHistory(user.username)
+		history = UsersCourseAssignmentHistory()
 		history.__name__ = 'AssignmentHistory'
 		history.__parent__ = course
 		histories[user.username] = history
@@ -215,7 +214,8 @@ def _history_for_user_in_course(course,user):
 
 @interface.implementer(ICourseInstance)
 @component.adapter(IUsersCourseAssignmentHistoryItem)
-def _historyitem_to_course(item):
-	history = getattr(item, '__parent__', None)
-	course = getattr(history, '__parent__', None)
-	return course
+def _course_from_history_item_lineage(item):
+	course = find_interface(item, ICourseInstance)
+	if course is None:
+		__traceback_info__ = item
+		raise TypeError("Unable to find course")

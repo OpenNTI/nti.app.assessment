@@ -16,6 +16,7 @@ from zope import interface
 from zope.interface.common.mapping import IReadMapping
 from zope.container.interfaces import IContained
 from zope.container.interfaces import IContainer
+from zope.container.interfaces import IContainerNamesContainer
 from zope.container.constraints import contains
 from zope.container.constraints import containers
 
@@ -23,6 +24,11 @@ from nti.utils import schema
 
 from nti.dataserver.interfaces import ILastModified
 from nti.dataserver.interfaces import ICreated
+from nti.dataserver.interfaces import IModeledContent
+from nti.dataserver.interfaces import ITitledContent
+from nti.dataserver.interfaces import INeverStoredInSharedStream
+from nti.dataserver.interfaces import CompoundModeledContentBody
+
 
 from nti.assessment.interfaces import IQAssignmentSubmission
 from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
@@ -69,6 +75,12 @@ class IUsersCourseAssignmentHistory(IContainer):
 			the record of this submission.
 		"""
 
+class IUsersCourseAssignmentHistoryItemFeedbackContainer(IContainerNamesContainer):
+	"""
+	A container for feedback items.
+	"""
+	contains(str('.IUsersCourseAssignmentHistoryItemFeedback'))
+
 class IUsersCourseAssignmentHistoryItem(IContained,
 										ILastModified,
 										ICreated):
@@ -88,3 +100,19 @@ class IUsersCourseAssignmentHistoryItem(IContained,
 	# in place if needed.
 	pendingAssessment = schema.Object(IQAssignmentSubmissionPendingAssessment,
 									  required=False)
+
+	Feedback = schema.Object(IUsersCourseAssignmentHistoryItemFeedbackContainer,
+							 required=False)
+
+class IUsersCourseAssignmentHistoryItemFeedback(IContained,
+												IModeledContent,
+												ITitledContent,
+												INeverStoredInSharedStream):
+	"""
+	A feedback item on a history item.
+	"""
+
+	containers(IUsersCourseAssignmentHistoryItemFeedbackContainer) # Adds __parent__ as required
+	__parent__.required = False
+
+	body = CompoundModeledContentBody()

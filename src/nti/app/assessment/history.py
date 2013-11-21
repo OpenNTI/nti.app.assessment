@@ -18,6 +18,8 @@ logger = __import__('logging').getLogger(__name__)
 from zope import interface
 from zope import lifecycleevent
 
+from zope.cachedescriptors.property import Lazy
+
 from .interfaces import IUsersCourseAssignmentHistory
 from .interfaces import IUsersCourseAssignmentHistoryItem
 
@@ -68,3 +70,11 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 	createDirectFieldProperties(IUsersCourseAssignmentHistoryItem)
 
 	__external_can_create__ = False
+
+	@Lazy
+	def Feedback(self):
+		container = UsersCourseAssignmentHistoryItemFeedbackContainer()
+		container.__parent__ = self
+		container.__name__ = 'Feedback'
+		self._p_changed = True
+		return container

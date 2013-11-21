@@ -91,9 +91,6 @@ class IUsersCourseAssignmentHistoryItem(IContained,
 	"""
 	containers(IUsersCourseAssignmentHistory)
 
-	assignmentId = schema.TextLine(title="Identifier of the assignment.",
-						  		   readonly=False, required=False)
-
 	# Recall that the implementation of AssignmentSubmission is NOT
 	# Persistent.
 	Submission = schema.Object(IQAssignmentSubmission,

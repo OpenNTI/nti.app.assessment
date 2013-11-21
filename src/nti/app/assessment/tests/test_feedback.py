@@ -30,7 +30,9 @@ from nti.testing.matchers import validly_provides
 
 
 def test_interfaces():
-	assert_that( feedback.UsersCourseAssignmentHistoryItemFeedback(),
+	item = feedback.UsersCourseAssignmentHistoryItemFeedback()
+	item.creator = 'foo' # anything is accepted eventually
+	assert_that( item,
 				 validly_provides( interfaces.IUsersCourseAssignmentHistoryItemFeedback ))
 
 	assert_that( feedback.UsersCourseAssignmentHistoryItemFeedbackContainer(),

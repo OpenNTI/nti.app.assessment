@@ -86,6 +86,11 @@ class IUsersCourseAssignmentHistoryItemFeedbackContainer(IContainerNamesContaine
 	"""
 	contains(str('.IUsersCourseAssignmentHistoryItemFeedback'))
 
+	Items = schema.List(title="The contained feedback items",
+						description="Unlike forums, we expect very few of these, so we "
+						"inline them for externalization.",
+						readonly=True)
+
 class IUsersCourseAssignmentHistoryItem(IContained,
 										ILastModified,
 										ICreated):

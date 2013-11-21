@@ -54,6 +54,7 @@ from nti.assessment import interfaces as asm_interfaces
 from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 
 from ..adapters import _begin_assessment_for_assignment_submission
+from ..feedback import UsersCourseAssignmentHistoryItemFeedback
 
 class TestAssignmentGrading(SharedApplicationTestBase):
 
@@ -190,7 +191,9 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 			# Because we're not enrolled...actually, we shouldn't
 			# have been able to submit...this is here to make sure something
 			# breaks when acls change
-			self._fetch_user_url( '/Courses/EnrolledCourses/CLC3403/AssignmentHistory', status=404 )
+			res = self._fetch_user_url( '/Courses/EnrolledCourses/CLC3403/AssignmentHistory', status=404 )
+
+		return res
 
 	@WithSharedApplicationMockDS(users=True,testapp=True)
 	def test_pending_application_assignment(self):
@@ -212,4 +215,19 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 		self._check_submission(res, enrollment_history_link)
 
 
-		self._check_submission( res, course_history_link )
+		history_res = self._check_submission( res, course_history_link )
+		__traceback_info__ = history_res.json_body
+		# They don't have an href yet.
+		# TODO: Get them one
+		history_feedback_ntiid = history_res.json_body['Items'].items()[0][1]['Feedback']['NTIID']
+
+		feedback = UsersCourseAssignmentHistoryItemFeedback(body=['Some feedback'])
+		ext_feedback = to_external_object(feedback)
+		__traceback_info__ = ext_feedback
+		res = self.testapp.post_json( '/dataserver2/Objects/' + history_feedback_ntiid,
+									  ext_feedback,
+									  status=201 )
+
+		history_res = self.testapp.get(course_history_link)
+		feedback = history_res.json_body['Items'].items()[0][1]['Feedback']
+		assert_that( feedback, has_entry('Items', has_length(1)))

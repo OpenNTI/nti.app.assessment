@@ -58,7 +58,8 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 		self._owner_ref = IWeakRef(owner)
 	owner = property(_get_owner,_set_owner)
 
-	#: A non-interface attribute for convenience
+	#: A non-interface attribute for convenience (especially with early
+	#: acls, since we are ICreated we get that by default)
 	creator = alias('owner')
 
 	def recordSubmission( self, submission, pending ):
@@ -107,3 +108,12 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 				return self.__parent__.owner
 			except AttributeError:
 				return None
+
+	@property
+	def creator(self):
+		# For ACL purposes, not part of the interface
+		return IUser(self)
+	@creator.setter
+	def creator(self, nv):
+		# Ignored
+		pass

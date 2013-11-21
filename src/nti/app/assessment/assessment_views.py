@@ -36,6 +36,8 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.app.products.courseware.interfaces import ICourseInstanceEnrollment
 
 from .interfaces import IUsersCourseAssignmentHistory
+from .interfaces import IUsersCourseAssignmentHistoryItemFeedbackContainer
+from .interfaces import IUsersCourseAssignmentHistoryItemFeedback
 
 from nti.appserver.interfaces import IContainerCollection
 
@@ -156,3 +158,36 @@ class AssignmentHistoryGetView(AbstractAuthenticatedView):
 		collection.__name__ = self.request.view_name
 
 		return collection
+
+from nti.externalization.oids import to_external_oid
+@view_config(route_name="objects.generic.traversal",
+			 context=IUsersCourseAssignmentHistoryItemFeedbackContainer,
+			 renderer='rest',
+			 permission=nauth.ACT_CREATE,
+			 request_method='POST')
+class AsssignmentHistoryItemFeedbackPostView(AbstractAuthenticatedView,
+											 ModeledContentUploadRequestUtilsMixin):
+	"""
+	Students/faculty can POST to the history item's Feedback collection
+	to create a feedback node.
+
+	The ACL will limit this to the student himself and the teacher(s) of the
+	course.
+
+	.. note:: The ACL is not currently implemented.
+	"""
+
+	content_predicate = IUsersCourseAssignmentHistoryItemFeedback
+
+	def _do_call(self):
+		creator = self.remoteUser
+		feedback = self.readCreateUpdateContentObject(creator)
+		self.request.context['ignored'] = feedback
+
+		self.request.response.status_int = 201
+		# TODO: Shouldn't this be the external NTIID? This is what ugd_edit_views does though
+		self.request.response.location = self.request.resource_url( creator,
+																	'Objects',
+																	to_external_oid( feedback ) )
+
+		return feedback

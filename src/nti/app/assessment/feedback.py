@@ -28,6 +28,8 @@ from nti.dataserver.contenttypes.note import BodyFieldProperty
 from zope.container.ordered import OrderedContainer
 from zope.container.constraints import checkObject
 
+from nti.dataserver.interfaces import IUser
+from nti.wref.interfaces import IWeakRef
 
 @interface.implementer(IUsersCourseAssignmentHistoryItemFeedback,
 					   IAttributeAnnotatable)
@@ -40,6 +42,25 @@ class UsersCourseAssignmentHistoryItemFeedback(PersistentCreatedModDateTrackingO
 	body = BodyFieldProperty(IUsersCourseAssignmentHistoryItemFeedback['body'])
 	title = AdaptingFieldProperty(IUsersCourseAssignmentHistoryItemFeedback['title'])
 
+	@property
+	def creator(self):
+		# as a Created object, we need to have a creator;
+		# our default ACL provider uses that
+		if self.__dict__.get('creator') is not None:
+			creator = self.__dict__['creator']
+			return creator() if callable(creator) else creator
+
+		return IUser(self.__parent__.__parent__)
+
+	@creator.setter
+	def creator(self,nv):
+		if nv is None:
+			return
+		try:
+			self.__dict__['creator'] = IWeakRef(nv)
+		except TypeError:
+			self.__dict__['creator'] = nv
+		self._p_changed = True
 
 @interface.implementer(IUsersCourseAssignmentHistoryItemFeedbackContainer,
 					   IAttributeAnnotatable)
@@ -58,5 +79,15 @@ class UsersCourseAssignmentHistoryItemFeedbackContainer(PersistentCreatedModDate
 		key = str(len(self))
 		checkObject(self, key, value )
 
-		super.__setitem__( key, value )
-		self.updateLastModified()
+		super(UsersCourseAssignmentHistoryItemFeedbackContainer,self).__setitem__( key, value )
+		self.updateLastMod()
+
+	@property
+	def Items(self):
+		return list(self.values())
+
+	@property
+	def creator(self):
+		# as a Created object, we need to have a creator;
+		# our default ACL provider uses that
+		return IUser(self.__parent__)

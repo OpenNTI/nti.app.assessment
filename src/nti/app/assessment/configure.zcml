@@ -27,8 +27,10 @@
 	<!-- Externalization -->
 	<include package="nti.externalization" file="meta.zcml" />
 	<ext:registerAutoPackageIO
-		root_interfaces=".interfaces.IUsersCourseAssignmentHistoryItem"
-		modules=".history"
+		root_interfaces=".interfaces.IUsersCourseAssignmentHistoryItem 
+						 .interfaces.IUsersCourseAssignmentHistoryItemFeedback
+						 .interfaces.IUsersCourseAssignmentHistoryItemFeedbackContainer"
+		modules=".history .feedback"
 		/>
 
 	<subscriber factory=".decorators._ContentUnitAssessmentItemDecorator"

@@ -72,6 +72,12 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 
 	__external_can_create__ = False
 
+	@property
+	def assignmentId(self):
+		result = getattr(self.Submission, 'assignmentId',
+						 getattr(self.pendingAssessment, 'assignmentId', None))
+		return result
+
 	@Lazy
 	def Feedback(self):
 		container = UsersCourseAssignmentHistoryItemFeedbackContainer()

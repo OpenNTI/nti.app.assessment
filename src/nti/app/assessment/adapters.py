@@ -220,3 +220,5 @@ def _course_from_history_item_lineage(item):
 	if course is None:
 		__traceback_info__ = item
 		raise TypeError("Unable to find course")
+
+	return course

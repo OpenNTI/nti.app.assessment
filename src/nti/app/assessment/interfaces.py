@@ -27,6 +27,7 @@ from nti.dataserver.interfaces import ICreated
 from nti.dataserver.interfaces import ILastModified
 from nti.dataserver.interfaces import IModeledContent
 from nti.dataserver.interfaces import INeverStoredInSharedStream
+from nti.dataserver.interfaces import IShouldHaveTraversablePath
 from nti.dataserver.interfaces import ITitledContent
 from nti.dataserver.interfaces import IUser
 
@@ -35,7 +36,8 @@ from nti.assessment.interfaces import IQAssignmentSubmission
 from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 
 
-class IUsersCourseAssignmentHistory(IContainer):
+class IUsersCourseAssignmentHistory(IContainer,
+									IShouldHaveTraversablePath):
 	"""
 	A :class:`IContainer`-like object that stores the history of
 	assignments for a particular user in a course. The keys of this
@@ -80,7 +82,8 @@ class IUsersCourseAssignmentHistory(IContainer):
 			the record of this submission.
 		"""
 
-class IUsersCourseAssignmentHistoryItemFeedbackContainer(IContainerNamesContainer):
+class IUsersCourseAssignmentHistoryItemFeedbackContainer(IContainerNamesContainer,
+														 IShouldHaveTraversablePath):
 	"""
 	A container for feedback items.
 	"""
@@ -93,7 +96,8 @@ class IUsersCourseAssignmentHistoryItemFeedbackContainer(IContainerNamesContaine
 
 class IUsersCourseAssignmentHistoryItem(IContained,
 										ILastModified,
-										ICreated):
+										ICreated,
+										IShouldHaveTraversablePath):
 	"""
 	A record of something being submitted for an assignment.
 
@@ -117,7 +121,8 @@ class IUsersCourseAssignmentHistoryItem(IContained,
 class IUsersCourseAssignmentHistoryItemFeedback(IContained,
 												IModeledContent,
 												ITitledContent,
-												INeverStoredInSharedStream):
+												INeverStoredInSharedStream,
+												IShouldHaveTraversablePath):
 	"""
 	A feedback item on a history item.
 	"""

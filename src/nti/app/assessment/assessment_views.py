@@ -126,6 +126,8 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 
 @view_config(context=ICourseInstance)
 @view_config(context=ICourseInstanceEnrollment)
+@view_config(context=IUsersCourseAssignmentHistory,
+			 name='') # The first two are legacy and can go away
 @view_defaults(route_name="objects.generic.traversal",
 			   renderer='rest',
 			   permission=nauth.ACT_READ,

@@ -22,6 +22,7 @@ from hamcrest import has_item
 from hamcrest import has_entry
 from hamcrest import has_key
 from hamcrest import contains_string
+from hamcrest import ends_with
 from hamcrest import has_property
 from hamcrest import contains
 from hamcrest import calling
@@ -184,6 +185,7 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 
 		# This object can be found in my history
 		if history:
+			__traceback_info__ = history
 			res = self.testapp.get(history)
 			assert_that( res.json_body, has_entry('href', contains_string(history) ) )
 			assert_that( res.json_body, has_entry('Items', has_length(1)))
@@ -217,14 +219,12 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 
 		history_res = self._check_submission( res, course_history_link )
 		__traceback_info__ = history_res.json_body
-		# They don't have an href yet.
-		# TODO: Get them one
-		history_feedback_ntiid = history_res.json_body['Items'].items()[0][1]['Feedback']['NTIID']
+		history_feedback_container_href = history_res.json_body['Items'].items()[0][1]['Feedback']['href']
 
 		feedback = UsersCourseAssignmentHistoryItemFeedback(body=['Some feedback'])
 		ext_feedback = to_external_object(feedback)
 		__traceback_info__ = ext_feedback
-		res = self.testapp.post_json( '/dataserver2/Objects/' + history_feedback_ntiid,
+		res = self.testapp.post_json( history_feedback_container_href,
 									  ext_feedback,
 									  status=201 )
 
@@ -232,3 +232,4 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 		feedback = history_res.json_body['Items'].items()[0][1]['Feedback']
 		assert_that( feedback, has_entry('Items', has_length(1)))
 		assert_that( feedback['Items'], has_item( has_entry( 'body', ['Some feedback'])))
+		assert_that( feedback['Items'], has_item( has_entry( 'href', ends_with('Feedback/0') ) ) )

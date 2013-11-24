@@ -22,6 +22,7 @@ from zope.cachedescriptors.property import Lazy
 
 from .interfaces import IUsersCourseAssignmentHistory
 from .interfaces import IUsersCourseAssignmentHistoryItem
+from nti.contenttypes.courses.interfaces import ICourseInstance
 from .feedback import UsersCourseAssignmentHistoryItemFeedbackContainer
 
 from zope.container.contained import Contained
@@ -84,6 +85,8 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 	def __conform__(self, iface):
 		if IUser.isOrExtends(iface):
 			return self.owner
+		if ICourseInstance.isOrExtends(iface):
+			return self.__parent__
 
 
 @interface.implementer(IUsersCourseAssignmentHistoryItem)

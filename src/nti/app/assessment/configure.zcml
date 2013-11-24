@@ -43,6 +43,19 @@
 				for="nti.app.products.courseware.interfaces.ICourseInstanceEnrollment"/>
 
 
+	<!-- hrefs -->
+	<!-- NOTE: This is the general implementation; could be better -->
+	<subscriber factory="nti.appserver.pyramid_renderers_edit_link_decorator.EditLinkDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for=".interfaces.IUsersCourseAssignmentHistoryItem" />
+	<subscriber factory="nti.appserver.pyramid_renderers_edit_link_decorator.EditLinkDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for=".interfaces.IUsersCourseAssignmentHistoryItemFeedback" />
+	<subscriber factory="nti.appserver.pyramid_renderers_edit_link_decorator.EditLinkDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for=".interfaces.IUsersCourseAssignmentHistoryItemFeedbackContainer" />
+
+
 	<!-- Object transformers (internalization) -->
 	<adapter factory=".adapters._question_submission_transformer" />
 
@@ -61,5 +74,8 @@
 
 	<!-- Traversal-ish stuff -->
 	<utility factory=".ntiids._AssessmentResolver" name="NAQ" />
-
+	<adapter factory=".adapters._history_for_user_in_course_path_adapter"
+			 for="nti.contenttypes.courses.interfaces.ICourseInstance pyramid.interfaces.IRequest"
+			 provides="zope.traversing.interfaces.IPathAdapter"
+			 name="AssignmentHistory" />
 </configure>

@@ -213,6 +213,12 @@ def _history_for_user_in_course(course,user):
 
 	return history
 
+from nti.appserver._view_utils import get_remote_user
+def _history_for_user_in_course_path_adapter(course, request):
+	user = get_remote_user(request)
+	return component.getMultiAdapter( (ICourseInstance(course),user),
+									  IUsersCourseAssignmentHistory )
+
 @interface.implementer(ICourseInstance)
 @component.adapter(IUsersCourseAssignmentHistoryItem)
 def _course_from_history_item_lineage(item):

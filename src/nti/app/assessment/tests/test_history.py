@@ -67,3 +67,5 @@ def test_record():
 	assert_that( item, has_property( '__name__', is_( submission.assignmentId)) )
 
 	assert_that( item.__parent__, is_( history ))
+
+	assert_that( history, has_property( 'lastViewed', 0 ))

@@ -57,6 +57,8 @@ from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 from ..adapters import _begin_assessment_for_assignment_submission
 from ..feedback import UsersCourseAssignmentHistoryItemFeedback
 
+from urllib import unquote
+
 class TestAssignmentGrading(SharedApplicationTestBase):
 
 
@@ -187,8 +189,9 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 		if history:
 			__traceback_info__ = history
 			res = self.testapp.get(history)
-			assert_that( res.json_body, has_entry('href', contains_string(history) ) )
+			assert_that( res.json_body, has_entry('href', contains_string(unquote(history)) ) )
 			assert_that( res.json_body, has_entry('Items', has_length(1)))
+			assert_that( res.json_body, has_entry('lastViewed', 0))
 		else:
 			# Because we're not enrolled...actually, we shouldn't
 			# have been able to submit...this is here to make sure something
@@ -233,3 +236,9 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 		assert_that( feedback, has_entry('Items', has_length(1)))
 		assert_that( feedback['Items'], has_item( has_entry( 'body', ['Some feedback'])))
 		assert_that( feedback['Items'], has_item( has_entry( 'href', ends_with('Feedback/0') ) ) )
+
+		# We can modify the view date by putting to the field
+		last_viewed_href = course_history_link + '/lastViewed'
+		res = self.testapp.put_json(last_viewed_href, 1234)
+		history_res = self.testapp.get(course_history_link)
+		assert_that(history_res.json_body, has_entry('lastViewed', 1234))

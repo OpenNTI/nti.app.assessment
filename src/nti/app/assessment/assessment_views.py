@@ -14,8 +14,12 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope import interface
 from zope.container.contained import Contained
+from zope.location.interfaces import LocationError
+
+from numbers import Number
 
 import pyramid.httpexceptions as hexc
+from pyramid.interfaces import IRequest
 from pyramid.view import view_config
 from pyramid.view import view_defaults
 
@@ -124,42 +128,56 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 										  IExceptionResponse)
 
 
-@view_config(context=ICourseInstance)
-@view_config(context=ICourseInstanceEnrollment)
-@view_config(context=IUsersCourseAssignmentHistory,
-			 name='') # The first two are legacy and can go away
 @view_defaults(route_name="objects.generic.traversal",
 			   renderer='rest',
+			   context=IUsersCourseAssignmentHistory,
 			   permission=nauth.ACT_READ,
-			   request_method='GET',
-			   name='AssignmentHistory')
+			   request_method='GET')
 class AssignmentHistoryGetView(AbstractAuthenticatedView):
 	"""
 	Students can view their assignment history as ``path/to/course/AssignmentHistory``
 	"""
 
-	# Note the view_config above overlaps with things in decorators.
-
-	@interface.implementer(IContainerCollection)
-	class _HistoryCollection(Contained):
-		"We use a collection for the purposes of externalization. That may not last too long."
-		name = alias('__name__')
-		accepts = ()
-		def __init__(self, container):
-			self.container = container
-
-
 	def __call__(self):
-		user = self.remoteUser
-		course = ICourseInstance(self.request.context)
-		history = component.getMultiAdapter( (course, user),
-											 IUsersCourseAssignmentHistory )
+		history = self.request.context
+		return history
 
-		collection = self._HistoryCollection(history)
-		collection.__parent__ = self.request.context
-		collection.__name__ = self.request.view_name
+from zope.container.traversal import ContainerTraversable
+@component.adapter(IUsersCourseAssignmentHistory,IRequest)
+class AssignmentHistoryRequestTraversable(ContainerTraversable):
+	def __init__(self, context, request):
+		ContainerTraversable.__init__(self,context)
 
-		return collection
+	def traverse(self, name, further_path):
+		if name == 'lastViewed':
+			raise LocationError(self._container, name)
+		return ContainerTraversable.traverse(self, name, further_path)
+
+@view_config(route_name="objects.generic.traversal",
+			 renderer='rest',
+			 context=IUsersCourseAssignmentHistory,
+			 permission=nauth.ACT_UPDATE,
+			 request_method='PUT',
+			 name='lastViewed')
+class AssignmentHistoryLastViewedPutView(AbstractAuthenticatedView,
+										 ModeledContentUploadRequestUtilsMixin):
+	"""
+	Given an assignment history, a student can change the lastViewed
+	by PUTting to it.
+
+	Currently this is a named view; if we wanted to use the field traversing
+	support, we would need to register an ITraversable subclass for this object
+	that extends _AbstractExternalFieldTraverser.
+	"""
+
+	inputClass = Number
+
+	def _do_call(self):
+		ext_input = self.readInput()
+		history = self.request.context
+		self.request.context.lastViewed = ext_input
+		return history
+
 
 from nti.externalization.oids import to_external_oid
 @view_config(route_name="objects.generic.traversal",

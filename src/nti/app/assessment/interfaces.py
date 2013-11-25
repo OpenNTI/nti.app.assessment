@@ -25,6 +25,7 @@ from nti.utils import schema
 from nti.dataserver.interfaces import CompoundModeledContentBody
 from nti.dataserver.interfaces import ICreated
 from nti.dataserver.interfaces import ILastModified
+from nti.dataserver.interfaces import ILastViewed
 from nti.dataserver.interfaces import IModeledContent
 from nti.dataserver.interfaces import INeverStoredInSharedStream
 from nti.dataserver.interfaces import IShouldHaveTraversablePath
@@ -37,6 +38,7 @@ from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 
 
 class IUsersCourseAssignmentHistory(IContainer,
+									ILastViewed,
 									IShouldHaveTraversablePath):
 	"""
 	A :class:`IContainer`-like object that stores the history of
@@ -60,11 +62,15 @@ class IUsersCourseAssignmentHistory(IContainer,
 	will be the history item which in turn will be parented by this object.)
 	"""
 
-	contains(b'.IUsersCourseAssignmentHistoryItem')
+	contains(str('.IUsersCourseAssignmentHistoryItem'))
 
 	owner = schema.Object(IUser,
 						  required=False,
 						  title="The user this history is for.")
+	owner.setTaggedValue('_ext_excluded_out', True)
+
+	Items = schema.Dict(title='For externalization only, a copy of the items',
+						readonly=True)
 
 	def recordSubmission( submission, pending_assessment ):
 		"""
@@ -81,6 +87,7 @@ class IUsersCourseAssignmentHistory(IContainer,
 		:return: The new :class:`.IUsersCourseAssignmentItem` representing
 			the record of this submission.
 		"""
+
 
 class IUsersCourseAssignmentHistoryItemFeedbackContainer(IContainerNamesContainer,
 														 IShouldHaveTraversablePath):

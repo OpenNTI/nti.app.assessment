@@ -38,6 +38,9 @@ from nti.dataserver.interfaces import IUser
 
 from nti.wref.interfaces import IWeakRef
 
+from nti.zodb.minmax import NumericPropertyDefaultingToZero
+from nti.zodb.minmax import NumericMaximum
+
 @interface.implementer(IUsersCourseAssignmentHistory)
 class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 	"""
@@ -48,6 +51,10 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 	Although the primary interface this class implements does not specify the full
 	container interface, we do provide it as a side effect.
 	"""
+
+	__external_can_create__ = False
+
+	lastViewed = NumericPropertyDefaultingToZero('lastViewed', NumericMaximum, as_number=True)
 
 	#: An :class:`.IWeakRef` to the owning user, who is probably
 	#: not in our lineage.
@@ -62,6 +69,10 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 	#: A non-interface attribute for convenience (especially with early
 	#: acls, since we are ICreated we get that by default)
 	creator = alias('owner')
+
+	@property
+	def Items(self):
+		return dict(self)
 
 	def recordSubmission( self, submission, pending ):
 		if submission.__parent__ is not None or pending.__parent__ is not None:

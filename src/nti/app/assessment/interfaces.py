@@ -63,7 +63,7 @@ class IUsersCourseAssignmentHistory(IContainer,
 	"""
 
 	contains(str('.IUsersCourseAssignmentHistoryItem'))
-
+	__setitem__.__doc__ = None
 	owner = schema.Object(IUser,
 						  required=False,
 						  title="The user this history is for.")
@@ -95,7 +95,7 @@ class IUsersCourseAssignmentHistoryItemFeedbackContainer(IContainerNamesContaine
 	A container for feedback items.
 	"""
 	contains(str('.IUsersCourseAssignmentHistoryItemFeedback'))
-
+	__setitem__.__doc__ = None
 	Items = schema.List(title="The contained feedback items",
 						description="Unlike forums, we expect very few of these, so we "
 						"inline them for externalization.",

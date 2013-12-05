@@ -27,6 +27,7 @@ from hamcrest import has_property
 from hamcrest import contains
 from hamcrest import calling
 from hamcrest import raises
+from hamcrest import has_entries
 
 from nti.dataserver.tests import mock_dataserver
 from nti.testing.matchers import validly_provides
@@ -53,6 +54,7 @@ from nti.assessment.submission import AssignmentSubmission
 from nti.assessment.submission import QuestionSetSubmission
 from nti.assessment import interfaces as asm_interfaces
 from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
+from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from ..adapters import _begin_assessment_for_assignment_submission
 from ..feedback import UsersCourseAssignmentHistoryItemFeedback
@@ -87,17 +89,24 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 
 		assignment_part = QAssignmentPart(question_set=question_set)
 		assignment = QAssignment( parts=(assignment_part,) )
-		assignment.__parent__ = clc
-		assignment.__name__ = assignment_ntiid
+		assignment.__name__ = assignment.ntiid = assignment_ntiid
 
 		component.provideUtility( assignment,
 								  provides=asm_interfaces.IQAssignment,
 								  name=assignment_ntiid )
 
+		# Also make sure this assignment is found in the assignment index
+		# at some container
+		lesson_page_id = "tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:02.01_RequiredReading"
+		lesson = lib.pathToNTIID(lesson_page_id)[-1]
+		assignment.__parent__ = lesson
+		IQAssessmentItemContainer(lesson).append(assignment)
+
 		cls.question_set = question_set
 		cls.assignment = assignment
 		cls.question_set_id = question_set_id
 		cls.assignment_id = assignment_ntiid
+		cls.lesson_page_id = lesson_page_id
 
 	@WithSharedApplicationMockDS
 	def test_wrong_id(self):
@@ -242,3 +251,17 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 		res = self.testapp.put_json(last_viewed_href, 1234)
 		history_res = self.testapp.get(course_history_link)
 		assert_that(history_res.json_body, has_entry('lastViewed', 1234))
+
+	@WithSharedApplicationMockDS(users=True,testapp=True)
+	def test_assignment_items_view(self):
+		# Make sure we're enrolled
+		res = self.testapp.post_json( '/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses',
+									  'CLC 3403',
+									  status=201 )
+		enrollment_assignments = self.require_link_href_with_rel( res.json_body, 'AssignmentsByOutlineNode')
+		self.require_link_href_with_rel( res.json_body['CourseInstance'], 'AssignmentsByOutlineNode')
+
+		res = self.testapp.get(enrollment_assignments)
+		assert_that( res.json_body, has_entry(self.lesson_page_id,
+											  contains( has_entries( 'Class', 'Assignment',
+																	 'NTIID', self.assignment.__name__ ))))

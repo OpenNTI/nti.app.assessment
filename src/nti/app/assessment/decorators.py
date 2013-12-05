@@ -45,7 +45,7 @@ class _ContentUnitAssessmentItemDecorator(object):
 				try:
 					qs = asm_interfaces.IQAssessmentItemContainer( unit, () )
 				except TypeError:
-					qs = []
+					qs = ()
 
 				accum.extend(qs)
 
@@ -99,3 +99,20 @@ class _AssignmentHistoryItemDecorator(object):
 	def decorateExternalMapping( self, context, result_map ):
 		links = result_map.setdefault( LINKS, [] )
 		links.append( Link( context, rel='AssignmentHistory', elements=('AssignmentHistory',)) )
+
+@interface.implementer(ext_interfaces.IExternalMappingDecorator)
+class _AssignmentsByOutlineNodeDecorator(object):
+	"""
+	For things that have a assignments, add this
+	as a link.
+	"""
+
+	__metaclass__ = SingletonDecorator
+
+	# Note: This overlaps with the registrations in assessment_views
+	# Note: We do not specify what we adapt, there are too many
+	# things with no common ancestor.
+
+	def decorateExternalMapping( self, context, result_map ):
+		links = result_map.setdefault( LINKS, [] )
+		links.append( Link( context, rel='AssignmentsByOutlineNode', elements=('AssignmentsByOutlineNode',)) )

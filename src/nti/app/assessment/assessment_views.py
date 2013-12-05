@@ -211,3 +211,57 @@ class AsssignmentHistoryItemFeedbackPostView(AbstractAuthenticatedView,
 																	to_external_oid( feedback ) )
 
 		return feedback
+
+from nti.externalization.interfaces import LocatedExternalDict
+from nti.assessment.interfaces import IQAssessmentItemContainer
+
+@view_config(context=ICourseInstance)
+@view_config(context=ICourseInstanceEnrollment)
+@view_defaults(route_name='objects.generic.traversal',
+			   renderer='rest',
+			   permission=nauth.ACT_READ,
+			   request_method='GET',
+			   name='AssignmentsByOutlineNode') # See decorators
+class AssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
+	"""
+	For course instances (and things that can be adapted to them),
+	there is a view at ``/.../AssignmentsByOutlineNode``. For
+	authenticated users, it returns a map from NTIID to the assignments
+	contained within that NTIID.
+
+	At this time, nodes in the course outline
+	do not have their own identity as NTIIDs; therefore, the NTIIDs
+	returned from here are the NTIIDs of content pages that show up
+	in the individual lessons; for maximum granularity, these are returned
+	at the lowest level, so a client may need to walk \"up\" the tree
+	to identify the corresponding level it wishes to display.
+	"""
+
+	def __call__(self):
+		instance = ICourseInstance(self.request.context)
+		# In theory, the outline could stretch across multiple content
+		# packages. However, in practice, at the moment,
+		# it only has one and is an instance of the LegacyCommunityBasedCourseInstance.
+		# Because this is simpler to write and test, we directly use that.
+		# We will begin to fail when other types of courses are in use,
+		# and will start walking through the outline at that time.
+		content_package = instance.legacy_content_package
+
+		result = LocatedExternalDict()
+		result.__name__ = self.request.view_name
+		result.__parent__ = self.request.context
+
+		# XXX: See decorators.py and trello. When the app
+		# is ready we need to make sure that we're never
+		# sending solutions back.
+
+		def _recur(unit):
+			items = IQAssessmentItemContainer( unit, () )
+			for item in items:
+				if IQAssignment.providedBy(item):
+					result.setdefault(unit.ntiid, []).append(item)
+			for child in unit.children:
+				_recur(child)
+		_recur(content_package)
+
+		return result

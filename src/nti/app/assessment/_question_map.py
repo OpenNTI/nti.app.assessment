@@ -124,19 +124,39 @@ class QuestionMap(dict):
 
 			# We don't want to try to persist these, so register them globally.
 			gsm = component.getGlobalSiteManager()
-			# No matter if we got a question set first or the questions
+			# No matter if we got an assignment or  question set first or the questions
 			# first, register the question objects exactly once. Replace
 			# any question children of a question set by the registered
 			# object.
+			# XXX This is really ugly and can be cleaned up
 			things_to_register = [obj]
-			if asm_interfaces.IQuestionSet.providedBy(obj):
+			if asm_interfaces.IQAssignment.providedBy(obj):
+				for part in obj.parts:
+					qset = part.question_set
+					if gsm.queryUtility(asm_interfaces.IQuestionSet, name=qset.ntiid) is None:
+						things_to_register.append(qset)
+					for child_question in qset.questions:
+						if gsm.queryUtility(asm_interfaces.IQuestion, name=child_question.ntiid) is None:
+							things_to_register.append( child_question )
+
+			elif asm_interfaces.IQuestionSet.providedBy(obj):
 				for child_question in obj.questions:
 					if gsm.queryUtility(asm_interfaces.IQuestion, name=child_question.ntiid) is None:
 						things_to_register.append( child_question )
 
 			for thing_to_register in things_to_register:
+				iface = asm_interfaces.IQuestion
+				if asm_interfaces.IQuestionSet.providedBy(thing_to_register):
+					iface = asm_interfaces.IQuestionSet
+				elif asm_interfaces.IQAssignment.providedBy(thing_to_register):
+					iface = asm_interfaces.IQAssignment
+
+				# Make sure not to overwrite something done earlier at any level
+				if gsm.queryUtility( iface, name=thing_to_register.ntiid) is not None:
+					continue
+
 				gsm.registerUtility( thing_to_register,
-									 provided=asm_interfaces.IQuestion if asm_interfaces.IQuestion.providedBy(thing_to_register) else asm_interfaces.IQuestionSet,
+									 provided=iface,
 									 name=thing_to_register.ntiid,
 									 event=False)
 				# TODO: We are only partially supporting having question/sets
@@ -147,7 +167,14 @@ class QuestionMap(dict):
 					parents_questions.append( thing_to_register )
 
 
-			if asm_interfaces.IQuestionSet.providedBy(obj):
+			# Now canonicalize
+			if asm_interfaces.IQAssignment.providedBy(obj):
+				for part in obj.parts:
+					part.question_set = gsm.getUtility(asm_interfaces.IQuestionSet,name=part.question_set.ntiid)
+					part.question_set.questions = [gsm.getUtility(asm_interfaces.IQuestion,name=x.ntiid)
+												   for x
+												   in part.question_set.questions]
+			elif asm_interfaces.IQuestionSet.providedBy(obj):
 				obj.questions = [gsm.getUtility(asm_interfaces.IQuestion,name=x.ntiid)
 								 for x
 								 in obj.questions]

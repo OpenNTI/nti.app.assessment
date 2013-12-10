@@ -164,7 +164,7 @@ class QuestionMap(dict):
 				# handle it by noting on each assessment object where it is registered.
 				if thing_to_register.__parent__ is None and parent is not None:
 					thing_to_register.__parent__ = parent
-					parents_questions.append( thing_to_register )
+				parents_questions.append( thing_to_register )
 
 
 			# Now canonicalize

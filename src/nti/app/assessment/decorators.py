@@ -47,13 +47,14 @@ class _ContentUnitAssessmentItemDecorator(object):
 				except TypeError:
 					qs = ()
 
-				accum.extend(qs)
+				accum.update( {q.ntiid: q for q in qs} )
 
 				for child in unit.children:
 					recur( child, accum )
 
-		result = []
+		result = dict()
 		recur( context.contentUnit, result )
+		result = list(result.values())
 
 		if result:
 			### XXX We need to be sure we don't send back the

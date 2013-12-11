@@ -127,6 +127,80 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 		return component.getMultiAdapter( (self.request, submission),
 										  IExceptionResponse)
 
+from cStringIO import StringIO
+from zipfile import ZipFile
+from zipfile import ZipInfo
+from nti.contenttypes.courses.interfaces import ICourseEnrollments
+from nti.assessment.interfaces import IQUploadedFile
+from nti.assessment.interfaces import IQResponse
+
+@view_config(route_name="objects.generic.traversal",
+			 context=IQAssignment,
+			 renderer='rest',
+			 permission=nauth.ACT_MODERATE, # XXX: Fixme
+			 request_method='GET',
+			 name='BulkFilePartDownload')
+class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
+	"""
+	A view that returns a ZIP file containing all
+	the files submitted by any student in the course for
+	any file part in the given assignment.
+
+	The ZIP has the following structure::
+
+	<student-username>/
+		<part-num>/
+			<question-num>/
+				<submitted-file-name>
+
+	.. note:: An easy extension to this would be to accept
+		a query param giving a list of usernames to include.
+
+	.. note:: The current implementation does not stream;
+		the entire ZIP is buffered (potentially in memory) before being
+		transmitted. Streaming while building a ZIP is somewhat
+		complicated in the ZODB/WSGI combination. It may be possible
+		to do something with app_iter and stream in \"chunks\".
+	"""
+
+	def __call__(self):
+		# We're assuming we'll find some submitted files.
+		# What should we do if we don't?
+		assignment_id = self.request.context.__name__
+		course = ICourseInstance(self.request.context)
+		enrollments = ICourseEnrollments(course)
+
+		buf = StringIO()
+		zipfile = ZipFile( buf, 'w' )
+		for principal in enrollments.iter_enrollments():
+			assignment_history = component.getMultiAdapter( (course, principal),
+															IUsersCourseAssignmentHistory )
+			history_item = assignment_history.get(assignment_id)
+			if history_item is None:
+				continue # No submission for this assignment
+
+			# Hmm, if they don't submit or submit in different orders,
+			# numbers won't work. We need to canonicalize this to the assignment
+			# order.
+			for sub_num, sub_part in enumerate(history_item.Submission.parts):
+				for q_num, q_part in enumerate(sub_part.questions):
+					for qp_num, qp_part in enumerate(q_part.parts):
+						if IQResponse.providedBy(qp_part):
+							qp_part = qp_part.value
+
+						if IQUploadedFile.providedBy(qp_part):
+							full_filename = "%s/%s/%s/%s/%s" % (principal.id, sub_num, q_num, qp_num, qp_part.filename)
+							info = ZipInfo(full_filename) # TODO: A date
+
+							zipfile.writestr( info, qp_part.data )
+		zipfile.close()
+		buf.reset()
+
+		self.request.response.body = buf.getvalue()
+		self.request.response.content_disposition = b'attachment; filename="assignment.zip"'
+
+		return self.request.response
+
 
 @view_defaults(route_name="objects.generic.traversal",
 			   renderer='rest',

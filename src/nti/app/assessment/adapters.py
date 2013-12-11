@@ -119,7 +119,9 @@ def _begin_assessment_for_assignment_submission(submission):
 	if course is None:
 		raise ValueError("Course cannot be found") # XXX Better exception
 
-	# TODO: Verify that the assignment belongs to this course
+	# TODO: Verify that the assignment belongs to this course;
+	# our default adapter implicitly guarantees that but
+	# something stronger would be good
 
 	assignment_history = component.getMultiAdapter( (course, submission.creator),
 													IUsersCourseAssignmentHistory )

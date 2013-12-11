@@ -265,3 +265,133 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 		assert_that( res.json_body, has_entry(self.lesson_page_id,
 											  contains( has_entries( 'Class', 'Assignment',
 																	 'NTIID', self.assignment.__name__ ))))
+
+
+class TestAssignmentFileGrading(SharedApplicationTestBase):
+
+	@classmethod
+	def _setup_library( cls, *args, **kwargs ):
+		return Library(
+					paths=(
+						   os.path.join(
+								   os.path.dirname(test_catalog_from_content.__file__),
+								   'Library',
+								   'CLC3403_LawAndJustice'),))
+
+	@classmethod
+	def setUpClass(cls):
+		super(TestAssignmentFileGrading,cls).setUpClass()
+
+		question_set_id  = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.set.qset:QUIZ1_aristotle"
+		assignment_ntiid = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.asg:QUIZ1_aristotle"
+		cls.question_set_id = question_set_id
+		cls.assignment_id = assignment_ntiid
+
+		from nti.assessment import parts
+		from nti.assessment import response
+		from nti.assessment import submission
+		from nti.assessment.question import QQuestion
+		from nti.assessment.question import QQuestionSet
+		from nti.assessment.interfaces import IQuestion
+		from nti.assessment.interfaces import IQuestionSet
+
+		lib = component.getUtility(IContentPackageLibrary)
+
+
+		part = parts.QFilePart()
+		part.allowed_mime_types = ('*/*',)
+		part.allowed_extensions = '*'
+		question = QQuestion( parts=[part] )
+
+		component.provideUtility( question, provides=IQuestion,  name="1")
+
+		question_set = QQuestionSet(questions=(question,))
+		question_set.ntiid = cls.question_set_id
+		component.provideUtility( question_set, provides=IQuestionSet, name=cls.question_set_id)
+
+		# XXX: For adapting to a file to work, auto_grade must be true
+		assignment_part = QAssignmentPart(question_set=question_set, auto_grade=True)
+		assignment = QAssignment( parts=(assignment_part,) )
+		assignment.__name__ = assignment.ntiid = cls.assignment_id
+
+		component.provideUtility( assignment,
+								  provides=asm_interfaces.IQAssignment,
+								  name=cls.assignment_id )
+
+
+		# Also make sure this assignment is found in the assignment index
+		# at some container
+		lesson_page_id = "tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:02.01_RequiredReading"
+		lesson = lib.pathToNTIID(lesson_page_id)[-1]
+		assignment.__parent__ = lesson
+		IQAssessmentItemContainer(lesson).append(assignment)
+
+	def _check_submission(self, res, history=None):
+		assert_that( res.status_int, is_( 201 ))
+		assert_that( res.json_body, has_entry( StandardExternalFields.CREATED_TIME, is_( float ) ) )
+		assert_that( res.json_body, has_entry( StandardExternalFields.LAST_MODIFIED, is_( float ) ) )
+		assert_that( res.json_body, has_entry( StandardExternalFields.MIMETYPE, 'application/vnd.nextthought.assessment.assignmentsubmissionpendingassessment' ) )
+
+		assert_that( res.json_body, has_entry( 'ContainerId', self.assignment_id ))
+		assert_that( res.json_body, has_key( 'NTIID' ) )
+
+		assert_that( res, has_property( 'location', contains_string('Objects/')))
+
+		# This object can be found in my history
+		if history:
+			__traceback_info__ = history
+			res = self.testapp.get(history)
+			assert_that( res.json_body, has_entry('href', contains_string(unquote(history)) ) )
+			assert_that( res.json_body, has_entry('Items', has_length(1)))
+			assert_that( res.json_body, has_entry('lastViewed', 0))
+		else:
+			# Because we're not enrolled...actually, we shouldn't
+			# have been able to submit...this is here to make sure something
+			# breaks when acls change
+			res = self._fetch_user_url( '/Courses/EnrolledCourses/CLC3403/AssignmentHistory', status=404 )
+
+		return res
+
+	@WithSharedApplicationMockDS(users=True,testapp=True)
+	def test_posting_and_bulk_downloading_file(self):
+		from nti.assessment import response
+		from nti.assessment import submission
+		from cStringIO import StringIO
+		from zipfile import ZipFile
+		from nti.externalization import internalization
+		from hamcrest import not_none
+		q_sub = submission.QuestionSubmission( questionId="1", parts=(response.QUploadedFile(data=b'1234',
+																							 contentType=b'text/plain',
+																							 filename='foo.txt'),) )
+
+		qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id, questions=(q_sub,))
+		submission = AssignmentSubmission(assignmentId=self.assignment_id, parts=(qs_submission,))
+		GIF_DATAURL = b'data:image/gif;base64,R0lGODlhCwALAIAAAAAA3pn/ZiH5BAEAAAEALAAAAAALAAsAAAIUhA+hkcuO4lmNVindo7qyrIXiGBYAOw=='
+
+		ext_obj = to_external_object(submission)
+		ext_obj['parts'][0]['questions'][0]['parts'][0]['value'] = GIF_DATAURL
+
+		assert_that( internalization.find_factory_for( ext_obj ),
+				 is_( not_none() ) )
+		# Make sure we're enrolled
+		res = self.testapp.post_json( '/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses',
+									  'CLC 3403',
+									  status=201 )
+		enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'AssignmentHistory')
+		course_history_link = self.require_link_href_with_rel( res.json_body['CourseInstance'], 'AssignmentHistory')
+
+		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id,
+									  ext_obj)
+		self._check_submission(res, enrollment_history_link)
+
+		# Our default user happens to have admin permisions
+
+		res = self.testapp.get('/dataserver2/Objects/' + self.assignment_id + '/BulkFilePartDownload')
+
+		assert_that( res.content_disposition, is_( 'attachment; filename="assignment.zip"'))
+
+		data = res.body
+		io = StringIO(data)
+		zipfile = ZipFile(io, 'r')
+
+		assert_that( zipfile.namelist(), contains( 'sjohnson@nextthought.com/0/0/0/foo.txt'))

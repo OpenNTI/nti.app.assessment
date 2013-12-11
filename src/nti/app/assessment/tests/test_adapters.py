@@ -224,7 +224,7 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 									  status=201 )
 		enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'AssignmentHistory')
 		course_history_link = self.require_link_href_with_rel( res.json_body['CourseInstance'], 'AssignmentHistory')
-		print(ext_obj)
+
 		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id,
 									  ext_obj)
 		self._check_submission(res, enrollment_history_link)

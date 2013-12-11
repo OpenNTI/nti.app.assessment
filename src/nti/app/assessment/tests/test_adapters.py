@@ -216,18 +216,18 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 		submission = AssignmentSubmission(assignmentId=self.assignment_id, parts=(qs_submission,))
 
 		ext_obj = to_external_object( submission )
-
+		del ext_obj['Class']
+		assert_that( ext_obj, has_entry( 'MimeType', 'application/vnd.nextthought.assessment.assignmentsubmission'))
 		# Make sure we're enrolled
 		res = self.testapp.post_json( '/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses',
 									  'CLC 3403',
 									  status=201 )
 		enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'AssignmentHistory')
 		course_history_link = self.require_link_href_with_rel( res.json_body['CourseInstance'], 'AssignmentHistory')
-
+		print(ext_obj)
 		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id,
 									  ext_obj)
 		self._check_submission(res, enrollment_history_link)
-
 
 		history_res = self._check_submission( res, course_history_link )
 		__traceback_info__ = history_res.json_body

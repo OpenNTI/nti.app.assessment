@@ -309,8 +309,8 @@ class TestAssignmentFileGrading(SharedApplicationTestBase):
 		question_set.ntiid = cls.question_set_id
 		component.provideUtility( question_set, provides=IQuestionSet, name=cls.question_set_id)
 
-		# XXX: For adapting to a file to work, auto_grade must be true
-		assignment_part = QAssignmentPart(question_set=question_set, auto_grade=True)
+		# Works with auto_grade true or false.
+		assignment_part = QAssignmentPart(question_set=question_set, auto_grade=False)
 		assignment = QAssignment( parts=(assignment_part,) )
 		assignment.__name__ = assignment.ntiid = cls.assignment_id
 

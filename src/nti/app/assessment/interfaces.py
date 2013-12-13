@@ -80,10 +80,13 @@ class IUsersCourseAssignmentHistory(IContainer,
 		a problem.
 
 		:param submission: The original :class:`.IQAssignmentSubmission`
-			the user provided.
+			the user provided. We will become part of the lineage
+			of this object and all its children objects (they will
+			be set to the correct __parent__ relationship within the part/question
+			structure).
 		:param pending_assessment: The in-progress assessment object
 			initially derived from the submission (and that the user
-			will store).
+			will store). We will become part of the lineage of this object.
 		:return: The new :class:`.IUsersCourseAssignmentItem` representing
 			the record of this submission.
 		"""

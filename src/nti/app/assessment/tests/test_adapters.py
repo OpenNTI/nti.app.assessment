@@ -361,8 +361,8 @@ class TestAssignmentFileGrading(SharedApplicationTestBase):
 		from nti.externalization import internalization
 		from hamcrest import not_none
 		q_sub = submission.QuestionSubmission( questionId="1", parts=(response.QUploadedFile(data=b'1234',
-																							 contentType=b'text/plain',
-																							 filename='foo.txt'),) )
+																							 contentType=b'image/gif',
+																							 filename='foo.gif'),) )
 
 		qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id, questions=(q_sub,))
 		submission = AssignmentSubmission(assignmentId=self.assignment_id, parts=(qs_submission,))
@@ -382,7 +382,19 @@ class TestAssignmentFileGrading(SharedApplicationTestBase):
 
 		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id,
 									  ext_obj)
-		self._check_submission(res, enrollment_history_link)
+		history_res = self._check_submission(res, enrollment_history_link)
+
+		# Now we should be able to find and download our data
+		submission = history_res.json_body['Items'].values()[0]['Submission']
+		submitted_file_part = submission['parts'][0]['questions'][0]['parts'][0]
+		assert_that( submitted_file_part, has_key('url'))
+		assert_that( submitted_file_part, has_key('value'))
+		assert_that( submitted_file_part['url'], is_(submitted_file_part['value']) )
+
+		download_res = self.testapp.get( submitted_file_part['url'] )
+		assert_that( download_res, has_property('content_type', 'image/gif'))
+		assert_that( download_res, has_property('content_length', 61))
+
 
 		# Our default user happens to have admin permisions
 
@@ -394,4 +406,4 @@ class TestAssignmentFileGrading(SharedApplicationTestBase):
 		io = StringIO(data)
 		zipfile = ZipFile(io, 'r')
 
-		assert_that( zipfile.namelist(), contains( 'sjohnson@nextthought.com/0/0/0/foo.txt'))
+		assert_that( zipfile.namelist(), contains( 'sjohnson@nextthought.com/0/0/0/foo.gif'))

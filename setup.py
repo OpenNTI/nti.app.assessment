@@ -30,7 +30,8 @@ setup(
 	install_requires=[
 		'setuptools',
 		'nti.assessment',
-		'nti.contenttypes.courses'
+		'nti.contenttypes.courses',
+		'nti.app.products.courseware'
 		# NOTE: We actually depend on nti.dataserver
 		# as well, but for the sake of legacy
 		# deployments, we do not yet declare that.

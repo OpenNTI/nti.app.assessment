@@ -94,15 +94,16 @@ class TestApplicationAssessment(SharedApplicationTestBase):
 		page_info_mt = nti_mimetype_with_class( 'pageinfo' )
 		page_info_mt_json = page_info_mt + '+json'
 
-		res = self.fetch_by_ntiid( self.question_ntiid,
-								   headers={b'Accept': str(page_info_mt_json)} )
+		for pi in page_info_mt, page_info_mt_json:
+			res = self.fetch_by_ntiid( self.question_ntiid,
+									   headers={b'Accept': str(pi)} )
 
-		assert_that( res.status_int, is_( 200 ) )
-		assert_that( res.json_body, has_entry( 'Class', 'PageInfo' ) )
+			assert_that( res.status_int, is_( 200 ) )
+			assert_that( res.json_body, has_entry( 'Class', 'PageInfo' ) )
 
-		# The content info we return points to an actual physical page
-		assert_that( res.json_body, has_entry( 'Links', has_item( has_entries( 'rel', 'content',
-																			   'href', '/WithAssessment/tag_nextthought_com_2011-10_mathcounts-HTML-MN_2012_0.html' ) ) ) )
+			# The content info we return points to an actual physical page
+			assert_that( res.json_body, has_entry( 'Links', has_item( has_entries( 'rel', 'content',
+																				   'href', '/WithAssessment/tag_nextthought_com_2011-10_mathcounts-HTML-MN_2012_0.html' ) ) ) )
 
 	@WithSharedApplicationMockDS(testapp=True,users=True)
 	def test_fetch_assessment_question_by_ntiid_accept_link(self):

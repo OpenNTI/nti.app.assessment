@@ -29,10 +29,12 @@ from nti.dataserver import authorization as nauth
 
 # TODO: Break these direct dependencies....
 from nti.appserver.contentlibrary.library_views import PAGE_INFO_MT_JSON
+from nti.appserver.contentlibrary.library_views import PAGE_INFO_MT
 # ... this in particular could be a view.
 from nti.appserver.contentlibrary.library_views import find_page_info_view_helper
 
 from nti.assessment.interfaces import IQuestion
+from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssignmentSubmission
 
@@ -59,6 +61,9 @@ _read_view_defaults = dict( route_name='objects.generic.traversal',
 _question_view = dict(context=IQuestion)
 _question_view.update(_read_view_defaults)
 
+_question_set_view = dict(context=IQuestionSet)
+_question_set_view.update(_read_view_defaults)
+
 _assignment_view = dict(context=IQAssignment)
 _assignment_view.update(_read_view_defaults)
 
@@ -66,6 +71,14 @@ _assignment_view.update(_read_view_defaults)
 @view_config(accept=str(PAGE_INFO_MT_JSON),
 			 **_question_view)
 @view_config(accept=str(PAGE_INFO_MT_JSON),
+			 **_question_set_view)
+@view_config(accept=str(PAGE_INFO_MT_JSON),
+			 **_assignment_view)
+@view_config(accept=str(PAGE_INFO_MT),
+			 **_question_view)
+@view_config(accept=str(PAGE_INFO_MT),
+			 **_question_set_view)
+@view_config(accept=str(PAGE_INFO_MT),
 			 **_assignment_view)
 def pageinfo_from_question_view( request ):
 	assert request.accept

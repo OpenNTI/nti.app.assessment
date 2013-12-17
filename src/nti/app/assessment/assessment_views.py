@@ -13,7 +13,6 @@ logger = __import__('logging').getLogger(__name__)
 
 from zope import component
 from zope import interface
-from zope.container.contained import Contained
 from zope.location.interfaces import LocationError
 
 from numbers import Number
@@ -22,8 +21,6 @@ import pyramid.httpexceptions as hexc
 from pyramid.interfaces import IRequest
 from pyramid.view import view_config
 from pyramid.view import view_defaults
-
-from nti.utils.property import alias
 
 from nti.dataserver import authorization as nauth
 
@@ -44,8 +41,6 @@ from nti.app.products.courseware.interfaces import ICourseInstanceEnrollment
 from .interfaces import IUsersCourseAssignmentHistory
 from .interfaces import IUsersCourseAssignmentHistoryItemFeedbackContainer
 from .interfaces import IUsersCourseAssignmentHistoryItemFeedback
-
-from nti.appserver.interfaces import IContainerCollection
 
 
 ####
@@ -91,6 +86,8 @@ def pageinfo_from_question_view( request ):
 @view_config(accept=str('application/vnd.nextthought.link+json'),
 			 **_question_view )
 @view_config(accept=str('application/vnd.nextthought.link+json'),
+			 **_question_set_view )
+@view_config(accept=str('application/vnd.nextthought.link+json'),
 			 **_assignment_view )
 def get_question_view_link( request ):
 	# Not supported.
@@ -99,6 +96,9 @@ def get_question_view_link( request ):
 @view_config(accept=str(''), 	# explicit empty accept, else we get a ConfigurationConflict
 			 **_question_view)	# and/or no-Accept header goes to the wrong place
 @view_config(**_question_view)
+@view_config(accept=str(''),
+			 **_question_set_view)
+@view_config(**_question_set_view)
 @view_config(accept=str(''),
 			 **_assignment_view)
 @view_config(**_assignment_view)
@@ -237,6 +237,8 @@ class AssignmentHistoryRequestTraversable(ContainerTraversable):
 
 	def traverse(self, name, further_path):
 		if name == 'lastViewed':
+			# Stop traversal here so our named view
+			# gets to handle this
 			raise LocationError(self._container, name)
 		return ContainerTraversable.traverse(self, name, further_path)
 

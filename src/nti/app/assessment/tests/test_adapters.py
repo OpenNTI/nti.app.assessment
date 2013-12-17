@@ -34,6 +34,8 @@ from nti.testing.matchers import validly_provides
 
 import os
 from zope import component
+from zope.schema.interfaces import ConstraintNotSatisfied
+from zope.schema.interfaces import NotUnique
 import datetime
 
 from nti.app.testing.application_webtest import SharedApplicationTestBase
@@ -125,7 +127,7 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 		submission = AssignmentSubmission(assignmentId=self.assignment_id)
 
 		assert_that( calling(IQAssignmentSubmissionPendingAssessment).with_args(submission),
-					 raises(ValueError, 'parts') )
+					 raises(ConstraintNotSatisfied, 'parts') )
 
 	@WithSharedApplicationMockDS
 	def test_before_open(self):
@@ -136,7 +138,7 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 		self.assignment.available_for_submission_beginning = (datetime.datetime.now() + datetime.timedelta(days=1))
 		try:
 			assert_that( calling(IQAssignmentSubmissionPendingAssessment).with_args(submission),
-						 raises(ValueError, 'early') )
+						 raises(ConstraintNotSatisfied, 'early') )
 		finally:
 			self.assignment.available_for_submission_beginning = None
 
@@ -164,7 +166,7 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 			user = User.get_user( self.extra_environ_default_user )
 			submission.creator = user
 			assert_that( calling(IQAssignmentSubmissionPendingAssessment).with_args(submission),
-						 raises(ValueError, 'already submitted') )
+						 raises(NotUnique, 'already submitted') )
 
 	@WithSharedApplicationMockDS(users=True,testapp=True)
 	def test_pending_application_user_data(self):

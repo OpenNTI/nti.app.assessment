@@ -20,6 +20,10 @@ from pyramid.traversal import find_interface
 from zope.location.interfaces import ILocationInfo
 from zope.annotation.interfaces import IAnnotations
 
+from zope.schema.interfaces import ConstraintNotSatisfied
+from zope.schema.interfaces import NotUnique
+from zope.schema.interfaces import RequiredMissing
+
 from BTrees.OOBTree import BTree as OOBTree
 from persistent.list import PersistentList
 
@@ -103,21 +107,26 @@ def _begin_assessment_for_assignment_submission(submission):
 	submission_part_ids = [part.questionSetId for part in submission.parts]
 
 	if sorted(assignment_part_ids) != sorted(submission_part_ids):
-		raise ValueError("Incorrect submission parts") # XXX Better exception
+		ex = ConstraintNotSatisfied("Incorrect submission parts")
+		ex.field = asm_interfaces.IQAssignmentSubmission['parts']
+		raise ex
 
 	# We only need to check that the submission is not too early;
 	# if it is late, we still allow it at this level, leaving
 	# it to the instructor to handle it
 	if assignment.available_for_submission_beginning is not None:
 		if datetime.datetime.now() < assignment.available_for_submission_beginning:
-			raise ValueError("Submitting too early") # XXX Better exception
+			ex = ConstraintNotSatisfied("Submitting too early")
+			ex.field = asm_interfaces.IQAssignment['available_for_submission_beginning']
+			ex.value = assignment.available_for_submission_beginning
+			raise ex
 
 	# Now, try to find the enclosing course for this assignment.
 	# If one does not exist, we cannot grade because we have nowhere
 	# to dispatch to.
 	course = ICourseInstance(assignment, None)
 	if course is None:
-		raise ValueError("Course cannot be found") # XXX Better exception
+		raise RequiredMissing("Course cannot be found")
 
 	# TODO: Verify that the assignment belongs to this course;
 	# our default adapter implicitly guarantees that but
@@ -126,7 +135,10 @@ def _begin_assessment_for_assignment_submission(submission):
 	assignment_history = component.getMultiAdapter( (course, submission.creator),
 													IUsersCourseAssignmentHistory )
 	if submission.assignmentId in assignment_history:
-		raise ValueError("Assignment already submitted") # XXX Better exception
+		ex = NotUnique("Assignment already submitted")
+		ex.field = asm_interfaces.IQAssignmentSubmission['assignmentId']
+		ex.value = submission.assignmentId
+		raise ex
 
 	submission.containerId = submission.assignmentId
 

@@ -249,6 +249,9 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 		assert_that( feedback['Items'], has_item( has_entry( 'href', ends_with('Feedback/0') ) ) )
 
 		# We can modify the view date by putting to the field
+		# FIXME: This is weird: the history item is not technically
+		# editable, and so we don't send back Link(rel=edit) for it, which
+		# naturally confuses clients
 		last_viewed_href = course_history_link + '/lastViewed'
 		res = self.testapp.put_json(last_viewed_href, 1234)
 		history_res = self.testapp.get(course_history_link)

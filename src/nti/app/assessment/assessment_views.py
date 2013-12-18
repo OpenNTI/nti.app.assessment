@@ -302,7 +302,7 @@ class AsssignmentHistoryItemFeedbackPostView(AbstractAuthenticatedView,
 		return feedback
 
 from nti.externalization.interfaces import LocatedExternalDict
-from nti.assessment.interfaces import IQAssessmentItemContainer
+from .interfaces import ICourseAssignmentCatalog
 
 @view_config(context=ICourseInstance)
 @view_config(context=ICourseInstanceEnrollment)
@@ -328,13 +328,7 @@ class AssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
 
 	def __call__(self):
 		instance = ICourseInstance(self.request.context)
-		# In theory, the outline could stretch across multiple content
-		# packages. However, in practice, at the moment,
-		# it only has one and is an instance of the LegacyCommunityBasedCourseInstance.
-		# Because this is simpler to write and test, we directly use that.
-		# We will begin to fail when other types of courses are in use,
-		# and will start walking through the outline at that time.
-		content_package = instance.legacy_content_package
+		catalog = ICourseAssignmentCatalog(instance)
 
 		result = LocatedExternalDict()
 		result.__name__ = self.request.view_name
@@ -344,13 +338,10 @@ class AssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
 		# is ready we need to make sure that we're never
 		# sending solutions back.
 
-		def _recur(unit):
-			items = IQAssessmentItemContainer( unit, () )
-			for item in items:
-				if IQAssignment.providedBy(item):
-					result.setdefault(unit.ntiid, []).append(item)
-			for child in unit.children:
-				_recur(child)
-		_recur(content_package)
+		for asg in catalog.iter_assignments():
+			# The assignment's __parent__ is always the 'home'
+			# content unit
+			unit = asg.__parent__
+			result.setdefault(unit.ntiid, []).append(asg)
 
 		return result

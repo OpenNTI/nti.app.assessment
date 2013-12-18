@@ -19,6 +19,7 @@
 	<subscriber	handler="._question_map.add_assessment_items_from_new_content" />
 	<subscriber	handler="._question_map.remove_assessment_items_from_oldcontent" />
 	<adapter factory="._question_map.ContentUnitAssessmentItems" />
+	<adapter factory=".adapters._DefaultCourseAssignmentCatalog" />
 
 	<!-- Acls -->
 	<adapter factory="._question_map._QuestionACLProvider" />

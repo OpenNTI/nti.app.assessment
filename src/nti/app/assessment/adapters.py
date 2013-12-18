@@ -242,3 +242,37 @@ def _course_from_history_item_lineage(item):
 		raise TypeError("Unable to find course")
 
 	return course
+
+from .interfaces import ICourseAssignmentCatalog
+from nti.assessment.interfaces import IQAssessmentItemContainer
+from nti.assessment.interfaces import IQAssignment
+
+@interface.implementer(ICourseAssignmentCatalog)
+@component.adapter(ICourseInstance)
+class _DefaultCourseAssignmentCatalog(object):
+
+	def __init__(self, context):
+		self.context = context
+
+	def iter_assignments(self):
+		# In theory, the course outline and assignments could stretch across multiple content
+		# packages. However, in practice, at the moment,
+		# it only has one and is an instance of the LegacyCommunityBasedCourseInstance.
+		# Because this is simpler to write and test, we directly use that.
+		# We will begin to fail when other types of courses are in use,
+		# and will start walking through the outline at that time.
+		content_package = self.context.legacy_content_package
+
+		result = []
+		def _recur(unit):
+			items = IQAssessmentItemContainer( unit, () )
+			for item in items:
+				if IQAssignment.providedBy(item):
+					result.append(item)
+			for child in unit.children:
+				_recur(child)
+		_recur(content_package)
+
+		# On py3.3, can easily 'yield from' nested generators
+
+		return result

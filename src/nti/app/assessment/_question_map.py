@@ -63,6 +63,14 @@ class IFileQuestionMap(interface.Interface):
 						   value_type=schema.List( title="The questions contained in this file" ) )
 
 
+def _iface_to_register(thing_to_register):
+	iface = asm_interfaces.IQuestion
+	if asm_interfaces.IQuestionSet.providedBy(thing_to_register):
+		iface = asm_interfaces.IQuestionSet
+	elif asm_interfaces.IQAssignment.providedBy(thing_to_register):
+		iface = asm_interfaces.IQAssignment
+	return iface
+
 @interface.implementer( IFileQuestionMap )
 class QuestionMap(dict):
 
@@ -145,12 +153,7 @@ class QuestionMap(dict):
 						things_to_register.append( child_question )
 
 			for thing_to_register in things_to_register:
-				iface = asm_interfaces.IQuestion
-				if asm_interfaces.IQuestionSet.providedBy(thing_to_register):
-					iface = asm_interfaces.IQuestionSet
-				elif asm_interfaces.IQAssignment.providedBy(thing_to_register):
-					iface = asm_interfaces.IQAssignment
-
+				iface = _iface_to_register(thing_to_register)
 				# Make sure not to overwrite something done earlier at any level
 				if gsm.queryUtility( iface, name=thing_to_register.ntiid) is not None:
 					continue
@@ -338,7 +341,7 @@ def remove_assessment_items_from_oldcontent(content_package, event):
 		items = asm_interfaces.IQAssessmentItemContainer(unit)
 		for item in items:
 			gsm.unregisterUtility( item,
-								   provided=asm_interfaces.IQuestion if asm_interfaces.IQuestion.providedBy(item) else asm_interfaces.IQuestionSet,
+								   provided=_iface_to_register(item),
 								   name=item.ntiid )
 
 

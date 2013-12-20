@@ -230,8 +230,13 @@ def _history_for_user_in_course(course,user):
 from nti.appserver._view_utils import get_remote_user
 def _history_for_user_in_course_path_adapter(course, request):
 	user = get_remote_user(request)
-	return component.getMultiAdapter( (ICourseInstance(course),user),
+	return component.getMultiAdapter( (course,user),
 									  IUsersCourseAssignmentHistory )
+
+def _history_for_user_in_courseenrollment_path_adapter(enrollment, request):
+	return component.getMultiAdapter( (ICourseInstance(enrollment), IUser(enrollment)),
+									  IUsersCourseAssignmentHistory )
+
 
 @interface.implementer(ICourseInstance)
 @component.adapter(IUsersCourseAssignmentHistoryItem)

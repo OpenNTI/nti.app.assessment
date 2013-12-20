@@ -88,7 +88,7 @@
 			 for="nti.contenttypes.courses.interfaces.ICourseInstance pyramid.interfaces.IRequest"
 			 provides="zope.traversing.interfaces.IPathAdapter"
 			 name="AssignmentHistory" />
-	<adapter factory=".adapters._history_for_user_in_course_path_adapter"
+	<adapter factory=".adapters._history_for_user_in_courseenrollment_path_adapter"
 			 for="nti.app.products.courseware.interfaces.ICourseInstanceEnrollment pyramid.interfaces.IRequest"
 			 provides="zope.traversing.interfaces.IPathAdapter"
 			 name="AssignmentHistory" />

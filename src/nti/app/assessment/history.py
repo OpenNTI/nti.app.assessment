@@ -117,7 +117,13 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 			return self.__parent__
 
 
-@interface.implementer(IUsersCourseAssignmentHistoryItem)
+from nti.dataserver.authorization import ACT_READ
+from nti.dataserver.interfaces import IACLProvider
+from nti.dataserver.authorization_acl import acl_from_aces
+from nti.dataserver.authorization_acl import ace_allowing
+
+@interface.implementer(IUsersCourseAssignmentHistoryItem,
+					   IACLProvider)
 class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 									   Contained,
 									   SchemaConfigured):
@@ -136,15 +142,23 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 	def __conform__(self, iface):
 		if IUser.isOrExtends(iface):
 			try:
-				return self.__parent__.owner
-			except AttributeError:
+				return iface(self.__parent__)
+			except (AttributeError,TypeError):
 				return None
 
 	@property
 	def creator(self):
 		# For ACL purposes, not part of the interface
-		return IUser(self)
+		try:
+			return IUser(self)
+		except TypeError:
+			return None
 	@creator.setter
 	def creator(self, nv):
 		# Ignored
 		pass
+
+	@property
+	def __acl__(self):
+		"Our ACL allows access for the creator as well as inherited permissions from the course"
+		return acl_from_aces( ace_allowing( self.creator, ACT_READ, UsersCourseAssignmentHistoryItem ) )

@@ -76,15 +76,12 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 								   'CLC3403_LawAndJustice'),))
 
 	@classmethod
-	def setUpClass(cls):
-		super(TestAssignmentGrading,cls).setUpClass()
-
-		question_set_id  = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.set.qset:QUIZ1_aristotle"
-		assignment_ntiid = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.asg:QUIZ1_aristotle"
-
+	def _register_assignment(cls):
 		lib = component.getUtility(IContentPackageLibrary)
 
 		clc = lib.contentPackages[0]
+		question_set_id  = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.set.qset:QUIZ1_aristotle"
+		assignment_ntiid = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.asg:QUIZ1_aristotle"
 
 		question_set = component.getUtility(asm_interfaces.IQuestionSet,
 											name=question_set_id)
@@ -109,6 +106,14 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 		cls.question_set_id = question_set_id
 		cls.assignment_id = assignment_ntiid
 		cls.lesson_page_id = lesson_page_id
+
+
+	@classmethod
+	def setUpClass(cls):
+		super(TestAssignmentGrading,cls).setUpClass()
+
+		cls._register_assignment()
+
 
 	@WithSharedApplicationMockDS
 	def test_wrong_id(self):
@@ -185,7 +190,7 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 
 		self._check_submission(res)
 
-	def _check_submission(self, res, history=None):
+	def _check_submission(self, res, history=None, last_viewed=0):
 		assert_that( res.status_int, is_( 201 ))
 		assert_that( res.json_body, has_entry( StandardExternalFields.CREATED_TIME, is_( float ) ) )
 		assert_that( res.json_body, has_entry( StandardExternalFields.LAST_MODIFIED, is_( float ) ) )
@@ -202,7 +207,7 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 			res = self.testapp.get(history)
 			assert_that( res.json_body, has_entry('href', contains_string(unquote(history)) ) )
 			assert_that( res.json_body, has_entry('Items', has_length(1)))
-			assert_that( res.json_body, has_entry('lastViewed', 0))
+			assert_that( res.json_body, has_entry('lastViewed', last_viewed))
 		else:
 			# Because we're not enrolled...actually, we shouldn't
 			# have been able to submit...this is here to make sure something
@@ -211,8 +216,14 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 
 		return res
 
-	@WithSharedApplicationMockDS(users=True,testapp=True)
+	@WithSharedApplicationMockDS(users=('harp4162'),testapp=True,default_authenticate=True)
 	def test_pending_application_assignment(self):
+		# Re-enum to pick up instructor
+		with mock_dataserver.mock_db_trans(self.ds):
+			lib = component.getUtility(IContentPackageLibrary)
+			del lib.contentPackages
+			getattr(lib, 'contentPackages')
+		self._register_assignment()
 		# Sends an assignment through the application by posting to the assignment
 		qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id)
 		submission = AssignmentSubmission(assignmentId=self.assignment_id, parts=(qs_submission,))
@@ -243,7 +254,9 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 									  status=201 )
 
 		history_res = self.testapp.get(course_history_link)
-		feedback = history_res.json_body['Items'].items()[0][1]['Feedback']
+
+		item = history_res.json_body['Items'].values()[0]
+		feedback = item['Feedback']
 		assert_that( feedback, has_entry('Items', has_length(1)))
 		assert_that( feedback['Items'], has_item( has_entry( 'body', ['Some feedback'])))
 		assert_that( feedback['Items'], has_item( has_entry( 'href', ends_with('Feedback/0') ) ) )
@@ -256,6 +269,17 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 		res = self.testapp.put_json(last_viewed_href, 1234)
 		history_res = self.testapp.get(course_history_link)
 		assert_that(history_res.json_body, has_entry('lastViewed', 1234))
+
+		instructor_environ = self._make_extra_environ(username='harp4162')
+
+		# The instructor can delete our submission
+		self.testapp.delete(item['href'], extra_environ=instructor_environ, status=204)
+
+		# Whereupon we can submit again
+		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id,
+									  ext_obj)
+		self._check_submission(res, enrollment_history_link, 1234)
+
 
 	@WithSharedApplicationMockDS(users=True,testapp=True)
 	def test_assignment_items_view(self):

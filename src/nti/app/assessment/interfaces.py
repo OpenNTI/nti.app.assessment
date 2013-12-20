@@ -114,6 +114,7 @@ class IUsersCourseAssignmentHistoryItem(IContained,
 	.. note:: This will probably grow much.
 	"""
 	containers(IUsersCourseAssignmentHistory)
+	__parent__.required = False
 
 	# Recall that the implementation of AssignmentSubmission is NOT
 	# Persistent.

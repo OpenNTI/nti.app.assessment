@@ -55,13 +55,19 @@
 
 	<!-- hrefs -->
 	<!-- NOTE: This is the general implementation; could be better -->
-	<subscriber factory="nti.appserver.pyramid_renderers_edit_link_decorator.EditLinkDecorator"
+	<!-- NOTE 2: We must produce OID hrefs for these, not traversal,
+		 because when AssignmentHistory is accessed traversing beneath the
+		 CourseInstance, the user is implicitly the current user,
+		 which fails for instructors. May want to simply remove its
+		 availability there.
+	-->
+	<subscriber factory="nti.appserver.pyramid_renderers_edit_link_decorator.OIDEditLinkDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for=".interfaces.IUsersCourseAssignmentHistoryItem" />
-	<subscriber factory="nti.appserver.pyramid_renderers_edit_link_decorator.EditLinkDecorator"
+	<subscriber factory="nti.appserver.pyramid_renderers_edit_link_decorator.OIDEditLinkDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for=".interfaces.IUsersCourseAssignmentHistoryItemFeedback" />
-	<subscriber factory="nti.appserver.pyramid_renderers_edit_link_decorator.EditLinkDecorator"
+	<subscriber factory="nti.appserver.pyramid_renderers_edit_link_decorator.OIDEditLinkDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for=".interfaces.IUsersCourseAssignmentHistoryItemFeedbackContainer" />
 

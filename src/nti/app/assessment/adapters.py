@@ -102,6 +102,13 @@ def _begin_assessment_for_assignment_submission(submission):
 	assignment = component.getUtility(asm_interfaces.IQAssignment,
 									  name=submission.assignmentId)
 
+	# Submissions to an assignment with zero parts are not allowed;
+	# those are reserved for the professor
+	if len(assignment.parts) == 0:
+		ex = ConstraintNotSatisfied("Cannot submit zero-part assignment")
+		ex.field = asm_interfaces.IQAssignment['parts']
+		raise ex
+
 	# Check that the submission has something for all parts
 	assignment_part_ids = [part.question_set.ntiid for part in assignment.parts]
 	submission_part_ids = [part.questionSetId for part in submission.parts]

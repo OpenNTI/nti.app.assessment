@@ -37,7 +37,8 @@
 
 	<subscriber factory=".decorators._ContentUnitAssessmentItemDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"/>
-
+	<subscriber factory=".decorators._FeedbackItemAssignmentIdDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"/>
 	<subscriber factory=".decorators._AssignmentHistoryItemDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.contenttypes.courses.interfaces.ICourseInstance"/>
@@ -71,6 +72,16 @@
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for=".interfaces.IUsersCourseAssignmentHistoryItemFeedbackContainer" />
 
+
+	<!-- Course activity -->
+	<subscriber handler=".history._add_object_to_course_activity"
+				for="nti.assessment.interfaces.IQAssignmentSubmission zope.intid.interfaces.IIntIdAddedEvent"/>
+	<subscriber handler=".history._remove_object_from_course_activity"
+				for="nti.assessment.interfaces.IQAssignmentSubmission zope.intid.interfaces.IIntIdRemovedEvent"/>
+	<subscriber handler=".history._add_object_to_course_activity"
+				for=".interfaces.IUsersCourseAssignmentHistoryItemFeedback zope.intid.interfaces.IIntIdAddedEvent"/>
+	<subscriber handler=".history._remove_object_from_course_activity"
+				for=".interfaces.IUsersCourseAssignmentHistoryItemFeedback zope.intid.interfaces.IIntIdRemovedEvent"/>
 
 	<!-- Object transformers (internalization) -->
 	<adapter factory=".adapters._question_submission_transformer" />

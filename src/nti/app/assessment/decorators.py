@@ -117,3 +117,25 @@ class _AssignmentsByOutlineNodeDecorator(object):
 	def decorateExternalMapping( self, context, result_map ):
 		links = result_map.setdefault( LINKS, [] )
 		links.append( Link( context, rel='AssignmentsByOutlineNode', elements=('AssignmentsByOutlineNode',)) )
+
+
+from .interfaces import IUsersCourseAssignmentHistoryItemFeedback
+
+@interface.implementer(ext_interfaces.IExternalMappingDecorator)
+@component.adapter(IUsersCourseAssignmentHistoryItemFeedback)
+class _FeedbackItemAssignmentIdDecorator(object):
+	"""
+	Give a feedback item its assignment id, because it is used
+	in contexts outside its collection.
+	"""
+
+	__metaclass__ = SingletonDecorator
+
+	def decorateExternalMapping( self, item, result_map ):
+		try:
+			feedback = item.__parent__
+			history_item = feedback.__parent__
+			submission = history_item.Submission
+			result_map['AssignmentId'] = submission.assignmentId
+		except AttributeError:
+			pass

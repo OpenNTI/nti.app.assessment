@@ -31,6 +31,7 @@ from hamcrest import has_entries
 
 from nti.dataserver.tests import mock_dataserver
 from nti.testing.matchers import validly_provides
+from nti.testing.matchers import is_empty
 
 import os
 from zope import component
@@ -272,8 +273,19 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 
 		instructor_environ = self._make_extra_environ(username='harp4162')
 
+		# The instructor sees our submission in his activity view
+		activity_link = '/dataserver2/users/CLC3403.ou.nextthought.com/LegacyCourses/CLC3403/CourseActivity'
+		res = self.testapp.get(activity_link, extra_environ=instructor_environ)
+		assert_that( res.json_body, has_entry('TotalItemCount', 2) )
+		assert_that( res.json_body['Items'], contains( has_entries('Class', 'UsersCourseAssignmentHistoryItemFeedback',
+																   'AssignmentId', 'tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.asg:QUIZ1_aristotle'),
+													   has_entry('Class', 'AssignmentSubmission')))
+
 		# The instructor can delete our submission
 		self.testapp.delete(item['href'], extra_environ=instructor_environ, status=204)
+		res = self.testapp.get(activity_link, extra_environ=instructor_environ)
+		assert_that( res.json_body, has_entry('TotalItemCount', 0) )
+		assert_that( res.json_body, has_entry( 'Items', is_empty() ))
 
 		# Whereupon we can submit again
 		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id,

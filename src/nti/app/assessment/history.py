@@ -16,6 +16,7 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 from zope import interface
+from zope import component
 from zope import lifecycleevent
 
 from zope.cachedescriptors.property import Lazy
@@ -101,12 +102,7 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 
 
 		lifecycleevent.created(item)
-		self[submission.assignmentId] = item # fire object added
-
-		# Fire object added for the submission and assessment, now that they have
-		# homes in the containment tree
-		lifecycleevent.added(submission)
-		lifecycleevent.added(pending)
+		self[submission.assignmentId] = item # fire object added, which is dispatched to sublocations
 
 		return item
 
@@ -121,9 +117,11 @@ from nti.dataserver.authorization import ACT_READ
 from nti.dataserver.interfaces import IACLProvider
 from nti.dataserver.authorization_acl import acl_from_aces
 from nti.dataserver.authorization_acl import ace_allowing
+from zope.location.interfaces import ISublocations
 
 @interface.implementer(IUsersCourseAssignmentHistoryItem,
-					   IACLProvider)
+					   IACLProvider,
+					   ISublocations)
 class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 									   Contained,
 									   SchemaConfigured):
@@ -162,3 +160,33 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 	def __acl__(self):
 		"Our ACL allows access for the creator as well as inherited permissions from the course"
 		return acl_from_aces( ace_allowing( self.creator, ACT_READ, UsersCourseAssignmentHistoryItem ) )
+
+	def sublocations(self):
+		if self.Submission is not None:
+			yield self.Submission
+		if self.pendingAssessment is not None:
+			yield self.pendingAssessment
+
+		if 'Feedback' in self.__dict__:
+			yield self.Feedback
+
+
+from zope.intid.interfaces import IIntIdAddedEvent
+from zope.intid.interfaces import IIntIdRemovedEvent
+from nti.app.products.courseware.interfaces import ICourseInstance
+from nti.app.products.courseware.interfaces import ICourseInstanceActivity
+from nti.dataserver.traversal import find_interface
+from nti.assessment.interfaces import IQAssignmentSubmission
+
+@component.adapter(IQAssignmentSubmission, IIntIdAddedEvent)
+def _add_object_to_course_activity(submission, event):
+	course = find_interface(submission, ICourseInstance)
+	activity = ICourseInstanceActivity(course)
+	activity.append(submission)
+
+
+@component.adapter(IQAssignmentSubmission, IIntIdRemovedEvent)
+def _remove_object_from_course_activity(submission, event):
+	course = find_interface(submission, ICourseInstance)
+	activity = ICourseInstanceActivity(course)
+	activity.remove(submission)

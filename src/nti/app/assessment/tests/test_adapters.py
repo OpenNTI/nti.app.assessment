@@ -17,6 +17,7 @@ logger = __import__('logging').getLogger(__name__)
 
 from hamcrest import assert_that
 from hamcrest import is_
+from hamcrest import none
 from hamcrest import has_length
 from hamcrest import has_item
 from hamcrest import has_entry
@@ -431,10 +432,20 @@ class TestAssignmentFileGrading(SharedApplicationTestBase):
 		assert_that( submitted_file_part, has_key('url'))
 		assert_that( submitted_file_part, has_key('value'))
 		assert_that( submitted_file_part['url'], is_(submitted_file_part['value']) )
+		assert_that( submitted_file_part, has_key('download_url'))
 
+		# Once directly, as is consistent with the way that avatars, etc work
 		download_res = self.testapp.get( submitted_file_part['url'] )
 		assert_that( download_res, has_property('content_type', 'image/gif'))
 		assert_that( download_res, has_property('content_length', 61))
+		assert_that( download_res, has_property('content_disposition', none() ))
+
+		# Then for download, both directly and without the trailing /view
+		for path in submitted_file_part['url'][0:-5], submitted_file_part['download_url']:
+			download_res = self.testapp.get( path )
+			assert_that( download_res, has_property('content_type', 'image/gif'))
+			assert_that( download_res, has_property('content_length', 61))
+			assert_that( download_res, has_property('content_disposition', not_none() ))
 
 
 		# Our default user happens to have admin permisions

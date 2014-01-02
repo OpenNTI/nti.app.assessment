@@ -9,7 +9,6 @@ Storage for assignment histories.
 
 $Id$
 """
-
 from __future__ import print_function, unicode_literals, absolute_import, division
 __docformat__ = "restructuredtext en"
 
@@ -18,29 +17,28 @@ logger = __import__('logging').getLogger(__name__)
 from zope import interface
 from zope import component
 from zope import lifecycleevent
-
+from zope.container.contained import Contained
 from zope.cachedescriptors.property import Lazy
 
-from .interfaces import IUsersCourseAssignmentHistory
-from .interfaces import IUsersCourseAssignmentHistoryItem
 from nti.contenttypes.courses.interfaces import ICourseInstance
-from .feedback import UsersCourseAssignmentHistoryItemFeedbackContainer
 
-from zope.container.contained import Contained
-
+from nti.utils.property import alias
 from nti.utils.schema import SchemaConfigured
 from nti.utils.schema import createDirectFieldProperties
-from nti.utils.property import alias
 
-from nti.dataserver.datastructures import PersistentCreatedModDateTrackingObject
 from nti.dataserver.containers import CheckingLastModifiedBTreeContainer
+from nti.dataserver.datastructures import PersistentCreatedModDateTrackingObject
 
 from nti.dataserver.interfaces import IUser
 
 from nti.wref.interfaces import IWeakRef
 
-from nti.zodb.minmax import NumericPropertyDefaultingToZero
 from nti.zodb.minmax import NumericMaximum
+from nti.zodb.minmax import NumericPropertyDefaultingToZero
+
+from .interfaces import IUsersCourseAssignmentHistory
+from .interfaces import IUsersCourseAssignmentHistoryItem
+from .feedback import UsersCourseAssignmentHistoryItemFeedbackContainer
 
 @interface.implementer(IUsersCourseAssignmentHistory)
 class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
@@ -151,10 +149,15 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 			return IUser(self)
 		except TypeError:
 			return None
+	
 	@creator.setter
 	def creator(self, nv):
 		# Ignored
 		pass
+
+	@property
+	def assignmentId(self):
+		return self.__name__
 
 	@property
 	def __acl__(self):
@@ -173,10 +176,10 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 
 from zope.intid.interfaces import IIntIdAddedEvent
 from zope.intid.interfaces import IIntIdRemovedEvent
-from nti.app.products.courseware.interfaces import ICourseInstance
+
 from nti.app.products.courseware.interfaces import ICourseInstanceActivity
-from nti.dataserver.traversal import find_interface
 from nti.assessment.interfaces import IQAssignmentSubmission
+from nti.dataserver.traversal import find_interface
 
 @component.adapter(IQAssignmentSubmission, IIntIdAddedEvent)
 def _add_object_to_course_activity(submission, event):

@@ -64,13 +64,13 @@
 	-->
 	<subscriber factory="nti.appserver.pyramid_renderers_edit_link_decorator.OIDEditLinkDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
-				for=".interfaces.IUsersCourseAssignmentHistoryItem" />
+				for=".interfaces.IUsersCourseAssignmentHistoryItem pyramid.interfaces.IRequest" />
 	<subscriber factory="nti.appserver.pyramid_renderers_edit_link_decorator.OIDEditLinkDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
-				for=".interfaces.IUsersCourseAssignmentHistoryItemFeedback" />
+				for=".interfaces.IUsersCourseAssignmentHistoryItemFeedback pyramid.interfaces.IRequest" />
 	<subscriber factory="nti.appserver.pyramid_renderers_edit_link_decorator.OIDEditLinkDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
-				for=".interfaces.IUsersCourseAssignmentHistoryItemFeedbackContainer" />
+				for=".interfaces.IUsersCourseAssignmentHistoryItemFeedbackContainer pyramid.interfaces.IRequest" />
 
 
 	<!-- Course activity -->

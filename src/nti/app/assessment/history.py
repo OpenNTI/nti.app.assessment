@@ -149,7 +149,7 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 			return IUser(self)
 		except TypeError:
 			return None
-	
+
 	@creator.setter
 	def creator(self, nv):
 		# Ignored
@@ -172,24 +172,3 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 
 		if 'Feedback' in self.__dict__:
 			yield self.Feedback
-
-
-from zope.intid.interfaces import IIntIdAddedEvent
-from zope.intid.interfaces import IIntIdRemovedEvent
-
-from nti.app.products.courseware.interfaces import ICourseInstanceActivity
-from nti.assessment.interfaces import IQAssignmentSubmission
-from nti.dataserver.traversal import find_interface
-
-@component.adapter(IQAssignmentSubmission, IIntIdAddedEvent)
-def _add_object_to_course_activity(submission, event):
-	course = find_interface(submission, ICourseInstance)
-	activity = ICourseInstanceActivity(course)
-	activity.append(submission)
-
-
-@component.adapter(IQAssignmentSubmission, IIntIdRemovedEvent)
-def _remove_object_from_course_activity(submission, event):
-	course = find_interface(submission, ICourseInstance)
-	activity = ICourseInstanceActivity(course)
-	activity.remove(submission)

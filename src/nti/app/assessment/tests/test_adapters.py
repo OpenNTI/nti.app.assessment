@@ -274,7 +274,7 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 
 		instructor_environ = self._make_extra_environ(username='harp4162')
 
-		# The instructor sees our submission in his activity view
+		# The instructor sees our submission in his activity view, as well as the feedback
 		activity_link = '/dataserver2/users/CLC3403.ou.nextthought.com/LegacyCourses/CLC3403/CourseActivity'
 		res = self.testapp.get(activity_link, extra_environ=instructor_environ)
 		assert_that( res.json_body, has_entry('TotalItemCount', 2) )
@@ -284,6 +284,7 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 
 		# The instructor can delete our submission
 		self.testapp.delete(item['href'], extra_environ=instructor_environ, status=204)
+		# Which empties out the activity
 		res = self.testapp.get(activity_link, extra_environ=instructor_environ)
 		assert_that( res.json_body, has_entry('TotalItemCount', 0) )
 		assert_that( res.json_body, has_entry( 'Items', is_empty() ))

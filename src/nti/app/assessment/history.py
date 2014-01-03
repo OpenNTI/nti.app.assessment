@@ -15,7 +15,6 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 from zope import interface
-from zope import component
 from zope import lifecycleevent
 from zope.container.contained import Contained
 from zope.cachedescriptors.property import Lazy

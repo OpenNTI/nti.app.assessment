@@ -262,14 +262,16 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 									  ext_feedback,
 									  status=201 )
 
-		history_res = self.testapp.get(course_history_link)
+		# Both history links are equivalent and work
+		for link in course_history_link, enrollment_history_link:
+			history_res = self.testapp.get(link)
 
-		item = history_res.json_body['Items'].values()[0]
-		feedback = item['Feedback']
-		assert_that( feedback, has_entry('Items', has_length(1)))
-		assert_that( feedback['Items'], has_item( has_entry( 'body', ['Some feedback'])))
-		assert_that( feedback['Items'], has_item( has_entry( 'href',
-															 ends_with('AssignmentHistories/sjohnson%40nextthought.com/tag%3Anextthought.com%2C2011-10%3AOU-NAQ-CLC3403_LawAndJustice.naq.asg%3AQUIZ1_aristotle/Feedback/0') ) ) )
+			item = history_res.json_body['Items'].values()[0]
+			feedback = item['Feedback']
+			assert_that( feedback, has_entry('Items', has_length(1)))
+			assert_that( feedback['Items'], has_item( has_entry( 'body', ['Some feedback'])))
+			assert_that( feedback['Items'], has_item( has_entry( 'href',
+																 ends_with('AssignmentHistories/sjohnson%40nextthought.com/tag%3Anextthought.com%2C2011-10%3AOU-NAQ-CLC3403_LawAndJustice.naq.asg%3AQUIZ1_aristotle/Feedback/0') ) ) )
 
 		# We can modify the view date by putting to the field
 		res = self.testapp.put_json(last_viewed_href, 1234)

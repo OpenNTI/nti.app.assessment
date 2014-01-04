@@ -140,3 +140,21 @@ class _FeedbackItemAssignmentIdDecorator(object):
 			result_map['AssignmentId'] = submission.assignmentId
 		except AttributeError:
 			pass
+
+class _LastViewedAssignmentHistoryDecorator(AbstractAuthenticatedRequestAwareDecorator):
+	"""
+	For assignment histories, when the requester is the owner,
+	we add a link to point to the 'lastViewed' update spot.
+	"""
+
+	def _precondition(self, context, result):
+		return (AbstractAuthenticatedRequestAwareDecorator._precondition(self, context, result)
+				and context.owner is not None
+				and context.owner == self.remoteUser)
+
+	def _do_decorate_external(self, context, result):
+		links = result.setdefault( LINKS, [] )
+		links.append( Link( context,
+							rel='lastViewed',
+							elements=('lastViewed',),
+							method='PUT' ) )

@@ -251,6 +251,7 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 		self._check_submission(res, enrollment_history_link)
 
 		history_res = self._check_submission( res, course_history_link )
+		last_viewed_href = self.require_link_href_with_rel( history_res.json_body, 'lastViewed' )
 		__traceback_info__ = history_res.json_body
 		history_feedback_container_href = history_res.json_body['Items'].items()[0][1]['Feedback']['href']
 
@@ -271,10 +272,6 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 															 ends_with('AssignmentHistories/sjohnson%40nextthought.com/tag%3Anextthought.com%2C2011-10%3AOU-NAQ-CLC3403_LawAndJustice.naq.asg%3AQUIZ1_aristotle/Feedback/0') ) ) )
 
 		# We can modify the view date by putting to the field
-		# FIXME: This is weird: the history item is not technically
-		# editable, and so we don't send back Link(rel=edit) for it, which
-		# naturally confuses clients
-		last_viewed_href = course_history_link + '/lastViewed'
 		res = self.testapp.put_json(last_viewed_href, 1234)
 		history_res = self.testapp.get(course_history_link)
 		assert_that(history_res.json_body, has_entry('lastViewed', 1234))

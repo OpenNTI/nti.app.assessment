@@ -56,6 +56,11 @@
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.app.products.courseware.interfaces.ICourseInstanceEnrollment"/>
 
+	<subscriber factory=".decorators._LastViewedAssignmentHistoryDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for=".interfaces.IUsersCourseAssignmentHistory
+					 pyramid.interfaces.IRequest"/>
+
 
 
 	<!-- hrefs -->

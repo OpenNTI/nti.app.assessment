@@ -272,6 +272,10 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 		history_res = self.testapp.get(course_history_link)
 		assert_that(history_res.json_body, has_entry('lastViewed', 1234))
 
+		# Of course, trying to PUT directly to the object 404s (not 500, we've
+		# seen clients attempt this in the wild)
+		self.testapp.put_json( course_history_link + '?_dc=1234/lastViewed', 2345, status=404 )
+
 		instructor_environ = self._make_extra_environ(username='harp4162')
 
 		# The instructor sees our submission in his activity view, as well as the feedback

@@ -83,23 +83,24 @@ class _ContentUnitAssessmentItemDecorator(object):
 
 LINKS = ext_interfaces.StandardExternalFields.LINKS
 from nti.dataserver.links import Link
+from nti.appserver.pyramid_renderers import AbstractAuthenticatedRequestAwareDecorator
 
 @interface.implementer(ext_interfaces.IExternalMappingDecorator)
-class _AssignmentHistoryItemDecorator(object):
+class _AssignmentHistoryItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
 	For things that have an assignment history, add this
 	as a link.
 	"""
 
-	__metaclass__ = SingletonDecorator
-
 	# Note: This overlaps with the registrations in assessment_views
 	# Note: We do not specify what we adapt, there are too many
 	# things with no common ancestor.
 
-	def decorateExternalMapping( self, context, result_map ):
+	def _do_decorate_external( self, context, result_map ):
 		links = result_map.setdefault( LINKS, [] )
-		links.append( Link( context, rel='AssignmentHistory', elements=('AssignmentHistory',)) )
+		links.append( Link( context,
+							rel='AssignmentHistory',
+							elements=('AssignmentHistories', self.remoteUser.username)) )
 
 @interface.implementer(ext_interfaces.IExternalMappingDecorator)
 class _AssignmentsByOutlineNodeDecorator(object):

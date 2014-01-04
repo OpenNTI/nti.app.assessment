@@ -214,7 +214,7 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 			# Because we're not enrolled...actually, we shouldn't
 			# have been able to submit...this is here to make sure something
 			# breaks when acls change
-			res = self._fetch_user_url( '/Courses/EnrolledCourses/CLC3403/AssignmentHistory', status=404 )
+			res = self._fetch_user_url( '/Courses/EnrolledCourses/CLC3403/AssignmentHistories/sjohnson@nextthought.com', status=404 )
 
 		return res
 
@@ -240,6 +240,12 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 		enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'AssignmentHistory')
 		course_history_link = self.require_link_href_with_rel( res.json_body['CourseInstance'], 'AssignmentHistory')
 
+		assert_that( enrollment_history_link,
+					 is_('/dataserver2/users/sjohnson%40nextthought.com/Courses/EnrolledCourses/CLC3403/AssignmentHistories/sjohnson@nextthought.com'))
+
+		assert_that( course_history_link,
+					 is_('/dataserver2/users/CLC3403.ou.nextthought.com/LegacyCourses/CLC3403/AssignmentHistories/sjohnson@nextthought.com'))
+
 		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id,
 									  ext_obj)
 		self._check_submission(res, enrollment_history_link)
@@ -261,7 +267,8 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 		feedback = item['Feedback']
 		assert_that( feedback, has_entry('Items', has_length(1)))
 		assert_that( feedback['Items'], has_item( has_entry( 'body', ['Some feedback'])))
-		assert_that( feedback['Items'], has_item( has_entry( 'href', ends_with('Feedback/0') ) ) )
+		assert_that( feedback['Items'], has_item( has_entry( 'href',
+															 ends_with('AssignmentHistories/sjohnson%40nextthought.com/tag%3Anextthought.com%2C2011-10%3AOU-NAQ-CLC3403_LawAndJustice.naq.asg%3AQUIZ1_aristotle/Feedback/0') ) ) )
 
 		# We can modify the view date by putting to the field
 		# FIXME: This is weird: the history item is not technically
@@ -395,7 +402,7 @@ class TestAssignmentFileGrading(SharedApplicationTestBase):
 			# Because we're not enrolled...actually, we shouldn't
 			# have been able to submit...this is here to make sure something
 			# breaks when acls change
-			res = self._fetch_user_url( '/Courses/EnrolledCourses/CLC3403/AssignmentHistory', status=404 )
+			res = self._fetch_user_url( '/Courses/EnrolledCourses/CLC3403/AssignmentHistories/sjohnsen@nextthought.com', status=404 )
 
 		return res
 
@@ -425,7 +432,7 @@ class TestAssignmentFileGrading(SharedApplicationTestBase):
 									  'CLC 3403',
 									  status=201 )
 		enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'AssignmentHistory')
-		course_history_link = self.require_link_href_with_rel( res.json_body['CourseInstance'], 'AssignmentHistory')
+		self.require_link_href_with_rel( res.json_body['CourseInstance'], 'AssignmentHistory')
 
 		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id,
 									  ext_obj)

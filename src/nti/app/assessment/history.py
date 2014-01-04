@@ -26,6 +26,7 @@ from nti.utils.schema import SchemaConfigured
 from nti.utils.schema import createDirectFieldProperties
 
 from nti.dataserver.containers import CheckingLastModifiedBTreeContainer
+from nti.dataserver.containers import CaseInsensitiveCheckingLastModifiedBTreeContainer
 from nti.dataserver.datastructures import PersistentCreatedModDateTrackingObject
 
 from nti.dataserver.interfaces import IUser
@@ -35,9 +36,16 @@ from nti.wref.interfaces import IWeakRef
 from nti.zodb.minmax import NumericMaximum
 from nti.zodb.minmax import NumericPropertyDefaultingToZero
 
+from .interfaces import IUsersCourseAssignmentHistories
 from .interfaces import IUsersCourseAssignmentHistory
 from .interfaces import IUsersCourseAssignmentHistoryItem
 from .feedback import UsersCourseAssignmentHistoryItemFeedbackContainer
+
+@interface.implementer(IUsersCourseAssignmentHistories)
+class UsersCourseAssignmentHistories(CaseInsensitiveCheckingLastModifiedBTreeContainer):
+	"""
+	Implementation of the course assignment histories for all users in a course.
+	"""
 
 @interface.implementer(IUsersCourseAssignmentHistory)
 class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):

@@ -36,6 +36,12 @@ from nti.dataserver.interfaces import IUser
 from nti.assessment.interfaces import IQAssignmentSubmission
 from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 
+class IUsersCourseAssignmentHistories(IContainer,IShouldHaveTraversablePath):
+	"""
+	A container for all the assignment histories in a course, keyed
+	by username.
+	"""
+	contains(str('.IUsersCourseAssignmentHistory'))
 
 class IUsersCourseAssignmentHistory(IContainer,
 									ILastViewed,
@@ -63,6 +69,7 @@ class IUsersCourseAssignmentHistory(IContainer,
 	"""
 
 	contains(str('.IUsersCourseAssignmentHistoryItem'))
+	containers(IUsersCourseAssignmentHistories)
 	__setitem__.__doc__ = None
 	owner = schema.Object(IUser,
 						  required=False,

@@ -202,6 +202,21 @@ def _course_from_assignment_lineage(assignment):
 			break
 	return course
 
+from .history import UsersCourseAssignmentHistories
+
+def _histories_for_course(course):
+	annotations = IAnnotations(course)
+	try:
+		KEY = 'AssignmentHistories'
+		histories = annotations[KEY]
+	except KeyError:
+		histories = UsersCourseAssignmentHistories()
+		annotations[KEY] = histories
+		histories.__name__ = KEY
+		histories.__parent__ = course
+
+	return histories
+
 @interface.implementer(IUsersCourseAssignmentHistory)
 @component.adapter(ICourseInstance,IUser)
 def _history_for_user_in_course(course,user):
@@ -215,35 +230,21 @@ def _history_for_user_in_course(course,user):
 	away after the course does, and it makes it easy to see
 	\"progress\" within a course.
 	"""
-	annotations = IAnnotations(course)
-	try:
-		KEY = 'nti.app.assessment.AssignmentHistory'
-		histories = annotations[KEY]
-	except KeyError:
-		histories = OOBTree()
-		annotations[KEY] = histories
-
+	histories = _histories_for_course(course)
 	try:
 		history = histories[user.username]
 	except KeyError:
 		history = UsersCourseAssignmentHistory()
-		history.__name__ = 'AssignmentHistory'
-		history.__parent__ = course
 		history.owner = user
 		histories[user.username] = history
 
 	return history
 
-from nti.appserver._view_utils import get_remote_user
-def _history_for_user_in_course_path_adapter(course, request):
-	user = get_remote_user(request)
-	return component.getMultiAdapter( (course,user),
-									  IUsersCourseAssignmentHistory )
+def _histories_for_course_path_adapter(course, request):
+	return _histories_for_course(course)
 
-def _history_for_user_in_courseenrollment_path_adapter(enrollment, request):
-	return component.getMultiAdapter( (ICourseInstance(enrollment), IUser(enrollment)),
-									  IUsersCourseAssignmentHistory )
-
+def _histories_for_courseenrollment_path_adapter(enrollment, request):
+	return _histories_for_course( ICourseInstance(enrollment) )
 
 @interface.implementer(ICourseInstance)
 @component.adapter(IUsersCourseAssignmentHistoryItem)

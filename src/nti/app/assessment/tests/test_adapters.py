@@ -246,6 +246,12 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 		assert_that( course_history_link,
 					 is_('/dataserver2/users/CLC3403.ou.nextthought.com/LegacyCourses/CLC3403/AssignmentHistories/sjohnson@nextthought.com'))
 
+		# Both history links are equivalent and work; and both are empty before I submit
+		for link in course_history_link, enrollment_history_link:
+			history_res = self.testapp.get(link)
+			assert_that( history_res.json_body, has_entry('Items', has_length(0)))
+
+
 		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id,
 									  ext_obj)
 		self._check_submission(res, enrollment_history_link)
@@ -265,7 +271,7 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 		# Both history links are equivalent and work
 		for link in course_history_link, enrollment_history_link:
 			history_res = self.testapp.get(link)
-
+			assert_that( history_res.json_body, has_entry('Items', has_length(1)))
 			item = history_res.json_body['Items'].values()[0]
 			feedback = item['Feedback']
 			assert_that( feedback, has_entry('Items', has_length(1)))
@@ -341,8 +347,6 @@ class TestAssignmentFileGrading(SharedApplicationTestBase):
 		cls.assignment_id = assignment_ntiid
 
 		from nti.assessment import parts
-		from nti.assessment import response
-		from nti.assessment import submission
 		from nti.assessment.question import QQuestion
 		from nti.assessment.question import QQuestionSet
 		from nti.assessment.interfaces import IQuestion

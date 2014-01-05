@@ -120,5 +120,5 @@
 			 name="AssignmentHistories" />
 
 	<adapter factory=".assessment_views.AssignmentHistoryRequestTraversable" />
-
+	<adapter factory=".adapters._UsersCourseAssignmentHistoriesTraversable" />
 </configure>

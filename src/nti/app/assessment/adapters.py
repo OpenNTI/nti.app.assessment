@@ -256,6 +256,32 @@ def _course_from_history_item_lineage(item):
 
 	return course
 
+from zope.location.interfaces import LocationError
+from nti.dataserver.traversal import ContainerAdapterTraversable
+from nti.dataserver.users import User
+
+from .interfaces import IUsersCourseAssignmentHistories
+
+@component.adapter(IUsersCourseAssignmentHistories,IRequest)
+class _UsersCourseAssignmentHistoriesTraversable(ContainerAdapterTraversable):
+	"""
+	During request traversal, we will dummy up an assignment history if
+	we need to, if the user exists.
+
+	.. todo:: Only do this when the user is enrolled. We need a cheap
+		way to test that first.
+	"""
+
+	def traverse( self, key, remaining_path ):
+		try:
+			return super(_UsersCourseAssignmentHistoriesTraversable,self).traverse(key, remaining_path)
+		except LocationError:
+			# Ok, is the key an existing user?
+			user = User.get_user(key)
+			if user is not None:
+				return _history_for_user_in_course( self.context.__parent__, user)
+			raise
+
 from .interfaces import ICourseAssignmentCatalog
 from nti.assessment.interfaces import IQAssessmentItemContainer
 from nti.assessment.interfaces import IQAssignment

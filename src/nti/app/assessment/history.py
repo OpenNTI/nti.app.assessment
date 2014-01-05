@@ -47,6 +47,8 @@ class UsersCourseAssignmentHistories(CaseInsensitiveCheckingLastModifiedBTreeCon
 	Implementation of the course assignment histories for all users in a course.
 	"""
 
+
+
 @interface.implementer(IUsersCourseAssignmentHistory)
 class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 	"""

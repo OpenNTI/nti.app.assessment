@@ -220,6 +220,11 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 
 	@WithSharedApplicationMockDS(users=('harp4162'),testapp=True,default_authenticate=True)
 	def test_pending_application_assignment(self):
+		# This only works in the OU environment because that's where the purchasables are
+		extra_env = self.testapp.extra_environ or {}
+		extra_env.update( {b'HTTP_ORIGIN': b'http://janux.ou.edu'} )
+		self.testapp.extra_environ = extra_env
+
 		# Re-enum to pick up instructor
 		with mock_dataserver.mock_db_trans(self.ds):
 			lib = component.getUtility(IContentPackageLibrary)
@@ -313,6 +318,11 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 
 	@WithSharedApplicationMockDS(users=True,testapp=True)
 	def test_assignment_items_view(self):
+		# This only works in the OU environment because that's where the purchasables are
+		extra_env = self.testapp.extra_environ or {}
+		extra_env.update( {b'HTTP_ORIGIN': b'http://janux.ou.edu'} )
+		self.testapp.extra_environ = extra_env
+
 		# Make sure we're enrolled
 		res = self.testapp.post_json( '/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses',
 									  'CLC 3403',
@@ -411,6 +421,11 @@ class TestAssignmentFileGrading(SharedApplicationTestBase):
 
 	@WithSharedApplicationMockDS(users=True,testapp=True)
 	def test_posting_and_bulk_downloading_file(self):
+		# This only works in the OU environment because that's where the purchasables are
+		extra_env = self.testapp.extra_environ or {}
+		extra_env.update( {b'HTTP_ORIGIN': b'http://janux.ou.edu'} )
+		self.testapp.extra_environ = extra_env
+
 		from nti.assessment import response
 		from nti.assessment import submission
 		from cStringIO import StringIO

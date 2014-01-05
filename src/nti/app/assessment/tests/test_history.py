@@ -24,6 +24,7 @@ from nti.testing import base
 from nti.testing.matchers import validly_provides
 
 from ..history import UsersCourseAssignmentHistory
+from ..history import UsersCourseAssignmentHistories
 from ..history import UsersCourseAssignmentHistoryItem
 
 from ..interfaces import IUsersCourseAssignmentHistoryItem
@@ -41,7 +42,9 @@ tearDownModule = base.module_teardown
 
 
 def test_provides():
+	histories = UsersCourseAssignmentHistories()
 	history = UsersCourseAssignmentHistory()
+	history.__parent__ = histories
 	# Set an owner; use a python wref instead of the default
 	# adapter to wref as it requires an intid utility
 	history.owner = weakref.ref(User('sjohnson@nextthought.com'))

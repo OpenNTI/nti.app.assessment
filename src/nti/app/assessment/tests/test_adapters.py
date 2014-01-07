@@ -284,12 +284,21 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 		__traceback_info__ = history_res.json_body
 		history_feedback_container_href = history_res.json_body['Items'].items()[0][1]['Feedback']['href']
 
+		# The user can send some feedback
 		feedback = UsersCourseAssignmentHistoryItemFeedback(body=['Some feedback'])
 		ext_feedback = to_external_object(feedback)
 		__traceback_info__ = ext_feedback
 		res = self.testapp.post_json( history_feedback_container_href,
 									  ext_feedback,
 									  status=201 )
+
+		# He can edit it
+		feedback_item_edit_link = self.require_link_href_with_rel( res.json_body, 'edit' )
+		new_feedback = dict(res.json_body)
+		new_feedback['body'] = ['Other feedback']
+
+		res = self.testapp.put_json( feedback_item_edit_link, new_feedback )
+		assert_that( res.json_body, has_entry( 'body', ['Other feedback']) )
 
 		# Both history links are equivalent and work
 		for link in course_history_link, enrollment_history_link:
@@ -298,7 +307,7 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 			item = history_res.json_body['Items'].values()[0]
 			feedback = item['Feedback']
 			assert_that( feedback, has_entry('Items', has_length(1)))
-			assert_that( feedback['Items'], has_item( has_entry( 'body', ['Some feedback'])))
+			assert_that( feedback['Items'], has_item( has_entry( 'body', ['Other feedback'])))
 			assert_that( feedback['Items'], has_item( has_entry( 'href',
 																 ends_with('AssignmentHistories/sjohnson%40nextthought.com/tag%3Anextthought.com%2C2011-10%3AOU-NAQ-CLC3403_LawAndJustice.naq.asg%3AQUIZ1_aristotle/Feedback/0') ) ) )
 
@@ -320,6 +329,20 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 		assert_that( res.json_body['Items'], contains( has_entries('Class', 'UsersCourseAssignmentHistoryItemFeedback',
 																   'AssignmentId', 'tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.asg:QUIZ1_aristotle'),
 													   has_entry('Class', 'AssignmentSubmission')))
+
+		# We can delete our own feedback item and it vanishes completely
+		# TODO: Wouldn't a deleted object placeholder be better?
+		self.testapp.delete(feedback_item_edit_link)
+		for link in course_history_link, enrollment_history_link:
+			history_res = self.testapp.get(link)
+			item = history_res.json_body['Items'].values()[0]
+			feedback = item['Feedback']
+			assert_that( feedback, has_entry('Items', has_length(0)))
+
+		res = self.testapp.get(activity_link, extra_environ=instructor_environ)
+		assert_that( res.json_body, has_entry('TotalItemCount', 1) )
+		assert_that( res.json_body['Items'], contains(has_entry('Class', 'AssignmentSubmission')))
+
 
 		# The instructor can delete our submission
 		self.testapp.delete(item['href'], extra_environ=instructor_environ, status=204)

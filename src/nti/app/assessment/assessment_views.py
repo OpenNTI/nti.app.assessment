@@ -309,6 +309,18 @@ from nti.appserver.ugd_edit_views import UGDDeleteView
 			 permission=nauth.ACT_DELETE,
 			 request_method='DELETE')
 class AssignmentHistoryItemDeleteView(UGDDeleteView):
+
+	def _do_delete_object( self, theObject ):
+		del theObject.__parent__[theObject.__name__]
+		return theObject
+
+@view_config(route_name="objects.generic.traversal",
+			 context=IUsersCourseAssignmentHistoryItemFeedback,
+			 renderer='rest',
+			 permission=nauth.ACT_DELETE,
+			 request_method='DELETE')
+class AssignmentHistoryItemFeedbackDeleteView(UGDDeleteView):
+
 	def _do_delete_object( self, theObject ):
 		del theObject.__parent__[theObject.__name__]
 		return theObject

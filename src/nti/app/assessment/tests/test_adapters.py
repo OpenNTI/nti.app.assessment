@@ -110,6 +110,15 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 		cls.lesson_page_id = lesson_page_id
 
 
+		from zope.component.interfaces import IComponents
+		from nti.app.products.courseware.interfaces import ICourseCatalog
+		components = component.getUtility(IComponents, name='platform.ou.edu')
+		catalog = components.getUtility( ICourseCatalog )
+		# XXX
+		# This test is unclean, we re-register globally
+		global_catalog = component.getUtility(ICourseCatalog)
+		global_catalog._entries[:] = catalog._entries
+
 	@classmethod
 	def setUpClass(cls):
 		super(TestAssignmentGrading,cls).setUpClass()
@@ -229,6 +238,15 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 		with mock_dataserver.mock_db_trans(self.ds):
 			lib = component.getUtility(IContentPackageLibrary)
 			del lib.contentPackages
+
+			from zope.component.interfaces import IComponents
+			from nti.app.products.courseware.interfaces import ICourseCatalog
+			components = component.getUtility(IComponents, name='platform.ou.edu')
+			cat = components.queryUtility(ICourseCatalog)
+			if cat:
+				del cat._entries[:] # XXX
+			cat = component.getUtility(ICourseCatalog)
+			del cat._entries[:]
 			getattr(lib, 'contentPackages')
 		self._register_assignment()
 		# Sends an assignment through the application by posting to the assignment

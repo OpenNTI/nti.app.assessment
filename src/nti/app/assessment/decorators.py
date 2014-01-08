@@ -158,3 +158,25 @@ class _LastViewedAssignmentHistoryDecorator(AbstractAuthenticatedRequestAwareDec
 							rel='lastViewed',
 							elements=('lastViewed',),
 							method='PUT' ) )
+
+
+
+from nti.assessment.interfaces import IQFilePart
+
+from .assessment_views import AssignmentSubmissionBulkFileDownloadView
+
+class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
+	"""
+	When an instructor feteches an assignment that contains a file part
+	somewhere, provide access to the link do download it.
+	"""
+
+	def _precondition(self, context, result):
+		request = self.request
+		return AssignmentSubmissionBulkFileDownloadView._precondition(context, self.request) # XXX Hack
+
+	def _do_decorate_external(self, context, result):
+		links = result.setdefault( LINKS, [] )
+		links.append( Link( context,
+							rel='ExportFiles',
+							elements=('BulkFilePartDownload',) ) )

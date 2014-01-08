@@ -146,11 +146,17 @@ from zipfile import ZipInfo
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.assessment.interfaces import IQUploadedFile
 from nti.assessment.interfaces import IQResponse
+from nti.assessment.interfaces import IQFilePart
+
+
+from nti.contenttypes.courses.interfaces import is_instructed_by_name
+
+from nti.appserver.pyramid_authorization import has_permission
 
 @view_config(route_name="objects.generic.traversal",
 			 context=IQAssignment,
 			 renderer='rest',
-			 permission=nauth.ACT_MODERATE, # XXX: Fixme
+			 #permission=nauth.ACT_READ, # Permissioning handled manually...
 			 request_method='GET',
 			 name='BulkFilePartDownload')
 class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
@@ -176,12 +182,37 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 		to do something with app_iter and stream in \"chunks\".
 	"""
 
+	@classmethod
+	def _precondition(cls, context, request):
+		username = request.authenticated_userid
+		if not username:
+			return False
+		course = ICourseInstance(context)
+		if not is_instructed_by_name(course, username) and not has_permission(nauth.ACT_MODERATE, context, request):
+			# We allow global admins in too for testing
+			return False
+
+		# Does it have a file part?
+		for assignment_part in context.parts:
+			question_set = assignment_part.question_set
+			for question in question_set.questions:
+				for question_part in question.parts:
+					if IQFilePart.providedBy(question_part):
+						return True # TODO: Consider caching this?
+
 	def __call__(self):
 		# We're assuming we'll find some submitted files.
 		# What should we do if we don't?
-		assignment_id = self.request.context.__name__
-		course = ICourseInstance(self.request.context)
+		context = self.request.context
+		request = self.request
+		assignment_id = context.__name__
+		course = ICourseInstance(context)
 		enrollments = ICourseEnrollments(course)
+
+		username = self.request.authenticated_userid
+
+		if not self._precondition(context, request):
+			raise hexc.HTTPForbidden()
 
 		buf = StringIO()
 		zipfile = ZipFile( buf, 'w' )

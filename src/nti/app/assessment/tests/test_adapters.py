@@ -519,9 +519,11 @@ class TestAssignmentFileGrading(SharedApplicationTestBase):
 			assert_that( download_res, has_property('content_disposition', not_none() ))
 
 
-		# Our default user happens to have admin permisions
+		# Our default user happens to have admin perms to fetch the files
+		res = self.testapp.get('/dataserver2/Objects/' + self.assignment_id )
+		bulk_href = self.require_link_href_with_rel(res.json_body, 'ExportFiles')
 
-		res = self.testapp.get('/dataserver2/Objects/' + self.assignment_id + '/BulkFilePartDownload')
+		res = self.testapp.get(bulk_href)
 
 		assert_that( res.content_disposition, is_( 'attachment; filename="assignment.zip"'))
 

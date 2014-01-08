@@ -147,8 +147,8 @@ class _LastViewedAssignmentHistoryDecorator(AbstractAuthenticatedRequestAwareDec
 	we add a link to point to the 'lastViewed' update spot.
 	"""
 
-	def _precondition(self, context, result):
-		return (AbstractAuthenticatedRequestAwareDecorator._precondition(self, context, result)
+	def _predicate(self, context, result):
+		return (AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
 				and context.owner is not None
 				and context.owner == self.remoteUser)
 
@@ -160,9 +160,6 @@ class _LastViewedAssignmentHistoryDecorator(AbstractAuthenticatedRequestAwareDec
 							method='PUT' ) )
 
 
-
-from nti.assessment.interfaces import IQFilePart
-
 from .assessment_views import AssignmentSubmissionBulkFileDownloadView
 
 class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
@@ -171,9 +168,10 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
 	somewhere, provide access to the link do download it.
 	"""
 
-	def _precondition(self, context, result):
-		request = self.request
-		return AssignmentSubmissionBulkFileDownloadView._precondition(context, self.request) # XXX Hack
+	def _predicate(self, context, result):
+		if AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result):
+			request = self.request
+			return AssignmentSubmissionBulkFileDownloadView._precondition(context, self.request) # XXX Hack
 
 	def _do_decorate_external(self, context, result):
 		links = result.setdefault( LINKS, [] )

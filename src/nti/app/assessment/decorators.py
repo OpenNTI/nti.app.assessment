@@ -67,7 +67,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 		course = ICourseInstance(context.contentUnit, None)
 		if course is not None:
 			_predicate = get_course_assignment_predicate_for_user(user, course)
-			assignment_predicate = lambda x: not IAssignment.providedBy(x) or _predicate(x)
+			assignment_predicate = lambda x: not IQAssignment.providedBy(x) or _predicate(x)
 			result = [x for x in result.values() if assignment_predicate(x)]
 		else:
 			result = list(result.values())

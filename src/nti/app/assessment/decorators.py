@@ -5,27 +5,35 @@ External object decorators having to do with assessments.
 
 $Id$
 """
-
 from __future__ import print_function, unicode_literals, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+from datetime import datetime
+
 from zope import component
 from zope import interface
 
-from nti.externalization import interfaces as ext_interfaces
-from nti.assessment import interfaces as asm_interfaces
-from nti.assessment.interfaces import IQAssignment
 from nti.appserver import interfaces as app_interfaces
+from nti.appserver.pyramid_renderers import AbstractAuthenticatedRequestAwareDecorator
 
+from nti.assessment import interfaces as asm_interfaces
+
+from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import is_instructed_by_name
+
+from nti.dataserver.links import Link
+
+from nti.externalization import interfaces as ext_interfaces
 from nti.externalization.singleton import SingletonDecorator
 from nti.externalization.externalization import to_external_object
 
-from nti.contenttypes.courses.interfaces import ICourseInstance
 from .interfaces import get_course_assignment_predicate_for_user
+from .interfaces import IUsersCourseAssignmentHistoryItemFeedback
+from .assessment_views import AssignmentSubmissionBulkFileDownloadView
 
-from nti.appserver.pyramid_renderers import AbstractAuthenticatedRequestAwareDecorator
+LINKS = ext_interfaces.StandardExternalFields.LINKS
 
 @interface.implementer(ext_interfaces.IExternalMappingDecorator)
 @component.adapter(app_interfaces.IContentUnitInfo)
@@ -36,9 +44,8 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 				and context.contentUnit is not None)
 
 	def _do_decorate_external( self, context, result_map ):
-
-		#questions = component.getUtility( app_interfaces.IFileQuestionMap )
-		#for_key = questions.by_file.get( getattr( context.contentUnit, 'key', None ) )
+		# questions = component.getUtility( app_interfaces.IFileQuestionMap )
+		# for_key = questions.by_file.get( getattr( context.contentUnit, 'key', None ) )
 		# When we return page info, we return questions
 		# for all of the embedded units as well
 		def same_file(unit1, unit2):
@@ -67,7 +74,8 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 		course = ICourseInstance(context.contentUnit, None)
 		if course is not None:
 			_predicate = get_course_assignment_predicate_for_user(user, course)
-			assignment_predicate = lambda x: not IAssignment.providedBy(x) or _predicate(x)
+			assignment_predicate = \
+				lambda x: not asm_interfaces.IQAssignment.providedBy(x) or _predicate(x)
 			result = [x for x in result.values() if assignment_predicate(x)]
 		else:
 			result = list(result.values())
@@ -96,9 +104,6 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 			#for item in ext_items:
 			#	_strip(item)
 			result_map['AssessmentItems'] = ext_items
-
-LINKS = ext_interfaces.StandardExternalFields.LINKS
-from nti.dataserver.links import Link
 
 @interface.implementer(ext_interfaces.IExternalMappingDecorator)
 class _AssignmentHistoryItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
@@ -132,10 +137,9 @@ class _AssignmentsByOutlineNodeDecorator(object):
 
 	def decorateExternalMapping( self, context, result_map ):
 		links = result_map.setdefault( LINKS, [] )
-		links.append( Link( context, rel='AssignmentsByOutlineNode', elements=('AssignmentsByOutlineNode',)) )
+		links.append(Link(context, rel='AssignmentsByOutlineNode',
+						  elements=('AssignmentsByOutlineNode',)))
 
-
-from .interfaces import IUsersCourseAssignmentHistoryItemFeedback
 
 @interface.implementer(ext_interfaces.IExternalMappingDecorator)
 @component.adapter(IUsersCourseAssignmentHistoryItemFeedback)
@@ -174,9 +178,6 @@ class _LastViewedAssignmentHistoryDecorator(AbstractAuthenticatedRequestAwareDec
 							elements=('lastViewed',),
 							method='PUT' ) )
 
-
-from .assessment_views import AssignmentSubmissionBulkFileDownloadView
-
 class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
 	When an instructor feteches an assignment that contains a file part
@@ -186,16 +187,13 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
 	def _predicate(self, context, result):
 		if AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result):
 			request = self.request
-			return AssignmentSubmissionBulkFileDownloadView._precondition(context, self.request) # XXX Hack
+			return AssignmentSubmissionBulkFileDownloadView._precondition(context, request)  # XXX Hack
 
 	def _do_decorate_external(self, context, result):
 		links = result.setdefault( LINKS, [] )
 		links.append( Link( context,
 							rel='ExportFiles',
 							elements=('BulkFilePartDownload',) ) )
-
-from nti.contenttypes.courses.interfaces import is_instructed_by_name
-from datetime import datetime
 
 class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAwareDecorator):
 	"""
@@ -243,8 +241,6 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 			question_set = part['question_set']
 			self.strip(question_set)
 
-from nti.assessment.interfaces import IQAssignment
-
 class _AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAwareDecorator):
 	"""
 	When anyone besides the instructor requests an assessed part
@@ -258,7 +254,7 @@ class _AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper(Abstra
 
 	def _predicate(self, context, result):
 		if AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result):
-			assg = component.queryUtility(IQAssignment, context.assignmentId)
+			assg = component.queryUtility(asm_interfaces.IQAssignment, context.assignmentId)
 			return _AssignmentBeforeDueDateSolutionStripper.needs_stripped(assg, self.request)
 
 	def _do_decorate_external(self, context, result):

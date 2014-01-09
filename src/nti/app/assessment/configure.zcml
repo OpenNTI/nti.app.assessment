@@ -68,6 +68,10 @@
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.assessment.interfaces.IQAssignment
 					 pyramid.interfaces.IRequest"/>
+	<subscriber factory=".decorators._AssignmentBeforeDueDateSolutionStripper"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator"
+				for="nti.assessment.interfaces.IQAssignment
+					 pyramid.interfaces.IRequest"/>
 
 
 

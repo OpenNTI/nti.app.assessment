@@ -178,3 +178,48 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
 		links.append( Link( context,
 							rel='ExportFiles',
 							elements=('BulkFilePartDownload',) ) )
+
+from nti.contenttypes.courses.interfaces import is_instructed_by_name
+from nti.contenttypes.courses.interfaces import ICourseInstance
+from datetime import datetime
+
+class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAwareDecorator):
+	"""
+	When anyone besides the instructor requests an assignment
+	that has a due date, and we are before the due date,
+	do not release the answers.
+
+	.. note:: This is currently incomplete. We are also sending these
+		question set items back 'standalone'. Depending on the UI, we
+		may need to strip them there too.
+	"""
+
+	def _predicate(self, context, result):
+		if AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result):
+			due_date = context.available_for_submission_ending
+			if not due_date or due_date <= datetime.today():
+				# No due date, nothing to do
+				# Past the due date, nothing to do
+				return False
+
+			course = ICourseInstance(context)
+			if is_instructed_by_name(course, self.request.authenticated_userid):
+				# The instructor, nothing to do
+				return False
+
+			return True
+
+	def _do_decorate_external(self, context, result):
+		def _strip(item):
+			cls = item.get('Class')
+			if cls == 'Question':
+				for part in item['parts']:
+					part['solutions'] = None
+					part['explanation'] = None
+			elif cls == 'QuestionSet':
+				for q in item['questions']:
+					_strip(q)
+
+		for part in result['parts']:
+			question_set = part['question_set']
+			_strip(question_set)

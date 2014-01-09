@@ -89,7 +89,9 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 											name=question_set_id)
 
 		assignment_part = QAssignmentPart(question_set=question_set)
-		assignment = QAssignment( parts=(assignment_part,) )
+		due_date = datetime.datetime.today()
+		due_date = due_date.replace(year=due_date.year + 1)
+		assignment = QAssignment( parts=(assignment_part,), available_for_submission_ending=due_date )
 		assignment.__name__ = assignment.ntiid = assignment_ntiid
 
 		component.provideUtility( assignment,
@@ -376,6 +378,14 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 											  contains( has_entries( 'Class', 'Assignment',
 																	 'NTIID', self.assignment.__name__ ))))
 
+		# The due date strips these
+		assg = res.json_body[self.lesson_page_id][0]
+		for part in assg['parts']:
+			question_set = part['question_set']
+			for question in question_set['questions']:
+				for qpart in question['parts']:
+					assert_that( qpart, has_entries('solutions', None,
+												   'explanation', None))
 
 class TestAssignmentFileGrading(SharedApplicationTestBase):
 

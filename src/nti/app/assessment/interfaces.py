@@ -36,7 +36,9 @@ from nti.dataserver.interfaces import IUser
 from nti.assessment.interfaces import IQAssignmentSubmission
 from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 
-class IUsersCourseAssignmentHistories(IContainer,IShouldHaveTraversablePath):
+class IUsersCourseAssignmentHistories(IContainer,
+									  IContained,
+									  IShouldHaveTraversablePath):
 	"""
 	A container for all the assignment histories in a course, keyed
 	by username.
@@ -45,6 +47,7 @@ class IUsersCourseAssignmentHistories(IContainer,IShouldHaveTraversablePath):
 
 class IUsersCourseAssignmentHistory(IContainer,
 									ILastViewed,
+									IContained,
 									IShouldHaveTraversablePath):
 	"""
 	A :class:`IContainer`-like object that stores the history of

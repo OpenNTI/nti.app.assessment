@@ -73,6 +73,10 @@
 				for="nti.assessment.interfaces.IQAssignment
 					 pyramid.interfaces.IRequest"/>
 
+	<subscriber factory=".decorators._AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator"
+				for="nti.assessment.interfaces.IQAssignmentSubmissionPendingAssessment
+					 pyramid.interfaces.IRequest"/>
 
 
 	<!-- hrefs -->

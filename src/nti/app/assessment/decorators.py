@@ -194,32 +194,59 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 		may need to strip them there too.
 	"""
 
+	@classmethod
+	def needs_stripped(cls, context, request):
+		due_date = context.available_for_submission_ending
+		if not due_date or due_date <= datetime.today():
+			# No due date, nothing to do
+			# Past the due date, nothing to do
+			return False
+
+		course = ICourseInstance(context)
+		if is_instructed_by_name(course, request.authenticated_userid):
+			# The instructor, nothing to do
+			return False
+
+		return True
+
+	@classmethod
+	def strip(cls,item):
+		_cls = item.get('Class')
+		if _cls in ('Question','AssessedQuestion'):
+			for part in item['parts']:
+				part['solutions'] = None
+				part['explanation'] = None
+		elif _cls in ('QuestionSet','AssessedQuestionSet'):
+			for q in item['questions']:
+				cls.strip(q)
+
 	def _predicate(self, context, result):
 		if AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result):
-			due_date = context.available_for_submission_ending
-			if not due_date or due_date <= datetime.today():
-				# No due date, nothing to do
-				# Past the due date, nothing to do
-				return False
-
-			course = ICourseInstance(context)
-			if is_instructed_by_name(course, self.request.authenticated_userid):
-				# The instructor, nothing to do
-				return False
-
-			return True
+			return self.needs_stripped(context, self.request)
 
 	def _do_decorate_external(self, context, result):
-		def _strip(item):
-			cls = item.get('Class')
-			if cls == 'Question':
-				for part in item['parts']:
-					part['solutions'] = None
-					part['explanation'] = None
-			elif cls == 'QuestionSet':
-				for q in item['questions']:
-					_strip(q)
-
 		for part in result['parts']:
 			question_set = part['question_set']
-			_strip(question_set)
+			self.strip(question_set)
+
+from nti.assessment.interfaces import IQAssignment
+
+class _AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAwareDecorator):
+	"""
+	When anyone besides the instructor requests an assessed part
+	within an assignment that has a due date, and we are before the
+	due date, do not release the answers.
+
+	.. note:: This is currently incomplete. We are also sending these
+		question set items back 'standalone'. Depending on the UI, we
+		may need to strip them there too.
+	"""
+
+	def _predicate(self, context, result):
+		if AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result):
+			assg = component.queryUtility(IQAssignment, context.assignmentId)
+			return _AssignmentBeforeDueDateSolutionStripper.needs_stripped(assg, self.request)
+
+	def _do_decorate_external(self, context, result):
+		for part in result['parts']:
+			_AssignmentBeforeDueDateSolutionStripper.strip(part)

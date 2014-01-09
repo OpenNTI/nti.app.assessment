@@ -11,26 +11,20 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 import datetime
-from functools import partial
 
 from zope import interface
 from zope import component
 from zope import lifecycleevent
 from zope.location import LocationIterator # aka pyramid.location.lineage
-from zope.location.interfaces import LocationError
+from pyramid.traversal import find_interface
 from zope.location.interfaces import ILocationInfo
 from zope.annotation.interfaces import IAnnotations
 
+from zope.schema.interfaces import ConstraintNotSatisfied
 from zope.schema.interfaces import NotUnique
 from zope.schema.interfaces import RequiredMissing
-from zope.schema.interfaces import ConstraintNotSatisfied
 
-from pyramid import renderers
-from pyramid.interfaces import IRequest
-from pyramid.traversal import find_interface
-from pyramid.httpexceptions import HTTPCreated
-from pyramid.interfaces import IExceptionResponse
-
+from BTrees.OOBTree import BTree as OOBTree
 from persistent.list import PersistentList
 
 from nti.appserver import interfaces as app_interfaces
@@ -40,17 +34,10 @@ from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
-from nti.dataserver.users import User
 from nti.dataserver.interfaces import IUser
-from nti.dataserver.traversal import ContainerAdapterTraversable
 
-from nti.externalization.oids import to_external_oid
-
-from .interfaces import ICourseAssignmentCatalog
 from .history import UsersCourseAssignmentHistory
-from .history import UsersCourseAssignmentHistories
 from .interfaces import IUsersCourseAssignmentHistory
-from .interfaces import IUsersCourseAssignmentHistories
 from .interfaces import IUsersCourseAssignmentHistoryItem
 
 @component.adapter(asm_interfaces.IQuestionSubmission)
@@ -64,6 +51,13 @@ def _question_submission_transformer( obj ):
 def _question_set_submission_transformer( obj ):
 	"Grade it, by adapting the object into an IAssessedQuestionSet"
 	return asm_interfaces.IQAssessedQuestionSet
+
+from functools import partial
+from pyramid.interfaces import IRequest
+from pyramid.interfaces import IExceptionResponse
+from pyramid.httpexceptions import HTTPCreated
+from pyramid import renderers
+from nti.externalization.oids import to_external_oid
 
 @component.adapter(IRequest, asm_interfaces.IQAssignmentSubmission)
 @interface.implementer(app_interfaces.INewObjectTransformer)
@@ -159,16 +153,15 @@ def _begin_assessment_for_assignment_submission(submission):
 	# as-they-are
 	new_parts = PersistentList()
 	for submission_part in submission.parts:
-		assignment_part, = [p for p in assignment.parts
-							if p.question_set.ntiid == submission_part.questionSetId]
+		assignment_part, = [p for p in assignment.parts if p.question_set.ntiid == submission_part.questionSetId]
 		if assignment_part.auto_grade:
 			submission_part = asm_interfaces.IQAssessedQuestionSet(submission_part)
 
 		new_parts.append( submission_part )
 
-	pending_assessment = \
-		QAssignmentSubmissionPendingAssessment(assignmentId=submission.assignmentId,
-											   parts=new_parts)
+
+	pending_assessment = QAssignmentSubmissionPendingAssessment( assignmentId=submission.assignmentId,
+																 parts=new_parts )
 	pending_assessment.containerId = submission.assignmentId
 	lifecycleevent.created(pending_assessment)
 
@@ -208,6 +201,8 @@ def _course_from_assignment_lineage(assignment):
 		if course is not None:
 			break
 	return course
+
+from .history import UsersCourseAssignmentHistories
 
 def _histories_for_course(course):
 	annotations = IAnnotations(course)
@@ -261,6 +256,12 @@ def _course_from_history_item_lineage(item):
 
 	return course
 
+from zope.location.interfaces import LocationError
+from nti.dataserver.traversal import ContainerAdapterTraversable
+from nti.dataserver.users import User
+
+from .interfaces import IUsersCourseAssignmentHistories
+
 @component.adapter(IUsersCourseAssignmentHistories,IRequest)
 class _UsersCourseAssignmentHistoriesTraversable(ContainerAdapterTraversable):
 	"""
@@ -281,6 +282,10 @@ class _UsersCourseAssignmentHistoriesTraversable(ContainerAdapterTraversable):
 				return _history_for_user_in_course( self.context.__parent__, user)
 			raise
 
+from .interfaces import ICourseAssignmentCatalog
+from nti.assessment.interfaces import IQAssessmentItemContainer
+from nti.assessment.interfaces import IQAssignment
+
 @interface.implementer(ICourseAssignmentCatalog)
 @component.adapter(ICourseInstance)
 class _DefaultCourseAssignmentCatalog(object):
@@ -299,9 +304,9 @@ class _DefaultCourseAssignmentCatalog(object):
 
 		result = []
 		def _recur(unit):
-			items = asm_interfaces.IQAssessmentItemContainer(unit, ())
+			items = IQAssessmentItemContainer( unit, () )
 			for item in items:
-				if asm_interfaces.IQAssignment.providedBy(item):
+				if IQAssignment.providedBy(item):
 					result.append(item)
 			for child in unit.children:
 				_recur(child)

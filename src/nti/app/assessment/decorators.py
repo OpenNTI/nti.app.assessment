@@ -16,19 +16,26 @@ from zope import interface
 
 from nti.externalization import interfaces as ext_interfaces
 from nti.assessment import interfaces as asm_interfaces
+from nti.assessment.interfaces import IQAssignment
 from nti.appserver import interfaces as app_interfaces
 
 from nti.externalization.singleton import SingletonDecorator
 from nti.externalization.externalization import to_external_object
 
+from nti.contenttypes.courses.interfaces import ICourseInstance
+from .interfaces import get_course_assignment_predicate_for_user
+
+from nti.appserver.pyramid_renderers import AbstractAuthenticatedRequestAwareDecorator
+
 @interface.implementer(ext_interfaces.IExternalMappingDecorator)
 @component.adapter(app_interfaces.IContentUnitInfo)
-class _ContentUnitAssessmentItemDecorator(object):
-	__metaclass__ = SingletonDecorator
+class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
-	def decorateExternalMapping( self, context, result_map ):
-		if context.contentUnit is None:
-			return
+	def _predicate(self, context, result_map):
+		return (AbstractAuthenticatedRequestAwareDecorator._predicate(self,context,result_map)
+				and context.contentUnit is not None)
+
+	def _do_decorate_external( self, context, result_map ):
 
 		#questions = component.getUtility( app_interfaces.IFileQuestionMap )
 		#for_key = questions.by_file.get( getattr( context.contentUnit, 'key', None ) )
@@ -54,7 +61,16 @@ class _ContentUnitAssessmentItemDecorator(object):
 
 		result = dict()
 		recur( context.contentUnit, result )
-		result = list(result.values())
+		# Filter out things they aren't supposed to see...currently only
+		# assignments...we can only do this if we have a user and a course
+		user = self.remoteUser
+		course = ICourseInstance(context.contentUnit, None)
+		if course is not None:
+			_predicate = get_course_assignment_predicate_for_user(user, course)
+			assignment_predicate = lambda x: not IAssignment.providedBy(x) or _predicate(x)
+			result = [x for x in result.values() if assignment_predicate(x)]
+		else:
+			result = list(result.values())
 
 		if result:
 			### XXX We need to be sure we don't send back the
@@ -83,7 +99,6 @@ class _ContentUnitAssessmentItemDecorator(object):
 
 LINKS = ext_interfaces.StandardExternalFields.LINKS
 from nti.dataserver.links import Link
-from nti.appserver.pyramid_renderers import AbstractAuthenticatedRequestAwareDecorator
 
 @interface.implementer(ext_interfaces.IExternalMappingDecorator)
 class _AssignmentHistoryItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
@@ -180,7 +195,6 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
 							elements=('BulkFilePartDownload',) ) )
 
 from nti.contenttypes.courses.interfaces import is_instructed_by_name
-from nti.contenttypes.courses.interfaces import ICourseInstance
 from datetime import datetime
 
 class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAwareDecorator):

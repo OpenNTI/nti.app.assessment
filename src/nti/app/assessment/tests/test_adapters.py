@@ -65,9 +65,7 @@ from ..feedback import UsersCourseAssignmentHistoryItemFeedback
 
 from urllib import unquote
 
-class TestAssignmentGrading(SharedApplicationTestBase):
-
-
+class _RegisterAssignmentMixin(object):
 	@classmethod
 	def _setup_library( cls, *args, **kwargs ):
 		return Library(
@@ -123,10 +121,13 @@ class TestAssignmentGrading(SharedApplicationTestBase):
 
 	@classmethod
 	def setUpClass(cls):
-		super(TestAssignmentGrading,cls).setUpClass()
+		super(_RegisterAssignmentMixin,cls).setUpClass()
 
 		cls._register_assignment()
 
+class TestAssignmentGrading(_RegisterAssignmentMixin,SharedApplicationTestBase):
+
+	features = ('assignments_for_everyone',)
 
 	@WithSharedApplicationMockDS
 	def test_wrong_id(self):
@@ -573,3 +574,48 @@ class TestAssignmentFileGrading(SharedApplicationTestBase):
 		zipfile = ZipFile(io, 'r')
 
 		assert_that( zipfile.namelist(), contains( 'sjohnson@nextthought.com/0/0/0/foo.gif'))
+
+from nti.dataserver.interfaces import IUser
+class IMySpecificUser(IUser):
+	"marker"
+from zope import interface
+class TestAssignmentFiltering(_RegisterAssignmentMixin,SharedApplicationTestBase):
+	# With the feature missing
+
+	@WithSharedApplicationMockDS(users=True,testapp=True, user_hook=lambda u: interface.alsoProvides(u, IMySpecificUser))
+	def test_assignment_items_view(self):
+		# This only works in the OU environment because that's where the purchasables are
+		extra_env = self.testapp.extra_environ or {}
+		extra_env.update( {b'HTTP_ORIGIN': b'http://janux.ou.edu'} )
+		self.testapp.extra_environ = extra_env
+
+		# Make sure we're enrolled
+		res = self.testapp.post_json( '/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses',
+									  'CLC 3403',
+									  status=201 )
+
+		enrollment_assignments = self.require_link_href_with_rel( res.json_body, 'AssignmentsByOutlineNode')
+		self.require_link_href_with_rel( res.json_body['CourseInstance'], 'AssignmentsByOutlineNode')
+
+		res = self.testapp.get(enrollment_assignments)
+		assert_that( res.json_body, # No assignments, we're not enrolled for credit
+					 is_({u'href': u'/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses/CLC3403/AssignmentsByOutlineNode'}) )
+
+		# Now if we register a more specific adapter, we can claim to be enrolled
+		from nti.app.products.courseware.interfaces import ILegacyCourseInstanceEnrollment
+		from nti.app.products.courseware.interfaces import ILegacyCommunityBasedCourseInstance
+
+		@interface.implementer(ILegacyCourseInstanceEnrollment)
+		@component.adapter(ILegacyCommunityBasedCourseInstance,IMySpecificUser)
+		class EnrollmentStatus(object):
+			def __init__(self, course, user):
+				pass
+
+			LegacyEnrollmentStatus = 'ForCredit'
+
+		component.provideAdapter(EnrollmentStatus)
+
+		res = self.testapp.get(enrollment_assignments)
+		assert_that( res.json_body, has_entry(self.lesson_page_id,
+											  contains( has_entries( 'Class', 'Assignment',
+																	 'NTIID', self.assignment.__name__ ))))

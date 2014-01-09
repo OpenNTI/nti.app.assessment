@@ -36,7 +36,10 @@
 		/>
 
 	<subscriber factory=".decorators._ContentUnitAssessmentItemDecorator"
-				provides="nti.externalization.interfaces.IExternalMappingDecorator"/>
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="nti.appserver.interfaces.IContentUnitInfo
+					 pyramid.interfaces.IRequest"/>
+				/>
 	<subscriber factory=".decorators._FeedbackItemAssignmentIdDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"/>
 
@@ -97,6 +100,13 @@
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for=".interfaces.IUsersCourseAssignmentHistoryItemFeedbackContainer pyramid.interfaces.IRequest" />
 
+
+	<!-- Assignment Filtering -->
+	<subscriber factory=".assignment_filters.UserEnrolledForCreditInCourseFilter"
+				provides=".interfaces.ICourseAssignmentUserFilter"
+				for="nti.dataserver.interfaces.IUser
+					 nti.contenttypes.courses.interfaces.ICourseInstance"
+				zcml:condition="not-have assignments_for_everyone"/>
 
 	<!-- Course activity -->
 	<subscriber handler=".subscribers.add_object_to_course_activity"

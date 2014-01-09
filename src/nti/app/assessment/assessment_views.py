@@ -359,6 +359,7 @@ class AssignmentHistoryItemFeedbackDeleteView(UGDDeleteView):
 
 from nti.externalization.interfaces import LocatedExternalDict
 from .interfaces import ICourseAssignmentCatalog
+from .interfaces import get_course_assignment_predicate_for_user
 
 @view_config(context=ICourseInstance)
 @view_config(context=ICourseInstanceEnrollment)
@@ -386,15 +387,13 @@ class AssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
 		instance = ICourseInstance(self.request.context)
 		catalog = ICourseAssignmentCatalog(instance)
 
+		uber_filter = get_course_assignment_predicate_for_user(self.remoteUser, instance)
+
 		result = LocatedExternalDict()
 		result.__name__ = self.request.view_name
 		result.__parent__ = self.request.context
 
-		# XXX: See decorators.py and trello. When the app
-		# is ready we need to make sure that we're never
-		# sending solutions back.
-
-		for asg in catalog.iter_assignments():
+		for asg in (x for x in catalog.iter_assignments() if uber_filter(x)):
 			# The assignment's __parent__ is always the 'home'
 			# content unit
 			unit = asg.__parent__

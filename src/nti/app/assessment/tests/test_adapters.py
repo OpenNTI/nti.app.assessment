@@ -647,11 +647,11 @@ class TestAssignmentFiltering(_RegisterAssignmentMixin,SharedApplicationTestBase
 											  contains( has_entries( 'Class', 'Assignment',
 																	 'NTIID', self.assignment.__name__ ))))
 
-		# and the question sets are available too
+		# the question sets are still not actually available because they are in the assignment
 		res = self.testapp.get(enrollment_non_assignments)
 		assert_that( res.json_body,
 					 has_entries(u'href', u'/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses/CLC3403/NonAssignmentAssessmentItemsByOutlineNode',
-								 'tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:QUIZ_01.01', is_not(is_empty())) )
+								 'tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:QUIZ_01.01', is_empty() ) )
 
 		# When we get the page info, only the assignment comes back,
 		# not the things it contains

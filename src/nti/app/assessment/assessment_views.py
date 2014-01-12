@@ -434,7 +434,6 @@ class NonAssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
 		# assignment.
 		# XXX FIXME not right. See also decorators.py
 		# which does this for page info
-		uber_filter = get_course_assignment_predicate_for_user(self.remoteUser, instance)
 
 		result = LocatedExternalDict()
 		result.__name__ = self.request.view_name
@@ -444,12 +443,11 @@ class NonAssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
 
 		for item in catalog.iter_assessment_items():
 			if IQAssignment.providedBy(item):
-				if not uber_filter(item):
-					for assignment_part in item.parts:
-						question_set = assignment_part.question_set
-						qsids_to_strip.add(question_set.ntiid)
-						for question in question_set.questions:
-							qsids_to_strip.add(question.ntiid)
+				for assignment_part in item.parts:
+					question_set = assignment_part.question_set
+					qsids_to_strip.add(question_set.ntiid)
+					for question in question_set.questions:
+						qsids_to_strip.add(question.ntiid)
 			else:
 				# The assignment's __parent__ is always the 'home'
 				# content unit

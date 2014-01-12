@@ -652,3 +652,13 @@ class TestAssignmentFiltering(_RegisterAssignmentMixin,SharedApplicationTestBase
 		assert_that( res.json_body,
 					 has_entries(u'href', u'/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses/CLC3403/NonAssignmentAssessmentItemsByOutlineNode',
 								 'tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:QUIZ_01.01', is_not(is_empty())) )
+
+		# When we get the page info, only the assignment comes back,
+		# not the things it contains
+		res = self.fetch_by_ntiid( lesson_page_id,
+								   headers={b'Accept': str(page_info_mt) })
+		items = res.json_body.get('AssessmentItems', ())
+		assert_that( items,
+					 contains( has_entry('Class', 'Assignment')) )
+		assert_that( items,
+					 does_not( contains( has_entry('NTIID', question_set_id ) ) ) )

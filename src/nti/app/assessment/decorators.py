@@ -68,17 +68,21 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 		course = ICourseInstance(context.contentUnit, None)
 		qsids_to_strip = set()
 		if course is not None:
-			_predicate = get_course_assignment_predicate_for_user(user, course)
-			assignment_predicate = lambda x: not IQAssignment.providedBy(x) or _predicate(x)
+			assignment_predicate = get_course_assignment_predicate_for_user(user, course)
 			new_result = []
 			for x in result.values():
-				if assignment_predicate(x):
+				if not IQAssignment.providedBy(x):
+					# Non assignments go in
 					new_result.append(x)
 				else:
-					# Drop the assignment, and also everything
-					# that it contains. We are assuming that these
-					# are on the same page for now and that they are only
-					# referenced by this assignment.
+					if assignment_predicate(x):
+						# Yay, keep the assignment
+						new_result.append(x)
+					# But in all cases, don't echo back the things
+					# it contains.
+					# We are assuming that these are on the same page
+					# for now and that they are only referenced by
+					# this assignment.
 					# XXX FIXME Bad limitation
 					for assignment_part in x.parts:
 						question_set = assignment_part.question_set

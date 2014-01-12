@@ -132,16 +132,7 @@ from nti.dataserver.links import Link
 
 from zope.location.interfaces import ILocationInfo
 
-@interface.implementer(ext_interfaces.IExternalMappingDecorator)
-class _AssignmentHistoryItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
-	"""
-	For things that have an assignment history, add this
-	as a link.
-	"""
-
-	# Note: This overlaps with the registrations in assessment_views
-	# Note: We do not specify what we adapt, there are too many
-	# things with no common ancestor.
+class _AbstractTraversableLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _predicate(self, context, result):
 		# We only do this if we can create the traversal path to this object;
@@ -158,6 +149,16 @@ class _AssignmentHistoryItemDecorator(AbstractAuthenticatedRequestAwareDecorator
 			else:
 				return True
 
+@interface.implementer(ext_interfaces.IExternalMappingDecorator)
+class _AssignmentHistoryItemDecorator(_AbstractTraversableLinkDecorator):
+	"""
+	For things that have an assignment history, add this
+	as a link.
+	"""
+
+	# Note: This overlaps with the registrations in assessment_views
+	# Note: We do not specify what we adapt, there are too many
+	# things with no common ancestor.
 
 	def _do_decorate_external( self, context, result_map ):
 		links = result_map.setdefault( LINKS, [] )
@@ -166,19 +167,17 @@ class _AssignmentHistoryItemDecorator(AbstractAuthenticatedRequestAwareDecorator
 							elements=('AssignmentHistories', self.remoteUser.username)) )
 
 @interface.implementer(ext_interfaces.IExternalMappingDecorator)
-class _AssignmentsByOutlineNodeDecorator(object):
+class _AssignmentsByOutlineNodeDecorator(_AbstractTraversableLinkDecorator):
 	"""
 	For things that have a assignments, add this
 	as a link.
 	"""
 
-	__metaclass__ = SingletonDecorator
-
 	# Note: This overlaps with the registrations in assessment_views
 	# Note: We do not specify what we adapt, there are too many
 	# things with no common ancestor.
 
-	def decorateExternalMapping( self, context, result_map ):
+	def _do_decorate_external( self, context, result_map ):
 		links = result_map.setdefault( LINKS, [] )
 		for rel in 'AssignmentsByOutlineNode', 'NonAssignmentAssessmentItemsByOutlineNode':
 			links.append( Link( context,

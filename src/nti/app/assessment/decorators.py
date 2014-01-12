@@ -130,6 +130,8 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 LINKS = ext_interfaces.StandardExternalFields.LINKS
 from nti.dataserver.links import Link
 
+from zope.location.interfaces import ILocationInfo
+
 @interface.implementer(ext_interfaces.IExternalMappingDecorator)
 class _AssignmentHistoryItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
@@ -140,6 +142,22 @@ class _AssignmentHistoryItemDecorator(AbstractAuthenticatedRequestAwareDecorator
 	# Note: This overlaps with the registrations in assessment_views
 	# Note: We do not specify what we adapt, there are too many
 	# things with no common ancestor.
+
+	def _predicate(self, context, result):
+		# We only do this if we can create the traversal path to this object;
+		# many times the CourseInstanceEnrollments aren't fully traversable
+		# (specifically, for the course roster)
+		if AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result):
+			if context.__parent__ is None:
+				return False # Short circuit
+			try:
+				loc_info = ILocationInfo( context )
+				loc_info.getParents()
+			except TypeError:
+				return False
+			else:
+				return True
+
 
 	def _do_decorate_external( self, context, result_map ):
 		links = result_map.setdefault( LINKS, [] )

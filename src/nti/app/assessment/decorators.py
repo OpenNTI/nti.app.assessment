@@ -210,7 +210,7 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 
 	@classmethod
 	def needs_stripped(cls, context, request):
-		due_date = context.available_for_submission_ending
+		due_date = context.available_for_submission_ending if context is not None else None
 		if not due_date or due_date <= datetime.today():
 			# No due date, nothing to do
 			# Past the due date, nothing to do
@@ -243,7 +243,6 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 			question_set = part['question_set']
 			self.strip(question_set)
 
-from nti.assessment.interfaces import IQAssignment
 
 class _AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAwareDecorator):
 	"""

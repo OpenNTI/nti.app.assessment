@@ -15,6 +15,7 @@ from zope import interface
 from zope import component
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import is_instructed_by_name
 from nti.dataserver.interfaces import IUser
 from .interfaces import ICourseAssignmentUserFilter
 from nti.app.products.courseware.interfaces import ILegacyCourseInstanceEnrollment
@@ -40,7 +41,7 @@ from nti.utils.property import Lazy
 
 @interface.implementer(ICourseAssignmentUserFilter)
 @component.adapter(IUser, ICourseInstance)
-class UserEnrolledForCreditInCourseFilter(object):
+class UserEnrolledForCreditInCourseOrInstructsFilter(object):
 	"""
 	Allows access to the assignment if the user is enrolled
 	for credit, or if the assignment designates that it is available
@@ -53,6 +54,11 @@ class UserEnrolledForCreditInCourseFilter(object):
 		self.course = course
 
 	@Lazy
+	def is_instructor(self):
+		if is_instructed_by_name(self.course, self.user.username):
+			return True
+
+	@Lazy
 	def is_enrolled_for_credit(self):
 		enrollment = component.queryMultiAdapter( (self.course, self.user),
 												  ILegacyCourseInstanceEnrollment)
@@ -60,7 +66,9 @@ class UserEnrolledForCreditInCourseFilter(object):
 
 	def allow_assignment_for_user_in_course(self, asg, user, course):
 		# Note implicit assumption that assignment is in course
-		if self.is_enrolled_for_credit:
+		if self.is_instructor or self.is_enrolled_for_credit:
 			return True
 
 		return not asg.is_non_public
+
+UserEnrolledForCreditInCourseFilter = UserEnrolledForCreditInCourseOrInstructsFilter # BWC

@@ -150,7 +150,10 @@ class _AssignmentsByOutlineNodeDecorator(object):
 
 	def decorateExternalMapping( self, context, result_map ):
 		links = result_map.setdefault( LINKS, [] )
-		links.append( Link( context, rel='AssignmentsByOutlineNode', elements=('AssignmentsByOutlineNode',)) )
+		for rel in 'AssignmentsByOutlineNode', 'NonAssignmentAssessmentItemsByOutlineNode':
+			links.append( Link( context,
+								rel=rel,
+								elements=(rel,)) )
 
 
 from .interfaces import IUsersCourseAssignmentHistoryItemFeedback

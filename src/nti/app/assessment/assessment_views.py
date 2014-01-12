@@ -359,6 +359,7 @@ class AssignmentHistoryItemFeedbackDeleteView(UGDDeleteView):
 
 from nti.externalization.interfaces import LocatedExternalDict
 from .interfaces import ICourseAssignmentCatalog
+from .interfaces import ICourseAssessmentItemCatalog
 from .interfaces import get_course_assignment_predicate_for_user
 
 @view_config(context=ICourseInstance)
@@ -398,5 +399,67 @@ class AssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
 			# content unit
 			unit = asg.__parent__
 			result.setdefault(unit.ntiid, []).append(asg)
+
+		return result
+
+@view_config(context=ICourseInstance)
+@view_config(context=ICourseInstanceEnrollment)
+@view_defaults(route_name='objects.generic.traversal',
+			   renderer='rest',
+			   permission=nauth.ACT_READ,
+			   request_method='GET',
+			   name='NonAssignmentAssessmentItemsByOutlineNode') # See decorators
+class NonAssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
+	"""
+	For course instances (and things that can be adapted to them),
+	there is a view at ``/.../NonAssignmentAssessmentItemsByOutlineNode``. For
+	authenticated users, it returns a map from NTIID to the assessment items
+	contained within that NTIID.
+
+	At this time, nodes in the course outline
+	do not have their own identity as NTIIDs; therefore, the NTIIDs
+	returned from here are the NTIIDs of content pages that show up
+	in the individual lessons; for maximum granularity, these are returned
+	at the lowest level, so a client may need to walk \"up\" the tree
+	to identify the corresponding level it wishes to display.
+	"""
+
+	def __call__(self):
+		instance = ICourseInstance(self.request.context)
+		catalog = ICourseAssessmentItemCatalog(instance)
+
+		# Not only must we filter out assignments, we must filter out
+		# the question sets that they refer to if they are not allowed
+		# by the filter; we assume such sets are only used by the
+		# assignment.
+		# XXX FIXME not right. See also decorators.py
+		# which does this for page info
+		uber_filter = get_course_assignment_predicate_for_user(self.remoteUser, instance)
+
+		result = LocatedExternalDict()
+		result.__name__ = self.request.view_name
+		result.__parent__ = self.request.context
+
+		qsids_to_strip = set()
+
+		for item in catalog.iter_assessment_items():
+			if IQAssignment.providedBy(item):
+				if not uber_filter(item):
+					for assignment_part in item.parts:
+						question_set = assignment_part.question_set
+						qsids_to_strip.add(question_set.ntiid)
+						for question in question_set.questions:
+							qsids_to_strip.add(question.ntiid)
+			else:
+				# The assignment's __parent__ is always the 'home'
+				# content unit
+				unit = item.__parent__
+				result.setdefault(unit.ntiid, []).append(item)
+
+		# Now remove the forbidden
+		for items in result.values():
+			for item in list(items):
+				if item.ntiid in qsids_to_strip:
+					items.remove(item)
 
 		return result

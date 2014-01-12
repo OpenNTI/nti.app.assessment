@@ -282,19 +282,21 @@ class _UsersCourseAssignmentHistoriesTraversable(ContainerAdapterTraversable):
 				return _history_for_user_in_course( self.context.__parent__, user)
 			raise
 
+from .interfaces import ICourseAssessmentItemCatalog
 from .interfaces import ICourseAssignmentCatalog
 from nti.assessment.interfaces import IQAssessmentItemContainer
 from nti.assessment.interfaces import IQAssignment
 
-@interface.implementer(ICourseAssignmentCatalog)
+
+@interface.implementer(ICourseAssessmentItemCatalog)
 @component.adapter(ICourseInstance)
-class _DefaultCourseAssignmentCatalog(object):
+class _DefaultCourseAssessmentItemCatalog(object):
 
 	def __init__(self, context):
 		self.context = context
 
-	def iter_assignments(self):
-		# In theory, the course outline and assignments could stretch across multiple content
+	def iter_assessment_items(self):
+		# In theory, the course outline and assessment objects could stretch across multiple content
 		# packages. However, in practice, at the moment,
 		# it only has one and is an instance of the LegacyCommunityBasedCourseInstance.
 		# Because this is simpler to write and test, we directly use that.
@@ -306,8 +308,7 @@ class _DefaultCourseAssignmentCatalog(object):
 		def _recur(unit):
 			items = IQAssessmentItemContainer( unit, () )
 			for item in items:
-				if IQAssignment.providedBy(item):
-					result.append(item)
+				result.append(item)
 			for child in unit.children:
 				_recur(child)
 		_recur(content_package)
@@ -315,3 +316,14 @@ class _DefaultCourseAssignmentCatalog(object):
 		# On py3.3, can easily 'yield from' nested generators
 
 		return result
+
+
+@interface.implementer(ICourseAssignmentCatalog)
+@component.adapter(ICourseInstance)
+class _DefaultCourseAssignmentCatalog(object):
+
+	def __init__(self, context):
+		self.context = context
+
+	def iter_assignments(self):
+		return (x for x in ICourseAssessmentItemCatalog(self.context).iter_assessment_items() if IQAssignment.providedBy(x))

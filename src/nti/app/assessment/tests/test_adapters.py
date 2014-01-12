@@ -599,6 +599,7 @@ class TestAssignmentFiltering(_RegisterAssignmentMixin,SharedApplicationTestBase
 									  status=201 )
 
 		enrollment_assignments = self.require_link_href_with_rel( res.json_body, 'AssignmentsByOutlineNode')
+		enrollment_non_assignments = self.require_link_href_with_rel( res.json_body, 'NonAssignmentAssessmentItemsByOutlineNode')
 		self.require_link_href_with_rel( res.json_body['CourseInstance'], 'AssignmentsByOutlineNode')
 
 		res = self.testapp.get(enrollment_assignments)
@@ -620,6 +621,13 @@ class TestAssignmentFiltering(_RegisterAssignmentMixin,SharedApplicationTestBase
 					 does_not( contains( has_entry('NTIID', question_set_id ) ) ) )
 		assert_that( items, is_( () ) )
 
+		# Nor are they in the non-assignment-items
+		res = self.testapp.get(enrollment_non_assignments)
+		assert_that( res.json_body, # Nothing, we're not enrolled for credit
+					 has_entries(u'href', u'/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses/CLC3403/NonAssignmentAssessmentItemsByOutlineNode',
+								 'tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:QUIZ_01.01', []) )
+
+
 		# Now if we register a more specific adapter, we can claim to be enrolled
 		from nti.app.products.courseware.interfaces import ILegacyCourseInstanceEnrollment
 		from nti.app.products.courseware.interfaces import ILegacyCommunityBasedCourseInstance
@@ -638,3 +646,9 @@ class TestAssignmentFiltering(_RegisterAssignmentMixin,SharedApplicationTestBase
 		assert_that( res.json_body, has_entry(self.lesson_page_id,
 											  contains( has_entries( 'Class', 'Assignment',
 																	 'NTIID', self.assignment.__name__ ))))
+
+		# and the question sets are available too
+		res = self.testapp.get(enrollment_non_assignments)
+		assert_that( res.json_body,
+					 has_entries(u'href', u'/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses/CLC3403/NonAssignmentAssessmentItemsByOutlineNode',
+								 'tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:QUIZ_01.01', is_not(is_empty())) )

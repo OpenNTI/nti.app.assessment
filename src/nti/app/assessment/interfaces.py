@@ -154,6 +154,25 @@ class IUsersCourseAssignmentHistoryItemFeedback(IContained,
 
 	body = CompoundModeledContentBody()
 
+
+class ICourseAssessmentItemCatalog(interface.Interface):
+	"""
+	Provides access to the assessment items (questions, question sets,
+	assignments) related to a course.
+
+	Typically this will be registered as an adapter
+	from the :class:`.ICourseInstance`.
+	"""
+
+	def iter_assessment_items():
+		"""
+		Return the items.
+
+		Recall that items typically will have their 'home'
+		content unit in their lineage.
+		"""
+
+
 class ICourseAssignmentCatalog(interface.Interface):
 	"""
 	Provides access to the assignments related to a course.

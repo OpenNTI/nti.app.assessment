@@ -69,30 +69,38 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 		qsids_to_strip = set()
 		if course is not None:
 			assignment_predicate = get_course_assignment_predicate_for_user(user, course)
-			new_result = []
-			for x in result.values():
-				if not IQAssignment.providedBy(x):
-					# Non assignments go in
-					new_result.append(x)
-				else:
-					if assignment_predicate(x):
-						# Yay, keep the assignment
-						new_result.append(x)
-					# But in all cases, don't echo back the things
-					# it contains.
-					# We are assuming that these are on the same page
-					# for now and that they are only referenced by
-					# this assignment.
-					# XXX FIXME Bad limitation
-					for assignment_part in x.parts:
-						question_set = assignment_part.question_set
-						qsids_to_strip.add(question_set.ntiid)
-						for question in question_set.questions:
-							qsids_to_strip.add(question.ntiid)
-
-			result = [x for x in new_result if x.ntiid not in qsids_to_strip]
 		else:
-			result = list(result.values())
+			# Only things in context of a course should have assignments
+			assignment_predicate = None
+
+		new_result = {}
+		for ntiid, x in result.iteritems():
+			if not IQAssignment.providedBy(x):
+				# Non assignments always go in
+				new_result[ntiid] = x
+			else:
+				if assignment_predicate is None:
+					logger.warn("Found assignment (%s) outside of course context in %s; dropping",
+								x, context.contentUnit)
+				elif assignment_predicate(x):
+					# Yay, keep the assignment
+					new_result[ntiid] = x
+				# But in all cases, don't echo back the things
+				# it contains.
+				# We are assuming that these are on the same page
+				# for now and that they are only referenced by
+				# this assignment.
+				# XXX FIXME Bad limitation
+				for assignment_part in x.parts:
+					question_set = assignment_part.question_set
+					qsids_to_strip.add(question_set.ntiid)
+					for question in question_set.questions:
+						qsids_to_strip.add(question.ntiid)
+
+		for bad_ntiid in qsids_to_strip:
+			new_result.pop(bad_ntiid, None)
+		result = new_result.values()
+
 
 		if result:
 			### XXX We need to be sure we don't send back the

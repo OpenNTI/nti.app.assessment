@@ -64,11 +64,29 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 		# Filter out things they aren't supposed to see...currently only
 		# assignments...we can only do this if we have a user and a course
 		user = self.remoteUser
+
 		course = ICourseInstance(context.contentUnit, None)
+		qsids_to_strip = set()
 		if course is not None:
 			_predicate = get_course_assignment_predicate_for_user(user, course)
 			assignment_predicate = lambda x: not IQAssignment.providedBy(x) or _predicate(x)
-			result = [x for x in result.values() if assignment_predicate(x)]
+			new_result = []
+			for x in result.values():
+				if assignment_predicate(x):
+					new_result.append(x)
+				else:
+					# Drop the assignment, and also everything
+					# that it contains. We are assuming that these
+					# are on the same page for now and that they are only
+					# referenced by this assignment.
+					# XXX FIXME Bad limitation
+					for assignment_part in x.parts:
+						question_set = assignment_part.question_set
+						qsids_to_strip.add(question_set.ntiid)
+						for question in question_set.questions:
+							qsids_to_strip.add(question.ntiid)
+
+			result = [x for x in new_result if x.ntiid not in qsids_to_strip]
 		else:
 			result = list(result.values())
 

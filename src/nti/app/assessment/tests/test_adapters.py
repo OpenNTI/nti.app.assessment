@@ -29,6 +29,8 @@ from hamcrest import contains
 from hamcrest import calling
 from hamcrest import raises
 from hamcrest import has_entries
+from hamcrest import is_not
+does_not = is_not
 
 from nti.dataserver.tests import mock_dataserver
 from nti.testing.matchers import validly_provides
@@ -97,8 +99,8 @@ class _RegisterAssignmentMixin(object):
 								  name=assignment_ntiid )
 
 		# Also make sure this assignment is found in the assignment index
-		# at some container
-		lesson_page_id = "tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:02.01_RequiredReading"
+		# at the same container that that has the quiz data
+		lesson_page_id = "tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:QUIZ_01.01"
 		lesson = lib.pathToNTIID(lesson_page_id)[-1]
 		assignment.__parent__ = lesson
 		IQAssessmentItemContainer(lesson).append(assignment)
@@ -579,6 +581,8 @@ from nti.dataserver.interfaces import IUser
 class IMySpecificUser(IUser):
 	"marker"
 from zope import interface
+from nti.dataserver.mimetype import  nti_mimetype_with_class
+
 class TestAssignmentFiltering(_RegisterAssignmentMixin,SharedApplicationTestBase):
 	# With the feature missing
 
@@ -600,6 +604,21 @@ class TestAssignmentFiltering(_RegisterAssignmentMixin,SharedApplicationTestBase
 		res = self.testapp.get(enrollment_assignments)
 		assert_that( res.json_body, # No assignments, we're not enrolled for credit
 					 is_({u'href': u'/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses/CLC3403/AssignmentsByOutlineNode'}) )
+
+		# It's also not on the page info, and the question sets it contains
+		# aren't either
+		lesson_page_id = "tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:QUIZ_01.01"
+		question_set_id  = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.set.qset:QUIZ1_aristotle"
+		page_info_mt = nti_mimetype_with_class( 'pageinfo' )
+
+		res = self.fetch_by_ntiid( lesson_page_id,
+								   headers={b'Accept': str(page_info_mt) })
+		items = res.json_body.get('AssessmentItems', ())
+		assert_that( items,
+					 does_not( contains( has_entry('Class', 'Assignment')) ) )
+		assert_that( items,
+					 does_not( contains( has_entry('NTIID', question_set_id ) ) ) )
+		assert_that( items, is_( () ) )
 
 		# Now if we register a more specific adapter, we can claim to be enrolled
 		from nti.app.products.courseware.interfaces import ILegacyCourseInstanceEnrollment

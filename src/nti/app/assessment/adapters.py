@@ -122,7 +122,7 @@ def _begin_assessment_for_assignment_submission(submission):
 	# if it is late, we still allow it at this level, leaving
 	# it to the instructor to handle it
 	if assignment.available_for_submission_beginning is not None:
-		if datetime.datetime.now() < assignment.available_for_submission_beginning:
+		if datetime.datetime.utcnow() < assignment.available_for_submission_beginning:
 			ex = ConstraintNotSatisfied("Submitting too early")
 			ex.field = asm_interfaces.IQAssignment['available_for_submission_beginning']
 			ex.value = assignment.available_for_submission_beginning

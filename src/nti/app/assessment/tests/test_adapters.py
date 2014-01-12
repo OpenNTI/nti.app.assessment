@@ -154,7 +154,7 @@ class TestAssignmentGrading(_RegisterAssignmentMixin,SharedApplicationTestBase):
 		submission = AssignmentSubmission(assignmentId=self.assignment_id, parts=(qs_submission,))
 
 		# Open tomorrow
-		self.assignment.available_for_submission_beginning = (datetime.datetime.now() + datetime.timedelta(days=1))
+		self.assignment.available_for_submission_beginning = (datetime.datetime.utcnow() + datetime.timedelta(days=1))
 		try:
 			assert_that( calling(IQAssignmentSubmissionPendingAssessment).with_args(submission),
 						 raises(ConstraintNotSatisfied, 'early') )

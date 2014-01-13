@@ -12,6 +12,8 @@ logger = __import__('logging').getLogger(__name__)
 
 from zope import interface
 
+from pyramid.traversal import find_interface
+
 from nti.dataserver import interfaces as nti_interfaces
 
 from nti.externalization.oids import to_external_ntiid_oid
@@ -24,13 +26,16 @@ from nti.contentsearch import interfaces as search_interfaces
 from nti.contentsearch.search_metadata import SearchTypeMetaData
 from nti.contentsearch.constants import CONTAINER_ID, TYPE, TARGET_MIME_TYPE
 
+from nti.contenttypes.courses.interfaces import ICourseInstance
+
 from .interfaces import IUsersCourseAssignmentHistoryItemFeedback
 
 assignmentfeedback_ = u'assignmentfeedback'
 ASSIGNMENT_FEEDBACK = u'AssignmentFeedback'
 ASSIGNMENT_FEEDBACK_MIMETYPE = unicode(MIME_BASE + "." + assignmentfeedback_)
 
-class IAssignmentFeedbackResolver(search_interfaces.ITypeResolver,
+class IAssignmentFeedbackResolver(search_interfaces.IACLResolver,
+								  search_interfaces.ITypeResolver,
 								  search_interfaces.IContentResolver,
 								  search_interfaces.INTIIDResolver,
 								  search_interfaces.ICreatorResolver,
@@ -69,12 +74,26 @@ class _AssignmentFeedbackResolver(object):
 			result = unicode(result.username)
 		return unicode(result) if result else None
 
+	@property
 	def lastModified(self):
 		return self.obj.lastModified
 	
 	@property
 	def createdTime(self):
 		return self.obj.createdTime
+
+	@property
+	def acl(self):
+		result = set()
+		creator = self.creator
+		if creator:
+			result.add(self.creator.lower())
+		course = find_interface(self.obj, ICourseInstance)
+		if course is not None:
+			# XXX The instructors are static if we allow changing instructors
+			# this ACL will be come invalid
+			result.update([instructor.id.lower() for instructor in course.instructors])
+		return list(result) if result else None
 
 @interface.implementer(IAssignmentFeedbackSearchHit)
 class _AssignmentFeedbackSearchHit(SearchHit):

@@ -34,13 +34,9 @@ assignmentfeedback_ = u'assignmentfeedback'
 ASSIGNMENT_FEEDBACK = u'AssignmentFeedback'
 ASSIGNMENT_FEEDBACK_MIMETYPE = unicode(MIME_BASE + "." + assignmentfeedback_)
 
-class IAssignmentFeedbackResolver(search_interfaces.IACLResolver,
-								  search_interfaces.ITypeResolver,
-								  search_interfaces.IContentResolver,
-								  search_interfaces.INTIIDResolver,
+class IAssignmentFeedbackResolver(search_interfaces.ContentMixinResolver,
 								  search_interfaces.ICreatorResolver,
-								  search_interfaces.ILastModifiedResolver,
-								  search_interfaces.ICreatedTimeResolver):
+								  search_interfaces.IACLResolver):
 	pass
 
 class IAssignmentFeedbackSearchHit(search_interfaces.ISearchHit):
@@ -61,6 +57,12 @@ class _AssignmentFeedbackResolver(object):
 	@property
 	def content(self):
 		return content_utils.resolve_content_parts(self.obj.body)
+
+	@property
+	def containerId(self):
+		parent = self.obj.__parent__
+		result = to_external_ntiid_oid(parent) if parent is not None else None
+		return result
 
 	@property
 	def ntiid(self):

@@ -110,6 +110,7 @@ class _RegisterAssignmentMixin(object):
 		cls.question_set_id = question_set_id
 		cls.assignment_id = assignment_ntiid
 		cls.lesson_page_id = lesson_page_id
+		cls.question_id = 'tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.1'
 
 
 		from zope.component.interfaces import IComponents
@@ -474,6 +475,7 @@ class TestAssignmentFileGrading(SharedApplicationTestBase):
 		# Also make sure this assignment is found in the assignment index
 		# at some container
 		lesson_page_id = "tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:02.01_RequiredReading"
+		cls.lesson_page_id = lesson_page_id
 		lesson = lib.pathToNTIID(lesson_page_id)[-1]
 		assignment.__parent__ = lesson
 		IQAssessmentItemContainer(lesson).append(assignment)
@@ -662,3 +664,33 @@ class TestAssignmentFiltering(_RegisterAssignmentMixin,SharedApplicationTestBase
 					 contains( has_entry('Class', 'Assignment')) )
 		assert_that( items,
 					 does_not( contains( has_entry('NTIID', question_set_id ) ) ) )
+
+class TestNoteCreation(_RegisterAssignmentMixin,SharedApplicationTestBase):
+	"We can not create notes an any component of an assignment"
+
+	def _do_post(self, container):
+		data = {'Class': 'Note',
+				'ContainerId': container,
+				'MimeType': 'application/vnd.nextthought.note',
+				'applicableRange': {'Class': 'ContentRangeDescription'},
+				'body': ['The body']}
+
+		self.post_user_data( data, status=422 )
+
+	@WithSharedApplicationMockDS(users=True,testapp=True)
+	def test_cannot_post_to_page(self):
+		self._do_post(self.lesson_page_id)
+
+	@WithSharedApplicationMockDS(users=True,testapp=True)
+	def test_cannot_post_to_assignment(self):
+		self._do_post(self.assignment_id)
+
+
+	@WithSharedApplicationMockDS(users=True,testapp=True)
+	def test_cannot_post_to_question_set(self):
+		self._do_post(self.question_set_id)
+
+
+	@WithSharedApplicationMockDS(users=True,testapp=True)
+	def test_cannot_post_to_question(self):
+		self._do_post(self.question_id)

@@ -111,6 +111,10 @@
 					 nti.contenttypes.courses.interfaces.ICourseInstance"
 				zcml:condition="not-have assignments_for_everyone"/>
 
+	<subscriber handler=".subscribers.prevent_note_on_assignment_part"
+				for="nti.dataserver.interfaces.INote
+					 zope.lifecycleevent.IObjectCreatedEvent" />
+
 	<!-- Course activity -->
 	<subscriber handler=".subscribers.add_object_to_course_activity"
 				for="nti.assessment.interfaces.IQAssignmentSubmission zope.intid.interfaces.IIntIdAddedEvent"/>
@@ -150,17 +154,17 @@
 
 	<adapter factory=".assessment_views.AssignmentHistoryRequestTraversable" />
 	<adapter factory=".adapters._UsersCourseAssignmentHistoriesTraversable" />
-	
+
 	<configure zcml:condition="have devmode">
 		<utility factory=".content_search._assignmentfeedback_metadata" name="assignmentfeedback" />
-		
+
 		<adapter factory=".content_search._AssignmentFeedbackResolver"
 				 for=".interfaces.IUsersCourseAssignmentHistoryItemFeedback"
 				 provides=".content_search.IAssignmentFeedbackResolver" />
-				 
+
 		<adapter factory=".content_search._AssignmentFeedbackSearchHit"
 				 for=".interfaces.IUsersCourseAssignmentHistoryItemFeedback"
 				 provides=".content_search.IAssignmentFeedbackSearchHit" />
 	</configure>
-	
+
 </configure>

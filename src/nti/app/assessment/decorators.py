@@ -261,7 +261,7 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 	@classmethod
 	def needs_stripped(cls, context, request):
 		due_date = context.available_for_submission_ending if context is not None else None
-		if not due_date or due_date <= datetime.today():
+		if not due_date or due_date <= datetime.utcnow():
 			# No due date, nothing to do
 			# Past the due date, nothing to do
 			return False

@@ -127,5 +127,7 @@ def on_course_instructors_changed(course):
 		assignment_history = component.getMultiAdapter((course, principal),
 														IUsersCourseAssignmentHistory)
 		for item in assignment_history.values():
+			if not hasattr(item, 'Feedback'):
+				continue
 			for feedback in item.Feedback.values():
 				lifecycleevent.modified(feedback)

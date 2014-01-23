@@ -10,7 +10,9 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+from zope import component
 from zope import interface
+from zope import lifecycleevent
 
 from pyramid.traversal import find_interface
 
@@ -23,11 +25,13 @@ from nti.mimetype.mimetype import MIME_BASE
 from nti.contentsearch import content_utils
 from nti.contentsearch.search_hits import SearchHit
 from nti.contentsearch import interfaces as search_interfaces
+from nti.contentsearch.constants import TYPE, TARGET_MIME_TYPE
 from nti.contentsearch.search_metadata import SearchTypeMetaData
-from nti.contentsearch.constants import CONTAINER_ID, TYPE, TARGET_MIME_TYPE
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ICourseEnrollments
 
+from .interfaces import IUsersCourseAssignmentHistory
 from .interfaces import IUsersCourseAssignmentHistoryItemFeedback
 
 assignmentfeedback_ = u'assignmentfeedback'
@@ -106,7 +110,6 @@ class _AssignmentFeedbackSearchHit(SearchHit):
 		adapted = super(_AssignmentFeedbackSearchHit, self).set_hit_info(original, score)
 		self[TYPE] = ASSIGNMENT_FEEDBACK
 		self[TARGET_MIME_TYPE] = ASSIGNMENT_FEEDBACK_MIMETYPE
-		self.pop(CONTAINER_ID, None)  # remove container id
 		return adapted
 
 @interface.implementer(search_interfaces.ISearchTypeMetaData)
@@ -118,3 +121,11 @@ def _assignmentfeedback_metadata():
 							  IsUGD=True, Order=99,
 							  Interface=IUsersCourseAssignmentHistoryItemFeedback)
 
+def on_course_instructors_changed(course):
+	enrollments = ICourseEnrollments(course)
+	for principal in enrollments.iter_enrollments():
+		assignment_history = component.getMultiAdapter((course, principal),
+														IUsersCourseAssignmentHistory)
+		for item in assignment_history.values():
+			for feedback in item.Feedback.values():
+				lifecycleevent.modified(feedback)

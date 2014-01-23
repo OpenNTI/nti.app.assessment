@@ -12,7 +12,6 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 from zope import component
-from zope import interface
 from zope.location.interfaces import LocationError
 
 from numbers import Number
@@ -208,8 +207,6 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 		assignment_id = context.__name__
 		course = ICourseInstance(context)
 		enrollments = ICourseEnrollments(course)
-
-		username = self.request.authenticated_userid
 
 		if not self._precondition(context, request):
 			raise hexc.HTTPForbidden()

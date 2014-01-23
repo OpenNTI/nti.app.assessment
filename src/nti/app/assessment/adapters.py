@@ -24,7 +24,6 @@ from zope.schema.interfaces import ConstraintNotSatisfied
 from zope.schema.interfaces import NotUnique
 from zope.schema.interfaces import RequiredMissing
 
-from BTrees.OOBTree import BTree as OOBTree
 from persistent.list import PersistentList
 
 from nti.appserver import interfaces as app_interfaces

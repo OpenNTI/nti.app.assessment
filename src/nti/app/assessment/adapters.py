@@ -154,6 +154,7 @@ def _begin_assessment_for_assignment_submission(submission):
 	for submission_part in submission.parts:
 		assignment_part, = [p for p in assignment.parts if p.question_set.ntiid == submission_part.questionSetId]
 		if assignment_part.auto_grade:
+			__traceback_info__ = submission_part
 			submission_part = asm_interfaces.IQAssessedQuestionSet(submission_part)
 
 		new_parts.append( submission_part )

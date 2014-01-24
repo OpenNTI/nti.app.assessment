@@ -235,7 +235,6 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
 
 	def _predicate(self, context, result):
 		if AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result):
-			request = self.request
 			return AssignmentSubmissionBulkFileDownloadView._precondition(context, self.request) # XXX Hack
 
 	def _do_decorate_external(self, context, result):

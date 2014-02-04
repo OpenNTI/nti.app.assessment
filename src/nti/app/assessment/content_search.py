@@ -25,7 +25,6 @@ from nti.mimetype.mimetype import MIME_BASE
 from nti.contentsearch import content_utils
 from nti.contentsearch.search_hits import SearchHit
 from nti.contentsearch import interfaces as search_interfaces
-from nti.contentsearch.constants import TYPE, TARGET_MIME_TYPE
 from nti.contentsearch.search_metadata import SearchTypeMetaData
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -108,8 +107,8 @@ class _AssignmentFeedbackSearchHit(SearchHit):
 
 	def set_hit_info(self, original, score):
 		adapted = super(_AssignmentFeedbackSearchHit, self).set_hit_info(original, score)
-		self[TYPE] = ASSIGNMENT_FEEDBACK
-		self[TARGET_MIME_TYPE] = ASSIGNMENT_FEEDBACK_MIMETYPE
+		self.Type = ASSIGNMENT_FEEDBACK
+		self.TargetMimeType = ASSIGNMENT_FEEDBACK_MIMETYPE
 		return adapted
 
 @interface.implementer(search_interfaces.ISearchTypeMetaData)

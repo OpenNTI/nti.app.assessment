@@ -21,7 +21,8 @@
 	<adapter factory="._question_map.ContentUnitAssessmentItems" />
 	<adapter factory=".adapters._DefaultCourseAssignmentCatalog" />
 	<adapter factory=".adapters._DefaultCourseAssessmentItemCatalog" />
-
+	<adapter factory=".history.UsersCourseAssignmentHistoryItemSummary"
+			 provides=".interfaces.IUsersCourseAssignmentHistoryItemSummary"/>
 	<!-- Acls -->
 	<adapter factory="._question_map._QuestionACLProvider" />
 
@@ -31,6 +32,7 @@
 	<ext:registerAutoPackageIO
 		root_interfaces=".interfaces.IUsersCourseAssignmentHistory
 						 .interfaces.IUsersCourseAssignmentHistoryItem
+						 .interfaces.IUsersCourseAssignmentHistoryItemSummary
 						 .interfaces.IUsersCourseAssignmentHistoryItemFeedback
 						 .interfaces.IUsersCourseAssignmentHistoryItemFeedbackContainer"
 		modules=".history .feedback"

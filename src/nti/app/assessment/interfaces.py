@@ -140,6 +140,23 @@ class IUsersCourseAssignmentHistoryItem(IContained,
 	Feedback = schema.Object(IUsersCourseAssignmentHistoryItemFeedbackContainer,
 							 required=False)
 
+class IUsersCourseAssignmentHistoryItemSummary(IContained,
+											   ILastModified,
+											   ICreated,
+											   IShouldHaveTraversablePath):
+	"""
+	A quick summary of a complete history item, typically for
+	fast externalization purposes.
+	"""
+
+	FeedbackCount = schema.Int(title="How many feedback items",
+							   default=0)
+
+	SubmissionCreatedTime = schema.Number(title=u"The timestamp at which the submission object was created.",
+										  description="Typically set automatically by the object.",
+										  default=0.0)
+
+
 class IUsersCourseAssignmentHistoryItemFeedback(IContained,
 												IModeledContent,
 												ITitledContent,

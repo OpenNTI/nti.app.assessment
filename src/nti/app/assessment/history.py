@@ -14,6 +14,7 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+from zope import component
 from zope import interface
 from zope import lifecycleevent
 from zope.container.contained import Contained
@@ -39,6 +40,7 @@ from nti.zodb.minmax import NumericPropertyDefaultingToZero
 from .interfaces import IUsersCourseAssignmentHistories
 from .interfaces import IUsersCourseAssignmentHistory
 from .interfaces import IUsersCourseAssignmentHistoryItem
+from .interfaces import IUsersCourseAssignmentHistoryItemSummary
 from .feedback import UsersCourseAssignmentHistoryItemFeedbackContainer
 
 @interface.implementer(IUsersCourseAssignmentHistories)
@@ -46,8 +48,6 @@ class UsersCourseAssignmentHistories(CaseInsensitiveCheckingLastModifiedBTreeCon
 	"""
 	Implementation of the course assignment histories for all users in a course.
 	"""
-
-
 
 @interface.implementer(IUsersCourseAssignmentHistory)
 class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
@@ -144,6 +144,10 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 		self._p_changed = True
 		return container
 
+	def has_feedback(self):
+		self._p_activate()
+		return 'Feedback' in self.__dict__ and len(self.Feedback)
+
 	def __conform__(self, iface):
 		if IUser.isOrExtends(iface):
 			try:
@@ -181,3 +185,75 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 
 		if 'Feedback' in self.__dict__:
 			yield self.Feedback
+
+from nti.dataserver.links import Link
+
+@interface.implementer(IUsersCourseAssignmentHistoryItemSummary,
+					   IACLProvider)
+@component.adapter(IUsersCourseAssignmentHistoryItem)
+class UsersCourseAssignmentHistoryItemSummary(Contained):
+	"""
+	Implements an external summary of the history by delegating to the history
+	itself.
+	"""
+	__external_can_create__ = False
+
+	__slots__ = ('_history_item',)
+
+	def __init__(self, history_item):
+		self._history_item = history_item
+
+	def __reduce__(self):
+		raise TypeError()
+
+	def __conform__(self, iface):
+		return iface(self._history_item, None)
+
+	def __acl__(self):
+		return self._history_item.__acl__
+
+	@property
+	def __parent__(self):
+		return self._history_item.__parent__
+
+	@property
+	def FeedbackCount(self):
+		if self._history_item.has_feedback():
+			return len(self._history_item.Feedback)
+		return 0
+
+	@property
+	def creator(self):
+		return self._history_item.creator
+
+	@property
+	def assignmentId(self):
+		return self._history_item.assignmentId
+
+	@property
+	def createdTime(self):
+		return self._history_item.createdTime
+
+	@property
+	def lastModified(self):
+		return self._history_item.lastModified
+
+	@property
+	def SubmissionCreatedTime(self):
+		try:
+			return self._history_item.Submission.createdTime
+		except AttributeError:
+			# Tests may not have a submission
+			return 0.0
+
+	@property
+	def links(self):
+		return (Link(self._history_item, rel='UsersCourseAssignmentHistoryItem'),)
+
+	# Direct everything else (non-interface) to the history item
+	def __getattr__(self, name):
+		if name.startswith('_p_'): # pragma: no cover
+			raise AttributeError(name)
+		if name == 'NTIID' or name == 'ntiid': # pragma: no cover
+			raise AttributeError(name)
+		return getattr(self._history_item, name)

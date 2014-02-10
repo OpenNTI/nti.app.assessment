@@ -28,6 +28,7 @@ from ..history import UsersCourseAssignmentHistories
 from ..history import UsersCourseAssignmentHistoryItem
 
 from ..interfaces import IUsersCourseAssignmentHistoryItem
+from ..interfaces import IUsersCourseAssignmentHistoryItemSummary
 from ..interfaces import IUsersCourseAssignmentHistory
 
 from nti.assessment.submission import AssignmentSubmission
@@ -58,6 +59,10 @@ def test_provides():
 				 validly_provides(IUsersCourseAssignmentHistory))
 	assert_that( IUser(item), is_(history.owner))
 	assert_that( IUser(history), is_(history.owner))
+
+	summ = IUsersCourseAssignmentHistoryItemSummary(item)
+	assert_that( summ,
+				 validly_provides(IUsersCourseAssignmentHistoryItemSummary))
 
 def test_record():
 	history = UsersCourseAssignmentHistory()

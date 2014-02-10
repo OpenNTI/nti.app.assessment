@@ -5,12 +5,10 @@ Implementations of the feedback content types.
 
 $Id$
 """
-
 from __future__ import print_function, unicode_literals, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
-
 
 from zope import interface
 
@@ -92,4 +90,8 @@ class UsersCourseAssignmentHistoryItemFeedbackContainer(PersistentCreatedModDate
 	def creator(self):
 		# as a Created object, we need to have a creator;
 		# our default ACL provider uses that
-		return IUser(self.__parent__)
+		try:
+			return IUser(self.__parent__)
+		except TypeError:
+			logger.error("Could not get creator using %s", self.__parent__)
+			return None

@@ -93,5 +93,4 @@ class UsersCourseAssignmentHistoryItemFeedbackContainer(PersistentCreatedModDate
 		try:
 			return IUser(self.__parent__)
 		except TypeError:
-			logger.error("Could not get creator using %s", self.__parent__)
 			return None

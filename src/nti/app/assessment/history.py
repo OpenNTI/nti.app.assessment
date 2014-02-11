@@ -150,6 +150,7 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 
 	def __conform__(self, iface):
 		if IUser.isOrExtends(iface):
+			# If the user is deleted, we will not be able to do this
 			try:
 				return iface(self.__parent__)
 			except (AttributeError,TypeError):
@@ -158,10 +159,7 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 	@property
 	def creator(self):
 		# For ACL purposes, not part of the interface
-		try:
-			return IUser(self)
-		except TypeError:
-			return None
+		return IUser(self, None)
 
 	@creator.setter
 	def creator(self, nv):

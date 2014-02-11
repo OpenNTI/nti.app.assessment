@@ -50,11 +50,15 @@ class UsersCourseAssignmentHistoryItemFeedback(PersistentCreatedModDateTrackingO
 			creator = self.__dict__['creator']
 			return creator() if callable(creator) else creator
 
-		return IUser(self.__parent__.__parent__)
+		# If the user is deleted we won't be able to do this
+		return IUser(self.__parent__.__parent__, None)
 
 	@creator.setter
 	def creator(self,nv):
 		if nv is None:
+			if 'creator' in self.__dict__:
+				del self.__dict__['creator']
+				self._p_changed = True
 			return
 		try:
 			self.__dict__['creator'] = IWeakRef(nv)
@@ -89,5 +93,6 @@ class UsersCourseAssignmentHistoryItemFeedbackContainer(PersistentCreatedModDate
 	@property
 	def creator(self):
 		# as a Created object, we need to have a creator;
-		# our default ACL provider uses that
-		return IUser(self.__parent__)
+		# our default ACL provider uses that.
+		# If the user is deleted, we won't be able to do this
+		return IUser(self.__parent__, None)

@@ -577,7 +577,11 @@ class TestAssignmentFileGrading(SharedApplicationTestBase):
 		io = StringIO(data)
 		zipfile = ZipFile(io, 'r')
 
-		assert_that( zipfile.namelist(), contains( 'sjohnson@nextthought.com/0/0/0/foo.gif'))
+		name = 'sjohnson@nextthought.com-0-0-0-foo.gif'
+		assert_that( zipfile.namelist(), contains( name ) )
+		info = zipfile.getinfo(name)
+		# Rounding means the second data may not be accurate
+		assert_that( info.date_time[:5], is_( download_res.last_modified.timetuple()[:5] ) )
 
 from nti.dataserver.interfaces import IUser
 class IMySpecificUser(IUser):

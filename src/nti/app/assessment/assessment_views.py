@@ -15,6 +15,7 @@ from zope import component
 from zope.location.interfaces import LocationError
 
 from numbers import Number
+from datetime import datetime
 
 import pyramid.httpexceptions as hexc
 from pyramid.interfaces import IRequest
@@ -171,6 +172,10 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 			<question-num>/
 				<submitted-file-name>
 
+	For the convenience of people that don't understand directories
+	and how to work with them, this structure is flattened
+	using dashes.
+
 	.. note:: An easy extension to this would be to accept
 		a query param giving a list of usernames to include.
 
@@ -230,8 +235,9 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 							qp_part = qp_part.value
 
 						if IQUploadedFile.providedBy(qp_part):
-							full_filename = "%s/%s/%s/%s/%s" % (principal.id, sub_num, q_num, qp_num, qp_part.filename)
-							info = ZipInfo(full_filename) # TODO: A date
+							full_filename = "%s-%s-%s-%s-%s" % (principal.id, sub_num, q_num, qp_num, qp_part.filename)
+							info = ZipInfo(full_filename,
+										   date_time=datetime.utcfromtimestamp(qp_part.lastModified).timetuple())
 
 							zipfile.writestr( info, qp_part.data )
 		zipfile.close()

@@ -90,7 +90,4 @@ class UsersCourseAssignmentHistoryItemFeedbackContainer(PersistentCreatedModDate
 	def creator(self):
 		# as a Created object, we need to have a creator;
 		# our default ACL provider uses that
-		try:
-			return IUser(self.__parent__)
-		except TypeError:
-			return None
+		return IUser(self.__parent__)

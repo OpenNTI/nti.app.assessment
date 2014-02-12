@@ -140,6 +140,10 @@ class IUsersCourseAssignmentHistoryItem(IContained,
 	Feedback = schema.Object(IUsersCourseAssignmentHistoryItemFeedbackContainer,
 							 required=False)
 
+	FeedbackCount = schema.Int(title="How many feedback items",
+							   default=0)
+
+
 class IUsersCourseAssignmentHistoryItemSummary(IContained,
 											   ILastModified,
 											   ICreated,

@@ -148,6 +148,12 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 		self._p_activate()
 		return 'Feedback' in self.__dict__ and len(self.Feedback)
 
+	@property
+	def FeedbackCount(self):
+		if self.has_feedback():
+			return len(self.Feedback)
+		return 0
+
 	def __conform__(self, iface):
 		if IUser.isOrExtends(iface):
 			# If the user is deleted, we will not be able to do this
@@ -213,12 +219,6 @@ class UsersCourseAssignmentHistoryItemSummary(Contained):
 	@property
 	def __parent__(self):
 		return self._history_item.__parent__
-
-	@property
-	def FeedbackCount(self):
-		if self._history_item.has_feedback():
-			return len(self._history_item.Feedback)
-		return 0
 
 	@property
 	def creator(self):

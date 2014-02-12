@@ -42,7 +42,7 @@ class IAssignmentFeedbackResolver(search_interfaces.ContentMixinResolver,
 								  search_interfaces.IACLResolver):
 	pass
 
-class IAssignmentFeedbackSearchHit(search_interfaces.ISearchHit):
+class IAssignmentFeedbackSearchHit(search_interfaces.IUserDataSearchHit):
 	pass
 
 @interface.implementer(IAssignmentFeedbackResolver)

@@ -191,6 +191,7 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 			yield self.Feedback
 
 from nti.dataserver.links import Link
+from nti.externalization.oids import to_external_ntiid_oid
 
 @interface.implementer(IUsersCourseAssignmentHistoryItemSummary,
 					   IACLProvider)
@@ -255,3 +256,10 @@ class UsersCourseAssignmentHistoryItemSummary(Contained):
 		if name == 'NTIID' or name == 'ntiid': # pragma: no cover
 			raise AttributeError(name)
 		return getattr(self._history_item, name)
+
+	def to_external_ntiid_oid(self):
+		"""
+		For convenience of the gradebook views, we match OIDs during externalization. This isn't
+		really correct from a model perspective.
+		"""
+		return to_external_ntiid_oid(self._history_item)

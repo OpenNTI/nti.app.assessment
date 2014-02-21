@@ -43,6 +43,7 @@ from zope.schema.interfaces import NotUnique
 import datetime
 
 from nti.app.testing.application_webtest import SharedApplicationTestBase
+from nti.app.testing.application_webtest import ApplicationLayerTest
 from nti.app.testing.decorators import WithSharedApplicationMockDS
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
@@ -67,15 +68,9 @@ from ..feedback import UsersCourseAssignmentHistoryItemFeedback
 
 from urllib import unquote
 
-class _RegisterAssignmentMixin(object):
-	@classmethod
-	def _setup_library( cls, *args, **kwargs ):
-		return Library(
-					paths=(
-						   os.path.join(
-								   os.path.dirname(test_catalog_from_content.__file__),
-								   'Library',
-								   'CLC3403_LawAndJustice'),))
+from nti.app.products.courseware.tests import InstructedCourseApplicationTestLayer
+
+class _RegisterAssignmentLayer(InstructedCourseApplicationTestLayer):
 
 	@classmethod
 	def _register_assignment(cls):
@@ -123,13 +118,48 @@ class _RegisterAssignmentMixin(object):
 		global_catalog._entries[:] = catalog._entries
 
 	@classmethod
-	def setUpClass(cls):
-		super(_RegisterAssignmentMixin,cls).setUpClass()
-
+	def setUp(cls):
 		cls._register_assignment()
 
-class TestAssignmentGrading(_RegisterAssignmentMixin,SharedApplicationTestBase):
+	@classmethod
+	def tearDown(cls):
+		# Must implement!
+		pass
 
+class _RegisterAssignmentsForEveryoneLayer(_RegisterAssignmentLayer):
+
+
+	@classmethod
+	def setUp(cls):
+		from ..assignment_filters import UserEnrolledForCreditInCourseOrInstructsFilter
+		UserEnrolledForCreditInCourseOrInstructsFilter.TEST_OVERRIDE = True
+
+	@classmethod
+	def tearDown(cls):
+		# Must implement!
+
+		from ..assignment_filters import UserEnrolledForCreditInCourseOrInstructsFilter
+		UserEnrolledForCreditInCourseOrInstructsFilter.TEST_OVERRIDE = False
+
+class _RegisterAssignmentLayerMixin(object):
+	question_set = None
+	assignment = None
+	question_set_id = None
+	assignment_id = None
+	lesson_page_id = None
+	question_id = None
+
+	def setUp(self):
+		super(_RegisterAssignmentLayerMixin,self).setUp()
+		self.question_set = _RegisterAssignmentLayer.question_set
+		self.question_set_id = _RegisterAssignmentLayer.question_set_id
+		self.assignment = _RegisterAssignmentLayer.assignment
+		self.assignment_id = _RegisterAssignmentLayer.assignment_id
+		self.question_id = _RegisterAssignmentLayer.question_id
+		self.lesson_page_id = _RegisterAssignmentLayer.lesson_page_id
+
+class TestAssignmentGrading(_RegisterAssignmentLayerMixin,ApplicationLayerTest):
+	layer = _RegisterAssignmentsForEveryoneLayer
 	features = ('assignments_for_everyone',)
 
 	@WithSharedApplicationMockDS
@@ -233,28 +263,14 @@ class TestAssignmentGrading(_RegisterAssignmentMixin,SharedApplicationTestBase):
 
 		return res
 
-	@WithSharedApplicationMockDS(users=('harp4162'),testapp=True,default_authenticate=True)
+	@WithSharedApplicationMockDS(users=True,testapp=True,default_authenticate=True)
 	def test_pending_application_assignment(self):
 		# This only works in the OU environment because that's where the purchasables are
 		extra_env = self.testapp.extra_environ or {}
 		extra_env.update( {b'HTTP_ORIGIN': b'http://janux.ou.edu'} )
 		self.testapp.extra_environ = extra_env
 
-		# Re-enum to pick up instructor
-		with mock_dataserver.mock_db_trans(self.ds):
-			lib = component.getUtility(IContentPackageLibrary)
-			del lib.contentPackages
 
-			from zope.component.interfaces import IComponents
-			from nti.app.products.courseware.interfaces import ICourseCatalog
-			components = component.getUtility(IComponents, name='platform.ou.edu')
-			cat = components.queryUtility(ICourseCatalog)
-			if cat:
-				del cat._entries[:] # XXX
-			cat = component.getUtility(ICourseCatalog)
-			del cat._entries[:]
-			getattr(lib, 'contentPackages')
-		self._register_assignment()
 		# Sends an assignment through the application by posting to the assignment
 		qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id)
 		submission = AssignmentSubmission(assignmentId=self.assignment_id, parts=(qs_submission,))
@@ -422,20 +438,11 @@ class TestAssignmentGrading(_RegisterAssignmentMixin,SharedApplicationTestBase):
 		_check_pending(pending)
 
 
-class TestAssignmentFileGrading(SharedApplicationTestBase):
+class _RegisterFileAssignmentLayer(InstructedCourseApplicationTestLayer):
 
 	@classmethod
-	def _setup_library( cls, *args, **kwargs ):
-		return Library(
-					paths=(
-						   os.path.join(
-								   os.path.dirname(test_catalog_from_content.__file__),
-								   'Library',
-								   'CLC3403_LawAndJustice'),))
+	def setUp(cls):
 
-	@classmethod
-	def setUpClass(cls):
-		super(TestAssignmentFileGrading,cls).setUpClass()
 
 		question_set_id  = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.set.qset:QUIZ1_aristotle"
 		assignment_ntiid = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.asg:QUIZ1_aristotle"
@@ -479,6 +486,26 @@ class TestAssignmentFileGrading(SharedApplicationTestBase):
 		lesson = lib.pathToNTIID(lesson_page_id)[-1]
 		assignment.__parent__ = lesson
 		IQAssessmentItemContainer(lesson).append(assignment)
+
+	@classmethod
+	def tearDown(cls):
+		# MUST implement
+		pass
+
+
+class TestAssignmentFileGrading(ApplicationLayerTest):
+	layer = _RegisterFileAssignmentLayer
+
+	assignment_id = None
+	question_set_id = None
+	lesson_page_id = None
+
+	def setUp(self):
+		super(TestAssignmentFileGrading,self).setUp()
+		self.assignment_id = _RegisterFileAssignmentLayer.assignment_id
+		self.lesson_page_id = _RegisterFileAssignmentLayer.lesson_page_id
+		self.question_set_id = _RegisterFileAssignmentLayer.question_set_id
+
 
 	def _check_submission(self, res, history=None):
 		assert_that( res.status_int, is_( 201 ))
@@ -589,7 +616,9 @@ class IMySpecificUser(IUser):
 from zope import interface
 from nti.dataserver.mimetype import  nti_mimetype_with_class
 
-class TestAssignmentFiltering(_RegisterAssignmentMixin,SharedApplicationTestBase):
+class TestAssignmentFiltering(_RegisterAssignmentLayerMixin,ApplicationLayerTest):
+	layer = _RegisterAssignmentLayer
+
 	# With the feature missing
 
 	@WithSharedApplicationMockDS(users=True,testapp=True, user_hook=lambda u: interface.alsoProvides(u, IMySpecificUser))
@@ -669,8 +698,9 @@ class TestAssignmentFiltering(_RegisterAssignmentMixin,SharedApplicationTestBase
 		assert_that( items,
 					 does_not( contains( has_entry('NTIID', question_set_id ) ) ) )
 
-class TestNoteCreation(_RegisterAssignmentMixin,SharedApplicationTestBase):
+class TestNoteCreation(_RegisterAssignmentLayerMixin,ApplicationLayerTest):
 	"We can not create notes an any component of an assignment"
+	layer = _RegisterAssignmentLayer
 
 	def _do_post(self, container):
 		data = {'Class': 'Note',

@@ -48,6 +48,7 @@ class UserEnrolledForCreditInCourseOrInstructsFilter(object):
 	to everyone.
 	"""
 
+	TEST_OVERRIDE = False
 
 	def __init__(self, user, course):
 		self.user = user
@@ -65,6 +66,9 @@ class UserEnrolledForCreditInCourseOrInstructsFilter(object):
 		return getattr(enrollment, 'LegacyEnrollmentStatus', 'Open') == 'ForCredit'
 
 	def allow_assignment_for_user_in_course(self, asg, user, course):
+		if self.TEST_OVERRIDE:
+			return True
+
 		# Note implicit assumption that assignment is in course
 		if self.is_instructor or self.is_enrolled_for_credit:
 			return True

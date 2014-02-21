@@ -331,7 +331,7 @@ def remove_assessment_items_from_oldcontent(content_package, event):
 		questions = question_map.by_file.pop(unit.key, ())
 		for question in questions:
 			ntiid = getattr(question, 'ntiid', u'')
-			question_map.pop(ntiid)
+			question_map.pop(ntiid, None) # some tests register manually without updating everything
 
 	# Unregister the things from the component registery.
 	# FIXME: This doesn't properly handle the case of

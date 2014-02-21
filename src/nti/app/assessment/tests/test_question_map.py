@@ -30,11 +30,6 @@ from nti.dataserver.authorization_acl import ACL
 
 import nti.testing.base
 
-setUpModule = lambda: nti.testing.base.module_setup(set_up_packages=(nti.appserver,__name__))
-tearDownModule = nti.testing.base.module_teardown
-
-
-
 ASSM_ITEMS = {
 	'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion': {'Class': 'Question',
 																	  'MimeType': 'application/vnd.nextthought.naquestion',
@@ -90,79 +85,6 @@ ASSM_JSON_W_SET = {
 
 ASSM_STRING_W_SET = json.dumps( ASSM_JSON_W_SET, indent='\t' )
 
-def test_create_question_map_captures_set_ntiids(index_string=ASSM_STRING_W_SET):
-	class MockEntry(object):
-		def make_sibling_key( self, key ):
-			return key
-	question_map = QuestionMap()
-	_populate_question_map_from_text( question_map, index_string, MockEntry() )
-
-
-	assm_items = question_map.by_file['tag_nextthought_com_2011-10_testing-HTML-temp_chapter_one.html']
-
-	assert_that( assm_items, has_length( 2 ) ) # one question, one set
-	assert_that( assm_items[1], has_property( 'ntiid',     'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion' ) )
-	assert_that( assm_items[1], has_property( '__name__',  'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion' ) )
-	assert_that( assm_items[0], has_property( 'ntiid',     'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.set.testset' ) )
-	assert_that( assm_items[0], has_property( '__name__',  'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.set.testset' ) )
-
-	qset = assm_items[0]
-	qset_question = qset.questions[0]
-
-	assert_that( qset_question, is_( assm_items[1] ) )
-	assert_that( qset_question, has_property( 'ntiid',     'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion' ) )
-	assert_that( qset_question, has_property( '__name__',  'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion' ) )
-
-
-	assert_that( question_map[qset_question.ntiid], is_( qset_question ) )
-	assert_that( question_map[qset_question.ntiid], is_( assm_items[1] ) )
-	assert_that( question_map[qset.ntiid], is_( qset ) )
-
-
-	# And it has an ACL
-	assert_that( ACL(qset_question), is_( () ) )
-
-def test_create_question_map_nested_level_with_no_filename():
-
-	section_one = SECTION_ONE.copy()
-#	del section_one['filename']
-	chapter_one = CHAPTER_ONE.copy()
-	chapter_one['Items'][section_one['NTIID']] = section_one
-
-	root = ROOT.copy()
-	root['Items'][chapter_one['NTIID']] = chapter_one
-
-	assm_json = {
-		'Items': { root['NTIID']: root },
-		'href': 'index.html'
-	}
-
-	assm_string = json.dumps( assm_json )
-
-	test_create_question_map_captures_set_ntiids( assm_string )
-
-
-def test_create_question_map_nested_two_level_with_no_filename():
-
-	section_one = SECTION_ONE.copy()
-#	del section_one['filename']
-	interloper = { 'NTIID': 'foo',
-				   'Items': { section_one['NTIID']: section_one } }
-
-	chapter_one = CHAPTER_ONE.copy()
-	chapter_one['Items'] = {interloper['NTIID']: interloper}
-
-	root = ROOT.copy()
-	root['Items'][chapter_one['NTIID']] = chapter_one
-
-	assm_json = {
-		'Items': { root['NTIID']: root },
-		'href': 'index.html'
-	}
-
-	assm_string = json.dumps( assm_json )
-
-	test_create_question_map_captures_set_ntiids( assm_string )
 
 
 ASSESSMENT_STRING_QUESTIONS_IN_FIRST_FILE = """
@@ -190,100 +112,179 @@ ASSESSMENT_STRING_QUESTIONS_IN_FIRST_FILE = """
 }
 """
 
-def test_create_from_mathcounts2012_no_Question_section_in_chapter():
-	index_string = str(ASSESSMENT_STRING_QUESTIONS_IN_FIRST_FILE)
-	class MockEntry(object):
-		def make_sibling_key( self, key ):
-			return key
-	question_map = QuestionMap()
+from . import AssessmentLayerTest
 
-	_populate_question_map_from_text( question_map, index_string, MockEntry() )
+class TestQuestionMap(AssessmentLayerTest):
 
-	assert_that( question_map, has_length( 1 ) )
-
-	assm_items = question_map.by_file.get('tag_nextthought_com_2011-10_mathcounts-HTML-mathcounts2012_warm_up_1.html')
-
-	assert_that( assm_items, has_length( 1 ) )
-	question = assm_items[0]
-
-	assert_that( question, has_property( '__name__', 'tag:nextthought.com,2011-10:mathcounts-NAQ-mathcounts2012.naq.qid.1' ) )
-	assert_that( question, has_property( 'ntiid', 'tag:nextthought.com,2011-10:mathcounts-NAQ-mathcounts2012.naq.qid.1', ) )
-	assert_that( question, has_property( '__parent__', 'tag:nextthought.com,2011-10:mathcounts-HTML-mathcounts2012.warm_up_1' ) )
-
-def test_create_with_assignment():
-	question = {'Class': 'Question',
-				'MimeType': 'application/vnd.nextthought.naquestion',
-				'NTIID': 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion',
-				'content': '<a name="testquestion"></a> Arbitrary content goes here.',
-				'parts': [{'Class': 'FilePart',
-						   'MimeType': 'application/vnd.nextthought.assessment.filepart',
-						   'allowed_extensions': [],
-						   'allowed_mime_types': ['application/pdf'],
-						   'content': 'Arbitrary content goes here.',
-						   'explanation': u'',
-						   'hints': [],
-						   'max_file_size': None,
-						   'solutions': []}]}
+	def test_create_question_map_captures_set_ntiids(self, index_string=ASSM_STRING_W_SET):
+		class MockEntry(object):
+			def make_sibling_key( self, key ):
+				return key
+		question_map = QuestionMap()
+		_populate_question_map_from_text( question_map, index_string, MockEntry() )
 
 
-	the_map = {'Items':
-	 {'tag:nextthought.com,2011-10:testing-HTML-temp.0':
-	  {'AssessmentItems': {},
-	   'Items': {'tag:nextthought.com,2011-10:testing-HTML-temp.chapter_one':
-				 {'AssessmentItems': {},
-				  'Items': {'tag:nextthought.com,2011-10:testing-HTML-temp.section_one':
-							{'AssessmentItems': {'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.asg.assignment':
-												 {'Class': 'Assignment',
-												  'MimeType': 'application/vnd.nextthought.assessment.assignment',
-												  'NTIID': 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.asg.assignment',
-												  'available_for_submission_beginning': '2014-01-13T00:00:00',
-												  'available_for_submission_ending': None,
-												  'content': 'Assignment content.',
-												  'parts': [{'Class': 'AssignmentPart',
-															 'MimeType': 'application/vnd.nextthought.assessment.assignmentpart',
-															 'auto_grade': True,
-															 'content': 'Some content.',
-															 'question_set': {'Class': 'QuestionSet',
-																			  'MimeType': 'application/vnd.nextthought.naquestionset',
-																			  'NTIID': 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.set.set',
-																			  'questions': [question]},
-															 'title': 'Part Title'}],
-												  'title': 'Main Title'},
-												 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.set.set': {'Class': 'QuestionSet',
-																											  'MimeType': 'application/vnd.nextthought.naquestionset',
-																											  'NTIID': 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.set.set',
-																											  'questions': [question]},
-												 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion': question},
-							 'NTIID': 'tag:nextthought.com,2011-10:testing-HTML-temp.section_one',
-							 'filename': 'tag_nextthought_com_2011-10_testing-HTML-temp_section_one.html',
-							 'href': 'tag_nextthought_com_2011-10_testing-HTML-temp_section_one.html'}},
-				  'NTIID': 'tag:nextthought.com,2011-10:testing-HTML-temp.chapter_one',
-				  'filename': 'tag_nextthought_com_2011-10_testing-HTML-temp_chapter_one.html',
-				  'href': 'tag_nextthought_com_2011-10_testing-HTML-temp_chapter_one.html'}},
-	   'NTIID': 'tag:nextthought.com,2011-10:testing-HTML-temp.0',
-	   'filename': 'index.html',
-	   'href': 'index.html'}},
-			'href': 'index.html'}
-	the_text = json.dumps(the_map)
+		assm_items = question_map.by_file['tag_nextthought_com_2011-10_testing-HTML-temp_chapter_one.html']
 
-	@interface.implementer(IContentUnit,IAttributeAnnotatable)
-	class MockEntry(object):
-		def make_sibling_key( self, key ):
-			return key
-	question_map = QuestionMap()
+		assert_that( assm_items, has_length( 2 ) ) # one question, one set
+		assert_that( assm_items[1], has_property( 'ntiid',     'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion' ) )
+		assert_that( assm_items[1], has_property( '__name__',  'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion' ) )
+		assert_that( assm_items[0], has_property( 'ntiid',     'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.set.testset' ) )
+		assert_that( assm_items[0], has_property( '__name__',  'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.set.testset' ) )
 
-	entry = MockEntry()
-	_populate_question_map_from_text( question_map, the_text, entry )
+		qset = assm_items[0]
+		qset_question = qset.questions[0]
+
+		assert_that( qset_question, is_( assm_items[1] ) )
+		assert_that( qset_question, has_property( 'ntiid',     'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion' ) )
+		assert_that( qset_question, has_property( '__name__',  'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion' ) )
 
 
-	# Check that they were canonicalizade
-	asg = component.getUtility(IQAssignment, name='tag:nextthought.com,2011-10:testing-NAQ-temp.naq.asg.assignment' )
-	qset = component.getUtility(IQuestionSet, name='tag:nextthought.com,2011-10:testing-NAQ-temp.naq.set.set')
-	q = component.getUtility(IQuestion, name='tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion')
+		assert_that( question_map[qset_question.ntiid], is_( qset_question ) )
+		assert_that( question_map[qset_question.ntiid], is_( assm_items[1] ) )
+		assert_that( question_map[qset.ntiid], is_( qset ) )
 
-	assert_that( asg.parts[0].question_set, is_( same_instance( qset )))
-	assert_that( qset.questions[0], is_( same_instance(q)) )
 
-	# We would need the library to be able to do this
-	#items = IQAssessmentItemContainer(entry)
-	#assert_that( items, contains_inanyorder( asg, qset, q ))
+		# And it has an ACL
+		assert_that( ACL(qset_question), is_( () ) )
+
+	def test_create_question_map_nested_level_with_no_filename(self):
+
+		section_one = SECTION_ONE.copy()
+	#	del section_one['filename']
+		chapter_one = CHAPTER_ONE.copy()
+		chapter_one['Items'][section_one['NTIID']] = section_one
+
+		root = ROOT.copy()
+		root['Items'][chapter_one['NTIID']] = chapter_one
+
+		assm_json = {
+			'Items': { root['NTIID']: root },
+			'href': 'index.html'
+		}
+
+		assm_string = json.dumps( assm_json )
+
+		self.test_create_question_map_captures_set_ntiids( assm_string )
+
+
+	def test_create_question_map_nested_two_level_with_no_filename(self):
+
+		section_one = SECTION_ONE.copy()
+	#	del section_one['filename']
+		interloper = { 'NTIID': 'foo',
+					   'Items': { section_one['NTIID']: section_one } }
+
+		chapter_one = CHAPTER_ONE.copy()
+		chapter_one['Items'] = {interloper['NTIID']: interloper}
+
+		root = ROOT.copy()
+		root['Items'][chapter_one['NTIID']] = chapter_one
+
+		assm_json = {
+			'Items': { root['NTIID']: root },
+			'href': 'index.html'
+		}
+
+		assm_string = json.dumps( assm_json )
+
+		self.test_create_question_map_captures_set_ntiids( assm_string )
+
+
+	def test_create_from_mathcounts2012_no_Question_section_in_chapter(self):
+		index_string = str(ASSESSMENT_STRING_QUESTIONS_IN_FIRST_FILE)
+		class MockEntry(object):
+			def make_sibling_key( self, key ):
+				return key
+		question_map = QuestionMap()
+
+		_populate_question_map_from_text( question_map, index_string, MockEntry() )
+
+		assert_that( question_map, has_length( 1 ) )
+
+		assm_items = question_map.by_file.get('tag_nextthought_com_2011-10_mathcounts-HTML-mathcounts2012_warm_up_1.html')
+
+		assert_that( assm_items, has_length( 1 ) )
+		question = assm_items[0]
+
+		assert_that( question, has_property( '__name__', 'tag:nextthought.com,2011-10:mathcounts-NAQ-mathcounts2012.naq.qid.1' ) )
+		assert_that( question, has_property( 'ntiid', 'tag:nextthought.com,2011-10:mathcounts-NAQ-mathcounts2012.naq.qid.1', ) )
+		assert_that( question, has_property( '__parent__', 'tag:nextthought.com,2011-10:mathcounts-HTML-mathcounts2012.warm_up_1' ) )
+
+	def test_create_with_assignment(self):
+		question = {'Class': 'Question',
+					'MimeType': 'application/vnd.nextthought.naquestion',
+					'NTIID': 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion',
+					'content': '<a name="testquestion"></a> Arbitrary content goes here.',
+					'parts': [{'Class': 'FilePart',
+							   'MimeType': 'application/vnd.nextthought.assessment.filepart',
+							   'allowed_extensions': [],
+							   'allowed_mime_types': ['application/pdf'],
+							   'content': 'Arbitrary content goes here.',
+							   'explanation': u'',
+							   'hints': [],
+							   'max_file_size': None,
+							   'solutions': []}]}
+
+
+		the_map = {'Items':
+		 {'tag:nextthought.com,2011-10:testing-HTML-temp.0':
+		  {'AssessmentItems': {},
+		   'Items': {'tag:nextthought.com,2011-10:testing-HTML-temp.chapter_one':
+					 {'AssessmentItems': {},
+					  'Items': {'tag:nextthought.com,2011-10:testing-HTML-temp.section_one':
+								{'AssessmentItems': {'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.asg.assignment':
+													 {'Class': 'Assignment',
+													  'MimeType': 'application/vnd.nextthought.assessment.assignment',
+													  'NTIID': 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.asg.assignment',
+													  'available_for_submission_beginning': '2014-01-13T00:00:00',
+													  'available_for_submission_ending': None,
+													  'content': 'Assignment content.',
+													  'parts': [{'Class': 'AssignmentPart',
+																 'MimeType': 'application/vnd.nextthought.assessment.assignmentpart',
+																 'auto_grade': True,
+																 'content': 'Some content.',
+																 'question_set': {'Class': 'QuestionSet',
+																				  'MimeType': 'application/vnd.nextthought.naquestionset',
+																				  'NTIID': 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.set.set',
+																				  'questions': [question]},
+																 'title': 'Part Title'}],
+													  'title': 'Main Title'},
+													 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.set.set': {'Class': 'QuestionSet',
+																												  'MimeType': 'application/vnd.nextthought.naquestionset',
+																												  'NTIID': 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.set.set',
+																												  'questions': [question]},
+													 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion': question},
+								 'NTIID': 'tag:nextthought.com,2011-10:testing-HTML-temp.section_one',
+								 'filename': 'tag_nextthought_com_2011-10_testing-HTML-temp_section_one.html',
+								 'href': 'tag_nextthought_com_2011-10_testing-HTML-temp_section_one.html'}},
+					  'NTIID': 'tag:nextthought.com,2011-10:testing-HTML-temp.chapter_one',
+					  'filename': 'tag_nextthought_com_2011-10_testing-HTML-temp_chapter_one.html',
+					  'href': 'tag_nextthought_com_2011-10_testing-HTML-temp_chapter_one.html'}},
+		   'NTIID': 'tag:nextthought.com,2011-10:testing-HTML-temp.0',
+		   'filename': 'index.html',
+		   'href': 'index.html'}},
+				'href': 'index.html'}
+		the_text = json.dumps(the_map)
+
+		@interface.implementer(IContentUnit,IAttributeAnnotatable)
+		class MockEntry(object):
+			def make_sibling_key( self, key ):
+				return key
+		question_map = QuestionMap()
+
+		entry = MockEntry()
+		_populate_question_map_from_text( question_map, the_text, entry )
+
+
+		# Check that they were canonicalizade
+		asg = component.getUtility(IQAssignment, name='tag:nextthought.com,2011-10:testing-NAQ-temp.naq.asg.assignment' )
+		qset = component.getUtility(IQuestionSet, name='tag:nextthought.com,2011-10:testing-NAQ-temp.naq.set.set')
+		q = component.getUtility(IQuestion, name='tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion')
+
+		assert_that( asg.parts[0].question_set, is_( same_instance( qset )))
+		assert_that( qset.questions[0], is_( same_instance(q)) )
+
+		# We would need the library to be able to do this
+		#items = IQAssessmentItemContainer(entry)
+		#assert_that( items, contains_inanyorder( asg, qset, q ))

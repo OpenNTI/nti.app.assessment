@@ -13,7 +13,6 @@ from hamcrest import has_key
 from hamcrest import has_entries
 from hamcrest import greater_than
 from hamcrest import not_none
-from hamcrest import none
 from hamcrest.library import has_property
 
 from hamcrest import is_not
@@ -26,7 +25,6 @@ import os.path
 
 from zope import component
 
-from nti.contentlibrary.filesystem import EnumerateOnceFilesystemLibrary as FileLibrary
 from nti.assessment import submission as asm_submission
 
 from .._question_map import IFileQuestionMap
@@ -34,22 +32,19 @@ from nti.externalization.externalization import toExternalObject
 from nti.externalization.interfaces import StandardExternalFields
 from nti.dataserver.mimetype import  nti_mimetype_with_class
 
-from nti.app.testing.application_webtest import SharedApplicationTestBase
+from nti.app.testing.application_webtest import ApplicationLayerTest
 from nti.app.testing.decorators import WithSharedApplicationMockDS
 from nti.app.testing.webtest import TestApp
 
-from nti.appserver.tests import test_application
 
-class TestApplicationAssessment(SharedApplicationTestBase):
+from nti.appserver.tests import ExLibraryApplicationTestLayer
+
+class TestApplicationAssessment(ApplicationLayerTest):
+	layer = ExLibraryApplicationTestLayer
+
 	child_ntiid =  'tag:nextthought.com,2011-10:MN-NAQ-MiladyCosmetology.naq.1'
 
 	question_ntiid = child_ntiid
-
-	library_dir = os.path.join( os.path.dirname(test_application.__file__), 'ExLibrary' )
-
-	@classmethod
-	def _setup_library( cls, *args, **kwargs ):
-		return FileLibrary( cls.library_dir )
 
 	@WithSharedApplicationMockDS
 	def test_registered_utility(self):
@@ -62,7 +57,7 @@ class TestApplicationAssessment(SharedApplicationTestBase):
 					 has_key( self.child_ntiid ) )
 		assert_that( qmap.by_file,
 					 has_key( has_property( 'absolute_path',
-											os.path.join( self.library_dir,
+											os.path.join( ExLibraryApplicationTestLayer.library_dir,
 														  'WithAssessment', 'tag_nextthought_com_2011-10_mathcounts-HTML-MN_2012_0.html' ) ) ) )
 
 

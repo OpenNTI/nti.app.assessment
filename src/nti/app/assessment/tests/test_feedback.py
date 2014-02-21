@@ -16,24 +16,20 @@ logger = __import__('logging').getLogger(__name__)
 
 
 from hamcrest import assert_that
-from hamcrest import is_
-from hamcrest import has_key
-from hamcrest import has_entry
-
-from nti.testing import base
-from nti.testing import matchers
 
 from .. import feedback
 from .. import interfaces
 
 from nti.testing.matchers import validly_provides
 
+import unittest
 
-def test_interfaces():
-	item = feedback.UsersCourseAssignmentHistoryItemFeedback()
-	item.creator = 'foo' # anything is accepted eventually
-	assert_that( item,
-				 validly_provides( interfaces.IUsersCourseAssignmentHistoryItemFeedback ))
+class TestFeedback(unittest.TestCase):
+	def test_interfaces(self):
+		item = feedback.UsersCourseAssignmentHistoryItemFeedback()
+		item.creator = 'foo' # anything is accepted eventually
+		assert_that( item,
+					 validly_provides( interfaces.IUsersCourseAssignmentHistoryItemFeedback ))
 
-	assert_that( feedback.UsersCourseAssignmentHistoryItemFeedbackContainer(),
-				 validly_provides( interfaces.IUsersCourseAssignmentHistoryItemFeedbackContainer ) )
+		assert_that( feedback.UsersCourseAssignmentHistoryItemFeedbackContainer(),
+					 validly_provides( interfaces.IUsersCourseAssignmentHistoryItemFeedbackContainer ) )

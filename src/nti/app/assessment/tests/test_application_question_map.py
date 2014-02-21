@@ -19,21 +19,13 @@ from zope import component
 from nti.assessment import interfaces as asm_interfaces
 
 from nti.contentlibrary import interfaces as lib_interfaces
-# NOTE: This does not work with a totally DynamicFilesystemLibrary,
-# as new packages are generated and annotations are lost!
-from nti.contentlibrary.filesystem import EnumerateOnceFilesystemLibrary as FileLibrary
-
 from .. import _question_map as qm_module
 
-from nti.app.testing.application_webtest import SharedApplicationTestBase
-from nti.appserver.contentlibrary import tests
+from nti.app.testing.application_webtest import ApplicationLayerTest
+from nti.appserver.contentlibrary.tests import CourseTestContentApplicationTestLayer
 
-class TestApplicationQuestionMap(SharedApplicationTestBase):
-
-	@classmethod
-	def _setup_library(cls, *args, **kwargs):
-		library = FileLibrary(os.path.join(os.path.dirname(tests.__file__), 'library'))
-		return library
+class TestApplicationQuestionMap(ApplicationLayerTest):
+	layer = CourseTestContentApplicationTestLayer
 
 	def test_check_question_map(self):
 		library = component.getUtility(lib_interfaces.IContentPackageLibrary)

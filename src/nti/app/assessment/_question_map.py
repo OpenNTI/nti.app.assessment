@@ -262,7 +262,9 @@ class QuestionMap(dict):
 			# jacked-up content that abuses the section hierarchy (skips levels) and/or jacked-up themes/configurations
 			# that split incorrectly.
 			if 'filename' not in child_index or not child_index['filename'] or child_index['filename'].startswith( 'index.html#' ):
-				logger.debug( "Ignoring invalid child with invalid filename; cannot contain assessments: %s", child_index )
+				logger.debug( "Ignoring invalid child with invalid filename '%s'; cannot contain assessments: %s",
+							  child_index.get('filename', ''),
+							  child_index )
 				continue
 
 			assert child_index.get( 'filename' ), 'Child must contain valid filename to contain assessments'
@@ -287,11 +289,17 @@ def add_assessment_items_from_new_content( content_package, event ):
 	asm_index_text = content_package.read_contents_of_sibling_entry( 'assessment_index.json' )
 	_populate_question_map_from_text( question_map, asm_index_text, content_package )
 
+# We usually get two or more copies, one at the top-level, one embedded
+# in a question set, and possibly in an assignment. Although we get the
+# most reuse within a single index, we get some reuse across indexes,
+# especially in tests
+_fragment_cache = dict()
+
 def _populate_question_map_from_text( question_map, asm_index_text, content_package ):
 	if not asm_index_text:
 		return
 
-	asm_index_text = unicode(asm_index_text, 'utf-8') if isinstance(asm_index_text, six.binary_type) else asm_index_text
+	asm_index_text = unicode(asm_index_text, 'utf-8') if isinstance(asm_index_text, bytes) else asm_index_text
 	# In this one specific case, we know that these are already
 	# content fragments (probably HTML content fragments)
 	# If we go through the normal adapter process from string to
@@ -301,11 +309,43 @@ def _populate_question_map_from_text( question_map, asm_index_text, content_pack
 	# NOTE: This breaks certain assumptions that assume that there are no
 	# subclasses of str or unicode, notably pyramid.traversal. See assessment_views.py
 	# for more details.
+
+	def _as_fragment(v):
+		# We also assume that HTML has already been sanitized and can
+		# be trusted.
+		if v in _fragment_cache:
+			return _fragment_cache[v]
+
+		factory = cfg_interfaces.PlainTextContentFragment
+		if '<' in v:
+			factory = cfg_interfaces.SanitizedHTMLContentFragment
+		result = factory(v)
+		_fragment_cache[v] = result
+		return result
+	_PLAIN_KEYS = {'NTIID', 'filename', 'href', 'Class', 'MimeType'}
+	def _tx(v, k=None):
+		if isinstance(v, list):
+			v = [_tx(x, k) for x in v]
+		elif isinstance(v, dict):
+			v = hook(v.iteritems())
+		elif isinstance(v, six.string_types):
+			if k not in _PLAIN_KEYS:
+				v = _as_fragment(v)
+			else:
+				if v not in _fragment_cache:
+					_fragment_cache[v] = v
+				v = _fragment_cache[v]
+
+		return v
 	def hook(o):
-		return dict( (k,cfg_interfaces.UnicodeContentFragment(v) if isinstance(v, unicode) else v) for k, v in o )
+		result = dict()
+		for k, v in o:
+			result[k] = _tx(v, k)
+		return result
 
 	index = simplejson.loads( asm_index_text,
 							  object_pairs_hook=hook )
+
 	try:
 		question_map._from_root_index( index, content_package )
 	except (interface.Invalid, ValueError): # pragma: no cover

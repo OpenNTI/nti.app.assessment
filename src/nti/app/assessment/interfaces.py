@@ -168,6 +168,9 @@ class IUsersCourseAssignmentHistoryItemFeedback(IContained,
 												IShouldHaveTraversablePath):
 	"""
 	A feedback item on a history item.
+
+	Notice that these are not :class:`.IThreadable`; all feedback
+	is considered to be top-level.
 	"""
 
 	containers(IUsersCourseAssignmentHistoryItemFeedbackContainer) # Adds __parent__ as required

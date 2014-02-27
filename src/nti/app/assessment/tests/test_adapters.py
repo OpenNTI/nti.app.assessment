@@ -352,18 +352,39 @@ class TestAssignmentGrading(_RegisterAssignmentLayerMixin,ApplicationLayerTest):
 																   'AssignmentId', 'tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.asg:QUIZ1_aristotle'),
 													   has_entry('Class', 'AssignmentSubmission')))
 
-		# We can delete our own feedback item and it vanishes completely
+		# The instructor can add his own feedback
+		feedback = UsersCourseAssignmentHistoryItemFeedback(body=['A reply to your feedback'])
+		ext_feedback = to_external_object(feedback)
+		inst_feedback_res = self.testapp.post_json( history_feedback_container_href,
+													ext_feedback,
+													status=201,
+													extra_environ=instructor_environ )
+
+		# At that point, it shows up as a notable item for the user
+		notable_res = self.fetch_user_recursive_notable_ugd()
+		assert_that( notable_res.json_body, has_entry('TotalItemCount', 1))
+		assert_that( notable_res.json_body, has_entry( 'Items',
+													   contains(has_entry('NTIID', inst_feedback_res.json_body['NTIID']))))
+
+		# We can each delete our own feedback item and it vanishes completely
 		# TODO: Wouldn't a deleted object placeholder be better?
 		self.testapp.delete(feedback_item_edit_link)
+		self.testapp.delete( self.require_link_href_with_rel(inst_feedback_res.json_body, 'edit'),
+							 extra_environ=instructor_environ)
 		for link in course_history_link, enrollment_history_link:
 			history_res = self.testapp.get(link)
 			item = history_res.json_body['Items'].values()[0]
 			feedback = item['Feedback']
 			assert_that( feedback, has_entry('Items', has_length(0)))
 
+		# It's gone from the instructor's activity
 		res = self.testapp.get(activity_link, extra_environ=instructor_environ)
 		assert_that( res.json_body, has_entry('TotalItemCount', 1) )
 		assert_that( res.json_body['Items'], contains(has_entry('Class', 'AssignmentSubmission')))
+
+		# it's gone as a notable item
+		notable_res = self.fetch_user_recursive_notable_ugd()
+		assert_that( notable_res.json_body, has_entry('TotalItemCount', 0))
 
 
 		# The instructor can delete our submission

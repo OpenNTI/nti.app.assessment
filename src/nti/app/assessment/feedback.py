@@ -42,6 +42,9 @@ class UsersCourseAssignmentHistoryItemFeedback(PersistentCreatedModDateTrackingO
 	body = BodyFieldProperty(IUsersCourseAssignmentHistoryItemFeedback['body'])
 	title = AdaptingFieldProperty(IUsersCourseAssignmentHistoryItemFeedback['title'])
 
+	#: We want to inherit the read access for the instructors
+	__acl_deny_all__ = False
+
 	@property
 	def creator(self):
 		# as a Created object, we need to have a creator;

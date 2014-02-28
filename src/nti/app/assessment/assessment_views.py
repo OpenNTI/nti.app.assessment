@@ -110,7 +110,7 @@ del _question_view
 del _assignment_view
 
 from nti.appserver._view_utils import AbstractAuthenticatedView
-from nti.appserver._view_utils import ModeledContentUploadRequestUtilsMixin
+from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 from pyramid.interfaces import IExceptionResponse
 
 @view_config(route_name="objects.generic.traversal",

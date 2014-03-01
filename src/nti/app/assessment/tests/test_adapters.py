@@ -23,6 +23,7 @@ from hamcrest import has_item
 from hamcrest import has_entry
 from hamcrest import has_key
 from hamcrest import contains_string
+from hamcrest import contains_inanyorder
 from hamcrest import ends_with
 from hamcrest import has_property
 from hamcrest import contains
@@ -36,25 +37,24 @@ from nti.dataserver.tests import mock_dataserver
 from nti.testing.matchers import validly_provides
 from nti.testing.matchers import is_empty
 
-import os
+
 from zope import component
 from zope.schema.interfaces import ConstraintNotSatisfied
 from zope.schema.interfaces import NotUnique
 import datetime
 
-from nti.app.testing.application_webtest import SharedApplicationTestBase
+
 from nti.app.testing.application_webtest import ApplicationLayerTest
 from nti.app.testing.decorators import WithSharedApplicationMockDS
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
-from nti.contentlibrary.filesystem import CachedNotifyingStaticFilesystemLibrary as Library
+
 
 from nti.externalization.externalization import to_external_object
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.dataserver.users import User
 
-from nti.app.products.courseware.tests import test_catalog_from_content
 
 from nti.assessment.assignment import QAssignmentPart, QAssignment
 from nti.assessment.submission import AssignmentSubmission
@@ -360,11 +360,13 @@ class TestAssignmentGrading(_RegisterAssignmentLayerMixin,ApplicationLayerTest):
 													status=201,
 													extra_environ=instructor_environ )
 
-		# At that point, it shows up as a notable item for the user
+		# At that point, it shows up as a notable item for the user,
+		# along with the grade
 		notable_res = self.fetch_user_recursive_notable_ugd()
-		assert_that( notable_res.json_body, has_entry('TotalItemCount', 1))
+		assert_that( notable_res.json_body, has_entry('TotalItemCount', 2))
 		assert_that( notable_res.json_body, has_entry( 'Items',
-													   contains(has_entry('NTIID', inst_feedback_res.json_body['NTIID']))))
+													   contains_inanyorder(has_entry('NTIID', inst_feedback_res.json_body['NTIID']),
+																		   has_entry('Creator', 'harp4162'))))
 
 		# We can each delete our own feedback item and it vanishes completely
 		# TODO: Wouldn't a deleted object placeholder be better?
@@ -384,7 +386,7 @@ class TestAssignmentGrading(_RegisterAssignmentLayerMixin,ApplicationLayerTest):
 
 		# it's gone as a notable item
 		notable_res = self.fetch_user_recursive_notable_ugd()
-		assert_that( notable_res.json_body, has_entry('TotalItemCount', 0))
+		assert_that( notable_res.json_body, has_entry('TotalItemCount', 1))
 
 
 		# The instructor can delete our submission

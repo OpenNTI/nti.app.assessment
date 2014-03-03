@@ -17,6 +17,7 @@ from zope import interface
 from nti.externalization import interfaces as ext_interfaces
 from nti.assessment import interfaces as asm_interfaces
 from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQuestionSet
 from nti.appserver import interfaces as app_interfaces
 
 from nti.externalization.singleton import SingletonDecorator
@@ -75,10 +76,14 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 
 		new_result = {}
 		for ntiid, x in result.iteritems():
-			if not IQAssignment.providedBy(x):
-				# Non assignments always go in
+			# To keep size down, when we send back assignments or question sets,
+			# we don't send back the things they contain as top-level. Moreover,
+			# for assignments we need to apply a visibility predicate.
+			if IQuestionSet.providedBy(x):
 				new_result[ntiid] = x
-			else:
+				for question in x.questions:
+					qsids_to_strip.add(question.ntiid)
+			elif IQAssignment.providedBy(x):
 				if assignment_predicate is None:
 					logger.warn("Found assignment (%s) outside of course context in %s; dropping",
 								x, context.contentUnit)
@@ -86,7 +91,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 					# Yay, keep the assignment
 					new_result[ntiid] = x
 				# But in all cases, don't echo back the things
-				# it contains.
+				# it contains as top-level items.
 				# We are assuming that these are on the same page
 				# for now and that they are only referenced by
 				# this assignment.
@@ -96,6 +101,8 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 					qsids_to_strip.add(question_set.ntiid)
 					for question in question_set.questions:
 						qsids_to_strip.add(question.ntiid)
+			else:
+				new_result[ntiid] = x
 
 		for bad_ntiid in qsids_to_strip:
 			new_result.pop(bad_ntiid, None)
@@ -108,10 +115,6 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 			# done in a very hacky way, need something more
 			# context sensitive (would the named externalizers
 			# work here? like personal-summary for users?)
-			### XXX We may not be able to do this yet, the
-			# app may be depending on this information. We
-			# need to make this available only as part of an assessed
-			# value, not in general.
 			def _strip(item):
 				cls = item.get('Class')
 				if cls == 'Question':
@@ -123,8 +126,8 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 						_strip(q)
 
 			ext_items = to_external_object( result )
-			#for item in ext_items:
-			#	_strip(item)
+			for item in ext_items:
+				_strip(item)
 			result_map['AssessmentItems'] = ext_items
 
 LINKS = ext_interfaces.StandardExternalFields.LINKS

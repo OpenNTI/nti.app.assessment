@@ -25,7 +25,7 @@ from nti.externalization.externalization import to_external_object
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from .interfaces import get_course_assignment_predicate_for_user
 
-from nti.appserver.pyramid_renderers import AbstractAuthenticatedRequestAwareDecorator
+from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
 @interface.implementer(ext_interfaces.IExternalMappingDecorator)
 @component.adapter(app_interfaces.IContentUnitInfo)

@@ -109,7 +109,7 @@ del _read_view_defaults
 del _question_view
 del _assignment_view
 
-from nti.appserver._view_utils import AbstractAuthenticatedView
+from nti.app.base.abstract_views import AbstractAuthenticatedView
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 from pyramid.interfaces import IExceptionResponse
 

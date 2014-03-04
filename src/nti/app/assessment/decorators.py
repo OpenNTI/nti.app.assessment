@@ -78,11 +78,15 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 		for ntiid, x in result.iteritems():
 			# To keep size down, when we send back assignments or question sets,
 			# we don't send back the things they contain as top-level. Moreover,
-			# for assignments we need to apply a visibility predicate.
+			# for assignments we need to apply a visibility predicate to the assignment
+			# itself.
 			if IQuestionSet.providedBy(x):
 				new_result[ntiid] = x
-				for question in x.questions:
-					qsids_to_strip.add(question.ntiid)
+				# XXX: Despite the above, we actually cannot yet filter
+				# out duplicates from plain question sets, released iPad code
+				# depends on them being there.
+				#for question in x.questions:
+				#	qsids_to_strip.add(question.ntiid)
 			elif IQAssignment.providedBy(x):
 				if assignment_predicate is None:
 					logger.warn("Found assignment (%s) outside of course context in %s; dropping",

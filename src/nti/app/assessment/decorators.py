@@ -119,6 +119,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 			# done in a very hacky way, need something more
 			# context sensitive (would the named externalizers
 			# work here? like personal-summary for users?)
+			# XXX Temp disabled again pending iPad work
 			def _strip(item):
 				cls = item.get('Class')
 				if cls == 'Question':
@@ -130,8 +131,8 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 						_strip(q)
 
 			ext_items = to_external_object( result )
-			for item in ext_items:
-				_strip(item)
+			#for item in ext_items:
+			#	_strip(item)
 			result_map['AssessmentItems'] = ext_items
 
 LINKS = ext_interfaces.StandardExternalFields.LINKS

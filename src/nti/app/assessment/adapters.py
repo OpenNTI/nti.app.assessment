@@ -219,7 +219,7 @@ def _histories_for_course(course):
 
 @interface.implementer(IUsersCourseAssignmentHistory)
 @component.adapter(ICourseInstance,IUser)
-def _history_for_user_in_course(course,user):
+def _history_for_user_in_course(course,user,create=True):
 	"""
 	We use an annotation on the course to store a map
 	from username to history object.
@@ -229,14 +229,21 @@ def _history_for_user_in_course(course,user):
 	are data locality reasons to keep it on the course: it goes
 	away after the course does, and it makes it easy to see
 	\"progress\" within a course.
+
+	:keyword create: Defaulting to true, if no history already
+		exists, one will be created. Set to false to avoid this;
+		if many histories do not exist this can save significant
+		time.
 	"""
 	histories = _histories_for_course(course)
+	history = None
 	try:
 		history = histories[user.username]
 	except KeyError:
-		history = UsersCourseAssignmentHistory()
-		history.owner = user
-		histories[user.username] = history
+		if create:
+			history = UsersCourseAssignmentHistory()
+			history.owner = user
+			histories[user.username] = history
 
 	return history
 

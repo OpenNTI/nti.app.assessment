@@ -169,7 +169,7 @@
 			 provides=".content_search.IAssignmentFeedbackSearchHit" />
 	
 	<subscriber factory="nti.contentsearch.decorators.SearchHitHighlightDecorator"
-				for=".interfaces.IAssignmentFeedbackSearchHit"
+				for=".content_search.IAssignmentFeedbackSearchHit"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"/>
 				
 </configure>

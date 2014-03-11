@@ -157,16 +157,19 @@
 	<adapter factory=".assessment_views.AssignmentHistoryRequestTraversable" />
 	<adapter factory=".adapters._UsersCourseAssignmentHistoriesTraversable" />
 
-	<configure zcml:condition="have devmode">
-		<utility factory=".content_search._assignmentfeedback_metadata" name="assignmentfeedback" />
+	<!-- Contentsearch -->
+	<utility factory=".content_search._assignmentfeedback_metadata" name="assignmentfeedback" />
 
-		<adapter factory=".content_search._AssignmentFeedbackResolver"
-				 for=".interfaces.IUsersCourseAssignmentHistoryItemFeedback"
-				 provides=".content_search.IAssignmentFeedbackResolver" />
+	<adapter factory=".content_search._AssignmentFeedbackResolver"
+			 for=".interfaces.IUsersCourseAssignmentHistoryItemFeedback"
+			 provides=".content_search.IAssignmentFeedbackResolver" />
 
-		<adapter factory=".content_search._AssignmentFeedbackSearchHit"
-				 for=".interfaces.IUsersCourseAssignmentHistoryItemFeedback"
-				 provides=".content_search.IAssignmentFeedbackSearchHit" />
-	</configure>
-
+	<adapter factory=".content_search._AssignmentFeedbackSearchHit"
+			 for=".interfaces.IUsersCourseAssignmentHistoryItemFeedback"
+			 provides=".content_search.IAssignmentFeedbackSearchHit" />
+	
+	<subscriber factory="nti.contentsearch.decorators.SearchHitHighlightDecorator"
+				for=".interfaces.IAssignmentFeedbackSearchHit"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator"/>
+				
 </configure>

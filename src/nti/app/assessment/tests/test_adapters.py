@@ -75,8 +75,7 @@ class _RegisterAssignmentLayer(InstructedCourseApplicationTestLayer):
 	@classmethod
 	def _register_assignment(cls):
 		lib = component.getUtility(IContentPackageLibrary)
-
-		clc = lib.contentPackages[0]
+		lib.contentPackages[0]
 		question_set_id  = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.set.qset:QUIZ1_aristotle"
 		assignment_ntiid = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.asg:QUIZ1_aristotle"
 
@@ -330,8 +329,9 @@ class TestAssignmentGrading(_RegisterAssignmentLayerMixin,ApplicationLayerTest):
 			feedback = item['Feedback']
 			assert_that( feedback, has_entry('Items', has_length(1)))
 			assert_that( feedback['Items'], has_item( has_entry( 'body', ['Other feedback'])))
-			assert_that( feedback['Items'], has_item( has_entry( 'href',
-																 ends_with('AssignmentHistories/sjohnson%40nextthought.com/tag%3Anextthought.com%2C2011-10%3AOU-NAQ-CLC3403_LawAndJustice.naq.asg%3AQUIZ1_aristotle/Feedback/0') ) ) )
+			href = feedback['Items'][0]['href']
+			assert_that(href, contains_string('AssignmentHistories/sjohnson%40nextthought.com/tag%3Anextthought.com%2C2011-10%3AOU-NAQ-CLC3403_LawAndJustice.naq.asg%3AQUIZ1_aristotle/Feedback'))
+			assert_that(href, ends_with('.0'))
 
 		# We can modify the view date by putting to the field
 		res = self.testapp.put_json(last_viewed_href, 1234)
@@ -637,7 +637,7 @@ from nti.dataserver.interfaces import IUser
 class IMySpecificUser(IUser):
 	"marker"
 from zope import interface
-from nti.dataserver.mimetype import  nti_mimetype_with_class
+from nti.mimetype.mimetype import nti_mimetype_with_class
 
 class TestAssignmentFiltering(_RegisterAssignmentLayerMixin,ApplicationLayerTest):
 	layer = _RegisterAssignmentLayer

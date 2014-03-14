@@ -84,8 +84,8 @@ class UsersCourseAssignmentHistoryItemFeedbackContainer(PersistentCreatedModDate
 	choose our own keys; what you pass to the set method is ignored.
 	"""
 
-	def __setitem__( self, key, value ):
-		key = "%s-%s" % (time.time(), len(self))
+	def __setitem__(self, key, value):
+		key = "%s.%s" % (time.time(), len(self))
 		checkObject(self, key, value )
 		super(UsersCourseAssignmentHistoryItemFeedbackContainer,self).__setitem__( key, value )
 		self.updateLastMod()

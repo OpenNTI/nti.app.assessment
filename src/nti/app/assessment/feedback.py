@@ -10,6 +10,8 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+import time
+
 from zope import interface
 
 from zope.annotation.interfaces import IAttributeAnnotatable
@@ -83,9 +85,8 @@ class UsersCourseAssignmentHistoryItemFeedbackContainer(PersistentCreatedModDate
 	"""
 
 	def __setitem__( self, key, value ):
-		key = str(len(self))
+		key = "%s-%s" % (time.time(), len(self))
 		checkObject(self, key, value )
-
 		super(UsersCourseAssignmentHistoryItemFeedbackContainer,self).__setitem__( key, value )
 		self.updateLastMod()
 

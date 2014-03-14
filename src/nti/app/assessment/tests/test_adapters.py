@@ -329,6 +329,7 @@ class TestAssignmentGrading(_RegisterAssignmentLayerMixin,ApplicationLayerTest):
 			feedback = item['Feedback']
 			assert_that( feedback, has_entry('Items', has_length(1)))
 			assert_that( feedback['Items'], has_item( has_entry( 'body', ['Other feedback'])))
+			assert_that(feedback['Items'], has_item(has_key('href')))
 			href = feedback['Items'][0]['href']
 			assert_that(href, contains_string('AssignmentHistories/sjohnson%40nextthought.com/tag%3Anextthought.com%2C2011-10%3AOU-NAQ-CLC3403_LawAndJustice.naq.asg%3AQUIZ1_aristotle/Feedback'))
 			assert_that(href, ends_with('.0'))

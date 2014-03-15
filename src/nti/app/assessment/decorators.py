@@ -274,7 +274,11 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 			return False
 
 		course = ICourseInstance(context, None)
-		if course is None or is_instructed_by_name(course, request.authenticated_userid):
+		if course is None:
+			logger.warn("could not adapt %s to course", context)
+			return False
+
+		if is_instructed_by_name(course, request.authenticated_userid):
 			# The instructor, nothing to do
 			return False
 

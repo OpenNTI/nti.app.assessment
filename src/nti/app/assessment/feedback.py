@@ -85,7 +85,18 @@ class UsersCourseAssignmentHistoryItemFeedbackContainer(PersistentCreatedModDate
 	"""
 
 	def __setitem__(self, key, value):
-		key = "%s.%s" % (time.time(), len(self))
+		# Choose first available key, starting from the end
+		# (optimizing for the case that we're appending).
+		# In this way our keys match our sort natural sort order
+		count = len(self)
+		key = '%d' % count
+		while key in self:
+			# this means something has previously been
+			# deleted, so we've got a key gap. By sticking
+			# to ordering the keys, this will be apparent.
+			count += 1
+			key = '%d' % count
+
 		checkObject(self, key, value )
 		super(UsersCourseAssignmentHistoryItemFeedbackContainer,self).__setitem__( key, value )
 		self.updateLastMod()

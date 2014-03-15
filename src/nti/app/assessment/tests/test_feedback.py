@@ -16,6 +16,9 @@ logger = __import__('logging').getLogger(__name__)
 
 
 from hamcrest import assert_that
+from hamcrest import contains
+from hamcrest import same_instance
+from hamcrest import is_
 
 from .. import feedback
 from .. import interfaces
@@ -33,3 +36,32 @@ class TestFeedback(unittest.TestCase):
 
 		assert_that( feedback.UsersCourseAssignmentHistoryItemFeedbackContainer(),
 					 validly_provides( interfaces.IUsersCourseAssignmentHistoryItemFeedbackContainer ) )
+
+
+	def test_inserting_deleting(self):
+		container = feedback.UsersCourseAssignmentHistoryItemFeedbackContainer()
+		for _ in range(25):
+			container['ignored'] = feedback.UsersCourseAssignmentHistoryItemFeedback()
+
+		assert_that( container.keys(),
+					 contains( *[str(i) for i in range(25)]  ) )
+
+		# Once we had a problem where if we deleted an item and then added
+		# another item, we would get a key conflict
+		del container['0']
+		del container['15']
+
+		item = feedback.UsersCourseAssignmentHistoryItemFeedback()
+		container['ignored'] = item
+		# last key,
+		assert_that( container['25'], is_( same_instance(item)) )
+		# and still last value
+		assert_that( container.Items[-1], is_( same_instance(item)) )
+
+		# Same for in the middle
+		item = feedback.UsersCourseAssignmentHistoryItemFeedback()
+		container['ignored'] = item
+		# last key,
+		assert_that( container['26'], is_( same_instance(item)) )
+		# but still last value
+		assert_that( container.Items[-1], is_( same_instance(item)) )

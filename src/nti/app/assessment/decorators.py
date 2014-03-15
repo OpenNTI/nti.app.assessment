@@ -273,8 +273,8 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 			# Past the due date, nothing to do
 			return False
 
-		course = ICourseInstance(context)
-		if is_instructed_by_name(course, request.authenticated_userid):
+		course = ICourseInstance(context, None)
+		if course is None or is_instructed_by_name(course, request.authenticated_userid):
 			# The instructor, nothing to do
 			return False
 
@@ -299,7 +299,6 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 		for part in result['parts']:
 			question_set = part['question_set']
 			self.strip(question_set)
-
 
 class _AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAwareDecorator):
 	"""

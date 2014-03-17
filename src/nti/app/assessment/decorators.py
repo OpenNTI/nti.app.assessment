@@ -156,7 +156,7 @@ class _AbstractTraversableLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
 				return False
 			else:
 				return True
-
+from nti.dataserver.interfaces import IUser
 @interface.implementer(ext_interfaces.IExternalMappingDecorator)
 class _AssignmentHistoryItemDecorator(_AbstractTraversableLinkDecorator):
 	"""
@@ -170,9 +170,12 @@ class _AssignmentHistoryItemDecorator(_AbstractTraversableLinkDecorator):
 
 	def _do_decorate_external( self, context, result_map ):
 		links = result_map.setdefault( LINKS, [] )
+		# If the context provides a user, that's the one we want,
+		# otherwise we want the current user
+		user = IUser(context, self.remoteUser)
 		links.append( Link( context,
 							rel='AssignmentHistory',
-							elements=('AssignmentHistories', self.remoteUser.username)) )
+							elements=('AssignmentHistories', user.username)) )
 
 @interface.implementer(ext_interfaces.IExternalMappingDecorator)
 class _AssignmentsByOutlineNodeDecorator(_AbstractTraversableLinkDecorator):

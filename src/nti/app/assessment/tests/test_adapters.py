@@ -68,97 +68,13 @@ from ..feedback import UsersCourseAssignmentHistoryItemFeedback
 
 from urllib import unquote
 
-from nti.app.products.courseware.tests import InstructedCourseApplicationTestLayer
-
-class _RegisterAssignmentLayer(InstructedCourseApplicationTestLayer):
-
-	@classmethod
-	def _register_assignment(cls):
-		lib = component.getUtility(IContentPackageLibrary)
-		lib.contentPackages[0]
-		question_set_id  = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.set.qset:QUIZ1_aristotle"
-		assignment_ntiid = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.asg:QUIZ1_aristotle"
-
-		question_set = component.getUtility(asm_interfaces.IQuestionSet,
-											name=question_set_id)
-
-		assignment_part = QAssignmentPart(question_set=question_set, auto_grade=True)
-		due_date = datetime.datetime.today()
-		due_date = due_date.replace(year=due_date.year + 1)
-		assignment = QAssignment( parts=(assignment_part,), available_for_submission_ending=due_date )
-		assignment.__name__ = assignment.ntiid = assignment_ntiid
-
-		component.provideUtility( assignment,
-								  provides=asm_interfaces.IQAssignment,
-								  name=assignment_ntiid )
-
-		# Also make sure this assignment is found in the assignment index
-		# at the same container that that has the quiz data
-		lesson_page_id = "tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:QUIZ_01.01"
-		lesson = lib.pathToNTIID(lesson_page_id)[-1]
-		assignment.__parent__ = lesson
-		IQAssessmentItemContainer(lesson).append(assignment)
-
-		cls.question_set = question_set
-		cls.assignment = assignment
-		cls.question_set_id = question_set_id
-		cls.assignment_id = assignment_ntiid
-		cls.lesson_page_id = lesson_page_id
-		cls.question_id = 'tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.1'
+from . import RegisterAssignmentLayer
+from . import RegisterAssignmentsForEveryoneLayer
+from . import RegisterAssignmentLayerMixin
 
 
-		from zope.component.interfaces import IComponents
-		from nti.app.products.courseware.interfaces import ICourseCatalog
-		components = component.getUtility(IComponents, name='platform.ou.edu')
-		catalog = components.getUtility( ICourseCatalog )
-		# XXX
-		# This test is unclean, we re-register globally
-		global_catalog = component.getUtility(ICourseCatalog)
-		global_catalog._entries[:] = catalog._entries
-
-	@classmethod
-	def setUp(cls):
-		cls._register_assignment()
-
-	@classmethod
-	def tearDown(cls):
-		# Must implement!
-		pass
-
-class _RegisterAssignmentsForEveryoneLayer(_RegisterAssignmentLayer):
-
-
-	@classmethod
-	def setUp(cls):
-		from ..assignment_filters import UserEnrolledForCreditInCourseOrInstructsFilter
-		UserEnrolledForCreditInCourseOrInstructsFilter.TEST_OVERRIDE = True
-
-	@classmethod
-	def tearDown(cls):
-		# Must implement!
-
-		from ..assignment_filters import UserEnrolledForCreditInCourseOrInstructsFilter
-		UserEnrolledForCreditInCourseOrInstructsFilter.TEST_OVERRIDE = False
-
-class _RegisterAssignmentLayerMixin(object):
-	question_set = None
-	assignment = None
-	question_set_id = None
-	assignment_id = None
-	lesson_page_id = None
-	question_id = None
-
-	def setUp(self):
-		super(_RegisterAssignmentLayerMixin,self).setUp()
-		self.question_set = _RegisterAssignmentLayer.question_set
-		self.question_set_id = _RegisterAssignmentLayer.question_set_id
-		self.assignment = _RegisterAssignmentLayer.assignment
-		self.assignment_id = _RegisterAssignmentLayer.assignment_id
-		self.question_id = _RegisterAssignmentLayer.question_id
-		self.lesson_page_id = _RegisterAssignmentLayer.lesson_page_id
-
-class TestAssignmentGrading(_RegisterAssignmentLayerMixin,ApplicationLayerTest):
-	layer = _RegisterAssignmentsForEveryoneLayer
+class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
+	layer = RegisterAssignmentsForEveryoneLayer
 	features = ('assignments_for_everyone',)
 
 	@WithSharedApplicationMockDS
@@ -460,7 +376,7 @@ class TestAssignmentGrading(_RegisterAssignmentLayerMixin,ApplicationLayerTest):
 		pending = history_item['pendingAssessment']
 		_check_pending(pending)
 
-
+from nti.app.products.courseware.tests import InstructedCourseApplicationTestLayer
 class _RegisterFileAssignmentLayer(InstructedCourseApplicationTestLayer):
 
 	@classmethod
@@ -639,8 +555,8 @@ class IMySpecificUser(IUser):
 from zope import interface
 from nti.mimetype.mimetype import nti_mimetype_with_class
 
-class TestAssignmentFiltering(_RegisterAssignmentLayerMixin,ApplicationLayerTest):
-	layer = _RegisterAssignmentLayer
+class TestAssignmentFiltering(RegisterAssignmentLayerMixin,ApplicationLayerTest):
+	layer = RegisterAssignmentLayer
 
 	# With the feature missing
 
@@ -721,9 +637,9 @@ class TestAssignmentFiltering(_RegisterAssignmentLayerMixin,ApplicationLayerTest
 		assert_that( items,
 					 does_not( contains( has_entry('NTIID', question_set_id ) ) ) )
 
-class TestNoteCreation(_RegisterAssignmentLayerMixin,ApplicationLayerTest):
+class TestNoteCreation(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 	"We can not create notes an any component of an assignment"
-	layer = _RegisterAssignmentLayer
+	layer = RegisterAssignmentLayer
 
 	def _do_post(self, container):
 		data = {'Class': 'Note',

@@ -45,6 +45,8 @@ class AssessmentLayerTest(unittest.TestCase):
 	layer = SharedConfiguringTestLayer
 
 from nti.app.products.courseware.tests import InstructedCourseApplicationTestLayer
+from nti.app.testing.application_webtest import ApplicationTestLayer
+
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 
 from zope import component
@@ -55,6 +57,10 @@ from nti.assessment.submission import QuestionSetSubmission
 from nti.assessment import interfaces as asm_interfaces
 from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 from nti.assessment.interfaces import IQAssessmentItemContainer
+
+import ZODB
+from nti.dataserver.tests.mock_dataserver import WithMockDS
+from nti.dataserver.tests.mock_dataserver import mock_db_trans
 
 import datetime
 
@@ -103,6 +109,20 @@ class RegisterAssignmentLayer(InstructedCourseApplicationTestLayer):
 		# This test is unclean, we re-register globally
 		global_catalog = component.getUtility(ICourseCatalog)
 		global_catalog._entries[:] = catalog._entries
+
+		database = ZODB.DB( ApplicationTestLayer._storage_base,
+							database_name='Users')
+		@WithMockDS(database=database)
+		def _sync():
+			with mock_db_trans():
+				try:
+					from nti.app.products.courseware.interfaces import ICourseInstance
+					from nti.app.products.gradebook.assignments import synchronize_gradebook
+					for c in catalog._entries:
+						synchronize_gradebook(ICourseInstance(c))
+				except ImportError:
+					pass
+		_sync()
 
 	@classmethod
 	def setUp(cls):

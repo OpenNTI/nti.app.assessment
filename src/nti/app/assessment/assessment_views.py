@@ -191,8 +191,10 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 		username = request.authenticated_userid
 		if not username:
 			return False
-		course = ICourseInstance(context)
-		if not is_instructed_by_name(course, username) and not has_permission(nauth.ACT_MODERATE, context, request):
+		course = ICourseInstance(context, None)
+		if 	course is None or \
+			(not is_instructed_by_name(course, username) and \
+			 not has_permission(nauth.ACT_MODERATE, context, request)):
 			# We allow global admins in too for testing
 			return False
 

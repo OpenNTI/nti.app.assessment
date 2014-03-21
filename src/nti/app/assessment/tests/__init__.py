@@ -1,15 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
-
-
-.. $Id$
-"""
 
 from __future__ import print_function, unicode_literals, absolute_import, division
 __docformat__ = "restructuredtext en"
 
-logger = __import__('logging').getLogger(__name__)
+# disable: accessing protected members, too many methods
+# pylint: disable=W0212,R0904
 
 from nti.testing.layers import GCLayerMixin
 from nti.testing.layers import ZopeComponentLayer
@@ -18,7 +14,6 @@ from nti.testing.layers import find_test
 
 from nti.dataserver.tests.mock_dataserver import DSInjectorMixin
 import zope.testing.cleanup
-
 
 class SharedConfiguringTestLayer(ZopeComponentLayer,
 								 GCLayerMixin,
@@ -41,6 +36,7 @@ class SharedConfiguringTestLayer(ZopeComponentLayer,
 		cls.setUpTestDS(test)
 
 import unittest
+
 class AssessmentLayerTest(unittest.TestCase):
 	layer = SharedConfiguringTestLayer
 
@@ -119,7 +115,7 @@ class RegisterAssignmentLayer(InstructedCourseApplicationTestLayer):
 					from nti.app.products.courseware.interfaces import ICourseInstance
 					from nti.app.products.gradebook.assignments import synchronize_gradebook
 					for c in catalog._entries:
-						synchronize_gradebook(ICourseInstance(c))
+						synchronize_gradebook(ICourseInstance(c, None))
 				except ImportError:
 					pass
 		_sync()

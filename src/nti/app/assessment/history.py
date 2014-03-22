@@ -62,7 +62,7 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 
 	__external_can_create__ = False
 
-	lastViewed = NumericPropertyDefaultingToZero('lastViewed', NumericMaximum, as_number=True)
+	lastViewed = NumericPropertyDefaultingToZero(str('lastViewed'), NumericMaximum, as_number=True)
 
 	#: An :class:`.IWeakRef` to the owning user, who is probably
 	#: not in our lineage.

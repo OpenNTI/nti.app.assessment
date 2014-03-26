@@ -276,13 +276,11 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 													status=201,
 													extra_environ=instructor_environ )
 
-		# At that point, it shows up as a notable item for the user,
-		# along with the grade
+		# At that point, it shows up as a notable item for the user
 		notable_res = self.fetch_user_recursive_notable_ugd()
-		assert_that( notable_res.json_body, has_entry('TotalItemCount', 2))
+		assert_that( notable_res.json_body, has_entry('TotalItemCount', 1))
 		assert_that( notable_res.json_body, has_entry( 'Items',
-													   contains_inanyorder(has_entry('NTIID', inst_feedback_res.json_body['NTIID']),
-																		   has_entry('Creator', 'harp4162'))))
+													   contains(has_entry('Creator', 'harp4162'))))
 
 		# We can each delete our own feedback item and it vanishes completely
 		# TODO: Wouldn't a deleted object placeholder be better?
@@ -302,7 +300,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 
 		# it's gone as a notable item
 		notable_res = self.fetch_user_recursive_notable_ugd()
-		assert_that( notable_res.json_body, has_entry('TotalItemCount', 1))
+		assert_that( notable_res.json_body, has_entry('TotalItemCount', 0))
 
 
 		# The instructor can delete our submission

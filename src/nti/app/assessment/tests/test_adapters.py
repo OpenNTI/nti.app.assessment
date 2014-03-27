@@ -178,7 +178,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 
 		return res
 
-	@WithSharedApplicationMockDS(users=True,testapp=True,default_authenticate=True)
+	@WithSharedApplicationMockDS(users=('outest5',),testapp=True,default_authenticate=True)
 	def test_pending_application_assignment(self):
 		# This only works in the OU environment because that's where the purchasables are
 		extra_env = self.testapp.extra_environ or {}
@@ -260,6 +260,13 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 
 		instructor_environ = self._make_extra_environ(username='harp4162')
 
+		outest_environ = self._make_extra_environ(username='outest5')
+		outest_environ.update( {b'HTTP_ORIGIN': b'http://janux.ou.edu'} )
+		self.testapp.post_json( '/dataserver2/users/outest5/Courses/EnrolledCourses',
+								'CLC 3403',
+								status=201,
+								extra_environ=outest_environ )
+
 		# The instructor sees our submission in his activity view, as well as the feedback
 		activity_link = '/dataserver2/users/CLC3403.ou.nextthought.com/LegacyCourses/CLC3403/CourseActivity'
 		res = self.testapp.get(activity_link, extra_environ=instructor_environ)
@@ -276,11 +283,20 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 													status=201,
 													extra_environ=instructor_environ )
 
-		# At that point, it shows up as a notable item for the user
+		# At that point, it shows up as a notable item for the user...
 		notable_res = self.fetch_user_recursive_notable_ugd()
 		assert_that( notable_res.json_body, has_entry('TotalItemCount', 1))
 		assert_that( notable_res.json_body, has_entry( 'Items',
 													   contains(has_entry('Creator', 'harp4162'))))
+
+		# ... though not for the instructor...
+		notable_res2 = self.fetch_user_recursive_notable_ugd(username='harp4162', extra_environ=instructor_environ)
+		assert_that( notable_res2.json_body, has_entry('TotalItemCount', 0))
+
+		# ... or any other enrolled user...
+		notable_res3 = self.fetch_user_recursive_notable_ugd(username='outest5', extra_environ=outest_environ)
+		assert_that( notable_res3.json_body, has_entry('TotalItemCount', 0))
+
 
 		# We can each delete our own feedback item and it vanishes completely
 		# TODO: Wouldn't a deleted object placeholder be better?

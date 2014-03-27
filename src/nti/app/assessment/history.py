@@ -122,6 +122,8 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 
 from nti.dataserver.authorization import ACT_READ
 from nti.dataserver.interfaces import IACLProvider
+from nti.dataserver.interfaces import ALL_PERMISSIONS
+from nti.dataserver.interfaces import ACE_DENY_ALL
 from nti.dataserver.authorization_acl import acl_from_aces
 from nti.dataserver.authorization_acl import ace_allowing
 from zope.location.interfaces import ISublocations
@@ -178,8 +180,14 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 
 	@property
 	def __acl__(self):
-		"Our ACL allows access for the creator as well as inherited permissions from the course"
-		return acl_from_aces( ace_allowing( self.creator, ACT_READ, UsersCourseAssignmentHistoryItem ) )
+		"Our ACL allows read access for the creator and read/write access for the instructors of the course"
+		course = ICourseInstance(self, None)
+		instructors = getattr(course, 'instructors', ()) # already principals
+		aces = [ace_allowing( self.creator, ACT_READ, UsersCourseAssignmentHistoryItem )]
+		for instructor in instructors:
+			aces.append( ace_allowing( instructor, ALL_PERMISSIONS, UsersCourseAssignmentHistoryItem) )
+		aces.append(ACE_DENY_ALL)
+		return acl_from_aces( aces )
 
 	def sublocations(self):
 		if self.Submission is not None:

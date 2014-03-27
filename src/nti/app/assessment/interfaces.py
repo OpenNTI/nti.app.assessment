@@ -104,6 +104,8 @@ class IUsersCourseAssignmentHistory(IContainer,
 
 
 class IUsersCourseAssignmentHistoryItemFeedbackContainer(IContainerNamesContainer,
+														 ICreated,
+														 ILastModified,
 														 IShouldHaveTraversablePath):
 	"""
 	A container for feedback items.

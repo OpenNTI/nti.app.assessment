@@ -98,16 +98,6 @@
 				for="nti.assessment.interfaces.IQAssignmentSubmissionPendingAssessment
 					 pyramid.interfaces.IRequest"/>
 
-	<subscriber factory=".decorators.QRandomizedMultipleChoicePartDecorator"
-				provides="nti.externalization.interfaces.IExternalObjectDecorator"
-				for="nti.assessment.randomized.interfaces.IQRandomizedMultipleChoicePart
-					 pyramid.interfaces.IRequest"/>
-		
-	<subscriber factory=".decorators.QRandomizedMatchingPartDecorator"
-				provides="nti.externalization.interfaces.IExternalObjectDecorator"
-				for="nti.assessment.randomized.interfaces.IQRandomizedMatchingPart
-					 pyramid.interfaces.IRequest"/>
-					 			 
 	<!-- hrefs -->
 	<!-- NOTE: This is the general implementation; could be better -->
 	<!-- NOTE 2: We must produce OID hrefs for these, not traversal,

@@ -21,7 +21,6 @@ from nti.appserver import interfaces as app_interfaces
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment import interfaces as asm_interfaces
-from nti.assessment.randomized import interfaces as rand_interfaces
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
@@ -331,33 +330,3 @@ class _AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper(Abstra
 	def _do_decorate_external(self, context, result):
 		for part in result['parts']:
 			_AssignmentBeforeDueDateSolutionStripper.strip(part)
-
-import random
-import zope.intid
-
-class QRandomizedDecorator(AbstractAuthenticatedRequestAwareDecorator):
-
-	def randomize(self):
-		intids = component.getUtility(zope.intid.IIntIds)
-		uid = intids.getId(self.remoteUser)
-		random.seed(uid)  # Seed w/ the user intid
-
-	def shuffle_list(self, result, name):
-		target = result.get(name, None)
-		if target:
-			random.shuffle(target)
-		
-@component.adapter(rand_interfaces.IQRandomizedMatchingPart)
-class QRandomizedMatchingPartDecorator(QRandomizedDecorator):
-
-	def _do_decorate_external(self, context, result):
-		self.randomize()
-		self.shuffle_list(result, 'labels')
-		self.shuffle_list(result, 'values')
-		
-@component.adapter(rand_interfaces.IQRandomizedMultipleChoicePart)
-class QRandomizedMultipleChoicePartDecorator(QRandomizedDecorator):
-
-	def _do_decorate_external(self, context, result):
-		self.randomize()
-		self.shuffle_list(result, 'choices')

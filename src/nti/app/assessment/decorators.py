@@ -14,19 +14,22 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope import interface
 
-from nti.externalization import interfaces as ext_interfaces
-from nti.assessment import interfaces as asm_interfaces
-from nti.assessment.interfaces import IQAssignment
-from nti.assessment.interfaces import IQuestionSet
+from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
+
 from nti.appserver import interfaces as app_interfaces
 
-from nti.externalization.singleton import SingletonDecorator
-from nti.externalization.externalization import to_external_object
+from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQuestionSet
+from nti.assessment import interfaces as asm_interfaces
+from nti.assessment.randomized import interfaces as rand_interfaces
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
-from .interfaces import get_course_assignment_predicate_for_user
 
-from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
+from nti.externalization.singleton import SingletonDecorator
+from nti.externalization import interfaces as ext_interfaces
+from nti.externalization.externalization import to_external_object
+
+from .interfaces import get_course_assignment_predicate_for_user
 
 @interface.implementer(ext_interfaces.IExternalMappingDecorator)
 @component.adapter(app_interfaces.IContentUnitInfo)
@@ -48,7 +51,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 			except (AttributeError,IndexError):
 				return False
 
-		def recur(unit,accum):
+		def recur(unit, accum):
 			if same_file( unit, context.contentUnit ):
 				try:
 					qs = asm_interfaces.IQAssessmentItemContainer( unit, () )
@@ -156,7 +159,9 @@ class _AbstractTraversableLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
 				return False
 			else:
 				return True
+
 from nti.dataserver.interfaces import IUser
+
 @interface.implementer(ext_interfaces.IExternalMappingDecorator)
 class _AssignmentHistoryItemDecorator(_AbstractTraversableLinkDecorator):
 	"""
@@ -254,8 +259,8 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
 							rel='ExportFiles',
 							elements=('BulkFilePartDownload',) ) )
 
-from nti.contenttypes.courses.interfaces import is_instructed_by_name
 from datetime import datetime
+from nti.contenttypes.courses.interfaces import is_instructed_by_name
 
 class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAwareDecorator):
 	"""
@@ -326,3 +331,15 @@ class _AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper(Abstra
 	def _do_decorate_external(self, context, result):
 		for part in result['parts']:
 			_AssignmentBeforeDueDateSolutionStripper.strip(part)
+
+import random
+import zope.intid
+
+@component.adapter(rand_interfaces.IQRandomizedMultipleChoicePart)
+class QRandomizedQMultipleChoicePartDecorator(AbstractAuthenticatedRequestAwareDecorator):
+
+	def _do_decorate_external(self, context, result):
+		intids = component.getUtility(zope.intid.IIntIds)
+		uid = intids.getId(self.remoteUser)
+		random.seed(uid)  # Seed w/ the user intid
+		random.shuffle(result['choices'])

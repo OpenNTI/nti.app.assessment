@@ -16,13 +16,19 @@
 	<!-- Populating questions from content -->
 	<utility factory="._question_map.QuestionMap"
 			 provides="._question_map.IFileQuestionMap"/>
+	
 	<subscriber	handler="._question_map.add_assessment_items_from_new_content" />
 	<subscriber	handler="._question_map.remove_assessment_items_from_oldcontent" />
+	
 	<adapter factory="._question_map.ContentUnitAssessmentItems" />
+	
 	<adapter factory=".adapters._DefaultCourseAssignmentCatalog" />
+	
 	<adapter factory=".adapters._DefaultCourseAssessmentItemCatalog" />
+	
 	<adapter factory=".history.UsersCourseAssignmentHistoryItemSummary"
 			 provides=".interfaces.IUsersCourseAssignmentHistoryItemSummary"/>
+			 
 	<!-- Acls -->
 	<adapter factory="._question_map._QuestionACLProvider" />
 
@@ -43,6 +49,7 @@
 				for="nti.appserver.interfaces.IContentUnitInfo
 					 pyramid.interfaces.IRequest"/>
 				/>
+				
 	<subscriber factory=".decorators._FeedbackItemAssignmentIdDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"/>
 
@@ -50,6 +57,7 @@
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.contenttypes.courses.interfaces.ICourseInstance
 					 pyramid.interfaces.IRequest"/>
+					 
 	<subscriber factory=".decorators._AssignmentHistoryItemDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.app.products.courseware.interfaces.ICourseInstanceEnrollment
@@ -59,6 +67,7 @@
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.contenttypes.courses.interfaces.ICourseInstance
 					 pyramid.interfaces.IRequest"/>
+					 
 	<subscriber factory=".decorators._AssignmentsByOutlineNodeDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.app.products.courseware.interfaces.ICourseInstanceEnrollment
@@ -68,14 +77,17 @@
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for=".interfaces.IUsersCourseAssignmentHistory
 					 pyramid.interfaces.IRequest"/>
+					 
 	<subscriber factory=".decorators._LastViewedAssignmentHistoryDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for=".interfaces.IUsersCourseAssignmentHistory
 					 pyramid.interfaces.IRequest"/>
+					 
 	<subscriber factory=".decorators._AssignmentWithFilePartDownloadLinkDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.assessment.interfaces.IQAssignment
 					 pyramid.interfaces.IRequest"/>
+					 
 	<subscriber factory=".decorators._AssignmentBeforeDueDateSolutionStripper"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.assessment.interfaces.IQAssignment
@@ -86,7 +98,11 @@
 				for="nti.assessment.interfaces.IQAssignmentSubmissionPendingAssessment
 					 pyramid.interfaces.IRequest"/>
 
-
+	<subscriber factory=".decorators.QRandomizedQMultipleChoicePartDecorator"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator"
+				for="nti.assessment.randomized.interfaces.IQRandomizedMultipleChoicePart
+					 pyramid.interfaces.IRequest"/>
+					 
 	<!-- hrefs -->
 	<!-- NOTE: This is the general implementation; could be better -->
 	<!-- NOTE 2: We must produce OID hrefs for these, not traversal,
@@ -120,10 +136,13 @@
 	<!-- Course activity -->
 	<subscriber handler=".subscribers.add_object_to_course_activity"
 				for="nti.assessment.interfaces.IQAssignmentSubmission zope.intid.interfaces.IIntIdAddedEvent"/>
+				
 	<subscriber handler=".subscribers.remove_object_from_course_activity"
 				for="nti.assessment.interfaces.IQAssignmentSubmission zope.intid.interfaces.IIntIdRemovedEvent"/>
+				
 	<subscriber handler=".subscribers.add_object_to_course_activity"
 				for=".interfaces.IUsersCourseAssignmentHistoryItemFeedback zope.intid.interfaces.IIntIdAddedEvent"/>
+				
 	<subscriber handler=".subscribers.remove_object_from_course_activity"
 				for=".interfaces.IUsersCourseAssignmentHistoryItemFeedback zope.intid.interfaces.IIntIdRemovedEvent"/>
 
@@ -145,10 +164,12 @@
 
 	<!-- Traversal-ish stuff -->
 	<utility factory=".ntiids._AssessmentResolver" name="NAQ" />
+	
 	<adapter factory=".adapters._histories_for_course_path_adapter"
 			 for="nti.contenttypes.courses.interfaces.ICourseInstance pyramid.interfaces.IRequest"
 			 provides="zope.traversing.interfaces.IPathAdapter"
 			 name="AssignmentHistories" />
+			 
 	<adapter factory=".adapters._histories_for_courseenrollment_path_adapter"
 			 for="nti.app.products.courseware.interfaces.ICourseInstanceEnrollment pyramid.interfaces.IRequest"
 			 provides="zope.traversing.interfaces.IPathAdapter"

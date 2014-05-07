@@ -419,7 +419,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 			assert_that( res.json_body, has_entry(self.lesson_page_id,
 												  contains( has_entries( 'Class', 'Assignment',
 																		 'NTIID', self.assignment.__name__,
-																		 'parts',[{'Class': 'Assignmentpart'}],
+																		 'parts',[{'Class': 'AssignmentPart'}],
 																		 'category_name', 'no_submit'))))
 
 			res = self.testapp.get(enrollment_assignments)

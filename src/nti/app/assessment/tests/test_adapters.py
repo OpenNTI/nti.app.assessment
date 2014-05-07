@@ -49,7 +49,7 @@ from nti.app.testing.decorators import WithSharedApplicationMockDS
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 
-
+from nti.contentfragments.interfaces import IPlainTextContentFragment
 from nti.externalization.externalization import to_external_object
 from nti.externalization.interfaces import StandardExternalFields
 
@@ -389,6 +389,49 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 
 		pending = history_item['pendingAssessment']
 		_check_pending(pending)
+
+	@WithSharedApplicationMockDS(users=True,testapp=True)
+	def test_ipad_hack(self):
+		# This only works in the OU environment because that's where the purchasables are
+		extra_env = self.testapp.extra_environ or {}
+		extra_env.update( {b'HTTP_ORIGIN': b'http://janux.ou.edu'} )
+		self.testapp.extra_environ = extra_env
+
+		# First, adjust the parts and category
+		assignment = component.getUtility(asm_interfaces.IQAssignment, name=self.assignment_id)
+		old_parts = assignment.parts
+		old_cat = assignment.category_name
+
+		assignment.category_name = IPlainTextContentFragment('no_submit')
+		assignment.parts = ()
+		try:
+			# Make sure we're enrolled
+			res = self.testapp.post_json( '/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses',
+										  'CLC 3403',
+										  status=201 )
+
+
+			enrollment_assignments = self.require_link_href_with_rel( res.json_body, 'AssignmentsByOutlineNode')
+			self.require_link_href_with_rel( res.json_body['CourseInstance'], 'AssignmentsByOutlineNode')
+
+			res = self.testapp.get(enrollment_assignments,
+								   extra_environ={b'HTTP_USER_AGENT': b"NTIFoundation DataLoader NextThought/1.1.1/38605 (x86_64; 7.1)"})
+			assert_that( res.json_body, has_entry(self.lesson_page_id,
+												  contains( has_entries( 'Class', 'Assignment',
+																		 'NTIID', self.assignment.__name__,
+																		 'parts',[{'Class': 'UserData'}],
+																		 'category_name', 'no_submit'))))
+
+			res = self.testapp.get(enrollment_assignments)
+			assert_that( res.json_body, has_entry(self.lesson_page_id,
+												  contains( has_entries( 'Class', 'Assignment',
+																		 'NTIID', self.assignment.__name__,
+																		 'parts', is_empty(),
+																		 'category_name', 'no_submit'))))
+
+		finally:
+			assignment.category_name = old_cat
+			assignment.parts = old_parts
 
 from nti.app.products.courseware.tests import InstructedCourseApplicationTestLayer
 class _RegisterFileAssignmentLayer(InstructedCourseApplicationTestLayer):

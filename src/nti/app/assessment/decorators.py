@@ -377,7 +377,7 @@ class _IPad110NoSubmitPartAdjuster(AbstractAuthenticatedRequestAwareDecorator):
 				 "NTIFoundation DataLoader NextThought/1.1.1")
 
 	def _predicate(self, context, result):
-		if context.category_name != 'no_submit' and not context.parts:
+		if context.category_name != 'no_submit' or context.parts:
 			return False
 
 		ua = self.request.environ.get('HTTP_USER_AGENT', '')

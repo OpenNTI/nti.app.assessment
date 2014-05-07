@@ -367,7 +367,7 @@ class _IPad110NoSubmitPartAdjuster(AbstractAuthenticatedRequestAwareDecorator):
 
 	Something like :
 
-	parts: [{Class: NTIAQuestionSet}]
+	parts: [{Class: QuestionSet}]
 
 	would do it from what I can tell.
 	"""
@@ -389,4 +389,4 @@ class _IPad110NoSubmitPartAdjuster(AbstractAuthenticatedRequestAwareDecorator):
 				return True
 
 	def _do_decorate_external(self, context, result):
-		result['parts'] = [{'Class': 'UserData'}]
+		result['parts'] = [{'Class': 'QuestionSet'}]

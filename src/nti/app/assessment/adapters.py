@@ -3,7 +3,7 @@
 """
 Adapters for application-level events.
 
-$Id$
+.. $Id$
 """
 from __future__ import print_function, unicode_literals, absolute_import, division
 __docformat__ = "restructuredtext en"
@@ -20,9 +20,9 @@ from pyramid.traversal import find_interface
 from zope.location.interfaces import ILocationInfo
 from zope.annotation.interfaces import IAnnotations
 
-from zope.schema.interfaces import ConstraintNotSatisfied
 from zope.schema.interfaces import NotUnique
 from zope.schema.interfaces import RequiredMissing
+from zope.schema.interfaces import ConstraintNotSatisfied
 
 from persistent.list import PersistentList
 

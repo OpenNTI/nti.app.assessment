@@ -3,25 +3,20 @@
 """
 Application (integration) level interfaces for assessments.
 
-
-$Id$
+.. $Id$
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
 __docformat__ = "restructuredtext en"
 
-logger = __import__('logging').getLogger(__name__)
-
 from zope import interface
 from zope import component
 
+from zope.container.constraints import contains
 from zope.container.interfaces import IContained
 from zope.container.interfaces import IContainer
-from zope.container.interfaces import IContainerNamesContainer
-from zope.container.constraints import contains
 from zope.container.constraints import containers
-
-from nti.utils import schema
+from zope.container.interfaces import IContainerNamesContainer
 
 from nti.dataserver.interfaces import CompoundModeledContentBody
 from nti.dataserver.interfaces import ICreated
@@ -33,9 +28,14 @@ from nti.dataserver.interfaces import IShouldHaveTraversablePath
 from nti.dataserver.interfaces import ITitledContent
 from nti.dataserver.interfaces import IUser
 
-
 from nti.assessment.interfaces import IQAssignmentSubmission
 from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
+
+from nti.schema.field import Int
+from nti.schema.field import Dict
+from nti.schema.field import List
+from nti.schema.field import Number
+from nti.schema.field import Object
 
 class IUsersCourseAssignmentHistories(IContainer,
 									  IContained,
@@ -75,13 +75,12 @@ class IUsersCourseAssignmentHistory(IContainer,
 	contains(str('.IUsersCourseAssignmentHistoryItem'))
 	containers(IUsersCourseAssignmentHistories)
 	__setitem__.__doc__ = None
-	owner = schema.Object(IUser,
-						  required=False,
-						  title="The user this history is for.")
+
+	owner = Object(IUser, required=False, title="The user this history is for.")
 	owner.setTaggedValue('_ext_excluded_out', True)
 
-	Items = schema.Dict(title='For externalization only, a copy of the items',
-						readonly=True)
+	Items = Dict(title='For externalization only, a copy of the items',
+			 	 readonly=True)
 
 	def recordSubmission( submission, pending_assessment ):
 		"""
@@ -112,10 +111,10 @@ class IUsersCourseAssignmentHistoryItemFeedbackContainer(IContainerNamesContaine
 	"""
 	contains(str('.IUsersCourseAssignmentHistoryItemFeedback'))
 	__setitem__.__doc__ = None
-	Items = schema.List(title="The contained feedback items",
-						description="Unlike forums, we expect very few of these, so we "
-						"inline them for externalization.",
-						readonly=True)
+	Items = List(title="The contained feedback items",
+			 	 description="Unlike forums, we expect very few of these, so we "
+				 			 "inline them for externalization.",
+				 readonly=True)
 
 class IUsersCourseAssignmentHistoryItem(IContained,
 										ILastModified,
@@ -131,19 +130,18 @@ class IUsersCourseAssignmentHistoryItem(IContained,
 
 	# Recall that the implementation of AssignmentSubmission is NOT
 	# Persistent.
-	Submission = schema.Object(IQAssignmentSubmission,
+	Submission = Object(IQAssignmentSubmission,
 							   required=False)
 
 	# This object is persistent, and should be modified
 	# in place if needed.
-	pendingAssessment = schema.Object(IQAssignmentSubmissionPendingAssessment,
+	pendingAssessment = Object(IQAssignmentSubmissionPendingAssessment,
 									  required=False)
 
-	Feedback = schema.Object(IUsersCourseAssignmentHistoryItemFeedbackContainer,
+	Feedback = Object(IUsersCourseAssignmentHistoryItemFeedbackContainer,
 							 required=False)
 
-	FeedbackCount = schema.Int(title="How many feedback items",
-							   default=0)
+	FeedbackCount = Int(title="How many feedback items", default=0)
 
 
 class IUsersCourseAssignmentHistoryItemSummary(IContained,
@@ -155,12 +153,11 @@ class IUsersCourseAssignmentHistoryItemSummary(IContained,
 	fast externalization purposes.
 	"""
 
-	FeedbackCount = schema.Int(title="How many feedback items",
-							   default=0)
+	FeedbackCount = Int(title="How many feedback items", default=0)
 
-	SubmissionCreatedTime = schema.Number(title=u"The timestamp at which the submission object was created.",
-										  description="Typically set automatically by the object.",
-										  default=0.0)
+	SubmissionCreatedTime = Number(title=u"The timestamp at which the submission object was created.",
+								   description="Typically set automatically by the object.",
+								   default=0.0)
 
 
 class IUsersCourseAssignmentHistoryItemFeedback(IContained,
@@ -197,7 +194,6 @@ class ICourseAssessmentItemCatalog(interface.Interface):
 		Recall that items typically will have their 'home'
 		content unit in their lineage.
 		"""
-
 
 class ICourseAssignmentCatalog(interface.Interface):
 	"""
@@ -243,8 +239,7 @@ def get_course_assignment_predicate_for_user(user, course):
 		the assignment passed to them is actually hosted within the
 		course.
 	"""
-	filters = component.subscribers( (user, course),
-									 ICourseAssignmentUserFilter)
+	filters = component.subscribers((user, course), ICourseAssignmentUserFilter)
 	filters = list(filters) # Does that return a generator? We need to use it many times
 	def uber_filter(asg):
 		return all((f.allow_assignment_for_user_in_course(asg, user, course) for f in filters))

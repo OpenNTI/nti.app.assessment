@@ -14,13 +14,16 @@ logger = __import__('logging').getLogger(__name__)
 from zope import interface
 from zope import component
 
-from nti.contenttypes.courses.interfaces import ICourseInstance
-from nti.contenttypes.courses.interfaces import is_instructed_by_name
-from nti.dataserver.interfaces import IUser
-from .interfaces import ICourseAssignmentUserFilter
 from nti.app.products.courseware.interfaces import ILegacyCourseInstanceEnrollment
 
+from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import is_instructed_by_name
+
+from nti.dataserver.interfaces import IUser
+
 from nti.utils.property import Lazy
+
+from .interfaces import ICourseAssignmentUserFilter
 
 ###
 ## ACLs

@@ -25,7 +25,10 @@ from nti.contentlibrary import interfaces as lib_interfaces
 from nti.dataserver import interfaces as nti_interfaces
 
 from nti.externalization import internalization
-from nti.utils import schema
+
+from nti.schema.field import Dict
+from nti.schema.field import List
+from nti.schema.field import Object
 
 def _ntiid_object_hook( k, v, x ):
 	"""
@@ -59,8 +62,8 @@ class IFileQuestionMap(interface.Interface):
 	"""
 	.. note:: This is going away. Temporarily here for testing.
 	"""
-	by_file = schema.Dict( key_type=schema.Object( lib_interfaces.IDelimitedHierarchyKey, title="The key of the unit" ),
-						   value_type=schema.List( title="The questions contained in this file" ) )
+	by_file = Dict(key_type=Object(lib_interfaces.IDelimitedHierarchyKey, title="The key of the unit"),
+				   value_type=List(title="The questions contained in this file"))
 
 
 def _iface_to_register(thing_to_register):

@@ -3,7 +3,7 @@
 """
 Views related to assessment.
 
-$Id$
+.. $Id$
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
@@ -17,16 +17,17 @@ from zope.location.interfaces import LocationError
 from numbers import Number
 from datetime import datetime
 
-import pyramid.httpexceptions as hexc
-from pyramid.interfaces import IRequest
 from pyramid.view import view_config
 from pyramid.view import view_defaults
+from pyramid.interfaces import IRequest
+from pyramid import httpexceptions as hexc
 
 from nti.dataserver import authorization as nauth
 
 # TODO: Break these direct dependencies....
-from nti.appserver.contentlibrary.library_views import PAGE_INFO_MT_JSON
 from nti.appserver.contentlibrary.library_views import PAGE_INFO_MT
+from nti.appserver.contentlibrary.library_views import PAGE_INFO_MT_JSON
+
 # ... this in particular could be a view.
 from nti.appserver.contentlibrary.library_views import find_page_info_view_helper
 
@@ -41,7 +42,6 @@ from nti.app.products.courseware.interfaces import ICourseInstanceEnrollment
 from .interfaces import IUsersCourseAssignmentHistory
 from .interfaces import IUsersCourseAssignmentHistoryItemFeedbackContainer
 from .interfaces import IUsersCourseAssignmentHistoryItemFeedback
-
 
 ####
 ## In pyramid 1.4, there is some minor wonkiness with the accept= request predicate.

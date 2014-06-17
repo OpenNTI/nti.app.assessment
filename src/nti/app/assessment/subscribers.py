@@ -14,8 +14,8 @@ logger = __import__('logging').getLogger(__name__)
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.app.products.courseware.interfaces import ICourseInstanceActivity
-from nti.dataserver.traversal import find_interface
 
+from nti.dataserver.traversal import find_interface
 
 def add_object_to_course_activity(submission, event):
 	"""This can be registered for anything we want to submit to course activity

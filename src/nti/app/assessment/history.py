@@ -7,7 +7,7 @@ Storage for assignment histories.
   :mod:`adapters` module, they are also persistent, and as such deserve their
   own module.
 
-$Id$
+.. $Id$
 """
 from __future__ import print_function, unicode_literals, absolute_import, division
 __docformat__ = "restructuredtext en"
@@ -22,15 +22,15 @@ from zope.cachedescriptors.property import Lazy
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
-from nti.utils.property import alias
-from nti.utils.schema import SchemaConfigured
-from nti.utils.schema import createDirectFieldProperties
-
-from nti.dataserver.containers import CheckingLastModifiedBTreeContainer
-from nti.dataserver.containers import CaseInsensitiveCheckingLastModifiedBTreeContainer
-from nti.dataserver.datastructures import PersistentCreatedModDateTrackingObject
-
 from nti.dataserver.interfaces import IUser
+from nti.dataserver.containers import CheckingLastModifiedBTreeContainer
+from nti.dataserver.datastructures import PersistentCreatedModDateTrackingObject
+from nti.dataserver.containers import CaseInsensitiveCheckingLastModifiedBTreeContainer
+
+from nti.schema.field import SchemaConfigured
+from nti.schema.fieldproperty import createDirectFieldProperties
+
+from nti.utils.property import alias
 
 from nti.wref.interfaces import IWeakRef
 
@@ -118,7 +118,6 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 			return self.owner
 		if ICourseInstance.isOrExtends(iface):
 			return self.__parent__
-
 
 from nti.dataserver.authorization import ACT_READ
 from nti.dataserver.interfaces import IACLProvider

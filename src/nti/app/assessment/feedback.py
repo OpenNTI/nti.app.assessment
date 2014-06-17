@@ -20,14 +20,16 @@ from .interfaces import IUsersCourseAssignmentHistoryItemFeedback
 from nti.dataserver.datastructures import ContainedMixin
 from nti.dataserver.datastructures import PersistentCreatedModDateTrackingObject
 
-from nti.utils.schema import AdaptingFieldProperty
-from nti.utils.schema import SchemaConfigured
 from nti.dataserver.contenttypes.note import BodyFieldProperty
 
 from zope.container.ordered import OrderedContainer
 from zope.container.constraints import checkObject
 
 from nti.dataserver.interfaces import IUser
+
+from nti.schema.field import SchemaConfigured
+from nti.schema.fieldproperty import AdaptingFieldProperty
+
 from nti.wref.interfaces import IWeakRef
 
 @interface.implementer(IUsersCourseAssignmentHistoryItemFeedback,

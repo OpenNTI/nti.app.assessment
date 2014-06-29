@@ -25,11 +25,11 @@ from pyramid import httpexceptions as hexc
 from nti.dataserver import authorization as nauth
 
 # TODO: Break these direct dependencies....
-from nti.appserver.contentlibrary.library_views import PAGE_INFO_MT
-from nti.appserver.contentlibrary.library_views import PAGE_INFO_MT_JSON
+from nti.app.contentlibrary.library_views import PAGE_INFO_MT
+from nti.app.contentlibrary.library_views import PAGE_INFO_MT_JSON
 
 # ... this in particular could be a view.
-from nti.appserver.contentlibrary.library_views import find_page_info_view_helper
+from nti.app.contentlibrary.library_views import find_page_info_view_helper
 
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet

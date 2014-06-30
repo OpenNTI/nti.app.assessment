@@ -201,7 +201,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 		course_history_link = self.require_link_href_with_rel( res.json_body['CourseInstance'], 'AssignmentHistory')
 
 		assert_that( enrollment_history_link,
-					 is_('/dataserver2/users/sjohnson%40nextthought.com/Courses/EnrolledCourses/CLC3403/AssignmentHistories/sjohnson@nextthought.com'))
+					 is_('/dataserver2/users/sjohnson%40nextthought.com/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3AOU-HTML-CLC3403_LawAndJustice.course_info/AssignmentHistories/sjohnson@nextthought.com'))
 
 		assert_that( course_history_link,
 					 is_('/dataserver2/users/CLC3403.ou.nextthought.com/LegacyCourses/CLC3403/AssignmentHistories/sjohnson@nextthought.com'))
@@ -635,7 +635,7 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin,ApplicationLayerTest)
 
 		res = self.testapp.get(enrollment_assignments)
 		assert_that( res.json_body, # No assignments, we're not enrolled for credit
-					 is_({u'href': u'/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses/CLC3403/AssignmentsByOutlineNode'}) )
+					 is_({u'href': u'/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses/tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.course_info/AssignmentsByOutlineNode'}) )
 
 		# It's also not on the page info, and the question sets it contains
 		# aren't either
@@ -655,7 +655,7 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin,ApplicationLayerTest)
 		# Nor are they in the non-assignment-items
 		res = self.testapp.get(enrollment_non_assignments)
 		assert_that( res.json_body, # Nothing, we're not enrolled for credit
-					 has_entries(u'href', u'/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses/CLC3403/NonAssignmentAssessmentItemsByOutlineNode',
+					 has_entries(u'href', u'/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses/tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.course_info/NonAssignmentAssessmentItemsByOutlineNode',
 								 'tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:QUIZ_01.01', []) )
 
 
@@ -681,7 +681,7 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin,ApplicationLayerTest)
 		# the question sets are still not actually available because they are in the assignment
 		res = self.testapp.get(enrollment_non_assignments)
 		assert_that( res.json_body,
-					 has_entries(u'href', u'/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses/CLC3403/NonAssignmentAssessmentItemsByOutlineNode',
+					 has_entries(u'href', u'/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses/tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.course_info/NonAssignmentAssessmentItemsByOutlineNode',
 								 'tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:QUIZ_01.01', is_empty() ) )
 
 		# When we get the page info, only the assignment comes back,

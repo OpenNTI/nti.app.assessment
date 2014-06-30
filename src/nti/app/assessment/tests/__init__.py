@@ -41,6 +41,7 @@ class AssessmentLayerTest(unittest.TestCase):
 	layer = SharedConfiguringTestLayer
 
 from nti.app.products.courseware.tests import InstructedCourseApplicationTestLayer
+from nti.app.products.courseware.tests import publish_ou_course_entries
 from nti.app.testing.application_webtest import ApplicationTestLayer
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
@@ -60,12 +61,25 @@ from nti.dataserver.tests.mock_dataserver import mock_db_trans
 
 import datetime
 
+
+
 class RegisterAssignmentLayer(InstructedCourseApplicationTestLayer):
 
 	@classmethod
 	def _register_assignment(cls):
 		lib = component.getUtility(IContentPackageLibrary)
-		lib.contentPackages[0]
+		database = ZODB.DB( ApplicationTestLayer._storage_base,
+							database_name='Users')
+
+		@WithMockDS(database=database)
+		def _sync1():
+			with mock_db_trans():
+				# XXX
+				# This test is unclean, we re-register globally
+				publish_ou_course_entries()
+
+		_sync1()
+
 		question_set_id  = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.set.qset:QUIZ1_aristotle"
 		assignment_ntiid = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.asg:QUIZ1_aristotle"
 
@@ -101,20 +115,18 @@ class RegisterAssignmentLayer(InstructedCourseApplicationTestLayer):
 		from nti.app.products.courseware.interfaces import ICourseCatalog
 		components = component.getUtility(IComponents, name='platform.ou.edu')
 		catalog = components.getUtility( ICourseCatalog )
-		# XXX
-		# This test is unclean, we re-register globally
-		global_catalog = component.getUtility(ICourseCatalog)
-		global_catalog._entries[:] = catalog._entries
 
 		database = ZODB.DB( ApplicationTestLayer._storage_base,
 							database_name='Users')
+
+
 		@WithMockDS(database=database)
 		def _sync():
 			with mock_db_trans():
 				try:
 					from nti.app.products.courseware.interfaces import ICourseInstance
 					from nti.app.products.gradebook.assignments import synchronize_gradebook
-					for c in catalog._entries:
+					for c in catalog:
 						synchronize_gradebook(ICourseInstance(c, None))
 				except ImportError:
 					pass

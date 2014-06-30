@@ -29,10 +29,6 @@
 	<adapter factory=".history.UsersCourseAssignmentHistoryItemSummary"
 			 provides=".interfaces.IUsersCourseAssignmentHistoryItemSummary"/>
 
-	<!-- Acls -->
-	<adapter factory="._question_map._QuestionACLProvider" />
-
-
 	<!-- Externalization -->
 	<include package="nti.externalization" file="meta.zcml" />
 	<ext:registerAutoPackageIO

@@ -93,35 +93,11 @@ class QuestionMap(dict):
 		parent = None
 		parents_questions = []
 		if level_ntiid:
-			# Older tests may not have a library available
+			# Older tests may not have a library available.
 			containing_content_units = library.pathToNTIID(level_ntiid) if library else None
 			if containing_content_units:
 				parent = containing_content_units[-1]
 				parents_questions = asm_interfaces.IQAssessmentItemContainer(parent)
-			else:
-				# For the sake of those old tests, we do the old thing
-				# and use the containing NTIID as the parent, safely decoded
-				# for pyramid traversal (be sure that the things
-				# in the tree are actually, strictly, unicode objects, not subclasses.
-				# (The unicode function isnt enough as __unicode__ can override that)
-				#
-				# This note used to live in assessment_views.py; the part about unicode is
-				# still accurate, but in general it is only a concern for the old tests
-				# now:
-				#
-				# The __parent__ of a IQuestion we looked up by NTIID
-				# turns out to be the unicode NTIID of the primary
-				# container where the question is defined. However,
-				# pyramid.traversal takes a shortcut when deciding
-				# whether it needs to encode the data or not: it uses
-				# `segment.__class__ is unicode` (traversal.py line
-				# 608 in 1.3.4) this causes a problem if (a) the
-				# context contains non ascii characters and (b) is an
-				# instance of the UnicodeContentFragment subclass of
-				# unicode: things don't get encoded.
-				# contentlibrary._question_map has been altered to
-				# ensure that this is unicode. we also assert it here.
-				parent = unicode(level_ntiid).encode('utf8').decode('utf8') if level_ntiid else None
 
 		for k, v in assessment_item_dict.items():
 			__traceback_info__ = k, v
@@ -191,17 +167,6 @@ class QuestionMap(dict):
 			if containing_hierarchy_key:
 				assert containing_hierarchy_key in self.by_file, "Container for file must already be present"
 				self.by_file[containing_hierarchy_key].append( obj )
-				# Hack in ACL support. We are piggybacking off of
-				# IDelimitedEntry's support in authorization_acl.py
-				# FIXME: With proper parents, this is probably no longer needed?
-				if hasattr(content_package, 'read_contents_of_sibling_entry'):
-					def read_contents_of_sibling_entry( sibling_name ):
-						return content_package.read_contents_of_sibling_entry( sibling_name )
-
-					# FIXME: This is so very, very wrong
-					# See below.
-					obj.filename = containing_hierarchy_key
-					obj.read_contents_of_sibling_entry = read_contents_of_sibling_entry
 
 	def __from_index_entry(self, index, content_package,
 						   nearest_containing_key=None,
@@ -386,22 +351,3 @@ def remove_assessment_items_from_oldcontent(content_package, event):
 			gsm.unregisterUtility( item,
 								   provided=_iface_to_register(item),
 								   name=item.ntiid )
-
-
-from nti.dataserver.authorization_acl import _AbstractDelimitedHierarchyEntryACLProvider
-
-@component.adapter(asm_interfaces.IQuestion)
-@interface.implementer(nti_interfaces.IACLProvider)
-class _QuestionACLProvider(_AbstractDelimitedHierarchyEntryACLProvider):
-	"""
-	Hacky provider of ACLs. See QuestionMap.
-	"""
-
-	def __init__( self, question ):
-		super(_QuestionACLProvider, self).__init__( question )
-		# If this question did not come from a containing file, it
-		# won't have the right information associated with it and hence
-		# we can get no ACL through the super class.
-		# Override that here.
-		if not hasattr( question, 'read_contents_of_sibling_entry' ):
-			self.__acl__ = ()

@@ -209,7 +209,7 @@ class TestQuestionMap(AssessmentLayerTest):
 
 		assert_that( question, has_property( '__name__', 'tag:nextthought.com,2011-10:mathcounts-NAQ-mathcounts2012.naq.qid.1' ) )
 		assert_that( question, has_property( 'ntiid', 'tag:nextthought.com,2011-10:mathcounts-NAQ-mathcounts2012.naq.qid.1', ) )
-		assert_that( question, has_property( '__parent__', 'tag:nextthought.com,2011-10:mathcounts-HTML-mathcounts2012.warm_up_1' ) )
+
 
 	def test_create_with_assignment(self):
 		question = {'Class': 'Question',

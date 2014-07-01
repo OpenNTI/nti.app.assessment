@@ -25,6 +25,7 @@ from nti.contentlibrary import interfaces as lib_interfaces
 from nti.dataserver import interfaces as nti_interfaces
 
 from nti.externalization import internalization
+from nti.externalization.persistence import NoPickle
 
 from nti.schema.field import Dict
 from nti.schema.field import List
@@ -49,12 +50,11 @@ def _ntiid_object_hook( k, v, x ):
 @interface.implementer(asm_interfaces.IQAssessmentItemContainer,
 					   nti_interfaces.IZContained)
 @component.adapter(lib_interfaces.IContentUnit)
+@NoPickle
 class _AssessmentItemContainer(list): # non persistent
 	__name__ = None
 	__parent__ = None
 
-	def __reduce__(self):
-		raise TypeError()
 
 ContentUnitAssessmentItems = an_factory(_AssessmentItemContainer)
 
@@ -264,6 +264,24 @@ def add_assessment_items_from_new_content( content_package, event ):
 _fragment_cache = dict()
 
 def _populate_question_map_from_text( question_map, asm_index_text, content_package ):
+
+	### XXX: JAM: There seems to be a path, later, after startup, where we can access the
+	# IQAssessmentItemContainer for a content unit that did not appear in the assessment index.
+	# If it is done during a transaction that wants to commit (a POST/PUT) the hierarchy
+	# of AnnotationUtilities will ensure that the IQAssessmentItemContainer we access is stored
+	# in the *persistent* local site utility...but our implementation isn't yet persistent
+	# and aborts the commit.
+	# The workaround is to be sure that every content unit gets its annotation in the root,
+	# whether we need it later on or not.
+	# Then we still have to figure out what that path is...the example is on POSTing a note
+	# to certain Pages collections.
+	def _r(unit):
+		asm_interfaces.IQAssessmentItemContainer(unit)
+		for c in unit.children:
+			_r(c)
+	_r(content_package)
+
+
 	if not asm_index_text:
 		return
 

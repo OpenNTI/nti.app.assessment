@@ -114,12 +114,26 @@ ASSESSMENT_STRING_QUESTIONS_IN_FIRST_FILE = """
 
 from . import AssessmentLayerTest
 
+@interface.implementer(IContentUnit,IAttributeAnnotatable)
+class MockEntry(object):
+
+	def __init__(self):
+		self._items = list()
+
+	children = ()
+
+	def make_sibling_key( self, key ):
+		return key
+
+
+	def __conform__(self, iface):
+		if iface == IQAssessmentItemContainer:
+			return self._items
+
+
 class TestQuestionMap(AssessmentLayerTest):
 
 	def test_create_question_map_captures_set_ntiids(self, index_string=ASSM_STRING_W_SET):
-		class MockEntry(object):
-			def make_sibling_key( self, key ):
-				return key
 		question_map = QuestionMap()
 		_populate_question_map_from_text( question_map, index_string, MockEntry() )
 
@@ -193,9 +207,7 @@ class TestQuestionMap(AssessmentLayerTest):
 
 	def test_create_from_mathcounts2012_no_Question_section_in_chapter(self):
 		index_string = str(ASSESSMENT_STRING_QUESTIONS_IN_FIRST_FILE)
-		class MockEntry(object):
-			def make_sibling_key( self, key ):
-				return key
+
 		question_map = QuestionMap()
 
 		_populate_question_map_from_text( question_map, index_string, MockEntry() )
@@ -267,10 +279,7 @@ class TestQuestionMap(AssessmentLayerTest):
 				'href': 'index.html'}
 		the_text = json.dumps(the_map)
 
-		@interface.implementer(IContentUnit,IAttributeAnnotatable)
-		class MockEntry(object):
-			def make_sibling_key( self, key ):
-				return key
+
 		question_map = QuestionMap()
 
 		entry = MockEntry()

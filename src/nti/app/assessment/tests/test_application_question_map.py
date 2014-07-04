@@ -7,8 +7,6 @@ __docformat__ = "restructuredtext en"
 # disable: accessing protected members, too many methods
 # pylint: disable=W0212,R0904
 
-import os
-
 from hamcrest import assert_that
 from hamcrest import is_
 from hamcrest import none
@@ -24,14 +22,12 @@ from .. import _question_map as qm_module
 from nti.app.testing.application_webtest import ApplicationLayerTest
 from nti.appserver.contentlibrary.tests import CourseTestContentApplicationTestLayer
 
-class TestApplicationQuestionMap(ApplicationLayerTest):
+class TestApplicationQuestionsRegistered(ApplicationLayerTest):
 	layer = CourseTestContentApplicationTestLayer
 
-	def test_check_question_map(self):
+	def test_check_questions_registered(self):
 		library = component.getUtility(lib_interfaces.IContentPackageLibrary)
 		content_package = library.contentPackages[0]
-		component.getUtility(qm_module.IFileQuestionMap)
-		#qm_module.add_assessment_items_from_new_content(content_package, None)
 
 		# The question and sets are registered, and are the same instance
 		question_set = component.getUtility( asm_interfaces.IQuestionSet,
@@ -40,6 +36,7 @@ class TestApplicationQuestionMap(ApplicationLayerTest):
 			assert_that( question, is_( same_instance( component.getUtility( asm_interfaces.IQuestion,
 																			 name=question.ntiid ))))
 		# remove
+		# XXX: test hygiene: this has after effects!
 		qm_module.remove_assessment_items_from_oldcontent(content_package, None)
 
 		# And everything is gone.

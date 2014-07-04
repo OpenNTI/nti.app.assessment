@@ -655,8 +655,7 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin,ApplicationLayerTest)
 		# Nor are they in the non-assignment-items
 		res = self.testapp.get(enrollment_non_assignments)
 		assert_that( res.json_body, # Nothing, we're not enrolled for credit
-					 has_entries(u'href', u'/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses/tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.course_info/NonAssignmentAssessmentItemsByOutlineNode',
-								 'tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:QUIZ_01.01', []) )
+					 is_({'href':'/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses/tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.course_info/NonAssignmentAssessmentItemsByOutlineNode'}))
 
 
 		# Now if we register a more specific adapter, we can claim to be enrolled
@@ -681,8 +680,7 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin,ApplicationLayerTest)
 		# the question sets are still not actually available because they are in the assignment
 		res = self.testapp.get(enrollment_non_assignments)
 		assert_that( res.json_body,
-					 has_entries(u'href', u'/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses/tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.course_info/NonAssignmentAssessmentItemsByOutlineNode',
-								 'tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:QUIZ_01.01', is_empty() ) )
+					 is_({'href':'/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses/tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.course_info/NonAssignmentAssessmentItemsByOutlineNode'}) )
 
 		# When we get the page info, only the assignment comes back,
 		# not the things it contains

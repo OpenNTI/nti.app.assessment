@@ -130,8 +130,20 @@ class MockEntry(object):
 		if iface == IQAssessmentItemContainer:
 			return self._items
 
+from nti.contentlibrary.interfaces import IGlobalContentPackageLibrary
 
 class TestQuestionMap(AssessmentLayerTest):
+
+	# Provide a fake global library, so that things get registered
+	# in the GSM.
+	def setUp(self):
+		component.getGlobalSiteManager().registerUtility(self, IGlobalContentPackageLibrary)
+
+	def tearDown(self):
+		component.getGlobalSiteManager().unregisterUtility(self, IGlobalContentPackageLibrary)
+
+	def pathToNTIID(self, ntiid):
+		return ()
 
 	def test_create_question_map_captures_set_ntiids(self, index_string=ASSM_STRING_W_SET):
 		question_map = QuestionMap()

@@ -39,9 +39,6 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 				and context.contentUnit is not None)
 
 	def _do_decorate_external( self, context, result_map ):
-
-		#questions = component.getUtility( app_interfaces.IFileQuestionMap )
-		#for_key = questions.by_file.get( getattr( context.contentUnit, 'key', None ) )
 		# When we return page info, we return questions
 		# for all of the embedded units as well
 		def same_file(unit1, unit2):

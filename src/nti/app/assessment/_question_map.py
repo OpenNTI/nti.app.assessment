@@ -17,7 +17,12 @@ import simplejson
 from zope import interface
 from zope import component
 from zope.annotation import factory as an_factory
-from zope.lifecycleevent.interfaces import IObjectAddedEvent, IObjectRemovedEvent
+
+from zope.lifecycleevent.interfaces import IObjectAddedEvent
+from zope.lifecycleevent.interfaces import IObjectModifiedEvent
+from zope.lifecycleevent.interfaces import IObjectRemovedEvent
+
+from persistent.list import PersistentList
 
 from nti.assessment import interfaces as asm_interfaces
 from nti.contentfragments import interfaces as cfg_interfaces
@@ -51,7 +56,7 @@ def _ntiid_object_hook( k, v, x ):
 					   nti_interfaces.IZContained)
 @component.adapter(lib_interfaces.IContentUnit)
 @NoPickle
-class _AssessmentItemContainer(list): # non persistent
+class _AssessmentItemContainer(PersistentList):
 	__name__ = None
 	__parent__ = None
 
@@ -75,14 +80,25 @@ def _iface_to_register(thing_to_register):
 	return iface
 
 @interface.implementer( IFileQuestionMap )
+@NoPickle
 class QuestionMap(dict):
+	"""
+	Originally a single utility that stored all of the assessment items,
+	now primarily a place for the algorithm to live, with a bit of bookkeeping
+	for tests.
+
+	Other than its event handlers, it must not be used during production code.
+	Specifically, one must not rely on being able to reach anything
+	from it using its dictionary interface; the global utility WILL NOT
+	be in sync with what it available in sub-libraries.
+	"""
 
 	def __init__(self):
 		super(QuestionMap,self).__init__()
 		self.by_file = {} # {ntiid => [question]}
 
 	def clear(self):
-		super(QuestionMap, self).clear()
+		super(QuestionMap,self).clear()
 		self.by_file.clear()
 
 	def __process_assessments( self, assessment_item_dict,
@@ -90,11 +106,26 @@ class QuestionMap(dict):
 							   content_package,
 							   level_ntiid=None ):
 		library = component.queryUtility(lib_interfaces.IContentPackageLibrary)
+		if library is None:
+			return
+
+		# if we're working in the global library, use the global
+		# site manager to not persist; otherwise, use the current site manager
+		# so persistence works.
+		# NOTE: Because of the way annotations work for content units
+		# (being based on a utility that looks to the parent utility first)
+		# we must not overlap NTIIDs of questions between parent and children
+		# libraries, as we will overwrite the parent
+		if lib_interfaces.IGlobalContentPackageLibrary.providedBy(library):
+			sm = component.getGlobalSiteManager()
+		else:
+			sm = component.getSiteManager()
+
 		parent = None
 		parents_questions = []
 		if level_ntiid:
 			# Older tests may not have a library available.
-			containing_content_units = library.pathToNTIID(level_ntiid) if library else None
+			containing_content_units = library.pathToNTIID(level_ntiid)
 			if containing_content_units:
 				parent = containing_content_units[-1]
 				parents_questions = asm_interfaces.IQAssessmentItemContainer(parent)
@@ -109,9 +140,7 @@ class QuestionMap(dict):
 			self[k] = obj
 
 
-			# We don't want to try to persist these, so register them globally.
-			gsm = component.getGlobalSiteManager()
-			# No matter if we got an assignment or  question set first or the questions
+			# No matter if we got an assignment or question set first or the questions
 			# first, register the question objects exactly once. Replace
 			# any question children of a question set by the registered
 			# object.
@@ -120,27 +149,27 @@ class QuestionMap(dict):
 			if asm_interfaces.IQAssignment.providedBy(obj):
 				for part in obj.parts:
 					qset = part.question_set
-					if gsm.queryUtility(asm_interfaces.IQuestionSet, name=qset.ntiid) is None:
+					if sm.queryUtility(asm_interfaces.IQuestionSet, name=qset.ntiid) is None:
 						things_to_register.append(qset)
 					for child_question in qset.questions:
-						if gsm.queryUtility(asm_interfaces.IQuestion, name=child_question.ntiid) is None:
+						if sm.queryUtility(asm_interfaces.IQuestion, name=child_question.ntiid) is None:
 							things_to_register.append( child_question )
 
 			elif asm_interfaces.IQuestionSet.providedBy(obj):
 				for child_question in obj.questions:
-					if gsm.queryUtility(asm_interfaces.IQuestion, name=child_question.ntiid) is None:
+					if sm.queryUtility(asm_interfaces.IQuestion, name=child_question.ntiid) is None:
 						things_to_register.append( child_question )
 
 			for thing_to_register in things_to_register:
 				iface = _iface_to_register(thing_to_register)
 				# Make sure not to overwrite something done earlier at any level
-				if gsm.queryUtility( iface, name=thing_to_register.ntiid) is not None:
+				if sm.queryUtility( iface, name=thing_to_register.ntiid) is not None:
 					continue
 
-				gsm.registerUtility( thing_to_register,
-									 provided=iface,
-									 name=thing_to_register.ntiid,
-									 event=False)
+				sm.registerUtility( thing_to_register,
+									provided=iface,
+									name=thing_to_register.ntiid,
+									event=False)
 				# TODO: We are only partially supporting having question/sets
 				# used multiple places. When we get to that point, we need to
 				# handle it by noting on each assessment object where it is registered.
@@ -152,12 +181,12 @@ class QuestionMap(dict):
 			# Now canonicalize
 			if asm_interfaces.IQAssignment.providedBy(obj):
 				for part in obj.parts:
-					part.question_set = gsm.getUtility(asm_interfaces.IQuestionSet,name=part.question_set.ntiid)
-					part.question_set.questions = [gsm.getUtility(asm_interfaces.IQuestion,name=x.ntiid)
+					part.question_set = sm.getUtility(asm_interfaces.IQuestionSet,name=part.question_set.ntiid)
+					part.question_set.questions = [sm.getUtility(asm_interfaces.IQuestion,name=x.ntiid)
 												   for x
 												   in part.question_set.questions]
 			elif asm_interfaces.IQuestionSet.providedBy(obj):
-				obj.questions = [gsm.getUtility(asm_interfaces.IQuestion,name=x.ntiid)
+				obj.questions = [sm.getUtility(asm_interfaces.IQuestion,name=x.ntiid)
 								 for x
 								 in obj.questions]
 
@@ -248,7 +277,7 @@ def add_assessment_items_from_new_content( content_package, event ):
 	Assessment items have their NTIID as their __name__, and the NTIID of their primary
 	container within this context as their __parent__ (that should really be the hierarchy entry)
 	"""
-	question_map = component.queryUtility( IFileQuestionMap )
+	question_map = component.getGlobalSiteManager().queryUtility( IFileQuestionMap )
 	if question_map is None: #pragma: no cover
 		return
 
@@ -273,6 +302,9 @@ def _populate_question_map_from_text( question_map, asm_index_text, content_pack
 	# and aborts the commit.
 	# The workaround is to be sure that every content unit gets its annotation in the root,
 	# whether we need it later on or not.
+	# (Even after we make things fully persistent, doing this at library update time
+	# is more efficient than creating and throwing away the annotation data during each GET
+	# that would need to access it.)
 	# Then we still have to figure out what that path is...the example is on POSTing a note
 	# to certain Pages collections.
 	def _r(unit):
@@ -342,7 +374,7 @@ def _populate_question_map_from_text( question_map, asm_index_text, content_pack
 
 @component.adapter(lib_interfaces.IContentPackage, IObjectRemovedEvent)
 def remove_assessment_items_from_oldcontent(content_package, event):
-	question_map = component.queryUtility( IFileQuestionMap )
+	question_map = component.getGlobalSiteManager().queryUtility( IFileQuestionMap )
 	library = component.queryUtility(lib_interfaces.IContentPackageLibrary)
 	if question_map is None or library is None:
 		return
@@ -352,20 +384,33 @@ def remove_assessment_items_from_oldcontent(content_package, event):
 	# remvoe pkg ref
 	question_map.pop(content_package.ntiid, None)
 
-	# remove byfile
+	# remove byfile, assuming they exist.
+	# at this point, this is mostly for test purposes, as this
+	# utility is not used in production code due to sub-libraries
 	for unit in library.childrenOfNTIID(content_package.ntiid):
 		questions = question_map.by_file.pop(unit.key, ())
 		for question in questions:
 			ntiid = getattr(question, 'ntiid', u'')
 			question_map.pop(ntiid, None) # some tests register manually without updating everything
 
-	# Unregister the things from the component registery.
+	# Unregister the things from the component registry.
+	# We MUST be run in the registry where the library item was initially
+	# loaded.
 	# FIXME: This doesn't properly handle the case of
 	# having references in different content units.
-	gsm = component.getGlobalSiteManager()
+	sm = component.getSiteManager()
 	for unit in library.childrenOfNTIID(content_package.ntiid) + [content_package]:
 		items = asm_interfaces.IQAssessmentItemContainer(unit)
 		for item in items:
-			gsm.unregisterUtility( item,
-								   provided=_iface_to_register(item),
-								   name=item.ntiid )
+			sm.unregisterUtility( item,
+								  provided=_iface_to_register(item),
+								  name=item.ntiid )
+
+		# Clear the items too
+		del items[:]
+
+@component.adapter(lib_interfaces.IContentPackage, IObjectModifiedEvent)
+def update_assessment_items_when_modified(content_package, event):
+	# Not very efficient, but it works
+	remove_assessment_items_from_oldcontent(content_package, event)
+	add_assessment_items_from_new_content(content_package, event)

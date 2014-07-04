@@ -14,10 +14,12 @@
 	<i18n:registerTranslations directory="locales" />
 
 	<!-- Populating questions from content -->
+	<!-- A global utility, mostly for testing now. -->
 	<utility factory="._question_map.QuestionMap"
 			 provides="._question_map.IFileQuestionMap"/>
 
 	<subscriber	handler="._question_map.add_assessment_items_from_new_content" />
+	<subscriber handler="._question_map.update_assessment_items_when_modified" />
 	<subscriber	handler="._question_map.remove_assessment_items_from_oldcontent" />
 
 	<adapter factory="._question_map.ContentUnitAssessmentItems" />

@@ -35,6 +35,10 @@ class SharedConfiguringTestLayer(ZopeComponentLayer,
 		test = test or find_test()
 		cls.setUpTestDS(test)
 
+	@classmethod
+	def testTearDown(cls):
+		pass
+
 import unittest
 
 class AssessmentLayerTest(unittest.TestCase):

@@ -4,6 +4,9 @@ import codecs
 VERSION = '0.0.0'
 
 entry_points = {
+    "z3c.autoinclude.plugin": [
+		'target = nti.app',
+	],
 }
 
 setup(

@@ -259,7 +259,7 @@ def _course_from_history_item_lineage(item):
 	course = find_interface(item, ICourseInstance)
 	if course is None:
 		__traceback_info__ = item
-		raise TypeError("Unable to find course")
+		raise component.ComponentLookupError("Unable to find course")
 
 	return course
 

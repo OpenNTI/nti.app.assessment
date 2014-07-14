@@ -116,7 +116,7 @@ class RegisterAssignmentLayer(InstructedCourseApplicationTestLayer):
 
 
 		from zope.component.interfaces import IComponents
-		from nti.app.products.courseware.interfaces import ICourseCatalog
+		from nti.contenttypes.courses.interfaces import ICourseCatalog
 		components = component.getUtility(IComponents, name='platform.ou.edu')
 		catalog = components.getUtility( ICourseCatalog )
 
@@ -130,7 +130,7 @@ class RegisterAssignmentLayer(InstructedCourseApplicationTestLayer):
 				try:
 					from nti.app.products.courseware.interfaces import ICourseInstance
 					from nti.app.products.gradebook.assignments import synchronize_gradebook
-					for c in catalog:
+					for c in catalog.iterCatalogEntries():
 						synchronize_gradebook(ICourseInstance(c, None))
 				except ImportError:
 					pass
@@ -167,6 +167,14 @@ class RegisterAssignmentsForEveryoneLayer(RegisterAssignmentLayer):
 
 		from ..assignment_filters import UserEnrolledForCreditInCourseOrInstructsFilter
 		UserEnrolledForCreditInCourseOrInstructsFilter.TEST_OVERRIDE = False
+
+	@classmethod
+	def setUpTest(cls):
+		pass
+
+	@classmethod
+	def tearDownTest(cls):
+		pass
 
 class RegisterAssignmentLayerMixin(object):
 	question_set = None

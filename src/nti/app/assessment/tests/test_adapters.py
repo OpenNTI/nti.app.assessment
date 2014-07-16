@@ -77,6 +77,8 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 	layer = RegisterAssignmentsForEveryoneLayer
 	features = ('assignments_for_everyone',)
 
+	default_origin = b'http://janux.ou.edu'
+
 	@WithSharedApplicationMockDS
 	def test_wrong_id(self):
 		submission = AssignmentSubmission(assignmentId='b')
@@ -115,7 +117,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 		qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id)
 		submission = AssignmentSubmission(assignmentId=self.assignment_id, parts=(qs_submission,))
 
-		with mock_dataserver.mock_db_trans(self.ds):
+		with mock_dataserver.mock_db_trans(self.ds, site_name='janux.ou.edu'):
 			# No creator
 			assert_that( calling( IQAssignmentSubmissionPendingAssessment ).with_args(submission),
 						 raises( TypeError ))
@@ -128,7 +130,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 
 		# If we try again, we fail
 		submission = AssignmentSubmission(assignmentId=self.assignment_id, parts=(qs_submission,))
-		with mock_dataserver.mock_db_trans(self.ds):
+		with mock_dataserver.mock_db_trans(self.ds, site_name='janux.ou.edu'):
 
 			user = User.get_user( self.extra_environ_default_user )
 			submission.creator = user
@@ -180,11 +182,6 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 
 	@WithSharedApplicationMockDS(users=('outest5',),testapp=True,default_authenticate=True)
 	def test_pending_application_assignment(self):
-		# This only works in the OU environment because that's where the purchasables are
-		extra_env = self.testapp.extra_environ or {}
-		extra_env.update( {b'HTTP_ORIGIN': b'http://janux.ou.edu'} )
-		self.testapp.extra_environ = extra_env
-
 
 		# Sends an assignment through the application by posting to the assignment
 		qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id)
@@ -334,10 +331,6 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 
 	@WithSharedApplicationMockDS(users=True,testapp=True)
 	def test_assignment_items_view(self):
-		# This only works in the OU environment because that's where the purchasables are
-		extra_env = self.testapp.extra_environ or {}
-		extra_env.update( {b'HTTP_ORIGIN': b'http://janux.ou.edu'} )
-		self.testapp.extra_environ = extra_env
 
 		# Make sure we're enrolled
 		res = self.testapp.post_json( '/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses',
@@ -392,10 +385,6 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 
 	@WithSharedApplicationMockDS(users=True,testapp=True)
 	def test_ipad_hack(self):
-		# This only works in the OU environment because that's where the purchasables are
-		extra_env = self.testapp.extra_environ or {}
-		extra_env.update( {b'HTTP_ORIGIN': b'http://janux.ou.edu'} )
-		self.testapp.extra_environ = extra_env
 
 		# First, adjust the parts and category
 		assignment = component.getUtility(asm_interfaces.IQAssignment, name=self.assignment_id)
@@ -495,6 +484,7 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 	assignment_id = None
 	question_set_id = None
 	lesson_page_id = None
+	default_origin = b'http://janux.ou.edu'
 
 	def setUp(self):
 		super(TestAssignmentFileGrading,self).setUp()
@@ -531,10 +521,6 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 
 	@WithSharedApplicationMockDS(users=True,testapp=True)
 	def test_posting_and_bulk_downloading_file(self):
-		# This only works in the OU environment because that's where the purchasables are
-		extra_env = self.testapp.extra_environ or {}
-		extra_env.update( {b'HTTP_ORIGIN': b'http://janux.ou.edu'} )
-		self.testapp.extra_environ = extra_env
 
 		from nti.assessment import response
 		from nti.assessment import submission
@@ -614,15 +600,11 @@ from nti.mimetype.mimetype import nti_mimetype_with_class
 
 class TestAssignmentFiltering(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 	layer = RegisterAssignmentLayer
-
+	default_origin = b'http://janux.ou.edu'
 	# With the feature missing
 
 	@WithSharedApplicationMockDS(users=True,testapp=True, user_hook=lambda u: interface.alsoProvides(u, IMySpecificUser))
 	def test_assignment_items_view(self):
-		# This only works in the OU environment because that's where the purchasables are
-		extra_env = self.testapp.extra_environ or {}
-		extra_env.update( {b'HTTP_ORIGIN': b'http://janux.ou.edu'} )
-		self.testapp.extra_environ = extra_env
 
 		# Make sure we're enrolled
 		res = self.testapp.post_json( '/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses',

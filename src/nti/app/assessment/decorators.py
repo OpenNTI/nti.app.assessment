@@ -259,6 +259,25 @@ from datetime import datetime
 from nti.contenttypes.courses.interfaces import is_instructed_by_name
 from nti.assessment.interfaces import IQAssignmentDateContext
 
+class _AssignmentSectionSpecificDates(AbstractAuthenticatedRequestAwareDecorator):
+	"""
+	When an assignment is externalized, write the section specific dates.
+	"""
+
+	def _do_decorate_external(self, context, result):
+		course = component.queryMultiAdapter( (context, self.remoteUser),
+											  ICourseInstance)
+		if course is not None:
+			dates = IQAssignmentDateContext(course).of(context)
+			for k in ('available_for_submission_ending',
+					  'available_for_submission_beginning'):
+				asg_date = getattr(context, k)
+				dates_date = getattr(dates, k)
+
+				if dates_date != asg_date:
+					result[k] = to_external_object(dates_date)
+
+
 class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAwareDecorator):
 	"""
 	When anyone besides the instructor requests an assignment

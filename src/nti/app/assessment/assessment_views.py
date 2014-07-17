@@ -193,7 +193,7 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 		username = request.authenticated_userid
 		if not username:
 			return False
-		course = _find_course_for_assignment(context, remoteUser)
+		course = _find_course_for_assignment(context, remoteUser, exc=False)
 		if 	course is None or \
 			(not is_instructed_by_name(course, username) and \
 			 not has_permission(nauth.ACT_MODERATE, context, request)):

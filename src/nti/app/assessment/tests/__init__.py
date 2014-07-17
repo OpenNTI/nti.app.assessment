@@ -115,10 +115,7 @@ class RegisterAssignmentLayer(InstructedCourseApplicationTestLayer):
 		cls.question_id = 'tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.1'
 
 
-		from zope.component.interfaces import IComponents
 		from nti.contenttypes.courses.interfaces import ICourseCatalog
-		components = component.getUtility(IComponents, name='platform.ou.edu')
-		catalog = components.getUtility( ICourseCatalog )
 
 		database = ZODB.DB( ApplicationTestLayer._storage_base,
 							database_name='Users')
@@ -126,7 +123,8 @@ class RegisterAssignmentLayer(InstructedCourseApplicationTestLayer):
 
 		@WithMockDS(database=database)
 		def _sync():
-			with mock_db_trans():
+			with mock_db_trans(site_name='janux.ou.edu'):
+				catalog = component.getUtility( ICourseCatalog )
 				try:
 					from nti.app.products.courseware.interfaces import ICourseInstance
 					from nti.app.products.gradebook.assignments import synchronize_gradebook

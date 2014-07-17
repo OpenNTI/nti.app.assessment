@@ -303,13 +303,21 @@ class _DefaultCourseAssessmentItemCatalog(object):
 		self.context = context
 
 	def iter_assessment_items(self):
-		# In theory, the course outline and assessment objects could stretch across multiple content
-		# packages. However, in practice, at the moment,
-		# it only has one and is an instance of the LegacyCommunityBasedCourseInstance.
-		# Because this is simpler to write and test, we directly use that.
-		# We will begin to fail when other types of courses are in use,
-		# and will start walking through the outline at that time.
-		content_package = self.context.legacy_content_package
+		# We have now a specific interface for courses that
+		# are tied to content: IContentCourseInstance; they have
+		# the ContentBundle attribut.
+		# However, we still have the LegacyCommunityBasedCourseInstances
+		# to deal with that have one content package; it's easiest
+		# to support both types in one single place.
+
+		# TODO: Date overrides
+
+		packages = ()
+		try:
+			packages = self.context.ContentPackageBundle.ContentPackages
+		except AttributeError:
+			# Ok, the old legacy case
+			packages = (self.context.legacy_content_package,)
 
 		result = []
 		def _recur(unit):
@@ -318,7 +326,9 @@ class _DefaultCourseAssessmentItemCatalog(object):
 				result.append(item)
 			for child in unit.children:
 				_recur(child)
-		_recur(content_package)
+
+		for package in packages:
+			_recur(package)
 
 		# On py3.3, can easily 'yield from' nested generators
 

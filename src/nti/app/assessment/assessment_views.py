@@ -43,6 +43,8 @@ from .interfaces import IUsersCourseAssignmentHistory
 from .interfaces import IUsersCourseAssignmentHistoryItemFeedbackContainer
 from .interfaces import IUsersCourseAssignmentHistoryItemFeedback
 
+from nti.dataserver.interfaces import IUser
+
 ####
 ## In pyramid 1.4, there is some minor wonkiness with the accept= request predicate.
 ## Your view can get called even if no Accept header is present if all the defined
@@ -220,7 +222,8 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 
 		buf = StringIO()
 		zipfile = ZipFile( buf, 'w' )
-		for principal in enrollments.iter_enrollments():
+		for record in enrollments.iter_enrollments():
+			principal = IUser(record)
 			assignment_history = component.getMultiAdapter( (course, principal),
 															IUsersCourseAssignmentHistory )
 			history_item = assignment_history.get(assignment_id)
@@ -281,7 +284,9 @@ class AssignmentHistoryRequestTraversable(ContainerTraversable):
 @view_config(route_name="objects.generic.traversal",
 			 renderer='rest',
 			 context=IUsersCourseAssignmentHistory,
-			 permission=nauth.ACT_UPDATE,
+			 # We handle permissioning manually, not sure
+			 # what context this is going to be in
+			 #permission=nauth.ACT_UPDATE,
 			 request_method='PUT',
 			 name='lastViewed')
 class AssignmentHistoryLastViewedPutView(AbstractAuthenticatedView,
@@ -298,6 +303,8 @@ class AssignmentHistoryLastViewedPutView(AbstractAuthenticatedView,
 	inputClass = Number
 
 	def _do_call(self):
+		if self.request.context.owner != self.remoteUser:
+			raise hexc.HTTPForbidden("Only the student can set lastViewed")
 		ext_input = self.readInput()
 		history = self.request.context
 		self.request.context.lastViewed = ext_input

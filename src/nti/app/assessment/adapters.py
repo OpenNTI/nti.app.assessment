@@ -15,9 +15,7 @@ import datetime
 from zope import interface
 from zope import component
 from zope import lifecycleevent
-from zope.location import LocationIterator # aka pyramid.location.lineage
 from pyramid.traversal import find_interface
-from zope.location.interfaces import ILocationInfo
 from zope.annotation.interfaces import IAnnotations
 
 from zope.schema.interfaces import NotUnique
@@ -29,6 +27,7 @@ from persistent.list import PersistentList
 from nti.appserver import interfaces as app_interfaces
 
 from nti.assessment import interfaces as asm_interfaces
+from nti.assessment.interfaces import IQAssignmentDateContext
 from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -86,6 +85,40 @@ def _assignment_submission_transformer(request, obj):
 	renderers.render_to_response('rest', pending, request)
 	raise result
 
+def _check_submission_before(dates, assignment):
+	# We only need to check that the submission is not too early;
+	# if it is late, we still allow it at this level, leaving
+	# it to the instructor to handle it.
+	# Allow for the course to handle adjusting the dates
+	available_beginning = dates.of(assignment).available_for_submission_beginning
+	if available_beginning is not None:
+		if datetime.datetime.utcnow() < available_beginning:
+			ex = ConstraintNotSatisfied("Submitting too early")
+			ex.field = asm_interfaces.IQAssignment['available_for_submission_beginning']
+			ex.value = available_beginning
+			raise ex
+
+def _find_course_for_assignment(assignment, user, exc=True):
+	# Check that they're enrolled in the course that has the assignment
+	course = component.queryMultiAdapter( (assignment, user),
+										  ICourseInstance)
+	if course is None:
+		# For BWC, we also check to see if we can just get
+		# one based on the content package of the assignment, not
+		# checking enrollment.
+		# TODO: Drop this
+		course = ICourseInstance( find_interface(assignment, IContentPackage, strict=False),
+								  None)
+		if course is not None:
+			logger.warning("No enrollment found, assuming generic course. Tests only?")
+
+	# If one does not exist, we cannot grade because we have nowhere
+	# to dispatch to.
+	if course is None and exc:
+		raise RequiredMissing("Course cannot be found")
+
+	return course
+
 @component.adapter(asm_interfaces.IQAssignmentSubmission)
 @interface.implementer(asm_interfaces.IQAssignmentSubmissionPendingAssessment)
 def _begin_assessment_for_assignment_submission(submission):
@@ -94,7 +127,8 @@ def _begin_assessment_for_assignment_submission(submission):
 	what can be done automatically. What cannot be done automatically
 	is deferred to the assignment's enclosing course (recall
 	that assignments live in exactly one location and are not referenced
-	outside the context of their enclosing course).
+	outside the context of their enclosing course---actually, this is
+	no longer exactly true, but we can still associate a course enrollment).
 	"""
 
 	# Get the assignment
@@ -117,26 +151,9 @@ def _begin_assessment_for_assignment_submission(submission):
 		ex.field = asm_interfaces.IQAssignmentSubmission['parts']
 		raise ex
 
-	# We only need to check that the submission is not too early;
-	# if it is late, we still allow it at this level, leaving
-	# it to the instructor to handle it
-	if assignment.available_for_submission_beginning is not None:
-		if datetime.datetime.utcnow() < assignment.available_for_submission_beginning:
-			ex = ConstraintNotSatisfied("Submitting too early")
-			ex.field = asm_interfaces.IQAssignment['available_for_submission_beginning']
-			ex.value = assignment.available_for_submission_beginning
-			raise ex
+	course = _find_course_for_assignment(assignment, submission.creator)
 
-	# Now, try to find the enclosing course for this assignment.
-	# If one does not exist, we cannot grade because we have nowhere
-	# to dispatch to.
-	course = ICourseInstance(assignment, None)
-	if course is None:
-		raise RequiredMissing("Course cannot be found")
-
-	# TODO: Verify that the assignment belongs to this course;
-	# our default adapter implicitly guarantees that but
-	# something stronger would be good
+	_check_submission_before(IQAssignmentDateContext(course), assignment)
 
 	assignment_history = component.getMultiAdapter( (course, submission.creator),
 													IUsersCourseAssignmentHistory )
@@ -173,34 +190,44 @@ def _begin_assessment_for_assignment_submission(submission):
 
 	return pending_assessment
 
+from nti.dataserver.traversal import find_interface
+from nti.contentlibrary.interfaces import IContentPackage
+from nti.contenttypes.courses.interfaces import IPrincipalEnrollments
+
 @interface.implementer(ICourseInstance)
-@component.adapter(asm_interfaces.IQAssignment)
-def _course_from_assignment_lineage(assignment):
+@component.adapter(asm_interfaces.IQAssignment, IUser)
+def _course_from_assignment_lineage(assignment, user):
 	"""
-	Given a generic assignment, we look through
-	its lineage to find a course instance.
+	Given a generic assignment and a user, we
+	attempt to associate the assignment with the most
+	specific course instance relevant for the user.
 
-	.. note:: Expect this to change. For legacy-style courses,
-	   the parent of the assignment will be a IContentUnit,
-	   and eventually an ILegacyCourseConflatedContentPackage
-	   which can become the course (However, these may not
-	   be within an IRoot, so using ILocationInfo may not be safe;
-       in that case, fall back to straightforward lineage)
+	In legacy-style courses, the parent of the assignment will be a
+	IContentUnit, and eventually an
+	ILegacyCourseConflatedContentPackage which can become the course
+	directly. (However, these may not be within an IRoot, so using
+	ILocationInfo may not be safe; in that case, fall back to
+	straightforward lineage)
+
+	In more sophisticated cases involving sections, the assumption
+	that a course instance is one-to-one with a contentpackage
+	is broken. In that case, it's better to try to look through
+	the things the user is enrolled in and try to match the content
+	package to the first course.
 	"""
-	location = ILocationInfo(assignment)
-	try:
-		parents = location.getParents()
-	except TypeError: # Not enough info
-		# Return just the parents; the default returns this object
-		# too
-		parents = LocationIterator(assignment.__parent__)
+	# Actually, in both cases, we want to check enrollment, so
+	# we always use that first
+	package = find_interface(assignment, IContentPackage, strict=False)
+	if package is None:
+		return None
+	# TODO: Probably really inefficient
+	for enrollments in component.subscribers( (user,), IPrincipalEnrollments):
+		for enrollment in enrollments.iter_enrollments():
+			course = ICourseInstance(enrollment)
+			if package in course.ContentPackageBundle.ContentPackages:
+				return course
 
-	course = None
-	for parent in parents:
-		course = ICourseInstance(parent, None)
-		if course is not None:
-			break
-	return course
+
 
 from .history import UsersCourseAssignmentHistories
 
@@ -256,7 +283,7 @@ def _histories_for_courseenrollment_path_adapter(enrollment, request):
 @interface.implementer(ICourseInstance)
 @component.adapter(IUsersCourseAssignmentHistoryItem)
 def _course_from_history_item_lineage(item):
-	course = find_interface(item, ICourseInstance)
+	course = find_interface(item, ICourseInstance, strict=False)
 	if course is None:
 		__traceback_info__ = item
 		raise component.ComponentLookupError("Unable to find course")

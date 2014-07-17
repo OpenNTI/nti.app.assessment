@@ -32,6 +32,7 @@ from hamcrest import raises
 from hamcrest import has_entries
 from hamcrest import is_not
 does_not = is_not
+import fudge
 
 from nti.dataserver.tests import mock_dataserver
 from nti.testing.matchers import validly_provides
@@ -99,7 +100,10 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 					 raises(ConstraintNotSatisfied, 'parts') )
 
 	@WithSharedApplicationMockDS
-	def test_before_open(self):
+	@fudge.patch('nti.app.assessment.adapters._find_course_for_assignment')
+	def test_before_open(self, mock_find):
+		from nti.contenttypes.courses.assignment import EmptyAssignmentDateContext
+		mock_find.is_callable().returns(EmptyAssignmentDateContext(None))
 		qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id)
 		submission = AssignmentSubmission(assignmentId=self.assignment_id, parts=(qs_submission,))
 

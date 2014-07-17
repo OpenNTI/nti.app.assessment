@@ -247,7 +247,7 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
 
 	def _predicate(self, context, result):
 		if AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result):
-			return AssignmentSubmissionBulkFileDownloadView._precondition(context, self.request) # XXX Hack
+			return AssignmentSubmissionBulkFileDownloadView._precondition(context, self.request, self.remoteUser) # XXX Hack
 
 	def _do_decorate_external(self, context, result):
 		links = result.setdefault( LINKS, [] )
@@ -257,6 +257,7 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
 
 from datetime import datetime
 from nti.contenttypes.courses.interfaces import is_instructed_by_name
+from nti.assessment.interfaces import IQAssignmentDateContext
 
 class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAwareDecorator):
 	"""
@@ -270,14 +271,21 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 	"""
 
 	@classmethod
-	def needs_stripped(cls, context, request):
-		due_date = context.available_for_submission_ending if context is not None else None
+	def needs_stripped(cls, context, request, remoteUser):
+		due_date = None
+		course = None
+		if context is not None:
+			course = component.queryMultiAdapter( (context, remoteUser),
+												  ICourseInstance)
+			if course is not None:
+				due_date = IQAssignmentDateContext(course).of(context).available_for_submission_ending
+			else:
+				due_date = context.available_for_submission_ending
 		if not due_date or due_date <= datetime.utcnow():
 			# No due date, nothing to do
 			# Past the due date, nothing to do
 			return False
 
-		course = ICourseInstance(context, None)
 		if course is None:
 			logger.warn("could not adapt %s to course", context)
 			return False
@@ -301,7 +309,7 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 
 	def _predicate(self, context, result):
 		if AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result):
-			return self.needs_stripped(context, self.request)
+			return self.needs_stripped(context, self.request, self.remoteUser)
 
 	def _do_decorate_external(self, context, result):
 		for part in result['parts']:
@@ -322,7 +330,7 @@ class _AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper(Abstra
 	def _predicate(self, context, result):
 		if AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result):
 			assg = component.queryUtility(IQAssignment, context.assignmentId)
-			return _AssignmentBeforeDueDateSolutionStripper.needs_stripped(assg, self.request)
+			return _AssignmentBeforeDueDateSolutionStripper.needs_stripped(assg, self.request, self.remoteUser)
 
 	def _do_decorate_external(self, context, result):
 		for part in result['parts']:

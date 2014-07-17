@@ -149,7 +149,7 @@ from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.assessment.interfaces import IQUploadedFile
 from nti.assessment.interfaces import IQResponse
 from nti.assessment.interfaces import IQFilePart
-
+from .adapters import _find_course_for_assignment
 
 from nti.contenttypes.courses.interfaces import is_instructed_by_name
 
@@ -189,11 +189,11 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 	"""
 
 	@classmethod
-	def _precondition(cls, context, request):
+	def _precondition(cls, context, request, remoteUser):
 		username = request.authenticated_userid
 		if not username:
 			return False
-		course = ICourseInstance(context, None)
+		course = _find_course_for_assignment(context, remoteUser)
 		if 	course is None or \
 			(not is_instructed_by_name(course, username) and \
 			 not has_permission(nauth.ACT_MODERATE, context, request)):
@@ -209,16 +209,18 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 						return True # TODO: Consider caching this?
 
 	def __call__(self):
-		# We're assuming we'll find some submitted files.
-		# What should we do if we don't?
 		context = self.request.context
 		request = self.request
+
+		if not self._precondition(context, request, self.remoteUser):
+			raise hexc.HTTPForbidden()
+
+		# We're assuming we'll find some submitted files.
+		# What should we do if we don't?
 		assignment_id = context.__name__
-		course = ICourseInstance(context)
+		course = _find_course_for_assignment(context, self.remoteUser)
 		enrollments = ICourseEnrollments(course)
 
-		if not self._precondition(context, request):
-			raise hexc.HTTPForbidden()
 
 		buf = StringIO()
 		zipfile = ZipFile( buf, 'w' )

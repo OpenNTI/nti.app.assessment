@@ -114,7 +114,6 @@ class RegisterAssignmentLayer(InstructedCourseApplicationTestLayer):
 		cls.lesson_page_id = lesson_page_id
 		cls.question_id = 'tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.1'
 
-
 		from nti.contenttypes.courses.interfaces import ICourseCatalog
 
 		database = ZODB.DB( ApplicationTestLayer._storage_base,

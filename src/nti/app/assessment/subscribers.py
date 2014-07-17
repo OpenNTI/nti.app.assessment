@@ -38,6 +38,7 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssessmentItemContainer
+from nti.assessment.interfaces import IQAssignmentDateContext
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 
@@ -48,6 +49,8 @@ from datetime import datetime
 
 from . import MessageFactory as _
 from nti.externalization.externalization import to_external_object
+
+from .adapters import _find_course_for_assignment
 
 def prevent_note_on_assignment_part(note, event):
 	"""
@@ -97,14 +100,24 @@ def prevent_note_on_assignment_part(note, event):
 			item = IQAssessmentItemContainer(item, ())
 			items = [x for x in item if IQAssignment.providedBy(x)]
 
+	if not items:
+		return
+
+	remoteUser = note.creator
 
 	for asg in items:
 		if IQAssignment.providedBy(asg):
-			if asg.available_for_submission_ending and asg.available_for_submission_ending >= datetime.utcnow():
+			course = _find_course_for_assignment(asg, remoteUser, exc=False)
+			if course:
+				dates = IQAssignmentDateContext(course).of(asg)
+			else:
+				dates = asg
+
+			if dates.available_for_submission_ending and dates.available_for_submission_ending >= datetime.utcnow():
 				e = HTTPUnprocessableEntity()
 				e.text = json.dumps({'message': _("You cannot make notes on an assignment before the due date."),
 									 'code': 'CannotNoteOnAssignmentBeforeDueDate',
-									 'available_for_submission_ending': to_external_object(asg.available_for_submission_ending)},
+									 'available_for_submission_ending': to_external_object(dates.available_for_submission_ending)},
 									ensure_ascii=False)
 				e.content_type = b'application/json'
 				raise e

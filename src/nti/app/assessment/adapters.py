@@ -215,6 +215,7 @@ def _course_from_assignment_lineage(assignment, user):
 	the things the user is enrolled in and try to match the content
 	package to the first course.
 	"""
+
 	# Actually, in both cases, we want to check enrollment, so
 	# we always use that first
 	package = find_interface(assignment, IContentPackage, strict=False)

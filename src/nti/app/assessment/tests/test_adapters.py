@@ -31,6 +31,7 @@ from hamcrest import calling
 from hamcrest import raises
 from hamcrest import has_entries
 from hamcrest import is_not
+from hamcrest import not_none
 does_not = is_not
 import fudge
 
@@ -360,6 +361,19 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 				for qpart in question['parts']:
 					assert_that( qpart, has_entries('solutions', None,
 												   'explanation', None))
+
+		# (Except if we're the instructor)
+		instructor_environ = self._make_extra_environ(username='harp4162')
+		res = self.testapp.get(enrollment_assignments, extra_environ=instructor_environ)
+		assg = res.json_body[self.lesson_page_id][0]
+
+		for part in assg['parts']:
+			question_set = part['question_set']
+			for question in question_set['questions']:
+				for qpart in question['parts']:
+					assert_that( qpart, has_entries('solutions', not_none(),
+													'explanation', not_none()))
+
 
 		# If we submit...
 		from nti.assessment.submission import QuestionSubmission

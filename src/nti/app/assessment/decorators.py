@@ -256,8 +256,9 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
 							elements=('BulkFilePartDownload',) ) )
 
 from datetime import datetime
-from nti.contenttypes.courses.interfaces import is_instructed_by_name
+from nti.appserver.pyramid_authorization import has_permission
 from nti.assessment.interfaces import IQAssignmentDateContext
+from .interfaces import ACT_VIEW_SOLUTIONS
 
 class _AssignmentSectionSpecificDates(AbstractAuthenticatedRequestAwareDecorator):
 	"""
@@ -309,7 +310,7 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 			logger.warn("could not adapt %s to course", context)
 			return False
 
-		if is_instructed_by_name(course, request.authenticated_userid):
+		if has_permission(ACT_VIEW_SOLUTIONS, course, request):
 			# The instructor, nothing to do
 			return False
 

@@ -193,6 +193,8 @@ def _begin_assessment_for_assignment_submission(submission):
 from nti.dataserver.traversal import find_interface
 from nti.contentlibrary.interfaces import IContentPackage
 from nti.contenttypes.courses.interfaces import IPrincipalEnrollments
+from nti.contenttypes.courses.interfaces import ICourseCatalog
+from zope.security.interfaces import IPrincipal
 
 @interface.implementer(ICourseInstance)
 @component.adapter(asm_interfaces.IQAssignment, IUser)
@@ -227,6 +229,17 @@ def _course_from_assignment_lineage(assignment, user):
 			course = ICourseInstance(enrollment)
 			if package in course.ContentPackageBundle.ContentPackages:
 				return course
+
+	# Nothing. OK, maybe we're an instructor?
+	catalog = component.queryUtility(ICourseCatalog)
+	if catalog is None:
+		return
+
+	prin = IPrincipal(user)
+	for entry in catalog.iterCatalogEntries():
+		course = ICourseInstance(entry)
+		if prin in course.instructors and package in course.ContentPackageBundle.ContentPackages:
+			return course
 
 
 

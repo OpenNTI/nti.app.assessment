@@ -23,16 +23,25 @@
 	<permission
 		id="nti.actions.assessment.download_grades"
 		title="Download grades" />
+	<permission
+		id="nti.actions.assessment.view_solutions"
+		title="View solutions" />
 
 	<!--
 		The instructors/TA of a course (locally added to this role
-		for the course) can download grades
+		for the course) can download grades and view solutions
 	-->
 	<grant
 		permission="nti.actions.assessment.download_grades"
 		role="nti.roles.course_instructor" />
 	<grant
 		permission="nti.actions.assessment.download_grades"
+		role="nti.roles.course_ta" />
+	<grant
+		permission="nti.actions.assessment.view_solutions"
+		role="nti.roles.course_instructor" />
+	<grant
+		permission="nti.actions.assessment.view_solutions"
 		role="nti.roles.course_ta" />
 
 	<configure zcml:condition="have testmode">

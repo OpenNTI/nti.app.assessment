@@ -40,7 +40,7 @@ from nti.schema.field import Object
 from zope.security.permission import Permission
 
 ACT_DOWNLOAD_GRADES = Permission('nti.actions.assessment.download_grades')
-
+ACT_VIEW_SOLUTIONS = Permission('nti.actions.assessment.view_solutions')
 
 class IUsersCourseAssignmentHistories(IContainer,
 									  IContained,

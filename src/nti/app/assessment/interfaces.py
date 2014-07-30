@@ -37,6 +37,11 @@ from nti.schema.field import List
 from nti.schema.field import Number
 from nti.schema.field import Object
 
+from zope.security.permission import Permission
+
+ACT_DOWNLOAD_GRADES = Permission('nti.actions.assessment.download_grades')
+
+
 class IUsersCourseAssignmentHistories(IContainer,
 									  IContained,
 									  IShouldHaveTraversablePath):

@@ -14,9 +14,9 @@ logger = __import__('logging').getLogger(__name__)
 from zope import interface
 from zope import component
 
-from nti.app.products.courseware.interfaces import ILegacyCourseInstanceEnrollment
-
+from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ES_PUBLIC
 from nti.contenttypes.courses.interfaces import is_instructed_by_name
 
 from nti.dataserver.interfaces import IUser
@@ -59,14 +59,15 @@ class UserEnrolledForCreditInCourseOrInstructsFilter(object):
 
 	@Lazy
 	def is_instructor(self):
+		# TODO: Can/should this be role based?
 		if is_instructed_by_name(self.course, self.user.username):
 			return True
 
 	@Lazy
 	def is_enrolled_for_credit(self):
-		enrollment = component.queryMultiAdapter( (self.course, self.user),
-												  ILegacyCourseInstanceEnrollment)
-		return getattr(enrollment, 'LegacyEnrollmentStatus', 'Open') == 'ForCredit'
+		record = ICourseEnrollments(self.course).get_enrollment_for_principal(self.user)
+		# anything except public is for-credit; default to public even if not enrolled
+		return getattr(record, 'Scope', ES_PUBLIC) != ES_PUBLIC
 
 	def allow_assignment_for_user_in_course(self, asg, user, course):
 		if self.TEST_OVERRIDE:

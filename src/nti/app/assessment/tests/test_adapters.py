@@ -617,6 +617,7 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin,ApplicationLayerTest)
 									  'CLC 3403',
 									  status=201 )
 
+		enrollment_oid = res.json_body['NTIID']
 		enrollment_assignments = self.require_link_href_with_rel( res.json_body, 'AssignmentsByOutlineNode')
 		enrollment_non_assignments = self.require_link_href_with_rel( res.json_body, 'NonAssignmentAssessmentItemsByOutlineNode')
 		self.require_link_href_with_rel( res.json_body['CourseInstance'], 'AssignmentsByOutlineNode')
@@ -646,19 +647,11 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin,ApplicationLayerTest)
 					 is_({'href':'/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses/tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/NonAssignmentAssessmentItemsByOutlineNode'}))
 
 
-		# Now if we register a more specific adapter, we can claim to be enrolled
-		from nti.app.products.courseware.interfaces import ILegacyCourseInstanceEnrollment
-		from nti.contenttypes.courses.interfaces import ICourseInstance
-
-		@interface.implementer(ILegacyCourseInstanceEnrollment)
-		@component.adapter(ICourseInstance,IMySpecificUser)
-		class EnrollmentStatus(object):
-			def __init__(self, course, user):
-				pass
-
-			LegacyEnrollmentStatus = 'ForCredit'
-
-		component.provideAdapter(EnrollmentStatus)
+		# Now pretend to be enrolled for credit
+		with mock_dataserver.mock_db_trans(self.ds):
+			from nti.ntiids import ntiids
+			record = ntiids.find_object_with_ntiid(enrollment_oid)
+			record.Scope = 'ForCredit'
 
 		res = self.testapp.get(enrollment_assignments)
 		assert_that( res.json_body, has_entry(self.lesson_page_id,

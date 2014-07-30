@@ -3,6 +3,7 @@
 		   xmlns:zcml="http://namespaces.zope.org/zcml"
 		   xmlns:i18n="http://namespaces.zope.org/i18n"
 		   xmlns:ext="http://nextthought.com/ntp/ext"
+		   xmlns:sp="http://nextthought.com/ntp/securitypolicy"
 		   i18n_domain='nti.app.assessment'
 		   i18n:domain='nti.app.assessment'>
 	<include package="zope.component" />
@@ -12,6 +13,45 @@
 	<include package="zope.i18n" />
 
 	<i18n:registerTranslations directory="locales" />
+
+	<!-- Roles and permissions -->
+	<include package="zope.securitypolicy" file="meta.zcml" />
+	<include package="zope.security" file="meta.zcml" />
+	<include file="meta.zcml" package="nti.securitypolicy" />
+
+
+	<permission
+		id="nti.actions.assessment.download_grades"
+		title="Download grades" />
+
+	<!--
+		The instructors/TA of a course (locally added to this role
+		for the course) can download grades
+	-->
+	<grant
+		permission="nti.actions.assessment.download_grades"
+		role="nti.roles.course_instructor" />
+	<grant
+		permission="nti.actions.assessment.download_grades"
+		role="nti.roles.course_ta" />
+
+	<configure zcml:condition="have testmode">
+		<!--
+			Manually grant some accounts access to these roles for now,
+			pending better group integration.
+		-->
+		<!--
+			The principal has to be defined first, even though this isn't
+			the one we actually use.
+		-->
+		<sp:principal
+			id="sjohnson@nextthought.com"
+			login="sjohnson@nextthought.com"
+			title="Test User" />
+
+		<sp:grant principal="sjohnson@nextthought.com"
+				  permission="nti.actions.assessment.download_grades" />
+	</configure>
 
 	<!-- Populating questions from content -->
 	<!-- A global utility, mostly for testing now. -->

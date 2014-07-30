@@ -151,14 +151,14 @@ from nti.assessment.interfaces import IQResponse
 from nti.assessment.interfaces import IQFilePart
 from .adapters import _find_course_for_assignment
 
-from nti.contenttypes.courses.interfaces import is_instructed_by_name
+from .interfaces import ACT_DOWNLOAD_GRADES
 
 from nti.appserver.pyramid_authorization import has_permission
 
 @view_config(route_name="objects.generic.traversal",
 			 context=IQAssignment,
 			 renderer='rest',
-			 #permission=nauth.ACT_READ, # Permissioning handled manually...
+			 #permission=ACT_DOWNLOAD_GRADES, # handled manually because it's on the course, not the context
 			 request_method='GET',
 			 name='BulkFilePartDownload')
 class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
@@ -194,10 +194,7 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 		if not username:
 			return False
 		course = _find_course_for_assignment(context, remoteUser, exc=False)
-		if 	course is None or \
-			(not is_instructed_by_name(course, username) and \
-			 not has_permission(nauth.ACT_MODERATE, context, request)):
-			# We allow global admins in too for testing
+		if course is None or not has_permission(ACT_DOWNLOAD_GRADES, course, request):
 			return False
 
 		# Does it have a file part?

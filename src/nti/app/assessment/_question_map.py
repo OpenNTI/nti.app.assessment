@@ -55,7 +55,6 @@ def _ntiid_object_hook( k, v, x ):
 @interface.implementer(asm_interfaces.IQAssessmentItemContainer,
 					   nti_interfaces.IZContained)
 @component.adapter(lib_interfaces.IContentUnit)
-@NoPickle
 class _AssessmentItemContainer(PersistentList):
 	__name__ = None
 	__parent__ = None
@@ -104,10 +103,9 @@ class QuestionMap(dict):
 	def __process_assessments( self, assessment_item_dict,
 							   containing_hierarchy_key,
 							   content_package,
-							   level_ntiid=None ):
+							   level_ntiid=None,
+							   registry=None):
 		library = component.queryUtility(lib_interfaces.IContentPackageLibrary)
-		if library is None:
-			return
 
 		# if we're working in the global library, use the global
 		# site manager to not persist; otherwise, use the current site manager
@@ -116,14 +114,15 @@ class QuestionMap(dict):
 		# (being based on a utility that looks to the parent utility first)
 		# we must not overlap NTIIDs of questions between parent and children
 		# libraries, as we will overwrite the parent
-		if lib_interfaces.IGlobalContentPackageLibrary.providedBy(library):
-			sm = component.getGlobalSiteManager()
-		else:
-			sm = component.getSiteManager()
+		if registry is None:
+			if lib_interfaces.IGlobalContentPackageLibrary.providedBy(library):
+				registry = component.getGlobalSiteManager()
+			else:
+				registry = component.getSiteManager()
 
 		parent = None
 		parents_questions = []
-		if level_ntiid:
+		if level_ntiid and library is not None:
 			# Older tests may not have a library available.
 			containing_content_units = library.pathToNTIID(level_ntiid)
 			if containing_content_units:
@@ -149,24 +148,24 @@ class QuestionMap(dict):
 			if asm_interfaces.IQAssignment.providedBy(obj):
 				for part in obj.parts:
 					qset = part.question_set
-					if sm.queryUtility(asm_interfaces.IQuestionSet, name=qset.ntiid) is None:
+					if registry.queryUtility(asm_interfaces.IQuestionSet, name=qset.ntiid) is None:
 						things_to_register.append(qset)
 					for child_question in qset.questions:
-						if sm.queryUtility(asm_interfaces.IQuestion, name=child_question.ntiid) is None:
+						if registry.queryUtility(asm_interfaces.IQuestion, name=child_question.ntiid) is None:
 							things_to_register.append( child_question )
 
 			elif asm_interfaces.IQuestionSet.providedBy(obj):
 				for child_question in obj.questions:
-					if sm.queryUtility(asm_interfaces.IQuestion, name=child_question.ntiid) is None:
+					if registry.queryUtility(asm_interfaces.IQuestion, name=child_question.ntiid) is None:
 						things_to_register.append( child_question )
 
 			for thing_to_register in things_to_register:
 				iface = _iface_to_register(thing_to_register)
 				# Make sure not to overwrite something done earlier at any level
-				if sm.queryUtility( iface, name=thing_to_register.ntiid) is not None:
+				if registry.queryUtility( iface, name=thing_to_register.ntiid) is not None:
 					continue
 
-				sm.registerUtility( thing_to_register,
+				registry.registerUtility( thing_to_register,
 									provided=iface,
 									name=thing_to_register.ntiid,
 									event=False)
@@ -181,12 +180,12 @@ class QuestionMap(dict):
 			# Now canonicalize
 			if asm_interfaces.IQAssignment.providedBy(obj):
 				for part in obj.parts:
-					part.question_set = sm.getUtility(asm_interfaces.IQuestionSet,name=part.question_set.ntiid)
-					part.question_set.questions = [sm.getUtility(asm_interfaces.IQuestion,name=x.ntiid)
+					part.question_set = registry.getUtility(asm_interfaces.IQuestionSet,name=part.question_set.ntiid)
+					part.question_set.questions = [registry.getUtility(asm_interfaces.IQuestion,name=x.ntiid)
 												   for x
 												   in part.question_set.questions]
 			elif asm_interfaces.IQuestionSet.providedBy(obj):
-				obj.questions = [sm.getUtility(asm_interfaces.IQuestion,name=x.ntiid)
+				obj.questions = [registry.getUtility(asm_interfaces.IQuestion,name=x.ntiid)
 								 for x
 								 in obj.questions]
 
@@ -199,7 +198,8 @@ class QuestionMap(dict):
 
 	def __from_index_entry(self, index, content_package,
 						   nearest_containing_key=None,
-						   nearest_containing_ntiid=None ):
+						   nearest_containing_ntiid=None,
+						   registry=None):
 		"""
 		Called with an entry for a file or (sub)section. May or may not have children of its own.
 
@@ -228,15 +228,18 @@ class QuestionMap(dict):
 		self.__process_assessments( index.get( "AssessmentItems", {} ),
 									key_for_this_level,
 									content_package,
-									level_ntiid )
+									level_ntiid,
+									registry=registry)
 
 		for child_item in index.get('Items',{}).values():
 			self.__from_index_entry( child_item, content_package,
 									 nearest_containing_key=key_for_this_level,
-									 nearest_containing_ntiid=level_ntiid )
+									 nearest_containing_ntiid=level_ntiid,
+									 registry=registry)
 
 
-	def _from_root_index( self, assessment_index_json, content_package ):
+	def _from_root_index( self, assessment_index_json, content_package,
+						  registry=None):
 		"""
 		The top-level is handled specially: ``index.html`` is never allowed to have
 		assessment items.
@@ -265,7 +268,9 @@ class QuestionMap(dict):
 				continue
 
 			assert child_index.get( 'filename' ), 'Child must contain valid filename to contain assessments'
-			self.__from_index_entry( child_index, content_package, nearest_containing_ntiid=child_ntiid )
+			self.__from_index_entry( child_index, content_package,
+									 nearest_containing_ntiid=child_ntiid,
+									 registry=registry)
 
 		# For tests and such, sort
 		for questions in self.by_file.values():
@@ -292,27 +297,7 @@ def add_assessment_items_from_new_content( content_package, event ):
 # especially in tests
 _fragment_cache = dict()
 
-def _populate_question_map_from_text( question_map, asm_index_text, content_package ):
-
-	### XXX: JAM: There seems to be a path, later, after startup, where we can access the
-	# IQAssessmentItemContainer for a content unit that did not appear in the assessment index.
-	# If it is done during a transaction that wants to commit (a POST/PUT) the hierarchy
-	# of AnnotationUtilities will ensure that the IQAssessmentItemContainer we access is stored
-	# in the *persistent* local site utility...but our implementation isn't yet persistent
-	# and aborts the commit.
-	# The workaround is to be sure that every content unit gets its annotation in the root,
-	# whether we need it later on or not.
-	# (Even after we make things fully persistent, doing this at library update time
-	# is more efficient than creating and throwing away the annotation data during each GET
-	# that would need to access it.)
-	# Then we still have to figure out what that path is...the example is on POSTing a note
-	# to certain Pages collections.
-	def _r(unit):
-		asm_interfaces.IQAssessmentItemContainer(unit)
-		for c in unit.children:
-			_r(c)
-	_r(content_package)
-
+def _load_question_map_json(asm_index_text):
 
 	if not asm_index_text:
 		return
@@ -363,6 +348,32 @@ def _populate_question_map_from_text( question_map, asm_index_text, content_pack
 
 	index = simplejson.loads( asm_index_text,
 							  object_pairs_hook=hook )
+	return index
+
+def _populate_question_map_from_text( question_map, asm_index_text, content_package ):
+
+	### XXX: JAM: There seems to be a path, later, after startup, where we can access the
+	# IQAssessmentItemContainer for a content unit that did not appear in the assessment index.
+	# If it is done during a transaction that wants to commit (a POST/PUT) the hierarchy
+	# of AnnotationUtilities will ensure that the IQAssessmentItemContainer we access is stored
+	# in the *persistent* local site utility...but our implementation isn't yet persistent
+	# and aborts the commit.
+	# The workaround is to be sure that every content unit gets its annotation in the root,
+	# whether we need it later on or not.
+	# (Even after we make things fully persistent, doing this at library update time
+	# is more efficient than creating and throwing away the annotation data during each GET
+	# that would need to access it.)
+	# Then we still have to figure out what that path is...the example is on POSTing a note
+	# to certain Pages collections.
+	def _r(unit):
+		asm_interfaces.IQAssessmentItemContainer(unit)
+		for c in unit.children:
+			_r(c)
+	_r(content_package)
+
+	index = _load_question_map_json(asm_index_text)
+	if not index:
+		return
 
 	try:
 		question_map._from_root_index( index, content_package )
@@ -414,3 +425,144 @@ def update_assessment_items_when_modified(content_package, event):
 	# Not very efficient, but it works
 	remove_assessment_items_from_oldcontent(content_package, event)
 	add_assessment_items_from_new_content(content_package, event)
+
+
+import argparse
+from zope.configuration import xmlconfig
+from zope.component import hooks
+from zope.interface.registry import Components
+import os.path
+import sys
+
+from nti.contentlibrary.filesystem import FilesystemKey
+from nti.contentlibrary.filesystem import FilesystemBucket
+
+from nti.externalization.externalization import to_external_object
+
+def _load_assignments(json_string, json_key):
+
+	index = _load_question_map_json(json_string)
+
+	question_map = QuestionMap()
+
+	class FakeContentPackage(object):
+
+		def __init__(self, bucket):
+			self.bucket = bucket
+
+		def make_sibling_key(self, name):
+			result = type(json_key)(bucket=self.bucket, name=name)
+			return result
+
+	assignment_registry = Components()
+	question_map._from_root_index( index,
+								   FakeContentPackage(json_key.__parent__),
+								   registry=assignment_registry)
+	return assignment_registry
+
+def _asg_registry_to_course_data(registry):
+
+	data = {}
+	for assignment in registry.getAllUtilitiesRegisteredFor(asm_interfaces.IQAssignment):
+		name = assignment.ntiid
+		asg_data = data[name] = {}
+		# title is for human readability; capitalized to sort to beginning
+		asg_data['Title'] = assignment.title
+
+		# the actual dates
+		asg_data['available_for_submission_ending'] = to_external_object(assignment.available_for_submission_ending)
+		asg_data['available_for_submission_beginning'] = to_external_object(assignment.available_for_submission_beginning)
+
+		# Point specification
+		point_data = asg_data['auto_grade'] = {}
+
+		# Default total points is simply the sum of question/parts
+		total_points = 0
+
+		for part in assignment.parts:
+			qset = part.question_set
+			for question in qset.questions:
+				total_points += len(question.parts)
+
+		point_data['total_points'] = total_points
+
+	return data
+
+
+def main_extract_assignments():
+	"""
+	A tool designed to ease the process for extracting just
+	assignment data for overrides in courses.
+	"""
+
+	arg_parser = argparse.ArgumentParser(description="Extract assignment data")
+	arg_parser.add_argument('assessment_index_json', type=file,
+							help="Path to an assessment_index.json file")
+	arg_parser.add_argument('--force-total-points', type=int,
+							dest='force_total_points',
+							help="Force all assignments to have this total point value")
+	arg_parser.add_argument('--merge-with', type=file,
+							help="Path to a file previously output by this command, and possibly edited."
+							" New values will be added, but existing changes will be preserved.")
+
+	args = arg_parser.parse_args()
+	json_string = args.assessment_index_json.read()
+
+	json_key = FilesystemKey()
+	json_key.absolute_path = args.assessment_index_json.name
+	dir_name, f_name = os.path.split(json_key.absolute_path)
+	json_key.__name__ = f_name
+	json_bucket = json_key.__parent__ = FilesystemBucket()
+	json_bucket.absolute_path = dir_name
+
+	# Now that we got this far, go ahead and configure
+	hooks.setHooks()
+	import nti.app.assessment
+	xmlconfig.file('configure.zcml', package=nti.app.assessment)
+
+	registry = _load_assignments(json_string, json_key)
+
+	ext_value = _asg_registry_to_course_data(registry)
+
+	if args.force_total_points:
+		for asg in ext_value.values():
+			asg['auto_grade']['total_points'] = args.force_total_points
+
+
+	if args.merge_with:
+		merge_json = simplejson.loads(args.merge_with.read())
+		for k in ext_value:
+			if k not in merge_json:
+				continue
+			automatic_value = ext_value[k]
+			manual_value = merge_json[k]
+
+			# Some things we want to preserve, some we
+			# want to force. For example, the title may change,
+			# we want the new value.
+			# But the dates should be preserved,
+			# as should the auto_grade info
+			# This whole process could be handled declaratively, see
+			# how gunicorn does its config or plastex its for examples
+			for d in ('available_for_submission_beginning',
+					  'available_for_submission_ending',
+					  'auto_grade'):
+				if d in manual_value:
+					automatic_value[d] = manual_value[d]
+
+		# TODO: What about old things that simply aren't present in the
+		# automatic extract anymore? For now, we preserve them, but we may
+		# want to drop them or move them to a separate key?
+		for k in merge_json:
+			if k in ext_value:
+				continue
+			ext_value[k] = merge_json[k]
+
+
+	simplejson.dump(ext_value,
+					sys.stdout,
+					indent='    ',
+					separators=(', ', ': '),
+					sort_keys=True)
+	# trailing newline
+	print('', file=sys.stdout)

@@ -4,29 +4,32 @@ import codecs
 VERSION = '0.0.0'
 
 entry_points = {
-    "z3c.autoinclude.plugin": [
+	"z3c.autoinclude.plugin": [
 		'target = nti.app',
+	],
+	"console_scripts": [
+		"nti_extract_assessments = nti.app.assessment._question_map:main_extract_assignments",
 	],
 }
 
 setup(
-    name = 'nti.app.assessment',
-    version = VERSION,
-    author = 'Jason Madden',
-    author_email = 'jason@nextthought.com',
-    description = "Application-level assessment support",
-    long_description = codecs.open('README.rst', encoding='utf-8').read(),
-    license = 'Proprietary',
-    keywords = 'pyramid assessment',
-    #url = 'https://github.com/NextThought/nti.nose_traceback_info',
-    classifiers = [
-        'Intended Audience :: Developers',
-        'Natural Language :: English',
-        'Operating System :: OS Independent',
+	name = 'nti.app.assessment',
+	version = VERSION,
+	author = 'Jason Madden',
+	author_email = 'jason@nextthought.com',
+	description = "Application-level assessment support",
+	long_description = codecs.open('README.rst', encoding='utf-8').read(),
+	license = 'Proprietary',
+	keywords = 'pyramid assessment',
+	#url = 'https://github.com/NextThought/nti.nose_traceback_info',
+	classifiers = [
+		'Intended Audience :: Developers',
+		'Natural Language :: English',
+		'Operating System :: OS Independent',
 		'Programming Language :: Python :: 2',
-        'Programming Language :: Python :: 2.7',
+		'Programming Language :: Python :: 2.7',
 		'Framework :: Pyramid',
-        ],
+		],
 	packages=find_packages('src'),
 	package_dir={'': 'src'},
 	namespace_packages=['nti', 'nti.app'],

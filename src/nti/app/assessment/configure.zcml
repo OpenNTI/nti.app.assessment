@@ -12,12 +12,15 @@
 	<include package="zope.i18n" file="meta.zcml" />
 	<include package="zope.i18n" />
 
+	<include package="nti.assessment" />
+
 	<i18n:registerTranslations directory="locales" />
 
 	<!-- Roles and permissions -->
 	<include package="zope.securitypolicy" file="meta.zcml" />
 	<include package="zope.security" file="meta.zcml" />
-	<include file="meta.zcml" package="nti.securitypolicy" />
+	<include package="nti.securitypolicy" file="meta.zcml"  />
+	<include package="nti.contenttypes.courses" />
 
 
 	<permission

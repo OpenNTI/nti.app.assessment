@@ -79,7 +79,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 	layer = RegisterAssignmentsForEveryoneLayer
 	features = ('assignments_for_everyone',)
 
-	default_origin = b'http://janux.ou.edu'
+	default_origin = str('http://janux.ou.edu')
 
 	@WithSharedApplicationMockDS
 	def test_wrong_id(self):
@@ -97,8 +97,9 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 	def test_wrong_parts(self):
 		submission = AssignmentSubmission(assignmentId=self.assignment_id)
 
-		assert_that( calling(IQAssignmentSubmissionPendingAssessment).with_args(submission),
-					 raises(ConstraintNotSatisfied, 'parts') )
+		with mock_dataserver.mock_db_trans(self.ds, site_name='platform.ou.edu'):
+			assert_that( calling(IQAssignmentSubmissionPendingAssessment).with_args(submission),
+						 raises(ConstraintNotSatisfied, 'parts') )
 
 	@WithSharedApplicationMockDS
 	@fudge.patch('nti.app.assessment.adapters._find_course_for_assignment')
@@ -109,12 +110,16 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 		submission = AssignmentSubmission(assignmentId=self.assignment_id, parts=(qs_submission,))
 
 		# Open tomorrow
-		self.assignment.available_for_submission_beginning = (datetime.datetime.utcnow() + datetime.timedelta(days=1))
-		try:
-			assert_that( calling(IQAssignmentSubmissionPendingAssessment).with_args(submission),
-						 raises(ConstraintNotSatisfied, 'early') )
-		finally:
-			self.assignment.available_for_submission_beginning = None
+		with mock_dataserver.mock_db_trans(self.ds, site_name='platform.ou.edu'):
+			assignment = component.getUtility(asm_interfaces.IQAssignment, name=self.assignment_id)
+			assignment.available_for_submission_beginning = (datetime.datetime.utcnow() + datetime.timedelta(days=1))
+			try:
+				assert_that( calling(IQAssignmentSubmissionPendingAssessment).with_args(submission),
+							 raises(ConstraintNotSatisfied, 'early') )
+			finally:
+				assignment = component.getUtility(asm_interfaces.IQAssignment, name=self.assignment_id)
+
+				assignment.available_for_submission_beginning = None
 
 
 	@WithSharedApplicationMockDS(users=True)
@@ -351,7 +356,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 		res = self.testapp.get(enrollment_assignments)
 		assert_that( res.json_body, has_entry(self.lesson_page_id,
 											  contains( has_entries( 'Class', 'Assignment',
-																	 'NTIID', self.assignment.__name__ ))))
+																	 'NTIID', self.assignment_id ))))
 
 		# The due date strips these
 		assg = res.json_body[self.lesson_page_id][0]
@@ -407,12 +412,14 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 	def test_ipad_hack(self):
 
 		# First, adjust the parts and category
-		assignment = component.getUtility(asm_interfaces.IQAssignment, name=self.assignment_id)
-		old_parts = assignment.parts
-		old_cat = assignment.category_name
+		with mock_dataserver.mock_db_trans(self.ds, site_name='platform.ou.edu'):
+			assignment = component.getUtility(asm_interfaces.IQAssignment, name=self.assignment_id)
+			assignment._old_parts = assignment.parts
+			old_cat = assignment.category_name
 
-		assignment.category_name = IPlainTextContentFragment('no_submit')
-		assignment.parts = ()
+			assignment.category_name = IPlainTextContentFragment('no_submit')
+			assignment.parts = ()
+
 		try:
 			# Make sure we're enrolled
 			res = self.testapp.post_json( '/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses',
@@ -427,22 +434,30 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 								   extra_environ={b'HTTP_USER_AGENT': b"NTIFoundation DataLoader NextThought/1.1.1/38605 (x86_64; 7.1)"})
 			assert_that( res.json_body, has_entry(self.lesson_page_id,
 												  contains( has_entries( 'Class', 'Assignment',
-																		 'NTIID', self.assignment.__name__,
+																		 'NTIID', self.assignment_id,
 																		 'parts',[{'Class': 'AssignmentPart'}],
 																		 'category_name', 'no_submit'))))
 
 			res = self.testapp.get(enrollment_assignments)
 			assert_that( res.json_body, has_entry(self.lesson_page_id,
 												  contains( has_entries( 'Class', 'Assignment',
-																		 'NTIID', self.assignment.__name__,
+																		 'NTIID', self.assignment_id,
 																		 'parts', is_empty(),
 																		 'category_name', 'no_submit'))))
 
 		finally:
-			assignment.category_name = old_cat
-			assignment.parts = old_parts
+			with mock_dataserver.mock_db_trans(self.ds, site_name='platform.ou.edu'):
+				assignment = component.getUtility(asm_interfaces.IQAssignment, name=self.assignment_id)
+
+				assignment.category_name = old_cat
+				assignment.parts = assignment._old_parts
+				del assignment._old_parts
 
 from nti.app.products.courseware.tests import InstructedCourseApplicationTestLayer
+import ZODB
+from nti.app.testing.application_webtest import ApplicationTestLayer
+
+
 class _RegisterFileAssignmentLayer(InstructedCourseApplicationTestLayer):
 
 	@classmethod
@@ -460,41 +475,61 @@ class _RegisterFileAssignmentLayer(InstructedCourseApplicationTestLayer):
 		from nti.assessment.interfaces import IQuestion
 		from nti.assessment.interfaces import IQuestionSet
 
-		lib = component.getUtility(IContentPackageLibrary)
+		def install_questions():
+			lib = component.getUtility(IContentPackageLibrary)
 
 
-		part = parts.QFilePart()
-		part.allowed_mime_types = ('*/*',)
-		part.allowed_extensions = '*'
-		question = QQuestion( parts=[part] )
+			part = parts.QFilePart()
+			part.allowed_mime_types = ('*/*',)
+			part.allowed_extensions = '*'
+			question = QQuestion( parts=[part] )
 
-		component.provideUtility( question, provides=IQuestion,  name="1")
+			component.getSiteManager().registerUtility( question, provided=IQuestion,  name="1")
 
-		question_set = QQuestionSet(questions=(question,))
-		question_set.ntiid = cls.question_set_id
-		component.provideUtility( question_set, provides=IQuestionSet, name=cls.question_set_id)
+			question_set = QQuestionSet(questions=(question,))
+			question_set.ntiid = cls.question_set_id
+			component.provideUtility( question_set, provides=IQuestionSet, name=cls.question_set_id)
 
-		# Works with auto_grade true or false.
-		assignment_part = QAssignmentPart(question_set=question_set, auto_grade=False)
-		assignment = QAssignment( parts=(assignment_part,) )
-		assignment.__name__ = assignment.ntiid = cls.assignment_id
+			# Works with auto_grade true or false.
+			assignment_part = QAssignmentPart(question_set=question_set, auto_grade=False)
+			assignment = QAssignment( parts=(assignment_part,) )
+			assignment.__name__ = assignment.ntiid = cls.assignment_id
 
-		component.provideUtility( assignment,
-								  provides=asm_interfaces.IQAssignment,
-								  name=cls.assignment_id )
+			component.getSiteManager().registerUtility( assignment,
+														provided=asm_interfaces.IQAssignment,
+														name=cls.assignment_id )
 
 
-		# Also make sure this assignment is found in the assignment index
-		# at some container
-		lesson_page_id = "tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:02.01_RequiredReading"
-		cls.lesson_page_id = lesson_page_id
-		lesson = lib.pathToNTIID(lesson_page_id)[-1]
-		assignment.__parent__ = lesson
-		IQAssessmentItemContainer(lesson).append(assignment)
+			# Also make sure this assignment is found in the assignment index
+			# at some container
+			lesson_page_id = "tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:02.01_RequiredReading"
+			cls.lesson_page_id = lesson_page_id
+			lesson = lib.pathToNTIID(lesson_page_id)[-1]
+			assignment.__parent__ = lesson
+			IQAssessmentItemContainer(lesson).append(assignment)
+
+		database = ZODB.DB( ApplicationTestLayer._storage_base,
+							database_name='Users')
+
+
+		@mock_dataserver.WithMockDS(database=database)
+		def _sync():
+			with mock_dataserver.mock_db_trans(site_name='platform.ou.edu'):
+				install_questions()
+		_sync()
 
 	@classmethod
 	def tearDown(cls):
 		# MUST implement
+		pass
+
+
+	@classmethod
+	def setUpTest(cls):
+		pass
+
+	@classmethod
+	def tearDownTest(cls):
 		pass
 
 
@@ -620,7 +655,7 @@ from nti.mimetype.mimetype import nti_mimetype_with_class
 
 class TestAssignmentFiltering(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 	layer = RegisterAssignmentLayer
-	default_origin = b'http://janux.ou.edu'
+	default_origin = str('http://janux.ou.edu')
 	# With the feature missing
 
 	@WithSharedApplicationMockDS(users=True,testapp=True, user_hook=lambda u: interface.alsoProvides(u, IMySpecificUser))
@@ -634,11 +669,13 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin,ApplicationLayerTest)
 		enrollment_oid = res.json_body['NTIID']
 		enrollment_assignments = self.require_link_href_with_rel( res.json_body, 'AssignmentsByOutlineNode')
 		enrollment_non_assignments = self.require_link_href_with_rel( res.json_body, 'NonAssignmentAssessmentItemsByOutlineNode')
+
+		course_href = '/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses/tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/'
 		self.require_link_href_with_rel( res.json_body['CourseInstance'], 'AssignmentsByOutlineNode')
 
 		res = self.testapp.get(enrollment_assignments)
 		assert_that( res.json_body, # No assignments, we're not enrolled for credit
-					 is_({u'href': u'/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses/tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentsByOutlineNode'}) )
+					 is_({u'href': course_href + 'AssignmentsByOutlineNode'}) )
 
 		# It's also not on the page info, and the question sets it contains
 		# aren't either
@@ -658,7 +695,8 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin,ApplicationLayerTest)
 		# Nor are they in the non-assignment-items
 		res = self.testapp.get(enrollment_non_assignments)
 		assert_that( res.json_body, # Nothing, we're not enrolled for credit
-					 is_({'href':'/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses/tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/NonAssignmentAssessmentItemsByOutlineNode'}))
+					 has_entries('href', course_href + 'NonAssignmentAssessmentItemsByOutlineNode',
+								 lesson_page_id, []))
 
 
 		# Now pretend to be enrolled for credit
@@ -670,12 +708,13 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin,ApplicationLayerTest)
 		res = self.testapp.get(enrollment_assignments)
 		assert_that( res.json_body, has_entry(self.lesson_page_id,
 											  contains( has_entries( 'Class', 'Assignment',
-																	 'NTIID', self.assignment.__name__ ))))
+																	 'NTIID', self.assignment_ntiid ))))
 
 		# the question sets are still not actually available because they are in the assignment
 		res = self.testapp.get(enrollment_non_assignments)
 		assert_that( res.json_body,
-					 is_({'href':'/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses/tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/NonAssignmentAssessmentItemsByOutlineNode'}) )
+					 has_entries('href', course_href + 'NonAssignmentAssessmentItemsByOutlineNode',
+								 lesson_page_id, []) )
 
 		# When we get the page info, only the assignment comes back,
 		# not the things it contains
@@ -690,6 +729,9 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin,ApplicationLayerTest)
 class TestNoteCreation(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 	"We can not create notes an any component of an assignment"
 	layer = RegisterAssignmentLayer
+	# This only works in the site that the assignment is registered in;
+	# it could be bypassed by a sufficiently clever person...
+	default_origin = str('http://janux.ou.edu')
 
 	def _do_post(self, container):
 		data = {'Class': 'Note',

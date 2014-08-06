@@ -71,48 +71,38 @@ class RegisterAssignmentLayer(InstructedCourseApplicationTestLayer):
 
 	@classmethod
 	def _register_assignment(cls):
-		lib = component.getUtility(IContentPackageLibrary)
-		database = ZODB.DB( ApplicationTestLayer._storage_base,
-							database_name='Users')
 
-		@WithMockDS(database=database)
-		def _sync1():
-			with mock_db_trans():
-				# XXX
-				# This test is unclean, we re-register globally
-				publish_ou_course_entries()
+		def install_questions():
+			lib = component.getUtility(IContentPackageLibrary)
+			question_set_id  = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.set.qset:QUIZ1_aristotle"
+			assignment_ntiid = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.asg:QUIZ1_aristotle"
 
-		_sync1()
+			question_set = component.getUtility(asm_interfaces.IQuestionSet,
+												name=question_set_id)
 
-		question_set_id  = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.set.qset:QUIZ1_aristotle"
-		assignment_ntiid = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.asg:QUIZ1_aristotle"
+			assignment_part = QAssignmentPart(question_set=question_set, auto_grade=True)
+			due_date = datetime.datetime.today()
+			due_date = due_date.replace(year=due_date.year + 1)
+			assignment = QAssignment( parts=(assignment_part,), available_for_submission_ending=due_date )
+			assignment.__name__ = assignment.ntiid = assignment_ntiid
 
-		question_set = component.getUtility(asm_interfaces.IQuestionSet,
-											name=question_set_id)
+			component.getSiteManager().registerUtility( assignment,
+														provided=asm_interfaces.IQAssignment,
+														name=assignment_ntiid )
 
-		assignment_part = QAssignmentPart(question_set=question_set, auto_grade=True)
-		due_date = datetime.datetime.today()
-		due_date = due_date.replace(year=due_date.year + 1)
-		assignment = QAssignment( parts=(assignment_part,), available_for_submission_ending=due_date )
-		assignment.__name__ = assignment.ntiid = assignment_ntiid
+			# Also make sure this assignment is found in the assignment index
+			# at the same container that that has the quiz data
+			lesson_page_id = "tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:QUIZ_01.01"
+			lesson = lib.pathToNTIID(lesson_page_id)[-1]
+			assignment.__parent__ = lesson
+			asm_cont = IQAssessmentItemContainer(lesson)
+			asm_cont.append(assignment)
 
-		component.provideUtility( assignment,
-								  provides=asm_interfaces.IQAssignment,
-								  name=assignment_ntiid )
-
-		# Also make sure this assignment is found in the assignment index
-		# at the same container that that has the quiz data
-		lesson_page_id = "tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:QUIZ_01.01"
-		lesson = lib.pathToNTIID(lesson_page_id)[-1]
-		assignment.__parent__ = lesson
-		IQAssessmentItemContainer(lesson).append(assignment)
-
-		cls.question_set = question_set
-		cls.assignment = assignment
-		cls.question_set_id = question_set_id
-		cls.assignment_id = assignment_ntiid
-		cls.lesson_page_id = lesson_page_id
-		cls.question_id = 'tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.1'
+			cls.question_set = question_set
+			cls.question_set_id = question_set_id
+			cls.assignment_id = assignment_ntiid
+			cls.lesson_page_id = lesson_page_id
+			cls.question_id = 'tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.1'
 
 		from nti.contenttypes.courses.interfaces import ICourseCatalog
 
@@ -122,7 +112,8 @@ class RegisterAssignmentLayer(InstructedCourseApplicationTestLayer):
 
 		@WithMockDS(database=database)
 		def _sync():
-			with mock_db_trans(site_name='janux.ou.edu'):
+			with mock_db_trans(site_name='platform.ou.edu'):
+				install_questions()
 				catalog = component.getUtility( ICourseCatalog )
 				try:
 					from nti.app.products.courseware.interfaces import ICourseInstance
@@ -175,7 +166,6 @@ class RegisterAssignmentsForEveryoneLayer(RegisterAssignmentLayer):
 
 class RegisterAssignmentLayerMixin(object):
 	question_set = None
-	assignment = None
 	question_set_id = None
 	assignment_id = None
 	lesson_page_id = None
@@ -185,7 +175,6 @@ class RegisterAssignmentLayerMixin(object):
 		super(RegisterAssignmentLayerMixin,self).setUp()
 		self.question_set = RegisterAssignmentLayer.question_set
 		self.question_set_id = RegisterAssignmentLayer.question_set_id
-		self.assignment = RegisterAssignmentLayer.assignment
-		self.assignment_id = RegisterAssignmentLayer.assignment_id
+		self.assignment_ntiid = self.assignment_id = RegisterAssignmentLayer.assignment_id
 		self.question_id = RegisterAssignmentLayer.question_id
 		self.lesson_page_id = RegisterAssignmentLayer.lesson_page_id

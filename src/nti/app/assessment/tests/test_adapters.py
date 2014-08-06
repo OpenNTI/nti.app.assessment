@@ -680,7 +680,9 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin,ApplicationLayerTest)
 		enrollment_oid = res.json_body['NTIID']
 		if link_kind == 'enrollment':
 			links_from = res.json_body
-			course_href = '/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses/tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/'
+			# Note that we now expect these to point through the course, not
+			# the enrollment
+			#record_href = '/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses/tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/'
 
 			enrollment_assignments = self.require_link_href_with_rel( links_from, 'AssignmentsByOutlineNode')
 			enrollment_non_assignments = self.require_link_href_with_rel( links_from, 'NonAssignmentAssessmentItemsByOutlineNode')
@@ -696,14 +698,15 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin,ApplicationLayerTest)
 			return
 		elif link_kind == 'course':
 			links_from = res.json_body['CourseInstance']
-			course_href = res.json_body['CourseInstance']['href']
-			if course_href[-1] != '/':
-				course_href += '/'
-			course_href = urlparse.unquote(course_href)
 			enrollment_assignments = self.require_link_href_with_rel( links_from, 'AssignmentsByOutlineNode')
 			enrollment_non_assignments = self.require_link_href_with_rel( links_from, 'NonAssignmentAssessmentItemsByOutlineNode')
 		else:
 			raise ValueError(link_kind)
+
+		course_href = res.json_body['CourseInstance']['href']
+		if course_href[-1] != '/':
+			course_href += '/'
+		course_href = urlparse.unquote(course_href)
 
 		res = self.testapp.get(enrollment_assignments)
 		assert_that( res.json_body, # No assignments, we're not enrolled for credit

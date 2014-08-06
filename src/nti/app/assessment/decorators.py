@@ -191,10 +191,19 @@ class _AssignmentsByOutlineNodeDecorator(_AbstractTraversableLinkDecorator):
 
 	def _do_decorate_external( self, context, result_map ):
 		links = result_map.setdefault( LINKS, [] )
+		# Old versions of the iPad may assume that they can
+		# always substitute the 'ntiid' value in for the 'href' value,
+		# no matter what the rel is. This is obviously a problem, because
+		# if you fetch the ntiid, you get the EnrollmentRecord it refers to (
+		# at this writing, only records have NTIIDs, not the course instance)
+		# because we don't traverse through to find the view.
+		# So, we force link externalization to ignore the ntiid.
 		for rel in 'AssignmentsByOutlineNode', 'NonAssignmentAssessmentItemsByOutlineNode':
-			links.append( Link( context,
-								rel=rel,
-								elements=(rel,)) )
+			link = Link( context,
+						 rel=rel,
+						 elements=(rel,),
+						 ignore_properties_of_target=True)
+			links.append(link)
 
 
 from .interfaces import IUsersCourseAssignmentHistoryItemFeedback

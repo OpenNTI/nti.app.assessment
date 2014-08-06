@@ -12,7 +12,7 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 #disable: accessing protected members, too many methods
-#pylint: disable=W0212,R0904
+#pylint: disable=I0011,W0212,R0904
 
 
 from hamcrest import assert_that
@@ -34,6 +34,7 @@ from hamcrest import is_not
 from hamcrest import not_none
 does_not = is_not
 import fudge
+import urlparse
 
 from nti.dataserver.tests import mock_dataserver
 from nti.testing.matchers import validly_provides
@@ -648,8 +649,7 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 		assert_that( info.date_time[:5], is_( download_res.last_modified.timetuple()[:5] ) )
 
 from nti.dataserver.interfaces import IUser
-class IMySpecificUser(IUser):
-	"marker"
+
 from zope import interface
 from nti.mimetype.mimetype import nti_mimetype_with_class
 
@@ -658,8 +658,19 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin,ApplicationLayerTest)
 	default_origin = str('http://janux.ou.edu')
 	# With the feature missing
 
-	@WithSharedApplicationMockDS(users=True,testapp=True, user_hook=lambda u: interface.alsoProvides(u, IMySpecificUser))
-	def test_assignment_items_view(self):
+	@WithSharedApplicationMockDS(users=True,testapp=True)
+	def test_assignment_items_view_links_in_enrollments(self):
+		self._do_test_assignment_items_view('enrollment')
+
+	@WithSharedApplicationMockDS(users=True,testapp=True)
+	def test_assignment_items_view_links_in_enrollment_ntiid(self):
+		self._do_test_assignment_items_view('enrollment_ntiid')
+
+	@WithSharedApplicationMockDS(users=True,testapp=True)
+	def test_assignment_items_view_links_from_instance(self):
+		self._do_test_assignment_items_view('course')
+
+	def _do_test_assignment_items_view(self, link_kind):
 
 		# Make sure we're enrolled
 		res = self.testapp.post_json( '/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses',
@@ -667,11 +678,32 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin,ApplicationLayerTest)
 									  status=201 )
 
 		enrollment_oid = res.json_body['NTIID']
-		enrollment_assignments = self.require_link_href_with_rel( res.json_body, 'AssignmentsByOutlineNode')
-		enrollment_non_assignments = self.require_link_href_with_rel( res.json_body, 'NonAssignmentAssessmentItemsByOutlineNode')
+		if link_kind == 'enrollment':
+			links_from = res.json_body
+			course_href = '/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses/tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/'
 
-		course_href = '/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses/tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/'
-		self.require_link_href_with_rel( res.json_body['CourseInstance'], 'AssignmentsByOutlineNode')
+			enrollment_assignments = self.require_link_href_with_rel( links_from, 'AssignmentsByOutlineNode')
+			enrollment_non_assignments = self.require_link_href_with_rel( links_from, 'NonAssignmentAssessmentItemsByOutlineNode')
+
+		elif link_kind == 'enrollment_ntiid':
+			# The ntiid and mime type are missing, because they would be wrong
+			# (pointing to the enrollment record)
+			for k in 'AssignmentsByOutlineNode', 'NonAssignmentAssessmentItemsByOutlineNode':
+				link = self.link_with_rel(res.json_body, k)
+
+				assert_that( link, does_not( has_key('ntiid') ))
+				assert_that( link, does_not( has_key('type') ))
+			return
+		elif link_kind == 'course':
+			links_from = res.json_body['CourseInstance']
+			course_href = res.json_body['CourseInstance']['href']
+			if course_href[-1] != '/':
+				course_href += '/'
+			course_href = urlparse.unquote(course_href)
+			enrollment_assignments = self.require_link_href_with_rel( links_from, 'AssignmentsByOutlineNode')
+			enrollment_non_assignments = self.require_link_href_with_rel( links_from, 'NonAssignmentAssessmentItemsByOutlineNode')
+		else:
+			raise ValueError(link_kind)
 
 		res = self.testapp.get(enrollment_assignments)
 		assert_that( res.json_body, # No assignments, we're not enrolled for credit

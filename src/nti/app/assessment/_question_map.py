@@ -207,18 +207,21 @@ class QuestionMap(dict):
 
 		"""
 		key_for_this_level = nearest_containing_key
-		if index.get( 'filename' ):
-			key_for_this_level = content_package.make_sibling_key( index['filename'] )
+		index_key = index.get('filename')
+		if index_key:
+			key_for_this_level = content_package.make_sibling_key(index_key)
 			factory = list
 			if key_for_this_level in self.by_file:
 				# Across all indexes, every filename key should be unique.
 				# We rely on this property when we lookup the objects to return
 				# We make an exception for index.html, due to a duplicate bug in
 				# old versions of the exporter, but we ensure we can't put any questions on it
-				if index['filename'] == 'index.html':
+				if index_key == 'index.html':
 					factory = tuple
-					logger.warning( "Duplicate 'index.html' entry in %s; update content", content_package )
+					logger.warning("Duplicate 'index.html' entry in %s; update content", content_package )
 				else: # pragma: no cover
+					logger.pragma("Second entry for the same file %s,%s", index_key, key_for_this_level)
+					__traceback_info__ = index_key, key_for_this_level
 					raise ValueError( key_for_this_level, "Found a second entry for the same file" )
 
 			self.by_file[key_for_this_level] = factory()

@@ -43,6 +43,8 @@ from nti.appserver.tests import ExLibraryApplicationTestLayer
 class TestApplicationAssessment(ApplicationLayerTest):
 	layer = ExLibraryApplicationTestLayer
 
+	default_username = 'outest75'
+
 	child_ntiid =  'tag:nextthought.com,2011-10:MN-NAQ-MiladyCosmetology.naq.1'
 
 	question_ntiid = child_ntiid
@@ -153,7 +155,7 @@ class TestApplicationAssessment(ApplicationLayerTest):
 		ext_obj['ContainerId'] = 'tag:nextthought.com,2011-10:mathcounts-HTML-MN.2012.0'
 		# Submit mimetype only, just to be sure it works
 		ext_obj.pop( 'Class' )
-		res = self.testapp.post_json( '/dataserver2/users/sjohnson@nextthought.com', ext_obj )
+		res = self.testapp.post_json( '/dataserver2/users/' + self.default_username, ext_obj )
 		self._check_submission( res )
 
 	@WithSharedApplicationMockDS(users=True,testapp=True)
@@ -164,7 +166,7 @@ class TestApplicationAssessment(ApplicationLayerTest):
 		ext_obj['ContainerId'] = 'tag:nextthought.com,2011-10:mathcounts-HTML-MN.2012.0'
 		# Submit Class only, just to be sure it works
 		ext_obj.pop( 'MimeType' )
-		res = self.testapp.post_json( '/dataserver2/users/sjohnson@nextthought.com', ext_obj )
+		res = self.testapp.post_json( '/dataserver2/users/' + self.default_username, ext_obj )
 		self._check_submission( res )
 
 	@WithSharedApplicationMockDS(users=True,testapp=True)
@@ -176,7 +178,7 @@ class TestApplicationAssessment(ApplicationLayerTest):
 			ext_obj = toExternalObject( sub )
 			ext_obj['ContainerId'] = 'tag:nextthought.com,2011-10:mathcounts-HTML-MN.2012.0'
 
-			res = self.testapp.post_json( '/dataserver2/users/sjohnson@nextthought.com', ext_obj )
+			res = self.testapp.post_json( '/dataserver2/users/' + self.default_username, ext_obj )
 			self._check_submission( res )
 			assert_that( res.json_body, has_entry( 'parts', has_item( has_entries( 'assessedValue', 1.0, 'submittedResponse', submittedResponse ) ) ) )
 
@@ -187,6 +189,6 @@ class TestApplicationAssessment(ApplicationLayerTest):
 			ext_obj = toExternalObject( sub )
 			ext_obj['ContainerId'] = 'tag:nextthought.com,2011-10:mathcounts-HTML-MN.2012.0'
 
-			res = self.testapp.post_json( '/dataserver2/users/sjohnson@nextthought.com', ext_obj )
+			res = self.testapp.post_json( '/dataserver2/users/' + self.default_username, ext_obj )
 			self._check_submission( res )
 			assert_that( res.json_body, has_entry( 'parts', has_item( has_entries( 'assessedValue', 1.0, 'submittedResponse', submittedResponse ) ) ) )

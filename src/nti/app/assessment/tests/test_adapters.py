@@ -81,6 +81,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 	features = ('assignments_for_everyone',)
 
 	default_origin = str('http://janux.ou.edu')
+	default_username = 'outest75'
 
 	@WithSharedApplicationMockDS
 	def test_wrong_id(self):
@@ -165,6 +166,21 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 
 		self._check_submission(res)
 
+	@WithSharedApplicationMockDS(users=True,testapp=True,default_authenticate=True)
+	def test_pending_application_assignment_not_enrolled(self):
+
+		# Sends an assignment through the application by posting to the assignment,
+		# but we're not enrolled in a course using that assignment, so it fails
+		qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id)
+		submission = AssignmentSubmission(assignmentId=self.assignment_id, parts=(qs_submission,))
+		ext_obj = to_external_object( submission )
+
+
+		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id,
+									  ext_obj,
+									  status=403)
+
+
 	def _check_submission(self, res, history=None, last_viewed=0):
 		assert_that( res.status_int, is_( 201 ))
 		assert_that( res.json_body, has_entry( StandardExternalFields.CREATED_TIME, is_( float ) ) )
@@ -187,7 +203,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 			# Because we're not enrolled...actually, we shouldn't
 			# have been able to submit...this is here to make sure something
 			# breaks when acls change
-			res = self._fetch_user_url( '/Courses/EnrolledCourses/CLC3403/AssignmentHistories/sjohnson@nextthought.com', status=404 )
+			res = self._fetch_user_url( '/Courses/EnrolledCourses/CLC3403/AssignmentHistories/' + self.default_username, status=404 )
 
 		return res
 
@@ -202,7 +218,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 		del ext_obj['Class']
 		assert_that( ext_obj, has_entry( 'MimeType', 'application/vnd.nextthought.assessment.assignmentsubmission'))
 		# Make sure we're enrolled
-		res = self.testapp.post_json( '/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses',
+		res = self.testapp.post_json( '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses',
 									  'CLC 3403',
 									  status=201 )
 
@@ -210,10 +226,10 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 		course_history_link = self.require_link_href_with_rel( res.json_body['CourseInstance'], 'AssignmentHistory')
 		course_instance_link = res.json_body['CourseInstance']['href']
 		assert_that( enrollment_history_link,
-					 is_('/dataserver2/users/sjohnson%40nextthought.com/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentHistories/sjohnson@nextthought.com'))
+					 is_('/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentHistories/' + self.default_username))
 
 		assert_that( course_history_link,
-					 is_('/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice/AssignmentHistories/sjohnson@nextthought.com') )
+					 is_('/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice/AssignmentHistories/' + self.default_username) )
 
 
 		# Both history links are equivalent and work; and both are empty before I submit
@@ -256,7 +272,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 			assert_that( feedback, has_entry('Items', has_length(1)))
 			assert_that( feedback['Items'], has_item( has_entry( 'body', ['Other feedback'])))
 			assert_that( feedback['Items'], has_item( has_entry( 'href',
-																 ends_with('AssignmentHistories/sjohnson%40nextthought.com/tag%3Anextthought.com%2C2011-10%3AOU-NAQ-CLC3403_LawAndJustice.naq.asg%3AQUIZ1_aristotle/Feedback/0') ) ) )
+																 ends_with('AssignmentHistories/'+self.default_username+'/tag%3Anextthought.com%2C2011-10%3AOU-NAQ-CLC3403_LawAndJustice.naq.asg%3AQUIZ1_aristotle/Feedback/0') ) ) )
 
 
 		# We can modify the view date by putting to the field
@@ -346,7 +362,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 	def test_assignment_items_view(self):
 
 		# Make sure we're enrolled
-		res = self.testapp.post_json( '/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses',
+		res = self.testapp.post_json( '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses',
 									  'CLC 3403',
 									  status=201 )
 		enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'AssignmentHistory')
@@ -423,7 +439,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 
 		try:
 			# Make sure we're enrolled
-			res = self.testapp.post_json( '/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses',
+			res = self.testapp.post_json( '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses',
 										  'CLC 3403',
 										  status=201 )
 
@@ -598,7 +614,7 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 		assert_that( internalization.find_factory_for( ext_obj ),
 				 is_( not_none() ) )
 		# Make sure we're enrolled
-		res = self.testapp.post_json( '/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses',
+		res = self.testapp.post_json( '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses',
 									  'CLC 3403',
 									  status=201 )
 		enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'AssignmentHistory')
@@ -673,7 +689,7 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin,ApplicationLayerTest)
 	def _do_test_assignment_items_view(self, link_kind):
 
 		# Make sure we're enrolled
-		res = self.testapp.post_json( '/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses',
+		res = self.testapp.post_json( '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses',
 									  'CLC 3403',
 									  status=201 )
 
@@ -682,7 +698,7 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin,ApplicationLayerTest)
 			links_from = res.json_body
 			# Note that we now expect these to point through the course, not
 			# the enrollment
-			#record_href = '/dataserver2/users/sjohnson@nextthought.com/Courses/EnrolledCourses/tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/'
+			#record_href = '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses/tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/'
 
 			enrollment_assignments = self.require_link_href_with_rel( links_from, 'AssignmentsByOutlineNode')
 			enrollment_non_assignments = self.require_link_href_with_rel( links_from, 'NonAssignmentAssessmentItemsByOutlineNode')

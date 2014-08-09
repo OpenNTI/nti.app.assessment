@@ -130,7 +130,6 @@ def _begin_assessment_for_assignment_submission(submission):
 	outside the context of their enclosing course---actually, this is
 	no longer exactly true, but we can still associate a course enrollment).
 	"""
-
 	# Get the assignment
 	assignment = component.getUtility(asm_interfaces.IQAssignment,
 									  name=submission.assignmentId)

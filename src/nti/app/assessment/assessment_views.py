@@ -118,24 +118,39 @@ from pyramid.interfaces import IExceptionResponse
 @view_config(route_name="objects.generic.traversal",
 			 context=IQAssignment,
 			 renderer='rest',
-			 permission=nauth.ACT_CREATE,
+			 #permission=nauth.ACT_CREATE, # see below
 			 request_method='POST')
 class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 								   ModeledContentUploadRequestUtilsMixin):
 	"""
 	Students can POST to the assignment to create their submission.
-
-	The ACL on an assignment will generally limit this to people that
-	are enrolled in the course.
-
-	.. note:: The ACL is currently not implemented; a test will fail when it is.
-
 	"""
+
+	# XXX: We would like to express access control via
+	# an ACL or the zope security role map.
+	# In the past, this more-or-less worked because there was
+	# one piece of content defining one course containing assignments only
+	# used by that course, and moreover, that course knew exactly about its
+	# permissioning and was intimately tied to a global community that enrolled
+	# users were put in. Thus, the .nti_acl file that defined access to the course content
+	# also served for the assignment.
+	# Now, however, we're in the situation where none of that holds: courses
+	# are separate from content, and define their own permissioning. But assignments are
+	# still defined from a piece of content and would inherit its permissions if we let it.
+
+	# Therefore, we simply do not specify a permission for this view, and instead
+	# do an enrollment check.
 
 	content_predicate = IQAssignmentSubmission.providedBy
 
 	def _do_call(self):
 		creator = self.remoteUser
+
+		course = component.queryMultiAdapter( (self.context, creator),
+											  ICourseInstance)
+		if course is None:
+			raise hexc.HTTPForbidden("Must be enrolled in a course.")
+
 
 		submission = self.readCreateUpdateContentObject(creator)
 		# Re-use the same code for putting to a user
@@ -472,8 +487,8 @@ class NonAssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
 					items.remove(item)
 
 		return result
-	
-	
+
+
 @view_config(context=ICourseInstance)
 @view_config(context=ICourseInstanceEnrollment)
 @view_defaults(route_name='objects.generic.traversal',
@@ -482,7 +497,7 @@ class NonAssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
 			   request_method='GET',
 			   name='AllTasksOutline') # See decorators
 class AllTasksOutlineView(AbstractAuthenticatedView):
-	
+
 	def __call__(self):
 		instance = ICourseInstance(self.request.context)
 		catalog = ICourseAssessmentItemCatalog(instance)
@@ -490,9 +505,8 @@ class AllTasksOutlineView(AbstractAuthenticatedView):
 		result = LocatedExternalDict()
 		result.__name__ = self.request.view_name
 		result.__parent__ = self.request.context
-	
+
 		for item in catalog.iter_assessment_items():
 			unit = item.__parent__
 			result.setdefault(unit.ntiid, []).append(item)
 		return result
-		

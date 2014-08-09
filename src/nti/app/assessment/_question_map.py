@@ -16,7 +16,6 @@ import simplejson
 
 from zope import interface
 from zope import component
-from zope.annotation import factory as an_factory
 
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
 from zope.lifecycleevent.interfaces import IObjectModifiedEvent
@@ -35,6 +34,8 @@ from nti.externalization.persistence import NoPickle
 from nti.schema.field import Dict
 from nti.schema.field import List
 from nti.schema.field import Object
+
+from nti.dublincore.time_mixins import PersistentCreatedAndModifiedTimeObject
 
 def _ntiid_object_hook( k, v, x ):
 	"""
@@ -55,12 +56,29 @@ def _ntiid_object_hook( k, v, x ):
 @interface.implementer(asm_interfaces.IQAssessmentItemContainer,
 					   nti_interfaces.IZContained)
 @component.adapter(lib_interfaces.IContentUnit)
-class _AssessmentItemContainer(PersistentList):
+class _AssessmentItemContainer(PersistentList,
+							   PersistentCreatedAndModifiedTimeObject):
 	__name__ = None
 	__parent__ = None
+	_SET_CREATED_MODTIME_ON_INIT = False
 
-
-ContentUnitAssessmentItems = an_factory(_AssessmentItemContainer)
+# Instead of using annotations on the content objects, because we're
+# not entirely convinced that the annotation utility, which is ntiid
+# based, works correctly for our cases of having matching ntiids but
+# different objects, we directly store an attribute on the object.
+import time
+@interface.implementer(asm_interfaces.IQAssessmentItemContainer)
+@component.adapter(lib_interfaces.IContentUnit)
+def ContentUnitAssessmentItems(unit):
+	try:
+		return unit._question_map_assessment_item_container
+	except AttributeError:
+		result = unit._question_map_assessment_item_container = _AssessmentItemContainer()
+		result.createdTime = time.time()
+		result.__parent__ = unit
+		result.__name__ = '_question_map_assessment_item_container'
+		# But leave last modified as zero
+		return result
 
 class IFileQuestionMap(interface.Interface):
 	"""
@@ -279,6 +297,20 @@ class QuestionMap(dict):
 		for questions in self.by_file.values():
 			questions.sort( key=lambda q: q.__name__ )
 
+def _needs_load_or_update(content_package):
+	key = content_package.does_sibling_entry_exist('assessment_index.json')
+	if not key:
+		return
+
+	main_container = asm_interfaces.IQAssessmentItemContainer(content_package)
+	if key.lastModified <= main_container.lastModified:
+		logger.info("No change to assessment_index.json since %s, ignoring",
+					key.modified)
+		return
+
+	main_container.lastModified = key.lastModified
+	return key
+
 @component.adapter(lib_interfaces.IContentPackage,IObjectAddedEvent)
 def add_assessment_items_from_new_content( content_package, event ):
 	"""
@@ -289,9 +321,12 @@ def add_assessment_items_from_new_content( content_package, event ):
 	if question_map is None: #pragma: no cover
 		return
 
-	logger.info("Adding assessment items from new content %s %s", content_package, event)
+	key = _needs_load_or_update(content_package)
+	if not key:
+		return
 
-	asm_index_text = content_package.read_contents_of_sibling_entry( 'assessment_index.json' )
+	logger.info("Reading assessment items from new content %s %s", content_package, event)
+	asm_index_text = key.readContents()
 	_populate_question_map_from_text( question_map, asm_index_text, content_package )
 
 # We usually get two or more copies, one at the top-level, one embedded
@@ -354,26 +389,6 @@ def _load_question_map_json(asm_index_text):
 	return index
 
 def _populate_question_map_from_text( question_map, asm_index_text, content_package ):
-
-	### XXX: JAM: There seems to be a path, later, after startup, where we can access the
-	# IQAssessmentItemContainer for a content unit that did not appear in the assessment index.
-	# If it is done during a transaction that wants to commit (a POST/PUT) the hierarchy
-	# of AnnotationUtilities will ensure that the IQAssessmentItemContainer we access is stored
-	# in the *persistent* local site utility...but our implementation isn't yet persistent
-	# and aborts the commit.
-	# The workaround is to be sure that every content unit gets its annotation in the root,
-	# whether we need it later on or not.
-	# (Even after we make things fully persistent, doing this at library update time
-	# is more efficient than creating and throwing away the annotation data during each GET
-	# that would need to access it.)
-	# Then we still have to figure out what that path is...the example is on POSTing a note
-	# to certain Pages collections.
-	def _r(unit):
-		asm_interfaces.IQAssessmentItemContainer(unit)
-		for c in unit.children:
-			_r(c)
-	_r(content_package)
-
 	index = _load_question_map_json(asm_index_text)
 	if not index:
 		return
@@ -425,9 +440,10 @@ def remove_assessment_items_from_oldcontent(content_package, event):
 
 @component.adapter(lib_interfaces.IContentPackage, IObjectModifiedEvent)
 def update_assessment_items_when_modified(content_package, event):
-	# Not very efficient, but it works
-	remove_assessment_items_from_oldcontent(content_package, event)
-	add_assessment_items_from_new_content(content_package, event)
+	if _needs_load_or_update(content_package):
+		logger.info("Updating assessment items from modified content %s %s", content_package, event)
+		remove_assessment_items_from_oldcontent(content_package, event)
+		add_assessment_items_from_new_content(content_package, event)
 
 
 import argparse

@@ -192,6 +192,7 @@ def _begin_assessment_for_assignment_submission(submission):
 from nti.dataserver.traversal import find_interface
 from nti.contentlibrary.interfaces import IContentPackage
 from nti.contenttypes.courses.interfaces import IPrincipalEnrollments
+from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from zope.security.interfaces import IPrincipal
 
@@ -217,17 +218,22 @@ def _course_from_assignment_lineage(assignment, user):
 	package to the first course.
 	"""
 
-	# Actually, in both cases, we want to check enrollment, so
-	# we always use that first
+	# Actually, in every case, we want to check enrollment, so
+	# we always use that first.
+
+	# However, in old databases, with really legacy courses,
+	# we find that the instructors are also enrolled in the courses...
+	# and in some places, we had a course that was both old and new, briefly,
+	# leading to issues distinguishing which one we want.
+
+	# To handle that case, and to be robust about removing/delisting
+	# courses, we begin by checking each entry in the course catalog;
+	# the old courses will no longer be present. This also
+	# reduces the number of loops we have to make slightly.
+
 	package = find_interface(assignment, IContentPackage, strict=False)
 	if package is None:
 		return None
-	# TODO: Probably really inefficient
-	for enrollments in component.subscribers( (user,), IPrincipalEnrollments):
-		for enrollment in enrollments.iter_enrollments():
-			course = ICourseInstance(enrollment)
-			if package in course.ContentPackageBundle.ContentPackages:
-				return course
 
 	# Nothing. OK, maybe we're an instructor?
 	catalog = component.queryUtility(ICourseCatalog)
@@ -237,8 +243,24 @@ def _course_from_assignment_lineage(assignment, user):
 	prin = IPrincipal(user)
 	for entry in catalog.iterCatalogEntries():
 		course = ICourseInstance(entry)
-		if prin in course.instructors and package in course.ContentPackageBundle.ContentPackages:
-			return course
+		if package in course.ContentPackageBundle.ContentPackages:
+			# Ok, found one. Are we enrolled or an instructor?
+			if prin in course.instructors:
+				return course
+			if ICourseEnrollments(course).get_enrollment_for_principal(user) is not None:
+				return course
+
+	# Snap. No current course matches. Fall back to the old approach of checking
+	# all your enrollments. This could find things not currently in the catalog.
+	# TODO: Probably really inefficient
+	for enrollments in component.subscribers( (user,), IPrincipalEnrollments):
+		for enrollment in enrollments.iter_enrollments():
+			course = ICourseInstance(enrollment)
+			if package in course.ContentPackageBundle.ContentPackages:
+				return course
+			if ICourseEnrollments(course).get_enrollment_for_principal(user) is not None:
+				return course
+
 
 
 

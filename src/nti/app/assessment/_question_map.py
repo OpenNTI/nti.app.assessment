@@ -220,7 +220,7 @@ class QuestionMap(dict):
 					factory = tuple
 					logger.warning("Duplicate 'index.html' entry in %s; update content", content_package )
 				else: # pragma: no cover
-					logger.pragma("Second entry for the same file %s,%s", index_key, key_for_this_level)
+					logger.debug("Second entry for the same file %s,%s", index_key, key_for_this_level)
 					__traceback_info__ = index_key, key_for_this_level
 					raise ValueError( key_for_this_level, "Found a second entry for the same file" )
 

@@ -20,7 +20,7 @@ from nti.contentlibrary import interfaces as lib_interfaces
 from .. import _question_map as qm_module
 
 from nti.app.testing.application_webtest import ApplicationLayerTest
-from nti.appserver.contentlibrary.tests import CourseTestContentApplicationTestLayer
+from nti.app.contentlibrary.tests import CourseTestContentApplicationTestLayer
 
 class TestApplicationQuestionsRegistered(ApplicationLayerTest):
 	layer = CourseTestContentApplicationTestLayer
@@ -42,3 +42,17 @@ class TestApplicationQuestionsRegistered(ApplicationLayerTest):
 		# And everything is gone.
 		assert_that( component.queryUtility( asm_interfaces.IQuestionSet, question_set.ntiid ),
 					 is_( none() ) )
+
+		# But we can get it back...
+		asm_interfaces.IQAssessmentItemContainer(content_package).lastModified = 0
+		qm_module.update_assessment_items_when_modified(content_package, None)
+		question_set = component.getUtility( asm_interfaces.IQuestionSet,
+											 name="tag:nextthought.com,2011-10:NTI-NAQ-CourseTestContent.naq.set.qset:QUIZ1_aristotle" )
+		for question in question_set.questions:
+			assert_that( question, is_( same_instance( component.getUtility( asm_interfaces.IQuestion,
+																			 name=question.ntiid ))))
+
+		# Sadly, some other tests require these to be removed.
+		# (test_registered_utility in nti.app.assessment.tests.test_application_assessment.TestApplicationAssessment)
+		# So we definitely have ordering issues
+		qm_module.remove_assessment_items_from_oldcontent(content_package, None)

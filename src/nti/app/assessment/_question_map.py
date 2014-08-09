@@ -312,7 +312,7 @@ def _needs_load_or_update(content_package):
 	return key
 
 @component.adapter(lib_interfaces.IContentPackage,IObjectAddedEvent)
-def add_assessment_items_from_new_content( content_package, event ):
+def add_assessment_items_from_new_content( content_package, event, key=None ):
 	"""
 	Assessment items have their NTIID as their __name__, and the NTIID of their primary
 	container within this context as their __parent__ (that should really be the hierarchy entry)
@@ -321,7 +321,7 @@ def add_assessment_items_from_new_content( content_package, event ):
 	if question_map is None: #pragma: no cover
 		return
 
-	key = _needs_load_or_update(content_package)
+	key = key or _needs_load_or_update(content_package) # let other callers give us the key
 	if not key:
 		return
 
@@ -440,10 +440,11 @@ def remove_assessment_items_from_oldcontent(content_package, event):
 
 @component.adapter(lib_interfaces.IContentPackage, IObjectModifiedEvent)
 def update_assessment_items_when_modified(content_package, event):
-	if _needs_load_or_update(content_package):
+	key = _needs_load_or_update(content_package)
+	if key:
 		logger.info("Updating assessment items from modified content %s %s", content_package, event)
 		remove_assessment_items_from_oldcontent(content_package, event)
-		add_assessment_items_from_new_content(content_package, event)
+		add_assessment_items_from_new_content(content_package, event, key=key)
 
 
 import argparse

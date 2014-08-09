@@ -204,6 +204,11 @@
 	<subscriber handler=".subscribers.remove_object_from_course_activity"
 				for=".interfaces.IUsersCourseAssignmentHistoryItemFeedback zope.intid.interfaces.IIntIdRemovedEvent"/>
 
+	<!-- other events -->
+	<subscriber handler=".feedback.when_feedback_container_modified_modify_history_item" />
+	<subscriber handler=".feedback.when_feedback_modified_modify_history_item" />
+
+
 	<!-- Object transformers (internalization) -->
 	<adapter factory=".adapters._question_submission_transformer" />
 
@@ -235,6 +240,8 @@
 
 	<adapter factory=".assessment_views.AssignmentHistoryRequestTraversable" />
 	<adapter factory=".adapters._UsersCourseAssignmentHistoriesTraversable" />
+
+
 
 	<!-- Contentsearch -->
 	<utility factory=".content_search._assignmentfeedback_metadata" name="assignmentfeedback" />

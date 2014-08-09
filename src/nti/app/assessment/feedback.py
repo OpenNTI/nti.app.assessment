@@ -114,3 +114,39 @@ class UsersCourseAssignmentHistoryItemFeedbackContainer(PersistentCreatedModDate
 		# our default ACL provider uses that.
 		# If the user is deleted, we won't be able to do this
 		return IUser(self.__parent__, None)
+
+from zope.container.interfaces import IContainerModifiedEvent
+from zope.lifecycleevent.interfaces import IObjectModifiedEvent
+from zope import component
+
+@component.adapter(IUsersCourseAssignmentHistoryItemFeedbackContainer,
+				   IContainerModifiedEvent)
+def when_feedback_container_modified_modify_history_item(container, event,
+														 update_mod=True):
+	"""
+	Because we directly surface the 'Feedback' container as an inline
+	property of the history item, and not as a secondary link, it's important
+	to clients that when the feedback item or its descendents are modified
+	that the top-level history item is modified as well (so that they can
+	depend on LastModified).
+	"""
+	try:
+		if update_mod:
+			# because we dont know what order these fire in,
+			# the main last mod subscriber may or may not have run yet
+			container.updateLastMod()
+		container.__parent__.updateLastModIfGreater(container.lastModified)
+	except AttributeError:
+		pass
+
+# likewise for simple modification events inside the container
+@component.adapter(IUsersCourseAssignmentHistoryItemFeedback,
+				   IObjectModifiedEvent)
+def when_feedback_modified_modify_history_item(feedback, event):
+	try:
+		feedback.updateLastMod() # not sure of order
+		container = feedback.__parent__
+		container.updateLastModIfGreater(feedback.lastModified)
+		when_feedback_container_modified_modify_history_item(container, event, False)
+	except AttributeError:
+		pass

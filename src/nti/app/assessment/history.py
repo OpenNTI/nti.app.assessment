@@ -119,6 +119,21 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 		if ICourseInstance.isOrExtends(iface):
 			return self.__parent__
 
+	@property
+	def __acl__(self):
+		"Our ACL allows read access for the creator and read/write access for the instructors of the course"
+		# This is a near-duplicate of the ACL applied to the child items;
+		# we could probably remove the child item ACLs if we're assured of good
+		# testing? Although we might have to grant CREATE access to the child?
+		# (in fact we do)
+		course = ICourseInstance(self, None)
+		instructors = getattr(course, 'instructors', ()) # already principals
+		aces = [ace_allowing( self.owner, ACT_READ, UsersCourseAssignmentHistory )]
+		for instructor in instructors:
+			aces.append( ace_allowing( instructor, ALL_PERMISSIONS, UsersCourseAssignmentHistory) )
+		aces.append(ACE_DENY_ALL)
+		return acl_from_aces( aces )
+
 from nti.dataserver.authorization import ACT_READ
 from nti.dataserver.interfaces import IACLProvider
 from nti.dataserver.interfaces import ALL_PERMISSIONS

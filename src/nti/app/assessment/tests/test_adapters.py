@@ -181,6 +181,48 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 									  status=403)
 
 
+	@WithSharedApplicationMockDS(users=('outest5',),testapp=True,default_authenticate=True)
+	def test_fetching_entire_assignment_history_collection(self):
+		# Only the owner and instructor can, others cannot
+		instructor_environ = self._make_extra_environ(username='harp4162')
+		outest_environ = self._make_extra_environ(username='outest5')
+		outest_environ.update( {b'HTTP_ORIGIN': b'http://janux.ou.edu'} )
+
+
+
+		res = self.testapp.post_json( '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses',
+									  'CLC 3403',
+									  status=201 )
+
+		default_enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'AssignmentHistory')
+		assert_that( default_enrollment_history_link,
+					 is_('/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentHistories/' + self.default_username))
+
+
+		res = self.testapp.post_json( '/dataserver2/users/outest5/Courses/EnrolledCourses',
+								'CLC 3403',
+								status=201,
+								extra_environ=outest_environ )
+
+		user2_enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'AssignmentHistory')
+
+
+		# each can fetch his own
+		self.testapp.get(default_enrollment_history_link)
+		self.testapp.get(user2_enrollment_history_link, extra_environ=outest_environ)
+
+		# as can the instructor
+		self.testapp.get(default_enrollment_history_link, extra_environ=instructor_environ)
+		self.testapp.get(user2_enrollment_history_link, extra_environ=instructor_environ)
+
+		# but they can't get each others
+		self.testapp.get(default_enrollment_history_link,
+						 extra_environ=outest_environ,
+						 status=403)
+		self.testapp.get(user2_enrollment_history_link, status=403)
+
+
+
 	def _check_submission(self, res, history=None, last_viewed=0):
 		assert_that( res.status_int, is_( 201 ))
 		assert_that( res.json_body, has_entry( StandardExternalFields.CREATED_TIME, is_( float ) ) )
@@ -243,6 +285,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 		self._check_submission(res, enrollment_history_link)
 
 		history_res = self._check_submission( res, course_history_link )
+		history_item_href = history_res.json_body['Items'][self.assignment_id]['href']
 		last_viewed_href = self.require_link_href_with_rel( history_res.json_body, 'lastViewed' )
 		__traceback_info__ = history_res.json_body
 		history_feedback_container_href = history_res.json_body['Items'].items()[0][1]['Feedback']['href']
@@ -322,6 +365,11 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 		# ... or any other enrolled user...
 		notable_res3 = self.fetch_user_recursive_notable_ugd(username='outest5', extra_environ=outest_environ)
 		assert_that( notable_res3.json_body, has_entry('TotalItemCount', 0))
+
+		# (who, BTW, can't see the item)
+		self.testapp.get(history_item_href, extra_environ=outest_environ, status=403)
+		# although we can
+		self.testapp.get(history_item_href)
 
 
 		# We can each delete our own feedback item and it vanishes completely

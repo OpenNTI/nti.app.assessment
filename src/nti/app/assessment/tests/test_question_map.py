@@ -18,8 +18,7 @@ from hamcrest import has_property
 from hamcrest import contains_inanyorder
 from hamcrest import same_instance
 
-import nti.appserver
-from .._question_map import QuestionMap, _populate_question_map_from_text
+from .._question_map import QuestionMap as _QuestionMap, _populate_question_map_from_text
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
@@ -29,6 +28,21 @@ from zope.annotation.interfaces import IAttributeAnnotatable
 from nti.dataserver.authorization_acl import ACL
 
 import nti.testing.base
+
+class QuestionMap(_QuestionMap, dict):
+	# For testing, we capture data, emulating
+	# previous behaviour.
+
+	def __init__(self):
+		_QuestionMap.__init__(self)
+		dict.__init__(self)
+		self.by_file = dict()
+
+	def _get_by_file(self):
+		return self.by_file
+
+	def _store_object(self, k, v):
+		self[k] = v
 
 ASSM_ITEMS = {
 	'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion': {'Class': 'Question',

@@ -12,6 +12,7 @@ from hamcrest import has_item
 from hamcrest import has_key
 from hamcrest import has_entries
 from hamcrest import greater_than
+from hamcrest import greater_than_or_equal_to
 from hamcrest import not_none
 from hamcrest import none
 from hamcrest.library import has_property
@@ -48,21 +49,6 @@ class TestApplicationAssessment(ApplicationLayerTest):
 	child_ntiid =  'tag:nextthought.com,2011-10:MN-NAQ-MiladyCosmetology.naq.1'
 
 	question_ntiid = child_ntiid
-
-	@WithSharedApplicationMockDS
-	def test_registered_utility(self):
-		qmap = component.getUtility( IFileQuestionMap )
-		assert_that( qmap,
-					 verifiably_provides( IFileQuestionMap ) )
-		assert_that( qmap,
-					 has_length( 25 ) )
-		assert_that( qmap,
-					 has_key( self.child_ntiid ) )
-		assert_that( qmap.by_file,
-					 has_key( has_property( 'absolute_path',
-											os.path.join( ExLibraryApplicationTestLayer.library_dir,
-														  'WithAssessment', 'tag_nextthought_com_2011-10_mathcounts-HTML-MN_2012_0.html' ) ) ) )
-
 
 	@WithSharedApplicationMockDS(users=True, testapp=True)
 	def test_fetch_assessment_question_by_ntiid(self):

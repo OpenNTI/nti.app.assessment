@@ -62,6 +62,7 @@ class _AssessmentItemContainer(PersistentList,
 	__parent__ = None
 	_SET_CREATED_MODTIME_ON_INIT = False
 
+
 # Instead of using annotations on the content objects, because we're
 # not entirely convinced that the annotation utility, which is ntiid
 # based, works correctly for our cases of having matching ntiids but
@@ -98,7 +99,7 @@ def _iface_to_register(thing_to_register):
 
 @interface.implementer( IFileQuestionMap )
 @NoPickle
-class QuestionMap(dict):
+class QuestionMap(object):
 	"""
 	Originally a single utility that stored all of the assessment items,
 	now primarily a place for the algorithm to live, with a bit of bookkeeping
@@ -110,17 +111,17 @@ class QuestionMap(dict):
 	be in sync with what it available in sub-libraries.
 	"""
 
-	def __init__(self):
-		super(QuestionMap,self).__init__()
-		self.by_file = {} # {ntiid => [question]}
+	def _get_by_file(self):
+		# subclasses can override to use persistent storage
+		return {}
 
-	def clear(self):
-		super(QuestionMap,self).clear()
-		self.by_file.clear()
+	def _store_object(self, k, v):
+		pass
 
 	def __process_assessments( self, assessment_item_dict,
 							   containing_hierarchy_key,
 							   content_package,
+							   by_file,
 							   level_ntiid=None,
 							   registry=None):
 		library = component.queryUtility(lib_interfaces.IContentPackageLibrary)
@@ -154,8 +155,7 @@ class QuestionMap(dict):
 			obj = factory()
 			internalization.update_from_external_object(obj, v, require_updater=True, notify=False, object_hook=_ntiid_object_hook )
 			obj.ntiid = k
-			self[k] = obj
-
+			self._store_object(k, obj)
 
 			# No matter if we got an assignment or question set first or the questions
 			# first, register the question objects exactly once. Replace
@@ -179,21 +179,24 @@ class QuestionMap(dict):
 
 			for thing_to_register in things_to_register:
 				iface = _iface_to_register(thing_to_register)
-				# Make sure not to overwrite something done earlier at any level
-				if registry.queryUtility( iface, name=thing_to_register.ntiid) is not None:
-					continue
-
-				registry.registerUtility( thing_to_register,
-									provided=iface,
-									name=thing_to_register.ntiid,
-									event=False)
-				# TODO: We are only partially supporting having question/sets
-				# used multiple places. When we get to that point, we need to
-				# handle it by noting on each assessment object where it is registered.
-				if thing_to_register.__parent__ is None and parent is not None:
-					thing_to_register.__parent__ = parent
+				# Make sure not to overwrite something done earlier at any level...
+				if registry.queryUtility( iface, name=thing_to_register.ntiid) is None:
+					registry.registerUtility( thing_to_register,
+											  provided=iface,
+											  name=thing_to_register.ntiid,
+											  event=False)
+				# But we still want to record it for this content unit:
+				# (This is necessary to be sure we can unregister things
+				# later)
 				parents_questions.append( thing_to_register )
 
+				# TODO: We are only partially supporting having question/sets
+				# used multiple places. When we get to that point, we need to
+				# handle it by noting on each assessment object where it is registered;
+				# a temporary measure at this time is to only unregister things
+				# when we find the parent matches where we found it
+				if thing_to_register.__parent__ is None and parent is not None:
+					thing_to_register.__parent__ = parent
 
 			# Now canonicalize
 			if asm_interfaces.IQAssignment.providedBy(obj):
@@ -211,10 +214,11 @@ class QuestionMap(dict):
 
 
 			if containing_hierarchy_key:
-				assert containing_hierarchy_key in self.by_file, "Container for file must already be present"
-				self.by_file[containing_hierarchy_key].append( obj )
+				assert containing_hierarchy_key in by_file, "Container for file must already be present"
+				by_file[containing_hierarchy_key].append( obj )
 
 	def __from_index_entry(self, index, content_package,
+						   by_file,
 						   nearest_containing_key=None,
 						   nearest_containing_ntiid=None,
 						   registry=None):
@@ -229,7 +233,7 @@ class QuestionMap(dict):
 		if index_key:
 			key_for_this_level = content_package.make_sibling_key(index_key)
 			factory = list
-			if key_for_this_level in self.by_file:
+			if key_for_this_level in by_file:
 				# Across all indexes, every filename key should be unique.
 				# We rely on this property when we lookup the objects to return
 				# We make an exception for index.html, due to a duplicate bug in
@@ -242,18 +246,20 @@ class QuestionMap(dict):
 					__traceback_info__ = index_key, key_for_this_level
 					raise ValueError( key_for_this_level, "Found a second entry for the same file" )
 
-			self.by_file[key_for_this_level] = factory()
+			by_file[key_for_this_level] = factory()
 
 
 		level_ntiid = index.get( 'NTIID' ) or nearest_containing_ntiid
 		self.__process_assessments( index.get( "AssessmentItems", {} ),
 									key_for_this_level,
 									content_package,
+									by_file,
 									level_ntiid,
 									registry=registry)
 
 		for child_item in index.get('Items',{}).values():
 			self.__from_index_entry( child_item, content_package,
+									 by_file,
 									 nearest_containing_key=key_for_this_level,
 									 nearest_containing_ntiid=level_ntiid,
 									 registry=registry)
@@ -275,6 +281,7 @@ class QuestionMap(dict):
 
 		assert len(root_items) == 1, "Root's 'Items' must only have Root NTIID"
 		root_ntiid = assessment_index_json['Items'].keys()[0] # TODO: This ought to come from the content_package. We need to update tests to be sure
+		by_file = self._get_by_file()
 		assert 'Items' in assessment_index_json['Items'][root_ntiid], "Root's 'Items' contains the actual section Items"
 		for child_ntiid, child_index in assessment_index_json['Items'][root_ntiid]['Items'].items():
 			__traceback_info__ = child_ntiid, child_index, content_package
@@ -290,12 +297,14 @@ class QuestionMap(dict):
 
 			assert child_index.get( 'filename' ), 'Child must contain valid filename to contain assessments'
 			self.__from_index_entry( child_index, content_package,
+									 by_file,
 									 nearest_containing_ntiid=child_ntiid,
 									 registry=registry)
 
 		# For tests and such, sort
-		for questions in self.by_file.values():
+		for questions in by_file.values():
 			questions.sort( key=lambda q: q.__name__ )
+		return by_file
 
 def _needs_load_or_update(content_package):
 	key = content_package.does_sibling_entry_exist('assessment_index.json')
@@ -304,7 +313,8 @@ def _needs_load_or_update(content_package):
 
 	main_container = asm_interfaces.IQAssessmentItemContainer(content_package)
 	if key.lastModified <= main_container.lastModified:
-		logger.info("No change to assessment_index.json since %s, ignoring",
+		logger.info("No change to %s since %s, ignoring",
+					key,
 					key.modified)
 		return
 
@@ -410,33 +420,30 @@ def remove_assessment_items_from_oldcontent(content_package, event):
 
 	logger.info("Removing assessment items from old content %s %s", content_package, event)
 
-	# remvoe pkg ref
-	question_map.pop(content_package.ntiid, None)
-
-	# remove byfile, assuming they exist.
-	# at this point, this is mostly for test purposes, as this
-	# utility is not used in production code due to sub-libraries
-	for unit in library.childrenOfNTIID(content_package.ntiid):
-		questions = question_map.by_file.pop(unit.key, ())
-		for question in questions:
-			ntiid = getattr(question, 'ntiid', u'')
-			question_map.pop(ntiid, None) # some tests register manually without updating everything
-
 	# Unregister the things from the component registry.
 	# We MUST be run in the registry where the library item was initially
 	# loaded.
 	# FIXME: This doesn't properly handle the case of
-	# having references in different content units.
+	# having references in different content units; we approximate
 	sm = component.getSiteManager()
-	for unit in library.childrenOfNTIID(content_package.ntiid) + [content_package]:
+
+	def _unregister(unit):
 		items = asm_interfaces.IQAssessmentItemContainer(unit)
 		for item in items:
+			# TODO: Check the parent? If it's an IContentUnit, only
+			# unregister if it's us?
 			sm.unregisterUtility( item,
 								  provided=_iface_to_register(item),
 								  name=item.ntiid )
-
-		# Clear the items too
+		# clear out the items, since they are persistent
 		del items[:]
+		# reset the timestamps
+		items.lastModified = items.createdTime = -1
+
+		for child in unit.children:
+			_unregister(child)
+
+	_unregister(content_package)
 
 @component.adapter(lib_interfaces.IContentPackage, IObjectModifiedEvent)
 def update_assessment_items_when_modified(content_package, event):

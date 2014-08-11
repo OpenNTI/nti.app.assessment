@@ -122,7 +122,7 @@ class QuestionMap(object):
 		things_to_register = set([assignment])
 		for part in assignment.parts:
 			qset = part.question_set
-			things_to_register.update( self.__explode_question_set_to_register(qset) )
+			things_to_register.update( self.__explode_object_to_register(qset) )
 		return things_to_register
 
 	def __explode_question_set_to_register(self, question_set):

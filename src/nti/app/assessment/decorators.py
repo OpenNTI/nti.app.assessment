@@ -21,6 +21,8 @@ from nti.appserver import interfaces as app_interfaces
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment import interfaces as asm_interfaces
+from nti.assessment.randomized.interfaces import IQuestionBank
+from nti.assessment.randomized import questionbank_question_chooser
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
@@ -79,7 +81,18 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 			# we don't send back the things they contain as top-level. Moreover,
 			# for assignments we need to apply a visibility predicate to the assignment
 			# itself.
-			if IQuestionSet.providedBy(x):
+			
+			if IQuestionBank.providedBy(x):
+				# get all ntiids
+				bank_ntiids = {q.ntiid for q in x.questions}
+				# make a copy and register it
+				new_bank = x.copy(questions=questionbank_question_chooser(x))
+				new_result[ntiid] = new_bank # register new bank
+				drawn_ntiids = {q.ntiid for q in new_bank.questions}
+				# remove any that has not been drawn
+				if len(bank_ntiids) != len(drawn_ntiids):
+					qsids_to_strip.update(bank_ntiids.difference(drawn_ntiids))
+			elif IQuestionSet.providedBy(x):
 				new_result[ntiid] = x
 				# XXX: Despite the above, we actually cannot yet filter
 				# out duplicates from plain question sets, released iPad code

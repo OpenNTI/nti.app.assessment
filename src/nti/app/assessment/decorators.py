@@ -87,6 +87,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 				bank_ntiids = {q.ntiid for q in x.questions}
 				# make a copy and register it
 				new_bank = x.copy(questions=questionbank_question_chooser(x))
+				new_bank.ntiid = ntiid
 				new_result[ntiid] = new_bank # register new bank
 				drawn_ntiids = {q.ntiid for q in new_bank.questions}
 				# remove any that has not been drawn

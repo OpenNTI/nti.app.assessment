@@ -29,7 +29,6 @@ from zope import component
 
 from nti.assessment import submission as asm_submission
 
-from .._question_map import IFileQuestionMap
 from nti.externalization.externalization import toExternalObject
 from nti.externalization.interfaces import StandardExternalFields
 from nti.mimetype.mimetype import  nti_mimetype_with_class

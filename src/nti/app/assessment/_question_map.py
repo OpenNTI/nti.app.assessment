@@ -81,14 +81,6 @@ def ContentUnitAssessmentItems(unit):
 		# But leave last modified as zero
 		return result
 
-class IFileQuestionMap(interface.Interface):
-	"""
-	.. note:: This is going away. Temporarily here for testing.
-	"""
-	by_file = Dict(key_type=Object(lib_interfaces.IDelimitedHierarchyKey, title="The key of the unit"),
-				   value_type=List(title="The questions contained in this file"))
-
-
 def _iface_to_register(thing_to_register):
 	iface = asm_interfaces.IQuestion
 	if asm_interfaces.IQuestionSet.providedBy(thing_to_register):
@@ -97,7 +89,6 @@ def _iface_to_register(thing_to_register):
 		iface = asm_interfaces.IQAssignment
 	return iface
 
-@interface.implementer( IFileQuestionMap )
 @NoPickle
 class QuestionMap(object):
 	"""
@@ -376,9 +367,7 @@ def add_assessment_items_from_new_content( content_package, event, key=None ):
 	Assessment items have their NTIID as their __name__, and the NTIID of their primary
 	container within this context as their __parent__ (that should really be the hierarchy entry)
 	"""
-	question_map = component.getGlobalSiteManager().queryUtility( IFileQuestionMap )
-	if question_map is None: #pragma: no cover
-		return
+	question_map = QuestionMap()
 
 	key = key or _needs_load_or_update(content_package) # let other callers give us the key
 	if not key:
@@ -462,19 +451,19 @@ def _populate_question_map_from_text( question_map, asm_index_text, content_pack
 
 @component.adapter(lib_interfaces.IContentPackage, IObjectRemovedEvent)
 def remove_assessment_items_from_oldcontent(content_package, event):
-	question_map = component.getGlobalSiteManager().queryUtility( IFileQuestionMap )
-	library = component.queryUtility(lib_interfaces.IContentPackageLibrary)
-	if question_map is None or library is None:
-		return
-
 	logger.info("Removing assessment items from old content %s %s", content_package, event)
 
 	# Unregister the things from the component registry.
-	# We MUST be run in the registry where the library item was initially
-	# loaded.
+	# We SHOULD be run in the registry where the library item was initially
+	# loaded. (We use the context argument to check)
 	# FIXME: This doesn't properly handle the case of
 	# having references in different content units; we approximate
 	sm = component.getSiteManager()
+	if component.getSiteManager(content_package) is not sm:
+		# This could be an assertion
+		logger.warn("Removing assessment items from wrong site %s should be %s; may not work",
+					sm, component.getSiteManager(content_package))
+
 
 	def _unregister(unit):
 		items = asm_interfaces.IQAssessmentItemContainer(unit)

@@ -45,31 +45,33 @@ class QuestionMap(_QuestionMap, dict):
 		self[k] = v
 
 ASSM_ITEMS = {
-	'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion': {'Class': 'Question',
-																	  'MimeType': 'application/vnd.nextthought.naquestion',
-																	  'NTIID': 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion',
-																	  'content': '<a name="testquestion"></a> Arbitrary content goes here.',
-																	  'parts': [{'Class': 'SymbolicMathPart',
-																				 'MimeType': 'application/vnd.nextthought.assessment.symbolicmathpart',
-																				 'content': 'Arbitrary content goes here.',
-																				 'explanation': '',
-																				 'hints': [],
-																				 'solutions': [{'Class': 'LatexSymbolicMathSolution', 'MimeType': 'application/vnd.nextthought.assessment.mathsolution',
-																								'value': 'Some solution','weight': 1.0}]}]},
-	'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.set.testset': {'Class': 'QuestionSet',
-																	 'MimeType': 'application/vnd.nextthought.naquestionset',
-																	 'NTIID': 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.set.testset',
-																	 'questions': [{'Class': 'Question',
-																					'MimeType': 'application/vnd.nextthought.naquestion',
-																					'NTIID': 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion',
-																					'content': '<a name="testquestion"></a> Arbitrary content goes here.',
-																					'parts': [{'Class': 'SymbolicMathPart',
-																							   'MimeType': 'application/vnd.nextthought.assessment.symbolicmathpart',
-																							   'content': 'Arbitrary content goes here.',
-																							   'explanation': '',
-																							   'hints': [],
-																							   'solutions': [{'Class': 'LatexSymbolicMathSolution', 'MimeType': 'application/vnd.nextthought.assessment.mathsolution',
-																											  'value': 'Some solution', 'weight': 1.0}]}]}]}
+	'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion':
+	{'Class': 'Question',
+	 'MimeType': 'application/vnd.nextthought.naquestion',
+	 'NTIID': 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion',
+	 'content': '<a name="testquestion"></a> Arbitrary content goes here.',
+	 'parts': [{'Class': 'SymbolicMathPart',
+				'MimeType': 'application/vnd.nextthought.assessment.symbolicmathpart',
+				'content': 'Arbitrary content goes here.',
+				'explanation': '',
+				'hints': [],
+				'solutions': [{'Class': 'LatexSymbolicMathSolution', 'MimeType': 'application/vnd.nextthought.assessment.mathsolution',
+							   'value': 'Some solution','weight': 1.0}]}]},
+	'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.set.testset':
+	{'Class': 'QuestionSet',
+	 'MimeType': 'application/vnd.nextthought.naquestionset',
+	 'NTIID': 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.set.testset',
+	 'questions': [{'Class': 'Question',
+					'MimeType': 'application/vnd.nextthought.naquestion',
+					'NTIID': 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion',
+					'content': '<a name="testquestion"></a> Arbitrary content goes here.',
+					'parts': [{'Class': 'SymbolicMathPart',
+							   'MimeType': 'application/vnd.nextthought.assessment.symbolicmathpart',
+							   'content': 'Arbitrary content goes here.',
+							   'explanation': '',
+							   'hints': [],
+							   'solutions': [{'Class': 'LatexSymbolicMathSolution', 'MimeType': 'application/vnd.nextthought.assessment.mathsolution',
+											  'value': 'Some solution', 'weight': 1.0}]}]}]}
 }
 
 SECTION_ONE = {

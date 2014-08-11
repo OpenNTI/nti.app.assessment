@@ -118,12 +118,44 @@ class QuestionMap(object):
 	def _store_object(self, k, v):
 		pass
 
-	def __process_assessments( self, assessment_item_dict,
-							   containing_hierarchy_key,
-							   content_package,
-							   by_file,
-							   level_ntiid=None,
-							   registry=None):
+	def __explode_assignment_to_register(self, assignment):
+		things_to_register = set([assignment])
+		for part in assignment.parts:
+			qset = part.question_set
+			things_to_register.update( self.__explode_question_set_to_register(qset) )
+		return things_to_register
+
+	def __explode_question_set_to_register(self, question_set):
+		things_to_register = set([question_set])
+		for child_question in question_set.questions:
+			things_to_register.add( child_question )
+		return things_to_register
+
+
+	def __explode_object_to_register(self, obj):
+		things_to_register = set([obj])
+		if asm_interfaces.IQAssignment.providedBy(obj):
+			things_to_register.update(self.__explode_assignment_to_register(obj))
+		elif asm_interfaces.IQuestionSet.providedBy(obj):
+			things_to_register.update(self.__explode_question_set_to_register(obj))
+		return things_to_register
+
+
+	def __canonicalize_question_set(self, obj, registry):
+		obj.questions = [registry.getUtility(asm_interfaces.IQuestion,name=x.ntiid)
+						 for x
+						 in obj.questions]
+
+	def __canonicalize_object(self, obj, registry):
+		if asm_interfaces.IQAssignment.providedBy(obj):
+			for part in obj.parts:
+				part.question_set = registry.getUtility(asm_interfaces.IQuestionSet,name=part.question_set.ntiid)
+				self.__canonicalize_question_set(part.question_set, registry)
+		elif asm_interfaces.IQuestionSet.providedBy(obj):
+			self.__canonicalize_question_set(obj, registry)
+
+	def __register_and_canonicalize(self, things_to_register, registry):
+
 		library = component.queryUtility(lib_interfaces.IContentPackageLibrary)
 
 		# if we're working in the global library, use the global
@@ -139,6 +171,44 @@ class QuestionMap(object):
 			else:
 				registry = component.getSiteManager()
 
+		for thing_to_register in things_to_register:
+			iface = _iface_to_register(thing_to_register)
+			# Previously, we were very careful not to re-register things
+			# that we could find utilities for.
+			# This is wrong, because we currently don't support multiple
+			# definitions, and everything that we find in this content
+			# we do need to register, in this registry.
+
+			# We would like to cut down an churn a bit by checking for
+			# equality, but because of the hierarchy that's hard to do
+			# (if content exists both in a parent and a child, we'd find
+			# the parent, but we really need the registration to be local; this
+			# is especially an issue if the parent is global but we're
+			# persistent)
+			## existing_utility = registry.queryUtility(iface, name=thing_to_register.ntiid)
+			## if existing_utility == thing_to_register:
+			##	continue
+			registry.registerUtility( thing_to_register,
+									  provided=iface,
+									  name=thing_to_register.ntiid,
+									  event=False)
+
+		# Now that everything is in place, we can canonicalize
+		for o in things_to_register:
+			self.__canonicalize_object(o, registry)
+
+	def __process_assessments( self, assessment_item_dict,
+							   containing_hierarchy_key,
+							   content_package,
+							   by_file,
+							   level_ntiid=None):
+		"""
+		Returns a set of object that should be placed in the registry, and then
+		canonicalized.
+
+		"""
+		library = component.queryUtility(lib_interfaces.IContentPackageLibrary)
+
 		parent = None
 		parents_questions = []
 		if level_ntiid and library is not None:
@@ -148,6 +218,7 @@ class QuestionMap(object):
 				parent = containing_content_units[-1]
 				parents_questions = asm_interfaces.IQAssessmentItemContainer(parent)
 
+		result = set()
 		for k, v in assessment_item_dict.items():
 			__traceback_info__ = k, v
 			factory = internalization.find_factory_for( v )
@@ -155,37 +226,19 @@ class QuestionMap(object):
 			obj = factory()
 			internalization.update_from_external_object(obj, v, require_updater=True, notify=False, object_hook=_ntiid_object_hook )
 			obj.ntiid = k
+			obj.__name__ = unicode( k ).encode('utf8').decode('utf8')
 			self._store_object(k, obj)
 
 			# No matter if we got an assignment or question set first or the questions
 			# first, register the question objects exactly once. Replace
 			# any question children of a question set by the registered
 			# object.
-			# XXX This is really ugly and can be cleaned up
-			things_to_register = [obj]
-			if asm_interfaces.IQAssignment.providedBy(obj):
-				for part in obj.parts:
-					qset = part.question_set
-					if registry.queryUtility(asm_interfaces.IQuestionSet, name=qset.ntiid) is None:
-						things_to_register.append(qset)
-					for child_question in qset.questions:
-						if registry.queryUtility(asm_interfaces.IQuestion, name=child_question.ntiid) is None:
-							things_to_register.append( child_question )
-
-			elif asm_interfaces.IQuestionSet.providedBy(obj):
-				for child_question in obj.questions:
-					if registry.queryUtility(asm_interfaces.IQuestion, name=child_question.ntiid) is None:
-						things_to_register.append( child_question )
+			things_to_register = self.__explode_object_to_register(obj)
+			result.update(things_to_register)
 
 			for thing_to_register in things_to_register:
-				iface = _iface_to_register(thing_to_register)
-				# Make sure not to overwrite something done earlier at any level...
-				if registry.queryUtility( iface, name=thing_to_register.ntiid) is None:
-					registry.registerUtility( thing_to_register,
-											  provided=iface,
-											  name=thing_to_register.ntiid,
-											  event=False)
-				# But we still want to record it for this content unit:
+				# We don't actually register it here, but we do need
+				# to record where it came from.
 				# (This is necessary to be sure we can unregister things
 				# later)
 				parents_questions.append( thing_to_register )
@@ -193,40 +246,25 @@ class QuestionMap(object):
 				# TODO: We are only partially supporting having question/sets
 				# used multiple places. When we get to that point, we need to
 				# handle it by noting on each assessment object where it is registered;
-				# a temporary measure at this time is to only unregister things
-				# when we find the parent matches where we found it
+				# XXX: This is probably not a good reference to have, we really
+				# want to do these weakly?
 				if thing_to_register.__parent__ is None and parent is not None:
 					thing_to_register.__parent__ = parent
-
-			# Now canonicalize
-			if asm_interfaces.IQAssignment.providedBy(obj):
-				for part in obj.parts:
-					part.question_set = registry.getUtility(asm_interfaces.IQuestionSet,name=part.question_set.ntiid)
-					part.question_set.questions = [registry.getUtility(asm_interfaces.IQuestion,name=x.ntiid)
-												   for x
-												   in part.question_set.questions]
-			elif asm_interfaces.IQuestionSet.providedBy(obj):
-				obj.questions = [registry.getUtility(asm_interfaces.IQuestion,name=x.ntiid)
-								 for x
-								 in obj.questions]
-
-
-			obj.__name__ = unicode( k ).encode('utf8').decode('utf8')
-
 
 			if containing_hierarchy_key:
 				assert containing_hierarchy_key in by_file, "Container for file must already be present"
 				by_file[containing_hierarchy_key].append( obj )
 
+		return result
+
 	def __from_index_entry(self, index, content_package,
 						   by_file,
 						   nearest_containing_key=None,
-						   nearest_containing_ntiid=None,
-						   registry=None):
+						   nearest_containing_ntiid=None):
 		"""
 		Called with an entry for a file or (sub)section. May or may not have children of its own.
 
-		:class content_package:
+		Returns a set of things to register and canonicalize.
 
 		"""
 		key_for_this_level = nearest_containing_key
@@ -251,20 +289,23 @@ class QuestionMap(object):
 
 
 		level_ntiid = index.get( 'NTIID' ) or nearest_containing_ntiid
-		self.__process_assessments( index.get( "AssessmentItems", {} ),
-									key_for_this_level,
-									content_package,
-									by_file,
-									level_ntiid,
-									registry=registry)
+		things_to_register = set()
+		i = self.__process_assessments( index.get( "AssessmentItems", {} ),
+										key_for_this_level,
+										content_package,
+										by_file,
+										level_ntiid)
 
+		things_to_register.update(i)
 		for child_item in index.get('Items',{}).values():
-			self.__from_index_entry( child_item, content_package,
-									 by_file,
-									 nearest_containing_key=key_for_this_level,
-									 nearest_containing_ntiid=level_ntiid,
-									 registry=registry)
+			i = self.__from_index_entry( child_item, content_package,
+										 by_file,
+										 nearest_containing_key=key_for_this_level,
+										 nearest_containing_ntiid=level_ntiid)
 
+			things_to_register.update(i)
+
+		return things_to_register
 
 	def _from_root_index( self, assessment_index_json, content_package,
 						  registry=None):
@@ -284,6 +325,10 @@ class QuestionMap(object):
 		root_ntiid = assessment_index_json['Items'].keys()[0] # TODO: This ought to come from the content_package. We need to update tests to be sure
 		by_file = self._get_by_file()
 		assert 'Items' in assessment_index_json['Items'][root_ntiid], "Root's 'Items' contains the actual section Items"
+
+
+		things_to_register = set()
+
 		for child_ntiid, child_index in assessment_index_json['Items'][root_ntiid]['Items'].items():
 			__traceback_info__ = child_ntiid, child_index, content_package
 			# Each of these should have a filename. If they do not, they obviously cannot contain
@@ -297,10 +342,13 @@ class QuestionMap(object):
 				continue
 
 			assert child_index.get( 'filename' ), 'Child must contain valid filename to contain assessments'
-			self.__from_index_entry( child_index, content_package,
-									 by_file,
-									 nearest_containing_ntiid=child_ntiid,
-									 registry=registry)
+			i = self.__from_index_entry( child_index, content_package,
+										 by_file,
+										 nearest_containing_ntiid=child_ntiid)
+
+			things_to_register.update(i)
+
+		self.__register_and_canonicalize(things_to_register, registry)
 
 		# For tests and such, sort
 		for questions in by_file.values():
@@ -448,11 +496,18 @@ def remove_assessment_items_from_oldcontent(content_package, event):
 
 @component.adapter(lib_interfaces.IContentPackage, IObjectModifiedEvent)
 def update_assessment_items_when_modified(content_package, event):
-	key = _needs_load_or_update(content_package)
+	# The event may be an IContentPackageReplacedEvent, a subtype of the
+	# modification event. In that case, because we are directly storing
+	# some information on the instance object, we need to remove
+	# from the OLD objects, and store on the NEW objects
+	original = getattr(event, 'original', content_package)
+	updated = content_package
+
+	key = _needs_load_or_update(original)
 	if key:
 		logger.info("Updating assessment items from modified content %s %s", content_package, event)
-		remove_assessment_items_from_oldcontent(content_package, event)
-		add_assessment_items_from_new_content(content_package, event, key=key)
+		remove_assessment_items_from_oldcontent(original, event)
+		add_assessment_items_from_new_content(updated, event, key=key)
 
 
 import argparse

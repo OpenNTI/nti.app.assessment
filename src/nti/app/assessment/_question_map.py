@@ -488,15 +488,16 @@ def update_assessment_items_when_modified(content_package, event):
 	# The event may be an IContentPackageReplacedEvent, a subtype of the
 	# modification event. In that case, because we are directly storing
 	# some information on the instance object, we need to remove
-	# from the OLD objects, and store on the NEW objects
+	# from the OLD objects, and store on the NEW objects.
+	# Because instance storage, we MUST always load things from the new packages;
+	# it would be better to simply copy the assignment objects over and change
+	# their parents (less DB churn) but its safer to do it the bulk-force way
 	original = getattr(event, 'original', content_package)
 	updated = content_package
 
-	key = _needs_load_or_update(original)
-	if key:
-		logger.info("Updating assessment items from modified content %s %s", content_package, event)
-		remove_assessment_items_from_oldcontent(original, event)
-		add_assessment_items_from_new_content(updated, event, key=key)
+	logger.info("Updating assessment items from modified content %s %s", content_package, event)
+	remove_assessment_items_from_oldcontent(original, event)
+	add_assessment_items_from_new_content(updated, event)
 
 
 import argparse

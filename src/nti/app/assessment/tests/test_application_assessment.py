@@ -46,6 +46,8 @@ class TestApplicationAssessment(ApplicationLayerTest):
 	default_username = 'outest75'
 
 	child_ntiid =  'tag:nextthought.com,2011-10:MN-NAQ-MiladyCosmetology.naq.1'
+	parent_ntiid = 'tag:nextthought.com,2011-10:MN-HTML-MiladyCosmetology.why_study_cosmetology_history_and_career_opportunities_'
+
 
 	question_ntiid = child_ntiid
 
@@ -86,7 +88,9 @@ class TestApplicationAssessment(ApplicationLayerTest):
 
 			# The content info we return points to an actual physical page
 			assert_that( res.json_body, has_entry( 'Links', has_item( has_entries( 'rel', 'content',
-																				   'href', '/WithAssessment/tag_nextthought_com_2011-10_mathcounts-HTML-MN_2012_0.html' ) ) ) )
+																				   'href', '/WithNoCensoring/tag_nextthought_com_2011-10_mathcounts-HTML-MN_2012_0.html'))))
+			# Used to be this, but we are overlapping registrations and the order has changed
+			#'href', '/WithAssessment/tag_nextthought_com_2011-10_mathcounts-HTML-MN_2012_0.html' ) ) ) )
 
 	@WithSharedApplicationMockDS(testapp=True,users=True)
 	def test_fetch_assessment_question_by_ntiid_accept_link(self):
@@ -98,7 +102,7 @@ class TestApplicationAssessment(ApplicationLayerTest):
 
 	@WithSharedApplicationMockDS(users=True,testapp=True)
 	def test_fetch_pageinfo_with_questions(self):
-		page_ntiid = 'tag:nextthought.com,2011-10:mathcounts-HTML-MN.2012.0'
+		page_ntiid = self.parent_ntiid
 		for accept_type in (b'application/json',b'application/vnd.nextthought.pageinfo',b'application/vnd.nextthought.pageinfo+json'):
 			__traceback_info__ = accept_type
 			res = self.fetch_by_ntiid( page_ntiid,

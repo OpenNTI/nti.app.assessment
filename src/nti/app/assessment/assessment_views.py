@@ -126,6 +126,10 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 	Students can POST to the assignment to create their submission.
 	"""
 
+	# If the user submits a badly formed submission, we can get
+	# this, especially if we try to autograde.
+	_EXTRA_INPUT_ERRORS = ModeledContentUploadRequestUtilsMixin._EXTRA_INPUT_ERRORS + (AttributeError,)
+
 	# XXX: We would like to express access control via
 	# an ACL or the zope security role map.
 	# In the past, this more-or-less worked because there was

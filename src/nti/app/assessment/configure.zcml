@@ -182,6 +182,10 @@
 				for="nti.dataserver.interfaces.IUser
 					 nti.contenttypes.courses.interfaces.ICourseInstance"
 				zcml:condition="not-have assignments_for_everyone"/>
+	<subscriber factory=".assignment_filters.AssignmentPolicyExclusionFilter"
+				provides=".interfaces.ICourseAssignmentUserFilter"
+				for="nti.dataserver.interfaces.IUser
+					 nti.contenttypes.courses.interfaces.ICourseInstance" />
 
 	<subscriber handler=".subscribers.prevent_note_on_assignment_part"
 				for="nti.dataserver.interfaces.INote

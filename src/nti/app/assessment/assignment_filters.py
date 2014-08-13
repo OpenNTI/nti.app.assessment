@@ -14,6 +14,8 @@ logger = __import__('logging').getLogger(__name__)
 from zope import interface
 from zope import component
 
+from nti.assessment.interfaces import IQAssignmentPolicies
+
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ES_PUBLIC
@@ -80,3 +82,21 @@ class UserEnrolledForCreditInCourseOrInstructsFilter(object):
 		return not asg.is_non_public
 
 UserEnrolledForCreditInCourseFilter = UserEnrolledForCreditInCourseOrInstructsFilter # BWC
+
+@interface.implementer(ICourseAssignmentUserFilter)
+@component.adapter(IUser,ICourseInstance)
+class AssignmentPolicyExclusionFilter(object):
+	"""
+	If the assignment policies for the course instance exclude the
+	filter, we exclude it.
+
+	The policy data is simply the key 'excluded' with a boolean value.
+	If there is no policy, this for the assignment, it is allowed.
+	"""
+
+	def __init__(self, user, course):
+		self.policies = IQAssignmentPolicies(course)
+
+	def allow_assignment_for_user_in_course(self, asg, user, course):
+		excluded = self.policies.getPolicyForAssignment(asg.ntiid).get('excluded', False)
+		return not excluded

@@ -772,9 +772,6 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin,ApplicationLayerTest)
 			course_href += '/'
 		course_href = urlparse.unquote(course_href)
 
-		res = self.testapp.get(enrollment_assignments)
-		assert_that( res.json_body, # No assignments, we're not enrolled for credit
-					 is_({u'href': course_href + 'AssignmentsByOutlineNode'}) )
 
 		# It's also not on the page info, and the question sets it contains
 		# aren't either
@@ -782,21 +779,27 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin,ApplicationLayerTest)
 		question_set_id  = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.set.qset:QUIZ1_aristotle"
 		page_info_mt = nti_mimetype_with_class( 'pageinfo' )
 
-		res = self.fetch_by_ntiid( lesson_page_id,
-								   headers={b'Accept': str(page_info_mt) })
-		items = res.json_body.get('AssessmentItems', ())
-		assert_that( items,
-					 does_not( contains( has_entry('Class', 'Assignment')) ) )
-		assert_that( items,
-					 does_not( contains( has_entry('NTIID', question_set_id ) ) ) )
-		assert_that( items, is_( () ) )
+		def _missing():
+			res = self.testapp.get(enrollment_assignments)
+			assert_that( res.json_body,
+						 is_({u'href': course_href + 'AssignmentsByOutlineNode'}) )
 
-		# Nor are they in the non-assignment-items
-		res = self.testapp.get(enrollment_non_assignments)
-		assert_that( res.json_body, # Nothing, we're not enrolled for credit
-					 has_entries('href', course_href + 'NonAssignmentAssessmentItemsByOutlineNode',
-								 lesson_page_id, []))
+			res = self.fetch_by_ntiid( lesson_page_id,
+									   headers={b'Accept': str(page_info_mt) })
+			items = res.json_body.get('AssessmentItems', ())
+			assert_that( items,
+						 does_not( contains( has_entry('Class', 'Assignment')) ) )
+			assert_that( items,
+						 does_not( contains( has_entry('NTIID', question_set_id ) ) ) )
+			assert_that( items, is_( () ) )
 
+			# Nor are they in the non-assignment-items
+			res = self.testapp.get(enrollment_non_assignments)
+			assert_that( res.json_body,
+						 has_entries('href', course_href + 'NonAssignmentAssessmentItemsByOutlineNode',
+									 lesson_page_id, []))
+
+		_missing()
 
 		# Now pretend to be enrolled for credit
 		with mock_dataserver.mock_db_trans(self.ds):
@@ -824,6 +827,19 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin,ApplicationLayerTest)
 					 contains( has_entry('Class', 'Assignment')) )
 		assert_that( items,
 					 does_not( contains( has_entry('NTIID', question_set_id ) ) ) )
+
+		# If, however, we set the assignment policy to exclude, it's not present again
+		with mock_dataserver.mock_db_trans(site_name='platform.ou.edu'):
+			from nti.contenttypes.courses.interfaces import ICourseCatalog
+			from nti.contenttypes.courses.interfaces import ICourseInstance
+			from nti.assessment.interfaces import IQAssignmentPolicies
+			cat = component.getUtility(ICourseCatalog)
+			entry = list(cat.iterCatalogEntries())[0]
+			course = ICourseInstance(entry)
+			policies = IQAssignmentPolicies(course)
+			policies[self.assignment_ntiid] = {'excluded': True}
+
+		_missing()
 
 class TestNoteCreation(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 	"We can not create notes an any component of an assignment"

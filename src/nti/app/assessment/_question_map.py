@@ -373,7 +373,8 @@ def add_assessment_items_from_new_content( content_package, event, key=None ):
 	if not key:
 		return
 
-	logger.info("Reading assessment items from new content %s %s", content_package, event)
+	logger.info("Reading assessment items from new content %s %s %s",
+				content_package, key, event)
 	asm_index_text = key.readContents()
 	_populate_question_map_from_text( question_map, asm_index_text, content_package )
 

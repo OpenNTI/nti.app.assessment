@@ -16,6 +16,7 @@ from hamcrest import greater_than_or_equal_to
 from hamcrest import not_none
 from hamcrest import none
 from hamcrest.library import has_property
+from hamcrest import any_of
 
 from hamcrest import is_not
 does_not = is_not
@@ -87,8 +88,18 @@ class TestApplicationAssessment(ApplicationLayerTest):
 			assert_that( res.json_body, has_entry( 'Class', 'PageInfo' ) )
 
 			# The content info we return points to an actual physical page
-			assert_that( res.json_body, has_entry( 'Links', has_item( has_entries( 'rel', 'content',
-																				   'href', '/WithAssessment/tag_nextthought_com_2011-10_mathcounts-HTML-MN_2012_0.html' ) ) ) )
+			assert_that( res.json_body,
+						 has_entry( 'Links',
+									has_item(
+										has_entries( 'rel', 'content',
+													 'href',
+													 # XXX: We have a test data problem: we're registering the same
+													 # NTIIDs from two different content packages, and so which
+													 # one comes back is order dependent...
+													 any_of(
+														 is_('/WithAssessment/tag_nextthought_com_2011-10_mathcounts-HTML-MN_2012_0.html'),
+														 is_('/WithNoCensoring/tag_nextthought_com_2011-10_mathcounts-HTML-MN_2012_0.html'))
+												 ) ) ) )
 
 	@WithSharedApplicationMockDS(testapp=True,users=True)
 	def test_fetch_assessment_question_by_ntiid_accept_link(self):

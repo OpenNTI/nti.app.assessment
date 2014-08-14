@@ -834,7 +834,7 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin,ApplicationLayerTest)
 			from nti.contenttypes.courses.interfaces import ICourseInstance
 			from nti.assessment.interfaces import IQAssignmentPolicies
 			cat = component.getUtility(ICourseCatalog)
-			entry = list(cat.iterCatalogEntries())[0]
+			entry, = [x for x in cat.iterCatalogEntries() if x.ProviderUniqueID == 'CLC 3403']
 			course = ICourseInstance(entry)
 			policies = IQAssignmentPolicies(course)
 			policies[self.assignment_ntiid] = {'excluded': True}

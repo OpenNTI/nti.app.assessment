@@ -453,11 +453,4 @@ class _IPad110NoSubmitPartAdjuster(AbstractAuthenticatedRequestAwareDecorator):
 	def _do_decorate_external(self, context, result):
 		result['parts'] = [{'Class': 'AssignmentPart'}]
 
-@interface.implementer(ext_interfaces.IExternalMappingDecorator)
-@component.adapter(IQuestionBank)
-class _QQuestionBankDecorator(AbstractAuthenticatedRequestAwareDecorator):
-
-	def decorateExternalObject(self, context, result):
-		questions = questionbank_question_chooser(context, result.get('questions', ()))
-		result['questions'] = questions
 					

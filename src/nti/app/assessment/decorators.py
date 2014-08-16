@@ -13,6 +13,7 @@ logger = __import__('logging').getLogger(__name__)
 
 from zope import component
 from zope import interface
+from zope.security.interfaces import IPrincipal
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
@@ -66,11 +67,14 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 		# Filter out things they aren't supposed to see...currently only
 		# assignments...we can only do this if we have a user and a course
 		user = self.remoteUser
-
+		prin = IPrincipal(user)
+		isinstructor = False
+		
 		course = ICourseInstance(context.contentUnit, None)
 		qsids_to_strip = set()
 		if course is not None:
 			assignment_predicate = get_course_assignment_predicate_for_user(user, course)
+			isinstructor = prin in course.instructors
 		else:
 			# Only things in context of a course should have assignments
 			assignment_predicate = None
@@ -82,7 +86,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 			# for assignments we need to apply a visibility predicate to the assignment
 			# itself.
 			
-			if IQuestionBank.providedBy(x):
+			if IQuestionBank.providedBy(x) and not isinstructor:
 				# get all ntiids
 				bank_ntiids = {q.ntiid for q in x.questions}
 				# make a copy and register it

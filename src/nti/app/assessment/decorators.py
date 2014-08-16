@@ -14,6 +14,8 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope import interface
 from zope.security.interfaces import IPrincipal
+from zope.securitypolicy.interfaces import Allow
+from zope.securitypolicy.interfaces import IPrincipalRoleMap
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
@@ -25,6 +27,8 @@ from nti.assessment import interfaces as asm_interfaces
 from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.randomized import questionbank_question_chooser
 
+from nti.contenttypes.courses.interfaces import RID_TA
+from nti.contenttypes.courses.interfaces import RID_INSTRUCTOR
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.externalization.singleton import SingletonDecorator
@@ -33,6 +37,13 @@ from nti.externalization.externalization import to_external_object
 
 from .interfaces import get_course_assignment_predicate_for_user
 
+def _is_course_instructor(course, user):
+	prin = IPrincipal(user)
+	roles = IPrincipalRoleMap(course, None)
+	return	roles and \
+			(roles.getSetting(RID_TA, prin.id) is Allow or \
+			 roles.getSetting(RID_INSTRUCTOR, prin.id) is Allow)
+				
 @interface.implementer(ext_interfaces.IExternalMappingDecorator)
 @component.adapter(app_interfaces.IContentUnitInfo)
 class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
@@ -40,7 +51,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 	def _predicate(self, context, result_map):
 		return (AbstractAuthenticatedRequestAwareDecorator._predicate(self,context,result_map)
 				and context.contentUnit is not None)
-
+			
 	def _do_decorate_external( self, context, result_map ):
 		# When we return page info, we return questions
 		# for all of the embedded units as well
@@ -67,18 +78,16 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 		# Filter out things they aren't supposed to see...currently only
 		# assignments...we can only do this if we have a user and a course
 		user = self.remoteUser
-		prin = IPrincipal(user)
-		isinstructor = False
 		
 		course = ICourseInstance(context.contentUnit, None)
 		qsids_to_strip = set()
 		if course is not None:
 			assignment_predicate = get_course_assignment_predicate_for_user(user, course)
-			isinstructor = prin in course.instructors
 		else:
 			# Only things in context of a course should have assignments
 			assignment_predicate = None
 
+		isinstructor = False if course is None else _is_course_instructor(course, user)
 		new_result = {}
 		for ntiid, x in result.iteritems():
 			# To keep size down, when we send back assignments or question sets,
@@ -443,3 +452,12 @@ class _IPad110NoSubmitPartAdjuster(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _do_decorate_external(self, context, result):
 		result['parts'] = [{'Class': 'AssignmentPart'}]
+
+@interface.implementer(ext_interfaces.IExternalMappingDecorator)
+@component.adapter(IQuestionBank)
+class _QQuestionBankDecorator(AbstractAuthenticatedRequestAwareDecorator):
+
+	def decorateExternalObject(self, context, result):
+		questions = questionbank_question_chooser(context, result.get('questions', ()))
+		result['questions'] = questions
+					

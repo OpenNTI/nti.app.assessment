@@ -25,6 +25,7 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment import interfaces as asm_interfaces
 from nti.assessment.randomized.interfaces import IQuestionBank
+from nti.assessment.randomized.interfaces import INoRandomization
 from nti.assessment.randomized import questionbank_question_chooser
 
 from nti.contenttypes.courses.interfaces import RID_TA
@@ -95,17 +96,21 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 			# for assignments we need to apply a visibility predicate to the assignment
 			# itself.
 			
-			if IQuestionBank.providedBy(x) and not isinstructor:
-				# get all ntiids
-				bank_ntiids = {q.ntiid for q in x.questions}
-				# make a copy and register it
-				new_bank = x.copy(questions=questionbank_question_chooser(x))
+			if IQuestionBank.providedBy(x):
+				if isinstructor:
+					new_bank = x.copy() # full copy
+					INoRandomization.providedBy(new_bank)
+				else:
+					# make a copy and register it
+					new_bank = x.copy(questions=questionbank_question_chooser(x))					
+					drawn_ntiids = {q.ntiid for q in new_bank.questions}
+					# remove any question that has not been drawn
+					bank_ntiids = {q.ntiid for q in x.questions}
+					if len(bank_ntiids) != len(drawn_ntiids):
+						qsids_to_strip.update(bank_ntiids.difference(drawn_ntiids))
+				# register new bank and set its ntiid
+				new_result[ntiid] = new_bank 
 				new_bank.ntiid = ntiid
-				new_result[ntiid] = new_bank # register new bank
-				drawn_ntiids = {q.ntiid for q in new_bank.questions}
-				# remove any that has not been drawn
-				if len(bank_ntiids) != len(drawn_ntiids):
-					qsids_to_strip.update(bank_ntiids.difference(drawn_ntiids))
 			elif IQuestionSet.providedBy(x):
 				new_result[ntiid] = x
 				# XXX: Despite the above, we actually cannot yet filter

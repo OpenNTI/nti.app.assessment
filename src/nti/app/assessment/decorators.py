@@ -11,6 +11,8 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+import copy
+
 from zope import component
 from zope import interface
 from zope.security.interfaces import IPrincipal
@@ -25,8 +27,8 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment import interfaces as asm_interfaces
 from nti.assessment.randomized.interfaces import IQuestionBank
-from nti.assessment.randomized.interfaces import INoRandomization
 from nti.assessment.randomized import questionbank_question_chooser
+from nti.assessment.randomized.interfaces import INonRandomizedQuestionBank
 
 from nti.contenttypes.courses.interfaces import RID_TA
 from nti.contenttypes.courses.interfaces import RID_INSTRUCTOR
@@ -37,6 +39,12 @@ from nti.externalization import interfaces as ext_interfaces
 from nti.externalization.externalization import to_external_object
 
 from .interfaces import get_course_assignment_predicate_for_user
+
+def _has_question_bank(a):
+	for part in a.parts:
+		if IQuestionBank.providedBy(part.question_set):
+			return True
+	return False
 
 def _is_course_instructor(course, user):
 	prin = IPrincipal(user)
@@ -99,7 +107,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 			if IQuestionBank.providedBy(x):
 				if isinstructor:
 					new_bank = x.copy() # full copy
-					interface.alsoProvides(new_bank, INoRandomization)
+					interface.alsoProvides(new_bank, INonRandomizedQuestionBank)
 				else:
 					# make a copy and register it
 					new_bank = x.copy(questions=questionbank_question_chooser(x))					
@@ -129,8 +137,18 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 				# it contains as top-level items.
 				# We are assuming that these are on the same page
 				# for now and that they are only referenced by
-				# this assignment.
-				# XXX FIXME Bad limitation
+				# this assignment. # XXX FIXME: Bad limitation
+				
+				if isinstructor and _has_question_bank(x):
+					x = copy.copy(x)
+					for part in x.parts:
+						question_set = part.question_set
+						if IQuestionBank.providedBy(question_set):
+							question_set = copy.copy(question_set)
+							interface.alsoProvides(question_set, INonRandomizedQuestionBank)
+							part.question_set = question_set
+					new_result[ntiid] = x
+					
 				for assignment_part in x.parts:
 					question_set = assignment_part.question_set
 					qsids_to_strip.add(question_set.ntiid)

@@ -99,7 +99,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 			if IQuestionBank.providedBy(x):
 				if isinstructor:
 					new_bank = x.copy() # full copy
-					INoRandomization.providedBy(new_bank)
+					interface.alsoProvides(new_bank, INoRandomization)
 				else:
 					# make a copy and register it
 					new_bank = x.copy(questions=questionbank_question_chooser(x))					

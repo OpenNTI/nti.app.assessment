@@ -127,7 +127,8 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 	"""
 
 	# If the user submits a badly formed submission, we can get
-	# this, especially if we try to autograde.
+	# this, especially if we try to autograde. (That particular case
+	# is now handled, but still.)
 	_EXTRA_INPUT_ERRORS = ModeledContentUploadRequestUtilsMixin._EXTRA_INPUT_ERRORS + (AttributeError,)
 
 	# XXX: We would like to express access control via

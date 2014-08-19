@@ -15,13 +15,17 @@
 	<include package="nti.assessment" />
 
 	<i18n:registerTranslations directory="locales" />
-
+	
+	<!-- Database creation and migration -->
+	<utility factory=".generations.install._AssessmentSchemaManager"
+			 name="nti.dataserver-app-assessment"
+			 provides="zope.generations.interfaces.IInstallableSchemaManager" />
+	
 	<!-- Roles and permissions -->
 	<include package="zope.securitypolicy" file="meta.zcml" />
 	<include package="zope.security" file="meta.zcml" />
 	<include package="nti.securitypolicy" file="meta.zcml"  />
 	<include package="nti.contenttypes.courses" />
-
 
 	<permission
 		id="nti.actions.assessment.download_grades"

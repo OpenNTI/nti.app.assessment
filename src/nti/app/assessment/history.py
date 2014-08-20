@@ -310,6 +310,9 @@ class UsersCourseAssignmentHistoryItemSummary(Contained):
 def move_assignment_histories(user, source_course, target_course, event=True):
 	source_entry = ICourseCatalogEntry(source_course).ProviderUniqueID
 	target_entry = ICourseCatalogEntry(target_course).ProviderUniqueID
+	
+	assert source_entry != target_entry
+	
 	logger.warn("Moving assignment histories for user %s from %s to %s",
 				user, source_entry,  target_entry)
 	

@@ -63,7 +63,9 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 
 	__external_can_create__ = False
 
-	lastViewed = NumericPropertyDefaultingToZero(str('lastViewed'), NumericMaximum, as_number=True)
+	lastViewed = NumericPropertyDefaultingToZero(str('lastViewed'),
+                                                 NumericMaximum, 
+                                                 as_number=True)
 
 	#: An :class:`.IWeakRef` to the owning user, who is probably
 	#: not in our lineage.
@@ -142,7 +144,10 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 
 	@property
 	def __acl__(self):
-		"Our ACL allows read access for the creator and read/write access for the instructors of the course"
+		"""
+		Our ACL allows read access for the creator and read/write access
+		for the instructors of the course
+		"""
 		# This is a near-duplicate of the ACL applied to the child items;
 		# we could probably remove the child item ACLs if we're assured of good
 		# testing? Although we might have to grant CREATE access to the child?
@@ -151,16 +156,18 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 		instructors = getattr(course, 'instructors', ()) # already principals
 		aces = [ace_allowing( self.owner, ACT_READ, UsersCourseAssignmentHistory )]
 		for instructor in instructors:
-			aces.append( ace_allowing( instructor, ALL_PERMISSIONS, UsersCourseAssignmentHistory) )
+			aces.append( ace_allowing(instructor, ALL_PERMISSIONS,
+                                      UsersCourseAssignmentHistory) )
 		aces.append(ACE_DENY_ALL)
 		return acl_from_aces( aces )
 
 from nti.dataserver.authorization import ACT_READ
+from nti.dataserver.interfaces import ACE_DENY_ALL
 from nti.dataserver.interfaces import IACLProvider
 from nti.dataserver.interfaces import ALL_PERMISSIONS
-from nti.dataserver.interfaces import ACE_DENY_ALL
-from nti.dataserver.authorization_acl import acl_from_aces
 from nti.dataserver.authorization_acl import ace_allowing
+from nti.dataserver.authorization_acl import acl_from_aces
+
 from zope.location.interfaces import ISublocations
 
 @interface.implementer(IUsersCourseAssignmentHistoryItem,
@@ -215,18 +222,23 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 
 	@property
 	def __acl__(self):
-		"Our ACL allows read access for the creator and read/write access for the instructors of the course"
+		"""
+		Our ACL allows read access for the creator and read/write access
+		for the instructors of the course
+		"""
 		course = ICourseInstance(self, None)
 		instructors = getattr(course, 'instructors', ()) # already principals
 		aces = [ace_allowing( self.creator, ACT_READ, UsersCourseAssignmentHistoryItem )]
 		for instructor in instructors:
-			aces.append( ace_allowing( instructor, ALL_PERMISSIONS, UsersCourseAssignmentHistoryItem) )
+			aces.append( ace_allowing(instructor, ALL_PERMISSIONS, 
+                                      UsersCourseAssignmentHistoryItem) )
 		aces.append(ACE_DENY_ALL)
 		return acl_from_aces( aces )
 
 	def sublocations(self):
 		if self.Submission is not None:
 			yield self.Submission
+
 		if self.pendingAssessment is not None:
 			yield self.pendingAssessment
 
@@ -302,12 +314,14 @@ class UsersCourseAssignmentHistoryItemSummary(Contained):
 
 	def to_external_ntiid_oid(self):
 		"""
-		For convenience of the gradebook views, we match OIDs during externalization. This isn't
-		really correct from a model perspective.
+		For convenience of the gradebook views, we match OIDs during externalization. 
+		This isn't really correct from a model perspective.
 		"""
 		return to_external_ntiid_oid(self._history_item)
 
-def move_assignment_histories(user, source_course, target_course, event=True):
+def move_assignment_histories(user, source_course, target_course,
+							  assignments=(), event=True):
+	result = []
 	source_entry = ICourseCatalogEntry(source_course).ProviderUniqueID
 	target_entry = ICourseCatalogEntry(target_course).ProviderUniqueID
 	
@@ -323,6 +337,10 @@ def move_assignment_histories(user, source_course, target_course, event=True):
 												IUsersCourseAssignmentHistory )
 	
 	for assignmentId in list(source_history.keys()):
+		if assignments and assignmentId not in assignmentId:
+			logger.debug("Ignoring assignment %s", assignmentId)
+			continue
+		
 		if assignmentId in target_history:
 			logger.warn("Submission for assignment %s already in target course",
 						 assignmentId)
@@ -335,3 +353,6 @@ def move_assignment_histories(user, source_course, target_course, event=True):
 		
 		# fire object added, which is dispatched to sublocations
 		target_history[assignmentId] = item
+
+		result.append(assignmentId)
+	return result

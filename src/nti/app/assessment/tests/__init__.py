@@ -7,12 +7,13 @@ __docformat__ = "restructuredtext en"
 # disable: accessing protected members, too many methods
 # pylint: disable=W0212,R0904
 
+from nti.testing.layers import find_test
 from nti.testing.layers import GCLayerMixin
 from nti.testing.layers import ZopeComponentLayer
 from nti.testing.layers import ConfiguringLayerMixin
-from nti.testing.layers import find_test
 
 from nti.dataserver.tests.mock_dataserver import DSInjectorMixin
+
 import zope.testing.cleanup
 
 class SharedConfiguringTestLayer(ZopeComponentLayer,

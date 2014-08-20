@@ -1,42 +1,37 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
-
-
-$Id$
-"""
 
 from __future__ import print_function, unicode_literals, absolute_import, division
 __docformat__ = "restructuredtext en"
 
-logger = __import__('logging').getLogger(__name__)
+# disable: accessing protected members, too many methods
+# pylint: disable=W0212,R0904
 
-#disable: accessing protected members, too many methods
-#pylint: disable=W0212,R0904
-
-
-from hamcrest import assert_that
 from hamcrest import is_
+from hamcrest import none
+from hamcrest import has_length
+from hamcrest import assert_that
 from hamcrest import has_property
 
-from nti.testing.matchers import validly_provides
+import weakref
 
-from ..history import UsersCourseAssignmentHistory
-from ..history import UsersCourseAssignmentHistories
-from ..history import UsersCourseAssignmentHistoryItem
+from nti.app.assessment.history import UsersCourseAssignmentHistory
+from nti.app.assessment.history import UsersCourseAssignmentHistories
+from nti.app.assessment.history import UsersCourseAssignmentHistoryItem
 
-from ..interfaces import IUsersCourseAssignmentHistoryItem
-from ..interfaces import IUsersCourseAssignmentHistoryItemSummary
-from ..interfaces import IUsersCourseAssignmentHistory
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemSummary
 
 from nti.assessment.submission import AssignmentSubmission
 from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
 
 from nti.dataserver.users import User
 from nti.dataserver.interfaces import IUser
-import weakref
 
-from . import AssessmentLayerTest
+from nti.testing.matchers import validly_provides
+
+from nti.app.assessment.tests import AssessmentLayerTest
 
 class TestHistory(AssessmentLayerTest):
 	# NOTE: We don't actually need all this setup the layer does,
@@ -77,3 +72,14 @@ class TestHistory(AssessmentLayerTest):
 		assert_that( item.__parent__, is_( history ))
 
 		assert_that( history, has_property( 'lastViewed', 0 ))
+
+	def test_remove(self):
+		history = UsersCourseAssignmentHistory()
+		submission = AssignmentSubmission(assignmentId='b')
+		pending =  QAssignmentSubmissionPendingAssessment(assignmentId='b', parts=() )
+		item = history.recordSubmission( submission, pending )
+	
+		removed = history.removeSubmission(submission)
+		assert_that(item, is_(removed))
+		assert_that(item, has_property('__parent__', is_(none())))
+		assert_that(history, has_length(0))

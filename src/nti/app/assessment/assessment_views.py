@@ -387,8 +387,8 @@ class AssignmentHistoryItemFeedbackDeleteView(UGDDeleteView):
 		del theObject.__parent__[theObject.__name__]
 		return theObject
 
-
 from nti.externalization.interfaces import LocatedExternalDict
+
 from .interfaces import ICourseAssignmentCatalog
 from .interfaces import ICourseAssessmentItemCatalog
 from .interfaces import get_course_assignment_predicate_for_user
@@ -491,27 +491,4 @@ class NonAssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
 				if item.ntiid in qsids_to_strip:
 					items.remove(item)
 
-		return result
-
-
-@view_config(context=ICourseInstance)
-@view_config(context=ICourseInstanceEnrollment)
-@view_defaults(route_name='objects.generic.traversal',
-			   renderer='rest',
-			   permission=nauth.ACT_MODERATE,
-			   request_method='GET',
-			   name='AllTasksOutline') # See decorators
-class AllTasksOutlineView(AbstractAuthenticatedView):
-
-	def __call__(self):
-		instance = ICourseInstance(self.request.context)
-		catalog = ICourseAssessmentItemCatalog(instance)
-
-		result = LocatedExternalDict()
-		result.__name__ = self.request.view_name
-		result.__parent__ = self.request.context
-
-		for item in catalog.iter_assessment_items():
-			unit = item.__parent__
-			result.setdefault(unit.ntiid, []).append(item)
 		return result

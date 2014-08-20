@@ -113,6 +113,26 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 
 		return item
 
+	def removeSubmission(self, submission, event=True):
+		key = getattr(submission, "assignmentId", submission)
+		if not key:
+			raise ValueError("The submission has no assignment Id", submission)
+
+		__traceback_info__ = submission, key
+		item = self._SampleContainer__data[key]
+		if not event:
+			l = self._BTreeContainer__len
+			try:
+				del self._SampleContainer__data[key]
+				l.change(-1)
+				item.__parent__ = None
+			except KeyError:
+				pass
+		else:
+			if CheckingLastModifiedBTreeContainer.__contains__(self, key):
+				del self[key]
+		return item
+	
 	def __conform__(self, iface):
 		if IUser.isOrExtends(iface):
 			return self.owner

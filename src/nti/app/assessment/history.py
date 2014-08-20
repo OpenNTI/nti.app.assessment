@@ -21,6 +21,7 @@ from zope.container.contained import Contained
 from zope.cachedescriptors.property import Lazy
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.containers import CheckingLastModifiedBTreeContainer
@@ -37,8 +38,8 @@ from nti.wref.interfaces import IWeakRef
 from nti.zodb.minmax import NumericMaximum
 from nti.zodb.minmax import NumericPropertyDefaultingToZero
 
-from .interfaces import IUsersCourseAssignmentHistories
 from .interfaces import IUsersCourseAssignmentHistory
+from .interfaces import IUsersCourseAssignmentHistories
 from .interfaces import IUsersCourseAssignmentHistoryItem
 from .interfaces import IUsersCourseAssignmentHistoryItemSummary
 from .feedback import UsersCourseAssignmentHistoryItemFeedbackContainer
@@ -305,3 +306,29 @@ class UsersCourseAssignmentHistoryItemSummary(Contained):
 		really correct from a model perspective.
 		"""
 		return to_external_ntiid_oid(self._history_item)
+
+def move_assignment_histories(user, source_course, target_course, event=True):
+	source_entry = ICourseCatalogEntry(source_course).ProviderUniqueID
+	target_entry = ICourseCatalogEntry(target_course).ProviderUniqueID
+	logger.warn("Moving assignment histories for user %s from %s to %s",
+				user, source_entry,  target_entry)
+	
+	source_history = component.getMultiAdapter( (source_course, user),
+												IUsersCourseAssignmentHistory )
+	
+	target_history = component.getMultiAdapter( (target_course, user),
+												IUsersCourseAssignmentHistory )
+	
+	for assignmentId in list(source_history.keys()):
+		if assignmentId in target_history:
+			logger.warn("Submission for assignment %s already in target course",
+						 assignmentId)
+			continue
+
+		logger.debug("Removing assignment history item for %s from %s",
+					 assignmentId, source_entry)
+		item = source_history.removeSubmission(assignmentId, event=event)
+		item.__parent__ = None
+		
+		# fire object added, which is dispatched to sublocations
+		target_history[assignmentId] = item

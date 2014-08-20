@@ -106,6 +106,15 @@ class IUsersCourseAssignmentHistory(IContainer,
 			the record of this submission.
 		"""
 
+	def removeSubmission(submission, event=True):
+		"""
+		Remove a user submission 
+
+		:param submission: an string that represents an assignmentId or
+			an object that has a assignmentId property
+		:return: The :class:`.IUsersCourseAssignmentItem` representing
+			the record of this submission.
+		"""
 
 class IUsersCourseAssignmentHistoryItemFeedbackContainer(IContainerNamesContainer,
 														 ICreated,

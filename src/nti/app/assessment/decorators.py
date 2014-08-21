@@ -46,12 +46,13 @@ def _has_question_bank(a):
 			return True
 	return False
 
-def _is_course_instructor(course, user):
+def is_course_instructor(course, user):
 	prin = IPrincipal(user)
 	roles = IPrincipalRoleMap(course, None)
-	return	roles and \
-			(roles.getSetting(RID_TA, prin.id) is Allow or \
-			 roles.getSetting(RID_INSTRUCTOR, prin.id) is Allow)
+	if not roles:
+		return False
+	return Allow in (roles.getSetting(RID_TA, prin.id),
+					 roles.getSetting(RID_INSTRUCTOR, prin.id))
 				
 @interface.implementer(ext_interfaces.IExternalMappingDecorator)
 @component.adapter(app_interfaces.IContentUnitInfo)
@@ -87,16 +88,15 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 		# Filter out things they aren't supposed to see...currently only
 		# assignments...we can only do this if we have a user and a course
 		user = self.remoteUser
-		
-		course = ICourseInstance(context.contentUnit, None)
 		qsids_to_strip = set()
+		course = component.queryMultiAdapter((context.contentUnit, user), ICourseInstance)			
 		if course is not None:
 			assignment_predicate = get_course_assignment_predicate_for_user(user, course)
 		else:
 			# Only things in context of a course should have assignments
 			assignment_predicate = None
 
-		isinstructor = False if course is None else _is_course_instructor(course, user)
+		isinstructor = False if course is None else is_course_instructor(course, user)
 		new_result = {}
 		for ntiid, x in result.iteritems():
 			# To keep size down, when we send back assignments or question sets,

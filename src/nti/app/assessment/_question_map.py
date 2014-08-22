@@ -375,7 +375,7 @@ def add_assessment_items_from_new_content( content_package, event, key=None ):
 
 	logger.info("Reading assessment items from new content %s %s %s",
 				content_package, key, event)
-	asm_index_text = key.readContents()
+	asm_index_text = key.readContentsAsText()
 	_populate_question_map_from_text( question_map, asm_index_text, content_package )
 
 # We usually get two or more copies, one at the top-level, one embedded

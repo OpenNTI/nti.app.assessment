@@ -31,10 +31,6 @@ from nti.dataserver import interfaces as nti_interfaces
 from nti.externalization import internalization
 from nti.externalization.persistence import NoPickle
 
-from nti.schema.field import Dict
-from nti.schema.field import List
-from nti.schema.field import Object
-
 from nti.dublincore.time_mixins import PersistentCreatedAndModifiedTimeObject
 
 def _ntiid_object_hook( k, v, x ):

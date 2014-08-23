@@ -15,9 +15,6 @@ import copy
 
 from zope import component
 from zope import interface
-from zope.security.interfaces import IPrincipal
-from zope.securitypolicy.interfaces import Allow
-from zope.securitypolicy.interfaces import IPrincipalRoleMap
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
@@ -25,13 +22,10 @@ from nti.appserver import interfaces as app_interfaces
 
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
-from nti.assessment import interfaces as asm_interfaces
 from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.randomized import questionbank_question_chooser
 from nti.assessment.randomized.interfaces import INonRandomizedQuestionBank
 
-from nti.contenttypes.courses.interfaces import RID_TA
-from nti.contenttypes.courses.interfaces import RID_INSTRUCTOR
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.externalization.singleton import SingletonDecorator
@@ -40,19 +34,9 @@ from nti.externalization.externalization import to_external_object
 
 from .interfaces import get_course_assignment_predicate_for_user
 
-def _has_question_bank(a):
-	for part in a.parts:
-		if IQuestionBank.providedBy(part.question_set):
-			return True
-	return False
-
-def is_course_instructor(course, user):
-	prin = IPrincipal(user)
-	roles = IPrincipalRoleMap(course, None)
-	if not roles:
-		return False
-	return Allow in (roles.getSetting(RID_TA, prin.id),
-					 roles.getSetting(RID_INSTRUCTOR, prin.id))
+from ._utils import has_question_bank
+from ._utils import is_course_instructor
+from ._utils import get_assessment_items_from_unit
 				
 @interface.implementer(ext_interfaces.IExternalMappingDecorator)
 @component.adapter(app_interfaces.IContentUnitInfo)
@@ -65,26 +49,8 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 	def _do_decorate_external( self, context, result_map ):
 		# When we return page info, we return questions
 		# for all of the embedded units as well
-		def same_file(unit1, unit2):
-			try:
-				return unit1.filename.split('#',1)[0] == unit2.filename.split('#',1)[0]
-			except (AttributeError,IndexError):
-				return False
-
-		def recur(unit, accum):
-			if same_file( unit, context.contentUnit ):
-				try:
-					qs = asm_interfaces.IQAssessmentItemContainer( unit, () )
-				except TypeError:
-					qs = ()
-
-				accum.update( {q.ntiid: q for q in qs} )
-
-				for child in unit.children:
-					recur( child, accum )
-
-		result = dict()
-		recur( context.contentUnit, result )
+		result = get_assessment_items_from_unit(context.contentUnit)
+		
 		# Filter out things they aren't supposed to see...currently only
 		# assignments...we can only do this if we have a user and a course
 		user = self.remoteUser
@@ -139,7 +105,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 				# for now and that they are only referenced by
 				# this assignment. # XXX FIXME: Bad limitation
 				
-				if isinstructor and _has_question_bank(x):
+				if isinstructor and has_question_bank(x):
 					x = copy.copy(x)
 					for part in x.parts:
 						question_set = part.question_set

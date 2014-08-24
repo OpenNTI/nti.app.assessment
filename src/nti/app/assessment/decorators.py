@@ -157,7 +157,7 @@ class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			grader = grader_for_response(question_part, response)
 			response = grader.unshuffle(response, uca_history.creator)
 			result_map['submittedResponse'] = \
-						response if type(response, (numbers.Real, unicode)) \
+						response if isinstance(response, (numbers.Real, unicode)) \
 						else to_external_object(response)
 
 LINKS = StandardExternalFields.LINKS

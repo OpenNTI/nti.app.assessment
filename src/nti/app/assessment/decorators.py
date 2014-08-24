@@ -11,8 +11,6 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-import copy
-
 from zope import component
 from zope import interface
 
@@ -24,7 +22,6 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.randomized import questionbank_question_chooser
-from nti.assessment.randomized.interfaces import INonRandomizedQuestionBank
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
@@ -34,7 +31,8 @@ from nti.externalization.externalization import to_external_object
 
 from .interfaces import get_course_assignment_predicate_for_user
 
-from ._utils import has_question_bank
+from ._utils import copy_assessment
+from ._utils import copy_questionset
 from ._utils import is_course_instructor
 from ._utils import get_assessment_items_from_unit
 				
@@ -72,8 +70,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 			
 			if IQuestionBank.providedBy(x):
 				if isinstructor:
-					new_bank = x.copy() # full copy
-					interface.alsoProvides(new_bank, INonRandomizedQuestionBank)
+					new_bank = copy_questionset(x, True)
 				else:
 					# make a copy and register it
 					new_bank = x.copy(questions=questionbank_question_chooser(x))					
@@ -94,27 +91,18 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 				#	qsids_to_strip.add(question.ntiid)
 			elif IQAssignment.providedBy(x):
 				if assignment_predicate is None:
-					logger.warn("Found assignment (%s) outside of course context in %s; dropping",
-								x, context.contentUnit)
+					logger.warn("Found assignment (%s) outside of course context "
+								"in %s; dropping", x, context.contentUnit)
 				elif assignment_predicate(x):
 					# Yay, keep the assignment
+					x = x if not isinstructor else copy_assessment(x, True)
 					new_result[ntiid] = x
+				
 				# But in all cases, don't echo back the things
 				# it contains as top-level items.
 				# We are assuming that these are on the same page
 				# for now and that they are only referenced by
-				# this assignment. # XXX FIXME: Bad limitation
-				
-				if isinstructor and has_question_bank(x):
-					x = copy.copy(x)
-					for part in x.parts:
-						question_set = part.question_set
-						if IQuestionBank.providedBy(question_set):
-							question_set = copy.copy(question_set)
-							interface.alsoProvides(question_set, INonRandomizedQuestionBank)
-							part.question_set = question_set
-					new_result[ntiid] = x
-					
+				# this assignment. # XXX FIXME: Bad limitation		
 				for assignment_part in x.parts:
 					question_set = assignment_part.question_set
 					qsids_to_strip.add(question_set.ntiid)
@@ -127,27 +115,8 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 			new_result.pop(bad_ntiid, None)
 		result = new_result.values()
 
-
 		if result:
-			### XXX We need to be sure we don't send back the
-			# solutions and explanations right now. This is
-			# done in a very hacky way, need something more
-			# context sensitive (would the named externalizers
-			# work here? like personal-summary for users?)
-			# XXX Temp disabled again pending iPad work
-			def _strip(item):
-				cls = item.get('Class')
-				if cls == 'Question':
-					for part in item['parts']:
-						part['solutions'] = None
-						part['explanation'] = None
-				elif cls == 'QuestionSet':
-					for q in item['questions']:
-						_strip(q)
-
-			ext_items = to_external_object( result )
-			#for item in ext_items:
-			#	_strip(item)
+			ext_items = to_external_object(result)
 			result_map['AssessmentItems'] = ext_items
 
 LINKS = ext_interfaces.StandardExternalFields.LINKS

@@ -21,7 +21,7 @@ from nti.appserver import interfaces as app_interfaces
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.randomized.interfaces import IQuestionBank
-from nti.assessment.randomized import questionbank_question_chooser
+from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
@@ -33,6 +33,7 @@ from .interfaces import get_course_assignment_predicate_for_user
 
 from ._utils import copy_assessment
 from ._utils import copy_questionset
+from ._utils import copy_questionbank
 from ._utils import is_course_instructor
 from ._utils import get_assessment_items_from_unit
 				
@@ -60,49 +61,40 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 			# Only things in context of a course should have assignments
 			assignment_predicate = None
 
-		isinstructor = False if course is None else is_course_instructor(course, user)
 		new_result = {}
+		is_instructor = False if course is None else is_course_instructor(course, user)
 		for ntiid, x in result.iteritems():
+			
 			# To keep size down, when we send back assignments or question sets,
 			# we don't send back the things they contain as top-level. Moreover,
 			# for assignments we need to apply a visibility predicate to the assignment
 			# itself.
 			
 			if IQuestionBank.providedBy(x):
-				if isinstructor:
-					new_bank = copy_questionset(x, True)
-				else:
-					# make a copy and register it
-					new_bank = x.copy(questions=questionbank_question_chooser(x))					
-					drawn_ntiids = {q.ntiid for q in new_bank.questions}
-					# remove any question that has not been drawn
-					bank_ntiids = {q.ntiid for q in x.questions}
-					if len(bank_ntiids) != len(drawn_ntiids):
-						qsids_to_strip.update(bank_ntiids.difference(drawn_ntiids))
-				# register new bank and set its ntiid
-				new_result[ntiid] = new_bank 
-				new_bank.ntiid = ntiid
+				x = copy_questionbank(x, is_instructor, qsids_to_strip)
+				x.ntiid = ntiid
+				new_result[ntiid] = x 
+			elif IRandomizedQuestionSet.providedBy(x):
+				x = x if not is_instructor else copy_questionset(x, True)
+				x.ntiid = ntiid
+				new_result[ntiid] = x 
 			elif IQuestionSet.providedBy(x):
 				new_result[ntiid] = x
-				# XXX: Despite the above, we actually cannot yet filter
-				# out duplicates from plain question sets, released iPad code
-				# depends on them being there.
-				#for question in x.questions:
-				#	qsids_to_strip.add(question.ntiid)
 			elif IQAssignment.providedBy(x):
 				if assignment_predicate is None:
 					logger.warn("Found assignment (%s) outside of course context "
 								"in %s; dropping", x, context.contentUnit)
 				elif assignment_predicate(x):
 					# Yay, keep the assignment
-					x = x if not isinstructor else copy_assessment(x, True)
+					x = x if not is_instructor else copy_assessment(x, True)
 					new_result[ntiid] = x
 				
 				# But in all cases, don't echo back the things
 				# it contains as top-level items.
 				# We are assuming that these are on the same page
 				# for now and that they are only referenced by
-				# this assignment. # XXX FIXME: Bad limitation		
+				# this assignment. # XXX FIXME: Bad limitation
+						
 				for assignment_part in x.parts:
 					question_set = assignment_part.question_set
 					qsids_to_strip.add(question_set.ntiid)

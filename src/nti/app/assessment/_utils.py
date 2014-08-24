@@ -19,6 +19,7 @@ from zope.securitypolicy.interfaces import IPrincipalRoleMap
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.interfaces import IQAssessmentItemContainer
+from nti.assessment.randomized import questionbank_question_chooser
 
 from nti.contenttypes.courses.interfaces import RID_TA
 from nti.contenttypes.courses.interfaces import RID_INSTRUCTOR
@@ -85,6 +86,19 @@ def copy_questionset(qs, nonrandomized=False):
 		for question in result.questions:
 			make_nonrandomized(question)
 		make_nonrandomized(result)
+	return result
+
+def copy_questionbank(bank, is_instructor=False, qsids_to_strip=None):
+	if is_instructor:
+		result = copy_questionset(bank, True)
+	else:
+		result = bank.copy(questions=questionbank_question_chooser(bank))
+		if qsids_to_strip is not None:
+			drawn_ntiids = {q.ntiid for q in result.questions}
+			# remove any question that has not been drawn
+			bank_ntiids = {q.ntiid for q in bank.questions}
+			if len(bank_ntiids) != len(drawn_ntiids):
+				qsids_to_strip.update(bank_ntiids.difference(drawn_ntiids))
 	return result
 
 def copy_assessment(assessment, nonrandomized=False):

@@ -12,6 +12,7 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 import numbers
+from six import string_types
 
 from zope import component
 from zope import interface
@@ -157,7 +158,7 @@ class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			grader = grader_for_response(question_part, response)
 			response = grader.unshuffle(response, uca_history.creator)
 			result_map['submittedResponse'] = \
-						response if isinstance(response, (numbers.Real, unicode)) \
+						response if isinstance(response, (numbers.Real, string_types)) \
 						else to_external_object(response)
 
 LINKS = StandardExternalFields.LINKS

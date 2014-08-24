@@ -11,8 +11,11 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+import numbers
+
 from zope import component
 from zope import interface
+from zope.location.interfaces import ILocationInfo
 
 from pyramid.traversal import find_interface
 
@@ -20,6 +23,7 @@ from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecora
 
 from nti.appserver import interfaces as app_interfaces
 
+from nti.assessment import grader_for_response
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
@@ -31,18 +35,20 @@ from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.externalization.singleton import SingletonDecorator
-from nti.externalization import interfaces as ext_interfaces
+from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.externalization import to_external_object
-
-from .interfaces import get_course_assignment_predicate_for_user
+from nti.externalization.interfaces import IExternalMappingDecorator
 
 from ._utils import copy_assessment
 from ._utils import copy_questionset
 from ._utils import copy_questionbank
 from ._utils import is_course_instructor
 from ._utils import get_assessment_items_from_unit
+
+from .interfaces import IUsersCourseAssignmentHistory
+from .interfaces import get_course_assignment_predicate_for_user
 				
-@interface.implementer(ext_interfaces.IExternalMappingDecorator)
+@interface.implementer(IExternalMappingDecorator)
 @component.adapter(app_interfaces.IContentUnitInfo)
 class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
@@ -116,40 +122,46 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 			ext_items = to_external_object(result)
 			result_map['AssessmentItems'] = ext_items
 
-
 @component.adapter(IQAssessedPart)
 class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	
 	def _do_decorate_external(self, context, result_map):
-		#from IPython.core.debugger import Tracer; Tracer()()
 		course = find_interface(context, ICourseInstance)
 		if course is None or not is_course_instructor(course, self.remoteUser):
 			return
 		
-		assessed_question = context.__parent__	
-		if assessed_question is None:
-			return # it should not happend
+		# extra check 
+		uca_history = find_interface(context, IUsersCourseAssignmentHistory) 
+		if uca_history is not None and uca_history.creator == self.remoteUser:
+			return 
 		
 		# find question
+		assessed_question = context.__parent__
 		question_id = assessed_question.questionId
 		question = component.queryUtility(IQuestion, name=question_id)
 		if question is None:
 			return # old question?
 
-		# find  part
+		# find part
 		try:
 			index = assessed_question.parts.index(context)
 			question_part = question.parts[index]
 		except IndexError:
 			return
+		
+		# for instructors we no longer randomized the questions
+		# since the submittedResponse is stored randomized 
+		# we unshuffle it, so the instructor can see the correct answer
+		if IQRandomizedPart.providedBy(question_part):
+			response = context.submittedResponse
+			grader = grader_for_response(question_part, response)
+			response = grader.unshuffle(response, uca_history.creator)
+			result_map['submittedResponse'] = \
+						response if type(response, (numbers.Real, unicode)) \
+						else to_external_object(response)
 
-		if not IQRandomizedPart.providedBy(question_part):
-			return
-
-LINKS = ext_interfaces.StandardExternalFields.LINKS
+LINKS = StandardExternalFields.LINKS
 from nti.dataserver.links import Link
-
-from zope.location.interfaces import ILocationInfo
 
 class _AbstractTraversableLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
@@ -170,7 +182,7 @@ class _AbstractTraversableLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
 
 from nti.dataserver.interfaces import IUser
 
-@interface.implementer(ext_interfaces.IExternalMappingDecorator)
+@interface.implementer(IExternalMappingDecorator)
 class _AssignmentHistoryItemDecorator(_AbstractTraversableLinkDecorator):
 	"""
 	For things that have an assignment history, add this
@@ -190,7 +202,7 @@ class _AssignmentHistoryItemDecorator(_AbstractTraversableLinkDecorator):
 							rel='AssignmentHistory',
 							elements=('AssignmentHistories', user.username)) )
 
-@interface.implementer(ext_interfaces.IExternalMappingDecorator)
+@interface.implementer(IExternalMappingDecorator)
 class _AssignmentsByOutlineNodeDecorator(_AbstractTraversableLinkDecorator):
 	"""
 	For things that have a assignments, add this
@@ -221,7 +233,7 @@ class _AssignmentsByOutlineNodeDecorator(_AbstractTraversableLinkDecorator):
 
 from .interfaces import IUsersCourseAssignmentHistoryItemFeedback
 
-@interface.implementer(ext_interfaces.IExternalMappingDecorator)
+@interface.implementer(IExternalMappingDecorator)
 @component.adapter(IUsersCourseAssignmentHistoryItemFeedback)
 class _FeedbackItemAssignmentIdDecorator(object):
 	"""
@@ -257,7 +269,6 @@ class _LastViewedAssignmentHistoryDecorator(AbstractAuthenticatedRequestAwareDec
 							rel='lastViewed',
 							elements=('lastViewed',),
 							method='PUT' ) )
-
 
 from .assessment_views import AssignmentSubmissionBulkFileDownloadView
 

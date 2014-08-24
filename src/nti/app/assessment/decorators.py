@@ -14,13 +14,18 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope import interface
 
+from pyramid.traversal import find_interface
+
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
 from nti.appserver import interfaces as app_interfaces
 
+from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
+from nti.assessment.interfaces import IQAssessedPart
 from nti.assessment.randomized.interfaces import IQuestionBank
+from nti.assessment.randomized.interfaces import IQRandomizedPart
 from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -110,6 +115,35 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 		if result:
 			ext_items = to_external_object(result)
 			result_map['AssessmentItems'] = ext_items
+
+
+@component.adapter(IQAssessedPart)
+class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):
+	
+	def _do_decorate_external(self, context, result_map):
+		course = find_interface(context, ICourseInstance)
+		if course is None or not is_course_instructor(course, self.remoteUser()):
+			return
+		
+		assessed_question = context.__parent__	
+		if assessed_question is None:
+			return # it should not happend
+		
+		# find question
+		question_id = assessed_question.questionId
+		question = component.queryUtility(IQuestion, name=question_id)
+		if question is None:
+			return # old question?
+
+		# find  part
+		try:
+			index = assessed_question.parts.index(context)
+			question_part = question.parts[index]
+		except IndexError:
+			return
+
+		if not IQRandomizedPart.providedBy(question_part):
+			return
 
 LINKS = ext_interfaces.StandardExternalFields.LINKS
 from nti.dataserver.links import Link

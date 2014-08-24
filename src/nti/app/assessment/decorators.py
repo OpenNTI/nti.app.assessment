@@ -121,8 +121,9 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	
 	def _do_decorate_external(self, context, result_map):
+		#from IPython.core.debugger import Tracer; Tracer()()
 		course = find_interface(context, ICourseInstance)
-		if course is None or not is_course_instructor(course, self.remoteUser()):
+		if course is None or not is_course_instructor(course, self.remoteUser):
 			return
 		
 		assessed_question = context.__parent__	

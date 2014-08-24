@@ -16,8 +16,6 @@ from zope.security.interfaces import IPrincipal
 from zope.securitypolicy.interfaces import Allow
 from zope.securitypolicy.interfaces import IPrincipalRoleMap
 
-from nti.assessment.interfaces import IQuestion
-from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.interfaces import IQAssessmentItemContainer
@@ -63,19 +61,40 @@ def get_assessment_items_from_unit(contentUnit):
 	result = dict()
 	recur(contentUnit, result )
 	return result
-			
-def copy_question(q, part_marker_iface=None):
-	if IQuestion.providedBy(q):
-		result = copy.copy(q)
-		result.parts = [copy.copy(p) for p in q.parts]
-		if part_marker_iface:
-			for p in result.partss:
-				interface.alsoProvides(p, part_marker_iface)
-		return result
-	return q
+		
+def make_nonrandomized(context):
+	iface = getattr(context, 'nonrandomized_interface', None)
+	if iface is not None:
+		interface.alsoProvides(context, iface)
+		return True
+	return False
 
-def copy_questionset(qs, part_marker_iface=None):
-	if IQuestionSet.providedBy(qs):
-		result = copy.copy(qs)
-		result.questions = [copy_question(q, part_marker_iface) for q in qs.questions]
-	return qs
+def copy_question(q, nonrandomized=False):
+	result = copy.copy(q)
+	result.parts = [copy.copy(p) for p in q.parts]
+	if nonrandomized:
+		for part in result.parts:
+			make_nonrandomized(part)
+		make_nonrandomized(result)
+	return result
+
+def copy_questionset(qs, nonrandomized=False):
+	result = copy.copy(qs)
+	result.questions = [copy_question(q, nonrandomized) for q in qs.questions]
+	if nonrandomized:
+		for question in result.questions:
+			make_nonrandomized(question)
+		make_nonrandomized(result)
+	return result
+
+def copy_assessment(assessment, nonrandomized=False):
+	new_parts = []
+	result = copy.copy(assessment)
+	for part in assessment.parts:
+		new_part = copy.copy(part)
+		new_part.question_set = copy_questionset(part.question_set, 
+												 nonrandomized)
+		new_parts.append(new_part)
+	result.parts = new_parts
+	return result
+

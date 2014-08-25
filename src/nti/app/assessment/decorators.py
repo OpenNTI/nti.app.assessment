@@ -17,8 +17,6 @@ from zope import component
 from zope import interface
 from zope.location.interfaces import ILocationInfo
 
-from pyramid.traversal import find_interface
-
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
 from nti.appserver import interfaces as app_interfaces
@@ -33,6 +31,8 @@ from nti.assessment.randomized.interfaces import IQRandomizedPart
 from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+
+from nti.dataserver.traversal import find_interface
 
 from nti.externalization.singleton import SingletonDecorator
 from nti.externalization.interfaces import StandardExternalFields
@@ -126,12 +126,12 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	
 	def _do_decorate_external(self, context, result_map):
-		course = find_interface(context, ICourseInstance)
+		course = find_interface(context, ICourseInstance, strict=False)
 		if course is None or not is_course_instructor(course, self.remoteUser):
 			return
 		
 		# extra check 
-		uca_history = find_interface(context, IUsersCourseAssignmentHistory) 
+		uca_history = find_interface(context, IUsersCourseAssignmentHistory, strict=False) 
 		if uca_history is not None and uca_history.creator == self.remoteUser:
 			return 
 		
@@ -289,28 +289,49 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
 							elements=('BulkFilePartDownload',) ) )
 
 from datetime import datetime
+
 from nti.appserver.pyramid_authorization import has_permission
+
 from nti.assessment.interfaces import IQAssignmentDateContext
+
+from nti.contenttypes.courses.interfaces import ICourseCatalog
+
 from .interfaces import ACT_VIEW_SOLUTIONS
 
 class _AssignmentSectionSpecificDates(AbstractAuthenticatedRequestAwareDecorator):
 	"""
 	When an assignment is externalized, write the section specific dates.
 	"""
-
-	def _do_decorate_external(self, context, result):
-		course = component.queryMultiAdapter( (context, self.remoteUser),
-											  ICourseInstance)
+	
+	def _get_course(self, assignment):
+		result = None
+		## check if we have the context catalog entry we can use 
+		## as reference (.adapters._QAssignmentProxy) this way
+		## instructor can find the correct course when they are looking
+		## at a section.
+		ntiid = getattr(assignment, 'CatalogEntryNTIID', None)
+		if ntiid:
+			catalog = component.getUtility(ICourseCatalog)
+			try:
+				entry = catalog.getCatalogEntry(ntiid)
+				result = ICourseInstance(entry, None)
+			except KeyError:
+				pass
+		if result is None:	
+			result = component.queryMultiAdapter((assignment, self.remoteUser),
+											  	 ICourseInstance)
+		return result
+		
+	def _do_decorate_external(self, assignment, result):
+		course = self._get_course(assignment)
 		if course is not None:
-			dates = IQAssignmentDateContext(course).of(context)
+			dates = IQAssignmentDateContext(course).of(assignment)
 			for k in ('available_for_submission_ending',
 					  'available_for_submission_beginning'):
-				asg_date = getattr(context, k)
+				asg_date = getattr(assignment, k)
 				dates_date = getattr(dates, k)
-
 				if dates_date != asg_date:
 					result[k] = to_external_object(dates_date)
-
 
 class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAwareDecorator):
 	"""

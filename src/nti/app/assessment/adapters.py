@@ -15,7 +15,6 @@ import datetime
 from zope import interface
 from zope import component
 from zope import lifecycleevent
-from pyramid.traversal import find_interface
 from zope.annotation.interfaces import IAnnotations
 
 from zope.schema.interfaces import NotUnique
@@ -33,8 +32,10 @@ from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver.interfaces import IUser
+from nti.dataserver.traversal import find_interface
 
 from .history import UsersCourseAssignmentHistory
+
 from .interfaces import IUsersCourseAssignmentHistory
 from .interfaces import IUsersCourseAssignmentHistoryItem
 
@@ -51,10 +52,12 @@ def _question_set_submission_transformer( obj ):
 	return asm_interfaces.IQAssessedQuestionSet
 
 from functools import partial
-from pyramid.interfaces import IRequest
-from pyramid.interfaces import IExceptionResponse
-from pyramid.httpexceptions import HTTPCreated
+
 from pyramid import renderers
+from pyramid.interfaces import IRequest
+from pyramid.httpexceptions import HTTPCreated
+from pyramid.interfaces import IExceptionResponse
+
 from nti.externalization.oids import to_external_oid
 
 @component.adapter(IRequest, asm_interfaces.IQAssignmentSubmission)
@@ -189,11 +192,11 @@ def _begin_assessment_for_assignment_submission(submission):
 
 	return pending_assessment
 
-from nti.dataserver.traversal import find_interface
 from nti.contentlibrary.interfaces import IContentPackage
-from nti.contenttypes.courses.interfaces import IPrincipalEnrollments
-from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.contenttypes.courses.interfaces import ICourseCatalog
+from nti.contenttypes.courses.interfaces import ICourseEnrollments
+from nti.contenttypes.courses.interfaces import IPrincipalEnrollments
+
 from zope.security.interfaces import IPrincipal
 
 @interface.implementer(ICourseInstance)
@@ -260,9 +263,6 @@ def _course_from_assignment_lineage(assignment, user):
 				return course
 			if ICourseEnrollments(course).get_enrollment_for_principal(user) is not None:
 				return course
-
-
-
 
 from .history import UsersCourseAssignmentHistories
 
@@ -351,11 +351,12 @@ class _UsersCourseAssignmentHistoriesTraversable(ContainerAdapterTraversable):
 				return _history_for_user_in_course( self.context.__parent__, user)
 			raise
 
-from .interfaces import ICourseAssessmentItemCatalog
-from .interfaces import ICourseAssignmentCatalog
-from nti.assessment.interfaces import IQAssessmentItemContainer
-from nti.assessment.interfaces import IQAssignment
 
+from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQAssessmentItemContainer
+
+from .interfaces import ICourseAssignmentCatalog
+from .interfaces import ICourseAssessmentItemCatalog
 
 @interface.implementer(ICourseAssessmentItemCatalog)
 @component.adapter(ICourseInstance)
@@ -396,6 +397,22 @@ class _DefaultCourseAssessmentItemCatalog(object):
 
 		return result
 
+from zope.proxy import ProxyBase
+
+from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
+
+class _QAssignmentProxy(ProxyBase):
+	
+	CatalogEntryNTIID = property(
+					lambda s: s.__dict__.get('_context'),
+					lambda s, v: s.__dict__.__setitem__('_context', v))
+		
+	def __new__(cls, base, context):
+		return ProxyBase.__new__(cls, base)
+
+	def __init__(self, base, ntiid):
+		ProxyBase.__init__(self, base)
+		self.CatalogEntryNTIID = ntiid
 
 @interface.implementer(ICourseAssignmentCatalog)
 @component.adapter(ICourseInstance)
@@ -403,6 +420,10 @@ class _DefaultCourseAssignmentCatalog(object):
 
 	def __init__(self, context):
 		self.context = context
+		self.catalog_entry = ICourseCatalogEntry(context, None)
 
 	def iter_assignments(self):
-		return (x for x in ICourseAssessmentItemCatalog(self.context).iter_assessment_items() if IQAssignment.providedBy(x))
+		ntiid = getattr(self.catalog_entry, 'ntiid', None)
+		items = ICourseAssessmentItemCatalog(self.context).iter_assessment_items()
+		result = (_QAssignmentProxy(x, ntiid) for x in items if IQAssignment.providedBy(x))
+		return result

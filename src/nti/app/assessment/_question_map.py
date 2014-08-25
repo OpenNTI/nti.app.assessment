@@ -12,21 +12,31 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 import six
+import time
 import simplejson
 
 from zope import interface
 from zope import component
 
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
-from zope.lifecycleevent.interfaces import IObjectModifiedEvent
 from zope.lifecycleevent.interfaces import IObjectRemovedEvent
+from zope.lifecycleevent.interfaces import IObjectModifiedEvent
 
 from persistent.list import PersistentList
 
-from nti.assessment import interfaces as asm_interfaces
+from nti.assessment.interfaces import IQuestion
+from nti.assessment.interfaces import IQuestionSet
+from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQAssessmentItemContainer
+
 from nti.contentfragments import interfaces as cfg_interfaces
-from nti.contentlibrary import interfaces as lib_interfaces
-from nti.dataserver import interfaces as nti_interfaces
+
+from nti.contentlibrary.interfaces import IContentUnit
+from nti.contentlibrary.interfaces import IContentPackage
+from nti.contentlibrary.interfaces import IContentPackageLibrary
+from nti.contentlibrary.interfaces import IGlobalContentPackageLibrary
+
+from nti.dataserver.interfaces import IZContained
 
 from nti.externalization import internalization
 from nti.externalization.persistence import NoPickle
@@ -41,17 +51,19 @@ def _ntiid_object_hook( k, v, x ):
 	if 'NTIID' in x and not getattr( v, 'ntiid', None ):
 		v.ntiid = x['NTIID']
 		v.__name__ = v.ntiid
-	if 'value' in x and 'Class' in x and x['Class'] == 'LatexSymbolicMathSolution' and x['value'] != v.value:
+
+	if 'value' in x and 'Class' in x and x['Class'] == 'LatexSymbolicMathSolution' and \
+		x['value'] != v.value:
 		# We started out with LatexContentFragments when we wrote these,
 		# and if we re-convert when we read, we tend to over-escape
-		# One thing we do need to do, though, is replace long dashes with standard minus signs
-		v.value = cfg_interfaces.LatexContentFragment( x['value'].replace( u'\u2212', '-') )
+		# One thing we do need to do, though, is replace long dashes with standard 
+		# minus signs
+		v.value = cfg_interfaces.LatexContentFragment(x['value'].replace(u'\u2212', '-'))
 
 	return v
 
-@interface.implementer(asm_interfaces.IQAssessmentItemContainer,
-					   nti_interfaces.IZContained)
-@component.adapter(lib_interfaces.IContentUnit)
+@interface.implementer(IQAssessmentItemContainer, IZContained)
+@component.adapter(IContentUnit)
 class _AssessmentItemContainer(PersistentList,
 							   PersistentCreatedAndModifiedTimeObject):
 	__name__ = None
@@ -63,9 +75,8 @@ class _AssessmentItemContainer(PersistentList,
 # not entirely convinced that the annotation utility, which is ntiid
 # based, works correctly for our cases of having matching ntiids but
 # different objects, we directly store an attribute on the object.
-import time
-@interface.implementer(asm_interfaces.IQAssessmentItemContainer)
-@component.adapter(lib_interfaces.IContentUnit)
+@interface.implementer(IQAssessmentItemContainer)
+@component.adapter(IContentUnit)
 def ContentUnitAssessmentItems(unit):
 	try:
 		return unit._question_map_assessment_item_container
@@ -78,11 +89,11 @@ def ContentUnitAssessmentItems(unit):
 		return result
 
 def _iface_to_register(thing_to_register):
-	iface = asm_interfaces.IQuestion
-	if asm_interfaces.IQuestionSet.providedBy(thing_to_register):
-		iface = asm_interfaces.IQuestionSet
-	elif asm_interfaces.IQAssignment.providedBy(thing_to_register):
-		iface = asm_interfaces.IQAssignment
+	iface = IQuestion
+	if IQuestionSet.providedBy(thing_to_register):
+		iface = IQuestionSet
+	elif IQAssignment.providedBy(thing_to_register):
+		iface = IQAssignment
 	return iface
 
 @NoPickle
@@ -109,7 +120,7 @@ class QuestionMap(object):
 		things_to_register = set([assignment])
 		for part in assignment.parts:
 			qset = part.question_set
-			things_to_register.update( self.__explode_object_to_register(qset) )
+			things_to_register.update(self.__explode_object_to_register(qset))
 		return things_to_register
 
 	def __explode_question_set_to_register(self, question_set):
@@ -118,32 +129,31 @@ class QuestionMap(object):
 			things_to_register.add( child_question )
 		return things_to_register
 
-
 	def __explode_object_to_register(self, obj):
 		things_to_register = set([obj])
-		if asm_interfaces.IQAssignment.providedBy(obj):
+		if IQAssignment.providedBy(obj):
 			things_to_register.update(self.__explode_assignment_to_register(obj))
-		elif asm_interfaces.IQuestionSet.providedBy(obj):
+		elif IQuestionSet.providedBy(obj):
 			things_to_register.update(self.__explode_question_set_to_register(obj))
 		return things_to_register
 
-
 	def __canonicalize_question_set(self, obj, registry):
-		obj.questions = [registry.getUtility(asm_interfaces.IQuestion,name=x.ntiid)
+		obj.questions = [registry.getUtility(IQuestion, name=x.ntiid)
 						 for x
 						 in obj.questions]
 
 	def __canonicalize_object(self, obj, registry):
-		if asm_interfaces.IQAssignment.providedBy(obj):
+		if IQAssignment.providedBy(obj):
 			for part in obj.parts:
-				part.question_set = registry.getUtility(asm_interfaces.IQuestionSet,name=part.question_set.ntiid)
+				ntiid = part.question_set.ntiid
+				part.question_set = registry.getUtility(IQuestionSet, name=ntiid)
 				self.__canonicalize_question_set(part.question_set, registry)
-		elif asm_interfaces.IQuestionSet.providedBy(obj):
+		elif IQuestionSet.providedBy(obj):
 			self.__canonicalize_question_set(obj, registry)
 
 	def __register_and_canonicalize(self, things_to_register, registry):
 
-		library = component.queryUtility(lib_interfaces.IContentPackageLibrary)
+		library = component.queryUtility(IContentPackageLibrary)
 
 		# if we're working in the global library, use the global
 		# site manager to not persist; otherwise, use the current site manager
@@ -153,7 +163,7 @@ class QuestionMap(object):
 		# we must not overlap NTIIDs of questions between parent and children
 		# libraries, as we will overwrite the parent
 		if registry is None:
-			if lib_interfaces.IGlobalContentPackageLibrary.providedBy(library):
+			if IGlobalContentPackageLibrary.providedBy(library):
 				registry = component.getGlobalSiteManager()
 			else:
 				registry = component.getSiteManager()
@@ -194,7 +204,7 @@ class QuestionMap(object):
 		canonicalized.
 
 		"""
-		library = component.queryUtility(lib_interfaces.IContentPackageLibrary)
+		library = component.queryUtility(IContentPackageLibrary)
 
 		parent = None
 		parents_questions = []
@@ -203,7 +213,7 @@ class QuestionMap(object):
 			containing_content_units = library.pathToNTIID(level_ntiid)
 			if containing_content_units:
 				parent = containing_content_units[-1]
-				parents_questions = asm_interfaces.IQAssessmentItemContainer(parent)
+				parents_questions = IQAssessmentItemContainer(parent)
 
 		result = set()
 		for k, v in assessment_item_dict.items():
@@ -211,7 +221,9 @@ class QuestionMap(object):
 			factory = internalization.find_factory_for( v )
 			assert factory is not None
 			obj = factory()
-			internalization.update_from_external_object(obj, v, require_updater=True, notify=False, object_hook=_ntiid_object_hook )
+			internalization.update_from_external_object(obj, v, require_updater=True, 
+														notify=False, 
+														object_hook=_ntiid_object_hook )
 			obj.ntiid = k
 			obj.__name__ = unicode( k ).encode('utf8').decode('utf8')
 			self._store_object(k, obj)
@@ -273,7 +285,6 @@ class QuestionMap(object):
 					raise ValueError( key_for_this_level, "Found a second entry for the same file" )
 
 			by_file[key_for_this_level] = factory()
-
 
 		level_ntiid = index.get( 'NTIID' ) or nearest_containing_ntiid
 		things_to_register = set()
@@ -347,7 +358,7 @@ def _needs_load_or_update(content_package):
 	if not key:
 		return
 
-	main_container = asm_interfaces.IQAssessmentItemContainer(content_package)
+	main_container = IQAssessmentItemContainer(content_package)
 	if key.lastModified <= main_container.lastModified:
 		logger.info("No change to %s since %s, ignoring",
 					key,
@@ -357,7 +368,7 @@ def _needs_load_or_update(content_package):
 	main_container.lastModified = key.lastModified
 	return key
 
-@component.adapter(lib_interfaces.IContentPackage,IObjectAddedEvent)
+@component.adapter(IContentPackage, IObjectAddedEvent)
 def add_assessment_items_from_new_content( content_package, event, key=None ):
 	"""
 	Assessment items have their NTIID as their __name__, and the NTIID of their primary
@@ -446,7 +457,7 @@ def _populate_question_map_from_text( question_map, asm_index_text, content_pack
 		# since we shouldn't get content like this out of the rendering process
 		logger.exception( "Failed to load assessment items, invalid assessment_index for %s", content_package )
 
-@component.adapter(lib_interfaces.IContentPackage, IObjectRemovedEvent)
+@component.adapter(IContentPackage, IObjectRemovedEvent)
 def remove_assessment_items_from_oldcontent(content_package, event):
 	logger.info("Removing assessment items from old content %s %s", content_package, event)
 
@@ -463,7 +474,7 @@ def remove_assessment_items_from_oldcontent(content_package, event):
 
 
 	def _unregister(unit):
-		items = asm_interfaces.IQAssessmentItemContainer(unit)
+		items = IQAssessmentItemContainer(unit)
 		for item in items:
 			# TODO: Check the parent? If it's an IContentUnit, only
 			# unregister if it's us?
@@ -480,7 +491,7 @@ def remove_assessment_items_from_oldcontent(content_package, event):
 
 	_unregister(content_package)
 
-@component.adapter(lib_interfaces.IContentPackage, IObjectModifiedEvent)
+@component.adapter(IContentPackage, IObjectModifiedEvent)
 def update_assessment_items_when_modified(content_package, event):
 	# The event may be an IContentPackageReplacedEvent, a subtype of the
 	# modification event. In that case, because we are directly storing
@@ -496,13 +507,15 @@ def update_assessment_items_when_modified(content_package, event):
 	remove_assessment_items_from_oldcontent(original, event)
 	add_assessment_items_from_new_content(updated, event)
 
+# extract
 
-import argparse
-from zope.configuration import xmlconfig
-from zope.component import hooks
-from zope.interface.registry import Components
-import os.path
 import sys
+import os.path
+import argparse
+
+from zope.component import hooks
+from zope.configuration import xmlconfig
+from zope.interface.registry import Components
 
 from nti.contentlibrary.filesystem import FilesystemKey
 from nti.contentlibrary.filesystem import FilesystemBucket
@@ -533,7 +546,7 @@ def _load_assignments(json_string, json_key):
 def _asg_registry_to_course_data(registry):
 
 	data = {}
-	for assignment in registry.getAllUtilitiesRegisteredFor(asm_interfaces.IQAssignment):
+	for assignment in registry.getAllUtilitiesRegisteredFor(IQAssignment):
 		name = assignment.ntiid
 		asg_data = data[name] = {}
 		# title is for human readability; capitalized to sort to beginning
@@ -557,7 +570,6 @@ def _asg_registry_to_course_data(registry):
 		point_data['total_points'] = total_points
 
 	return data
-
 
 def main_extract_assignments():
 	"""
@@ -598,7 +610,6 @@ def main_extract_assignments():
 		for asg in ext_value.values():
 			asg['auto_grade']['total_points'] = args.force_total_points
 
-
 	if args.merge_with:
 		merge_json = simplejson.loads(args.merge_with.read())
 		for k in ext_value:
@@ -627,7 +638,6 @@ def main_extract_assignments():
 			if k in ext_value:
 				continue
 			ext_value[k] = merge_json[k]
-
 
 	simplejson.dump(ext_value,
 					sys.stdout,

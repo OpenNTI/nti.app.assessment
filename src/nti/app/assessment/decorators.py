@@ -298,32 +298,31 @@ from nti.contenttypes.courses.interfaces import ICourseCatalog
 
 from .interfaces import ACT_VIEW_SOLUTIONS
 
+def _get_course_from_assignment(assignment, user):
+	## check if we have the context catalog entry we can use 
+	## as reference (.adapters._QAssignmentProxy) this way
+	## instructor can find the correct course when they are looking
+	## at a section.
+	result = None
+	ntiid = getattr(assignment, 'CatalogEntryNTIID', None)
+	if ntiid:
+		catalog = component.getUtility(ICourseCatalog)
+		try:
+			entry = catalog.getCatalogEntry(ntiid)
+			result = ICourseInstance(entry, None)
+		except KeyError:
+			pass
+	if result is None:	
+		result = component.queryMultiAdapter((assignment, user), ICourseInstance)
+	return result
+
 class _AssignmentSectionSpecificDates(AbstractAuthenticatedRequestAwareDecorator):
 	"""
 	When an assignment is externalized, write the section specific dates.
 	"""
-	
-	def _get_course(self, assignment):
-		result = None
-		## check if we have the context catalog entry we can use 
-		## as reference (.adapters._QAssignmentProxy) this way
-		## instructor can find the correct course when they are looking
-		## at a section.
-		ntiid = getattr(assignment, 'CatalogEntryNTIID', None)
-		if ntiid:
-			catalog = component.getUtility(ICourseCatalog)
-			try:
-				entry = catalog.getCatalogEntry(ntiid)
-				result = ICourseInstance(entry, None)
-			except KeyError:
-				pass
-		if result is None:	
-			result = component.queryMultiAdapter((assignment, self.remoteUser),
-											  	 ICourseInstance)
-		return result
 		
 	def _do_decorate_external(self, assignment, result):
-		course = self._get_course(assignment)
+		course = _get_course_from_assignment(assignment, self.remoteUser)
 		if course is not None:
 			dates = IQAssignmentDateContext(course).of(assignment)
 			for k in ('available_for_submission_ending',
@@ -349,8 +348,7 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 		due_date = None
 		course = None
 		if context is not None:
-			course = component.queryMultiAdapter( (context, remoteUser),
-												  ICourseInstance)
+			course = _get_course_from_assignment(context, remoteUser)
 			if course is not None:
 				due_date = IQAssignmentDateContext(course).of(context).available_for_submission_ending
 			else:
@@ -469,5 +467,4 @@ class _IPad110NoSubmitPartAdjuster(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _do_decorate_external(self, context, result):
 		result['parts'] = [{'Class': 'AssignmentPart'}]
-
 					

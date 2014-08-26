@@ -8,7 +8,7 @@ entry_points = {
 		'target = nti.app',
 	],
 	"console_scripts": [
-		"nti_extract_assessments = nti.app.assessment._question_map:main_extract_assignments",
+		"nti_extract_assessments = nti.app.assessment._assignment_policy_extractor:main_extract_assignments",
 	],
 }
 

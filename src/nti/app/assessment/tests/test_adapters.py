@@ -250,7 +250,10 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 		return res
 
 	@WithSharedApplicationMockDS(users=('outest5',),testapp=True,default_authenticate=True)
-	def test_pending_application_assignment(self):
+	@fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
+	def test_pending_application_assignment(self, fake_active):
+		# make it look like the course is in session so notables work
+		fake_active.is_callable().returns(True)
 
 		# Sends an assignment through the application by posting to the assignment
 		qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id)

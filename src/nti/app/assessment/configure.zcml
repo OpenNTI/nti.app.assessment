@@ -18,12 +18,15 @@
 	<include package="nti.assessment" />
 
 	<i18n:registerTranslations directory="locales" />
-	
+
 	<!-- Database creation and migration -->
+	<include package="zope.generations" />
+	<include package="zope.generations" file="subscriber.zcml" />
+
 	<utility factory=".generations.install._AssessmentSchemaManager"
 			 name="nti.dataserver-app-assessment"
 			 provides="zope.generations.interfaces.IInstallableSchemaManager" />
-	
+
 	<!-- Roles and permissions -->
 	<include package="zope.securitypolicy" file="meta.zcml" />
 	<include package="zope.security" file="meta.zcml" />
@@ -105,7 +108,7 @@
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.assessment.interfaces.IQAssessedPart
 					 pyramid.interfaces.IRequest" />
-					 
+
 	<subscriber factory=".decorators._FeedbackItemAssignmentIdDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"/>
 

@@ -9,6 +9,8 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+import time
+
 from zope import component
 
 from pyramid.view import view_config
@@ -121,12 +123,15 @@ class _XXX_HACK_MultipleChoiceFixerView(AbstractAuthenticatedView,
 		result = LocatedExternalDict()
 		items = result['Items'] = {}
 		submission = history_item.Submission
+		
+		submission._p_activate()
 		for sub_part in submission.parts:
 			for sub_question in sub_part.questions:
 				question = component.queryUtility(IQuestion, sub_question.questionId)
 				if question is None:
 					continue
 				
+				modified = False
 				for idx, t in enumerate(zip(question.parts, sub_question.parts)):
 					part, sub_part = t
 					if not IQRandomizedMultipleChoicePart.providedBy(part):
@@ -155,7 +160,11 @@ class _XXX_HACK_MultipleChoiceFixerView(AbstractAuthenticatedView,
 					
 					# update and register
 					if self.request.method != 'GET':
+						modified = True
 						sub_question.parts[idx] = shuffled
 					items[sub_question.questionId] = {response:shuffled}
-	
+				
+				if modified:
+					submission._p_changed = True
+					submission.updateLastModIfGreater(time.time())
 		return result

@@ -77,6 +77,11 @@ def make_sha224randomized(context):
 		return True
 	return False
 
+def sublocations(context):
+	if hasattr(context, 'sublocations'):
+		tuple(context.sublocations())
+	return context
+
 def copy_question(q, nonrandomized=False):
 	result = copy.copy(q)
 	result.parts = [copy.copy(p) for p in q.parts]
@@ -93,6 +98,7 @@ def copy_questionset(qs, nonrandomized=False):
 		for question in result.questions:
 			make_nonrandomized(question)
 		make_nonrandomized(result)
+	sublocations(result)
 	return result
 
 def copy_questionbank(bank, is_instructor=False, qsids_to_strip=None):
@@ -106,6 +112,7 @@ def copy_questionbank(bank, is_instructor=False, qsids_to_strip=None):
 			bank_ntiids = {q.ntiid for q in bank.questions}
 			if len(bank_ntiids) != len(drawn_ntiids):
 				qsids_to_strip.update(bank_ntiids.difference(drawn_ntiids))
+	sublocations(result)
 	return result
 
 def copy_assessment(assessment, nonrandomized=False):
@@ -117,5 +124,6 @@ def copy_assessment(assessment, nonrandomized=False):
 												 nonrandomized)
 		new_parts.append(new_part)
 	result.parts = new_parts
+	sublocations(result)
 	return result
 

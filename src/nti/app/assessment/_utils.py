@@ -121,8 +121,6 @@ def copy_questionset(qs, nonrandomized=False):
 	result = copy.copy(qs)
 	result.questions = [copy_question(q, nonrandomized) for q in qs.questions]
 	if nonrandomized:
-		for question in result.questions:
-			make_nonrandomized(question)
 		make_nonrandomized(result)
 	sublocations(result)
 	return result

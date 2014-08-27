@@ -26,6 +26,7 @@ from nti.assessment import grader_for_response
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.randomized import shuffle_list
+from nti.assessment.interfaces import IQAssessedQuestionSet
 from nti.assessment.randomized import randomize as randomzier
 from nti.assessment.randomized.interfaces import IQRandomizedMultipleChoicePart
 
@@ -124,15 +125,19 @@ class _XXX_HACK_MultipleChoiceFixerView(AbstractAuthenticatedView,
 		items = result['Items'] = {}
 		submission = history_item.Submission
 		
+		pending_assessment = history_item.pendingAssessment
+		
 		submission._p_activate()
-		for sub_part in submission.parts:
-			for sub_question in sub_part.questions:
+		for part_idx, sub_part in enumerate(submission.parts):
+			for question_idx, sub_question in enumerate(sub_part.questions):
+				# find  question
 				question = component.queryUtility(IQuestion, sub_question.questionId)
 				if question is None:
 					continue
 				
 				modified = False
 				for idx, t in enumerate(zip(question.parts, sub_question.parts)):
+					# check part
 					part, sub_part = t
 					if not IQRandomizedMultipleChoicePart.providedBy(part):
 						continue
@@ -162,6 +167,14 @@ class _XXX_HACK_MultipleChoiceFixerView(AbstractAuthenticatedView,
 					if self.request.method != 'GET':
 						modified = True
 						sub_question.parts[idx] = shuffled
+						
+						# change assessed question set
+						asd_qset = pending_assessment.parts[part_idx]
+						if IQAssessedQuestionSet.providedBy(asd_qset):
+							asd_question = asd_qset.questions[question_idx]
+							asd_part = asd_question.parts[idx]
+							asd_part.submittedResponse = shuffled
+							
 					items[sub_question.questionId] = {response:shuffled}
 				
 				if modified:

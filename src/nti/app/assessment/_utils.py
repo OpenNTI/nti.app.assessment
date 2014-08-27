@@ -89,6 +89,7 @@ def copy_question(q, nonrandomized=False):
 		for part in result.parts:
 			make_nonrandomized(part)
 		make_nonrandomized(result)
+	sublocations(result)
 	return result
 
 def copy_questionset(qs, nonrandomized=False):

@@ -66,11 +66,11 @@ class AllTasksOutlineView(AbstractAuthenticatedView):
 			result.setdefault(unit.ntiid, []).append(item)
 		return result
 
-@view_config(context=IDataserverFolder)
-@view_defaults(route_name='objects.generic.traversal',
-			   renderer='rest',
-			   permission=nauth.ACT_MODERATE,
-			   name='MultipleChoiceFixer')
+@view_config(route_name='objects.generic.traversal',
+			 renderer='rest',
+			 context=IDataserverFolder,
+			 permission=nauth.ACT_MODERATE,
+			 name='MultipleChoiceFixer')
 class _XXX_HACK_MultipleChoiceFixerView(AbstractAuthenticatedView,
 										ModeledContentUploadRequestUtilsMixin):
 	

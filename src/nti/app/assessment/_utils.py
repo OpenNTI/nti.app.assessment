@@ -82,12 +82,18 @@ def sublocations(context):
 		tuple(context.sublocations())
 	return context
 
+def copy_part(part, nonrandomized=False, sha224randomized=False):
+	result = copy.copy(part)
+	if nonrandomized:
+		make_nonrandomized(part)
+	elif sha224randomized:
+		make_sha224randomized(part)
+	return result
+
 def copy_question(q, nonrandomized=False):
 	result = copy.copy(q)
-	result.parts = [copy.copy(p) for p in q.parts]
+	result.parts = [copy_part(p, nonrandomized) for p in q.parts]
 	if nonrandomized:
-		for part in result.parts:
-			make_nonrandomized(part)
 		make_nonrandomized(result)
 	sublocations(result)
 	return result

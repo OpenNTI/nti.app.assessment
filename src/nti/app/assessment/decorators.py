@@ -155,7 +155,8 @@ class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		if IQRandomizedPart.providedBy(question_part):
 			response = context.submittedResponse
 			grader = grader_for_response(question_part, response)
-			response = grader.unshuffle(response, uca_history.creator)
+			response = grader.unshuffle(response, user=uca_history.creator,
+										context=question_part)
 			result_map['submittedResponse'] = \
 						response if isinstance(response, (numbers.Real, basestring)) \
 						else to_external_object(response)

@@ -70,6 +70,13 @@ def make_nonrandomized(context):
 		return True
 	return False
 
+def make_sha224randomized(context):
+	iface = getattr(context, 'sha224randomized_interface', None)
+	if iface is not None:
+		interface.alsoProvides(context, iface)
+		return True
+	return False
+
 def copy_question(q, nonrandomized=False):
 	result = copy.copy(q)
 	result.parts = [copy.copy(p) for p in q.parts]

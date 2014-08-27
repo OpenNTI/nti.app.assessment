@@ -28,6 +28,7 @@ from nti.assessment.randomized import randomize as randomzier
 from nti.assessment.randomized.interfaces import IQRandomizedMultipleChoicePart
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.dataserver.users import User
 from nti.dataserver.interfaces import IUser
@@ -109,10 +110,14 @@ class _XXX_HACK_MultipleChoiceFixerView(AbstractAuthenticatedView,
 		if not course:
 			raise hexc.HTTPNotFound(detail='No assignment course found')
 		
+		entry = ICourseCatalogEntry(course)
+		logger.info('Course %s found for user and assignment', entry.ntiid)
+		
 		assignment_history = component.getMultiAdapter( (course, user),
 														IUsersCourseAssignmentHistory )
 		history_item = assignment_history.get(ntiid)
 		if history_item is None:
+			logger.warn('User has not taken assignment')
 			raise hexc.HTTPUnprocessableEntity(detail='User has not taken assignment')
 				
 		result = LocatedExternalDict()
@@ -126,17 +131,33 @@ class _XXX_HACK_MultipleChoiceFixerView(AbstractAuthenticatedView,
 				
 				for idx, t in enumerate(zip(question.parts, sub_question.parts)):
 					part, sub_part = t
-					if IQRandomizedMultipleChoicePart.providedBy(part):
-						response = getattr(sub_part, 'submittedResponse', sub_part)
-						grader = grader_for_response(part, response)
-						# unshuffle sha224
-						copied = copy_part(part, sha224randomized=True)
-						unshuffled = grader.unshuffle(response, user=user, context=copied)
-						# shuffle legacy
-						generator = randomzier(user)
-						shuffled = self._shuffle(generator, part.choices, unshuffled)
-						assert grader.unshuffle(shuffled, user=user) == unshuffled
-						
+					if not IQRandomizedMultipleChoicePart.providedBy(part):
+						continue
+					
+					logger.info("Updating question %s", sub_question.questionId)
+					
+					response = getattr(sub_part, 'submittedResponse', sub_part)
+					logger.info("sha224 response index %s", response)
+					
+					# get grader
+					grader = grader_for_response(part, response)
+					
+					# unshuffle sha224
+					copied = copy_part(part, sha224randomized=True)
+					unshuffled = grader.unshuffle(response, user=user, context=copied)
+					logger.info("unshuffled response index %s", unshuffled)
+					
+					# shuffle legacy
+					generator = randomzier(user)
+					shuffled = self._shuffle(generator, part.choices, unshuffled)
+					logger.info("new [legacy] shuffled response index %s", shuffled)
+					
+					# verify
+					assert grader.unshuffle(shuffled, user=user) == unshuffled
+					
+					# update and register
+					if self.request.method != 'GET':
 						sub_question.parts[idx] = shuffled
-						items[sub_question.questionId] = {response:shuffled}
+					items[sub_question.questionId] = {response:shuffled}
+	
 		return result

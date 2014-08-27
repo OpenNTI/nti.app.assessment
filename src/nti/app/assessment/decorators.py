@@ -39,7 +39,7 @@ from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.externalization import to_external_object
 from nti.externalization.interfaces import IExternalMappingDecorator
 
-from ._utils import copy_assessment
+from ._utils import check_assessment
 from ._utils import copy_questionset
 from ._utils import copy_questionbank
 from ._utils import is_course_instructor
@@ -97,7 +97,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 								"in %s; dropping", x, context.contentUnit)
 				elif assignment_predicate(x):
 					# Yay, keep the assignment
-					x = x if not is_instructor else copy_assessment(x, True)
+					x = check_assessment(x, user, is_instructor)
 					new_result[ntiid] = x
 				
 				# But in all cases, don't echo back the things

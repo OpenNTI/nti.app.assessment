@@ -9,7 +9,9 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+import os
 import copy
+import simplejson
 
 from zope import interface
 from zope.security.interfaces import IPrincipal
@@ -23,6 +25,23 @@ from nti.assessment.randomized import questionbank_question_chooser
 
 from nti.contenttypes.courses.interfaces import RID_TA
 from nti.contenttypes.courses.interfaces import RID_INSTRUCTOR
+
+_r47694_map = None
+def r47694():
+	"""
+	in r47694 we introduced a new type of randomizer based on the sha224 hash 
+	algorithm, however, we did not take into account the fact that there were
+	assignments (i.e. question banks) already taken. This cause incorrect
+	questing to be return. Fortunatelly, there were few takers,
+	so wee introduce this patch to force sha224 randomizer as we returned to
+	the orginal randomizer for legacy purposes
+	"""
+	global _r47694_map
+	if _r47694_map is None:
+		path = os.path.join(os.path.dirname(__file__), "hacks/r47694.json")
+		with open(path, "r") as fp:
+			_r47694_map = simplejson.load(fp)
+	return _r47694_map
 
 def has_question_bank(a):
 	if IQAssignment.providedBy(a):
@@ -127,10 +146,23 @@ def copy_assessment(assessment, nonrandomized=False):
 	result = copy.copy(assessment)
 	for part in assessment.parts:
 		new_part = copy.copy(part)
-		new_part.question_set = copy_questionset(part.question_set, 
-												 nonrandomized)
+		new_part.question_set = copy_questionset(part.question_set, nonrandomized)
 		new_parts.append(new_part)
 	result.parts = new_parts
 	sublocations(result)
 	return result
 
+def check_assessment(assessment, user=None, is_instructor=False):
+	result = assessment
+	if is_instructor:
+		result = copy_assessment(assessment, True)
+	elif user is not None:
+		ntiid = assessment.ntiid
+		username = user.username
+		# check r47694 
+		hack_map = r47694()
+		if ntiid in hack_map and username in hack_map[ntiid]:
+			result = copy_assessment(assessment)
+			for part in result.parts:
+				make_sha224randomized(part.question_set)
+	return result

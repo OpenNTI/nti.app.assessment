@@ -85,9 +85,9 @@ def sublocations(context):
 def copy_part(part, nonrandomized=False, sha224randomized=False):
 	result = copy.copy(part)
 	if nonrandomized:
-		make_nonrandomized(part)
+		make_nonrandomized(result)
 	elif sha224randomized:
-		make_sha224randomized(part)
+		make_sha224randomized(result)
 	return result
 
 def copy_question(q, nonrandomized=False):

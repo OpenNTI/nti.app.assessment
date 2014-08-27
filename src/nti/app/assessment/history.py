@@ -21,7 +21,6 @@ from zope.container.contained import Contained
 from zope.cachedescriptors.property import Lazy
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
-from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.containers import CheckingLastModifiedBTreeContainer
@@ -319,40 +318,3 @@ class UsersCourseAssignmentHistoryItemSummary(Contained):
 		"""
 		return to_external_ntiid_oid(self._history_item)
 
-def move_assignment_histories(user, source_course, target_course,
-							  assignments=(), event=True):
-	result = []
-	source_entry = ICourseCatalogEntry(source_course).ProviderUniqueID
-	target_entry = ICourseCatalogEntry(target_course).ProviderUniqueID
-	
-	assert source_entry != target_entry
-	
-	logger.warn("Moving assignment histories for user %s from %s to %s",
-				user, source_entry,  target_entry)
-	
-	source_history = component.getMultiAdapter( (source_course, user),
-												IUsersCourseAssignmentHistory )
-	
-	target_history = component.getMultiAdapter( (target_course, user),
-												IUsersCourseAssignmentHistory )
-	
-	for assignmentId in list(source_history.keys()):
-		if assignments and assignmentId not in assignmentId:
-			logger.debug("Ignoring assignment %s", assignmentId)
-			continue
-		
-		if assignmentId in target_history:
-			logger.warn("Submission for assignment %s already in target course",
-						 assignmentId)
-			continue
-
-		logger.debug("Removing assignment history item for %s from %s",
-					 assignmentId, source_entry)
-		item = source_history.removeSubmission(assignmentId, event=event)
-		item.__parent__ = None
-		
-		# fire object added, which is dispatched to sublocations
-		target_history[assignmentId] = item
-
-		result.append(assignmentId)
-	return result

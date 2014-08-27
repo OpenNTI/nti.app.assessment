@@ -102,8 +102,6 @@ class _XXX_HACK_MultipleChoiceFixerView(AbstractAuthenticatedView,
 			raise hexc.HTTPUnprocessableEntity(detail='No assignment identifier')
 		assignment =  component.queryUtility(IQAssignment, ntiid)
 		if not assignment:
-			for name, _s in component.getUtilitiesFor(IQAssignment):
-				print(name)
 			raise hexc.HTTPNotFound(detail='No assignment found')
 		
 		course = component.queryMultiAdapter((assignment, user), ICourseInstance)

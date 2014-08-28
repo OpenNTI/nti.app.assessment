@@ -27,7 +27,7 @@ from nti.assessment import grader_for_response
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.randomized import shuffle_list
-from nti.assessment.interfaces import IQAssessedQuestionSet
+from nti.assessment.interfaces import IQAssessedPart
 from nti.assessment.randomized import randomize as randomzier
 from nti.assessment.randomized.interfaces import IQRandomizedMultipleChoicePart
 
@@ -172,10 +172,11 @@ class _XXX_HACK_MultipleChoiceFixerView(AbstractAuthenticatedView,
 						
 						# change assessed question set
 						asd_qset = pending_assessment.parts[part_idx]
-						if IQAssessedQuestionSet.providedBy(asd_qset):
-							asd_question = asd_qset.questions[question_idx]
-							asd_part = asd_question.parts[idx]
+						asd_question = asd_qset.questions[question_idx]
+						asd_part = asd_question.parts[idx]
+						if IQAssessedPart.providedBy(asd_part):
 							asd_part.submittedResponse = shuffled
+							logger.info("QAssessedPart submittedResponse changed to %s", shuffled)
 							
 					items[sub_question.questionId] = {response:shuffled}
 				

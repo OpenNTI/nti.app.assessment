@@ -206,7 +206,24 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 	def assignmentId(self):
 		return self.__name__
 
-	@CachedProperty
+	@property
+	def _has_grade(self):
+		# sadly can't cache this directly
+		from nti.app.products.gradebook.interfaces import IGrade
+		try:
+			grade = IGrade(self, None)
+			# Right now we're taking either a grade or an autograde
+			# as disallowing this. the current use case (file submissions)
+			# has autograding disabled, but in the future we'd need to be
+			# sure to reliably distinguish them if we only want to take into
+			# account instructor grades (which I think just means lastModified > createdTime)
+			return grade is not None and (grade.value is not None
+										  or grade.AutoGrade is not None)
+		except (LookupError, TypeError):
+			return False
+
+
+	@CachedProperty('_has_grade')
 	def _student_nuclear_reset_capable(self):
 		"""
 		Nuclear reset capability is defined by:
@@ -214,6 +231,7 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 		#. The ``student_nuclear_reset_capable`` policy flag being true;
 		#. The current date being *before* the due date;
 		#. The absence of feedback;
+		#. The absence of a grade;
 		"""
 		# Try to arrange the checks in the cheapest possible order
 		if self.FeedbackCount:
@@ -238,6 +256,16 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 		due_date = dates.of(assignment).available_for_submission_ending
 		if due_date and datetime.utcnow() >= due_date:
 			# past due
+			return False
+
+		# Now check for a grade. Ideally, this doesn't belong at this
+		# level (the gradebook is built on top of us); we could
+		# use a level of indirection through subscribers to veto this,
+		# but because we think (but haven't measured!) that this is probably
+		# speed critical, we're doing it the cheap, sloppy way to start with.
+		# (If we're going to get externalized, and we probably are, the grade
+		# object is going to get used to decorate us with anyway)
+		if self._has_grade:
 			return False
 
 		# Well, blow me down, we seem to have made it!

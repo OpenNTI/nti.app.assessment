@@ -600,6 +600,12 @@ class _RegisterFileAssignmentLayer(InstructedCourseApplicationTestLayer):
 	def tearDownTest(cls):
 		pass
 
+from nti.assessment import response
+from nti.assessment import submission
+from cStringIO import StringIO
+from zipfile import ZipFile
+from nti.externalization import internalization
+
 
 class TestAssignmentFileGrading(ApplicationLayerTest):
 	layer = _RegisterFileAssignmentLayer
@@ -642,31 +648,23 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 
 		return res
 
-	@WithSharedApplicationMockDS(users=True,testapp=True)
-	def test_posting_and_bulk_downloading_file(self):
-
-		from nti.assessment import response
-		from nti.assessment import submission
-		from cStringIO import StringIO
-		from zipfile import ZipFile
-		from nti.externalization import internalization
-		from hamcrest import not_none
+	def _create_and_enroll(self, course_id='CLC 3403'):
 		q_sub = submission.QuestionSubmission( questionId="1", parts=(response.QUploadedFile(data=b'1234',
 																							 contentType=b'image/gif',
 																							 filename='foo.gif'),) )
 
 		qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id, questions=(q_sub,))
-		submission = AssignmentSubmission(assignmentId=self.assignment_id, parts=(qs_submission,))
+		asg_submission = AssignmentSubmission(assignmentId=self.assignment_id, parts=(qs_submission,))
 		GIF_DATAURL = b'data:image/gif;base64,R0lGODlhCwALAIAAAAAA3pn/ZiH5BAEAAAEALAAAAAALAAsAAAIUhA+hkcuO4lmNVindo7qyrIXiGBYAOw=='
 
-		ext_obj = to_external_object(submission)
+		ext_obj = to_external_object(asg_submission)
 		ext_obj['parts'][0]['questions'][0]['parts'][0]['value'] = GIF_DATAURL
 
 		assert_that( internalization.find_factory_for( ext_obj ),
 				 is_( not_none() ) )
 		# Make sure we're enrolled
 		res = self.testapp.post_json( '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses',
-									  'CLC 3403',
+									  course_id,
 									  status=201 )
 		enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'AssignmentHistory')
 		self.require_link_href_with_rel( res.json_body['CourseInstance'], 'AssignmentHistory')
@@ -674,6 +672,12 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id,
 									  ext_obj)
 		history_res = self._check_submission(res, enrollment_history_link)
+
+		return history_res
+
+	@WithSharedApplicationMockDS(users=True,testapp=True)
+	def test_posting_and_bulk_downloading_file(self):
+		history_res = self._create_and_enroll()
 
 		# Now we should be able to find and download our data
 		submission = history_res.json_body['Items'].values()[0]['Submission']
@@ -715,9 +719,45 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 		# Rounding means the second data may not be accurate
 		assert_that( info.date_time[:5], is_( download_res.last_modified.timetuple()[:5] ) )
 
-from nti.dataserver.interfaces import IUser
+	@WithSharedApplicationMockDS(users=True,testapp=True)
+	def test_student_nuclear_option(self):
+		# Enroll in section 1, which lets this happen for this object
+		history_res = self._create_and_enroll(course_id='tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice_SubInstances_01')
 
-from zope import interface
+		item = history_res.json_body['Items'][self.assignment_id]
+		item_href = item['href']
+		# Initially, we have the ability to delete it ourself
+		link = self.link_with_rel(item, 'edit')
+		assert_that(link, is_(not_none()))
+		assert_that(link, has_entry('method', 'DELETE'))
+
+		history_feedback_container_href = item['Feedback']['href']
+		# If we put some feedback, that goes away
+		feedback = UsersCourseAssignmentHistoryItemFeedback(body=['Some feedback'])
+		ext_feedback = to_external_object(feedback)
+		feedback_res = self.testapp.post_json( history_feedback_container_href,
+									  ext_feedback,
+									  status=201 )
+
+		item_res = self.testapp.get(item_href)
+		item = item_res.json_body
+		self.forbid_link_with_rel(item, 'edit')
+
+		# and the old link doesn't work either
+		self.testapp.delete(link['href'], status=403)
+
+		# deleting the feedback gets it back
+		self.testapp.delete(feedback_res.json_body['href'])
+
+		item_res = self.testapp.get(item_href)
+		item = item_res.json_body
+		item_edit_href = self.require_link_href_with_rel(item, 'edit')
+
+		# whereupon we can do so
+		self.testapp.delete(item_edit_href, status=204)
+		self.testapp.get(item_href, status=404)
+		self.testapp.get(history_feedback_container_href, status=404)
+
 from nti.mimetype.mimetype import nti_mimetype_with_class
 
 class TestAssignmentFiltering(RegisterAssignmentLayerMixin,ApplicationLayerTest):

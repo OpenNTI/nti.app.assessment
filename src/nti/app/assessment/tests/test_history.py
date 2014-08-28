@@ -30,6 +30,7 @@ from nti.dataserver.users import User
 from nti.dataserver.interfaces import IUser
 
 from nti.testing.matchers import validly_provides
+from nti.testing.matchers import is_false
 
 from nti.app.assessment.tests import AssessmentLayerTest
 
@@ -72,3 +73,15 @@ class TestHistory(AssessmentLayerTest):
 		assert_that( item.__parent__, is_( history ))
 
 		assert_that( history, has_property( 'lastViewed', 0 ))
+
+
+	def test_nuclear_option(self):
+		history = UsersCourseAssignmentHistory()
+		submission = AssignmentSubmission(assignmentId='b')
+		pending =  QAssignmentSubmissionPendingAssessment( assignmentId='b',
+														   parts=() )
+
+		item = history.recordSubmission( submission, pending )
+
+		# in the absence of info, it's false
+		assert_that(item, has_property('_student_nuclear_reset_capable', is_false()))

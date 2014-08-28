@@ -230,7 +230,7 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 		policies = IQAssignmentPolicies(course)
 
 		policy = policies.getPolicyForAssignment(asg_id)
-		if policy.get('student_nuclear_reset_capable', False):
+		if not policy.get('student_nuclear_reset_capable', False):
 			# Not allowed!
 			return False
 

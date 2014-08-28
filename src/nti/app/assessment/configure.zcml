@@ -175,7 +175,7 @@
 		 which fails for instructors. May want to simply remove its
 		 availability there.
 	-->
-	<subscriber factory="nti.appserver.pyramid_renderers_edit_link_decorator.OIDEditLinkDecorator"
+	<subscriber factory="nti.appserver.pyramid_renderers_edit_link_decorator.OIDEditOrDeleteLinkDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for=".interfaces.IUsersCourseAssignmentHistoryItem pyramid.interfaces.IRequest" />
 

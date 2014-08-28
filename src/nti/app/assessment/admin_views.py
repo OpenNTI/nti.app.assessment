@@ -10,6 +10,7 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 import time
+from urllib import unquote
 
 from zope import component
 
@@ -97,19 +98,20 @@ class _XXX_HACK_MultipleChoiceFixerView(AbstractAuthenticatedView,
 
 		user = User.get_user(username)
 		if not user or not IUser.providedBy(user):
-			raise hexc.HTTPNotFound(detail='User not found')
+			raise hexc.HTTPUnprocessableEntity(detail='User not found')
 
 		ntiid = values.get('ntiid') or values.get('assignment') or \
 				values.get('assignmentId') or values.get('assignment_id')
 		if not ntiid:
 			raise hexc.HTTPUnprocessableEntity(detail='No assignment identifier')
+		ntiid = unquote(ntiid)
 		assignment =  component.queryUtility(IQAssignment, ntiid)
 		if not assignment:
-			raise hexc.HTTPNotFound(detail='No assignment found')
+			raise hexc.HTTPUnprocessableEntity(detail='No assignment found')
 		
 		course = component.queryMultiAdapter((assignment, user), ICourseInstance)
 		if not course:
-			raise hexc.HTTPNotFound(detail='No assignment course found')
+			raise hexc.HTTPUnprocessableEntity(detail='No assignment course found')
 		
 		entry = ICourseCatalogEntry(course)
 		logger.info('Course %s found for user and assignment', entry.ntiid)

@@ -250,6 +250,8 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 		policy = policies.getPolicyForAssignment(asg_id)
 		if not policy.get('student_nuclear_reset_capable', False):
 			# Not allowed!
+			# TODO: could probably push this off to syncronization
+			# time...have that process apply marker interfaces
 			return False
 
 		dates = IQAssignmentDateContext(course)

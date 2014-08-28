@@ -7,26 +7,15 @@ from __future__ import print_function, unicode_literals
 from hamcrest import assert_that
 from hamcrest import is_
 from hamcrest import has_entry
-from hamcrest import has_length
 from hamcrest import has_item
 from hamcrest import has_key
 from hamcrest import has_entries
 from hamcrest import greater_than
-from hamcrest import greater_than_or_equal_to
 from hamcrest import not_none
-from hamcrest import none
-from hamcrest.library import has_property
 from hamcrest import any_of
 
 from hamcrest import is_not
 does_not = is_not
-
-from nti.testing.matchers import verifiably_provides
-
-import os
-import os.path
-
-from zope import component
 
 from nti.assessment import submission as asm_submission
 
@@ -36,8 +25,8 @@ from nti.mimetype.mimetype import  nti_mimetype_with_class
 
 from nti.app.testing.application_webtest import ApplicationLayerTest
 from nti.app.testing.decorators import WithSharedApplicationMockDS
-from nti.app.testing.webtest import TestApp
 
+from nti.app.testing.webtest import TestApp
 
 from nti.appserver.tests import ExLibraryApplicationTestLayer
 
@@ -49,7 +38,6 @@ class TestApplicationAssessment(ApplicationLayerTest):
 	child_ntiid =  'tag:nextthought.com,2011-10:MN-NAQ-MiladyCosmetology.naq.1'
 	parent_ntiid = 'tag:nextthought.com,2011-10:MN-HTML-MiladyCosmetology.why_study_cosmetology_history_and_career_opportunities_'
 
-
 	question_ntiid = child_ntiid
 
 	@WithSharedApplicationMockDS(users=True, testapp=True)
@@ -57,7 +45,7 @@ class TestApplicationAssessment(ApplicationLayerTest):
 		unauth_testapp = TestApp( self.app )
 		# These inherit the same ACLs as the content they came with
 		# So, no authentication requires auth
-		res = self.fetch_by_ntiid( self.question_ntiid, unauth_testapp, status=401 )
+		self.fetch_by_ntiid( self.question_ntiid, unauth_testapp, status=401 )
 
 		# provide auth, we can get it.
 		# It is the default return if we specify no content type
@@ -130,14 +118,12 @@ class TestApplicationAssessment(ApplicationLayerTest):
 			assert_that( res.json_body, has_entry( 'Last Modified', greater_than( 0 ) ) )
 
 			# And the solutions do not come with it...
-			# except that right now they still do...
 			items = res.json_body['AssessmentItems']
 			for i in items:
 				assert_that( i, has_key( 'parts' ) )
 				for part in i["parts"]:
 					assert_that( part, has_entry( 'solutions', not_none() ))
 					assert_that( part, has_entry( 'explanation', not_none() ))
-
 
 	def _check_submission( self, res ):
 		assert_that( res.json_body, has_entry( StandardExternalFields.CLASS, 'AssessedQuestion' ) )

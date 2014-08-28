@@ -161,6 +161,43 @@ class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):
 						response if isinstance(response, (numbers.Real, basestring)) \
 						else to_external_object(response)
 
+
+from nti.app.authentication import get_remote_user
+
+from nti.assessment.interfaces import IQAssessedQuestion
+from nti.assessment.interfaces import IQPartSolutionsExternalizer
+
+@component.adapter(IQAssessedQuestion)
+class _QAssessedQuestionExplanationSolutionAdder(object):
+	"""
+	Because we don't generally want to provide solutions and explanations
+	until after a student has submitted, we place them on the assessed object.
+
+	.. note:: In the future this may be registered/unregistered on a site
+		by site basis (where a Course is a site) so that instructor preferences
+		on whether or not to provide solutions can be respected.
+	"""
+	
+	__metaclass__ = SingletonDecorator
+
+	def decorateExternalObject( self, context, mapping ):
+		question_id = context.questionId
+		question = component.queryUtility(IQuestion, name=question_id)
+		if question is None:
+			return # old?
+
+		remoteUser = get_remote_user()
+		course = find_interface(context, ICourseInstance, strict=False)
+		is_instructor = remoteUser and course and is_course_instructor(course, remoteUser)
+			
+		for question_part, external_part in zip(question.parts, mapping['parts']):
+			if not is_instructor:
+				externalizer = IQPartSolutionsExternalizer(question_part)
+				external_part['solutions'] = externalizer.to_external_object()
+			else:
+				external_part['solutions'] = to_external_object(question_part.solutions)
+			external_part['explanation'] = to_external_object(question_part.explanation)
+
 LINKS = StandardExternalFields.LINKS
 from nti.dataserver.links import Link
 

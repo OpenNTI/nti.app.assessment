@@ -72,14 +72,3 @@ class TestHistory(AssessmentLayerTest):
 		assert_that( item.__parent__, is_( history ))
 
 		assert_that( history, has_property( 'lastViewed', 0 ))
-
-	def test_remove(self):
-		history = UsersCourseAssignmentHistory()
-		submission = AssignmentSubmission(assignmentId='b')
-		pending =  QAssignmentSubmissionPendingAssessment(assignmentId='b', parts=() )
-		item = history.recordSubmission( submission, pending )
-	
-		removed = history.removeSubmission(submission)
-		assert_that(item, is_(removed))
-		assert_that(item, has_property('__parent__', is_(none())))
-		assert_that(history, has_length(0))

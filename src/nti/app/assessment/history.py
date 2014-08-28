@@ -14,11 +14,17 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+from datetime import datetime
+
 from zope import component
 from zope import interface
 from zope import lifecycleevent
 from zope.container.contained import Contained
 from zope.cachedescriptors.property import Lazy
+
+from nti.assessment.interfaces import IQAssignmentPolicies
+from nti.assessment.interfaces import IQAssignmentDateContext
+from nti.assessment.interfaces import IQAssignment
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
@@ -31,6 +37,7 @@ from nti.schema.field import SchemaConfigured
 from nti.schema.fieldproperty import createDirectFieldProperties
 
 from nti.utils.property import alias
+from nti.utils.property import CachedProperty
 
 from nti.wref.interfaces import IWeakRef
 
@@ -42,6 +49,15 @@ from .interfaces import IUsersCourseAssignmentHistories
 from .interfaces import IUsersCourseAssignmentHistoryItem
 from .interfaces import IUsersCourseAssignmentHistoryItemSummary
 from .feedback import UsersCourseAssignmentHistoryItemFeedbackContainer
+
+from nti.dataserver.authorization import ACT_READ
+from nti.dataserver.authorization import ACT_DELETE
+from nti.dataserver.interfaces import ACE_DENY_ALL
+from nti.dataserver.interfaces import IACLProvider
+from nti.dataserver.interfaces import ALL_PERMISSIONS
+from nti.dataserver.authorization_acl import ace_allowing
+from nti.dataserver.authorization_acl import acl_from_aces
+
 
 @interface.implementer(IUsersCourseAssignmentHistories)
 class UsersCourseAssignmentHistories(CaseInsensitiveCheckingLastModifiedBTreeContainer):
@@ -62,9 +78,7 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 
 	__external_can_create__ = False
 
-	lastViewed = NumericPropertyDefaultingToZero(str('lastViewed'),
-                                                 NumericMaximum, 
-                                                 as_number=True)
+	lastViewed = NumericPropertyDefaultingToZero(str('lastViewed'), NumericMaximum, as_number=True)
 
 	#: An :class:`.IWeakRef` to the owning user, who is probably
 	#: not in our lineage.
@@ -115,26 +129,6 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 
 		return item
 
-	def removeSubmission(self, submission, event=True):
-		key = getattr(submission, "assignmentId", submission)
-		if not key:
-			raise ValueError("The submission has no assignment Id", submission)
-
-		__traceback_info__ = submission, key
-		item = self._SampleContainer__data[key]
-		if not event:
-			l = self._BTreeContainer__len
-			try:
-				del self._SampleContainer__data[key]
-				l.change(-1)
-				item.__parent__ = None
-			except KeyError:
-				pass
-		else:
-			if CheckingLastModifiedBTreeContainer.__contains__(self, key):
-				del self[key]
-		return item
-	
 	def __conform__(self, iface):
 		if IUser.isOrExtends(iface):
 			return self.owner
@@ -155,17 +149,10 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 		instructors = getattr(course, 'instructors', ()) # already principals
 		aces = [ace_allowing( self.owner, ACT_READ, UsersCourseAssignmentHistory )]
 		for instructor in instructors:
-			aces.append( ace_allowing(instructor, ALL_PERMISSIONS,
-                                      UsersCourseAssignmentHistory) )
+			aces.append( ace_allowing(instructor, ALL_PERMISSIONS, UsersCourseAssignmentHistory) )
 		aces.append(ACE_DENY_ALL)
 		return acl_from_aces( aces )
 
-from nti.dataserver.authorization import ACT_READ
-from nti.dataserver.interfaces import ACE_DENY_ALL
-from nti.dataserver.interfaces import IACLProvider
-from nti.dataserver.interfaces import ALL_PERMISSIONS
-from nti.dataserver.authorization_acl import ace_allowing
-from nti.dataserver.authorization_acl import acl_from_aces
 
 from zope.location.interfaces import ISublocations
 
@@ -219,18 +206,58 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 	def assignmentId(self):
 		return self.__name__
 
+	@CachedProperty
+	def _student_nuclear_reset_capable(self):
+		"""
+		Nuclear reset capability is defined by:
+
+		#. The ``student_nuclear_reset_capable`` policy flag being true;
+		#. The current date being *before* the due date;
+		#. The absence of feedback;
+		"""
+		# Try to arrange the checks in the cheapest possible order
+		if self.FeedbackCount:
+			return False
+
+		course = ICourseInstance(self, None)
+		# our name is the assignment id
+		asg_id = self.__name__
+		assignment = component.queryUtility(IQAssignment, name=asg_id)
+		if course is None or assignment is None:
+			# Not enough information, bail
+			return False
+
+		policies = IQAssignmentPolicies(course)
+
+		policy = policies.getPolicyForAssignment(asg_id)
+		if policy.get('student_nuclear_reset_capable', False):
+			# Not allowed!
+			return False
+
+		dates = IQAssignmentDateContext(course)
+		due_date = dates.of(assignment).available_for_submission_ending
+		if due_date and datetime.utcnow() >= due_date:
+			# past due
+			return False
+
+		# Well, blow me down, we seem to have made it!
+		return True
+
 	@property
 	def __acl__(self):
 		"""
 		Our ACL allows read access for the creator and read/write access
-		for the instructors of the course
+		for the instructors of the course. If the student has the nuclear
+		reset capability for this assignment, the student also gets
+		DELETE access.
 		"""
 		course = ICourseInstance(self, None)
 		instructors = getattr(course, 'instructors', ()) # already principals
 		aces = [ace_allowing( self.creator, ACT_READ, UsersCourseAssignmentHistoryItem )]
+		if self._student_nuclear_reset_capable:
+			aces.append( ace_allowing(self.creator, ACT_DELETE, UsersCourseAssignmentHistoryItem) )
 		for instructor in instructors:
-			aces.append( ace_allowing(instructor, ALL_PERMISSIONS, 
-                                      UsersCourseAssignmentHistoryItem) )
+			aces.append( ace_allowing(instructor, ALL_PERMISSIONS, UsersCourseAssignmentHistoryItem) )
 		aces.append(ACE_DENY_ALL)
 		return acl_from_aces( aces )
 
@@ -257,7 +284,7 @@ class UsersCourseAssignmentHistoryItemSummary(Contained):
 	"""
 	__external_can_create__ = False
 
-	__slots__ = ('_history_item',)
+	__slots__ = (b'_history_item',)
 
 	def __init__(self, history_item):
 		self._history_item = history_item
@@ -313,8 +340,7 @@ class UsersCourseAssignmentHistoryItemSummary(Contained):
 
 	def to_external_ntiid_oid(self):
 		"""
-		For convenience of the gradebook views, we match OIDs during externalization. 
+		For convenience of the gradebook views, we match OIDs during externalization.
 		This isn't really correct from a model perspective.
 		"""
 		return to_external_ntiid_oid(self._history_item)
-

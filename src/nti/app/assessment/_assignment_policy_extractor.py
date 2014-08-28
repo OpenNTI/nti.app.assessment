@@ -90,13 +90,14 @@ def _merge_disk(automatic_values, merge_values):
 		# want to force. For example, the title may change,
 		# we want the new value.
 		# But the dates should be preserved,
-		# as should the auto_grade info
+		# as should the auto_grade, exclusion, and nuclear_reset info
 		# This whole process could be handled declaratively, see
 		# how gunicorn does its config or plastex its for examples
 		for d in ('available_for_submission_beginning',
 				  'available_for_submission_ending',
 				  'auto_grade',
-				  'excluded'):
+				  'excluded',
+				  'student_nuclear_reset_capable'):
 			if d in manual_value:
 				automatic_value[d] = manual_value[d]
 

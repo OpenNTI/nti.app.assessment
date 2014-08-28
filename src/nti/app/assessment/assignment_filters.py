@@ -67,19 +67,19 @@ class UserEnrolledForCreditInCourseOrInstructsFilter(object):
 			return True
 
 	@Lazy
-	def is_enrolled_for_credit(self):		
+	def is_enrolled_for_credit(self):
 		## CS: check all course sections to see if the user
 		## is enroll for credit. This is done b/c when getting the pageinfo
-		## there is no guarantee that the Course instance derived from a 
+		## there is no guarantee that the Course instance derived from a
 		## content unit is the course/section we are enrolled in.
 		## this further assume that sections are sharing assigments.
-		
+
 		ref_course = self.course
 		if ICourseSubInstance.providedBy(ref_course):
 			ref_course = self.course.__parent__.__parent__
-			
+
 		universe = [ref_course] + list(ref_course.SubInstances.values())
-		
+
 		for course in universe:
 			record = ICourseEnrollments(course).get_enrollment_for_principal(self.user)
 			if record is not None and record.Scope != ES_PUBLIC:

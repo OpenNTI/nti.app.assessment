@@ -156,11 +156,19 @@ class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		if IQRandomizedPart.providedBy(question_part):
 			creator = uca_history.creator
 			response = context.submittedResponse
-			grader = grader_for_response(question_part, response)
-			response = grader.unshuffle(response, user=creator, context=question_part)
-			result_map['submittedResponse'] = \
-						response if isinstance(response, (numbers.Real, basestring)) \
-						else to_external_object(response)
+			if response is not None:
+				__traceback_info__ = response, question_part
+				grader = grader_for_response(question_part, response)
+				assert grader is not None
+				response = grader.unshuffle(response,
+											user=creator, 
+											context=question_part)
+				ext_response = \
+					response if isinstance(response, (numbers.Real, basestring)) \
+					else to_external_object(response)
+			else:
+				ext_response = response
+			result_map['submittedResponse'] = ext_response
 
 @component.adapter(IQuestionSubmission)
 class _QuestionSubmissionDecorator(AbstractAuthenticatedRequestAwareDecorator):
@@ -190,14 +198,18 @@ class _QuestionSubmissionDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			if not IQRandomizedPart.providedBy(question_part):
 				parts.append(to_external_object(sub_part))
 			else:
-				grader = grader_for_response(question_part, sub_part)
-				__traceback_info__ = sub_part, question_part
-				if not grader:
-					logger.error("WTF .. cannot happen %s, %s", sub_part, question_part)
-				assert grader
-				response = grader.unshuffle(sub_part, user=creator, context=question_part)
-				parts.append(response if isinstance(response, (numbers.Real, basestring)) \
-							 else to_external_object(response))
+				ext_sub_part = sub_part
+				if sub_part is not None:
+					__traceback_info__ = sub_part, question_part
+					grader = grader_for_response(question_part, sub_part)
+					assert grader is not None
+					response = grader.unshuffle(sub_part,
+												user=creator, 
+												context=question_part)
+					ext_sub_part = 	\
+						response if isinstance(response, (numbers.Real, basestring)) \
+						else to_external_object(response)
+				parts.append(ext_sub_part)
 		
 from nti.app.authentication import get_remote_user
 

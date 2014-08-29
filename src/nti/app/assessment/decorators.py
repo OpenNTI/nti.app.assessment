@@ -26,6 +26,7 @@ from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssessedPart
+from nti.assessment.interfaces import IQuestionSubmission 
 from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.randomized.interfaces import IQRandomizedPart
 from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
@@ -153,15 +154,47 @@ class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		# since the submittedResponse is stored randomized 
 		# we unshuffle it, so the instructor can see the correct answer
 		if IQRandomizedPart.providedBy(question_part):
+			creator = uca_history.creator
 			response = context.submittedResponse
 			grader = grader_for_response(question_part, response)
-			response = grader.unshuffle(response, user=uca_history.creator,
-										context=question_part)
+			response = grader.unshuffle(response, user=creator, context=question_part)
 			result_map['submittedResponse'] = \
 						response if isinstance(response, (numbers.Real, basestring)) \
 						else to_external_object(response)
 
+@component.adapter(IQuestionSubmission)
+class _QuestionSubmissionDecorator(AbstractAuthenticatedRequestAwareDecorator):
+	
+	def _do_decorate_external(self, context, result_map):
+		course = find_interface(context, ICourseInstance, strict=False)
+		if course is None or not is_course_instructor(course, self.remoteUser):
+			return
+		
+		# extra check 
+		uca_history = find_interface(context, IUsersCourseAssignmentHistory, strict=False) 
+		if uca_history is not None and uca_history.creator == self.remoteUser:
+			return 
+		
+		# find question
+		question_id = context.questionId
+		question = component.queryUtility(IQuestion, name=question_id)
+		if question is None:
+			return # old question?
 
+		creator = uca_history.creator
+		parts = result_map['parts'] = []
+		for question_part, sub_part in zip(question.parts, context.parts):
+			# for instructors we no longer randomized the questions
+			# since the submitted response is stored randomized 
+			# we unshuffle it, so the instructor can see the correct answer
+			if not IQRandomizedPart.providedBy(question_part):
+				parts.append(to_external_object(sub_part))
+			else:
+				grader = grader_for_response(question_part, sub_part)
+				response = grader.unshuffle(sub_part, user=creator, context=question_part)
+				parts.append(response if isinstance(response, (numbers.Real, basestring)) \
+							 else to_external_object(response))
+		
 from nti.app.authentication import get_remote_user
 
 from nti.assessment.interfaces import IQAssessedQuestion
@@ -197,7 +230,7 @@ class _QAssessedQuestionExplanationSolutionAdder(object):
 			else:
 				external_part['solutions'] = to_external_object(question_part.solutions)
 			external_part['explanation'] = to_external_object(question_part.explanation)
-
+		
 LINKS = StandardExternalFields.LINKS
 from nti.dataserver.links import Link
 

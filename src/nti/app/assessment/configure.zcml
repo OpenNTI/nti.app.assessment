@@ -109,6 +109,11 @@
 				for="nti.assessment.interfaces.IQAssessedPart
 					 pyramid.interfaces.IRequest" />
 
+	<subscriber factory=".decorators._QuestionSubmissionDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="nti.assessment.interfaces.IQuestionSubmission
+					 pyramid.interfaces.IRequest" />
+
 	<subscriber factory=".decorators._QAssessedQuestionExplanationSolutionAdder"
 				for="nti.assessment.interfaces.IQAssessedQuestion"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator" />

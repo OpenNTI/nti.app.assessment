@@ -32,9 +32,9 @@ def r47694():
 	in r47694 we introduced a new type of randomizer based on the sha224 hash 
 	algorithm, however, we did not take into account the fact that there were
 	assignments (i.e. question banks) already taken. This cause incorrect
-	questing to be return. Fortunatelly, there were few takers,
-	so wee introduce this patch to force sha224 randomizer as we returned to
-	the orginal randomizer for legacy purposes
+	questions to be returned. Fortunatelly, there were few student takers,
+	so we introduce this patch to force sha224 randomizer for those students/
+	assessment pairs. We now use the orginal randomizer for legacy purposes
 	"""
 	global _r47694_map
 	if _r47694_map is None:

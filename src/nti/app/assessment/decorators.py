@@ -191,6 +191,10 @@ class _QuestionSubmissionDecorator(AbstractAuthenticatedRequestAwareDecorator):
 				parts.append(to_external_object(sub_part))
 			else:
 				grader = grader_for_response(question_part, sub_part)
+				__traceback_info__ = sub_part, question_part
+				if not grader:
+					logger.error("WTF .. cannot happen %s, %s", sub_part, question_part)
+				assert grader
 				response = grader.unshuffle(sub_part, user=creator, context=question_part)
 				parts.append(response if isinstance(response, (numbers.Real, basestring)) \
 							 else to_external_object(response))

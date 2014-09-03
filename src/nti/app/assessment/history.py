@@ -58,7 +58,6 @@ from nti.dataserver.interfaces import ALL_PERMISSIONS
 from nti.dataserver.authorization_acl import ace_allowing
 from nti.dataserver.authorization_acl import acl_from_aces
 
-
 @interface.implementer(IUsersCourseAssignmentHistories)
 class UsersCourseAssignmentHistories(CaseInsensitiveCheckingLastModifiedBTreeContainer):
 	"""
@@ -104,25 +103,23 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 
 		item = UsersCourseAssignmentHistoryItem(Submission=submission,
 												pendingAssessment=pending )
-		submission.__parent__ = item
 		pending.__parent__ = item
+		submission.__parent__ = item
 
-		# The constituent parts of these things need
-		# parents as well.
-		# XXX It would be nice if externalization took care of this,
-		# but that would be a bigger change
-		def _parent( child, parent ):
+		## The constituent parts of these things need parents as well.
+		## XXX It would be nice if externalization took care of this,
+		## but that would be a bigger change
+		def _set_parent(child, parent):
 			if hasattr(child, '__parent__') and child.__parent__ is None:
 				child.__parent__ = parent
 
-
-		for qs_sub_part in submission.parts:
-			_parent( qs_sub_part, submission )
-			for q_sub_part in qs_sub_part.questions:
-				_parent( q_sub_part, qs_sub_part )
-				for qp_sub_part in q_sub_part.parts:
-					_parent( qp_sub_part, q_sub_part )
-
+		for submission_set in submission.parts:
+			# submission_part e.g. assessed question set
+			_set_parent(submission_set, submission)
+			for submitted_question in submission_set.questions:
+				_set_parent(submitted_question, submission_set)
+				for submitted_question_part in submitted_question.parts:
+					_set_parent(submitted_question_part, submitted_question)
 
 		lifecycleevent.created(item)
 		self[submission.assignmentId] = item # fire object added, which is dispatched to sublocations

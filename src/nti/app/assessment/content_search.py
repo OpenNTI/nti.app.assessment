@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Search content utilities.
-
 .. $Id$
 """
 from __future__ import print_function, unicode_literals, absolute_import, division
@@ -16,15 +14,19 @@ from zope import lifecycleevent
 
 from pyramid.traversal import find_interface
 
-from nti.dataserver import interfaces as nti_interfaces
+from nti.dataserver.interfaces import IEntity
 
 from nti.externalization.oids import to_external_ntiid_oid
 
 from nti.mimetype.mimetype import MIME_BASE
 
-from nti.contentsearch import content_utils
 from nti.contentsearch.search_hits import SearchHit
-from nti.contentsearch import interfaces as search_interfaces
+from nti.contentsearch.interfaces import IACLResolver
+from nti.contentsearch.interfaces import ICreatorResolver
+from nti.contentsearch.interfaces import IUserDataSearchHit
+from nti.contentsearch.interfaces import ISearchTypeMetaData
+from nti.contentsearch.interfaces import ContentMixinResolver
+from nti.contentsearch.content_utils import resolve_content_parts
 from nti.contentsearch.search_metadata import SearchTypeMetaData
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -37,12 +39,12 @@ assignmentfeedback_ = u'assignmentfeedback'
 ASSIGNMENT_FEEDBACK = u'AssignmentFeedback'
 ASSIGNMENT_FEEDBACK_MIMETYPE = unicode(MIME_BASE + "." + assignmentfeedback_)
 
-class IAssignmentFeedbackResolver(search_interfaces.ContentMixinResolver,
-								  search_interfaces.ICreatorResolver,
-								  search_interfaces.IACLResolver):
+class IAssignmentFeedbackResolver(ContentMixinResolver,
+								  ICreatorResolver,
+								  IACLResolver):
 	pass
 
-class IAssignmentFeedbackSearchHit(search_interfaces.IUserDataSearchHit):
+class IAssignmentFeedbackSearchHit(IUserDataSearchHit):
 	pass
 
 @interface.implementer(IAssignmentFeedbackResolver)
@@ -59,7 +61,7 @@ class _AssignmentFeedbackResolver(object):
 	
 	@property
 	def content(self):
-		return content_utils.resolve_content_parts(self.obj.body)
+		return resolve_content_parts(self.obj.body)
 
 	@property
 	def containerId(self):
@@ -75,7 +77,7 @@ class _AssignmentFeedbackResolver(object):
 	@property
 	def creator(self):
 		result = self.obj.creator
-		if nti_interfaces.IEntity.providedBy(result):
+		if IEntity.providedBy(result):
 			result = unicode(result.username)
 		return unicode(result) if result else None
 
@@ -111,10 +113,10 @@ class _AssignmentFeedbackSearchHit(SearchHit):
 		self.TargetMimeType = ASSIGNMENT_FEEDBACK_MIMETYPE
 		return adapted
 
-@interface.implementer(search_interfaces.ISearchTypeMetaData)
+@interface.implementer(ISearchTypeMetaData)
 def _assignmentfeedback_metadata():
-	# IUsersCourseAssignmentHistoryItemFeedback does not have a mime type
-	# then let's assign one for it
+	## IUsersCourseAssignmentHistoryItemFeedback does not have a mime type
+	## then let's assign one for it
 	return SearchTypeMetaData(Name=assignmentfeedback_,
 							  MimeType=ASSIGNMENT_FEEDBACK_MIMETYPE,
 							  IsUGD=True, Order=99,

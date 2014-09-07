@@ -276,5 +276,9 @@
 	<subscriber factory="nti.contentsearch.decorators.SearchHitHighlightDecorator"
 				for=".content_search.IAssignmentFeedbackSearchHit"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"/>
+				
+	<configure zcml:condition="have devmode">
+		<subscriber	handler=".content_search.on_course_instance_available" />
+	</configure>
 
 </configure>

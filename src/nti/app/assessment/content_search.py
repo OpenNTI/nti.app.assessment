@@ -136,7 +136,10 @@ def _assignmentfeedback_metadata():
 def on_course_instance_available(event):
 	course = event.object
 	enrollments = ICourseEnrollments(course)
-	for principal in enrollments.iter_enrollments():
+	for record in enrollments.iter_enrollments():
+		principal = record.Principal
+		
+		## get assignment history
 		assignment_history = component.queryMultiAdapter((course, principal),
 														 IUsersCourseAssignmentHistory)
 		if not assignment_history:

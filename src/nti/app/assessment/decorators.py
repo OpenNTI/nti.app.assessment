@@ -310,6 +310,7 @@ class _AssignmentsByOutlineNodeDecorator(_AbstractTraversableLinkDecorator):
 		Returns a true value if the course should show the links [Non] assignments 
 		by outline ode links
 		"""
+		## TODO: We will remove when a preference course/user? policy is in place.
 		vendor_info = ICourseInstanceVendorInfo(course, {})
 		try:
 			result = vendor_info['NTI']['show_assignments_by_outline']

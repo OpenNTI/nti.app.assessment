@@ -42,13 +42,17 @@ from .interfaces import IUsersCourseAssignmentHistoryItem
 @component.adapter(asm_interfaces.IQuestionSubmission)
 @interface.implementer(app_interfaces.INewObjectTransformer)
 def _question_submission_transformer( obj ):
-	"Grade it, by adapting the object into an IAssessedQuestion"
+	"""
+	Grade it, by adapting the object into an IAssessedQuestion
+	"""
 	return asm_interfaces.IQAssessedQuestion
 
 @component.adapter(asm_interfaces.IQuestionSetSubmission)
 @interface.implementer(app_interfaces.INewObjectTransformer)
 def _question_set_submission_transformer( obj ):
-	"Grade it, by adapting the object into an IAssessedQuestionSet"
+	"""
+	Grade it, by adapting the object into an IAssessedQuestionSet
+	"""
 	return asm_interfaces.IQAssessedQuestionSet
 
 from functools import partial
@@ -63,7 +67,9 @@ from nti.externalization.oids import to_external_oid
 @component.adapter(IRequest, asm_interfaces.IQAssignmentSubmission)
 @interface.implementer(app_interfaces.INewObjectTransformer)
 def _assignment_submission_transformer_factory(request, obj):
-	"Begin the grading process by adapting it to an IQAssignmentSubmissionPendingAssessment."
+	"""
+	Begin the grading process by adapting it to an IQAssignmentSubmissionPendingAssessment.
+	"""
 	return partial(_assignment_submission_transformer, request)
 
 @component.adapter(IRequest, asm_interfaces.IQAssignmentSubmission)
@@ -351,57 +357,17 @@ class _UsersCourseAssignmentHistoriesTraversable(ContainerAdapterTraversable):
 				return _history_for_user_in_course( self.context.__parent__, user)
 			raise
 
+from zope.proxy import ProxyBase
 
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
+from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
+
 from .interfaces import ICourseAssignmentCatalog
 from .interfaces import ICourseAssessmentItemCatalog
 
-@interface.implementer(ICourseAssessmentItemCatalog)
-@component.adapter(ICourseInstance)
-class _DefaultCourseAssessmentItemCatalog(object):
-
-	def __init__(self, context):
-		self.context = context
-
-	def iter_assessment_items(self):
-		# We have now a specific interface for courses that
-		# are tied to content: IContentCourseInstance; they have
-		# the ContentBundle attribut.
-		# However, we still have the LegacyCommunityBasedCourseInstances
-		# to deal with that have one content package; it's easiest
-		# to support both types in one single place.
-
-		# TODO: Date overrides
-
-		packages = ()
-		try:
-			packages = self.context.ContentPackageBundle.ContentPackages
-		except AttributeError:
-			# Ok, the old legacy case
-			packages = (self.context.legacy_content_package,)
-
-		result = []
-		def _recur(unit):
-			items = IQAssessmentItemContainer( unit, () )
-			for item in items:
-				result.append(item)
-			for child in unit.children:
-				_recur(child)
-
-		for package in packages:
-			_recur(package)
-
-		# On py3.3, can easily 'yield from' nested generators
-
-		return result
-
-from zope.proxy import ProxyBase
-
-from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
-
-class _QAssignmentProxy(ProxyBase):
+class _QProxy(ProxyBase):
 	
 	CatalogEntryNTIID = property(
 					lambda s: s.__dict__.get('_context'),
@@ -413,6 +379,47 @@ class _QAssignmentProxy(ProxyBase):
 	def __init__(self, base, ntiid):
 		ProxyBase.__init__(self, base)
 		self.CatalogEntryNTIID = ntiid
+		
+@component.adapter(ICourseInstance)
+@interface.implementer(ICourseAssessmentItemCatalog)
+class _DefaultCourseAssessmentItemCatalog(object):
+
+	def __init__(self, context):
+		self.context = context
+		self.catalog_entry = ICourseCatalogEntry(context, None)
+
+	def iter_assessment_items(self):
+		ntiid = getattr(self.catalog_entry, 'ntiid', None)
+		
+		# We have now a specific interface for courses that
+		# are tied to content: IContentCourseInstance; they have
+		# the ContentBundle attribut.
+		# However, we still have the LegacyCommunityBasedCourseInstances
+		# to deal with that have one content package; it's easiest
+		# to support both types in one single place.
+
+		# TODO: Date overrides
+		packages = ()
+		try:
+			packages = self.context.ContentPackageBundle.ContentPackages
+		except AttributeError:
+			# Ok, the old legacy case
+			packages = (self.context.legacy_content_package,)
+
+		result = []
+		def _recur(unit):
+			items = IQAssessmentItemContainer(unit, ())
+			for item in items:
+				result.append(_QProxy(item, ntiid))
+				
+			for child in unit.children:
+				_recur(child)
+
+		for package in packages:
+			_recur(package)
+
+		# On py3.3, can easily 'yield from' nested generators
+		return result
 
 @interface.implementer(ICourseAssignmentCatalog)
 @component.adapter(ICourseInstance)
@@ -420,10 +427,8 @@ class _DefaultCourseAssignmentCatalog(object):
 
 	def __init__(self, context):
 		self.context = context
-		self.catalog_entry = ICourseCatalogEntry(context, None)
-
+	
 	def iter_assignments(self):
-		ntiid = getattr(self.catalog_entry, 'ntiid', None)
 		items = ICourseAssessmentItemCatalog(self.context).iter_assessment_items()
-		result = (_QAssignmentProxy(x, ntiid) for x in items if IQAssignment.providedBy(x))
+		result = (x for x in items if IQAssignment.providedBy(x))
 		return result

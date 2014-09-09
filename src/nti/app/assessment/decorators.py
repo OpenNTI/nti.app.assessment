@@ -357,7 +357,7 @@ class _LastViewedAssignmentHistoryDecorator(AbstractAuthenticatedRequestAwareDec
 							elements=('lastViewed',),
 							method='PUT' ) )
 
-from .assessment_views import AssignmentSubmissionBulkFileDownloadView
+from ._utils import assignment_download_precondition 
 
 class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
@@ -367,7 +367,7 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
 
 	def _predicate(self, context, result):
 		if AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result):
-			return AssignmentSubmissionBulkFileDownloadView._precondition(context, self.request, self.remoteUser) # XXX Hack
+			return assignment_download_precondition(context, self.request, self.remoteUser) # XXX Hack
 
 	def _do_decorate_external(self, context, result):
 		links = result.setdefault( LINKS, [] )

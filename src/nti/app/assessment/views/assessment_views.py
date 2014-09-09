@@ -22,8 +22,6 @@ from pyramid.view import view_defaults
 from pyramid.interfaces import IRequest
 from pyramid import httpexceptions as hexc
 
-from nti.dataserver import authorization as nauth
-
 # TODO: Break these direct dependencies....
 from nti.app.contentlibrary.library_views import PAGE_INFO_MT
 from nti.app.contentlibrary.library_views import PAGE_INFO_MT_JSON
@@ -31,19 +29,21 @@ from nti.app.contentlibrary.library_views import PAGE_INFO_MT_JSON
 # ... this in particular could be a view.
 from nti.app.contentlibrary.library_views import find_page_info_view_helper
 
+from nti.app.products.courseware.interfaces import ICourseInstanceEnrollment
+
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssignmentSubmission
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
-from nti.app.products.courseware.interfaces import ICourseInstanceEnrollment
-
-from .interfaces import IUsersCourseAssignmentHistory
-from .interfaces import IUsersCourseAssignmentHistoryItemFeedbackContainer
-from .interfaces import IUsersCourseAssignmentHistoryItemFeedback
 
 from nti.dataserver.interfaces import IUser
+from nti.dataserver import authorization as nauth
+
+from ..interfaces import IUsersCourseAssignmentHistory
+from ..interfaces import IUsersCourseAssignmentHistoryItemFeedback
+from ..interfaces import IUsersCourseAssignmentHistoryItemFeedbackContainer
 
 ####
 ## In pyramid 1.4, there is some minor wonkiness with the accept= request predicate.
@@ -107,13 +107,14 @@ def get_question_view_link( request ):
 def get_question_view( request ):
 	return request.context
 
-del _read_view_defaults
 del _question_view
 del _assignment_view
+del _read_view_defaults
+
+from pyramid.interfaces import IExceptionResponse
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
-from pyramid.interfaces import IExceptionResponse
 
 @view_config(route_name="objects.generic.traversal",
 			 context=IQAssignment,
@@ -162,18 +163,18 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 		return component.getMultiAdapter( (self.request, submission),
 										  IExceptionResponse)
 
-from cStringIO import StringIO
-from zipfile import ZipFile
 from zipfile import ZipInfo
-from nti.contenttypes.courses.interfaces import ICourseEnrollments
-from nti.assessment.interfaces import IQUploadedFile
+from zipfile import ZipFile
+from cStringIO import StringIO
+
 from nti.assessment.interfaces import IQResponse
-from nti.assessment.interfaces import IQFilePart
-from .adapters import _find_course_for_assignment
+from nti.assessment.interfaces import IQUploadedFile
 
-from .interfaces import ACT_DOWNLOAD_GRADES
+from nti.contenttypes.courses.interfaces import ICourseEnrollments
 
-from nti.appserver.pyramid_authorization import has_permission
+from . import assignment_download_precondition
+
+from ..adapters import _find_course_for_assignment
 
 @view_config(route_name="objects.generic.traversal",
 			 context=IQAssignment,
@@ -210,20 +211,7 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 
 	@classmethod
 	def _precondition(cls, context, request, remoteUser):
-		username = request.authenticated_userid
-		if not username:
-			return False
-		course = _find_course_for_assignment(context, remoteUser, exc=False)
-		if course is None or not has_permission(ACT_DOWNLOAD_GRADES, course, request):
-			return False
-
-		# Does it have a file part?
-		for assignment_part in context.parts:
-			question_set = assignment_part.question_set
-			for question in question_set.questions:
-				for question_part in question.parts:
-					if IQFilePart.providedBy(question_part):
-						return True # TODO: Consider caching this?
+		return assignment_download_precondition(context, request, remoteUser)
 
 	def __call__(self):
 		context = self.request.context
@@ -272,7 +260,6 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 
 		return self.request.response
 
-
 @view_defaults(route_name="objects.generic.traversal",
 			   renderer='rest',
 			   context=IUsersCourseAssignmentHistory,
@@ -288,6 +275,7 @@ class AssignmentHistoryGetView(AbstractAuthenticatedView):
 		return history
 
 from zope.container.traversal import ContainerTraversable
+
 @component.adapter(IUsersCourseAssignmentHistory,IRequest)
 class AssignmentHistoryRequestTraversable(ContainerTraversable):
 	def __init__(self, context, request):
@@ -329,8 +317,8 @@ class AssignmentHistoryLastViewedPutView(AbstractAuthenticatedView,
 		self.request.context.lastViewed = ext_input
 		return history
 
-
 from nti.externalization.oids import to_external_oid
+
 @view_config(route_name="objects.generic.traversal",
 			 context=IUsersCourseAssignmentHistoryItemFeedbackContainer,
 			 renderer='rest',
@@ -363,8 +351,10 @@ class AsssignmentHistoryItemFeedbackPostView(AbstractAuthenticatedView,
 
 		return feedback
 
-from .interfaces import IUsersCourseAssignmentHistoryItem
 from nti.appserver.ugd_edit_views import UGDDeleteView
+
+from ..interfaces import IUsersCourseAssignmentHistoryItem
+
 @view_config(route_name="objects.generic.traversal",
 			 context=IUsersCourseAssignmentHistoryItem,
 			 renderer='rest',
@@ -389,9 +379,9 @@ class AssignmentHistoryItemFeedbackDeleteView(UGDDeleteView):
 
 from nti.externalization.interfaces import LocatedExternalDict
 
-from .interfaces import ICourseAssignmentCatalog
-from .interfaces import ICourseAssessmentItemCatalog
-from .interfaces import get_course_assignment_predicate_for_user
+from ..interfaces import ICourseAssignmentCatalog
+from ..interfaces import ICourseAssessmentItemCatalog
+from ..interfaces import get_course_assignment_predicate_for_user
 
 @view_config(context=ICourseInstance)
 @view_config(context=ICourseInstanceEnrollment)

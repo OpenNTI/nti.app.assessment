@@ -259,9 +259,10 @@
 			 provides="zope.traversing.interfaces.IPathAdapter"
 			 name="AssignmentHistories" />
 
-	<adapter factory=".assessment_views.AssignmentHistoryRequestTraversable" />
 	<adapter factory=".adapters._UsersCourseAssignmentHistoriesTraversable" />
 
+	<adapter factory=".views.assessment_views.AssignmentHistoryRequestTraversable" />
+	
 	<!-- Contentsearch -->
 	<utility factory=".content_search._assignmentfeedback_metadata" name="assignmentfeedback" />
 

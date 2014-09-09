@@ -18,6 +18,9 @@ from zope.security.interfaces import IPrincipal
 from zope.securitypolicy.interfaces import Allow
 from zope.securitypolicy.interfaces import IPrincipalRoleMap
 
+from nti.appserver.pyramid_authorization import has_permission
+
+from nti.assessment.interfaces import IQFilePart
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.interfaces import IQAssessmentItemContainer
@@ -25,6 +28,9 @@ from nti.assessment.randomized import questionbank_question_chooser
 
 from nti.contenttypes.courses.interfaces import RID_TA
 from nti.contenttypes.courses.interfaces import RID_INSTRUCTOR
+
+from .interfaces import ACT_DOWNLOAD_GRADES
+from .adapters import _find_course_for_assignment
 
 _r47694_map = None
 def r47694():
@@ -164,3 +170,21 @@ def check_assessment(assessment, user=None, is_instructor=False):
 			for part in result.parts:
 				make_sha224randomized(part.question_set)
 	return result
+
+def assignment_download_precondition(context, request, remoteUser):
+	username = request.authenticated_userid
+	if not username:
+		return False
+	
+	course = _find_course_for_assignment(context, remoteUser, exc=False)
+	if course is None or not has_permission(ACT_DOWNLOAD_GRADES, course, request):
+		return False
+
+	# Does it have a file part?
+	for assignment_part in context.parts:
+		question_set = assignment_part.question_set
+		for question in question_set.questions:
+			for question_part in question.parts:
+				if IQFilePart.providedBy(question_part):
+					return True # TODO: Consider caching this?
+	return False

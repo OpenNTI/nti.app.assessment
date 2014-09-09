@@ -22,7 +22,7 @@ from nti.dataserver import authorization as nauth
 
 from nti.externalization.interfaces import LocatedExternalDict
 
-from .interfaces import ICourseAssessmentItemCatalog
+from ..interfaces import ICourseAssessmentItemCatalog
 
 @view_config(context=ICourseInstance)
 @view_config(context=ICourseInstanceEnrollment)

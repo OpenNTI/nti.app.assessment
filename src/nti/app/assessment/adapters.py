@@ -386,11 +386,8 @@ class _DefaultCourseAssessmentItemCatalog(object):
 
 	def __init__(self, context):
 		self.context = context
-		self.catalog_entry = ICourseCatalogEntry(context, None)
 
-	def iter_assessment_items(self):
-		ntiid = getattr(self.catalog_entry, 'ntiid', None)
-		
+	def iter_assessment_items(self):		
 		# We have now a specific interface for courses that
 		# are tied to content: IContentCourseInstance; they have
 		# the ContentBundle attribut.
@@ -410,8 +407,7 @@ class _DefaultCourseAssessmentItemCatalog(object):
 		def _recur(unit):
 			items = IQAssessmentItemContainer(unit, ())
 			for item in items:
-				result.append(_QProxy(item, ntiid))
-				
+				result.append(item)
 			for child in unit.children:
 				_recur(child)
 
@@ -427,8 +423,10 @@ class _DefaultCourseAssignmentCatalog(object):
 
 	def __init__(self, context):
 		self.context = context
+		self.catalog_entry = ICourseCatalogEntry(context, None)
 	
 	def iter_assignments(self):
+		ntiid = getattr(self.catalog_entry, 'ntiid', None)
 		items = ICourseAssessmentItemCatalog(self.context).iter_assessment_items()
-		result = (x for x in items if IQAssignment.providedBy(x))
+		result = (_QProxy(x, ntiid) for x in items if IQAssignment.providedBy(x))
 		return result

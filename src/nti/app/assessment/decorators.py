@@ -32,6 +32,7 @@ from nti.assessment.randomized.interfaces import IQRandomizedPart
 from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ICourseInstanceVendorInfo
 
 from nti.dataserver.traversal import find_interface
 
@@ -303,12 +304,27 @@ class _AssignmentsByOutlineNodeDecorator(_AbstractTraversableLinkDecorator):
 	# (because of issues resolving really old enrollment records), although
 	# the enrollment record is a better place to go because it has the username
 	# in the path
-
-	def _do_decorate_external( self, context, result_map ):
+	
+	def show_links(self, course):
+		"""
+		Returns a true value if the course should show the links [Non] assignments 
+		by outline ode links
+		"""
+		vendor_info = ICourseInstanceVendorInfo(course, {})
+		try:
+			result = vendor_info['NTI']['show_assignments_by_outline']
+		except (TypeError, KeyError):
+			result = True
+		return result
+	
+	def _do_decorate_external(self, context, result_map):
+		course = ICourseInstance(context, context)
+		if not self.show_links(course):
+			return
+		
 		links = result_map.setdefault( LINKS, [] )
-		for rel in 'AssignmentsByOutlineNode', 'NonAssignmentAssessmentItemsByOutlineNode':
+		for rel in ('AssignmentsByOutlineNode', 'NonAssignmentAssessmentItemsByOutlineNode'):
 			# Prefer to canonicalize these through to the course, if possible
-			course = ICourseInstance(context, context)
 			link = Link( course,
 						 rel=rel,
 						 elements=(rel,),
@@ -316,7 +332,6 @@ class _AssignmentsByOutlineNodeDecorator(_AbstractTraversableLinkDecorator):
 						 # didn't ignore them.
 						 ignore_properties_of_target=True)
 			links.append(link)
-
 
 from .interfaces import IUsersCourseAssignmentHistoryItemFeedback
 

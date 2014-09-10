@@ -18,18 +18,18 @@ from zope.container.interfaces import IContainer
 from zope.container.constraints import containers
 from zope.container.interfaces import IContainerNamesContainer
 
-from nti.dataserver.interfaces import CompoundModeledContentBody
-from nti.dataserver.interfaces import ICreated
-from nti.dataserver.interfaces import ILastModified
-from nti.dataserver.interfaces import ILastViewed
-from nti.dataserver.interfaces import IModeledContent
-from nti.dataserver.interfaces import INeverStoredInSharedStream
-from nti.dataserver.interfaces import IShouldHaveTraversablePath
-from nti.dataserver.interfaces import ITitledContent
-from nti.dataserver.interfaces import IUser
-
 from nti.assessment.interfaces import IQAssignmentSubmission
 from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
+
+from nti.dataserver.interfaces import IUser
+from nti.dataserver.interfaces import ICreated
+from nti.dataserver.interfaces import ILastViewed
+from nti.dataserver.interfaces import ILastModified
+from nti.dataserver.interfaces import ITitledContent
+from nti.dataserver.interfaces import IModeledContent
+from nti.dataserver.interfaces import CompoundModeledContentBody
+from nti.dataserver.interfaces import INeverStoredInSharedStream
+from nti.dataserver.interfaces import IShouldHaveTraversablePath
 
 from nti.schema.field import Int
 from nti.schema.field import Dict
@@ -39,8 +39,64 @@ from nti.schema.field import Object
 
 from zope.security.permission import Permission
 
-ACT_DOWNLOAD_GRADES = Permission('nti.actions.assessment.download_grades')
 ACT_VIEW_SOLUTIONS = Permission('nti.actions.assessment.view_solutions')
+ACT_DOWNLOAD_GRADES = Permission('nti.actions.assessment.download_grades')
+
+class IUsersCourseAssignmentSavePoints(IContainer,
+									   IContained,
+									   IShouldHaveTraversablePath):
+	"""
+	A container for all the assignment save points in a course, keyed by username.
+	"""
+	contains(str('.IUsersCourseAssignmentSavePoint'))
+
+class IUsersCourseAssignmentSavePoint(IContainer,
+									  ILastViewed,
+									  IContained,
+									  IShouldHaveTraversablePath):
+	"""
+	A :class:`IContainer`-like object that stores the save point of
+	assignments for a particular user in a course. The keys of this
+	object are :class:`IAssignment` IDs (this class may or may not
+	enforce that the assignment ID is actually scoped to the course it
+	is registered for). The values are instances of :class:`.IQAssignmentSubmission`.
+	"""
+
+	contains(str('.IUsersCourseAssignmentSavePointItem'))
+	containers(IUsersCourseAssignmentSavePoints)
+	__setitem__.__doc__ = None
+
+	owner = Object(IUser, required=False, title="The user this save point is for.")
+	owner.setTaggedValue('_ext_excluded_out', True)
+
+	Items = Dict(title='For externalization only, a copy of the items', readonly=True)
+
+	def recordSubmission(submission):
+		"""
+		When a user submits an assignment for save point call this method to record
+		that fact. If a submission has already been recorded, this will
+		replace the previous one
+
+		:param submission: The original :class:`.IQAssignmentSubmission`
+			the user provided. We will become part of the lineage
+			of this object and all its children objects (they will
+			be set to the correct __parent__ relationship within the part/question
+			structure).
+			
+		:return: The new :class:`.IUsersCourseAssignmentSavePointItem` representing
+				 the record of this submission.
+		"""
+
+class IUsersCourseAssignmentSavePointItem(IContained, 
+										  ILastModified,
+										  ICreated,
+										  IShouldHaveTraversablePath):
+
+	containers(IUsersCourseAssignmentSavePoint)
+	__parent__.required = False
+
+	Submission = Object(IQAssignmentSubmission, required=False)
+
 
 class IUsersCourseAssignmentHistories(IContainer,
 									  IContained,
@@ -105,7 +161,6 @@ class IUsersCourseAssignmentHistory(IContainer,
 		:return: The new :class:`.IUsersCourseAssignmentItem` representing
 			the record of this submission.
 		"""
-
 
 class IUsersCourseAssignmentHistoryItemFeedbackContainer(IContainerNamesContainer,
 														 ICreated,

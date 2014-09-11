@@ -7,10 +7,7 @@
 	<include package="pyramid_zcml" />
 
 	<pyramid:scan package=".admin_views" />
+	<pyramid:scan package=".savepoint_views" />
 	<pyramid:scan package=".assessment_views" />
 
-	<!-- SavePoints -->
-	<configure zcml:condition="have devmode">
-		<pyramid:scan package=".savepoint_views" />
-	</configure>
 </configure>

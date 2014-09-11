@@ -42,15 +42,15 @@ from zope.security.permission import Permission
 ACT_VIEW_SOLUTIONS = Permission('nti.actions.assessment.view_solutions')
 ACT_DOWNLOAD_GRADES = Permission('nti.actions.assessment.download_grades')
 
-class IUsersCourseAssignmentSavePoints(IContainer,
+class IUsersCourseAssignmentSavepoints(IContainer,
 									   IContained,
 									   IShouldHaveTraversablePath):
 	"""
 	A container for all the assignment save points in a course, keyed by username.
 	"""
-	contains(str('.IUsersCourseAssignmentSavePoint'))
+	contains(str('.IUsersCourseAssignmentSavepoint'))
 
-class IUsersCourseAssignmentSavePoint(IContainer,
+class IUsersCourseAssignmentSavepoint(IContainer,
 									  IContained,
 									  IShouldHaveTraversablePath):
 	"""
@@ -61,8 +61,8 @@ class IUsersCourseAssignmentSavePoint(IContainer,
 	is registered for). The values are instances of :class:`.IQAssignmentSubmission`.
 	"""
 
-	contains(str('.IUsersCourseAssignmentSavePointItem'))
-	containers(IUsersCourseAssignmentSavePoints)
+	contains(str('.IUsersCourseAssignmentSavepointItem'))
+	containers(IUsersCourseAssignmentSavepoints)
 	__setitem__.__doc__ = None
 
 	owner = Object(IUser, required=False, title="The user this save point is for.")
@@ -82,16 +82,16 @@ class IUsersCourseAssignmentSavePoint(IContainer,
 			be set to the correct __parent__ relationship within the part/question
 			structure).
 			
-		:return: The new :class:`.IUsersCourseAssignmentSavePointItem` representing
+		:return: The new :class:`.IUsersCourseAssignmentSavepointItem` representing
 				 the record of this submission.
 		"""
 
-class IUsersCourseAssignmentSavePointItem(IContained, 
+class IUsersCourseAssignmentSavepointItem(IContained, 
 										  ILastModified,
 										  ICreated,
 										  IShouldHaveTraversablePath):
 
-	containers(IUsersCourseAssignmentSavePoint)
+	containers(IUsersCourseAssignmentSavepoint)
 	__parent__.required = False
 
 	Submission = Object(IQAssignmentSubmission, required=False)

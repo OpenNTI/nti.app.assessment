@@ -25,15 +25,16 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver import authorization as nauth
 
-from ..interfaces import IUsersCourseAssignmentSavePoint
-from ..interfaces import IUsersCourseAssignmentSavePoints
+from ..interfaces import IUsersCourseAssignmentSavepoint
+from ..interfaces import IUsersCourseAssignmentSavepoints
+from ..interfaces import IUsersCourseAssignmentSavepointItem
 
 @view_config(route_name="objects.generic.traversal",
 			 context=IQAssignment,
 			 renderer='rest',
 			 request_method='POST',
-			 name="SavePoint")
-class AssignmentSubmissionSavePointPostView(AbstractAuthenticatedView,
+			 name="Savepoint")
+class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 								   			ModeledContentUploadRequestUtilsMixin):
 	"""
 	Students can POST to the assignment to create their save point
@@ -57,22 +58,24 @@ class AssignmentSubmissionSavePointPostView(AbstractAuthenticatedView,
 		if not assignment:
 			hexc.HTTPUnprocessableEntity("Assignment not found")
 			
-		savepoints = component.getMultiAdapter( (course, submission.creator),
-												IUsersCourseAssignmentSavePoints )
+		savepoint = component.getMultiAdapter( (course, submission.creator),
+												IUsersCourseAssignmentSavepoint)
 		submission.containerId = submission.assignmentId
 
+		self.request.response.status_int = 201
+		
 		# Now record the submission.
-		result = savepoints.recordSubmission(submission)
+		result = savepoint.recordSubmission(submission)
 		return result
 
 @view_config(route_name="objects.generic.traversal",
 			 renderer='rest',
-			 context=IUsersCourseAssignmentSavePoints,
+			 context=IUsersCourseAssignmentSavepoints,
 			 permission=nauth.ACT_READ,
 			 request_method='GET')
-class AssignmentSavePointGetView(AbstractAuthenticatedView):
+class AssignmentSavepointGetView(AbstractAuthenticatedView):
 	"""
-	Students can view their assignment save points as ``path/to/course/AssignmentSavePoints``
+	Students can view their assignment save points as ``path/to/course/AssignmentSavepoints``
 	"""
 
 	def __call__(self):
@@ -80,11 +83,11 @@ class AssignmentSavePointGetView(AbstractAuthenticatedView):
 		return savepoints
 
 @view_config(route_name="objects.generic.traversal",
-			 context=IUsersCourseAssignmentSavePoint,
+			 context=IUsersCourseAssignmentSavepointItem,
 			 renderer='rest',
 			 permission=nauth.ACT_DELETE,
 			 request_method='DELETE')
-class AssignmentHistoryItemDeleteView(UGDDeleteView):
+class AssignmentSavepointItemDeleteView(UGDDeleteView):
 
 	def _do_delete_object( self, theObject ):
 		del theObject.__parent__[theObject.__name__]

@@ -283,31 +283,36 @@
 	<!-- Views -->
 	<include package=".views" />
 	
-	<!-- SavePoints -->
-	<configure zcml:condition="have devmode">
-		<adapter factory=".savepoint._savepoints_for_course_path_adapter"
-				 for="nti.contenttypes.courses.interfaces.ICourseInstance pyramid.interfaces.IRequest"
-				 provides="zope.traversing.interfaces.IPathAdapter"
-				 name="AssignmentSavePoints" />
+	<!-- Savepoints -->
+	<adapter factory=".savepoint._savepoints_for_course_path_adapter"
+			 for="nti.contenttypes.courses.interfaces.ICourseInstance pyramid.interfaces.IRequest"
+			 provides="zope.traversing.interfaces.IPathAdapter"
+			 name="AssignmentSavepoints" />
 
-		<adapter factory=".savepoint._savepoints_for_courseenrollment_path_adapter"
-				 for="nti.app.products.courseware.interfaces.ICourseInstanceEnrollment pyramid.interfaces.IRequest"
-				 provides="zope.traversing.interfaces.IPathAdapter"
-				 name="AssignmentSavePoints" />
+	<adapter factory=".savepoint._savepoints_for_courseenrollment_path_adapter"
+			 for="nti.app.products.courseware.interfaces.ICourseInstanceEnrollment pyramid.interfaces.IRequest"
+			 provides="zope.traversing.interfaces.IPathAdapter"
+			 name="AssignmentSavepoints" />
+			 
+	<adapter factory=".savepoint._savepoints_for_course" />
+	<adapter factory=".savepoint._savepoint_for_user_in_course" />
+	<adapter factory=".savepoint._course_from_savepoint_lineage" />
+	
+	<adapter factory=".savepoint._UsersCourseAssignmentSavepointsTraversable" />
+	
+	<subscriber factory=".savepoint._AssignmentSavepointItemDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="nti.contenttypes.courses.interfaces.ICourseInstance
+					 pyramid.interfaces.IRequest" />
 				 
-		<adapter factory=".savepoint._savepoint_for_user_in_course" />
-		<adapter factory=".savepoint._course_from_savepoint_lineage" />
-		
-		<adapter factory=".savepoint._UsersCourseAssignmentSavePointsTraversable" />
-		
-		<subscriber factory=".savepoint._AssignmentSavePointItemDecorator"
-					provides="nti.externalization.interfaces.IExternalMappingDecorator"
-					for="nti.contenttypes.courses.interfaces.ICourseInstance
-						 pyramid.interfaces.IRequest" />
-					 
-		<ext:registerAutoPackageIO
-			root_interfaces=".interfaces.IUsersCourseAssignmentSavePoint
-							 .interfaces.IUsersCourseAssignmentSavePointItem"
-			modules=".savepoint" />
-	</configure>
+	<subscriber factory=".savepoint._AssignmentSavepointItemDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="nti.app.products.courseware.interfaces.ICourseInstanceEnrollment
+					 pyramid.interfaces.IRequest" />
+
+	<ext:registerAutoPackageIO
+		root_interfaces=".interfaces.IUsersCourseAssignmentSavepoint
+						 .interfaces.IUsersCourseAssignmentSavepointItem"
+		modules=".savepoint" />
+
 </configure>

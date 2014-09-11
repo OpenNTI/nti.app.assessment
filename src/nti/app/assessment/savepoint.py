@@ -173,7 +173,7 @@ def _savepoint_for_user_in_course(course, user, create=True):
 		if create:
 			result = UsersCourseAssignmentSavePoint()
 			result.owner = user
-			result[user.username] = result
+			savepoints[user.username] = result
 	return result
 
 def _savepoints_for_course_path_adapter(course, request):

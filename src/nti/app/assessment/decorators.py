@@ -403,7 +403,7 @@ from .interfaces import ACT_VIEW_SOLUTIONS
 
 def _get_course_from_assignment(assignment, user):
 	## check if we have the context catalog entry we can use 
-	## as reference (.adapters._QAssignmentProxy) this way
+	## as reference (.adapters._QProxy) this way
 	## instructor can find the correct course when they are looking
 	## at a section.
 	result = None

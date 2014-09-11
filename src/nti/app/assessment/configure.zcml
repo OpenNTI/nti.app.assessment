@@ -295,6 +295,11 @@
 	
 	<adapter factory=".savepoint._UsersCourseAssignmentSavepointsTraversable" />
 	
+	<subscriber factory=".savepoint._AssignmentSavepointDecorator"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator"
+				for="nti.assessment.interfaces.IQAssignment
+					 pyramid.interfaces.IRequest" />
+					 
 	<subscriber factory=".savepoint._AssignmentSavepointsDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.contenttypes.courses.interfaces.ICourseInstance

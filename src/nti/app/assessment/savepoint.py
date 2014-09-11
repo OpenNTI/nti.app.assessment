@@ -51,6 +51,7 @@ from nti.utils.property import alias
 
 from nti.wref.interfaces import IWeakRef
 
+from .decorators import _get_course_from_assignment
 from .decorators import _AbstractTraversableLinkDecorator
 
 from .interfaces import IUsersCourseAssignmentSavepoint
@@ -211,6 +212,17 @@ class _UsersCourseAssignmentSavepointsTraversable(ContainerAdapterTraversable):
 				return _savepoint_for_user_in_course( self.context.__parent__, user)			
 			raise		
 
+class _AssignmentSavepointDecorator(AbstractAuthenticatedRequestAwareDecorator):
+
+	def _do_decorate_external(self, assignment, result):
+		course = _get_course_from_assignment(assignment, self.remoteUser)
+		if course is not None:
+			links = result.setdefault(LINKS, [])
+			links.append( Link( assignment,
+								rel='Savepoint',
+								method='POST',
+								elements=('Savepoint',)))
+					
 @interface.implementer(IExternalMappingDecorator)
 class _AssignmentSavepointsDecorator(_AbstractTraversableLinkDecorator):
 	

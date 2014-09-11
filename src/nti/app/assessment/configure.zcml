@@ -262,8 +262,6 @@
 			 name="AssignmentHistories" />
 
 	<adapter factory=".adapters._UsersCourseAssignmentHistoriesTraversable" />
-
-	<adapter factory=".views.assessment_views.AssignmentHistoryRequestTraversable" />
 	
 	<!-- Contentsearch -->
 	<utility factory=".content_search._assignmentfeedback_metadata" name="assignmentfeedback" />
@@ -281,6 +279,9 @@
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"/>
 				
 	<subscriber	handler=".content_search.on_course_instance_available" />
+	
+	<!-- Views -->
+	<include package=".views" />
 	
 	<!-- SavePoints -->
 	<configure zcml:condition="have devmode">

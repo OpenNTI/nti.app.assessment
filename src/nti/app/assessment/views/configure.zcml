@@ -1,11 +1,7 @@
 <!-- -*- mode: nxml -*- -->
 <configure xmlns="http://namespaces.zope.org/zope"
 		   xmlns:zcml="http://namespaces.zope.org/zcml"
-		   xmlns:i18n="http://namespaces.zope.org/i18n"
-		   xmlns:ext="http://nextthought.com/ntp/ext"
-		   xmlns:sp="http://nextthought.com/ntp/securitypolicy"
-		   i18n_domain='nti.app.assessment'
-		   i18n:domain='nti.app.assessment'>
+		   xmlns:i18n="http://namespaces.zope.org/i18n">
 
 	<include package="zope.component" file="meta.zcml" />
 	<include package="zope.security" file="meta.zcml" />

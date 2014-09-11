@@ -148,11 +148,6 @@
 				for=".interfaces.IUsersCourseAssignmentHistory
 					 pyramid.interfaces.IRequest" />
 
-	<subscriber factory=".decorators._LastViewedAssignmentHistoryDecorator"
-				provides="nti.externalization.interfaces.IExternalMappingDecorator"
-				for=".interfaces.IUsersCourseAssignmentHistory
-					 pyramid.interfaces.IRequest" />
-
 	<subscriber factory=".decorators._AssignmentWithFilePartDownloadLinkDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.assessment.interfaces.IQAssignment

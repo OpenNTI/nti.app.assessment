@@ -146,6 +146,9 @@ class TestSavepointViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 			savepoint_res = self.testapp.get(savepoint)
 			assert_that(savepoint_res.json_body, has_entry('href', contains_string(unquote(savepoint)) ) )
 			assert_that(savepoint_res.json_body, has_entry('Items', has_length(1)))
+			
+			items = list(savepoint_res.json_body['Items'].values())
+			assert_that(items[0], has_key('href'))
 		else:
 			self._fetch_user_url('/Courses/EnrolledCourses/CLC3403/AssignmentSavepoints/' + 
 								self.default_username, status=404 )

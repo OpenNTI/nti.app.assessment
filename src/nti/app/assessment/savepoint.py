@@ -18,14 +18,17 @@ from zope.annotation.interfaces import IAnnotations
 
 from pyramid.interfaces import IRequest
 
+from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import ACE_DENY_ALL
 from nti.dataserver.interfaces import ALL_PERMISSIONS
 
-from nti.dataserver.links import Link
 from nti.dataserver.users import User
+from nti.dataserver.links import Link
+from nti.dataserver.links_external import render_link
 
 from nti.dataserver.traversal import find_interface
 from nti.dataserver.traversal import ContainerAdapterTraversable
@@ -209,7 +212,7 @@ class _UsersCourseAssignmentSavepointsTraversable(ContainerAdapterTraversable):
 			raise		
 
 @interface.implementer(IExternalMappingDecorator)
-class _AssignmentSavepointItemDecorator(_AbstractTraversableLinkDecorator):
+class _AssignmentSavepointsDecorator(_AbstractTraversableLinkDecorator):
 	
 	def _do_decorate_external( self, context, result_map ):
 		links = result_map.setdefault( LINKS, [] )
@@ -217,3 +220,13 @@ class _AssignmentSavepointItemDecorator(_AbstractTraversableLinkDecorator):
 		links.append( Link( context,
 							rel='AssignmentSavepoints',
 							elements=('AssignmentSavepoints', user.username)) )
+
+@interface.implementer(IExternalMappingDecorator)
+class _AssignmentSavepointItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
+	
+	def _do_decorate_external(self, context, result_map ):
+		try:
+			link = Link(context)
+			result_map['href'] = render_link( link )['href']
+		except (KeyError, ValueError, AssertionError):
+			pass # Nope

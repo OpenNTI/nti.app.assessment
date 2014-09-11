@@ -169,7 +169,7 @@ class TestSavepointViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 									  'CLC 3403',
 									  status=201 )
 
-		enrollment_savepoints_link = self.require_link_href_with_rel( res.json_body, 'AssignmentSavepoints')
+		enrollment_savepoints_link = self.require_link_href_with_rel(res.json_body, 'AssignmentSavepoints')
 		course_savepoints_link = self.require_link_href_with_rel( res.json_body['CourseInstance'], 'AssignmentSavepoints')
 		
 		assert_that( enrollment_savepoints_link,

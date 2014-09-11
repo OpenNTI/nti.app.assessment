@@ -51,7 +51,6 @@ class IUsersCourseAssignmentSavePoints(IContainer,
 	contains(str('.IUsersCourseAssignmentSavePoint'))
 
 class IUsersCourseAssignmentSavePoint(IContainer,
-									  ILastViewed,
 									  IContained,
 									  IShouldHaveTraversablePath):
 	"""
@@ -96,7 +95,6 @@ class IUsersCourseAssignmentSavePointItem(IContained,
 	__parent__.required = False
 
 	Submission = Object(IQAssignmentSubmission, required=False)
-
 
 class IUsersCourseAssignmentHistories(IContainer,
 									  IContained,

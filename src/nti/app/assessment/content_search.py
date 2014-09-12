@@ -13,6 +13,7 @@ from zope import interface
 from zope import lifecycleevent
 from zope.securitypolicy.interfaces import IPrincipalRoleMap
 
+from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import IEntity
 
 from nti.externalization.oids import to_external_ntiid_oid
@@ -36,6 +37,7 @@ from nti.contenttypes.courses.interfaces import ICourseInstanceAvailableEvent
 from nti.dataserver.traversal import find_interface
 
 from .interfaces import IUsersCourseAssignmentHistory
+from .interfaces import IUsersCourseAssignmentHistoryItem
 from .interfaces import IUsersCourseAssignmentHistoryItemFeedback
 
 assignmentfeedback_ = u'assignmentfeedback'
@@ -136,15 +138,16 @@ class _AssignmentFeedbackItemSearchHitPredicate(object):
 	def __init__(self, *args):
 		pass
 		
-	def allow(self, item, score, query=None):
+	def allow(self, feedback, score, query=None):
 		result = True # by default allow
-		user = getattr(item, 'creator', None)
-		course = find_interface(item, ICourseInstance, strict=False)
+		course = find_interface(feedback, ICourseInstance, strict=False)
+		item = find_interface(feedback, IUsersCourseAssignmentHistoryItem, strict=False)
+		user = IUser(item, None) # get the user enrolled
 		if course is not None and user is not None:
 			enrollments = ICourseEnrollments(course)
 			result = enrollments.get_enrollment_for_principal(user) is not None
 			if not result:
-				logger.debug("Item not allowed for search. %s", item)
+				logger.debug("Item not allowed for search. %s", feedback)
 		return result
 	
 @component.adapter(ICourseInstanceAvailableEvent)

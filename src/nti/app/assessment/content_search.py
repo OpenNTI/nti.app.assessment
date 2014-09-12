@@ -102,11 +102,11 @@ class _AssignmentFeedbackResolver(object):
 		course = find_interface(self.obj, ICourseInstance)
 		role_map = IPrincipalRoleMap(course, None) 
 		if role_map is not None:
-			principals = role_map.getPrincipalsForRole(RID_INSTRUCTOR) or ()
-			result.update(instructor.id.lower() for instructor in principals)
+			settings = role_map.getPrincipalsForRole(RID_INSTRUCTOR) or ()
+			result.update(x[0].lower() for x in settings)
 			
-			principals = role_map.getPrincipalsForRole(RID_TA) or ()
-			result.update(instructor.id.lower() for instructor in principals)
+			settings = role_map.getPrincipalsForRole(RID_TA) or ()
+			result.update(x[0].lower() for x in settings)
 		# return
 		return list(result) if result else None
 

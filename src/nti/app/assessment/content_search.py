@@ -13,18 +13,15 @@ from zope import interface
 from zope import lifecycleevent
 from zope.securitypolicy.interfaces import IPrincipalRoleMap
 
-from pyramid.traversal import find_interface
-
 from nti.dataserver.interfaces import IEntity
 
 from nti.externalization.oids import to_external_ntiid_oid
-
-from nti.mimetype.mimetype import MIME_BASE
 
 from nti.contentsearch.search_hits import SearchHit
 from nti.contentsearch.interfaces import IACLResolver
 from nti.contentsearch.interfaces import ICreatorResolver
 from nti.contentsearch.interfaces import IUserDataSearchHit
+from nti.contentsearch.interfaces import ISearchHitPredicate
 from nti.contentsearch.interfaces import ISearchTypeMetaData
 from nti.contentsearch.interfaces import ContentMixinResolver
 from nti.contentsearch.content_utils import resolve_content_parts
@@ -36,23 +33,25 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.contenttypes.courses.interfaces import ICourseInstanceAvailableEvent
 
+from nti.dataserver.traversal import find_interface
+
 from .interfaces import IUsersCourseAssignmentHistory
 from .interfaces import IUsersCourseAssignmentHistoryItemFeedback
 
 assignmentfeedback_ = u'assignmentfeedback'
-ASSIGNMENT_FEEDBACK = u'AssignmentFeedback'
-ASSIGNMENT_FEEDBACK_MIMETYPE = unicode(MIME_BASE + "." + assignmentfeedback_)
+ASSIGNMENT_FEEDBACK_ITEM = u'AssignmentFeedbackItem'
+ASSIGNMENT_FEEDBACK_ITEM_MIMETYPE = u'application/vnd.nextthought.assignmentfeedbacktem'
 
-class IAssignmentFeedbackResolver(ContentMixinResolver,
-								  ICreatorResolver,
-								  IACLResolver):
+class IAssignmentFeedbackItemResolver(ContentMixinResolver,
+								  	  ICreatorResolver,
+								  	  IACLResolver):
 	pass
 
-class IAssignmentFeedbackSearchHit(IUserDataSearchHit):
+class IAssignmentFeedbackItemSearchHit(IUserDataSearchHit):
 	pass
 
-@interface.implementer(IAssignmentFeedbackResolver)
-class _AssignmentFeedbackResolver(object):
+@interface.implementer(IAssignmentFeedbackItemResolver)
+class _AssignmentFeedbackItemResolver(object):
 
 	__slots__ = ('obj',)
 
@@ -61,7 +60,7 @@ class _AssignmentFeedbackResolver(object):
 
 	@property
 	def type(self):
-		return assignmentfeedback_
+		return assignmentfeedback_ # Stored type
 	
 	@property
 	def content(self):
@@ -99,7 +98,7 @@ class _AssignmentFeedbackResolver(object):
 		creator = self.creator
 		if creator: # check just in case
 			result.add(self.creator.lower())
-		course = find_interface(self.obj, ICourseInstance)
+		course = find_interface(self.obj, ICourseInstance, strict=False)
 		role_map = IPrincipalRoleMap(course, None) 
 		if role_map is not None:
 			settings = role_map.getPrincipalsForRole(RID_INSTRUCTOR) or ()
@@ -107,31 +106,47 @@ class _AssignmentFeedbackResolver(object):
 			
 			settings = role_map.getPrincipalsForRole(RID_TA) or ()
 			result.update(x[0].lower() for x in settings)
-		# return
 		return list(result) if result else None
 
-@interface.implementer(IAssignmentFeedbackSearchHit)
-class _AssignmentFeedbackSearchHit(SearchHit):
+@interface.implementer(IAssignmentFeedbackItemSearchHit)
+class AssignmentFeedbackItemSearchHit(SearchHit):
 
-	adapter_interface = IAssignmentFeedbackResolver
+	adapter_interface = IAssignmentFeedbackItemResolver
 
 	def set_hit_info(self, original, score):
-		adapted = super(_AssignmentFeedbackSearchHit, self).set_hit_info(original, score)
-		self.Type = ASSIGNMENT_FEEDBACK
-		self.TargetMimeType = ASSIGNMENT_FEEDBACK_MIMETYPE
+		adapted = super(AssignmentFeedbackItemSearchHit, self).set_hit_info(original, score)
+		self.Type = ASSIGNMENT_FEEDBACK_ITEM
+		self.TargetMimeType = ASSIGNMENT_FEEDBACK_ITEM_MIMETYPE
 		return adapted
 
 @interface.implementer(ISearchTypeMetaData)
-def _assignmentfeedback_metadata():
+def _assignmentfeedbackitem_metadata():
 	## IUsersCourseAssignmentHistoryItemFeedback does not have a mime type
 	## then let's assign one for it
 	return SearchTypeMetaData(Name=assignmentfeedback_,
-							  MimeType=ASSIGNMENT_FEEDBACK_MIMETYPE,
+							  MimeType=ASSIGNMENT_FEEDBACK_ITEM_MIMETYPE,
 							  IsUGD=True,
 							  Order=99,
 							  Interface=IUsersCourseAssignmentHistoryItemFeedback)
 
+@interface.implementer(ISearchHitPredicate)
+@component.adapter(IUsersCourseAssignmentHistoryItemFeedback)
+class _AssignmentFeedbackItemSearchHitPredicate(object):
 
+	def __init__(self, *args):
+		pass
+		
+	def allow(self, item, score, query=None):
+		result = True # by default allow
+		user = getattr(item, 'creator', None)
+		course = find_interface(item, ICourseInstance, strict=False)
+		if course is not None and user is not None:
+			enrollments = ICourseEnrollments(course)
+			result = enrollments.get_enrollment_for_principal(user) is not None
+			if not result:
+				logger.debug("Item not allowed for search. %s", item)
+		return result
+	
 @component.adapter(ICourseInstanceAvailableEvent)
 def on_course_instance_available(event):
 	course = event.object

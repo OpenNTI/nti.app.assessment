@@ -259,20 +259,24 @@
 	<adapter factory=".adapters._UsersCourseAssignmentHistoriesTraversable" />
 	
 	<!-- Contentsearch -->
-	<utility factory=".content_search._assignmentfeedback_metadata" name="assignmentfeedback" />
+	<utility factory=".content_search._assignmentfeedbackitem_metadata" name="assignmentfeedback" />
 
-	<adapter factory=".content_search._AssignmentFeedbackResolver"
+	<adapter factory=".content_search._AssignmentFeedbackItemResolver"
 			 for=".interfaces.IUsersCourseAssignmentHistoryItemFeedback"
-			 provides=".content_search.IAssignmentFeedbackResolver" />
+			 provides=".content_search.IAssignmentFeedbackItemResolver" />
 
-	<adapter factory=".content_search._AssignmentFeedbackSearchHit"
+	<adapter factory=".content_search.AssignmentFeedbackItemSearchHit"
 			 for=".interfaces.IUsersCourseAssignmentHistoryItemFeedback"
-			 provides=".content_search.IAssignmentFeedbackSearchHit" />
+			 provides=".content_search.IAssignmentFeedbackItemSearchHit" />
 
 	<subscriber factory="nti.contentsearch.decorators.SearchHitHighlightDecorator"
-				for=".content_search.IAssignmentFeedbackSearchHit"
+				for=".content_search.IAssignmentFeedbackItemSearchHit"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"/>
 				
+	<subscriber factory=".content_search._AssignmentFeedbackItemSearchHitPredicate"
+				provides="nti.contentsearch.interfaces.ISearchHitPredicate"
+				for=".interfaces.ICreated" />
+
 	<subscriber	handler=".content_search.on_course_instance_available" />
 	
 	<!-- Views -->

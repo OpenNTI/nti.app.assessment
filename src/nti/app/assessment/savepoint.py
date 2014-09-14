@@ -220,7 +220,6 @@ class _AssignmentSavepointDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			links = result.setdefault(LINKS, [])
 			links.append( Link( assignment,
 								rel='Savepoint',
-								method='POST',
 								elements=('Savepoint',)))
 					
 @interface.implementer(IExternalMappingDecorator)

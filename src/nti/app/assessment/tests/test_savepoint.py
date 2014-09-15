@@ -190,14 +190,19 @@ class TestSavepointViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 			savepoints_res = self.testapp.get(link)
 			assert_that(savepoints_res.json_body, has_entry('Items', has_length(0)))
 
-		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id + '/Savepoint',
-									  ext_obj)
+		href = '/dataserver2/Objects/' + self.assignment_id + '/Savepoint'
+		self.testapp.get(href, status=404)
+		
+		res = self.testapp.post_json( href, ext_obj)
 		savepoint_item_href = res.json_body['href']
 		assert_that(savepoint_item_href, is_not(none()))
 		
 		self._check_submission(res, enrollment_savepoints_link)
 		
 		res = self.testapp.get(savepoint_item_href)
+		assert_that(res.json_body, has_entry('href', is_not(none())))
+		
+		res = self.testapp.get(href)
 		assert_that(res.json_body, has_entry('href', is_not(none())))
 		
 		# Both history links are equivalent and work

@@ -86,7 +86,7 @@ class AssignmentSubmissionSavepointGetView(AbstractAuthenticatedView):
 		savepoint = component.getMultiAdapter( (course, creator),
 												IUsersCourseAssignmentSavepoint)
 		try:
-			result = savepoint[self.context.assignmentId]
+			result = savepoint[self.context.ntiid]
 			return result
 		except KeyError:
 			return hexc.HTTPNotFound()

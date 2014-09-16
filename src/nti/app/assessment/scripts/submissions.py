@@ -76,6 +76,16 @@ def _create_context(env_dir=None):
 	
 	return context
 
+def _replace(username):
+	try:
+		from nti.app.products.gradebook.interfaces import IUsernameSortSubstitutionPolicy
+		policy = component.queryUtility(IUsernameSortSubstitutionPolicy)
+		if policy is not None:
+			return policy.replace(username) or username
+	except ImportError:
+		pass
+	return username
+	
 def _create_report(course, assignment_id=None, question_id=None, output=None,
 				   separator='\t'):
 	
@@ -106,9 +116,10 @@ def _create_report(course, assignment_id=None, question_id=None, output=None,
 					if question_id and question.questionId != question_id:
 						continue
 					
+					qid = question.questionId
 					for idx, sub_part in enumerate(question.parts):
 						ext = json.dumps(to_external_object(sub_part))
-						row_data = [username, key, question.questionId, str(idx), ext]
+						row_data = [_replace(username), key, qid, str(idx), ext]
 						output.write(separator.join(row_data))
 						output.write("\n")
 

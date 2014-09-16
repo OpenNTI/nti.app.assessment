@@ -18,7 +18,6 @@ from zope import lifecycleevent
 from zope.annotation.interfaces import IAnnotations
 
 from zope.schema.interfaces import NotUnique
-from zope.schema.interfaces import RequiredMissing
 from zope.schema.interfaces import ConstraintNotSatisfied
 
 from persistent.list import PersistentList
@@ -30,6 +29,7 @@ from nti.assessment.interfaces import IQAssignmentDateContext
 from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.traversal import find_interface
@@ -107,26 +107,7 @@ def _check_submission_before(dates, assignment):
 			ex.value = available_beginning
 			raise ex
 
-def _find_course_for_assignment(assignment, user, exc=True):
-	# Check that they're enrolled in the course that has the assignment
-	course = component.queryMultiAdapter( (assignment, user),
-										  ICourseInstance)
-	if course is None:
-		# For BWC, we also check to see if we can just get
-		# one based on the content package of the assignment, not
-		# checking enrollment.
-		# TODO: Drop this
-		course = ICourseInstance( find_interface(assignment, IContentPackage, strict=False),
-								  None)
-		if course is not None:
-			logger.warning("No enrollment found, assuming generic course. Tests only?")
-
-	# If one does not exist, we cannot grade because we have nowhere
-	# to dispatch to.
-	if course is None and exc:
-		raise RequiredMissing("Course cannot be found")
-
-	return course
+from ._utils import find_course_for_assignment
 
 @component.adapter(asm_interfaces.IQAssignmentSubmission)
 @interface.implementer(asm_interfaces.IQAssignmentSubmissionPendingAssessment)
@@ -159,7 +140,7 @@ def _begin_assessment_for_assignment_submission(submission):
 		ex.field = asm_interfaces.IQAssignmentSubmission['parts']
 		raise ex
 
-	course = _find_course_for_assignment(assignment, submission.creator)
+	course = find_course_for_assignment(assignment, submission.creator)
 
 	_check_submission_before(IQAssignmentDateContext(course), assignment)
 
@@ -361,8 +342,6 @@ from zope.proxy import ProxyBase
 
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssessmentItemContainer
-
-from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from .interfaces import ICourseAssignmentCatalog
 from .interfaces import ICourseAssessmentItemCatalog

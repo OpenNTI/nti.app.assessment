@@ -51,6 +51,8 @@ from nti.utils.property import alias
 
 from nti.wref.interfaces import IWeakRef
 
+from ._utils import set_submission_lineage
+
 from .decorators import _get_course_from_assignment
 from .decorators import _AbstractTraversableLinkDecorator
 
@@ -95,6 +97,7 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 		
 		item = UsersCourseAssignmentSavepointItem(Submission=submission)
 		submission.__parent__ = item
+		set_submission_lineage(submission)
 		
 		if submission.assignmentId in self:
 			del self[submission.assignmentId]

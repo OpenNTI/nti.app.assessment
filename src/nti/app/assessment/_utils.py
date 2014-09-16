@@ -13,7 +13,10 @@ import os
 import copy
 import simplejson
 
+from zope import component
 from zope import interface
+from zope.schema.interfaces import RequiredMissing
+
 from zope.security.interfaces import IPrincipal
 from zope.securitypolicy.interfaces import Allow
 from zope.securitypolicy.interfaces import IPrincipalRoleMap
@@ -26,11 +29,15 @@ from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.interfaces import IQAssessmentItemContainer
 from nti.assessment.randomized import questionbank_question_chooser
 
+from nti.contentlibrary.interfaces import IContentPackage
+
 from nti.contenttypes.courses.interfaces import RID_TA
 from nti.contenttypes.courses.interfaces import RID_INSTRUCTOR
+from nti.contenttypes.courses.interfaces import ICourseInstance
+
+from nti.dataserver.traversal import find_interface
 
 from .interfaces import ACT_DOWNLOAD_GRADES
-from .adapters import _find_course_for_assignment
 
 _r47694_map = None
 def r47694():
@@ -171,12 +178,33 @@ def check_assessment(assessment, user=None, is_instructor=False):
 				make_sha224randomized(part.question_set)
 	return result
 
+def find_course_for_assignment(assignment, user, exc=True):
+	# Check that they're enrolled in the course that has the assignment
+	course = component.queryMultiAdapter( (assignment, user),
+										  ICourseInstance)
+	if course is None:
+		# For BWC, we also check to see if we can just get
+		# one based on the content package of the assignment, not
+		# checking enrollment.
+		# TODO: Drop this
+		course = ICourseInstance( find_interface(assignment, IContentPackage, strict=False),
+								  None)
+		if course is not None:
+			logger.warning("No enrollment found, assuming generic course. Tests only?")
+
+	# If one does not exist, we cannot grade because we have nowhere
+	# to dispatch to.
+	if course is None and exc:
+		raise RequiredMissing("Course cannot be found")
+
+	return course
+
 def assignment_download_precondition(context, request, remoteUser):
 	username = request.authenticated_userid
 	if not username:
 		return False
 	
-	course = _find_course_for_assignment(context, remoteUser, exc=False)
+	course = find_course_for_assignment(context, remoteUser, exc=False)
 	if course is None or not has_permission(ACT_DOWNLOAD_GRADES, course, request):
 		return False
 
@@ -188,3 +216,20 @@ def assignment_download_precondition(context, request, remoteUser):
 				if IQFilePart.providedBy(question_part):
 					return True # TODO: Consider caching this?
 	return False
+
+def set_submission_lineage(submission):
+	## The constituent parts of these things need parents as well.
+	## XXX It would be nice if externalization took care of this,
+	## but that would be a bigger change
+	def _set_parent(child, parent):
+		if hasattr(child, '__parent__') and child.__parent__ is None:
+			child.__parent__ = parent
+
+	for submission_set in submission.parts:
+		# submission_part e.g. assessed question set
+		_set_parent(submission_set, submission)
+		for submitted_question in submission_set.questions:
+			_set_parent(submitted_question, submission_set)
+			for submitted_question_part in submitted_question.parts:
+				_set_parent(submitted_question_part, submitted_question)
+	return submission

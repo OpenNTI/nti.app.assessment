@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Event handlers.
-
 .. $Id$
 """
 
@@ -11,11 +9,32 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-from nti.contenttypes.courses.interfaces import ICourseInstance
+from . import MessageFactory as _
+
+import simplejson as json
+from datetime import datetime
+
+from zope import component
+
+from pyramid.httpexceptions import HTTPUnprocessableEntity
 
 from nti.app.products.courseware.interfaces import ICourseInstanceActivity
 
+from nti.assessment.interfaces import IQuestion
+from nti.assessment.interfaces import IQuestionSet
+from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQAssessmentItemContainer
+from nti.assessment.interfaces import IQAssignmentDateContext
+
+from nti.contentlibrary.interfaces import IContentPackageLibrary
+
+from nti.contenttypes.courses.interfaces import ICourseInstance
+
 from nti.dataserver.traversal import find_interface
+
+from nti.externalization.externalization import to_external_object
+
+from ._utils import find_course_for_assignment
 
 def add_object_to_course_activity(submission, event):
 	"""This can be registered for anything we want to submit to course activity
@@ -31,26 +50,6 @@ def remove_object_from_course_activity(submission, event):
 	course = find_interface(submission, ICourseInstance)
 	activity = ICourseInstanceActivity(course)
 	activity.remove(submission)
-
-from zope import component
-
-from nti.assessment.interfaces import IQAssignment
-from nti.assessment.interfaces import IQuestion
-from nti.assessment.interfaces import IQuestionSet
-from nti.assessment.interfaces import IQAssessmentItemContainer
-from nti.assessment.interfaces import IQAssignmentDateContext
-
-from nti.contentlibrary.interfaces import IContentPackageLibrary
-
-from pyramid.httpexceptions import HTTPUnprocessableEntity
-
-import simplejson as json
-from datetime import datetime
-
-from . import MessageFactory as _
-from nti.externalization.externalization import to_external_object
-
-from .adapters import _find_course_for_assignment
 
 def prevent_note_on_assignment_part(note, event):
 	"""
@@ -107,7 +106,7 @@ def prevent_note_on_assignment_part(note, event):
 
 	for asg in items:
 		if IQAssignment.providedBy(asg):
-			course = _find_course_for_assignment(asg, remoteUser, exc=False)
+			course = find_course_for_assignment(asg, remoteUser, exc=False)
 			if course:
 				dates = IQAssignmentDateContext(course).of(asg)
 			else:

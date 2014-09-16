@@ -174,7 +174,7 @@ from nti.contenttypes.courses.interfaces import ICourseEnrollments
 
 from . import assignment_download_precondition
 
-from ..adapters import _find_course_for_assignment
+from .._utils import find_course_for_assignment
 
 @view_config(route_name="objects.generic.traversal",
 			 context=IQAssignment,
@@ -223,7 +223,7 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 		# We're assuming we'll find some submitted files.
 		# What should we do if we don't?
 		assignment_id = context.__name__
-		course = _find_course_for_assignment(context, self.remoteUser)
+		course = find_course_for_assignment(context, self.remoteUser)
 		enrollments = ICourseEnrollments(course)
 
 

@@ -22,13 +22,21 @@ from zope import lifecycleevent
 from zope.container.contained import Contained
 from zope.cachedescriptors.property import Lazy
 
+from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssignmentPolicies
 from nti.assessment.interfaces import IQAssignmentDateContext
-from nti.assessment.interfaces import IQAssignment
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver.interfaces import IUser
+from nti.dataserver.authorization import ACT_READ
+from nti.dataserver.interfaces import ACE_DENY_ALL
+from nti.dataserver.interfaces import IACLProvider
+from nti.dataserver.authorization import ACT_DELETE
+from nti.dataserver.interfaces import ALL_PERMISSIONS
+from nti.dataserver.authorization_acl import ace_allowing
+from nti.dataserver.authorization_acl import acl_from_aces
+
 from nti.dataserver.containers import CheckingLastModifiedBTreeContainer
 from nti.dataserver.datastructures import PersistentCreatedModDateTrackingObject
 from nti.dataserver.containers import CaseInsensitiveCheckingLastModifiedBTreeContainer
@@ -44,19 +52,14 @@ from nti.wref.interfaces import IWeakRef
 from nti.zodb.minmax import NumericMaximum
 from nti.zodb.minmax import NumericPropertyDefaultingToZero
 
+from ._utils import set_submission_lineage
+
+from .feedback import UsersCourseAssignmentHistoryItemFeedbackContainer
+
 from .interfaces import IUsersCourseAssignmentHistory
 from .interfaces import IUsersCourseAssignmentHistories
 from .interfaces import IUsersCourseAssignmentHistoryItem
 from .interfaces import IUsersCourseAssignmentHistoryItemSummary
-from .feedback import UsersCourseAssignmentHistoryItemFeedbackContainer
-
-from nti.dataserver.authorization import ACT_READ
-from nti.dataserver.authorization import ACT_DELETE
-from nti.dataserver.interfaces import ACE_DENY_ALL
-from nti.dataserver.interfaces import IACLProvider
-from nti.dataserver.interfaces import ALL_PERMISSIONS
-from nti.dataserver.authorization_acl import ace_allowing
-from nti.dataserver.authorization_acl import acl_from_aces
 
 @interface.implementer(IUsersCourseAssignmentHistories)
 class UsersCourseAssignmentHistories(CaseInsensitiveCheckingLastModifiedBTreeContainer):
@@ -105,25 +108,10 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 												pendingAssessment=pending )
 		pending.__parent__ = item
 		submission.__parent__ = item
-
-		## The constituent parts of these things need parents as well.
-		## XXX It would be nice if externalization took care of this,
-		## but that would be a bigger change
-		def _set_parent(child, parent):
-			if hasattr(child, '__parent__') and child.__parent__ is None:
-				child.__parent__ = parent
-
-		for submission_set in submission.parts:
-			# submission_part e.g. assessed question set
-			_set_parent(submission_set, submission)
-			for submitted_question in submission_set.questions:
-				_set_parent(submitted_question, submission_set)
-				for submitted_question_part in submitted_question.parts:
-					_set_parent(submitted_question_part, submitted_question)
+		set_submission_lineage(submission)
 
 		lifecycleevent.created(item)
 		self[submission.assignmentId] = item # fire object added, which is dispatched to sublocations
-
 		return item
 
 	def __conform__(self, iface):

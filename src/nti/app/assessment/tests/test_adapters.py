@@ -1,19 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
-
-
-$Id$
-"""
 
 from __future__ import print_function, unicode_literals, absolute_import, division
 __docformat__ = "restructuredtext en"
 
-logger = __import__('logging').getLogger(__name__)
-
-#disable: accessing protected members, too many methods
-#pylint: disable=I0011,W0212,R0904
-
+# disable: accessing protected members, too many methods
+# pylint: disable=W0212,R0904
 
 from hamcrest import assert_that
 from hamcrest import is_
@@ -23,7 +15,6 @@ from hamcrest import has_item
 from hamcrest import has_entry
 from hamcrest import has_key
 from hamcrest import contains_string
-from hamcrest import contains_inanyorder
 from hamcrest import ends_with
 from hamcrest import has_property
 from hamcrest import contains
@@ -33,6 +24,7 @@ from hamcrest import has_entries
 from hamcrest import is_not
 from hamcrest import not_none
 does_not = is_not
+
 import fudge
 import urlparse
 
@@ -104,7 +96,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 						 raises(ConstraintNotSatisfied, 'parts') )
 
 	@WithSharedApplicationMockDS
-	@fudge.patch('nti.app.assessment.adapters._find_course_for_assignment')
+	@fudge.patch('nti.app.assessment._utils.find_course_for_assignment')
 	def test_before_open(self, mock_find):
 		from nti.contenttypes.courses.assignment import EmptyAssignmentDateContext
 		mock_find.is_callable().returns(EmptyAssignmentDateContext(None))
@@ -176,9 +168,9 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 		ext_obj = to_external_object( submission )
 
 
-		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id,
-									  ext_obj,
-									  status=403)
+		self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id,
+								 ext_obj,
+								 status=403)
 
 
 	@WithSharedApplicationMockDS(users=('outest5',),testapp=True,default_authenticate=True)

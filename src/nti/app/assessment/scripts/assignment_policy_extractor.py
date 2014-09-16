@@ -3,7 +3,7 @@
 """
 Extraction and merging of assignment policy files.
 
-$Id$
+.. $Id$
 """
 from __future__ import print_function, unicode_literals, absolute_import, division
 __docformat__ = "restructuredtext en"
@@ -27,8 +27,8 @@ from nti.contentlibrary.filesystem import FilesystemBucket
 
 from nti.externalization.externalization import to_external_object
 
-from ._question_map import QuestionMap
-from ._question_map import _load_question_map_json
+from .._question_map import QuestionMap
+from .._question_map import _load_question_map_json
 
 def _load_assignments(json_string, json_key):
 
@@ -160,3 +160,5 @@ def main_extract_assignments():
 					sort_keys=True)
 	# trailing newline
 	print('', file=sys.stdout)
+
+main = main_extract_assignments # alias

@@ -1,30 +1,18 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
-
-
-.. $Id$
-"""
 
 from __future__ import print_function, unicode_literals, absolute_import, division
 __docformat__ = "restructuredtext en"
 
-logger = __import__('logging').getLogger(__name__)
+# disable: accessing protected members, too many methods
+# pylint: disable=W0212,R0904
 
-#disable: accessing protected members, too many methods
-#pylint: disable=W0212,R0904
-
-import unittest
-from hamcrest import assert_that
-from hamcrest import is_
-from hamcrest import has_key
 from hamcrest import has_entry
+from hamcrest import assert_that
 
-from nti.testing import base
-from nti.testing import matchers
-
-from . import AssessmentLayerTest
 import simplejson as json
+
+from nti.app.assessment.tests import AssessmentLayerTest
 
 class TestAssignmentPolicyExtractor(AssessmentLayerTest):
 
@@ -85,10 +73,8 @@ class TestAssignmentPolicyExtractor(AssessmentLayerTest):
 				'href': 'index.html'}
 		json_string = json.dumps(the_map)
 
-
 		from nti.contentlibrary.filesystem import FilesystemKey
 		from nti.contentlibrary.filesystem import FilesystemBucket
-
 
 		json_key = FilesystemKey()
 		json_key.absolute_path = 'assessment_index.json'
@@ -97,10 +83,9 @@ class TestAssignmentPolicyExtractor(AssessmentLayerTest):
 		json_bucket = json_key.__parent__ = FilesystemBucket()
 		json_bucket.absolute_path = dir_name
 
-
-		from .._assignment_policy_extractor import _load_assignments
-		from .._assignment_policy_extractor import _asg_registry_to_course_data
-		from .._assignment_policy_extractor import _merge_disk
+		from ..assignment_policy_extractor import _merge_disk
+		from ..assignment_policy_extractor import _load_assignments
+		from ..assignment_policy_extractor import _asg_registry_to_course_data
 
 		registry = _load_assignments(json_string, json_key)
 

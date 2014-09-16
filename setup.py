@@ -8,6 +8,7 @@ entry_points = {
 		'target = nti.app',
 	],
 	"console_scripts": [
+		"nti_submission_report = nti.app.assessment.scripts.submissions:main",
 		"nti_extract_assessments = nti.app.assessment._assignment_policy_extractor:main_extract_assignments",
 	],
 }

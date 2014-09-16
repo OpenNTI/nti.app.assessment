@@ -38,6 +38,10 @@ from nti.dataserver.utils import run_with_dataserver
 
 from nti.externalization.externalization import to_external_object
 
+from nti.ntiids.ntiids import TYPE_OID
+from nti.ntiids.ntiids import is_ntiid_of_type
+from nti.ntiids.ntiids import find_object_with_ntiid
+
 from nti.site.site import get_site_for_site_names
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
@@ -135,11 +139,19 @@ def _process_args(args):
 			raise ValueError("Unknown site name", site)
 		hooks.setSite(new_site)
 
-	try:
-		catalog = component.getUtility(ICourseCatalog)
-		catalog_entry = catalog.getCatalogEntry(args.course)
-	except KeyError:
-		raise ValueError("Course not found")
+	course_id = args.course
+	if not is_ntiid_of_type(course_id, TYPE_OID):
+		try:
+			catalog = component.getUtility(ICourseCatalog)
+			catalog_entry = catalog.getCatalogEntry(course_id)
+			course_instance = ICourseInstance(catalog_entry)
+		except KeyError:
+			raise ValueError("Course not found")
+	else:
+		obj = find_object_with_ntiid(course_id)
+		course_instance = ICourseInstance(obj, None)
+		if course_instance is None:
+			raise ValueError("Course not found")
 	
 	if args.assignment:
 		assignment = component.queryUtility(IQAssignment, name=args.assignment)
@@ -151,7 +163,7 @@ def _process_args(args):
 		if question is None:
 			raise ValueError("Question not found")
 
-	_create_report(ICourseInstance(catalog_entry), 
+	_create_report(course_instance, 
 				   args.assignment,
 				   args.question, 
 				   args.output)

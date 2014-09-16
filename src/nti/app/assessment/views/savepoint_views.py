@@ -48,6 +48,8 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 
 	def _do_call(self):
 		creator = self.remoteUser
+		if not creator:
+			raise hexc.HTTPForbidden("Must be Authenticated")
 		try:
 			course = _find_course_for_assignment(self.context, creator)
 			if course is None:

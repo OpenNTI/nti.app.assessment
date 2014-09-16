@@ -34,6 +34,7 @@ from ..interfaces import IUsersCourseAssignmentSavepointItem
 			 context=IQAssignment,
 			 renderer='rest',
 			 request_method='POST',
+			 permission=nauth.ACT_READ,
 			 name="Savepoint")
 class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 								   			ModeledContentUploadRequestUtilsMixin):
@@ -73,6 +74,7 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 			 context=IQAssignment,
 			 renderer='rest',
 			 request_method='GET',
+			 permission=nauth.ACT_READ,
 			 name="Savepoint")
 class AssignmentSubmissionSavepointGetView(AbstractAuthenticatedView):
 	

@@ -20,6 +20,8 @@ from pyramid.interfaces import IRequest
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
+from nti.assessment.interfaces import IQUploadedFile
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver.interfaces import IUser
@@ -100,8 +102,43 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 		set_submission_lineage(submission)
 		
 		if submission.assignmentId in self:
+			old = self[submission.assignmentId].Submission
+			# search for uploaded files
+			for question_set in submission.parts:
+				# make sure we have a question set
+				old_question_set = old.get(question_set.questionSetId)
+				if old_question_set is None:
+					continue
+				for question in question_set.questions:
+					# make sure we have a question
+					old_question = old_question_set.get(question.questionId)
+					if old_question is None:
+						continue
+					for idx, part in enumerate(question.parts):
+						# check there is a part
+						try:
+							old_part = old_question[idx]
+						except IndexError:
+							break
+					
+						# check if the file is internalized empty
+						# this is tightly coupled w/ the way IQUploadedFile are updated
+						if 	IQUploadedFile.providedBy(old_part) and \
+							IQUploadedFile.providedBy(part) and \
+							not part.filename and part.size == 0:
+						
+							logger.debug("Take ownership of previously uploaded file '%s'",
+										 old_part.filename)
+							
+							# reparent old and replace
+							old_part.__parent__ = question
+							question[idx] = old_part
+							
+							# clean up by setting to None
+							old_question[idx] = None
+			# we are ready to remove old
 			del self[submission.assignmentId]
-			
+
 		lifecycleevent.created(item)
 		self[submission.assignmentId] = item
 		return item

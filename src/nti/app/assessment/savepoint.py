@@ -125,11 +125,8 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 						logger.debug("Take ownership of previously uploaded file '%s'",
 									 old_part.filename)
 						
-						# reparent old and replace
-						old_part.__parent__ = question
+						# replace
 						question[idx] = old_part
-						
-						# clean up by setting to None
 						old_question[idx] = None
 		return submission
 	

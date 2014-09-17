@@ -58,15 +58,14 @@ from nti.assessment import interfaces as asm_interfaces
 from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
-from ..adapters import _begin_assessment_for_assignment_submission
-from ..feedback import UsersCourseAssignmentHistoryItemFeedback
+from nti.app.assessment.feedback import UsersCourseAssignmentHistoryItemFeedback
+from nti.app.assessment.adapters import _begin_assessment_for_assignment_submission
 
 from urllib import unquote
 
-from . import RegisterAssignmentLayer
-from . import RegisterAssignmentsForEveryoneLayer
-from . import RegisterAssignmentLayerMixin
-
+from nti.app.assessment.tests import RegisterAssignmentLayer
+from nti.app.assessment.tests import RegisterAssignmentLayerMixin
+from nti.app.assessment.tests import RegisterAssignmentsForEveryoneLayer
 
 class TestAssignmentGrading(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 	layer = RegisterAssignmentsForEveryoneLayer
@@ -686,7 +685,7 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 		assert_that( download_res, has_property('content_disposition', none() ))
 
 		# Then for download, both directly and without the trailing /view
-		for path in submitted_file_part['url'][0:-5], submitted_file_part['download_url']:
+		for path in (submitted_file_part['download_url'], submitted_file_part['url'][0:-5]):
 			download_res = self.testapp.get( path )
 			assert_that( download_res, has_property('content_type', 'image/gif'))
 			assert_that( download_res, has_property('content_length', 61))

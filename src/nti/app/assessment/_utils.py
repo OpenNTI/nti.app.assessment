@@ -218,10 +218,19 @@ def assignment_download_precondition(context, request, remoteUser):
 	return False
 
 def set_submission_lineage(submission):
-	## the sublocations method for submissions
-	## sets the full parent lineage for these objects. 
-	## we wrapp the execution of it in a tuple in case it
-	## returns a generator
-	if submission is not None:
-		tuple(submission.sublocations()) 
-		return submission
+	## The constituent parts of these things need parents as well.
+	## XXX It would be nice if externalization took care of this,
+	## but that would be a bigger change
+	def _set_parent(child, parent):
+		if hasattr(child, '__parent__') and child.__parent__ is None:
+			child.__parent__ = parent
+
+	for submission_set in submission.parts:
+		# submission_part e.g. assessed question set
+		_set_parent(submission_set, submission)
+		for submitted_question in submission_set.questions:
+			_set_parent(submitted_question, submission_set)
+			for submitted_question_part in submitted_question.parts:
+				_set_parent(submitted_question_part, submitted_question)
+	return submission
+

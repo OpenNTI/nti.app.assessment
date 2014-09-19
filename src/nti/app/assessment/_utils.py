@@ -5,47 +5,42 @@
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
-
-import copy
-from nti.appserver.pyramid_authorization import has_permission
-from nti.assessment.interfaces import IInternalUploadedFileRef
-from nti.assessment.interfaces import IQAssessmentItemContainer
-from nti.assessment.interfaces import IQAssignment
-from nti.assessment.interfaces import IQFilePart
-from nti.assessment.interfaces import IQUploadedFile
-from nti.assessment.randomized import questionbank_question_chooser
-from nti.assessment.randomized.interfaces import IQuestionBank
-from nti.contentlibrary.interfaces import IContentPackage
-from nti.contenttypes.courses.interfaces import ICourseEnrollments
-from nti.contenttypes.courses.interfaces import ICourseInstance
-from nti.contenttypes.courses.interfaces import RID_INSTRUCTOR
-from nti.contenttypes.courses.interfaces import RID_TA
-from nti.dataserver.traversal import find_interface
-import os
-
-import simplejson
-from zope import component
-from zope import interface
-from zope.schema.interfaces import RequiredMissing
-from zope.security.interfaces import IPrincipal
-from zope.securitypolicy.interfaces import Allow
-from zope.securitypolicy.interfaces import IPrincipalRoleMap
-
-from .interfaces import ACT_DOWNLOAD_GRADES
-
-
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+import os
+import copy
+import simplejson
 
+from zope import component
+from zope import interface
+from zope.schema.interfaces import RequiredMissing
 
+from zope.security.interfaces import IPrincipal
+from zope.securitypolicy.interfaces import Allow
+from zope.securitypolicy.interfaces import IPrincipalRoleMap
 
+from nti.appserver.pyramid_authorization import has_permission
 
+from nti.assessment.interfaces import IQFilePart
+from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQUploadedFile
+from nti.assessment.interfaces import IInternalUploadedFileRef
+from nti.assessment.randomized.interfaces import IQuestionBank
+from nti.assessment.interfaces import IQAssessmentItemContainer
+from nti.assessment.randomized import questionbank_question_chooser
 
+from nti.contentlibrary.interfaces import IContentPackage
 
+from nti.contenttypes.courses.interfaces import RID_TA
+from nti.contenttypes.courses.interfaces import RID_INSTRUCTOR
+from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ICourseEnrollments
 
+from nti.dataserver.traversal import find_interface
 
+from .interfaces import ACT_DOWNLOAD_GRADES
 
 _r47694_map = None
 def r47694():

@@ -5,41 +5,47 @@
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
-__docformat__ = "restructuredtext en"
 
-logger = __import__('logging').getLogger(__name__)
-
-import os
 import copy
-import simplejson
+from nti.appserver.pyramid_authorization import has_permission
+from nti.assessment.interfaces import IInternalUploadedFileRef
+from nti.assessment.interfaces import IQAssessmentItemContainer
+from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQFilePart
+from nti.assessment.interfaces import IQUploadedFile
+from nti.assessment.randomized import questionbank_question_chooser
+from nti.assessment.randomized.interfaces import IQuestionBank
+from nti.contentlibrary.interfaces import IContentPackage
+from nti.contenttypes.courses.interfaces import ICourseEnrollments
+from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import RID_INSTRUCTOR
+from nti.contenttypes.courses.interfaces import RID_TA
+from nti.dataserver.traversal import find_interface
+import os
 
+import simplejson
 from zope import component
 from zope import interface
 from zope.schema.interfaces import RequiredMissing
-
 from zope.security.interfaces import IPrincipal
 from zope.securitypolicy.interfaces import Allow
 from zope.securitypolicy.interfaces import IPrincipalRoleMap
 
-from nti.appserver.pyramid_authorization import has_permission
-
-from nti.assessment.interfaces import IQFilePart
-from nti.assessment.interfaces import IQAssignment
-from nti.assessment.interfaces import IQUploadedFile
-from nti.assessment.randomized.interfaces import IQuestionBank
-from nti.assessment.interfaces import IQAssessmentItemContainer
-from nti.assessment.randomized import questionbank_question_chooser
-
-from nti.contentlibrary.interfaces import IContentPackage
-
-from nti.contenttypes.courses.interfaces import RID_TA
-from nti.contenttypes.courses.interfaces import RID_INSTRUCTOR
-from nti.contenttypes.courses.interfaces import ICourseInstance
-from nti.contenttypes.courses.interfaces import ICourseEnrollments
-
-from nti.dataserver.traversal import find_interface
-
 from .interfaces import ACT_DOWNLOAD_GRADES
+
+
+__docformat__ = "restructuredtext en"
+
+logger = __import__('logging').getLogger(__name__)
+
+
+
+
+
+
+
+
+
 
 _r47694_map = None
 def r47694():
@@ -247,6 +253,10 @@ def transfer_upload_ownership(submission, old_submission):
 	new submission if nothing has changed.
 	"""
 	
+	def _is_internal(source):
+		return 	IInternalUploadedFileRef.providedBy(source) or \
+				IQUploadedFile.providedBy(part) and not part.filename and part.size == 0
+				
 	# extra check
 	if old_submission is None or submission is None:
 		return submission
@@ -269,16 +279,11 @@ def transfer_upload_ownership(submission, old_submission):
 					break
 			
 				# check if the uploaded file has been internalized empty 
-				# (No file name and size 0. TODO: Can we do better?)
 				# this is tightly coupled w/ the way IQUploadedFile are updated.
-				if 	IQUploadedFile.providedBy(old_part) and \
-					IQUploadedFile.providedBy(part) and \
-					not part.filename and part.size == 0:
-				
+				if IQUploadedFile.providedBy(old_part) and _is_internal(part):
+					#TODO: Check against reference
 					logger.debug("Take ownership of previously uploaded file '%s'",
 								 old_part.filename)
-					
-					# replace
 					question[idx] = old_part
 					old_question[idx] = None
 	return submission

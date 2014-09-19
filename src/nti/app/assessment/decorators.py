@@ -12,6 +12,7 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 import numbers
+from urllib import unquote
 
 from zope import component
 from zope import interface
@@ -41,6 +42,10 @@ from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.externalization import to_external_object
 from nti.externalization.interfaces import IExternalMappingDecorator
 
+from nti.ntiids.ntiids import is_valid_ntiid_string
+from nti.ntiids.ntiids import find_object_with_ntiid
+
+from ._utils import is_enrolled
 from ._utils import check_assessment
 from ._utils import copy_questionset
 from ._utils import copy_questionbank
@@ -58,6 +63,19 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 		return (AbstractAuthenticatedRequestAwareDecorator._predicate(self,context,result_map)
 				and context.contentUnit is not None)
 			
+	def _get_course(self, contentUnit, user):
+		result = None
+		course_id = self.request.params.get('course')
+		course_id = unquote(course_id) if course_id else None
+		if course_id and is_valid_ntiid_string(course_id):
+			result = find_object_with_ntiid(course_id)
+			if 	ICourseInstance.providedBy(result) and \
+				not (is_enrolled(result, user) or is_course_instructor(result, user)):
+				result = None
+		if result is None:
+			result = component.queryMultiAdapter((contentUnit, user), ICourseInstance)	
+		return result		 
+	
 	def _do_decorate_external( self, context, result_map ):
 		# When we return page info, we return questions
 		# for all of the embedded units as well
@@ -67,7 +85,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 		# assignments...we can only do this if we have a user and a course
 		user = self.remoteUser
 		qsids_to_strip = set()
-		course = component.queryMultiAdapter((context.contentUnit, user), ICourseInstance)			
+		course = self._get_course(context.contentUnit, user)
 		if course is not None:
 			assignment_predicate = get_course_assignment_predicate_for_user(user, course)
 		else:

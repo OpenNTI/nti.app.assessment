@@ -34,6 +34,7 @@ from nti.contentlibrary.interfaces import IContentPackage
 from nti.contenttypes.courses.interfaces import RID_TA
 from nti.contenttypes.courses.interfaces import RID_INSTRUCTOR
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ICourseEnrollments
 
 from nti.dataserver.traversal import find_interface
 
@@ -71,6 +72,11 @@ def is_course_instructor(course, user):
 	return Allow in (roles.getSetting(RID_TA, prin.id),
 					 roles.getSetting(RID_INSTRUCTOR, prin.id))
 			
+def is_enrolled(course, user):
+	enrollments = ICourseEnrollments(course)
+	record = enrollments.get_enrollment_for_principal(user)
+	return record is not None
+		
 def same_content_unit_file(unit1, unit2):
 	try:
 		return unit1.filename.split('#',1)[0] == unit2.filename.split('#',1)[0]

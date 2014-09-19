@@ -14,6 +14,7 @@ relstorage_patch_all_except_gevent_on_import.patch()
 import os
 import sys
 import argparse
+from urllib import unquote
 
 import zope.browserpage
 
@@ -80,7 +81,9 @@ def _create_context(env_dir=None):
 def _migrator(creator, assignmentId, delete=False):
 	assignment = component.getUtility(IQAssignment, assignmentId)
 	course = find_course_for_assignment(assignment, creator)
-	
+	if course is None:
+		raise ValueError("Cannot find course for assignment/creator pair")
+
 	assignment_history = component.getMultiAdapter( (course, creator),
 													IUsersCourseAssignmentHistory )
 		
@@ -112,13 +115,12 @@ def _process_args(args):
 	if not creator:
 		raise ValueError("Invalid user")
 	
-	assignment = component.queryUtility(IQAssignment, name=args.assignment or u'')
+	assignmentId = unquote(args.assignment)
+	assignment = component.queryUtility(IQAssignment, name=assignmentId)
 	if assignment is None:
 		raise ValueError("Invalid Assignment")
 
-	_migrator(creator, 
-			  args.assignment,
-			  args.delete)
+	_migrator(creator,  assignmentId, args.delete)
 	
 def main():
 	arg_parser = argparse.ArgumentParser(description="Savepoint migrator")

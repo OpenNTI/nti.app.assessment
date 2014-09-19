@@ -20,8 +20,6 @@ from pyramid.interfaces import IRequest
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
-from nti.assessment.interfaces import IQUploadedFile
-
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver.interfaces import IUser
@@ -54,6 +52,7 @@ from nti.utils.property import alias
 from nti.wref.interfaces import IWeakRef
 
 from ._utils import set_submission_lineage
+from ._utils import transfer_upload_ownership
 
 from .decorators import _get_course_from_assignment
 from .decorators import _AbstractTraversableLinkDecorator
@@ -92,43 +91,6 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 	@property
 	def Items(self):
 		return dict(self)
-
-	def _take_ownership(self, submission, old):
-		"""
-		Search for previously uploaded files and make the part of the 
-		new submission if nothing has changed.
-		"""
-		for question_set in submission.parts:
-			# make sure we have a question set
-			old_question_set = old.get(question_set.questionSetId)
-			if old_question_set is None:
-				continue
-			for question in question_set.questions:
-				# make sure we have a question
-				old_question = old_question_set.get(question.questionId)
-				if old_question is None:
-					continue
-				for idx, part in enumerate(question.parts):
-					# check there is a part
-					try:
-						old_part = old_question[idx]
-					except IndexError:
-						break
-				
-					# check if the uploaded file has been internalized empty 
-					# (No file name and size 0. TODO: Can we do better?)
-					# this is tightly coupled w/ the way IQUploadedFile are updated.
-					if 	IQUploadedFile.providedBy(old_part) and \
-						IQUploadedFile.providedBy(part) and \
-						not part.filename and part.size == 0:
-					
-						logger.debug("Take ownership of previously uploaded file '%s'",
-									 old_part.filename)
-						
-						# replace
-						question[idx] = old_part
-						old_question[idx] = None
-		return submission
 	
 	def recordSubmission(self, submission):
 		if submission.__parent__ is not None:
@@ -140,7 +102,7 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 		
 		if submission.assignmentId in self:
 			old = self[submission.assignmentId].Submission
-			self._take_ownership(submission, old)
+			transfer_upload_ownership(submission, old)
 			del self[submission.assignmentId]
 
 		lifecycleevent.created(item)

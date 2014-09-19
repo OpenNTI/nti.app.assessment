@@ -25,6 +25,7 @@ from nti.appserver.pyramid_authorization import has_permission
 
 from nti.assessment.interfaces import IQFilePart
 from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQUploadedFile
 from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.interfaces import IQAssessmentItemContainer
 from nti.assessment.randomized import questionbank_question_chooser
@@ -240,3 +241,44 @@ def set_submission_lineage(submission):
 				_set_parent(submitted_question_part, submitted_question)
 	return submission
 
+def transfer_upload_ownership(submission, old_submission):
+	"""
+	Search for previously uploaded files and make the part of the 
+	new submission if nothing has changed.
+	"""
+	
+	# extra check
+	if old_submission is None or submission is None:
+		return submission
+	
+	for question_set in submission.parts:
+		# make sure we have a question set
+		old_question_set = old_submission.get(question_set.questionSetId)
+		if old_question_set is None:
+			continue
+		for question in question_set.questions:
+			# make sure we have a question
+			old_question = old_question_set.get(question.questionId)
+			if old_question is None:
+				continue
+			for idx, part in enumerate(question.parts):
+				# check there is a part
+				try:
+					old_part = old_question[idx]
+				except IndexError:
+					break
+			
+				# check if the uploaded file has been internalized empty 
+				# (No file name and size 0. TODO: Can we do better?)
+				# this is tightly coupled w/ the way IQUploadedFile are updated.
+				if 	IQUploadedFile.providedBy(old_part) and \
+					IQUploadedFile.providedBy(part) and \
+					not part.filename and part.size == 0:
+				
+					logger.debug("Take ownership of previously uploaded file '%s'",
+								 old_part.filename)
+					
+					# replace
+					question[idx] = old_part
+					old_question[idx] = None
+	return submission

@@ -37,6 +37,7 @@ from nti.dataserver.traversal import find_interface
 from .history import UsersCourseAssignmentHistory
 
 from .interfaces import IUsersCourseAssignmentHistory
+from .interfaces import IUsersCourseAssignmentSavepoint
 from .interfaces import IUsersCourseAssignmentHistoryItem
 
 @component.adapter(asm_interfaces.IQuestionSubmission)
@@ -107,6 +108,8 @@ def _check_submission_before(dates, assignment):
 			ex.value = available_beginning
 			raise ex
 
+from ._utils import set_submission_lineage
+from ._utils import transfer_upload_ownership
 from ._utils import find_course_for_assignment
 
 @component.adapter(asm_interfaces.IQAssignmentSubmission)
@@ -152,8 +155,15 @@ def _begin_assessment_for_assignment_submission(submission):
 		ex.value = submission.assignmentId
 		raise ex
 
+	set_submission_lineage(submission)
 	submission.containerId = submission.assignmentId
-
+	
+	assignment_savepoint = component.getMultiAdapter((course, submission.creator),
+													 IUsersCourseAssignmentSavepoint )
+	if submission.assignmentId in assignment_savepoint:
+		old = assignment_savepoint[submission.assignmentId].Submission
+		transfer_upload_ownership(submission, old)
+	
 	# Ok, now for each part that can be auto graded, do so, leaving all the others
 	# as-they-are
 	new_parts = PersistentList()
@@ -162,9 +172,7 @@ def _begin_assessment_for_assignment_submission(submission):
 		if assignment_part.auto_grade:
 			__traceback_info__ = submission_part
 			submission_part = asm_interfaces.IQAssessedQuestionSet(submission_part)
-
 		new_parts.append( submission_part )
-
 
 	pending_assessment = QAssignmentSubmissionPendingAssessment( assignmentId=submission.assignmentId,
 																 parts=new_parts )
@@ -176,15 +184,14 @@ def _begin_assessment_for_assignment_submission(submission):
 	# The HistoryItem will have
 	# the course in its lineage.
 	assignment_history.recordSubmission( submission, pending_assessment )
-
 	return pending_assessment
+
+from zope.security.interfaces import IPrincipal
 
 from nti.contentlibrary.interfaces import IContentPackage
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.contenttypes.courses.interfaces import IPrincipalEnrollments
-
-from zope.security.interfaces import IPrincipal
 
 @interface.implementer(ICourseInstance)
 @component.adapter(asm_interfaces.IQAssignment, IUser)

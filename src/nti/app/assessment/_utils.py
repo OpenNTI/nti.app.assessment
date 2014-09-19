@@ -242,7 +242,7 @@ def set_submission_lineage(submission):
 				_set_parent(submitted_question_part, submitted_question)
 	return submission
 
-def transfer_upload_ownership(submission, old_submission):
+def transfer_upload_ownership(submission, old_submission, copy=False):
 	"""
 	Search for previously uploaded files and make the part of the 
 	new submission if nothing has changed.
@@ -277,8 +277,16 @@ def transfer_upload_ownership(submission, old_submission):
 				# this is tightly coupled w/ the way IQUploadedFile are updated.
 				if IQUploadedFile.providedBy(old_part) and _is_internal(part):
 					#TODO: Check against reference
-					logger.debug("Take ownership of previously uploaded file '%s'",
-								 old_part.filename)
-					question[idx] = old_part
-					old_question[idx] = None
+					if not copy:
+						logger.debug("Take ownership of previously uploaded file '%s'",
+								 	 old_part.filename)
+						question[idx] = old_part
+						old_question[idx] = None
+					else:
+						logger.debug("Copy from previously uploaded file '%s'", 
+									old_part.filename)
+						part.data = old_part.data
+						part.filename = old_part.filename
+						part.contentType = old_part.contentType
+						interface.noLongerProvides(part, IInternalUploadedFileRef)
 	return submission

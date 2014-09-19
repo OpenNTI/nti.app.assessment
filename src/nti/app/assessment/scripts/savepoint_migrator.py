@@ -82,7 +82,8 @@ def _migrator(creator, assignmentId, delete=False):
 	assignment = component.getUtility(IQAssignment, assignmentId)
 	course = find_course_for_assignment(assignment, creator)
 	if course is None:
-		raise ValueError("Cannot find course for assignment/creator pair")
+		logger.error("User not enrolled in course (invalid  assignment/creator pair?)")
+		return 
 
 	assignment_history = component.getMultiAdapter( (course, creator),
 													IUsersCourseAssignmentHistory )
@@ -90,16 +91,23 @@ def _migrator(creator, assignmentId, delete=False):
 	assignment_savepoint = component.getMultiAdapter((course, creator),
 													 IUsersCourseAssignmentSavepoint )
 	
-	if assignmentId in assignment_savepoint and assignmentId in assignment_history:
-		# get submission from assignment history
-		submission = assignment_history[assignmentId].Submission
-		# get submission from save point
-		savepoint = assignment_savepoint[assignmentId].Submission
-		# transfer files
-		transfer_upload_ownership(submission, savepoint, copy=True)
-		# delete save point
-		if delete:
-			del assignment_savepoint[assignmentId]
+	if assignmentId not in assignment_savepoint:
+		logger.warn("Assignment not found in save point")
+		return
+
+	if assignmentId not in assignment_history:
+		logger.warn("Assignment not found in history")
+		return
+		
+	# get submission from assignment history
+	submission = assignment_history[assignmentId].Submission
+	# get submission from save point
+	savepoint = assignment_savepoint[assignmentId].Submission
+	# transfer files
+	transfer_upload_ownership(submission, savepoint)
+	# delete save point
+	if delete:
+		del assignment_savepoint[assignmentId]
 		
 def _process_args(args):
 	site = args.site
@@ -124,6 +132,8 @@ def _process_args(args):
 	
 def main():
 	arg_parser = argparse.ArgumentParser(description="Savepoint migrator")
+	arg_parser.add_argument('-v', '--verbose', help="Be Verbose", action='store_true',
+							dest='verbose')
 	arg_parser.add_argument('-u', '--username', dest='username',
 							 help="User name")
 	arg_parser.add_argument('-a', '--assignment', dest='assignment',
@@ -151,6 +161,7 @@ def main():
 						xmlconfig_packages=conf_packages,
 						context=context,
 						minimal_ds=True,
+						verbose=args.verbose,
 						function=lambda: _process_args(args))
 	sys.exit(0)
 

@@ -347,26 +347,13 @@ class _UsersCourseAssignmentHistoriesTraversable(ContainerAdapterTraversable):
 				return _history_for_user_in_course( self.context.__parent__, user)
 			raise
 
-from zope.proxy import ProxyBase
-
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from .interfaces import ICourseAssignmentCatalog
 from .interfaces import ICourseAssessmentItemCatalog
 
-class _QProxy(ProxyBase):
-	
-	CatalogEntryNTIID = property(
-					lambda s: s.__dict__.get('_context'),
-					lambda s, v: s.__dict__.__setitem__('_context', v))
-		
-	def __new__(cls, base, context):
-		return ProxyBase.__new__(cls, base)
-
-	def __init__(self, base, ntiid):
-		ProxyBase.__init__(self, base)
-		self.CatalogEntryNTIID = ntiid
+from ._utils import AssessmentItemProxy as _QProxy
 		
 @component.adapter(ICourseInstance)
 @interface.implementer(ICourseAssessmentItemCatalog)

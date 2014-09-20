@@ -295,3 +295,18 @@ def transfer_upload_ownership(submission, old_submission, copy=True, force=False
 						part.contentType = old_part.contentType
 						interface.noLongerProvides(part, IInternalUploadedFileRef)
 	return submission
+
+from zope.proxy import ProxyBase
+
+class AssessmentItemProxy(ProxyBase):
+	
+	CatalogEntryNTIID = property(
+					lambda s: s.__dict__.get('_context'),
+					lambda s, v: s.__dict__.__setitem__('_context', v))
+		
+	def __new__(cls, base, context):
+		return ProxyBase.__new__(cls, base)
+
+	def __init__(self, base, ntiid):
+		ProxyBase.__init__(self, base)
+		self.CatalogEntryNTIID = ntiid

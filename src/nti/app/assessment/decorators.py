@@ -33,6 +33,7 @@ from nti.assessment.randomized.interfaces import IQRandomizedPart
 from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 from nti.contenttypes.courses.interfaces import ICourseInstanceVendorInfo
 
 from nti.dataserver.traversal import find_interface
@@ -51,6 +52,7 @@ from ._utils import copy_questionset
 from ._utils import copy_questionbank
 from ._utils import is_course_instructor
 from ._utils import get_assessment_items_from_unit
+from ._utils import AssessmentItemProxy as AssignmentProxy
 
 from .interfaces import IUsersCourseAssignmentHistory
 from .interfaces import get_course_assignment_predicate_for_user
@@ -86,6 +88,8 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 		user = self.remoteUser
 		qsids_to_strip = set()
 		course = self._get_course(context.contentUnit, user)
+		catalog_entry = ICourseCatalogEntry(course, None)
+		entry_ntiid = getattr(catalog_entry, 'ntiid', None)
 		if course is not None:
 			assignment_predicate = get_course_assignment_predicate_for_user(user, course)
 		else:
@@ -118,6 +122,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 				elif assignment_predicate(x):
 					# Yay, keep the assignment
 					x = check_assessment(x, user, is_instructor)
+					x = AssignmentProxy(x, entry_ntiid)
 					new_result[ntiid] = x
 				
 				# But in all cases, don't echo back the things
@@ -125,7 +130,6 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 				# We are assuming that these are on the same page
 				# for now and that they are only referenced by
 				# this assignment. # XXX FIXME: Bad limitation
-						
 				for assignment_part in x.parts:
 					question_set = assignment_part.question_set
 					qsids_to_strip.add(question_set.ntiid)

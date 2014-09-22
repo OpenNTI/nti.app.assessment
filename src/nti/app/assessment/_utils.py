@@ -242,7 +242,7 @@ def set_submission_lineage(submission):
 				_set_parent(submitted_question_part, submitted_question)
 	return submission
 
-def transfer_upload_ownership(submission, old_submission, copy=True, force=False):
+def transfer_upload_ownership(submission, old_submission, force=False):
 	"""
 	Search for previously uploaded files and make the part of the 
 	new submission if nothing has changed.

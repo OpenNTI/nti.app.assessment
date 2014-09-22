@@ -162,7 +162,7 @@ def _begin_assessment_for_assignment_submission(submission):
 													 IUsersCourseAssignmentSavepoint )
 	if submission.assignmentId in assignment_savepoint:
 		old = assignment_savepoint[submission.assignmentId].Submission
-		transfer_upload_ownership(submission, old, copy=True)
+		transfer_upload_ownership(submission, old)
 		# delete savepoint submission in case there is a reset
 		del assignment_savepoint[submission.assignmentId]
 	

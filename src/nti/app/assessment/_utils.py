@@ -281,19 +281,12 @@ def transfer_upload_ownership(submission, old_submission, copy=True, force=False
 				# check if the uploaded file has been internalized empty 
 				# this is tightly coupled w/ the way IQUploadedFile are updated.
 				if IQUploadedFile.providedBy(old_part) and _is_internal(part):
-					#TODO: Check against reference
-					if not copy:
-						logger.info("Take ownership of previously uploaded file '%s'",
-								 	old_part.filename)
-						question[idx] = old_part
-						old_question[idx] = None
-					else:
-						logger.info("Copy from previously uploaded file '%s'", 
-									old_part.filename)
-						part.data = old_part.data
-						part.filename = old_part.filename
-						part.contentType = old_part.contentType
-						interface.noLongerProvides(part, IInternalUploadedFileRef)
+					#TODO: Check against reference, delete old
+					logger.info("Copy from previously uploaded file '%s'", old_part.filename)
+					part.data = old_part.data
+					part.filename = old_part.filename
+					part.contentType = old_part.contentType
+					interface.noLongerProvides(part, IInternalUploadedFileRef)
 	return submission
 
 from zope.proxy import ProxyBase

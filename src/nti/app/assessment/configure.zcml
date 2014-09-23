@@ -292,8 +292,7 @@
 			 for="nti.app.products.courseware.interfaces.ICourseInstanceEnrollment pyramid.interfaces.IRequest"
 			 provides="zope.traversing.interfaces.IPathAdapter"
 			 name="AssignmentSavepoints" />
-			 
-	<adapter factory=".savepoint._savepoints_for_course" />
+
 	<adapter factory=".savepoint._savepoint_for_user_in_course" />
 	<adapter factory=".savepoint._course_from_savepoint_lineage" />
 	

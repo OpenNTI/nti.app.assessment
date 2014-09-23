@@ -21,6 +21,8 @@ from zope.security.interfaces import IPrincipal
 from zope.securitypolicy.interfaces import Allow
 from zope.securitypolicy.interfaces import IPrincipalRoleMap
 
+from ZODB.POSException import POSKeyError
+
 from nti.appserver.pyramid_authorization import has_permission
 
 from nti.assessment.interfaces import IQFilePart
@@ -264,32 +266,36 @@ def transfer_upload_ownership(submission, old_submission, force=False):
 		return submission
 	
 	for question_set in submission.parts:
-		# make sure we have a question set
-		old_question_set = old_submission.get(question_set.questionSetId)
-		if old_question_set is None:
-			continue
-		for question in question_set.questions:
-			# make sure we have a question
-			old_question = old_question_set.get(question.questionId)
-			if old_question is None:
+		try:
+			# make sure we have a question set
+			old_question_set = old_submission.get(question_set.questionSetId)
+			if old_question_set is None:
 				continue
-			for idx, part in enumerate(question.parts):
-				# check there is a part
-				try:
-					old_part = old_question[idx]
-				except IndexError:
-					break
-			
-				# check if the uploaded file has been internalized empty 
-				# this is tightly coupled w/ the way IQUploadedFile are updated.
-				if IQUploadedFile.providedBy(old_part) and _is_internal(part):
-					#TODO: Check against reference, delete old
-					logger.info("Copy from previously uploaded file '%s(%s)'", 
-								old_part.filename, to_external_ntiid_oid(old_part))
-					part.data = old_part.data
-					part.filename = old_part.filename
-					part.contentType = old_part.contentType
-					interface.noLongerProvides(part, IInternalUploadedFileRef)
+			for question in question_set.questions:
+				# make sure we have a question
+				old_question = old_question_set.get(question.questionId)
+				if old_question is None:
+					continue
+				for idx, part in enumerate(question.parts):
+					# check there is a part
+					try:
+						old_part = old_question[idx]
+					except IndexError:
+						break
+				
+					# check if the uploaded file has been internalized empty 
+					# this is tightly coupled w/ the way IQUploadedFile are updated.
+					if IQUploadedFile.providedBy(old_part) and _is_internal(part):
+						#TODO: Check against reference, delete old
+						logger.info("Copy from previously uploaded file '%s(%s)'", 
+									old_part.filename, to_external_ntiid_oid(old_part))
+						part.data = old_part.data
+						part.filename = old_part.filename
+						part.contentType = old_part.contentType
+						interface.noLongerProvides(part, IInternalUploadedFileRef)
+		except POSKeyError:
+			logger.exception("Failed to transfer data from savepoints")
+			break
 	return submission
 
 from zope.proxy import ProxyBase

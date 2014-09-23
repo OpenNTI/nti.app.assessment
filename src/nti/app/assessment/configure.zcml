@@ -193,7 +193,6 @@
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for=".interfaces.IUsersCourseAssignmentHistoryItemFeedbackContainer pyramid.interfaces.IRequest" />
 
-
 	<!-- Assignment Filtering -->
 	<subscriber factory=".assignment_filters.UserEnrolledForCreditInCourseFilter"
 				provides=".interfaces.ICourseAssignmentUserFilter"
@@ -276,10 +275,10 @@
 	<subscriber factory=".content_search._AssignmentFeedbackItemSearchHitPredicate"
 				provides="nti.contentsearch.interfaces.ISearchHitPredicate"
 				for=".interfaces.ICreated" />
-
-	<!-- 
-	<subscriber	handler=".content_search.on_course_instance_available" />
-	-->
+	
+	<configure zcml:condition="have devmode">
+		<subscriber	handler=".content_search.on_course_instance_available" />
+	</configure>
 	
 	<!-- Views -->
 	<include package=".views" />

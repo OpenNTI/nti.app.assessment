@@ -13,10 +13,7 @@ from zope import interface
 from zope import lifecycleevent
 from zope.securitypolicy.interfaces import IPrincipalRoleMap
 
-from nti.dataserver.interfaces import IUser
-from nti.dataserver.interfaces import IEntity
-
-from nti.externalization.oids import to_external_ntiid_oid
+from nti.app.products.courseware.interfaces import ILegacyCommunityBasedCourseInstance
 
 from nti.contentsearch.search_hits import SearchHit
 from nti.contentsearch.interfaces import IACLResolver
@@ -34,7 +31,11 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.contenttypes.courses.interfaces import ICourseInstanceAvailableEvent
 
+from nti.dataserver.interfaces import IUser
+from nti.dataserver.interfaces import IEntity
 from nti.dataserver.traversal import find_interface
+
+from nti.externalization.oids import to_external_ntiid_oid
 
 from .interfaces import IUsersCourseAssignmentHistory
 from .interfaces import IUsersCourseAssignmentHistoryItem
@@ -153,17 +154,23 @@ class _AssignmentFeedbackItemSearchHitPredicate(object):
 @component.adapter(ICourseInstanceAvailableEvent)
 def on_course_instance_available(event):
 	course = event.object
+	## CS: Ignore legacy commmunity courses as these are
+	## added to the global catalog during application start up
+	## and they are no longer modifiable
+	if ILegacyCommunityBasedCourseInstance.providedBy(course):
+		return
+	
+	## CS: Get all the feedbacks items and force them
+	## to reindex to make sure their ACL is updated
 	enrollments = ICourseEnrollments(course)
 	for record in enrollments.iter_enrollments():
 		principal = record.Principal
-		
-		## get assignment history
-		assignment_history = component.queryMultiAdapter((course, principal),
-														 IUsersCourseAssignmentHistory)
-		if not assignment_history:
+		history = component.queryMultiAdapter((course, principal),
+											  IUsersCourseAssignmentHistory)
+		if not history:
 			continue
 		
-		for item in assignment_history.values():
+		for item in history.values():
 			if not item.has_feedback():
 				continue
 			for feedback in item.Feedback.values():

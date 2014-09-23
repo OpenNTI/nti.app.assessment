@@ -12,23 +12,26 @@ from zope import component
 from zope import interface
 from zope import lifecycleevent
 from zope.container.contained import Contained
+from zope.location.interfaces import LocationError
 from zope.location.interfaces import ISublocations
 from zope.annotation.interfaces import IAnnotations
 
-from ZODB.interfaces import IConnection
+from pyramid.interfaces import IRequest
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
-from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import ACE_DENY_ALL
 from nti.dataserver.interfaces import ALL_PERMISSIONS
 
+from nti.dataserver.users import User
 from nti.dataserver.links import Link
 from nti.dataserver.links_external import render_link
 
+from nti.dataserver.traversal import find_interface
+from nti.dataserver.traversal import ContainerAdapterTraversable
 
 from nti.dataserver.interfaces import IACLProvider
 from nti.dataserver.authorization_acl import ace_allowing
@@ -40,17 +43,19 @@ from nti.dataserver.containers import CaseInsensitiveCheckingLastModifiedBTreeCo
 
 from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import IExternalMappingDecorator
-from nti.externalization.externalization import to_external_ntiid_oid
 
 from nti.schema.field import SchemaConfigured
 from nti.schema.fieldproperty import createDirectFieldProperties
 
 from nti.utils.property import alias
 
+from nti.wref.interfaces import IWeakRef
+
 from ._utils import set_submission_lineage
 from ._utils import transfer_upload_ownership
 
 from .decorators import _get_course_from_assignment
+from .decorators import _AbstractTraversableLinkDecorator
 
 from .interfaces import IUsersCourseAssignmentSavepoint
 from .interfaces import IUsersCourseAssignmentSavepoints
@@ -73,9 +78,15 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 	#: not in our lineage.
 	_owner_ref = None
 
+	def _get_owner(self):
+		return self._owner_ref() if self._owner_ref else None
+	def _set_owner(self,owner):
+		self._owner_ref = IWeakRef(owner)
+	owner = property(_get_owner,_set_owner)
+
 	#: A non-interface attribute for convenience (especially with early
 	#: acls, since we are ICreated we get that by default)
-	owner = creator = alias('__parent__')
+	creator = alias('owner')
 
 	@property
 	def Items(self):
@@ -84,7 +95,7 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 	def recordSubmission(self, submission):
 		if submission.__parent__ is not None:
 			raise ValueError("Objects already parented")
-
+		
 		item = UsersCourseAssignmentSavepointItem(Submission=submission)
 		submission.__parent__ = item
 		set_submission_lineage(submission)
@@ -100,11 +111,13 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 
 	def __conform__(self, iface):
 		if IUser.isOrExtends(iface):
+			return self.owner
+		if ICourseInstance.isOrExtends(iface):
 			return self.__parent__
 
 	@property
 	def __acl__(self):
-		aces = [ace_allowing(self.creator, ALL_PERMISSIONS, UsersCourseAssignmentSavepoint)]
+		aces = [ace_allowing(self.owner, ALL_PERMISSIONS, UsersCourseAssignmentSavepoint)]
 		aces.append(ACE_DENY_ALL)
 		return acl_from_aces( aces )
 
@@ -133,6 +146,7 @@ class UsersCourseAssignmentSavepointItem(PersistentCreatedModDateTrackingObject,
 
 	@creator.setter
 	def creator(self, nv):
+		# Ignored
 		pass
 
 	@property
@@ -141,7 +155,7 @@ class UsersCourseAssignmentSavepointItem(PersistentCreatedModDateTrackingObject,
 
 	@property
 	def __acl__(self):
-		aces = [ace_allowing(self.creator, ALL_PERMISSIONS, UsersCourseAssignmentSavepointItem)]
+		aces = [ace_allowing(self.owner, ALL_PERMISSIONS, UsersCourseAssignmentSavepointItem)]
 		aces.append(ACE_DENY_ALL)
 		return acl_from_aces( aces )
 
@@ -149,27 +163,60 @@ class UsersCourseAssignmentSavepointItem(PersistentCreatedModDateTrackingObject,
 		if self.Submission is not None:
 			yield self.Submission
 
-BASE_KEY = 'AssignmentSavepoints'
-def _user_savepoint_course_key(course):
-	entry = ICourseCatalogEntry(course)
-	result = BASE_KEY + '_%s' % entry.ntiid
+@component.adapter(ICourseInstance)
+@interface.implementer(IUsersCourseAssignmentSavepoints)
+def _savepoints_for_course(course):
+	annotations = IAnnotations(course)
+	try:
+		KEY = 'AssignmentSavepoints'
+		result = annotations[KEY]
+	except KeyError:
+		result = UsersCourseAssignmentSavepoints()
+		annotations[KEY] = result
+		result.__name__ = KEY
+		result.__parent__ = course
 	return result
 
 @component.adapter(ICourseInstance, IUser)
 @interface.implementer(IUsersCourseAssignmentSavepoint)
 def _savepoint_for_user_in_course(course, user, create=True):
-	annotations = IAnnotations(user)
-	key = _user_savepoint_course_key(course)
+	result = None
+	savepoints = _savepoints_for_course(course)
 	try:
-		result = annotations[key]
+		result = savepoints[user.username]
 	except KeyError:
 		if create:
 			result = UsersCourseAssignmentSavepoint()
-			result.__name__ = key
-			result.__parent__ = user
-			annotations[key] = result
-			IConnection(user).add(result)
+			result.owner = user
+			savepoints[user.username] = result
 	return result
+
+def _savepoints_for_course_path_adapter(course, request):
+	return _savepoints_for_course(course)
+
+def _savepoints_for_courseenrollment_path_adapter(enrollment, request):
+	return _savepoints_for_course( ICourseInstance(enrollment) )
+
+@interface.implementer(ICourseInstance)
+@component.adapter(IUsersCourseAssignmentSavepoint)
+def _course_from_savepoint_lineage(item):
+	course = find_interface(item, ICourseInstance, strict=False)
+	if course is None:
+		__traceback_info__ = item
+		raise component.ComponentLookupError("Unable to find course")
+	return course
+
+@component.adapter(IUsersCourseAssignmentSavepoints, IRequest)
+class _UsersCourseAssignmentSavepointsTraversable(ContainerAdapterTraversable):
+
+	def traverse( self, key, remaining_path ):
+		try:
+			return super(_UsersCourseAssignmentSavepointsTraversable, self).traverse(key, remaining_path)
+		except LocationError:
+			user = User.get_user(key)
+			if user is not None:
+				return _savepoint_for_user_in_course( self.context.__parent__, user)			
+			raise		
 
 class _AssignmentSavepointDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
@@ -180,6 +227,16 @@ class _AssignmentSavepointDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			links.append( Link( assignment,
 								rel='Savepoint',
 								elements=('Savepoint',)))
+					
+@interface.implementer(IExternalMappingDecorator)
+class _AssignmentSavepointsDecorator(_AbstractTraversableLinkDecorator):
+	
+	def _do_decorate_external( self, context, result_map ):
+		links = result_map.setdefault( LINKS, [] )
+		user = IUser(context, self.remoteUser)
+		links.append( Link( context,
+							rel='AssignmentSavepoints',
+							elements=('AssignmentSavepoints', user.username)) )
 
 @interface.implementer(IExternalMappingDecorator)
 class _AssignmentSavepointItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
@@ -192,7 +249,7 @@ class _AssignmentSavepointItemDecorator(AbstractAuthenticatedRequestAwareDecorat
 		
 	def _do_decorate_external(self, context, result_map ):
 		try:
-			link = Link(to_external_ntiid_oid(context))
+			link = Link(context)
 			result_map['href'] = render_link( link )['href']
 		except (KeyError, ValueError, AssertionError):
 			pass # Nope

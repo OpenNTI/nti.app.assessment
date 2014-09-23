@@ -62,7 +62,11 @@ class IUsersCourseAssignmentSavepoint(IContainer,
 	"""
 
 	contains(str('.IUsersCourseAssignmentSavepointItem'))
+	containers(IUsersCourseAssignmentSavepoints)
 	__setitem__.__doc__ = None
+
+	owner = Object(IUser, required=False, title="The user this save point is for.")
+	owner.setTaggedValue('_ext_excluded_out', True)
 
 	Items = Dict(title='For externalization only, a copy of the items', readonly=True)
 

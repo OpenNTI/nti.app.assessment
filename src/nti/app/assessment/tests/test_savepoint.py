@@ -12,10 +12,15 @@ from hamcrest import none
 from hamcrest import is_not
 from hamcrest import has_key
 from hamcrest import has_entry
+from hamcrest import has_length
 from hamcrest import assert_that
 from hamcrest import has_property
+from hamcrest import contains_string
+
+import weakref
 
 from nti.app.assessment.savepoint import UsersCourseAssignmentSavepoint
+from nti.app.assessment.savepoint import UsersCourseAssignmentSavepoints
 from nti.app.assessment.savepoint import UsersCourseAssignmentSavepointItem
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
@@ -33,31 +38,34 @@ from nti.app.assessment.tests import AssessmentLayerTest
 class TestSavepoint(AssessmentLayerTest):
 
 	def test_provides(self):
+		savepoints = UsersCourseAssignmentSavepoints()
 		savepoint = UsersCourseAssignmentSavepoint()
-		savepoint.__parent__ = User('sjohnson@nextthought.com')
-
+		savepoint.__parent__ = savepoints
+		# Set an owner; use a python wref instead of the default
+		# adapter to wref as it requires an intid utility
+		savepoint.owner = weakref.ref(User('sjohnson@nextthought.com'))
 		item = UsersCourseAssignmentSavepointItem()
+		item.creator = 'foo'
 		item.__parent__ = savepoint
-		
-		assert_that( item, validly_provides(IUsersCourseAssignmentSavepointItem))
-		assert_that(item.creator, is_(savepoint.creator))
-		
-		assert_that( savepoint, validly_provides(IUsersCourseAssignmentSavepoint))
+		assert_that( item,
+					 validly_provides(IUsersCourseAssignmentSavepointItem))
+
+		assert_that( savepoint,
+					 validly_provides(IUsersCourseAssignmentSavepoint))
 		assert_that( IUser(item), is_(savepoint.owner))
 		assert_that( IUser(savepoint), is_(savepoint.owner))
 
 	def test_record(self):
 		savepoint = UsersCourseAssignmentSavepoint()
-		savepoint.__parent__ = User('sjohnson@nextthought.com')
-		
 		submission = AssignmentSubmission(assignmentId='b')
+
 		item = savepoint.recordSubmission( submission )
-	
 		assert_that( item, has_property( 'Submission', is_( submission )))
 		assert_that( item, has_property( '__name__', is_( submission.assignmentId)) )
 		assert_that( item.__parent__, is_( savepoint ))
 
 import fudge
+from urllib import unquote
 
 from nti.assessment.submission import QuestionSetSubmission
 
@@ -79,7 +87,44 @@ class TestSavepointViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 	default_origin = str('http://janux.ou.edu')
 	default_username = 'outest75'
 
-	def _check_submission(self, res):
+	@WithSharedApplicationMockDS(users=('outest5',),testapp=True,default_authenticate=True)
+	def test_fetching_entire_assignment_savepoint_collection(self):
+		
+		outest_environ = self._make_extra_environ(username='outest5')
+		outest_environ.update( {b'HTTP_ORIGIN': b'http://janux.ou.edu'} )
+
+		res = self.testapp.post_json( '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses',
+									  'CLC 3403',
+									  status=201 )
+
+		default_enrollment_savepoints_link = self.require_link_href_with_rel(res.json_body, 'AssignmentSavepoints')
+		assert_that( default_enrollment_savepoints_link,
+					 is_('/dataserver2/users/' +
+						self.default_username  +
+						'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentSavepoints/' +
+						self.default_username))
+
+
+		res = self.testapp.post_json( '/dataserver2/users/outest5/Courses/EnrolledCourses',
+								'CLC 3403',
+								status=201,
+								extra_environ=outest_environ )
+
+		user2_enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'AssignmentSavepoints')
+
+
+		# each can fetch his own
+		self.testapp.get(default_enrollment_savepoints_link)
+		self.testapp.get(user2_enrollment_history_link, extra_environ=outest_environ)
+
+		# but they can't get each others
+		self.testapp.get(default_enrollment_savepoints_link,
+						 extra_environ=outest_environ,
+						 status=403)
+		self.testapp.get(user2_enrollment_history_link, status=403)
+
+
+	def _check_submission(self, res, savepoint=None):
 		assert_that(res.status_int, is_(201))
 		assert_that(res.json_body, has_entry(StandardExternalFields.CREATED_TIME, is_(float)))
 		assert_that(res.json_body, has_entry(StandardExternalFields.LAST_MODIFIED, is_(float)))
@@ -94,6 +139,19 @@ class TestSavepointViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		assert_that(submission, has_entry('ContainerId', self.assignment_id ))
 		assert_that(submission, has_entry( StandardExternalFields.CREATED_TIME, is_( float ) ) )
 		assert_that(submission, has_entry( StandardExternalFields.LAST_MODIFIED, is_( float ) ) )
+
+		# This object can be found in my history
+		if savepoint:
+			__traceback_info__ = savepoint
+			savepoint_res = self.testapp.get(savepoint)
+			assert_that(savepoint_res.json_body, has_entry('href', contains_string(unquote(savepoint)) ) )
+			assert_that(savepoint_res.json_body, has_entry('Items', has_length(1)))
+			
+			items = list(savepoint_res.json_body['Items'].values())
+			assert_that(items[0], has_key('href'))
+		else:
+			self._fetch_user_url('/Courses/EnrolledCourses/CLC3403/AssignmentSavepoints/' + 
+								self.default_username, status=404 )
 	
 	@WithSharedApplicationMockDS(users=('outest5',),testapp=True,default_authenticate=True)
 	@fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
@@ -110,9 +168,27 @@ class TestSavepointViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		assert_that( ext_obj, has_entry('MimeType', 'application/vnd.nextthought.assessment.assignmentsubmission'))
 		
 		# Make sure we're enrolled
-		self.testapp.post_json( '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses',
-								'CLC 3403',
-								status=201 )
+		res = self.testapp.post_json( '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses',
+									  'CLC 3403',
+									  status=201 )
+
+		enrollment_savepoints_link = self.require_link_href_with_rel(res.json_body, 'AssignmentSavepoints')
+		course_savepoints_link = self.require_link_href_with_rel( res.json_body['CourseInstance'], 'AssignmentSavepoints')
+		
+		assert_that( enrollment_savepoints_link,
+					 is_('/dataserver2/users/' + 
+						 self.default_username +
+						 '/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentSavepoints/' +
+						 self.default_username))
+
+		assert_that( course_savepoints_link,
+					 is_('/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice/AssignmentSavepoints/' + 
+						 self.default_username) )
+
+		# Both history links are equivalent and work; and both are empty before I submit
+		for link in course_savepoints_link, enrollment_savepoints_link:
+			savepoints_res = self.testapp.get(link)
+			assert_that(savepoints_res.json_body, has_entry('Items', has_length(0)))
 
 		href = '/dataserver2/Objects/' + self.assignment_id + '/Savepoint'
 		self.testapp.get(href, status=404)
@@ -121,7 +197,7 @@ class TestSavepointViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		savepoint_item_href = res.json_body['href']
 		assert_that(savepoint_item_href, is_not(none()))
 		
-		self._check_submission(res)
+		self._check_submission(res, enrollment_savepoints_link)
 		
 		res = self.testapp.get(savepoint_item_href)
 		assert_that(res.json_body, has_entry('href', is_not(none())))
@@ -129,13 +205,17 @@ class TestSavepointViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		res = self.testapp.get(href)
 		assert_that(res.json_body, has_entry('href', is_not(none())))
 		
-		# but they can't get each others
-		outest_environ = self._make_extra_environ(username='outest5')
-		outest_environ.update( {b'HTTP_ORIGIN': b'http://janux.ou.edu'} )
-		self.testapp.get(href,
-						 extra_environ=outest_environ,
-						 status=403)
-		
+		# Both history links are equivalent and work
+		for link in course_savepoints_link, enrollment_savepoints_link:
+			savepoints_res = self.testapp.get(link)
+			assert_that(savepoints_res.json_body, has_entry('Items', has_length(1)))
+			assert_that(savepoints_res.json_body, has_entry('Items', has_key(self.assignment_id)))
+
+		# simply adding get us to an item
+		href = savepoints_res.json_body['href'] + '/' + self.assignment_id
+		res = self.testapp.get(href)
+		assert_that(res.json_body, has_entry('href', is_not(none())))
+			
 		# we can delete
 		self.testapp.delete(savepoint_item_href, status=204)
 		self.testapp.get(savepoint_item_href, status=404)
@@ -143,9 +223,9 @@ class TestSavepointViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		# Whereupon we can submit again
 		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id + '/Savepoint',
 									  ext_obj)
-		self._check_submission(res)
+		self._check_submission(res, enrollment_savepoints_link)
 		
 		# and again
 		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id + '/Savepoint',
 									  ext_obj)
-		self._check_submission(res)
+		self._check_submission(res, enrollment_savepoints_link)

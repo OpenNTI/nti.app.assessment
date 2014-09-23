@@ -27,6 +27,7 @@ from nti.dataserver import authorization as nauth
 from .._utils import find_course_for_assignment
 
 from ..interfaces import IUsersCourseAssignmentSavepoint
+from ..interfaces import IUsersCourseAssignmentSavepoints
 from ..interfaces import IUsersCourseAssignmentSavepointItem
 
 @view_config(route_name="objects.generic.traversal",
@@ -95,6 +96,20 @@ class AssignmentSubmissionSavepointGetView(AbstractAuthenticatedView):
 			return result
 		except KeyError:
 			return hexc.HTTPNotFound()
+
+@view_config(route_name="objects.generic.traversal",
+			 renderer='rest',
+			 context=IUsersCourseAssignmentSavepoints,
+			 permission=nauth.ACT_READ,
+			 request_method='GET')
+class AssignmentSavepointsGetView(AbstractAuthenticatedView):
+	"""
+	Students can view their assignment save points as ``path/to/course/AssignmentSavepoints``
+	"""
+
+	def __call__(self):
+		savepoints = self.request.context
+		return savepoints
 
 @view_config(route_name="objects.generic.traversal",
 			 context=IUsersCourseAssignmentSavepointItem,

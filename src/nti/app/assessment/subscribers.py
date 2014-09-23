@@ -23,8 +23,8 @@ from nti.app.products.courseware.interfaces import ICourseInstanceActivity
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
-from nti.assessment.interfaces import IQAssessmentItemContainer
 from nti.assessment.interfaces import IQAssignmentDateContext
+from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 
@@ -36,20 +36,27 @@ from nti.externalization.externalization import to_external_object
 
 from ._utils import find_course_for_assignment
 
-def add_object_to_course_activity(submission, event):
-	"""This can be registered for anything we want to submit to course activity
-	as a subscriber to :class:`zope.intid.interfaces.IIntIdAddedEvent`"""
-	course = find_interface(submission, ICourseInstance)
-	activity = ICourseInstanceActivity(course)
-	activity.append(submission)
+from .interfaces import IUsersCourseAssignmentSavepointItem
 
+def add_object_to_course_activity(submission, event):
+	"""
+	This can be registered for anything we want to submit to course activity
+	as a subscriber to :class:`zope.intid.interfaces.IIntIdAddedEvent`
+	"""
+	if not IUsersCourseAssignmentSavepointItem.providedBy(submission.__parent__):
+		course = find_interface(submission, ICourseInstance)
+		activity = ICourseInstanceActivity(course)
+		activity.append(submission)		
 
 def remove_object_from_course_activity(submission, event):
-	"""This can be registered for anything we want to submit to course activity
-	as a subscriber to :class:`zope.intid.interfaces.IIntIdRemovedEvent`"""
-	course = find_interface(submission, ICourseInstance)
-	activity = ICourseInstanceActivity(course)
-	activity.remove(submission)
+	"""
+	This can be registered for anything we want to submit to course activity
+	as a subscriber to :class:`zope.intid.interfaces.IIntIdRemovedEvent`
+	"""
+	if not IUsersCourseAssignmentSavepointItem.providedBy(submission.__parent__):
+		course = find_interface(submission, ICourseInstance)
+		activity = ICourseInstanceActivity(course)
+		activity.remove(submission)
 
 def prevent_note_on_assignment_part(note, event):
 	"""
@@ -112,11 +119,13 @@ def prevent_note_on_assignment_part(note, event):
 			else:
 				dates = asg
 
-			if dates.available_for_submission_ending and dates.available_for_submission_ending >= datetime.utcnow():
+			if 	dates.available_for_submission_ending and \
+				dates.available_for_submission_ending >= datetime.utcnow():
 				e = HTTPUnprocessableEntity()
-				e.text = json.dumps({'message': _("You cannot make notes on an assignment before the due date."),
-									 'code': 'CannotNoteOnAssignmentBeforeDueDate',
-									 'available_for_submission_ending': to_external_object(dates.available_for_submission_ending)},
-									ensure_ascii=False)
+				e.text = json.dumps(
+						{'message': _("You cannot make notes on an assignment before the due date."),
+						 'code': 'CannotNoteOnAssignmentBeforeDueDate',
+						 'available_for_submission_ending': to_external_object(dates.available_for_submission_ending)},
+						ensure_ascii=False)
 				e.content_type = b'application/json'
 				raise e

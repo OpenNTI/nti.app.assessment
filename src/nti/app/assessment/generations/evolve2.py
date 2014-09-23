@@ -27,10 +27,6 @@ from nti.site.interfaces import IHostPolicyFolder
 from ..savepoint import BASE_KEY
 from ..savepoint import _user_savepoint_course_key
 
-def remove_old_annotation(obj, name):
-	annotations = IAnnotations(obj, {})
-	annotations.pop(name, None)
-
 def migrate_course_savepoints(entry, users):
 	course = ICourseInstance(entry)
 	key = _user_savepoint_course_key(course)

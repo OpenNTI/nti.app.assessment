@@ -277,7 +277,9 @@
 				provides="nti.contentsearch.interfaces.ISearchHitPredicate"
 				for=".interfaces.ICreated" />
 
+	<!-- 
 	<subscriber	handler=".content_search.on_course_instance_available" />
+	-->
 	
 	<!-- Views -->
 	<include package=".views" />

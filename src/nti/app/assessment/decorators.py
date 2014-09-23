@@ -173,11 +173,11 @@ class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		except IndexError:
 			return
 		
+		creator = self.remoteUser
 		# for instructors we no longer randomized the questions
 		# since the submittedResponse is stored randomized 
 		# we unshuffle it, so the instructor can see the correct answer
 		if IQRandomizedPart.providedBy(question_part):
-			creator = uca_history.creator
 			response = context.submittedResponse
 			if response is not None:
 				__traceback_info__ = response, question_part
@@ -212,7 +212,7 @@ class _QuestionSubmissionDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		if question is None:
 			return # old question?
 
-		creator = uca_history.creator
+		creator = self.remoteUser
 		parts = result_map['parts'] = []
 		for question_part, sub_part in zip(question.parts, context.parts):
 			# for instructors we no longer randomized the questions

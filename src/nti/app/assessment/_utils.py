@@ -40,6 +40,8 @@ from nti.contenttypes.courses.interfaces import ICourseEnrollments
 
 from nti.dataserver.traversal import find_interface
 
+from nti.externalization.externalization import to_external_ntiid_oid
+
 from .interfaces import ACT_DOWNLOAD_GRADES
 
 _r47694_map = None
@@ -282,7 +284,8 @@ def transfer_upload_ownership(submission, old_submission, force=False):
 				# this is tightly coupled w/ the way IQUploadedFile are updated.
 				if IQUploadedFile.providedBy(old_part) and _is_internal(part):
 					#TODO: Check against reference, delete old
-					logger.info("Copy from previously uploaded file '%s'", old_part.filename)
+					logger.info("Copy from previously uploaded file '%s(%s)'", 
+								old_part.filename, to_external_ntiid_oid(old_part))
 					part.data = old_part.data
 					part.filename = old_part.filename
 					part.contentType = old_part.contentType

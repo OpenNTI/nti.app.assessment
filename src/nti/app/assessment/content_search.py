@@ -90,6 +90,16 @@ class _AssignmentFeedbackItemResolver(object):
 	def createdTime(self):
 		return self.obj.createdTime
 
+	@classmethod
+	def get_course_rids(self, course):
+		result = set()
+		role_map = IPrincipalRoleMap(course, None)
+		if role_map is not None:
+			for role in (RID_INSTRUCTOR, RID_TA):
+				settings = role_map.getPrincipalsForRole(role) or ()
+				result.update(x[0].lower() for x in settings)
+		return result
+
 	@property
 	def acl(self):
 		result = set()
@@ -97,13 +107,7 @@ class _AssignmentFeedbackItemResolver(object):
 		if creator: # check just in case
 			result.add(self.creator.lower())
 		course = find_interface(self.obj, ICourseInstance, strict=False)
-		role_map = IPrincipalRoleMap(course, None) 
-		if role_map is not None:
-			settings = role_map.getPrincipalsForRole(RID_INSTRUCTOR) or ()
-			result.update(x[0].lower() for x in settings)
-			
-			settings = role_map.getPrincipalsForRole(RID_TA) or ()
-			result.update(x[0].lower() for x in settings)
+		result.update(self.get_course_rids(course))
 		return list(result) if result else None
 
 @interface.implementer(IAssignmentFeedbackItemSearchHit)

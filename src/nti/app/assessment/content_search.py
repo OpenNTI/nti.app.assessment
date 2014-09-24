@@ -10,10 +10,7 @@ logger = __import__('logging').getLogger(__name__)
 
 from zope import component
 from zope import interface
-from zope import lifecycleevent
 from zope.securitypolicy.interfaces import IPrincipalRoleMap
-
-from nti.app.products.courseware.interfaces import ILegacyCommunityBasedCourseInstance
 
 from nti.contentsearch.search_hits import SearchHit
 from nti.contentsearch.interfaces import IACLResolver
@@ -29,7 +26,6 @@ from nti.contenttypes.courses.interfaces import RID_TA
 from nti.contenttypes.courses.interfaces import RID_INSTRUCTOR
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
-from nti.contenttypes.courses.interfaces import ICourseInstanceAvailableEvent
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import IEntity
@@ -37,7 +33,6 @@ from nti.dataserver.traversal import find_interface
 
 from nti.externalization.oids import to_external_ntiid_oid
 
-from .interfaces import IUsersCourseAssignmentHistory
 from .interfaces import IUsersCourseAssignmentHistoryItem
 from .interfaces import IUsersCourseAssignmentHistoryItemFeedback
 
@@ -150,29 +145,3 @@ class _AssignmentFeedbackItemSearchHitPredicate(object):
 			if not result:
 				logger.debug("Item not allowed for search. %s", feedback)
 		return result
-	
-@component.adapter(ICourseInstanceAvailableEvent)
-def on_course_instance_available(event):
-	course = event.object
-	## CS: Ignore legacy commmunity courses as these are
-	## added to the global catalog during application start up
-	## and they are no longer modifiable
-	if ILegacyCommunityBasedCourseInstance.providedBy(course):
-		return
-	
-	## CS: Get all the feedbacks items and force them
-	## to reindex to make sure their ACL is updated
-	enrollments = ICourseEnrollments(course)
-	for record in enrollments.iter_enrollments():
-		principal = record.Principal
-		history = component.queryMultiAdapter((course, principal),
-											  IUsersCourseAssignmentHistory)
-		if not history:
-			continue
-		
-		for item in history.values():
-			if not item.has_feedback():
-				continue
-			for feedback in item.Feedback.values():
-				## force a reindex of the feedback object
-				lifecycleevent.modified(feedback)

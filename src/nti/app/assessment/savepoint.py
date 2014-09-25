@@ -16,6 +16,8 @@ from zope.location.interfaces import LocationError
 from zope.location.interfaces import ISublocations
 from zope.annotation.interfaces import IAnnotations
 
+from ZODB.interfaces import IConnection
+
 from pyramid.interfaces import IRequest
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
@@ -92,7 +94,7 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 	def Items(self):
 		return dict(self)
 	
-	def recordSubmission(self, submission):
+	def recordSubmission(self, submission, event=False):
 		if submission.__parent__ is not None:
 			raise ValueError("Objects already parented")
 		
@@ -105,10 +107,28 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 			transfer_upload_ownership(submission, old)
 			del self[submission.assignmentId]
 
-		lifecycleevent.created(item)
-		self[submission.assignmentId] = item
+		if event:
+			lifecycleevent.created(item)
+		else:
+			IConnection(self).add(item)
+		self._append(submission.assignmentId, item, event=event)
 		return item
 
+	def _append(self, key, item, event=False):
+		if CheckingLastModifiedBTreeContainer.__contains__(self, key):
+			if item.__parent__ is self:
+				return
+			raise ValueError("Adding duplicate entry", item)
+
+		if event:
+			self[key] = item
+		else:
+			self._setitemf(key, item)
+			item.__name__ = key
+			item.__parent__ = self
+
+		self.lastModified = max( self.lastModified, item.lastModified )
+		
 	def __conform__(self, iface):
 		if IUser.isOrExtends(iface):
 			return self.owner

@@ -59,7 +59,7 @@ class TestSavepoint(AssessmentLayerTest):
 		savepoint = UsersCourseAssignmentSavepoint()
 		submission = AssignmentSubmission(assignmentId='b')
 
-		item = savepoint.recordSubmission( submission )
+		item = savepoint.recordSubmission( submission, event=True )
 		assert_that( item, has_property( 'Submission', is_( submission )))
 		assert_that( item, has_property( '__name__', is_( submission.assignmentId)) )
 		assert_that( item.__parent__, is_( savepoint ))

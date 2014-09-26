@@ -15,6 +15,7 @@ from zope.container.contained import Contained
 from zope.location.interfaces import LocationError
 from zope.location.interfaces import ISublocations
 from zope.annotation.interfaces import IAnnotations
+from zope.lifecycleevent.interfaces import IObjectAddedEvent
 
 from ZODB.interfaces import IConnection
 
@@ -273,3 +274,8 @@ class _AssignmentSavepointItemDecorator(AbstractAuthenticatedRequestAwareDecorat
 			result_map['href'] = render_link( link )['href']
 		except (KeyError, ValueError, AssertionError):
 			pass # Nope
+
+@component.adapter(ICourseInstance, IObjectAddedEvent)
+def _on_course_added(course, event):
+	_savepoints_for_course(course)
+	

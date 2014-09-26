@@ -294,6 +294,8 @@
 	<adapter factory=".savepoint._course_from_savepoint_lineage" />
 	<adapter factory=".savepoint._UsersCourseAssignmentSavepointsTraversable" />
 	
+	<subscriber handler=".savepoint._on_course_added" />
+	
 	<subscriber factory=".savepoint._AssignmentSavepointDecorator"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.assessment.interfaces.IQAssignment

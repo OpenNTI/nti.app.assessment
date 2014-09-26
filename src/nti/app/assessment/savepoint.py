@@ -104,9 +104,7 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 		set_submission_lineage(submission)
 		
 		if submission.assignmentId in self:
-			old = self[submission.assignmentId].Submission
-			transfer_upload_ownership(submission, old)
-			del self[submission.assignmentId]
+			self.removeSubmission(submission)
 
 		if event:
 			lifecycleevent.created(item)
@@ -115,6 +113,11 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 		self._append(submission.assignmentId, item, event=event)
 		return item
 
+	def removeSubmission(self, submission):
+		old = self[submission.assignmentId].Submission
+		transfer_upload_ownership(submission, old)
+		del self[submission.assignmentId]
+		
 	def _append(self, key, item, event=False):
 		if CheckingLastModifiedBTreeContainer.__contains__(self, key):
 			if item.__parent__ is self:

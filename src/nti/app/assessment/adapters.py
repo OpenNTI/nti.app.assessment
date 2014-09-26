@@ -109,7 +109,6 @@ def _check_submission_before(dates, assignment):
 			raise ex
 
 from ._utils import set_submission_lineage
-from ._utils import transfer_upload_ownership
 from ._utils import find_course_for_assignment
 
 @component.adapter(asm_interfaces.IQAssignmentSubmission)
@@ -161,10 +160,7 @@ def _begin_assessment_for_assignment_submission(submission):
 	assignment_savepoint = component.getMultiAdapter((course, submission.creator),
 													 IUsersCourseAssignmentSavepoint )
 	if submission.assignmentId in assignment_savepoint:
-		old = assignment_savepoint[submission.assignmentId].Submission
-		transfer_upload_ownership(submission, old)
-		# delete savepoint submission in case there is a reset
-		del assignment_savepoint[submission.assignmentId]
+		assignment_savepoint.removeSubmission(submission)
 	
 	# Ok, now for each part that can be auto graded, do so, leaving all the others
 	# as-they-are

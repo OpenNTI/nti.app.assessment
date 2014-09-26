@@ -85,6 +85,11 @@ class IUsersCourseAssignmentSavepoint(IContainer,
 		:return: The new :class:`.IUsersCourseAssignmentSavepointItem` representing
 				 the record of this submission.
 		"""
+		
+	def removeSubmission(submission):
+		"""
+		remove a submission
+		"""
 
 class IUsersCourseAssignmentSavepointItem(IContained, 
 										  ILastModified,

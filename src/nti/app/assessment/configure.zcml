@@ -295,6 +295,7 @@
 	<adapter factory=".savepoint._UsersCourseAssignmentSavepointsTraversable" />
 	
 	<subscriber handler=".savepoint._on_course_added" />
+	<subscriber handler=".savepoint._on_assignment_history_item_deleted" />
 	
 	<subscriber factory=".savepoint._AssignmentSavepointDecorator"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"

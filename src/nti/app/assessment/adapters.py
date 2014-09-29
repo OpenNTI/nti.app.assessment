@@ -159,8 +159,7 @@ def _begin_assessment_for_assignment_submission(submission):
 	
 	assignment_savepoint = component.getMultiAdapter((course, submission.creator),
 													 IUsersCourseAssignmentSavepoint )
-	if submission.assignmentId in assignment_savepoint:
-		assignment_savepoint.removeSubmission(submission)
+	assignment_savepoint.removeSubmission(submission)
 	
 	# Ok, now for each part that can be auto graded, do so, leaving all the others
 	# as-they-are

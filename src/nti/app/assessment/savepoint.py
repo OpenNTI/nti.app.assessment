@@ -16,6 +16,7 @@ from zope.location.interfaces import LocationError
 from zope.location.interfaces import ISublocations
 from zope.annotation.interfaces import IAnnotations
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
+from zope.lifecycleevent.interfaces import IObjectRemovedEvent
 
 from ZODB.interfaces import IConnection
 
@@ -103,8 +104,8 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 		submission.__parent__ = item
 		set_submission_lineage(submission)
 		
-		if submission.assignmentId in self:
-			self.removeSubmission(submission)
+		# check for removal
+		self.removeSubmission(submission)
 
 		if event:
 			lifecycleevent.created(item)
@@ -114,9 +115,10 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 		return item
 
 	def removeSubmission(self, submission):
-		old = self[submission.assignmentId].Submission
-		transfer_upload_ownership(submission, old)
-		del self[submission.assignmentId]
+		if submission.assignmentId in self:
+			old = self[submission.assignmentId].Submission
+			transfer_upload_ownership(submission, old)
+			del self[submission.assignmentId]
 		
 	def _append(self, key, item, event=False):
 		if CheckingLastModifiedBTreeContainer.__contains__(self, key):
@@ -281,4 +283,15 @@ class _AssignmentSavepointItemDecorator(AbstractAuthenticatedRequestAwareDecorat
 @component.adapter(ICourseInstance, IObjectAddedEvent)
 def _on_course_added(course, event):
 	_savepoints_for_course(course)
+	
+from .interfaces import IUsersCourseAssignmentHistoryItem
+
+@component.adapter(IUsersCourseAssignmentHistoryItem, IObjectRemovedEvent)
+def _on_assignment_history_item_deleted(item, event):
+	user = IUser(item, None)
+	course = find_interface(item, ICourseInstance, strict=False)
+	if user is not None and course is not None:
+		assignment_savepoint = component.getMultiAdapter((course, user),
+													 	 IUsersCourseAssignmentSavepoint )
+		assignment_savepoint.removeSubmission(item.Submission)
 	

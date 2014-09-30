@@ -9,10 +9,15 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+import csv
+import urllib
+from io import BytesIO
+
 from zope import component
 
 from pyramid.view import view_config
 from pyramid.view import view_defaults
+from pyramid import httpexceptions as hexc
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
@@ -27,6 +32,8 @@ from nti.dataserver import authorization as nauth
 from nti.dataserver.interfaces import IDataserverFolder
 
 from nti.externalization.interfaces import LocatedExternalDict
+
+from nti.utils.maps import CaseInsensitiveDict
 
 from ..interfaces import ICourseAssessmentItemCatalog
 from ..interfaces import IUsersCourseAssignmentHistory
@@ -86,3 +93,55 @@ class RemovedMatchedSavePointsView(	AbstractAuthenticatedView,
 						items = result.setdefault(principal.username, [])
 						items.append(assignmentId)
 		return result
+
+@view_config(route_name='objects.generic.traversal',
+			 renderer='rest',
+			 permission=nauth.ACT_MODERATE,
+			 request_method='GET',
+			 context=IDataserverFolder,
+			 name='UnmatchedSavePoints')
+class UnmatchedSavePointsView(AbstractAuthenticatedView):
+
+	def __call__(self):
+		catalog = component.getUtility(ICourseCatalog)
+		params = CaseInsensitiveDict(self.request.params)
+		ntiid = params.get('ntiid') or params.get('course')
+		if ntiid:
+			try:
+				ntiid = urllib.unquote(ntiid)
+				entries = (catalog.getCatalogEntry(ntiid),)
+			except KeyError:
+				raise hexc.HTTPUnprocessableEntity("Invalid course NTIID")
+		else:
+			entries = list(catalog.iterCatalogEntries())
+			
+		response = self.request.response	
+		response.content_encoding = str('identity' )
+		response.content_type = str('text/csv; charset=UTF-8')
+		response.content_disposition = str( 'attachment; filename="report.txt"' )
+		
+		stream = BytesIO()
+		writer = csv.writer(stream)
+		header = ['course', 'username', 'assignment']
+		writer.writerow(header)
+		
+		for entry in entries:
+			ntiid = entry.ntiid
+			course = ICourseInstance(entry)
+			enrollments = ICourseEnrollments(course)
+			for record in enrollments.iter_enrollments():
+				principal = record.Principal
+				history = component.queryMultiAdapter((course, principal), 
+													  IUsersCourseAssignmentHistory)
+				savepoint = component.queryMultiAdapter((course, principal), 
+													    IUsersCourseAssignmentSavepoint)
+	
+				for assignmentId in savepoint.keys():
+					if assignmentId not in history:
+						row_data = [ntiid, principal.username, assignmentId]
+						writer.writerow(row_data)
+			
+		stream.flush()
+		stream.seek(0)
+		response.body_file = stream
+		return response

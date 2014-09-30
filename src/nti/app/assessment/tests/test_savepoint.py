@@ -33,6 +33,9 @@ from nti.dataserver.interfaces import IUser
 
 from nti.testing.matchers import validly_provides
 
+from nti.dataserver.tests import mock_dataserver
+from nti.dataserver.tests.mock_dataserver import WithMockDSTrans
+
 from nti.app.assessment.tests import AssessmentLayerTest
 
 class TestSavepoint(AssessmentLayerTest):
@@ -55,14 +58,22 @@ class TestSavepoint(AssessmentLayerTest):
 		assert_that( IUser(item), is_(savepoint.owner))
 		assert_that( IUser(savepoint), is_(savepoint.owner))
 
+	@WithMockDSTrans
 	def test_record(self):
-		savepoint = UsersCourseAssignmentSavepoint()
-		submission = AssignmentSubmission(assignmentId='b')
+		connection = mock_dataserver.current_transaction
+		for event  in (True, False):
+			savepoint = UsersCourseAssignmentSavepoint()
+			connection.add(savepoint)
+			submission = AssignmentSubmission(assignmentId='b')
 
-		item = savepoint.recordSubmission( submission, event=True )
-		assert_that( item, has_property( 'Submission', is_( submission )))
-		assert_that( item, has_property( '__name__', is_( submission.assignmentId)) )
-		assert_that( item.__parent__, is_( savepoint ))
+			item = savepoint.recordSubmission( submission, event=event )
+			assert_that( item, has_property( 'Submission', is_( submission )))
+			assert_that( item, has_property( '__name__', is_( submission.assignmentId)) )
+			assert_that( item.__parent__, is_( savepoint ))
+			assert_that(savepoint, has_length(1))
+		
+			savepoint.removeSubmission(submission, event=event)
+			assert_that(savepoint, has_length(0))
 
 import fudge
 from urllib import unquote

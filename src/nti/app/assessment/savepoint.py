@@ -11,6 +11,7 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope import interface
 from zope import lifecycleevent
+from zope.location.location import locate
 from zope.container.contained import Contained
 from zope.location.interfaces import LocationError
 from zope.location.interfaces import ISublocations
@@ -118,15 +119,13 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 		if submission.assignmentId not in self:
 			return
 		item = self[submission.assignmentId]
-		old = item.Submission
-		transfer_upload_ownership(submission, old)
+		transfer_upload_ownership(submission, item.Submission)
 		
 		if event:
 			del self[submission.assignmentId]
 		else:
 			self._delitemf(submission.assignmentId)
-			item.__name__ = None
-			item.__parent__ = None
+			locate(item, None, None)
 		
 	def _append(self, key, item, event=False):
 		if CheckingLastModifiedBTreeContainer.__contains__(self, key):
@@ -138,8 +137,7 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 			self[key] = item
 		else:
 			self._setitemf(key, item)
-			item.__name__ = key
-			item.__parent__ = self
+			locate(item, self, name=key)
 
 		self.lastModified = max( self.lastModified, item.lastModified )
 		

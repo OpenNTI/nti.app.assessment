@@ -61,8 +61,10 @@ def _asg_registry_to_course_data(registry):
 		asg_data['Title'] = assignment.title
 
 		# the actual dates
-		asg_data['available_for_submission_ending'] = to_external_object(assignment.available_for_submission_ending)
-		asg_data['available_for_submission_beginning'] = to_external_object(assignment.available_for_submission_beginning)
+		asg_data['available_for_submission_ending'] = \
+				to_external_object(assignment.available_for_submission_ending)
+		asg_data['available_for_submission_beginning'] = \
+				to_external_object(assignment.available_for_submission_beginning)
 
 		# Point specification
 		point_data = asg_data['auto_grade'] = {}

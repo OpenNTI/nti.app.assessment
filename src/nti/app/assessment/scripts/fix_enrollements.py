@@ -164,7 +164,7 @@ def main():
 							help="Dry run.")
 	arg_parser.add_argument('-s', '--site',
 							dest='site',
-							defaut='janux.ou.edu',
+							default='janux.ou.edu',
 							help="Application SITE.")
 	arg_parser.add_argument('-i', '--input',
 							dest='input',

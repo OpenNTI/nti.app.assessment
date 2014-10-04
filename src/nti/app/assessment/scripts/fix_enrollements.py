@@ -89,7 +89,8 @@ def move_user_assignments(input_file, dry_run=False, verbose=True):
 				print("\tMoving assignment history for", username, "from",
 					  old_course_name, "to", new_course_name)
 			if not dry_run:
-				move_user_assignment_from_course_to_course(user, old_course, new_course)
+				move_user_assignment_from_course_to_course(user, old_course, new_course,
+														   verbose=verbose)
 			
 def _process_args(site, input_file, dry_run=False, verbose=True,
 				  with_library=True):

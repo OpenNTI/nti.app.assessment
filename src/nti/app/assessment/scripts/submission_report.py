@@ -150,7 +150,7 @@ def main():
 		raise IOError("Invalid dataserver environment root directory")
 
 	if not args.course:
-		raise ValueError("Must specify a course NTIID")
+		raise IOError("Must specify a course NTIID")
 	
 	context = create_context(env_dir, with_library=False)
 	conf_packages = ('nti.appserver',)

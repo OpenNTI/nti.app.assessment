@@ -103,10 +103,10 @@ def main():
 		raise IOError("Invalid dataserver environment root directory")
 
 	if not args.username:
-		raise ValueError("Must specify a username")
+		raise IOError("Must specify a username")
 	
 	if not args.assignment:
-		raise ValueError("Must specify an assignment")
+		raise IOError("Must specify an assignment")
 	
 	context = create_context(env_dir)
 	conf_packages = ('nti.appserver',)

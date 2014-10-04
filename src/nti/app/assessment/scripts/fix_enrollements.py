@@ -147,6 +147,9 @@ def _process_args(site, input_file, dry_run=False, verbose=True,
 		raise ValueError("Unknown site name", site)
 	hooks.setSite(new_site)
 
+	if dry_run and not verbose:
+		verbose = True
+		
 	if with_library and not dry_run:
 		component.getUtility(IContentPackageLibrary).syncContentPackages()
 		

@@ -159,12 +159,13 @@ def main():
 	arg_parser = argparse.ArgumentParser(description="Enrollment fixer")
 	arg_parser.add_argument('-v', '--verbose', help="Be Verbose", action='store_true',
 							dest='verbose')
-	arg_parser.add_argument('-s', '--site',
-							dest='site',
-							help="Application SITE.")
 	arg_parser.add_argument('-d', '--dry', action='store_true',
 							dest='dry_run',
 							help="Dry run.")
+	arg_parser.add_argument('-s', '--site',
+							dest='site',
+							defaut='janux.ou.edu',
+							help="Application SITE.")
 	arg_parser.add_argument('-i', '--input',
 							dest='input',
 							default='/tmp/move_assignments.csv',

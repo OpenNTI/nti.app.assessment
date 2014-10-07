@@ -173,16 +173,19 @@ class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		except IndexError:
 			return
 		
-		creator = self.remoteUser
-		# for instructors we no longer randomized the questions
-		# since the submittedResponse is stored randomized 
-		# we unshuffle it, so the instructor can see the correct answer
+		## CS: for instructors we no longer randomized the questions
+		## since the submittedResponse is stored randomized 
+		## we unshuffle it, so the instructor can see the correct answer
 		if IQRandomizedPart.providedBy(question_part):
 			response = context.submittedResponse
 			if response is not None:
 				__traceback_info__ = response, question_part
 				grader = grader_for_response(question_part, response)
 				assert grader is not None
+				
+				## CS: We need the user that submitted the question
+				## in order to unshuffle the response
+				creator = uca_history.creator 
 				response = grader.unshuffle(response,
 											user=creator, 
 											context=question_part)

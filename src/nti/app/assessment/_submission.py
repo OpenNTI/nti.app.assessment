@@ -66,7 +66,6 @@ def get_source(request, *keys):
 	return source
 
 def read_multipart_sources(submission, request):
-	sources = CaseInsensitiveDict(request.POST)
 	for question_set in submission.parts:
 		for question in question_set.questions:
 			for part in question.parts:
@@ -75,7 +74,7 @@ def read_multipart_sources(submission, request):
 				if not part.name:
 					msg = 'No name was given to uploded file'
 					raise hexc.HTTPUnprocessableEntity(msg)
-				source = get_source(sources, part.name)
+				source = get_source(request, part.name)
 				if source is None:
 					msg = 'Could not find data for file %s' % part.name
 					raise hexc.HTTPUnprocessableEntity(msg)

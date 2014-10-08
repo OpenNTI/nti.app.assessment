@@ -13,6 +13,7 @@ logger = __import__('logging').getLogger(__name__)
 
 from zope import component
 from zope.location.interfaces import LocationError
+from zope.schema.interfaces import RequiredMissing
 
 from numbers import Number
 from datetime import datetime
@@ -40,6 +41,11 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver import authorization as nauth
+
+from .._submission import get_source
+from .._submission import read_multipart_sources
+
+from .._utils import find_course_for_assignment
 
 from ..interfaces import IUsersCourseAssignmentHistory
 from ..interfaces import IUsersCourseAssignmentHistoryItemFeedback
@@ -151,14 +157,23 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 
 	def _do_call(self):
 		creator = self.remoteUser
-
-		course = component.queryMultiAdapter( (self.context, creator),
-											  ICourseInstance)
-		if course is None:
+		try:
+			course = find_course_for_assignment(self.context, creator)
+			if course is None:
+				raise hexc.HTTPForbidden("Must be enrolled in a course.")
+		except RequiredMissing:
 			raise hexc.HTTPForbidden("Must be enrolled in a course.")
 
+		if not self.request.POST:
+			submission = self.readCreateUpdateContentObject(creator)
+		else:
+			extValue = get_source(self.request, 'json', 'input', 'submission')
+			if not extValue:
+				raise hexc.HTTPUnprocessableEntity("No submission source was specified")
+			extValue = extValue.read()
+			submission = self.readCreateUpdateContentObject(creator, externalValue=extValue)
+			submission = read_multipart_sources(submission, self.request)
 
-		submission = self.readCreateUpdateContentObject(creator)
 		# Re-use the same code for putting to a user
 		return component.getMultiAdapter( (self.request, submission),
 										  IExceptionResponse)
@@ -173,8 +188,6 @@ from nti.assessment.interfaces import IQUploadedFile
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 
 from . import assignment_download_precondition
-
-from .._utils import find_course_for_assignment
 
 @view_config(route_name="objects.generic.traversal",
 			 context=IQAssignment,

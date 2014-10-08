@@ -26,6 +26,7 @@ from nti.dataserver import authorization as nauth
 
 from .._submission import get_source
 from .._submission import read_multipart_sources
+
 from .._utils import find_course_for_assignment
 
 from ..interfaces import IUsersCourseAssignmentSavepoint

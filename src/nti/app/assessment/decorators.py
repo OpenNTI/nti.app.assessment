@@ -229,7 +229,7 @@ class _QuestionSubmissionDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			if not IQRandomizedPart.providedBy(question_part):
 				parts.append(to_external_object(sub_part))
 			else:
-				ext_sub_part = sub_part
+				response = ext_sub_part = sub_part
 				if sub_part is not None:
 					__traceback_info__ = sub_part, question_part
 					grader = grader_for_response(question_part, sub_part)

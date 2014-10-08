@@ -170,7 +170,7 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 			extValue = get_source(self.request, 'json', 'input', 'submission')
 			if not extValue:
 				raise hexc.HTTPUnprocessableEntity("No submission source was specified")
-			extValue = extValue.read()
+			extValue = self.readInput(value=extValue.read())
 			submission = self.readCreateUpdateContentObject(creator, externalValue=extValue)
 			submission = read_multipart_sources(submission, self.request)
 

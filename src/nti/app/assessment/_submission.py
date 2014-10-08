@@ -13,6 +13,9 @@ import six
 from cStringIO import StringIO
 
 from zope import interface
+from zope.proxy import ProxyBase
+
+from pyramid import httpexceptions as hexc
 
 from ZODB.POSException import POSKeyError
 
@@ -21,7 +24,23 @@ from nti.assessment.interfaces import IInternalUploadedFileRef
 
 from nti.externalization.externalization import to_external_ntiid_oid
 
-def get_source(values, *keys):
+from nti.utils.maps import CaseInsensitiveDict
+
+class SourceProxy(ProxyBase):
+	
+	contentType = property(
+					lambda s: s.__dict__.get('_v_content_type'),
+					lambda s, v: s.__dict__.__setitem__('_v_content_type', v))
+		
+	def __new__(cls, base, *args, **kwargs):
+		return ProxyBase.__new__(cls, base)
+
+	def __init__(self, base, content_type=None):
+		ProxyBase.__init__(self, base)
+		self.contentType = content_type
+		
+def get_source(request, *keys):
+	values = CaseInsensitiveDict(request.POST)
 	# check map
 	source = None
 	for key in keys:
@@ -31,10 +50,33 @@ def get_source(values, *keys):
 	if isinstance(source, six.string_types):
 		source = StringIO(source)
 		source.seek(0)
+		source = SourceProxy(source, 'application/json')
 	elif source is not None:
+		content_type  = getattr(source, 'type', None)
 		source = source.file
 		source.seek(0)
+		source = SourceProxy(source, content_type)
 	return source
+
+def read_multipart_sources(submission, request):
+	sources = CaseInsensitiveDict(request.POST)
+	for question_set in submission.parts:
+		for question in question_set.questions:
+			for part in question.parts:
+				if not IQUploadedFile.providedBy(part) or part.size > 0:
+					continue
+				if not part.name:
+					msg = 'No name was given to uploded file'
+					raise hexc.HTTPUnprocessableEntity(msg)
+				source = get_source(sources, part.name)
+				if source is None:
+					msg = 'Could not find data for file %s' % part.name
+					raise hexc.HTTPUnprocessableEntity(msg)
+				## copy data
+				part.data = source.read()
+				if not part.contentType and source.contentType:
+					part.contentType = source.contentType
+	return submission
 
 def set_submission_lineage(submission):
 	## The constituent parts of these things need parents as well.

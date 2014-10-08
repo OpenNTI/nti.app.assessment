@@ -215,7 +215,6 @@ class _QuestionSubmissionDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		if question is None:
 			return # old question?
 
-		creator = self.remoteUser
 		parts = result_map['parts'] = []
 		for question_part, sub_part in zip(question.parts, context.parts):
 			# for instructors we no longer randomized the questions
@@ -226,6 +225,10 @@ class _QuestionSubmissionDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			else:
 				ext_sub_part = sub_part
 				if sub_part is not None:
+					## CS: We need the user that submitted the question
+					## in order to unshuffle the response
+					creator = uca_history.creator 
+
 					__traceback_info__ = sub_part, question_part
 					grader = grader_for_response(question_part, sub_part)
 					assert grader is not None

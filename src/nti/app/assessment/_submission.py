@@ -14,6 +14,7 @@ from cStringIO import StringIO
 
 from zope import interface
 from zope.proxy import ProxyBase
+from zope.file.upload import nameFinder
 
 from pyramid import httpexceptions as hexc
 
@@ -32,11 +33,16 @@ class SourceProxy(ProxyBase):
 					lambda s: s.__dict__.get('_v_content_type'),
 					lambda s, v: s.__dict__.__setitem__('_v_content_type', v))
 		
+	filename  = property(
+					lambda s: s.__dict__.get('_v_filename'),
+					lambda s, v: s.__dict__.__setitem__('_v_filename', v))
+
 	def __new__(cls, base, *args, **kwargs):
 		return ProxyBase.__new__(cls, base)
 
-	def __init__(self, base, content_type=None):
+	def __init__(self, base, filename=None, content_type=None):
 		ProxyBase.__init__(self, base)
+		self.filename = filename
 		self.contentType = content_type
 		
 def get_source(request, *keys):
@@ -50,12 +56,13 @@ def get_source(request, *keys):
 	if isinstance(source, six.string_types):
 		source = StringIO(source)
 		source.seek(0)
-		source = SourceProxy(source, 'application/json')
+		source = SourceProxy(source, content_type='application/json')
 	elif source is not None:
-		content_type  = getattr(source, 'type', None)
+		filename = getattr(source, 'filename', None)
+		content_type = getattr(source, 'type', None)
 		source = source.file
 		source.seek(0)
-		source = SourceProxy(source, content_type)
+		source = SourceProxy(source, filename, content_type)
 	return source
 
 def read_multipart_sources(submission, request):
@@ -76,6 +83,8 @@ def read_multipart_sources(submission, request):
 				part.data = source.read()
 				if not part.contentType and source.contentType:
 					part.contentType = source.contentType
+				if not part.filename and source.filename:
+					part.filename = nameFinder(source)
 	return submission
 
 def set_submission_lineage(submission):

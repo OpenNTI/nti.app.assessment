@@ -9,6 +9,9 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+import six
+from cStringIO import StringIO
+
 from zope import interface
 
 from ZODB.POSException import POSKeyError
@@ -17,6 +20,21 @@ from nti.assessment.interfaces import IQUploadedFile
 from nti.assessment.interfaces import IInternalUploadedFileRef
 
 from nti.externalization.externalization import to_external_ntiid_oid
+
+def get_source(values, *keys):
+	# check map
+	source = None
+	for key in keys:
+		source = values.get(key)
+		if source is not None:
+			break
+	if isinstance(source, six.string_types):
+		source = StringIO(source)
+		source.seek(0)
+	elif source is not None:
+		source = source.file
+		source.seek(0)
+	return source
 
 def set_submission_lineage(submission):
 	## The constituent parts of these things need parents as well.

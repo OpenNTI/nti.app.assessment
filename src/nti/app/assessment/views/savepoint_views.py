@@ -24,6 +24,9 @@ from nti.assessment.interfaces import IQAssignmentSubmission
 
 from nti.dataserver import authorization as nauth
 
+from nti.utils.maps import CaseInsensitiveDict
+
+from .._submission import get_source
 from .._utils import find_course_for_assignment
 
 from ..interfaces import IUsersCourseAssignmentSavepoint
@@ -58,7 +61,15 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 		except RequiredMissing:
 			raise hexc.HTTPForbidden("Must be enrolled in a course.")
 		
-		submission = self.readCreateUpdateContentObject(creator)
+		if not self.request.POST:
+			submission = self.readCreateUpdateContentObject(creator)
+		else:
+			values = CaseInsensitiveDict(self.request.POST)
+			extValue = get_source(values, 'json', 'input', 'submission')
+			if not extValue:
+				raise hexc.HTTPUnprocessableEntity("No submission source was specified")
+			extValue = extValue.read()
+			submission = self.readCreateUpdateContentObject(creator, externalValue=extValue)
 			
 		savepoint = component.getMultiAdapter( (course, submission.creator),
 												IUsersCourseAssignmentSavepoint)

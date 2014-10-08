@@ -56,8 +56,8 @@ from nti.utils.property import alias
 
 from nti.wref.interfaces import IWeakRef
 
-from ._utils import set_submission_lineage
-from ._utils import transfer_upload_ownership
+from ._submission import set_submission_lineage
+from ._submission import transfer_upload_ownership
 
 from .decorators import _get_course_from_assignment
 from .decorators import _AbstractTraversableLinkDecorator

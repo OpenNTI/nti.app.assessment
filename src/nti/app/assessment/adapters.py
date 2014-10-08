@@ -108,8 +108,8 @@ def _check_submission_before(dates, assignment):
 			ex.value = available_beginning
 			raise ex
 
-from ._utils import set_submission_lineage
 from ._utils import find_course_for_assignment
+from ._submission import set_submission_lineage
 
 @component.adapter(asm_interfaces.IQAssignmentSubmission)
 @interface.implementer(asm_interfaces.IQAssignmentSubmissionPendingAssessment)

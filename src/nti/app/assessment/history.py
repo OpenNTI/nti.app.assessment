@@ -52,7 +52,7 @@ from nti.wref.interfaces import IWeakRef
 from nti.zodb.minmax import NumericMaximum
 from nti.zodb.minmax import NumericPropertyDefaultingToZero
 
-from ._utils import set_submission_lineage
+from ._submission import set_submission_lineage
 
 from .feedback import UsersCourseAssignmentHistoryItemFeedbackContainer
 

@@ -83,9 +83,9 @@ class TestAssignmentPolicyExtractor(AssessmentLayerTest):
 		json_bucket = json_key.__parent__ = FilesystemBucket()
 		json_bucket.absolute_path = dir_name
 
-		from ..assignment_policy_extractor import _merge_disk
-		from ..assignment_policy_extractor import _load_assignments
-		from ..assignment_policy_extractor import _asg_registry_to_course_data
+		from ..task_policy_extractor import _merge_disk
+		from ..task_policy_extractor import _load_assignments
+		from ..task_policy_extractor import _asg_registry_to_course_data
 
 		registry = _load_assignments(json_string, json_key)
 

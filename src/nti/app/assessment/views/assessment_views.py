@@ -13,7 +13,6 @@ logger = __import__('logging').getLogger(__name__)
 
 from zope import component
 from zope.location.interfaces import LocationError
-from zope.schema.interfaces import RequiredMissing
 
 from numbers import Number
 from datetime import datetime
@@ -157,11 +156,9 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 
 	def _do_call(self):
 		creator = self.remoteUser
-		try:
-			course = find_course_for_assignment(self.context, creator)
-			if course is None:
-				raise hexc.HTTPForbidden("Must be enrolled in a course.")
-		except RequiredMissing:
+		course = component.queryMultiAdapter( (self.context, creator),
+											  ICourseInstance)
+		if course is None:
 			raise hexc.HTTPForbidden("Must be enrolled in a course.")
 
 		if not self.request.POST:

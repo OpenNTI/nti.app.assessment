@@ -20,6 +20,7 @@ from pyramid import httpexceptions as hexc
 
 from ZODB.POSException import POSKeyError
 
+from nti.assessment.interfaces import IQResponse
 from nti.assessment.interfaces import IQUploadedFile
 from nti.assessment.interfaces import IInternalUploadedFileRef
 
@@ -27,6 +28,11 @@ from nti.externalization.externalization import to_external_ntiid_oid
 
 from nti.utils.maps import CaseInsensitiveDict
 
+def value_part(part):
+	if IQResponse.providedBy(part):
+		part = part.value
+	return part
+			
 class SourceProxy(ProxyBase):
 	
 	contentType = property(
@@ -69,6 +75,7 @@ def read_multipart_sources(submission, request):
 	for question_set in submission.parts:
 		for question in question_set.questions:
 			for part in question.parts:
+				part = value_part(part)							
 				if not IQUploadedFile.providedBy(part) or part.size > 0:
 					continue
 				if not part.name:
@@ -134,9 +141,11 @@ def transfer_upload_ownership(submission, old_submission, force=False):
 				if old_question is None:
 					continue
 				for idx, part in enumerate(question.parts):
+					part = value_part(part)
 					# check there is a part
 					try:
 						old_part = old_question[idx]
+						old_part = value_part(old_part)
 					except IndexError:
 						break
 				

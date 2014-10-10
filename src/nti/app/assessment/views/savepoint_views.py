@@ -25,6 +25,7 @@ from nti.assessment.interfaces import IQAssignmentSubmission
 from nti.dataserver import authorization as nauth
 
 from .._submission import get_source
+from .._submission import check_upload_files
 from .._submission import read_multipart_sources
 
 from .._utils import find_course_for_assignment
@@ -63,6 +64,7 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 		
 		if not self.request.POST:
 			submission = self.readCreateUpdateContentObject(creator)
+			check_upload_files(submission)
 		else:
 			extValue = get_source(self.request, 'json', 'input', 'submission')
 			if not extValue:

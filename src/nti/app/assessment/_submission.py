@@ -10,16 +10,21 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 import six
+import sys
 from cStringIO import StringIO
 
+from zope import component
 from zope import interface
 from zope.proxy import ProxyBase
 from zope.file.upload import nameFinder
+from zope.schema.interfaces import ConstraintNotSatisfied
 
 from pyramid import httpexceptions as hexc
 
 from ZODB.POSException import POSKeyError
 
+from nti.assessment.interfaces import IQuestion
+from nti.assessment.interfaces import IQFilePart
 from nti.assessment.interfaces import IQResponse
 from nti.assessment.interfaces import IQUploadedFile
 from nti.assessment.interfaces import IInternalUploadedFileRef
@@ -32,7 +37,31 @@ def value_part(part):
 	if IQResponse.providedBy(part):
 		part = part.value
 	return part
-			
+		
+def check_max_size(part, max_file_size=None):
+	size = part.size
+	max_file_size = max_file_size or sys.maxint
+	if size > max_file_size:
+		raise ConstraintNotSatisfied(size, 'max_file_size')
+	return part
+	
+def check_upload_files(submission):
+	for question_set in submission.parts:
+		for sub_question in question_set.questions:
+			question = component.getUtility(IQuestion, sub_question.questionId)
+			for part, sub_part in zip(question.parts, sub_question.parts):
+				sub_part = value_part(sub_part)							
+				if not IQUploadedFile.providedBy(sub_part):
+					continue
+	
+				if not IQFilePart.providedBy(part):
+					msg = 'Invalid submission. Expected a IQFilePart, instead it found %s' % part
+					raise hexc.HTTPUnprocessableEntity(msg)
+				
+				max_size = part.max_file_size
+				check_max_size(sub_part, max_size)
+	return submission
+
 class SourceProxy(ProxyBase):
 	
 	contentType = property(
@@ -73,24 +102,36 @@ def get_source(request, *keys):
 
 def read_multipart_sources(submission, request):
 	for question_set in submission.parts:
-		for question in question_set.questions:
-			for part in question.parts:
-				part = value_part(part)							
-				if not IQUploadedFile.providedBy(part) or part.size > 0:
+		for sub_question in question_set.questions:
+			question = component.getUtility(IQuestion, sub_question.questionId)
+			for part, sub_part in zip(question.parts, sub_question.parts):
+				sub_part = value_part(sub_part)							
+				if not IQUploadedFile.providedBy(sub_part):
 					continue
-				if not part.name:
+	
+				if not IQFilePart.providedBy(part):
+					msg = 'Invalid submission. Expected a IQFilePart, instead it found %s' % part
+					raise hexc.HTTPUnprocessableEntity(msg)
+				
+				max_size = part.max_file_size
+				if sub_part.size > 0:
+					check_max_size(sub_part, max_size)
+				
+				if not sub_part.name:
 					msg = 'No name was given to uploded file'
 					raise hexc.HTTPUnprocessableEntity(msg)
-				source = get_source(request, part.name)
+				source = get_source(request, sub_part.name)
 				if source is None:
-					msg = 'Could not find data for file %s' % part.name
+					msg = 'Could not find data for file %s' % sub_part.name
 					raise hexc.HTTPUnprocessableEntity(msg)
+				
 				## copy data
-				part.data = source.read()
-				if not part.contentType and source.contentType:
-					part.contentType = source.contentType
-				if not part.filename and source.filename:
-					part.filename = nameFinder(source)
+				sub_part.data = source.read()
+				check_max_size(sub_part, max_size)
+				if not sub_part.contentType and source.contentType:
+					sub_part.contentType = source.contentType
+				if not sub_part.filename and source.filename:
+					sub_part.filename = nameFinder(source)
 	return submission
 
 def set_submission_lineage(submission):
@@ -148,7 +189,6 @@ def transfer_upload_ownership(submission, old_submission, force=False):
 						old_part = value_part(old_part)
 					except IndexError:
 						break
-				
 					# check if the uploaded file has been internalized empty 
 					# this is tightly coupled w/ the way IQUploadedFile are updated.
 					if IQUploadedFile.providedBy(old_part) and _is_internal(part):

@@ -16,11 +16,11 @@ from urllib import unquote
 from zope import component
 from zope.component import hooks
 
-from nti.app.assessment._utils import transfer_upload_ownership
-from nti.app.assessment._utils import find_course_for_assignment
-
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
+
+from nti.app.assessment._utils import find_course_for_assignment
+from nti.app.assessment._submission import transfer_upload_ownership
 
 from nti.assessment.interfaces import IQAssignment
 

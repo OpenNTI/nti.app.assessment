@@ -374,9 +374,9 @@ class _PackageCacheEntry(object):
 		self.lastModified = lastModified
 
 	def get_assessments(self, package):
-		if self.assessments is None or self.lastModified != package.lastModified:
-			self.assessments = get_content_packages_assessments(package)
-			self.lastModified =  package.lastModified
+		#if self.assessments is None or self.lastModified != package.lastModified:
+		self.assessments = get_content_packages_assessments(package)
+		#	self.lastModified =  package.lastModified
 		return self.assessments
 			
 @component.adapter(ICourseInstance)

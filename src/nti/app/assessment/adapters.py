@@ -350,8 +350,9 @@ from nti.assessment.interfaces import IQAssessmentItemContainer
 from .interfaces import ICourseAssignmentCatalog
 from .interfaces import ICourseAssessmentItemCatalog
 
+from ._utils import iface_of_assessment
 from ._utils import AssessmentItemProxy as _QProxy
-		
+
 def get_content_packages_assessments(package):
 	result = []
 	def _recur(unit):
@@ -374,9 +375,10 @@ class _PackageCacheEntry(object):
 		self.lastModified = lastModified
 
 	def get_assessments(self, package):
-		#if self.assessments is None or self.lastModified != package.lastModified:
-		self.assessments = get_content_packages_assessments(package)
-		#	self.lastModified =  package.lastModified
+		if self.assessments is None or self.lastModified != package.lastModified:
+			assessments = get_content_packages_assessments(package)
+			self.assessments = [ (iface_of_assessment(a), a.ntiid) for a in assessments ]
+			self.lastModified =  package.lastModified
 		return self.assessments
 			
 @component.adapter(ICourseInstance)
@@ -418,14 +420,16 @@ class _DefaultCourseAssessmentItemCatalog(object):
 			# Ok, the old legacy case
 			packages = (self.context.legacy_content_package,)
 
-		result = None if len(packages) <= 1 else list()
+		assessments = None if len(packages) <= 1 else list()
 		for package in packages:
-			assessments = self._get_cached_assessments(package)
-			if result is None:
-				result = assessments
+			cached = self._get_cached_assessments(package)
+			if assessments is None:
+				assessments = cached
 			else:
-				result.extend(assessments)
-		return result or ()
+				assessments.extend(cached)
+
+		result = [component.getUtility(t[0], t[1]) for t in assessments or ()]
+		return result
 
 @interface.implementer(ICourseAssignmentCatalog)
 @component.adapter(ICourseInstance)

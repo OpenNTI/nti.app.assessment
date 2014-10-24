@@ -23,7 +23,9 @@ from zope.securitypolicy.interfaces import IPrincipalRoleMap
 
 from nti.appserver.pyramid_authorization import has_permission
 
+from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQFilePart
+from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.interfaces import IQAssessmentItemContainer
@@ -237,3 +239,11 @@ class AssessmentItemProxy(ProxyBase):
 	def __init__(self, base, ntiid):
 		ProxyBase.__init__(self, base)
 		self.CatalogEntryNTIID = ntiid
+
+def iface_of_assessment(thing):
+	iface = IQuestion
+	if IQuestionSet.providedBy(thing):
+		iface = IQuestionSet
+	elif IQAssignment.providedBy(thing):
+		iface = IQAssignment
+	return iface

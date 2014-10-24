@@ -43,6 +43,8 @@ from nti.externalization.persistence import NoPickle
 
 from nti.dublincore.time_mixins import PersistentCreatedAndModifiedTimeObject
 
+from ._utils import iface_of_assessment
+
 def _ntiid_object_hook( k, v, x ):
 	"""
 	In this one, rare, case, we are reading things from external
@@ -88,13 +90,7 @@ def ContentUnitAssessmentItems(unit):
 		# But leave last modified as zero
 		return result
 
-def _iface_to_register(thing_to_register):
-	iface = IQuestion
-	if IQuestionSet.providedBy(thing_to_register):
-		iface = IQuestionSet
-	elif IQAssignment.providedBy(thing_to_register):
-		iface = IQAssignment
-	return iface
+_iface_to_register = iface_of_assessment # BWC
 
 @NoPickle
 class QuestionMap(object):

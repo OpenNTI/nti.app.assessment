@@ -387,10 +387,8 @@ class _DefaultCourseAssessmentItemCatalog(object):
 
 	max_cache_size = 10
 	
-	## CS: We cache the assessment items of a content pacakge
+	## CS: We cache the assessment item ntiids of a content pacakge
 	## we only keep the [max_cache_size] most used items. 
-	## We can cache this array itenms b/c they are registered and 
-	## read-only utilities
 	catalog_cache = LFUCache(maxsize=max_cache_size)
 	
 	def __init__(self, context):

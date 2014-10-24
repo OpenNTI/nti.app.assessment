@@ -376,6 +376,7 @@ class _PackageCacheEntry(object):
 
 	def get_assessments(self, package):
 		if self.assessments is None or self.lastModified != package.lastModified:
+			logger.debug("Caching assessment item ntiids for package %s", package.ntiid)
 			assessments = get_content_packages_assessments(package)
 			self.assessments = [ (iface_of_assessment(a), a.ntiid) for a in assessments ]
 			self.lastModified =  package.lastModified

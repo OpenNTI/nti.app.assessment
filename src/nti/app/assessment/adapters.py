@@ -12,6 +12,8 @@ logger = __import__('logging').getLogger(__name__)
 
 import datetime
 
+from brownie.caching import LFUCache
+
 from zope import interface
 from zope import component
 from zope import lifecycleevent
@@ -350,12 +352,55 @@ from .interfaces import ICourseAssessmentItemCatalog
 
 from ._utils import AssessmentItemProxy as _QProxy
 		
+def get_content_packages_assessments(package):
+	result = []
+	def _recur(unit):
+		items = IQAssessmentItemContainer(unit, ())
+		for item in items:
+			result.append(item)
+		for child in unit.children:
+			_recur(child)
+	_recur(package)
+	# On py3.3, can easily 'yield from' nested generators
+	return result
+
+class _PackageCacheEntry(object):
+	
+	__slots__ = ('ntiid', 'assessments', 'lastModified')
+	
+	def __init__(self , ntiid, lastModified=0):
+		self.ntiid = ntiid
+		self.assessments = None
+		self.lastModified = lastModified
+
+	def get_assessments(self, package):
+		if self.assessments is None or self.lastModified != package.lastModified:
+			self.assessments = get_content_packages_assessments(package)
+			self.lastModified =  package.lastModified
+		return self.assessments
+			
 @component.adapter(ICourseInstance)
 @interface.implementer(ICourseAssessmentItemCatalog)
 class _DefaultCourseAssessmentItemCatalog(object):
 
+	max_cache_size = 10
+	
+	## CS: We cache the assessment items of a content pacakge
+	## we only keep the [max_cache_size] most used items. 
+	## We can cache this array itenms b/c they are registered and 
+	## read-only utilities
+	catalog_cache = LFUCache(maxsize=max_cache_size)
+	
 	def __init__(self, context):
 		self.context = context
+
+	@classmethod
+	def _get_cached_assessments(cls, package):
+		ntiid = package.ntiid
+		entry = cls.catalog_cache.get(ntiid)
+		if entry is None:
+			entry = cls.catalog_cache[ntiid] = _PackageCacheEntry(ntiid)
+		return entry.get_assessments(package)
 
 	def iter_assessment_items(self):		
 		# We have now a specific interface for courses that
@@ -373,19 +418,14 @@ class _DefaultCourseAssessmentItemCatalog(object):
 			# Ok, the old legacy case
 			packages = (self.context.legacy_content_package,)
 
-		result = []
-		def _recur(unit):
-			items = IQAssessmentItemContainer(unit, ())
-			for item in items:
-				result.append(item)
-			for child in unit.children:
-				_recur(child)
-
+		result = None if len(packages) <= 1 else list()
 		for package in packages:
-			_recur(package)
-
-		# On py3.3, can easily 'yield from' nested generators
-		return result
+			assessments = self._get_cached_assessments(package)
+			if result is None:
+				result = assessments
+			else:
+				result.extend(assessments)
+		return result or ()
 
 @interface.implementer(ICourseAssignmentCatalog)
 @component.adapter(ICourseInstance)

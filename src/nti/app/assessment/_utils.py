@@ -17,9 +17,8 @@ from zope import component
 from zope import interface
 from zope.schema.interfaces import RequiredMissing
 
-from zope.security.interfaces import IPrincipal
-from zope.securitypolicy.interfaces import Allow
-from zope.securitypolicy.interfaces import IPrincipalRoleMap
+from nti.app.products.courseware.utils import is_enrolled
+from nti.app.products.courseware.utils import is_course_instructor
 
 from nti.appserver.pyramid_authorization import has_permission
 
@@ -33,14 +32,15 @@ from nti.assessment.randomized import questionbank_question_chooser
 
 from nti.contentlibrary.interfaces import IContentPackage
 
-from nti.contenttypes.courses.interfaces import RID_TA
-from nti.contenttypes.courses.interfaces import RID_INSTRUCTOR
 from nti.contenttypes.courses.interfaces import ICourseInstance
-from nti.contenttypes.courses.interfaces import ICourseEnrollments
 
 from nti.dataserver.traversal import find_interface
 
 from .interfaces import ACT_DOWNLOAD_GRADES
+
+# rexport 
+is_enrolled = is_enrolled
+is_course_instructor = is_course_instructor
 
 _r47694_map = None
 def r47694():
@@ -65,19 +65,6 @@ def has_question_bank(a):
 			if IQuestionBank.providedBy(part.question_set):
 				return True
 	return False
-
-def is_course_instructor(course, user):
-	prin = IPrincipal(user)
-	roles = IPrincipalRoleMap(course, None)
-	if not roles:
-		return False
-	return Allow in (roles.getSetting(RID_TA, prin.id),
-					 roles.getSetting(RID_INSTRUCTOR, prin.id))
-			
-def is_enrolled(course, user):
-	enrollments = ICourseEnrollments(course)
-	record = enrollments.get_enrollment_for_principal(user)
-	return record is not None
 		
 def same_content_unit_file(unit1, unit2):
 	try:

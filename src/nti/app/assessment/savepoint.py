@@ -120,11 +120,11 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 			return
 		item = self[submission.assignmentId]
 		transfer_upload_ownership(submission, item.Submission)
-		
 		if event:
 			del self[submission.assignmentId]
 		else:
-			self._delitemf(submission.assignmentId)
+			self._delitemf(submission.assignmentId, event=False)
+			locate(item, None, None)
 		
 	def _append(self, key, item, event=False):
 		if CheckingLastModifiedBTreeContainer.__contains__(self, key):

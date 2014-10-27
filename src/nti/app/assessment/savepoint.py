@@ -124,7 +124,7 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 		if event:
 			del self[submission.assignmentId]
 		else:
-			self._delitemf(submission.assignmentId, event=False)
+			self._delitemf(submission.assignmentId)
 		
 	def _append(self, key, item, event=False):
 		if CheckingLastModifiedBTreeContainer.__contains__(self, key):

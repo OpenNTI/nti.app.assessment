@@ -89,7 +89,7 @@ class RemovedMatchedSavePointsView(	AbstractAuthenticatedView,
 					continue
 				for assignmentId in history.keys():
 					if assignmentId in savepoint:
-						del savepoint[assignmentId]
+						self._delitemf(assignmentId, event=False)
 						items = result.setdefault(principal.username, [])
 						items.append(assignmentId)
 		return result

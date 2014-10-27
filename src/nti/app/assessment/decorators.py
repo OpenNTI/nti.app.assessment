@@ -145,6 +145,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 		if result:
 			ext_items = to_external_object(result)
 			result_map['AssessmentItems'] = ext_items
+			result_map['TotalAssessments'] = len(result)
 
 @component.adapter(IQAssessedPart)
 class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):

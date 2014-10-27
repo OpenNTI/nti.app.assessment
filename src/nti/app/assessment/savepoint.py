@@ -124,8 +124,7 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 		if event:
 			del self[submission.assignmentId]
 		else:
-			self._delitemf(submission.assignmentId)
-			locate(item, None, None)
+			self._delitemf(submission.assignmentId, event=False)
 		
 	def _append(self, key, item, event=False):
 		if CheckingLastModifiedBTreeContainer.__contains__(self, key):
@@ -144,6 +143,7 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 	def __conform__(self, iface):
 		if IUser.isOrExtends(iface):
 			return self.owner
+
 		if ICourseInstance.isOrExtends(iface):
 			return self.__parent__
 

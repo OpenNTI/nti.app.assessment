@@ -167,7 +167,8 @@ def _begin_assessment_for_assignment_submission(submission):
 	# as-they-are
 	new_parts = PersistentList()
 	for submission_part in submission.parts:
-		assignment_part, = [p for p in assignment.parts if p.question_set.ntiid == submission_part.questionSetId]
+		assignment_part, = [p for p in assignment.parts \
+							if p.question_set.ntiid == submission_part.questionSetId]
 		if assignment_part.auto_grade:
 			__traceback_info__ = submission_part
 			submission_part = asm_interfaces.IQAssessedQuestionSet(submission_part)
@@ -319,8 +320,9 @@ def _course_from_history_item_lineage(item):
 	return course
 
 from zope.location.interfaces import LocationError
-from nti.dataserver.traversal import ContainerAdapterTraversable
+
 from nti.dataserver.users import User
+from nti.dataserver.traversal import ContainerAdapterTraversable
 
 from .interfaces import IUsersCourseAssignmentHistories
 
@@ -378,7 +380,7 @@ class _PackageCacheEntry(object):
 		if self.assessments is None or self.lastModified != package.lastModified:
 			logger.debug("Caching assessment item ntiids for package %s", package.ntiid)
 			assessments = get_content_packages_assessments(package)
-			self.assessments = [ (iface_of_assessment(a), a.ntiid) for a in assessments ]
+			self.assessments = ( (iface_of_assessment(a), a.ntiid) for a in assessments )
 			self.lastModified =  package.lastModified
 		return self.assessments
 			
@@ -386,23 +388,16 @@ class _PackageCacheEntry(object):
 @interface.implementer(ICourseAssessmentItemCatalog)
 class _DefaultCourseAssessmentItemCatalog(object):
 
-	max_cache_size = 10
-	
-	## CS: We cache the assessment item ntiids of a content pacakge
-	## we only keep the [max_cache_size] most used items. 
-	catalog_cache = LFUCache(maxsize=max_cache_size)
-	
 	def __init__(self, context):
 		self.context = context
 
-	@classmethod
-	def _get_cached_assessments(cls, package):
-		ntiid = package.ntiid
-		entry = cls.catalog_cache.get(ntiid)
-		if entry is None:
-			entry = cls.catalog_cache[ntiid] = _PackageCacheEntry(ntiid)
-		return entry.get_assessments(package)
+	def _get_cached_assessments(self, package):
+		result = get_content_packages_assessments(package)
+		return result
 
+	def _iter_items(self, assessments):
+		return assessments or ()
+	
 	def iter_assessment_items(self):		
 		# We have now a specific interface for courses that
 		# are tied to content: IContentCourseInstance; they have
@@ -427,9 +422,28 @@ class _DefaultCourseAssessmentItemCatalog(object):
 			else:
 				assessments.extend(cached)
 
-		result = [component.getUtility(t[0], t[1]) for t in assessments or ()]
+		result = self._iter_items(assessments)
 		return result
 
+class _CachingCourseAssessmentItemCatalog(_DefaultCourseAssessmentItemCatalog):
+
+	max_cache_size = 10
+	
+	## CS: We cache the assessment item ntiids of a content pacakge
+	## we only keep the [max_cache_size] most used items. 
+	catalog_cache = LFUCache(maxsize=max_cache_size)
+	
+	def _get_cached_assessments(self, package):
+		ntiid = package.ntiid
+		entry = self.catalog_cache.get(ntiid)
+		if entry is None:
+			entry = self.catalog_cache[ntiid] = _PackageCacheEntry(ntiid)
+		return entry.get_assessments(package)
+
+	def _iter_items(self, assessments):
+		result = (component.getUtility(t[0], t[1]) for t in assessments or ())
+		return result
+	
 @interface.implementer(ICourseAssignmentCatalog)
 @component.adapter(ICourseInstance)
 class _DefaultCourseAssignmentCatalog(object):

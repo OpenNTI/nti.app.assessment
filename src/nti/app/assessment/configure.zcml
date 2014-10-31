@@ -28,7 +28,7 @@
 			 provides="zope.generations.interfaces.IInstallableSchemaManager" />
 
 	<!-- Roles and permissions -->
-	
+
 	<include package="zope.securitypolicy" file="meta.zcml" />
 	<include package="zope.security" file="meta.zcml" />
 
@@ -204,7 +204,7 @@
 				for="nti.dataserver.interfaces.IUser
 					 nti.contenttypes.courses.interfaces.ICourseInstance"
 				zcml:condition="not-have assignments_for_everyone"/>
-				
+
 	<subscriber factory=".assignment_filters.AssignmentPolicyExclusionFilter"
 				provides=".interfaces.ICourseAssignmentUserFilter"
 				for="nti.dataserver.interfaces.IUser
@@ -261,7 +261,7 @@
 			 name="AssignmentHistories" />
 
 	<adapter factory=".adapters._UsersCourseAssignmentHistoriesTraversable" />
-	
+
 	<!-- Contentsearch -->
 	<utility factory=".content_search._assignmentfeedbackitem_metadata" name="assignmentfeedback" />
 
@@ -276,14 +276,14 @@
 	<subscriber factory="nti.contentsearch.decorators.SearchHitHighlightDecorator"
 				for=".content_search.IAssignmentFeedbackItemSearchHit"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"/>
-				
+
 	<subscriber factory=".content_search._AssignmentFeedbackItemSearchHitPredicate"
 				provides="nti.contentsearch.interfaces.ISearchHitPredicate"
 				for=".interfaces.ICreated" />
 
 	<!-- Views -->
 	<include package=".views" />
-	
+
 	<!-- Savepoints -->
 	<adapter factory=".savepoint._savepoints_for_course_path_adapter"
 			 for="nti.contenttypes.courses.interfaces.ICourseInstance pyramid.interfaces.IRequest"
@@ -298,33 +298,38 @@
 	<adapter factory=".savepoint._savepoint_for_user_in_course" />
 	<adapter factory=".savepoint._course_from_savepoint_lineage" />
 	<adapter factory=".savepoint._UsersCourseAssignmentSavepointsTraversable" />
-	
+
 	<subscriber handler=".savepoint._on_course_added" />
 	<subscriber handler=".savepoint._on_assignment_history_item_deleted" />
-	
+
 	<subscriber factory=".savepoint._AssignmentSavepointDecorator"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.assessment.interfaces.IQAssignment
 					 pyramid.interfaces.IRequest" />
-					 
+
 	<subscriber factory=".savepoint._AssignmentSavepointsDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.contenttypes.courses.interfaces.ICourseInstance
 					 pyramid.interfaces.IRequest" />
-				 
+
 	<subscriber factory=".savepoint._AssignmentSavepointsDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.app.products.courseware.interfaces.ICourseInstanceEnrollment
 					 pyramid.interfaces.IRequest" />
-	
+
 	<subscriber factory=".savepoint._AssignmentSavepointItemDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for=".interfaces.IUsersCourseAssignmentSavepointItem
 					 pyramid.interfaces.IRequest" />
-					 
+
 	<ext:registerAutoPackageIO
 		root_interfaces=".interfaces.IUsersCourseAssignmentSavepoint
 						 .interfaces.IUsersCourseAssignmentSavepointItem"
 		modules=".savepoint" />
+
+	<!-- Notables -->
+	<subscriber factory=".notables.AssignmentFeedbackNotableFilter"
+				provides="nti.dataserver.interfaces.INotableFilter"
+				for="*" />
 
 </configure>

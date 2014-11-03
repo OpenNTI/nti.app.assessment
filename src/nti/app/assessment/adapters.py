@@ -380,7 +380,7 @@ class _PackageCacheEntry(object):
 		if self.assessments is None or self.lastModified != package.lastModified:
 			logger.debug("Caching assessment item ntiids for package %s", package.ntiid)
 			assessments = get_content_packages_assessments(package)
-			self.assessments = ( (iface_of_assessment(a), a.ntiid) for a in assessments )
+			self.assessments = tuple((iface_of_assessment(a), a.ntiid) for a in assessments)
 			self.lastModified =  package.lastModified
 		return self.assessments
 			
@@ -391,7 +391,7 @@ class _DefaultCourseAssessmentItemCatalog(object):
 	def __init__(self, context):
 		self.context = context
 
-	def _get_cached_assessments(self, package):
+	def _get_assessments(self, package):
 		result = get_content_packages_assessments(package)
 		return result
 
@@ -416,24 +416,24 @@ class _DefaultCourseAssessmentItemCatalog(object):
 
 		assessments = None if len(packages) <= 1 else list()
 		for package in packages:
-			cached = self._get_cached_assessments(package)
+			iterable = self._get_assessments(package)
 			if assessments is None:
-				assessments = cached
+				assessments = iterable
 			else:
-				assessments.extend(cached)
+				assessments.extend(iterable)
 
 		result = self._iter_items(assessments)
 		return result
-
+	
 class _CachingCourseAssessmentItemCatalog(_DefaultCourseAssessmentItemCatalog):
 
 	max_cache_size = 10
-	
+		
 	## CS: We cache the assessment item ntiids of a content pacakge
 	## we only keep the [max_cache_size] most used items. 
 	catalog_cache = LFUCache(maxsize=max_cache_size)
 	
-	def _get_cached_assessments(self, package):
+	def _get_assessments(self, package):
 		ntiid = package.ntiid
 		entry = self.catalog_cache.get(ntiid)
 		if entry is None:
@@ -441,7 +441,7 @@ class _CachingCourseAssessmentItemCatalog(_DefaultCourseAssessmentItemCatalog):
 		return entry.get_assessments(package)
 
 	def _iter_items(self, assessments):
-		result = (component.getUtility(t[0], t[1]) for t in assessments or ())
+		result = tuple(component.getUtility(t[0], t[1]) for t in assessments or ())
 		return result
 	
 @interface.implementer(ICourseAssignmentCatalog)
@@ -455,5 +455,5 @@ class _DefaultCourseAssignmentCatalog(object):
 	def iter_assignments(self):
 		ntiid = getattr(self.catalog_entry, 'ntiid', None)
 		items = ICourseAssessmentItemCatalog(self.context).iter_assessment_items()
-		result = (_QProxy(x, ntiid) for x in items if IQAssignment.providedBy(x))
+		result = tuple(_QProxy(x, ntiid) for x in items if IQAssignment.providedBy(x))
 		return result

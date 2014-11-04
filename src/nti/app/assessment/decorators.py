@@ -20,6 +20,9 @@ from zope.location.interfaces import ILocationInfo
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
+from nti.app.products.courseware.utils import is_enrolled
+from nti.app.products.courseware.utils import is_course_instructor
+
 from nti.appserver import interfaces as app_interfaces
 
 from nti.assessment import grader_for_response
@@ -46,13 +49,12 @@ from nti.externalization.interfaces import IExternalMappingDecorator
 from nti.ntiids.ntiids import is_valid_ntiid_string
 from nti.ntiids.ntiids import find_object_with_ntiid
 
-from ._utils import is_enrolled
 from ._utils import check_assessment
 from ._utils import copy_questionset
 from ._utils import copy_questionbank
-from ._utils import is_course_instructor
-from ._utils import get_assessment_items_from_unit
 from ._utils import AssessmentItemProxy as AssignmentProxy
+
+from .common import get_assessment_items_from_unit
 
 from .interfaces import IUsersCourseAssignmentHistory
 from .interfaces import get_course_assignment_predicate_for_user

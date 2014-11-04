@@ -76,7 +76,6 @@ def prevent_note_on_assignment_part(note, event):
 
 	container_id = note.containerId
 
-
 	# Find an assignment or part of one
 	item = None
 	items = ()

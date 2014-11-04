@@ -13,12 +13,7 @@ import os
 import copy
 import simplejson
 
-from zope import component
 from zope import interface
-from zope.schema.interfaces import RequiredMissing
-
-from nti.app.products.courseware.utils import is_enrolled
-from nti.app.products.courseware.utils import is_course_instructor
 
 from nti.appserver.pyramid_authorization import has_permission
 
@@ -27,20 +22,11 @@ from nti.assessment.interfaces import IQFilePart
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.randomized.interfaces import IQuestionBank
-from nti.assessment.interfaces import IQAssessmentItemContainer
 from nti.assessment.randomized import questionbank_question_chooser
-
-from nti.contentlibrary.interfaces import IContentPackage
-
-from nti.contenttypes.courses.interfaces import ICourseInstance
-
-from nti.dataserver.traversal import find_interface
 
 from .interfaces import ACT_DOWNLOAD_GRADES
 
-# rexport 
-is_enrolled = is_enrolled
-is_course_instructor = is_course_instructor
+from .common import find_course_for_assignment
 
 _r47694_map = None
 def r47694():
@@ -58,37 +44,6 @@ def r47694():
 		with open(path, "r") as fp:
 			_r47694_map = simplejson.load(fp)
 	return _r47694_map
-
-def has_question_bank(a):
-	if IQAssignment.providedBy(a):
-		for part in a.parts:
-			if IQuestionBank.providedBy(part.question_set):
-				return True
-	return False
-		
-def same_content_unit_file(unit1, unit2):
-	try:
-		return unit1.filename.split('#',1)[0] == unit2.filename.split('#',1)[0]
-	except (AttributeError, IndexError):
-		return False
-	
-def get_assessment_items_from_unit(contentUnit):
-	
-	def recur(unit, accum):
-		if same_content_unit_file(unit, contentUnit):
-			try:
-				qs = IQAssessmentItemContainer(unit, ())
-			except TypeError:
-				qs = ()
-
-			accum.update( {q.ntiid: q for q in qs} )
-
-			for child in unit.children:
-				recur( child, accum )
-	
-	result = dict()
-	recur(contentUnit, result )
-	return result
 		
 def make_nonrandomized(context):
 	iface = getattr(context, 'nonrandomized_interface', None)
@@ -108,6 +63,13 @@ def sublocations(context):
 	if hasattr(context, 'sublocations'):
 		tuple(context.sublocations())
 	return context
+
+def has_question_bank(a):
+	if IQAssignment.providedBy(a):
+		for part in a.parts:
+			if IQuestionBank.providedBy(part.question_set):
+				return True
+	return False
 
 def copy_part(part, nonrandomized=False, sha224randomized=False):
 	result = copy.copy(part)
@@ -172,27 +134,6 @@ def check_assessment(assessment, user=None, is_instructor=False):
 			for part in result.parts:
 				make_sha224randomized(part.question_set)
 	return result
-
-def find_course_for_assignment(assignment, user, exc=True):
-	# Check that they're enrolled in the course that has the assignment
-	course = component.queryMultiAdapter( (assignment, user),
-										  ICourseInstance)
-	if course is None:
-		# For BWC, we also check to see if we can just get
-		# one based on the content package of the assignment, not
-		# checking enrollment.
-		# TODO: Drop this
-		course = ICourseInstance( find_interface(assignment, IContentPackage, strict=False),
-								  None)
-		if course is not None:
-			logger.warning("No enrollment found, assuming generic course. Tests only?")
-
-	# If one does not exist, we cannot grade because we have nowhere
-	# to dispatch to.
-	if course is None and exc:
-		raise RequiredMissing("Course cannot be found")
-
-	return course
 
 def assignment_download_precondition(context, request, remoteUser):
 	username = request.authenticated_userid

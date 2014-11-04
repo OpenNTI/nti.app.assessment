@@ -11,26 +11,23 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 from zope import interface
-
+from zope.container.constraints import checkObject
+from zope.container.ordered import OrderedContainer
 from zope.annotation.interfaces import IAttributeAnnotatable
 
-from .interfaces import IUsersCourseAssignmentHistoryItemFeedbackContainer
-from .interfaces import IUsersCourseAssignmentHistoryItemFeedback
+from nti.dataserver.interfaces import IUser
+from nti.dataserver.contenttypes.note import BodyFieldProperty
 
 from nti.dataserver.datastructures import ContainedMixin
 from nti.dataserver.datastructures import PersistentCreatedModDateTrackingObject
-
-from nti.dataserver.contenttypes.note import BodyFieldProperty
-
-from zope.container.ordered import OrderedContainer
-from zope.container.constraints import checkObject
-
-from nti.dataserver.interfaces import IUser
 
 from nti.schema.field import SchemaConfigured
 from nti.schema.fieldproperty import AdaptingFieldProperty
 
 from nti.wref.interfaces import IWeakRef
+
+from .interfaces import IUsersCourseAssignmentHistoryItemFeedback
+from .interfaces import IUsersCourseAssignmentHistoryItemFeedbackContainer
 
 @interface.implementer(IUsersCourseAssignmentHistoryItemFeedback,
 					   IAttributeAnnotatable)
@@ -115,9 +112,9 @@ class UsersCourseAssignmentHistoryItemFeedbackContainer(PersistentCreatedModDate
 		# If the user is deleted, we won't be able to do this
 		return IUser(self.__parent__, None)
 
+from zope import component
 from zope.container.interfaces import IContainerModifiedEvent
 from zope.lifecycleevent.interfaces import IObjectModifiedEvent
-from zope import component
 
 @component.adapter(IUsersCourseAssignmentHistoryItemFeedbackContainer,
 				   IContainerModifiedEvent)

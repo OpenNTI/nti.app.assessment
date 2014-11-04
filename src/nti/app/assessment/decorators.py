@@ -158,7 +158,7 @@ class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		
 		# extra check 
 		uca_history = find_interface(context, IUsersCourseAssignmentHistory, strict=False) 
-		if uca_history is not None and uca_history.creator == self.remoteUser:
+		if uca_history is None and uca_history.creator == self.remoteUser:
 			return 
 		
 		# find question
@@ -208,7 +208,7 @@ class _QuestionSubmissionDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		
 		# extra check 
 		uca_history = find_interface(context, IUsersCourseAssignmentHistory, strict=False) 
-		if uca_history is not None and uca_history.creator == self.remoteUser:
+		if uca_history is None or uca_history.creator == self.remoteUser:
 			return 
 		
 		# find question
@@ -284,6 +284,7 @@ class _QAssessedQuestionExplanationSolutionAdder(object):
 			external_part['explanation'] = to_external_object(question_part.explanation)
 		
 LINKS = StandardExternalFields.LINKS
+
 from nti.dataserver.links import Link
 
 class _AbstractTraversableLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):

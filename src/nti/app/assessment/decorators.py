@@ -158,7 +158,7 @@ class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		
 		# extra check 
 		uca_history = find_interface(context, IUsersCourseAssignmentHistory, strict=False) 
-		if uca_history is None and uca_history.creator == self.remoteUser:
+		if uca_history is None or uca_history.creator == self.remoteUser:
 			return 
 		
 		# find question

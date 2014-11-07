@@ -492,30 +492,31 @@ class _AssignmentSectionOverrides(AbstractAuthenticatedRequestAwareDecorator):
 		if policy and 'maximum_time_allowed' in policy:
 			result['maximum_time_allowed' ] = policy['maximum_time_allowed']
 
+import repoze.lru
+
+@repoze.lru.lru_cache(500, timeout=3600)
+def _root_url(ntiid):
+	library = component.queryUtility(IContentPackageLibrary)
+	if ntiid and library is not None:
+		paths = library.pathToNTIID(ntiid)
+		package = paths[0] if paths else None
+		try:
+			result = root_url_of_unit(package) if package is not None else None
+			return result
+		except StandardError:
+			pass
+	return None
+
 class _AssignmentQuestionBucketRootAdder(AbstractAuthenticatedRequestAwareDecorator):
 	"""
 	When an assignment question is externalized, add the bucket root
 	"""
 	
-	@Lazy
-	def _library(self):
-		result = component.queryUtility(IContentPackageLibrary)
-		return result
-	
-	def _bucket_root(self, ntiid):
-		library = self._library
-		if ntiid and library is not None:
-			paths = library.pathToNTIID(ntiid)
-			package = paths[0] if paths else None
-			result = root_url_of_unit(package) if package is not None else None
-			return result
-		return None
-	
 	def _do_decorate_external(self, context, result):
 		if hasattr(context, 'ContentUnitNTIID'):
 			try:
 				ntiid = context.ContentUnitNTIID
-				bucket_root = self._bucket_root(ntiid)
+				bucket_root = _root_url(ntiid)
 				if bucket_root:
 					result['ContentRoot' ] = bucket_root
 			except StandardError:

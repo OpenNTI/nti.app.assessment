@@ -506,8 +506,9 @@ class _AssignmentQuestionBucketRootAdder(AbstractAuthenticatedRequestAwareDecora
 		if ntiid and library is not None:
 			paths = library.pathToNTIID(ntiid)
 			package = paths[0] if paths else None
-			bucket = package.root.bucket if package else None
-			return bucket.key if bucket is not None else None
+			root = getattr(package, 'root', None)
+			bucket = getattr(root, 'bucket', None)
+			return getattr(bucket, 'name', None)
 		return None
 	
 	def _do_decorate_external(self, context, result):

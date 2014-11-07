@@ -353,13 +353,14 @@ from .interfaces import ICourseAssignmentCatalog
 from .interfaces import ICourseAssessmentItemCatalog
 
 from ._utils import iface_of_assessment
-from ._utils import AssessmentItemProxy as _QProxy
+from ._utils import AssessmentItemProxy as _AIProxy
 
 def get_content_packages_assessments(package):
 	result = []
 	def _recur(unit):
 		items = IQAssessmentItemContainer(unit, ())
 		for item in items:
+			item = _AIProxy(item, content_unit=unit.ntiid)
 			result.append(item)
 		for child in unit.children:
 			_recur(child)
@@ -381,7 +382,7 @@ class _PackageCacheEntry(object):
 			logger.debug("Caching assessment item ntiids for package %s", package.ntiid)
 			assessments = get_content_packages_assessments(package)
 			self.assessments = tuple((iface_of_assessment(a), a.ntiid) for a in assessments)
-			self.lastModified =  package.lastModified
+			self.lastModified = package.lastModified
 		return self.assessments
 			
 @component.adapter(ICourseInstance)
@@ -452,8 +453,13 @@ class _DefaultCourseAssignmentCatalog(object):
 		self.context = context
 		self.catalog_entry = ICourseCatalogEntry(context, None)
 	
+	def _proxy(self, item, ntiid):
+		item = item if type(item) == _AIProxy else _AIProxy(item)
+		item.CatalogEntryNTIID = ntiid
+		return item
+	
 	def iter_assignments(self):
 		ntiid = getattr(self.catalog_entry, 'ntiid', None)
 		items = ICourseAssessmentItemCatalog(self.context).iter_assessment_items()
-		result = tuple(_QProxy(x, ntiid) for x in items if IQAssignment.providedBy(x))
+		result = tuple(self._proxy(x, ntiid) for x in items if IQAssignment.providedBy(x))
 		return result

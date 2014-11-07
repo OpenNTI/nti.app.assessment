@@ -157,16 +157,21 @@ from zope.proxy import ProxyBase
 
 class AssessmentItemProxy(ProxyBase):
 	
+	ContentUnitNTIID = property(
+					lambda s: s.__dict__.get('_v_content_unit'),
+					lambda s, v: s.__dict__.__setitem__('_v_content_unit', v))
+	
 	CatalogEntryNTIID = property(
-					lambda s: s.__dict__.get('_context'),
-					lambda s, v: s.__dict__.__setitem__('_context', v))
+					lambda s: s.__dict__.get('_v_catalog_entry'),
+					lambda s, v: s.__dict__.__setitem__('_v_catalog_entry', v))
 		
-	def __new__(cls, base, context):
+	def __new__(cls, base, *args, **kwargs):
 		return ProxyBase.__new__(cls, base)
 
-	def __init__(self, base, ntiid):
+	def __init__(self, base, content_unit=None, catalog_entry=None):
 		ProxyBase.__init__(self, base)
-		self.CatalogEntryNTIID = ntiid
+		self.ContentUnitNTIID = content_unit
+		self.CatalogEntryNTIID = catalog_entry
 
 def iface_of_assessment(thing):
 	iface = IQuestion

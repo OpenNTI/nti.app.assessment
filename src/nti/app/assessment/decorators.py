@@ -35,6 +35,8 @@ from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.randomized.interfaces import IQRandomizedPart
 from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
 
+from nti.contentlibrary.interfaces import IContentPackageLibrary
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 from nti.contenttypes.courses.interfaces import ICourseInstanceVendorInfo
@@ -48,6 +50,8 @@ from nti.externalization.interfaces import IExternalMappingDecorator
 
 from nti.ntiids.ntiids import is_valid_ntiid_string
 from nti.ntiids.ntiids import find_object_with_ntiid
+
+from nti.utils.property import Lazy
 
 from ._utils import check_assessment
 from ._utils import copy_questionset
@@ -438,20 +442,24 @@ from nti.contenttypes.courses.interfaces import ICourseCatalog
 
 from .interfaces import ACT_VIEW_SOLUTIONS
 
-def _get_course_from_assignment(assignment, user):
+def _get_course_from_assignment(assignment, user, catalog=None, registry=component):
 	## check if we have the context catalog entry we can use 
 	## as reference (.adapters._QProxy) this way
 	## instructor can find the correct course when they are looking
 	## at a section.
 	result = None
-	ntiid = getattr(assignment, 'CatalogEntryNTIID', None)
-	if ntiid:
-		catalog = component.getUtility(ICourseCatalog)
+	try:
+		ntiid = assignment.CatalogEntryNTIID
+		catalog = catalog if catalog is not None else registry.getUtility(ICourseCatalog)
 		try:
-			entry = catalog.getCatalogEntry(ntiid)
+			entry = catalog.getCatalogEntry(ntiid) if ntiid else None
 			result = ICourseInstance(entry, None)
 		except KeyError:
 			pass
+	except AttributeError:
+		pass
+
+	## could not find a course .. try adapter
 	if result is None:	
 		result = component.queryMultiAdapter((assignment, user), ICourseInstance)
 	return result
@@ -461,8 +469,13 @@ class _AssignmentSectionOverrides(AbstractAuthenticatedRequestAwareDecorator):
 	When an assignment is externalized, check for overrides
 	"""
 		
+	@Lazy
+	def _catalog(self):
+		result = component.getUtility(ICourseCatalog)
+		return result
+	
 	def _do_decorate_external(self, assignment, result):
-		course = _get_course_from_assignment(assignment, self.remoteUser)
+		course = _get_course_from_assignment(assignment, self.remoteUser, self._catalog)
 		if course is None:
 			return
 		
@@ -478,6 +491,32 @@ class _AssignmentSectionOverrides(AbstractAuthenticatedRequestAwareDecorator):
 		if policy and 'maximum_time_allowed' in policy:
 			result['maximum_time_allowed' ] = policy['maximum_time_allowed']
 
+class _AssignmentQuestionBucketRootAdder(AbstractAuthenticatedRequestAwareDecorator):
+	"""
+	When an assignment question is externalized, add the bucket root
+	"""
+	
+	@Lazy
+	def _library(self):
+		result = component.queryUtility(IContentPackageLibrary)
+		return result
+	
+	def _bucket_root(self, ntiid):
+		library = self._library
+		if ntiid and library is not None:
+			paths = library.pathToNTIID(ntiid)
+			package = paths[0] if paths else None
+			bucket = package.root.bucket if package else None
+			return bucket.key if bucket is not None else None
+		return None
+	
+	def _do_decorate_external(self, context, result):
+		if hasattr(context, 'ContentUnitNTIID'):
+			ntiid = context.ContentUnitNTIID
+			bucket_root = self._bucket_root(ntiid)
+			if bucket_root:
+				result['ContentRoot' ] = bucket_root
+	
 class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAwareDecorator):
 	"""
 	When anyone besides the instructor requests an assignment
@@ -553,7 +592,6 @@ class _AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper(Abstra
 	def _do_decorate_external(self, context, result):
 		for part in result['parts']:
 			_AssignmentBeforeDueDateSolutionStripper.strip(part)
-
 
 class _IPad110NoSubmitPartAdjuster(AbstractAuthenticatedRequestAwareDecorator):
 	"""

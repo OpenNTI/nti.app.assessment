@@ -381,7 +381,8 @@ class _PackageCacheEntry(object):
 		if self.assessments is None or self.lastModified != package.lastModified:
 			logger.debug("Caching assessment item ntiids for package %s", package.ntiid)
 			assessments = get_content_packages_assessments(package)
-			self.assessments = tuple((iface_of_assessment(a), a.ntiid) for a in assessments)
+			self.assessments = tuple( (iface_of_assessment(a), a.ntiid, a.ContentUnitNTIID)
+									  for a in assessments)
 			self.lastModified = package.lastModified
 		return self.assessments
 			
@@ -440,9 +441,14 @@ class _CachingCourseAssessmentItemCatalog(_DefaultCourseAssessmentItemCatalog):
 		if entry is None:
 			entry = self.catalog_cache[ntiid] = _PackageCacheEntry(ntiid)
 		return entry.get_assessments(package)
+	
+	def _proxy(self, iface, ntiid, unit=None):
+		item = component.getUtility(iface, ntiid)
+		item = _AIProxy(item, content_unit=unit)
+		return item
 
 	def _iter_items(self, assessments):
-		result = tuple(component.getUtility(t[0], t[1]) for t in assessments or ())
+		result = tuple(self._proxy(t[0], t[1], t[2]) for t in assessments or ())
 		return result
 	
 @interface.implementer(ICourseAssignmentCatalog)

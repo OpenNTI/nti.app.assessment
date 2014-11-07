@@ -66,6 +66,9 @@ def _asg_registry_to_course_data(registry):
 		asg_data['available_for_submission_beginning'] = \
 				to_external_object(assignment.available_for_submission_beginning)
 
+		# max time allowed
+		asg_data['maximum_time_allowed'] = assignment.maximum_time_allowed
+		
 		# Point specification
 		point_data = asg_data['auto_grade'] = {}
 
@@ -85,8 +88,9 @@ def _merge_disk(automatic_values, merge_values):
 	for k in automatic_values:
 		if k not in merge_values:
 			continue
-		automatic_value = automatic_values[k]
+
 		manual_value = merge_values[k]
+		automatic_value = automatic_values[k]
 
 		# Some things we want to preserve, some we
 		# want to force. For example, the title may change,
@@ -99,6 +103,7 @@ def _merge_disk(automatic_values, merge_values):
 				  'available_for_submission_ending',
 				  'auto_grade',
 				  'excluded',
+				  'maximum_time_allowed',
 				  'student_nuclear_reset_capable'):
 			if d in manual_value:
 				automatic_value[d] = manual_value[d]
@@ -110,7 +115,6 @@ def _merge_disk(automatic_values, merge_values):
 		if k in automatic_values:
 			continue
 		automatic_values[k] = merge_values[k]
-
 
 def main_extract_assignments():
 	"""

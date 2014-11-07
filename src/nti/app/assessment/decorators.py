@@ -431,6 +431,7 @@ from datetime import datetime
 
 from nti.appserver.pyramid_authorization import has_permission
 
+from nti.assessment.interfaces import IQAssignmentPolicies
 from nti.assessment.interfaces import IQAssignmentDateContext
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
@@ -455,21 +456,27 @@ def _get_course_from_assignment(assignment, user):
 		result = component.queryMultiAdapter((assignment, user), ICourseInstance)
 	return result
 
-class _AssignmentSectionSpecificDates(AbstractAuthenticatedRequestAwareDecorator):
+class _AssignmentSectionOverrides(AbstractAuthenticatedRequestAwareDecorator):
 	"""
-	When an assignment is externalized, write the section specific dates.
+	When an assignment is externalized, check for overrides
 	"""
 		
 	def _do_decorate_external(self, assignment, result):
 		course = _get_course_from_assignment(assignment, self.remoteUser)
-		if course is not None:
-			dates = IQAssignmentDateContext(course).of(assignment)
-			for k in ('available_for_submission_ending',
-					  'available_for_submission_beginning'):
-				asg_date = getattr(assignment, k)
-				dates_date = getattr(dates, k)
-				if dates_date != asg_date:
-					result[k] = to_external_object(dates_date)
+		if course is None:
+			return
+		
+		dates = IQAssignmentDateContext(course).of(assignment)
+		for k in ('available_for_submission_ending',
+				  'available_for_submission_beginning'):
+			asg_date = getattr(assignment, k)
+			dates_date = getattr(dates, k)
+			if dates_date != asg_date:
+				result[k] = to_external_object(dates_date)
+		
+		policy = IQAssignmentPolicies(course).getPolicyForAssignment(assignment.ntiid)
+		if 'maximum_time_allowed' in policy:
+			result['maximum_time_allowed' ] = policy['maximum_time_allowed']
 
 class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAwareDecorator):
 	"""

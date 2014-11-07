@@ -95,7 +95,8 @@ class TestAssignmentPolicyExtractor(AssessmentLayerTest):
 										 {'Title': 'Main Title',
 										  'auto_grade': {'total_points': 1},
 										  'available_for_submission_beginning': '2014-01-13T00:00:00Z',
-										  'available_for_submission_ending': None}) )
+										  'available_for_submission_ending': None,
+										  'maximum_time_allowed': None}) )
 
 		# we can manually merge excluded data and auto-grade
 
@@ -109,4 +110,5 @@ class TestAssignmentPolicyExtractor(AssessmentLayerTest):
 										  'auto_grade': None,
 										  'excluded': True,
 										  'available_for_submission_beginning': '2014-01-13T00:00:00Z',
-										  'available_for_submission_ending': None}) )
+										  'available_for_submission_ending': None,
+										  'maximum_time_allowed': None}) )

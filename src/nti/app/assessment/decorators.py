@@ -36,6 +36,8 @@ from nti.assessment.randomized.interfaces import IQRandomizedPart
 from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
 
 from nti.contentlibrary.externalization import root_url_of_unit
+
+from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -494,7 +496,7 @@ class _AssignmentSectionOverrides(AbstractAuthenticatedRequestAwareDecorator):
 
 import repoze.lru
 
-@repoze.lru.lru_cache(500, timeout=3600)
+@repoze.lru.lru_cache(1000, timeout=3600)
 def _root_url(ntiid):
 	library = component.queryUtility(IContentPackageLibrary)
 	if ntiid and library is not None:
@@ -507,20 +509,24 @@ def _root_url(ntiid):
 			pass
 	return None
 
-class _AssignmentQuestionBucketRootAdder(AbstractAuthenticatedRequestAwareDecorator):
+class _AssignmentQuestionContentRootURLAdder(AbstractAuthenticatedRequestAwareDecorator):
 	"""
 	When an assignment question is externalized, add the bucket root
 	"""
 	
 	def _do_decorate_external(self, context, result):
-		if hasattr(context, 'ContentUnitNTIID'):
-			try:
-				ntiid = context.ContentUnitNTIID
-				bucket_root = _root_url(ntiid)
-				if bucket_root:
-					result['ContentRoot' ] = bucket_root
-			except StandardError:
-				pass
+		ntiid = getattr(context, 'ContentUnitNTIID', None)
+		if not ntiid:
+			content_unit = find_interface(context, IContentUnit, strict=False)
+			if content_unit is not None:
+				ntiid = content_unit.ntiid
+			else:
+				assignment = find_interface(context, IQAssignment, strict=False)
+				ntiid = getattr(assignment, 'ContentUnitNTIID', None)
+
+		bucket_root = _root_url(ntiid) if ntiid else None
+		if bucket_root:
+			result['ContentRoot' ] = bucket_root
 	
 class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAwareDecorator):
 	"""

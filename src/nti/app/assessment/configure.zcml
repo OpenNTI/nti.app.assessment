@@ -168,7 +168,7 @@
 				for="nti.assessment.interfaces.IQAssignment
 					 pyramid.interfaces.IRequest" />
 
-	<subscriber factory=".decorators._AssignmentQuestionBucketRootAdder"
+	<subscriber factory=".decorators._AssignmentQuestionContentRootURLAdder"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.assessment.interfaces.IQuestion
 					 pyramid.interfaces.IRequest" />

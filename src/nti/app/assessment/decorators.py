@@ -475,7 +475,7 @@ class _AssignmentSectionOverrides(AbstractAuthenticatedRequestAwareDecorator):
 				result[k] = to_external_object(dates_date)
 		
 		policy = IQAssignmentPolicies(course).getPolicyForAssignment(assignment.ntiid)
-		if 'maximum_time_allowed' in policy:
+		if policy and 'maximum_time_allowed' in policy:
 			result['maximum_time_allowed' ] = policy['maximum_time_allowed']
 
 class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAwareDecorator):

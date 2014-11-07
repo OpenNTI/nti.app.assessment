@@ -138,8 +138,17 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 		aces.append(ACE_DENY_ALL)
 		return acl_from_aces( aces )
 
-
 from zope.location.interfaces import ISublocations
+
+def _get_policy_for_assignment(course, asg_id):
+	policies = IQAssignmentPolicies(course)
+	policy = policies.getPolicyForAssignment(asg_id)
+	return policy
+
+def _get_available_for_submission_ending(course, assignment):
+	dates = IQAssignmentDateContext(course)
+	due_date = dates.of(assignment).available_for_submission_ending
+	return due_date
 
 @interface.implementer(IUsersCourseAssignmentHistoryItem,
 					   IACLProvider,
@@ -207,7 +216,6 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 		except (LookupError, TypeError):
 			return False
 
-
 	@CachedProperty('_has_grade')
 	def _student_nuclear_reset_capable(self):
 		"""
@@ -230,17 +238,14 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 			# Not enough information, bail
 			return False
 
-		policies = IQAssignmentPolicies(course)
-
-		policy = policies.getPolicyForAssignment(asg_id)
+		policy = _get_policy_for_assignment(course, asg_id)
 		if not policy.get('student_nuclear_reset_capable', False):
 			# Not allowed!
 			# TODO: could probably push this off to syncronization
 			# time...have that process apply marker interfaces
 			return False
 
-		dates = IQAssignmentDateContext(course)
-		due_date = dates.of(assignment).available_for_submission_ending
+		due_date = _get_available_for_submission_ending(course, assignment)
 		if due_date and datetime.utcnow() >= due_date:
 			# past due
 			return False

@@ -1,0 +1,130 @@
+<!-- -*- mode: nxml -*- -->
+<configure	xmlns="http://namespaces.zope.org/zope"
+			xmlns:i18n="http://namespaces.zope.org/i18n"
+			xmlns:zcml="http://namespaces.zope.org/zcml"
+			xmlns:ext="http://nextthought.com/ntp/ext"
+			i18n_domain="zope">
+
+	<include package="zope.component" file="meta.zcml" />
+	<include package="zope.security" file="meta.zcml" />
+	<include package="zope.component" />
+	<include package="zope.security" />
+					 		 
+	<subscriber factory=".pageinfo._ContentUnitAssessmentItemDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="nti.appserver.interfaces.IContentUnitInfo
+					 pyramid.interfaces.IRequest" />
+
+	<subscriber factory=".assignment._AssignmentsByOutlineNodeDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="nti.contenttypes.courses.interfaces.ICourseInstance
+					 pyramid.interfaces.IRequest" />
+
+	<subscriber factory=".assignment._AssignmentsByOutlineNodeDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="nti.app.products.courseware.interfaces.ICourseInstanceEnrollment
+					 pyramid.interfaces.IRequest" />
+
+	<subscriber factory=".assignment._AssignmentWithFilePartDownloadLinkDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="nti.assessment.interfaces.IQAssignment
+					 pyramid.interfaces.IRequest" />
+
+	<subscriber factory=".assignment._AssignmentBeforeDueDateSolutionStripper"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator"
+				for="nti.assessment.interfaces.IQAssignment
+					 pyramid.interfaces.IRequest" />
+
+	<subscriber factory=".assignment._AssignmentSectionOverrides"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator"
+				for="nti.assessment.interfaces.IQAssignment
+					 pyramid.interfaces.IRequest" />
+
+	<subscriber factory=".assignment._AssignmentQuestionContentRootURLAdder"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator"
+				for="nti.assessment.interfaces.IQuestion
+					 pyramid.interfaces.IRequest" />
+					 
+	<subscriber factory=".assignment._AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator"
+				for="nti.assessment.interfaces.IQAssignmentSubmissionPendingAssessment
+					 pyramid.interfaces.IRequest" />
+
+	<subscriber factory=".assessed._QAssessedPartDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="nti.assessment.interfaces.IQAssessedPart
+					 pyramid.interfaces.IRequest" />
+
+	<subscriber factory=".assessed._QuestionSubmissionDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="nti.assessment.interfaces.IQuestionSubmission
+					 pyramid.interfaces.IRequest" />
+
+	<subscriber factory=".assessed._QAssessedQuestionExplanationSolutionAdder"
+				for="nti.assessment.interfaces.IQAssessedQuestion"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator" />
+
+	<subscriber factory=".history._AssignmentHistoryItemDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="nti.contenttypes.courses.interfaces.ICourseInstance
+					 pyramid.interfaces.IRequest" />
+
+	<subscriber factory=".history._AssignmentHistoryItemDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="nti.app.products.courseware.interfaces.ICourseInstanceEnrollment
+					 pyramid.interfaces.IRequest" />
+
+	<subscriber factory=".history._LastViewedAssignmentHistoryDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="..interfaces.IUsersCourseAssignmentHistory
+					 pyramid.interfaces.IRequest" />
+					 
+	<subscriber factory=".feedback._FeedbackItemAssignmentIdDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"/>
+
+	<subscriber factory=".ipad._IPad110NoSubmitPartAdjuster"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator"
+				for="nti.assessment.interfaces.IQAssignment
+					 pyramid.interfaces.IRequest" />
+		
+	<subscriber factory=".savepoint._AssignmentSavepointDecorator"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator"
+				for="nti.assessment.interfaces.IQAssignment
+					 pyramid.interfaces.IRequest" />
+
+	<subscriber factory=".savepoint._AssignmentSavepointsDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="nti.contenttypes.courses.interfaces.ICourseInstance
+					 pyramid.interfaces.IRequest" />
+
+	<subscriber factory=".savepoint._AssignmentSavepointsDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="nti.app.products.courseware.interfaces.ICourseInstanceEnrollment
+					 pyramid.interfaces.IRequest" />
+
+	<subscriber factory=".savepoint._AssignmentSavepointItemDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="..interfaces.IUsersCourseAssignmentSavepointItem
+					 pyramid.interfaces.IRequest" />
+					 
+	<!-- hrefs -->
+	<!-- NOTE: This is the general implementation; could be better -->
+	<!-- NOTE 2: We must produce OID hrefs for these, not traversal,
+		 because when AssignmentHistory is accessed traversing beneath the
+		 CourseInstance, the user is implicitly the current user,
+		 which fails for instructors. May want to simply remove its
+		 availability there.
+	-->
+	<subscriber factory="nti.appserver.pyramid_renderers_edit_link_decorator.OIDEditOrDeleteLinkDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="..interfaces.IUsersCourseAssignmentHistoryItem pyramid.interfaces.IRequest" />
+
+	<subscriber factory="nti.appserver.pyramid_renderers_edit_link_decorator.OIDEditLinkDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="..interfaces.IUsersCourseAssignmentHistoryItemFeedback pyramid.interfaces.IRequest" />
+
+	<subscriber factory="nti.appserver.pyramid_renderers_edit_link_decorator.OIDEditLinkDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="..interfaces.IUsersCourseAssignmentHistoryItemFeedbackContainer pyramid.interfaces.IRequest" />
+	
+</configure>

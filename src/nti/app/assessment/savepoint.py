@@ -23,8 +23,6 @@ from ZODB.interfaces import IConnection
 
 from pyramid.interfaces import IRequest
 
-from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
-
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver.interfaces import IUser
@@ -32,13 +30,11 @@ from nti.dataserver.interfaces import ACE_DENY_ALL
 from nti.dataserver.interfaces import ALL_PERMISSIONS
 
 from nti.dataserver.users import User
-from nti.dataserver.links import Link
-from nti.dataserver.links_external import render_link
+from nti.dataserver.interfaces import IACLProvider
 
 from nti.dataserver.traversal import find_interface
 from nti.dataserver.traversal import ContainerAdapterTraversable
 
-from nti.dataserver.interfaces import IACLProvider
 from nti.dataserver.authorization_acl import ace_allowing
 from nti.dataserver.authorization_acl import acl_from_aces
 
@@ -47,7 +43,6 @@ from nti.dataserver.datastructures import PersistentCreatedModDateTrackingObject
 from nti.dataserver.containers import CaseInsensitiveCheckingLastModifiedBTreeContainer
 
 from nti.externalization.interfaces import StandardExternalFields
-from nti.externalization.interfaces import IExternalMappingDecorator
 
 from nti.schema.field import SchemaConfigured
 from nti.schema.fieldproperty import createDirectFieldProperties
@@ -58,9 +53,6 @@ from nti.wref.interfaces import IWeakRef
 
 from ._submission import set_submission_lineage
 from ._submission import transfer_upload_ownership
-
-from .decorators import _get_course_from_assignment
-from .decorators import _AbstractTraversableLinkDecorator
 
 from .interfaces import IUsersCourseAssignmentSavepoint
 from .interfaces import IUsersCourseAssignmentSavepoints
@@ -249,42 +241,6 @@ class _UsersCourseAssignmentSavepointsTraversable(ContainerAdapterTraversable):
 			if user is not None:
 				return _savepoint_for_user_in_course( self.context.__parent__, user)			
 			raise		
-
-class _AssignmentSavepointDecorator(AbstractAuthenticatedRequestAwareDecorator):
-
-	def _do_decorate_external(self, assignment, result):
-		course = _get_course_from_assignment(assignment, self.remoteUser)
-		if course is not None:
-			links = result.setdefault(LINKS, [])
-			links.append( Link( assignment,
-								rel='Savepoint',
-								elements=('Savepoint',)))
-					
-@interface.implementer(IExternalMappingDecorator)
-class _AssignmentSavepointsDecorator(_AbstractTraversableLinkDecorator):
-	
-	def _do_decorate_external( self, context, result_map ):
-		links = result_map.setdefault( LINKS, [] )
-		user = IUser(context, self.remoteUser)
-		links.append( Link( context,
-							rel='AssignmentSavepoints',
-							elements=('AssignmentSavepoints', user.username)) )
-
-@interface.implementer(IExternalMappingDecorator)
-class _AssignmentSavepointItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
-	
-	def _predicate(self, context, result):
-		creator = context.creator
-		return (AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
-				and creator is not None
-				and creator == self.remoteUser)
-		
-	def _do_decorate_external(self, context, result_map ):
-		try:
-			link = Link(context)
-			result_map['href'] = render_link( link )['href']
-		except (KeyError, ValueError, AssertionError):
-			pass # Nope
 
 @component.adapter(ICourseInstance, IObjectAddedEvent)
 def _on_course_added(course, event):

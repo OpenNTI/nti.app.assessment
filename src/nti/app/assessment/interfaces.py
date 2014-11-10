@@ -36,6 +36,7 @@ from nti.schema.field import Dict
 from nti.schema.field import List
 from nti.schema.field import Number
 from nti.schema.field import Object
+from nti.schema.field import DateTime
 
 from zope.security.permission import Permission
 
@@ -308,3 +309,37 @@ def get_course_assignment_predicate_for_user(user, course):
 		return all((f.allow_assignment_for_user_in_course(asg, user, course) for f in filters))
 
 	return uber_filter
+
+class IUsersCourseAssignmentMetaMap(IContainer,
+									IContained,
+									IShouldHaveTraversablePath):
+	"""
+	A container for all the assignment meta data in a course, keyed by username.
+	"""
+	contains(str('.IUsersCourseAssignmentMetadata'))
+	
+class IUsersCourseAssignmentMetadata(IContainer,
+									 IContained,
+									 IShouldHaveTraversablePath):
+	"""
+	A :class:`IContainer`-like object that stores metadata of 
+	assignments for a particular user in a course. The keys of this
+	object are :class:`IAssignment` IDs (this class may or may not
+	enforce that the assignment ID is actually scoped to the course it
+	is registered for). The values are instances of :class:`.IUsersCourseAssignmentMetadataItem`.
+	"""
+
+	contains(str('.IUsersCourseAssignmentMetadataItem'))
+	containers(IUsersCourseAssignmentMetaMap)
+	__setitem__.__doc__ = None
+
+	owner = Object(IUser, required=False, title="The user this metadata is for.")
+	owner.setTaggedValue('_ext_excluded_out', True)
+
+	Items = Dict(title='For externalization only, a copy of the items', readonly=True)
+
+class IUsersCourseAssignmentMetadataItem(interface.Interface):
+	containers(IUsersCourseAssignmentMetadata)
+	__parent__.required = False
+
+	StartTime = DateTime(title="Assignment Start time", required=False)

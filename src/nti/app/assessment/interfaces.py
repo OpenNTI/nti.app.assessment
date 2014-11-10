@@ -310,9 +310,9 @@ def get_course_assignment_predicate_for_user(user, course):
 
 	return uber_filter
 
-class IUsersCourseAssignmentMetaMap(IContainer,
-									IContained,
-									IShouldHaveTraversablePath):
+class IUsersCourseAssignmentMetadataContainer(IContainer,
+										  	  IContained,
+										  	  IShouldHaveTraversablePath):
 	"""
 	A container for all the assignment meta data in a course, keyed by username.
 	"""
@@ -330,7 +330,7 @@ class IUsersCourseAssignmentMetadata(IContainer,
 	"""
 
 	contains(str('.IUsersCourseAssignmentMetadataItem'))
-	containers(IUsersCourseAssignmentMetaMap)
+	containers(IUsersCourseAssignmentMetadataContainer)
 	__setitem__.__doc__ = None
 
 	owner = Object(IUser, required=False, title="The user this metadata is for.")

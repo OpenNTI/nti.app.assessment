@@ -13,6 +13,7 @@ from . import MessageFactory as _
 
 import simplejson
 from datetime import datetime
+from functools import partial
 
 from zope import component
 from zope.lifecycleevent.interfaces import IObjectRemovedEvent
@@ -36,6 +37,8 @@ from nti.dataserver.interfaces import IUser
 from nti.dataserver.traversal import find_interface
 
 from nti.externalization.externalization import to_external_object
+
+from nti.site.hostpolicy import run_job_in_all_host_sites
 
 from ._utils import find_course_for_assignment
 
@@ -134,8 +137,7 @@ def prevent_note_on_assignment_part(note, event):
 				e.content_type = b'application/json'
 				raise e
 
-@component.adapter(IUser, IObjectRemovedEvent)
-def _on_user_removed(user, event):
+def delete_user_data(user):
 	username = user.username
 	for enrollments in component.subscribers( (user,), IPrincipalEnrollments):
 		for enrollment in enrollments.iter_enrollments():
@@ -145,3 +147,8 @@ def _on_user_removed(user, event):
 				container = iface(course, None)
 				if container is not None and username in container:
 					del container[username]
+
+@component.adapter(IUser, IObjectRemovedEvent)
+def _on_user_removed(user, event):
+	func = partial(delete_user_data, user=user)
+	run_job_in_all_host_sites(func)

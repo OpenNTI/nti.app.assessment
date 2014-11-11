@@ -39,6 +39,7 @@ from nti.dataserver.traversal import find_interface
 from .history import UsersCourseAssignmentHistory
 
 from .interfaces import IUsersCourseAssignmentHistory
+from .interfaces import IUsersCourseAssignmentHistories
 from .interfaces import IUsersCourseAssignmentSavepoint
 from .interfaces import IUsersCourseAssignmentHistoryItem
 
@@ -260,6 +261,8 @@ def _course_from_assignment_lineage(assignment, user):
 
 from .history import UsersCourseAssignmentHistories
 
+@component.adapter(ICourseInstance)
+@interface.implementer(IUsersCourseAssignmentHistories)
 def _histories_for_course(course):
 	annotations = IAnnotations(course)
 	try:
@@ -270,11 +273,10 @@ def _histories_for_course(course):
 		annotations[KEY] = histories
 		histories.__name__ = KEY
 		histories.__parent__ = course
-
 	return histories
 
 @interface.implementer(IUsersCourseAssignmentHistory)
-@component.adapter(ICourseInstance,IUser)
+@component.adapter(ICourseInstance, IUser)
 def _history_for_user_in_course(course,user,create=True):
 	"""
 	We use an annotation on the course to store a map
@@ -300,7 +302,6 @@ def _history_for_user_in_course(course,user,create=True):
 			history = UsersCourseAssignmentHistory()
 			history.owner = user
 			histories[user.username] = history
-
 	return history
 
 def _histories_for_course_path_adapter(course, request):
@@ -323,8 +324,6 @@ from zope.location.interfaces import LocationError
 
 from nti.dataserver.users import User
 from nti.dataserver.traversal import ContainerAdapterTraversable
-
-from .interfaces import IUsersCourseAssignmentHistories
 
 @component.adapter(IUsersCourseAssignmentHistories,IRequest)
 class _UsersCourseAssignmentHistoriesTraversable(ContainerAdapterTraversable):

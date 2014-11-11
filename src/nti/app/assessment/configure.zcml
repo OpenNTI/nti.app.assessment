@@ -152,10 +152,10 @@
 
 	<adapter factory=".adapters._begin_assessment_for_assignment_submission" />
 
+	<adapter factory=".adapters._histories_for_course" />
 	<adapter factory=".adapters._history_for_user_in_course" />
 
 	<adapter factory=".adapters._course_from_assignment_lineage" />
-
 	<adapter factory=".adapters._course_from_history_item_lineage" />
 
 	<!-- Traversal-ish stuff -->
@@ -206,6 +206,7 @@
 			 provides="zope.traversing.interfaces.IPathAdapter"
 			 name="AssignmentSavepoints" />
 
+	<adapter factory=".savepoint._savepoints_for_course" />
 	<adapter factory=".savepoint._savepoint_for_user_in_course" />
 	<adapter factory=".savepoint._course_from_savepoint_lineage" />
 	<adapter factory=".savepoint._UsersCourseAssignmentSavepointsTraversable" />
@@ -223,4 +224,6 @@
 				provides="nti.dataserver.interfaces.INotableFilter"
 				for=".interfaces.IUsersCourseAssignmentHistoryItemFeedback" />
 
+	<!-- user events -->
+	<subscriber handler=".subscribers._on_user_removed" />
 </configure>

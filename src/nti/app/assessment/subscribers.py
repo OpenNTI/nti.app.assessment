@@ -11,10 +11,11 @@ logger = __import__('logging').getLogger(__name__)
 
 from . import MessageFactory as _
 
-import simplejson as json
+import simplejson
 from datetime import datetime
 
 from zope import component
+from zope.lifecycleevent.interfaces import IObjectRemovedEvent
 
 from pyramid.httpexceptions import HTTPUnprocessableEntity
 
@@ -30,6 +31,7 @@ from nti.contentlibrary.interfaces import IContentPackageLibrary
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
+from nti.dataserver.interfaces import IUser
 from nti.dataserver.traversal import find_interface
 
 from nti.externalization.externalization import to_external_object
@@ -121,10 +123,14 @@ def prevent_note_on_assignment_part(note, event):
 			if 	dates.available_for_submission_ending and \
 				dates.available_for_submission_ending >= datetime.utcnow():
 				e = HTTPUnprocessableEntity()
-				e.text = json.dumps(
+				e.text = simplejson.dumps(
 						{'message': _("You cannot make notes on an assignment before the due date."),
 						 'code': 'CannotNoteOnAssignmentBeforeDueDate',
 						 'available_for_submission_ending': to_external_object(dates.available_for_submission_ending)},
 						ensure_ascii=False)
 				e.content_type = b'application/json'
 				raise e
+
+@component.adapter(IUser, IObjectRemovedEvent)
+def _on_user_removed(user, event):
+	pass

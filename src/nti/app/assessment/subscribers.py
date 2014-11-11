@@ -30,6 +30,7 @@ from nti.assessment.interfaces import IQAssessmentItemContainer
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import IPrincipalEnrollments
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.traversal import find_interface
@@ -38,6 +39,8 @@ from nti.externalization.externalization import to_external_object
 
 from ._utils import find_course_for_assignment
 
+from .interfaces import IUsersCourseAssignmentHistories
+from .interfaces import IUsersCourseAssignmentSavepoints
 from .interfaces import IUsersCourseAssignmentSavepointItem
 
 def add_object_to_course_activity(submission, event):
@@ -133,4 +136,12 @@ def prevent_note_on_assignment_part(note, event):
 
 @component.adapter(IUser, IObjectRemovedEvent)
 def _on_user_removed(user, event):
-	pass
+	username = user.username
+	for enrollments in component.subscribers( (user,), IPrincipalEnrollments):
+		for enrollment in enrollments.iter_enrollments():
+			course = ICourseInstance(enrollment)
+			for iface in (IUsersCourseAssignmentHistories,
+						  IUsersCourseAssignmentSavepoints):
+				container = iface(course, None)
+				if container is not None and username in container:
+					del container[username]

@@ -207,7 +207,7 @@
 
 	<adapter factory=".savepoint._savepoints_for_course" />
 	<adapter factory=".savepoint._savepoint_for_user_in_course" />
-	<adapter factory=".savepoint._course_from_savepoint_lineage" />
+	<adapter factory=".savepoint._course_from_savepointitem_lineage" />
 	<adapter factory=".savepoint._UsersCourseAssignmentSavepointsTraversable" />
 
 	<subscriber handler=".savepoint._on_course_added" />
@@ -231,7 +231,7 @@
 
 	<adapter factory=".metadata._metadata_for_user_in_course" />
 	<adapter factory=".metadata._metadatacontainer_for_course" />
-	<adapter factory=".metadata._course_from_metadata_lineage" />
+	<adapter factory=".metadata._course_from_metadataitem_lineage" />
 	<adapter factory=".metadata._UsersCourseAssignmentMetadataTraversable" />
 
 	<subscriber handler=".metadata._on_course_added" />

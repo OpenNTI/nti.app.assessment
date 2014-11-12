@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-.. $Id$
+.. $Id: savepoint_views.py 50902 2014-10-10 01:41:39Z carlos.sanchez $
 """
 from __future__ import print_function, unicode_literals, absolute_import, division
 __docformat__ = "restructuredtext en"
@@ -9,6 +9,7 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 from zope import component
+from zope import lifecycleevent
 from zope.schema.interfaces import RequiredMissing
 
 from pyramid.view import view_config
@@ -20,36 +21,28 @@ from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtils
 from nti.appserver.ugd_edit_views import UGDDeleteView
 
 from nti.assessment.interfaces import IQAssignment
-from nti.assessment.interfaces import IQAssignmentSubmission
 
 from nti.dataserver import authorization as nauth
 
-from .._submission import get_source
-from .._submission import check_upload_files
-from .._submission import read_multipart_sources
-
 from .._utils import find_course_for_assignment
 
-from ..interfaces import IUsersCourseAssignmentSavepoint
-from ..interfaces import IUsersCourseAssignmentSavepoints
-from ..interfaces import IUsersCourseAssignmentSavepointItem
+from ..interfaces import IUsersCourseAssignmentMetadata
+from ..interfaces import IUsersCourseAssignmentMetadataItem
+from ..interfaces import IUsersCourseAssignmentMetadataContainer
 
 @view_config(route_name="objects.generic.traversal",
 			 context=IQAssignment,
 			 renderer='rest',
 			 request_method='POST',
 			 permission=nauth.ACT_READ,
-			 name="Savepoint")
-class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
-								   			ModeledContentUploadRequestUtilsMixin):
-	"""
-	Students can POST to the assignment to create their save point
-	"""
+			 name="Metadata")
+class AssignmentSubmissionMetataPostView(AbstractAuthenticatedView,
+								   		 ModeledContentUploadRequestUtilsMixin):
 
 	_EXTRA_INPUT_ERRORS = \
 			ModeledContentUploadRequestUtilsMixin._EXTRA_INPUT_ERRORS + (AttributeError,)
 
-	content_predicate = IQAssignmentSubmission.providedBy
+	content_predicate = IUsersCourseAssignmentMetadataItem.providedBy
 
 	def _do_call(self):
 		creator = self.remoteUser
@@ -62,24 +55,16 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 		except RequiredMissing:
 			raise hexc.HTTPForbidden("Must be enrolled in a course.")
 		
-		if not self.request.POST:
-			submission = self.readCreateUpdateContentObject(creator)
-			check_upload_files(submission)
-		else:
-			extValue = get_source(self.request, 'json', 'input', 'submission')
-			if not extValue:
-				raise hexc.HTTPUnprocessableEntity("No submission source was specified")
-			extValue = self.readInput(value=extValue.read())
-			submission = self.readCreateUpdateContentObject(creator, externalValue=extValue)
-			submission = read_multipart_sources(submission, self.request)
-			
-		savepoint = component.getMultiAdapter( (course, submission.creator),
-												IUsersCourseAssignmentSavepoint)
-		submission.containerId = submission.assignmentId
-
-		# Now record the submission.
+		item = self.readCreateUpdateContentObject(creator)
+		lifecycleevent.created(item)
+		
 		self.request.response.status_int = 201
-		result = savepoint.recordSubmission(submission)
+				
+		assignmentId = self.context.ntiid
+		metadata = component.getMultiAdapter( (course, creator),
+											  IUsersCourseAssignmentMetadata)
+		item.containerId = assignmentId	
+		result = metadata.append(assignmentId, item)
 		return result
 
 @view_config(route_name="objects.generic.traversal",
@@ -87,8 +72,8 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 			 renderer='rest',
 			 request_method='GET',
 			 permission=nauth.ACT_READ,
-			 name="Savepoint")
-class AssignmentSubmissionSavepointGetView(AbstractAuthenticatedView):
+			 name="Metadata")
+class AssignmentSubmissionMetadataGetView(AbstractAuthenticatedView):
 	
 	def __call__(self):
 		creator = self.remoteUser
@@ -101,30 +86,30 @@ class AssignmentSubmissionSavepointGetView(AbstractAuthenticatedView):
 		except RequiredMissing:
 			raise hexc.HTTPForbidden("Must be enrolled in a course.")
 				
-		savepoint = component.getMultiAdapter( (course, creator),
-												IUsersCourseAssignmentSavepoint)
+		container = component.getMultiAdapter( (course, creator),
+												IUsersCourseAssignmentMetadata)
 		try:
-			result = savepoint[self.context.ntiid]
+			result = container[self.context.ntiid]
 			return result
 		except KeyError:
 			return hexc.HTTPNotFound()
 
 @view_config(route_name="objects.generic.traversal",
 			 renderer='rest',
-			 context=IUsersCourseAssignmentSavepoints,
+			 context=IUsersCourseAssignmentMetadataContainer,
 			 permission=nauth.ACT_READ,
 			 request_method='GET')
-class AssignmentSavepointsGetView(AbstractAuthenticatedView):
+class AssignmentMetadataGetView(AbstractAuthenticatedView):
 	"""
-	Students can view their assignment save points as ``path/to/course/AssignmentSavepoints``
+	Students can view their assignment metadata  as ``path/to/course/AssignmentMetadata``
 	"""
 
 	def __call__(self):
-		savepoints = self.request.context
-		return savepoints
+		container = self.request.context
+		return container
 
 @view_config(route_name="objects.generic.traversal",
-			 context=IUsersCourseAssignmentSavepointItem,
+			 context=IUsersCourseAssignmentMetadataItem,
 			 renderer='rest',
 			 permission=nauth.ACT_DELETE,
 			 request_method='DELETE')

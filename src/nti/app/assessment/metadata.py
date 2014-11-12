@@ -10,9 +10,14 @@ logger = __import__('logging').getLogger(__name__)
 
 from zope import component
 from zope import interface
+
 from zope.container.contained import Contained
+
+from zope.location.location import locate
 from zope.location.interfaces import LocationError
+
 from zope.annotation.interfaces import IAnnotations
+
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
 from zope.lifecycleevent.interfaces import IObjectRemovedEvent
 
@@ -23,6 +28,10 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import ACE_DENY_ALL
 from nti.dataserver.interfaces import ALL_PERMISSIONS
+
+from nti.dataserver.authorization import ACT_READ
+from nti.dataserver.authorization import ACT_CREATE
+from nti.dataserver.authorization import ACT_UPDATE
 
 from nti.dataserver.users import User
 from nti.dataserver.interfaces import IACLProvider
@@ -79,6 +88,26 @@ class UsersCourseAssignmentMetadata(CheckingLastModifiedBTreeContainer):
 	def Items(self):
 		return dict(self)
 	
+	def append(self, assignmentId, item):
+		if item.__parent__ is not None:
+			raise ValueError("Objects already parented")
+
+		self.remove(item, event=False)
+		self[assignmentId] = item
+		return item
+
+	def remove(self, assignmentId, event=False):
+		if assignmentId not in self:
+			return
+
+		item = self[assignmentId]
+		if event:
+			del self[assignmentId]
+		else:
+			self._delitemf(assignmentId, event=False)
+			locate(item, None, None)
+			self.updateLastMod()
+
 	def __conform__(self, iface):
 		if IUser.isOrExtends(iface):
 			return self.owner
@@ -87,7 +116,9 @@ class UsersCourseAssignmentMetadata(CheckingLastModifiedBTreeContainer):
 
 	@property
 	def __acl__(self):
-		aces = [ace_allowing(self.owner, ALL_PERMISSIONS, UsersCourseAssignmentMetadata)]
+		creator = self.creator
+		aces = [ace_allowing(creator, ACT_READ, UsersCourseAssignmentMetadata),
+				ace_allowing(creator, ACT_CREATE, UsersCourseAssignmentMetadata)]
 		aces.append(ACE_DENY_ALL)
 		return acl_from_aces( aces )
 
@@ -122,8 +153,16 @@ class UsersCourseAssignmentMetadataItem(PersistentCreatedModDateTrackingObject,
 	
 	@property
 	def __acl__(self):
-		aces = [ace_allowing(self.owner, ALL_PERMISSIONS, 
-							 UsersCourseAssignmentMetadataItem)]
+		creator = self.creator
+		aces = [ace_allowing(creator, ACT_READ, UsersCourseAssignmentMetadataItem),
+				ace_allowing(creator, ACT_CREATE, UsersCourseAssignmentMetadataItem),
+				ace_allowing(creator, ACT_UPDATE, UsersCourseAssignmentMetadataItem)]
+		
+		course = ICourseInstance(self, None)
+		instructors = getattr(course, 'instructors', ()) # already principals
+		for instructor in instructors:
+			aces.append(ace_allowing(instructor, ALL_PERMISSIONS,
+									 UsersCourseAssignmentMetadataItem))
 		aces.append(ACE_DENY_ALL)
 		result = acl_from_aces( aces )
 		return result
@@ -181,8 +220,8 @@ def _metadatacontainer_for_courseenrollment_path_adapter(enrollment, request):
 	return _metadatacontainer_for_course( ICourseInstance(enrollment) )
 
 @interface.implementer(ICourseInstance)
-@component.adapter(IUsersCourseAssignmentMetadata)
-def _course_from_metadata_lineage(item):
+@component.adapter(IUsersCourseAssignmentMetadataItem)
+def _course_from_metadataitem_lineage(item):
 	course = find_interface(item, ICourseInstance, strict=False)
 	if course is None:
 		raise component.ComponentLookupError("Unable to find course")

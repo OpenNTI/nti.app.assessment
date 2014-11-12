@@ -222,8 +222,8 @@ def _savepoints_for_courseenrollment_path_adapter(enrollment, request):
 	return _savepoints_for_course( ICourseInstance(enrollment) )
 
 @interface.implementer(ICourseInstance)
-@component.adapter(IUsersCourseAssignmentSavepoint)
-def _course_from_savepoint_lineage(item):
+@component.adapter(IUsersCourseAssignmentSavepointItem)
+def _course_from_savepointitem_lineage(item):
 	course = find_interface(item, ICourseInstance, strict=False)
 	if course is None:
 		__traceback_info__ = item

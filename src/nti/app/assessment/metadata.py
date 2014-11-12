@@ -10,15 +10,11 @@ logger = __import__('logging').getLogger(__name__)
 
 from zope import component
 from zope import interface
-from zope import lifecycleevent
-from zope.location.location import locate
 from zope.container.contained import Contained
 from zope.location.interfaces import LocationError
 from zope.annotation.interfaces import IAnnotations
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
 from zope.lifecycleevent.interfaces import IObjectRemovedEvent
-
-from ZODB.interfaces import IConnection
 
 from pyramid.interfaces import IRequest
 
@@ -41,6 +37,8 @@ from nti.dataserver.containers import CheckingLastModifiedBTreeContainer
 from nti.dataserver.datastructures import PersistentCreatedModDateTrackingObject
 from nti.dataserver.containers import CaseInsensitiveCheckingLastModifiedBTreeContainer
 
+from nti.externalization.datastructures import InterfaceObjectIO
+from nti.externalization.interfaces import IInternalObjectUpdater
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.schema.field import SchemaConfigured
@@ -98,6 +96,7 @@ class UsersCourseAssignmentMetadata(CheckingLastModifiedBTreeContainer):
 class UsersCourseAssignmentMetadataItem(PersistentCreatedModDateTrackingObject,
 										Contained,
 										SchemaConfigured):
+	
 	createDirectFieldProperties(IUsersCourseAssignmentMetadataItem)
 
 	__external_can_create__ = False
@@ -120,7 +119,7 @@ class UsersCourseAssignmentMetadataItem(PersistentCreatedModDateTrackingObject,
 	@property
 	def assignmentId(self):
 		return self.__name__
-
+	
 	@property
 	def __acl__(self):
 		aces = [ace_allowing(self.owner, ALL_PERMISSIONS, 
@@ -129,6 +128,24 @@ class UsersCourseAssignmentMetadataItem(PersistentCreatedModDateTrackingObject,
 		result = acl_from_aces( aces )
 		return result
 
+@interface.implementer(IInternalObjectUpdater)
+@component.adapter(IUsersCourseAssignmentMetadataItem)
+class _UsersCourseAssignmentMetadataItemUpdater(object):
+
+	__slots__ = ('item',)
+
+	def __init__(self, item):
+		self.item = item
+
+	def updateFromExternalObject(self, parsed, *args, **kwargs):
+		if self.StartTime is not None:
+			parsed.pop('StartTime', None)
+			
+		result = InterfaceObjectIO(
+					self.item,
+					IUsersCourseAssignmentMetadataItem).updateFromExternalObject(parsed)
+		return result
+	
 @component.adapter(ICourseInstance)
 @interface.implementer(IUsersCourseAssignmentMetadataContainer)
 def _metadatacontainer_for_course(course):
@@ -172,11 +189,11 @@ def _course_from_metadata_lineage(item):
 	return course
 
 @component.adapter(IUsersCourseAssignmentMetadataContainer, IRequest)
-class _UsersCourseAssignmentMetaMapTraversable(ContainerAdapterTraversable):
+class _UsersCourseAssignmentMetadataTraversable(ContainerAdapterTraversable):
 
 	def traverse( self, key, remaining_path ):
 		try:
-			return super(_UsersCourseAssignmentMetaMapTraversable, self).traverse(key, remaining_path)
+			return super(_UsersCourseAssignmentMetadataTraversable, self).traverse(key, remaining_path)
 		except LocationError:
 			user = User.get_user(key)
 			if user is not None:

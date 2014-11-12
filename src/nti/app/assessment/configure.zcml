@@ -28,7 +28,6 @@
 			 provides="zope.generations.interfaces.IInstallableSchemaManager" />
 
 	<!-- Roles and permissions -->
-
 	<include package="zope.securitypolicy" file="meta.zcml" />
 	<include package="zope.security" file="meta.zcml" />
 
@@ -219,6 +218,34 @@
 						 .interfaces.IUsersCourseAssignmentSavepointItem"
 		modules=".savepoint" />
 
+	<!-- Metatada -->
+	<adapter factory=".metadata._metadatacontainer_for_course_path_adapter"
+			 for="nti.contenttypes.courses.interfaces.ICourseInstance pyramid.interfaces.IRequest"
+			 provides="zope.traversing.interfaces.IPathAdapter"
+			 name="AssignmentMetadata" />
+
+	<adapter factory=".metadata._metadatacontainer_for_courseenrollment_path_adapter"
+			 for="nti.app.products.courseware.interfaces.ICourseInstanceEnrollment pyramid.interfaces.IRequest"
+			 provides="zope.traversing.interfaces.IPathAdapter"
+			 name="AssignmentMetadata" />
+
+	<adapter factory=".metadata._metadata_for_user_in_course" />
+	<adapter factory=".metadata._metadatacontainer_for_course" />
+	<adapter factory=".metadata._course_from_metadata_lineage" />
+	<adapter factory=".metadata._UsersCourseAssignmentMetadataTraversable" />
+
+	<subscriber handler=".metadata._on_course_added" />
+	<subscriber handler=".metadata._on_assignment_history_item_deleted" />
+
+	<ext:registerAutoPackageIO
+		root_interfaces=".interfaces.IUsersCourseAssignmentMetadata
+						 .interfaces.IUsersCourseAssignmentMetadataItem"
+		modules=".metadata" />
+
+	<adapter factory=".metadata._UsersCourseAssignmentMetadataItemUpdater"
+			 for=".interfaces.IUsersCourseAssignmentMetadataItem"
+			 provides="nti.externalization.interfaces.IInternalObjectUpdater" />
+			 
 	<!-- Notables -->
 	<subscriber factory=".notables.AssignmentFeedbackNotableFilter"
 				provides="nti.dataserver.interfaces.INotableFilter"

@@ -18,6 +18,7 @@ from pyramid import httpexceptions as hexc
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
+from nti.appserver.ugd_edit_views import UGDPutView
 from nti.appserver.ugd_edit_views import UGDDeleteView
 
 from nti.assessment.interfaces import IQAssignment
@@ -111,9 +112,17 @@ class AssignmentMetadataGetView(AbstractAuthenticatedView):
 @view_config(route_name="objects.generic.traversal",
 			 context=IUsersCourseAssignmentMetadataItem,
 			 renderer='rest',
+			 permission=nauth.ACT_UPDATE,
+			 request_method='PUT')
+class AssignmentMetadataItemPutView(UGDPutView):
+	pass
+
+@view_config(route_name="objects.generic.traversal",
+			 context=IUsersCourseAssignmentMetadataItem,
+			 renderer='rest',
 			 permission=nauth.ACT_DELETE,
 			 request_method='DELETE')
-class AssignmentSavepointItemDeleteView(UGDDeleteView):
+class AssignmentMetadataItemDeleteView(UGDDeleteView):
 
 	def _do_delete_object( self, theObject ):
 		del theObject.__parent__[theObject.__name__]

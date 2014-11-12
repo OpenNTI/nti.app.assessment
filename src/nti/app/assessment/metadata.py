@@ -91,8 +91,6 @@ class UsersCourseAssignmentMetadata(CheckingLastModifiedBTreeContainer):
 	def append(self, assignmentId, item):
 		if item.__parent__ is not None:
 			raise ValueError("Objects already parented")
-
-		self.remove(item, event=False)
 		self[assignmentId] = item
 		return item
 

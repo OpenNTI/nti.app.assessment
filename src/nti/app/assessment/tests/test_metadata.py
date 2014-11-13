@@ -128,37 +128,34 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 						 extra_environ=outest_environ,
 						 status=403)
 		self.testapp.get(user2_enrollment_history_link, status=403)
-# 
-# 
-# 	def _check_submission(self, res, savepoint=None):
-# 		assert_that(res.status_int, is_(201))
-# 		assert_that(res.json_body, has_entry(StandardExternalFields.CREATED_TIME, is_(float)))
-# 		assert_that(res.json_body, has_entry(StandardExternalFields.LAST_MODIFIED, is_(float)))
-# 		assert_that(res.json_body, has_entry(StandardExternalFields.MIMETYPE, 
-# 											 'application/vnd.nextthought.assessment.userscourseassignmentsavepointitem' ) )
-# 
-# 		assert_that(res.json_body, has_key('Submission'))
-# 		assert_that(res.json_body, has_entry('href', is_not(none())))
-# 		
-# 		submission = res.json_body['Submission']
-# 		assert_that(submission, has_key('NTIID'))
-# 		assert_that(submission, has_entry('ContainerId', self.assignment_id ))
-# 		assert_that(submission, has_entry( StandardExternalFields.CREATED_TIME, is_( float ) ) )
-# 		assert_that(submission, has_entry( StandardExternalFields.LAST_MODIFIED, is_( float ) ) )
-# 
-# 		# This object can be found in my history
-# 		if savepoint:
-# 			__traceback_info__ = savepoint
-# 			savepoint_res = self.testapp.get(savepoint)
-# 			assert_that(savepoint_res.json_body, has_entry('href', contains_string(unquote(savepoint)) ) )
-# 			assert_that(savepoint_res.json_body, has_entry('Items', has_length(1)))
-# 			
-# 			items = list(savepoint_res.json_body['Items'].values())
-# 			assert_that(items[0], has_key('href'))
-# 		else:
-# 			self._fetch_user_url('/Courses/EnrolledCourses/CLC3403/AssignmentSavepoints/' + 
-# 								self.default_username, status=404 )
-# 	
+
+	def _check_metadata(self, res, metadata_link=None):
+		assert_that(res.status_int, is_(201))
+		assert_that(res.json_body, has_entry(StandardExternalFields.CREATED_TIME, is_(float)))
+		assert_that(res.json_body, has_entry(StandardExternalFields.LAST_MODIFIED, is_(float)))
+		assert_that(res.json_body, has_entry(StandardExternalFields.MIMETYPE, 
+											 'application/vnd.nextthought.assessment.userscourseassignmentmetadataitem' ) )
+
+		assert_that(res.json_body, has_entry('href', is_not(none())))
+		assert_that(res.json_body, has_key('NTIID'))
+		assert_that(res.json_body, has_entry('StartTime', is_not(none()) ))
+		assert_that(res.json_body, has_entry('ContainerId', self.assignment_id ))
+		assert_that(res.json_body, has_entry( StandardExternalFields.CREATED_TIME, is_( float ) ) )
+		assert_that(res.json_body, has_entry( StandardExternalFields.LAST_MODIFIED, is_( float ) ) )
+
+		if metadata_link:
+			__traceback_info__ = metadata_link
+			metadata_res = self.testapp.get(metadata_link)
+			assert_that(metadata_res.json_body, has_entry('href', contains_string(unquote(metadata_link)) ) )
+			assert_that(metadata_res.json_body, has_entry('Items', has_length(1)))
+		
+			items = list(metadata_res.json_body['Items'].values())
+			assert_that(items[0], has_key('href'))
+		else:
+			self._fetch_user_url('/Courses/EnrolledCourses/CLC3403/AssignmentMetadata' + 
+								self.default_username, status=404 )
+		return res.json_body
+	
 	@WithSharedApplicationMockDS(users=('outest5',),testapp=True,default_authenticate=True)
 	@fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
 	def test_metadata(self, fake_active):
@@ -186,48 +183,48 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		assert_that( course_metadata_link,
  					 is_('/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice/AssignmentMetadata/' + 
  						 self.default_username) )
-# 
-# 		# Both history links are equivalent and work; and both are empty before I submit
-# 		for link in course_savepoints_link, enrollment_savepoints_link:
-# 			savepoints_res = self.testapp.get(link)
-# 			assert_that(savepoints_res.json_body, has_entry('Items', has_length(0)))
-# 
-# 		href = '/dataserver2/Objects/' + self.assignment_id + '/Savepoint'
-# 		self.testapp.get(href, status=404)
-# 		
-# 		res = self.testapp.post_json( href, ext_obj)
-# 		savepoint_item_href = res.json_body['href']
-# 		assert_that(savepoint_item_href, is_not(none()))
-# 		
-# 		self._check_submission(res, enrollment_savepoints_link)
-# 		
-# 		res = self.testapp.get(savepoint_item_href)
-# 		assert_that(res.json_body, has_entry('href', is_not(none())))
-# 		
-# 		res = self.testapp.get(href)
-# 		assert_that(res.json_body, has_entry('href', is_not(none())))
-# 		
-# 		# Both history links are equivalent and work
-# 		for link in course_savepoints_link, enrollment_savepoints_link:
-# 			savepoints_res = self.testapp.get(link)
-# 			assert_that(savepoints_res.json_body, has_entry('Items', has_length(1)))
-# 			assert_that(savepoints_res.json_body, has_entry('Items', has_key(self.assignment_id)))
-# 
-# 		# simply adding get us to an item
-# 		href = savepoints_res.json_body['href'] + '/' + self.assignment_id
-# 		res = self.testapp.get(href)
-# 		assert_that(res.json_body, has_entry('href', is_not(none())))
-# 			
-# 		# we can delete
-# 		self.testapp.delete(savepoint_item_href, status=204)
-# 		self.testapp.get(savepoint_item_href, status=404)
-# 		
-# 		# Whereupon we can submit again
-# 		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id + '/Savepoint',
-# 									  ext_obj)
-# 		self._check_submission(res, enrollment_savepoints_link)
-# 		
-# 		# and again
-# 		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id + '/Savepoint',
-# 									  ext_obj)
-# 		self._check_submission(res, enrollment_savepoints_link)
+
+		# Both links are equivalent and work; and both are empty before I submit
+		for link in course_metadata_link, enrollment_metadata_link:
+			metadata_res = self.testapp.get(link)
+			assert_that(metadata_res.json_body, has_entry('Items', has_length(0)))
+
+		href = '/dataserver2/Objects/' + self.assignment_id + '/Metadata'
+		self.testapp.get(href, status=404)
+		
+		res = self.testapp.post_json( href, ext_obj)
+		metadata_item_href = res.json_body['href']
+		assert_that(metadata_item_href, is_not(none()))
+		
+		meta_body = self._check_metadata(res, enrollment_metadata_link)
+	
+		res = self.testapp.get(metadata_item_href)
+		assert_that(res.json_body, has_entry('href', is_not(none())))
+	
+		res = self.testapp.get(href)
+		assert_that(res.json_body, has_entry('href', is_not(none())))
+		
+		# Both metadata links are equivalent and work
+		for link in course_metadata_link, enrollment_metadata_link:
+			metadata_res = self.testapp.get(link)
+			assert_that(metadata_res.json_body, has_entry('Items', has_length(1)))
+			assert_that(metadata_res.json_body, has_entry('Items', has_key(self.assignment_id)))
+
+		# simply adding get us to an item
+		href = metadata_res.json_body['href'] + '/' + self.assignment_id
+		res = self.testapp.get(href)
+		assert_that(res.json_body, has_entry('href', is_not(none())))
+			
+		# we cannnot delete
+		self.testapp.delete(metadata_item_href, status=403)
+		self.testapp.get(metadata_item_href, status=200)
+		
+		# we can put
+		ext_obj['StartTime'] = 'foo' #should be ignored
+		res = self.testapp.put_json(metadata_item_href, ext_obj, status=200)
+		assert_that(res.json_body, has_entry('StartTime', is_(meta_body['StartTime'])))
+		
+		# The instructor can delete our metadada
+		instructor_environ = self._make_extra_environ(username='harp4162')
+		self.testapp.delete(metadata_item_href, extra_environ=instructor_environ, status=204)
+

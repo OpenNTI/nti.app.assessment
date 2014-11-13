@@ -8,6 +8,9 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+import six
+import isodate
+
 from zope import component
 from zope import interface
 
@@ -49,6 +52,7 @@ from nti.dataserver.containers import CaseInsensitiveCheckingLastModifiedBTreeCo
 from nti.externalization.datastructures import InterfaceObjectIO
 from nti.externalization.interfaces import IInternalObjectUpdater
 from nti.externalization.interfaces import StandardExternalFields
+from nti.externalization.externalization import to_external_ntiid_oid
 
 from nti.schema.field import SchemaConfigured
 from nti.schema.fieldproperty import createDirectFieldProperties
@@ -73,6 +77,7 @@ class UsersCourseAssignmentMetadataContainer(CaseInsensitiveCheckingLastModified
 class UsersCourseAssignmentMetadata(CheckingLastModifiedBTreeContainer):
 	
 	__external_can_create__ = False
+
 	_owner_ref = None
 
 	def _get_owner(self):
@@ -128,7 +133,11 @@ class UsersCourseAssignmentMetadataItem(PersistentCreatedModDateTrackingObject,
 	
 	createDirectFieldProperties(IUsersCourseAssignmentMetadataItem)
 
-	__external_can_create__ = False
+	__external_can_create__ = True
+
+	@property
+	def id(self):
+		return to_external_ntiid_oid(self)
 
 	def __conform__(self, iface):
 		if IUser.isOrExtends(iface):
@@ -175,9 +184,12 @@ class _UsersCourseAssignmentMetadataItemUpdater(object):
 		self.item = item
 
 	def updateFromExternalObject(self, parsed, *args, **kwargs):
-		if self.StartTime is not None:
+		start_time = parsed.get('StartTime', None)
+		if self.item.StartTime is None:
+			if isinstance(start_time, six.string_types):
+				parsed['StartTime'] = isodate.parse_datetime(start_time)
+		else:
 			parsed.pop('StartTime', None)
-			
 		result = InterfaceObjectIO(
 					self.item,
 					IUsersCourseAssignmentMetadataItem).updateFromExternalObject(parsed)
@@ -198,7 +210,7 @@ def _metadatacontainer_for_course(course):
 	return result
 
 @component.adapter(ICourseInstance, IUser)
-@interface.implementer(IUsersCourseAssignmentMetadataContainer)
+@interface.implementer(IUsersCourseAssignmentMetadata)
 def _metadata_for_user_in_course(course, user, create=True):
 	result = None
 	container = _metadatacontainer_for_course(course)

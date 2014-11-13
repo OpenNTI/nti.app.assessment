@@ -151,7 +151,7 @@ class TestSavepointViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		assert_that(submission, has_entry( StandardExternalFields.CREATED_TIME, is_( float ) ) )
 		assert_that(submission, has_entry( StandardExternalFields.LAST_MODIFIED, is_( float ) ) )
 
-		# This object can be found in my history
+		# This object can be found in my savepoints
 		if savepoint:
 			__traceback_info__ = savepoint
 			savepoint_res = self.testapp.get(savepoint)
@@ -195,7 +195,7 @@ class TestSavepointViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 					 is_('/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice/AssignmentSavepoints/' + 
 						 self.default_username) )
 
-		# Both history links are equivalent and work; and both are empty before I submit
+		# Both savepoint links are equivalent and work; and both are empty before I submit
 		for link in course_savepoints_link, enrollment_savepoints_link:
 			savepoints_res = self.testapp.get(link)
 			assert_that(savepoints_res.json_body, has_entry('Items', has_length(0)))
@@ -215,7 +215,7 @@ class TestSavepointViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		res = self.testapp.get(href)
 		assert_that(res.json_body, has_entry('href', is_not(none())))
 		
-		# Both history links are equivalent and work
+		# Both savepoint links are equivalent and work
 		for link in course_savepoints_link, enrollment_savepoints_link:
 			savepoints_res = self.testapp.get(link)
 			assert_that(savepoints_res.json_body, has_entry('Items', has_length(1)))

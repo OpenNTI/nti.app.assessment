@@ -29,7 +29,7 @@ from nti.contentlibrary.interfaces import IContentUnit
 from nti.dataserver.authorization_acl import ACL
 
 from nti.app.assessment._question_map import QuestionMap as _QuestionMap
-from nti.app.assessment._question_map import QuestionMap as _populate_question_map_from_text
+from nti.app.assessment._question_map import _populate_question_map_from_text
 
 class QuestionMap(_QuestionMap, dict):
 	# For testing, we capture data, emulating

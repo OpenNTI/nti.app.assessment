@@ -5,6 +5,7 @@
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
+from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataContainer
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -143,10 +144,13 @@ def delete_user_data(user):
 		for enrollment in enrollments.iter_enrollments():
 			course = ICourseInstance(enrollment)
 			for iface in (IUsersCourseAssignmentHistories,
-						  IUsersCourseAssignmentSavepoints):
-				container = iface(course, None)
-				if container is not None and username in container:
-					del container[username]
+						  IUsersCourseAssignmentSavepoints,
+						  IUsersCourseAssignmentMetadataContainer):
+				user_data = iface(course, None)
+				if user_data is not None and username in user_data:
+					container = user_data[username]
+					container.clear()
+					del user_data[username]
 
 @component.adapter(IUser, IObjectRemovedEvent)
 def _on_user_removed(user, event):

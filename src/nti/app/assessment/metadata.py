@@ -260,9 +260,6 @@ def _on_assignment_history_item_deleted(item, event):
 	user = IUser(item, None)
 	course = find_interface(item, ICourseInstance, strict=False)
 	if user is not None and course is not None:
-		pass
-#		 assignment_metadata = component.getMultiAdapter((course, user),
-#														 IUsersCourseAssignmentMetadata)
-#		 TODO: Reemove
-#		 assignment_metadata.removeSubmission(item.Submission)
-	
+		assignment_metadata = component.getMultiAdapter((course, user),
+														 IUsersCourseAssignmentMetadata)
+		assignment_metadata.remove(item.assignmentId)

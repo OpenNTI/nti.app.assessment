@@ -7,27 +7,29 @@ __docformat__ = "restructuredtext en"
 # disable: accessing protected members, too many methods
 # pylint: disable=W0212,R0904
 
-from zope import component
-from zope import interface
-import simplejson as json
-
-from hamcrest import assert_that
 from hamcrest import is_
 from hamcrest import has_length
+from hamcrest import assert_that
 from hamcrest import has_property
-from hamcrest import contains_inanyorder
 from hamcrest import same_instance
 
-from .._question_map import QuestionMap as _QuestionMap, _populate_question_map_from_text
-from nti.assessment.interfaces import IQAssignment
+import simplejson as json
+
+from zope import component
+from zope import interface
+from zope.annotation.interfaces import IAttributeAnnotatable
+
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
+from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssessmentItemContainer
+
 from nti.contentlibrary.interfaces import IContentUnit
-from zope.annotation.interfaces import IAttributeAnnotatable
+
 from nti.dataserver.authorization_acl import ACL
 
-import nti.testing.base
+from nti.app.assessment._question_map import QuestionMap as _QuestionMap
+from nti.app.assessment._question_map import QuestionMap as _populate_question_map_from_text
 
 class QuestionMap(_QuestionMap, dict):
 	# For testing, we capture data, emulating

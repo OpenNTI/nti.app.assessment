@@ -167,10 +167,9 @@ class TestSavepointViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 	@WithSharedApplicationMockDS(users=('outest5',),testapp=True,default_authenticate=True)
 	@fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
 	def test_savepoint(self, fake_active):
-		# make it look like the course is in session so notables work
 		fake_active.is_callable().returns(True)
 		
-		# Sends an assignment through the ap	plication by posting to the assignment
+		# Sends an assignment through the application by posting to the assignment
 		qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id)
 		submission = AssignmentSubmission(assignmentId=self.assignment_id, parts=(qs_submission,))
 

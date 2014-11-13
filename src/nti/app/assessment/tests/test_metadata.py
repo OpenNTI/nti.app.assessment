@@ -77,8 +77,6 @@ class TestMetadata(AssessmentLayerTest):
 import fudge
 from urllib import unquote
 
-from nti.assessment.submission import QuestionSetSubmission
-
 from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.externalization import to_external_object
 
@@ -161,37 +159,33 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 # 			self._fetch_user_url('/Courses/EnrolledCourses/CLC3403/AssignmentSavepoints/' + 
 # 								self.default_username, status=404 )
 # 	
-# 	@WithSharedApplicationMockDS(users=('outest5',),testapp=True,default_authenticate=True)
-# 	@fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
-# 	def test_savepoint(self, fake_active):
-# 		# make it look like the course is in session so notables work
-# 		fake_active.is_callable().returns(True)
-# 		
-# 		# Sends an assignment through the ap	plication by posting to the assignment
-# 		qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id)
-# 		submission = AssignmentSubmission(assignmentId=self.assignment_id, parts=(qs_submission,))
-# 
-# 		ext_obj = to_external_object( submission )
-# 		del ext_obj['Class']
-# 		assert_that( ext_obj, has_entry('MimeType', 'application/vnd.nextthought.assessment.assignmentsubmission'))
-# 		
-# 		# Make sure we're enrolled
-# 		res = self.testapp.post_json( '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses',
-# 									  'CLC 3403',
-# 									  status=201 )
-# 
-# 		enrollment_savepoints_link = self.require_link_href_with_rel(res.json_body, 'AssignmentSavepoints')
-# 		course_savepoints_link = self.require_link_href_with_rel( res.json_body['CourseInstance'], 'AssignmentSavepoints')
-# 		
-# 		assert_that( enrollment_savepoints_link,
-# 					 is_('/dataserver2/users/' + 
-# 						 self.default_username +
-# 						 '/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentSavepoints/' +
-# 						 self.default_username))
-# 
-# 		assert_that( course_savepoints_link,
-# 					 is_('/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice/AssignmentSavepoints/' + 
-# 						 self.default_username) )
+	@WithSharedApplicationMockDS(users=('outest5',),testapp=True,default_authenticate=True)
+	@fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
+	def test_metadata(self, fake_active):
+		fake_active.is_callable().returns(True)
+
+		item = UsersCourseAssignmentMetadataItem(StartTime=datetime.now())
+		ext_obj = to_external_object( item )
+		assert_that( ext_obj, 
+					 has_entry('MimeType', 'application/vnd.nextthought.assessment.userscourseassignmentmetadataitem'))
+		
+		# Make sure we're enrolled
+		res = self.testapp.post_json( '/dataserver2/users/' + self.default_username + '/Courses/EnrolledCourses',
+ 									  'CLC 3403',
+ 									  status=201 )
+
+		enrollment_metadata_link = self.require_link_href_with_rel(res.json_body, 'AssignmentMetadata')
+		course_metadata_link = self.require_link_href_with_rel( res.json_body['CourseInstance'], 'AssignmentMetadata')
+	
+		assert_that( enrollment_metadata_link,
+					 is_('/dataserver2/users/' + 
+						 self.default_username +
+						 '/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentMetadata/' +
+						 self.default_username))
+
+		assert_that( course_metadata_link,
+ 					 is_('/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice/AssignmentMetadata/' + 
+ 						 self.default_username) )
 # 
 # 		# Both history links are equivalent and work; and both are empty before I submit
 # 		for link in course_savepoints_link, enrollment_savepoints_link:

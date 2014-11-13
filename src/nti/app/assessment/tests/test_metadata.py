@@ -74,64 +74,62 @@ class TestMetadata(AssessmentLayerTest):
 		metadata.remove('foo')
 		assert_that(metadata, has_length(0))
 
-# import fudge
-# from urllib import unquote
-# 
-# from nti.assessment.submission import QuestionSetSubmission
-# 
-# from nti.externalization.interfaces import StandardExternalFields
-# from nti.externalization.externalization import to_external_object
-# 
-# from nti.app.assessment.tests import RegisterAssignmentLayerMixin
-# from nti.app.assessment.tests import RegisterAssignmentsForEveryoneLayer
-# 
-# from nti.app.testing.decorators import WithSharedApplicationMockDS
-# from nti.app.testing.application_webtest import ApplicationLayerTest
-# 
-# class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
-# 	
-# 	layer = RegisterAssignmentsForEveryoneLayer
-# 	
-# 	features = ('assignments_for_everyone',)
-# 
-# 	default_origin = str('http://janux.ou.edu')
-# 	default_username = 'outest75'
-# 
-# 	@WithSharedApplicationMockDS(users=('outest5',),testapp=True,default_authenticate=True)
-# 	def test_fetching_entire_assignment_savepoint_collection(self):
-# 		
-# 		outest_environ = self._make_extra_environ(username='outest5')
-# 		outest_environ.update( {b'HTTP_ORIGIN': b'http://janux.ou.edu'} )
-# 
-# 		res = self.testapp.post_json( '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses',
-# 									  'CLC 3403',
-# 									  status=201 )
-# 
-# 		default_enrollment_savepoints_link = self.require_link_href_with_rel(res.json_body, 'AssignmentSavepoints')
-# 		assert_that( default_enrollment_savepoints_link,
-# 					 is_('/dataserver2/users/' +
-# 						self.default_username  +
-# 						'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentSavepoints/' +
-# 						self.default_username))
-# 
-# 
-# 		res = self.testapp.post_json( '/dataserver2/users/outest5/Courses/EnrolledCourses',
-# 								'CLC 3403',
-# 								status=201,
-# 								extra_environ=outest_environ )
-# 
-# 		user2_enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'AssignmentSavepoints')
-# 
-# 
-# 		# each can fetch his own
-# 		self.testapp.get(default_enrollment_savepoints_link)
-# 		self.testapp.get(user2_enrollment_history_link, extra_environ=outest_environ)
-# 
-# 		# but they can't get each others
-# 		self.testapp.get(default_enrollment_savepoints_link,
-# 						 extra_environ=outest_environ,
-# 						 status=403)
-# 		self.testapp.get(user2_enrollment_history_link, status=403)
+import fudge
+from urllib import unquote
+
+from nti.assessment.submission import QuestionSetSubmission
+
+from nti.externalization.interfaces import StandardExternalFields
+from nti.externalization.externalization import to_external_object
+
+from nti.app.assessment.tests import RegisterAssignmentLayerMixin
+from nti.app.assessment.tests import RegisterAssignmentsForEveryoneLayer
+
+from nti.app.testing.decorators import WithSharedApplicationMockDS
+from nti.app.testing.application_webtest import ApplicationLayerTest
+
+class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
+
+	layer = RegisterAssignmentsForEveryoneLayer
+	
+	features = ('assignments_for_everyone',)
+
+	default_origin = str('http://janux.ou.edu')
+	default_username = 'outest75'
+
+	@WithSharedApplicationMockDS(users=('outest5',), testapp=True, default_authenticate=True)
+	def test_fetching_entire_assignment_metadata_collection(self):
+		
+		outest_environ = self._make_extra_environ(username='outest5')
+		outest_environ.update( {b'HTTP_ORIGIN': b'http://janux.ou.edu'} )
+
+		res = self.testapp.post_json( '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses',
+									  'CLC 3403',
+									  status=201 )
+
+		default_enrollment_metadata_link = self.require_link_href_with_rel(res.json_body, 'AssignmentMetadata')
+		assert_that( default_enrollment_metadata_link,
+					 is_('/dataserver2/users/' +
+						self.default_username  +
+						'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentMetadata/' +
+						self.default_username))
+
+		res = self.testapp.post_json( '/dataserver2/users/outest5/Courses/EnrolledCourses',
+								'CLC 3403',
+								status=201,
+								extra_environ=outest_environ )
+
+		user2_enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'AssignmentMetadata')
+
+		# each can fetch his own
+		self.testapp.get(default_enrollment_metadata_link)
+		self.testapp.get(user2_enrollment_history_link, extra_environ=outest_environ)
+
+		# but they can't get each others
+		self.testapp.get(default_enrollment_metadata_link,
+						 extra_environ=outest_environ,
+						 status=403)
+		self.testapp.get(user2_enrollment_history_link, status=403)
 # 
 # 
 # 	def _check_submission(self, res, savepoint=None):

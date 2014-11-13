@@ -188,7 +188,7 @@ class _UsersCourseAssignmentMetadataItemUpdater(object):
 def _metadatacontainer_for_course(course):
 	annotations = IAnnotations(course)
 	try:
-		KEY = 'AssignmentMetadataContainer'
+		KEY = 'AssignmentMetadata'
 		result = annotations[KEY]
 	except KeyError:
 		result = UsersCourseAssignmentMetadataContainer()

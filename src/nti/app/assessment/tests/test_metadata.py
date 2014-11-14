@@ -39,13 +39,14 @@ from nti.app.assessment.tests import AssessmentLayerTest
 
 class TestMetadata(AssessmentLayerTest):
 
+	@WithMockDSTrans
 	def test_provides(self):
 		container = UsersCourseAssignmentMetadataContainer()
 		metadata = UsersCourseAssignmentMetadata()
 		metadata.__parent__ = container
 		# Set an owner; use a python wref instead of the default
 		# adapter to wref as it requires an intid utility
-		metadata.owner = weakref.ref(User('sjohnson@nextthought.com'))
+		metadata.owner = weakref.ref(User.create_user(username='sjohnson@nextthought.com'))
 		item = UsersCourseAssignmentMetadataItem()
 		item.creator = 'foo'
 		item.__parent__ = metadata

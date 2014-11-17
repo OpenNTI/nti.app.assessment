@@ -34,9 +34,9 @@ from nti.dataserver.interfaces import IShouldHaveTraversablePath
 from nti.schema.field import Int
 from nti.schema.field import Dict
 from nti.schema.field import List
+from nti.schema.field import Float
 from nti.schema.field import Number
 from nti.schema.field import Object
-from nti.schema.field import DateTime
 
 from zope.security.permission import Permission
 
@@ -347,4 +347,4 @@ class IUsersCourseAssignmentMetadataItem(interface.Interface):
 	containers(IUsersCourseAssignmentMetadata)
 	__parent__.required = False
 
-	StartTime = DateTime(title="Assignment Start time", required=False)
+	StartTime = Float(title="Assignment Start time", required=False)

@@ -134,14 +134,14 @@ class _AssignmentSectionOverrides(AbstractAuthenticatedRequestAwareDecorator):
 			if dates_date != asg_date:
 				result[k] = to_external_object(dates_date)
 		
-		maximum_time_allowed = assignment.maximum_time_allowed
+		max_time_allowed = assignment.maximum_time_allowed
 		policy = IQAssignmentPolicies(course).getPolicyForAssignment(assignment.ntiid)
 		if 	policy and 'maximum_time_allowed' in policy and \
-			policy['maximum_time_allowed'] != maximum_time_allowed:
-			maximum_time_allowed = policy['maximum_time_allowed']
+			policy['maximum_time_allowed'] != max_time_allowed:
+			max_time_allowed = policy['maximum_time_allowed']
 		
-		result['maximum_time_allowed' ] = maximum_time_allowed
-		result['IsTimedAssignment'] = bool(maximum_time_allowed)
+		result['IsTimedAssignment'] = bool(max_time_allowed)
+		result['MaximumTimeAllowed'] = result['maximum_time_allowed' ] = max_time_allowed
 			
 @repoze.lru.lru_cache(1000, timeout=3600)
 def _root_url(ntiid):

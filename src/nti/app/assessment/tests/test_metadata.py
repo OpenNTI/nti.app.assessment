@@ -17,8 +17,8 @@ from hamcrest import assert_that
 from hamcrest import has_property
 from hamcrest import contains_string
 
+import time
 import weakref
-from datetime import datetime
 
 from nti.app.assessment.metadata import UsersCourseAssignmentMetadata
 from nti.app.assessment.metadata import UsersCourseAssignmentMetadataItem
@@ -64,7 +64,7 @@ class TestMetadata(AssessmentLayerTest):
 		metadata = UsersCourseAssignmentMetadata()
 		connection.add(metadata)
 		item = UsersCourseAssignmentMetadataItem()
-		item.StartTime = datetime.now()
+		item.StartTime = time.time()
 		metadata.append("foo", item)
 		
 		assert_that( item, has_property( 'StartTime', is_not(none() )))
@@ -162,7 +162,7 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 	def test_metadata(self, fake_active):
 		fake_active.is_callable().returns(True)
 
-		item = UsersCourseAssignmentMetadataItem(StartTime=datetime.now())
+		item = UsersCourseAssignmentMetadataItem(StartTime=time.time())
 		ext_obj = to_external_object( item )
 		assert_that( ext_obj, 
 					 has_entry('MimeType', 'application/vnd.nextthought.assessment.userscourseassignmentmetadataitem'))
@@ -221,7 +221,7 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		self.testapp.get(metadata_item_href, status=200)
 		
 		# we can put
-		ext_obj['StartTime'] = 'foo' #should be ignored
+		ext_obj['StartTime'] = 0 #should be ignored
 		res = self.testapp.put_json(metadata_item_href, ext_obj, status=200)
 		assert_that(res.json_body, has_entry('StartTime', is_(meta_body['StartTime'])))
 		

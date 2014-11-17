@@ -9,7 +9,6 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 import six
-import isodate
 
 from zope import component
 from zope import interface
@@ -187,7 +186,7 @@ class _UsersCourseAssignmentMetadataItemUpdater(object):
 		start_time = parsed.get('StartTime', None)
 		if self.item.StartTime is None:
 			if isinstance(start_time, six.string_types):
-				parsed['StartTime'] = isodate.parse_datetime(start_time)
+				parsed['StartTime'] = float(start_time)
 		else:
 			parsed.pop('StartTime', None)
 		result = InterfaceObjectIO(

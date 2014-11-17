@@ -143,7 +143,6 @@ class _AssignmentSectionOverrides(AbstractAuthenticatedRequestAwareDecorator):
 		result['maximum_time_allowed' ] = maximum_time_allowed
 		result['IsTimedAssignment'] = bool(maximum_time_allowed)
 			
-
 @repoze.lru.lru_cache(1000, timeout=3600)
 def _root_url(ntiid):
 	library = component.queryUtility(IContentPackageLibrary)

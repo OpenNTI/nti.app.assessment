@@ -71,7 +71,7 @@ class IUsersCourseAssignmentSavepoint(IContainer,
 
 	Items = Dict(title='For externalization only, a copy of the items', readonly=True)
 
-	def recordSubmission(submission):
+	def recordSubmission(submission,  event=False):
 		"""
 		When a user submits an assignment for save point call this method to record
 		that fact. If a submission has already been recorded, this will
@@ -83,13 +83,18 @@ class IUsersCourseAssignmentSavepoint(IContainer,
 			be set to the correct __parent__ relationship within the part/question
 			structure).
 			
+		:param event: Flag to avoid sending an add/modified event
+		
 		:return: The new :class:`.IUsersCourseAssignmentSavepointItem` representing
 				 the record of this submission.
 		"""
 		
-	def removeSubmission(submission):
+	def removeSubmission(submission, event=False):
 		"""
 		remove a submission
+		
+		:param submission: The :class:`.IQAssignmentSubmission` to remove
+		:param event: Flag to avoid sending a removal/modified event
 		"""
 
 class IUsersCourseAssignmentSavepointItem(IContained, 

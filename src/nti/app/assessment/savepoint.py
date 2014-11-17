@@ -141,7 +141,8 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 
 	@property
 	def __acl__(self):
-		aces = [ace_allowing(self.owner, ALL_PERMISSIONS, UsersCourseAssignmentSavepoint)]
+		aces = [ace_allowing(self.owner, ALL_PERMISSIONS,
+							 UsersCourseAssignmentSavepoint)]
 		aces.append(ACE_DENY_ALL)
 		return acl_from_aces( aces )
 
@@ -179,7 +180,8 @@ class UsersCourseAssignmentSavepointItem(PersistentCreatedModDateTrackingObject,
 
 	@property
 	def __acl__(self):
-		aces = [ace_allowing(self.owner, ALL_PERMISSIONS, UsersCourseAssignmentSavepointItem)]
+		aces = [ace_allowing(self.owner, ALL_PERMISSIONS, 
+							 UsersCourseAssignmentSavepointItem)]
 		aces.append(ACE_DENY_ALL)
 		return acl_from_aces( aces )
 
@@ -255,5 +257,5 @@ def _on_assignment_history_item_deleted(item, event):
 	if user is not None and course is not None:
 		assignment_savepoint = component.getMultiAdapter((course, user),
 													 	 IUsersCourseAssignmentSavepoint )
-		assignment_savepoint.removeSubmission(item.Submission)
+		assignment_savepoint.removeSubmission(item.Submission, event=False)
 	

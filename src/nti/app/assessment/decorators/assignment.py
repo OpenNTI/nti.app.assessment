@@ -21,6 +21,7 @@ from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecora
 from nti.appserver.pyramid_authorization import has_permission
 
 from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQTimedAssignment
 from nti.assessment.interfaces import IQAssignmentPolicies
 from nti.assessment.interfaces import IQAssignmentDateContext
 
@@ -134,13 +135,17 @@ class _AssignmentSectionOverrides(AbstractAuthenticatedRequestAwareDecorator):
 			if dates_date != asg_date:
 				result[k] = to_external_object(dates_date)
 		
+		if not IQTimedAssignment.providedBy(assignment):
+			result['IsTimedAssignment'] = False
+			return
+		
 		max_time_allowed = assignment.maximum_time_allowed
 		policy = IQAssignmentPolicies(course).getPolicyForAssignment(assignment.ntiid)
 		if 	policy and 'maximum_time_allowed' in policy and \
 			policy['maximum_time_allowed'] != max_time_allowed:
 			max_time_allowed = policy['maximum_time_allowed']
 		
-		result['IsTimedAssignment'] = bool(max_time_allowed)
+		result['IsTimedAssignment'] = True
 		result['MaximumTimeAllowed'] = result['maximum_time_allowed' ] = max_time_allowed
 			
 @repoze.lru.lru_cache(1000, timeout=3600)

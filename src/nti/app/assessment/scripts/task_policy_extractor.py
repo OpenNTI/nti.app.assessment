@@ -21,6 +21,7 @@ from zope.configuration import xmlconfig
 from zope.interface.registry import Components
 
 from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQTimedAssignment
 
 from nti.contentlibrary.filesystem import FilesystemKey
 from nti.contentlibrary.filesystem import FilesystemBucket
@@ -67,7 +68,8 @@ def _asg_registry_to_course_data(registry):
 				to_external_object(assignment.available_for_submission_beginning)
 
 		# max time allowed
-		asg_data['maximum_time_allowed'] = assignment.maximum_time_allowed
+		if IQTimedAssignment.providedBy(assignment):
+			asg_data['maximum_time_allowed'] = assignment.maximum_time_allowed
 		
 		# Point specification
 		point_data = asg_data['auto_grade'] = {}

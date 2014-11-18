@@ -348,3 +348,4 @@ class IUsersCourseAssignmentMetadataItem(interface.Interface):
 	__parent__.required = False
 
 	StartTime = Float(title="Assignment Start time", required=False)
+	Duration = Float(title="Assignment Duration", required=False)

@@ -8,6 +8,8 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+import time
+
 from zope import component
 from zope.schema.interfaces import RequiredMissing
 
@@ -30,6 +32,7 @@ from .._submission import read_multipart_sources
 
 from .._utils import find_course_for_assignment
 
+from ..interfaces import IUsersCourseAssignmentMetadata
 from ..interfaces import IUsersCourseAssignmentSavepoint
 from ..interfaces import IUsersCourseAssignmentSavepoints
 from ..interfaces import IUsersCourseAssignmentSavepointItem
@@ -77,6 +80,11 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 												IUsersCourseAssignmentSavepoint)
 		submission.containerId = submission.assignmentId
 
+		# for legacy purposes we assume the start time as the first savepoint submitted
+		metadata = component.getMultiAdapter( (course, submission.creator),
+											  IUsersCourseAssignmentMetadata)
+		metadata.get_or_create(submission.assignmentId, time.time())
+		
 		# Now record the submission.
 		self.request.response.status_int = 201
 		result = savepoint.recordSubmission(submission)

@@ -211,6 +211,7 @@
 	<adapter factory=".savepoint._UsersCourseAssignmentSavepointsTraversable" />
 
 	<subscriber handler=".savepoint._on_course_added" />
+	<subscriber handler=".savepoint._on_assignment_history_item_added" />
 	<subscriber handler=".savepoint._on_assignment_history_item_deleted" />
 
 	<ext:registerAutoPackageIO
@@ -235,6 +236,7 @@
 	<adapter factory=".metadata._UsersCourseAssignmentMetadataTraversable" />
 
 	<subscriber handler=".metadata._on_course_added" />
+	<subscriber handler=".metadata._on_assignment_history_item_added" />
 	<subscriber handler=".metadata._on_assignment_history_item_deleted" />
 
 	<ext:registerAutoPackageIO

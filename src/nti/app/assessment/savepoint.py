@@ -250,12 +250,20 @@ def _on_course_added(course, event):
 	
 from .interfaces import IUsersCourseAssignmentHistoryItem
 
-@component.adapter(IUsersCourseAssignmentHistoryItem, IObjectRemovedEvent)
-def _on_assignment_history_item_deleted(item, event):
+def _delete_assignment_save_point(item):
 	user = IUser(item, None)
 	course = find_interface(item, ICourseInstance, strict=False)
 	if user is not None and course is not None:
 		assignment_savepoint = component.getMultiAdapter((course, user),
 													 	 IUsersCourseAssignmentSavepoint )
 		assignment_savepoint.removeSubmission(item.Submission, event=False)
+		return True
+	return False
+
+@component.adapter(IUsersCourseAssignmentHistoryItem, IObjectRemovedEvent)
+def _on_assignment_history_item_deleted(item, event):
+	_delete_assignment_save_point(item)
 	
+@component.adapter(IUsersCourseAssignmentHistoryItem, IObjectAddedEvent)
+def _on_assignment_history_item_added(item, event):
+	_delete_assignment_save_point(item)

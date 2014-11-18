@@ -92,6 +92,15 @@ class UsersCourseAssignmentMetadata(CheckingLastModifiedBTreeContainer):
 	def Items(self):
 		return dict(self)
 	
+	def get_or_create(self, assignmentId, start_time=None):
+		if assignmentId not in self:
+			result = UsersCourseAssignmentMetadataItem(StartTime=start_time)
+			self.append(assignmentId, result)
+		else:
+			result = self[assignmentId]
+		return result
+	getOrCreate = get_or_create
+	
 	def append(self, assignmentId, item):
 		if item.__parent__ is not None:
 			raise ValueError("Objects already parented")
@@ -252,13 +261,27 @@ class _UsersCourseAssignmentMetadataTraversable(ContainerAdapterTraversable):
 def _on_course_added(course, event):
 	_metadatacontainer_for_course(course)
 	
+import time
+
 from .interfaces import IUsersCourseAssignmentHistoryItem
+
+@component.adapter(IUsersCourseAssignmentHistoryItem, IObjectAddedEvent)
+def _on_assignment_history_item_added(item, event):
+	user = IUser(item, None)
+	course = find_interface(item, ICourseInstance, strict=False)
+	assignment_metadata = component.queryMultiAdapter( (course, user),
+														IUsersCourseAssignmentMetadata)
+	if assignment_metadata is not None:
+		meta_item = assignment_metadata.get_or_create(item.assignmentId)
+		if meta_item.StartTime is None:
+			meta_item.StartTime = time.time()
+		meta_item.Duration = time.time() - meta_item.StartTime
 
 @component.adapter(IUsersCourseAssignmentHistoryItem, IObjectRemovedEvent)
 def _on_assignment_history_item_deleted(item, event):
 	user = IUser(item, None)
 	course = find_interface(item, ICourseInstance, strict=False)
-	if user is not None and course is not None:
-		assignment_metadata = component.getMultiAdapter((course, user),
-														 IUsersCourseAssignmentMetadata)
+	assignment_metadata = component.queryMultiAdapter( (course, user),
+														IUsersCourseAssignmentMetadata)
+	if assignment_metadata is not None:
 		assignment_metadata.remove(item.assignmentId)

@@ -24,11 +24,17 @@ from zope.schema.interfaces import ConstraintNotSatisfied
 
 from persistent.list import PersistentList
 
-from nti.appserver import interfaces as app_interfaces
+from nti.appserver.interfaces import INewObjectTransformer
 
-from nti.assessment import interfaces as asm_interfaces
+from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQAssessedQuestion
+from nti.assessment.interfaces import IQuestionSubmission
+from nti.assessment.interfaces import IQAssessedQuestionSet
+from nti.assessment.interfaces import IQAssignmentSubmission
+from nti.assessment.interfaces import IQuestionSetSubmission
 from nti.assessment.interfaces import IQAssignmentDateContext
 from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
+from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
@@ -40,24 +46,23 @@ from .history import UsersCourseAssignmentHistory
 
 from .interfaces import IUsersCourseAssignmentHistory
 from .interfaces import IUsersCourseAssignmentHistories
-from .interfaces import IUsersCourseAssignmentSavepoint
 from .interfaces import IUsersCourseAssignmentHistoryItem
 
-@component.adapter(asm_interfaces.IQuestionSubmission)
-@interface.implementer(app_interfaces.INewObjectTransformer)
+@component.adapter(IQuestionSubmission)
+@interface.implementer(INewObjectTransformer)
 def _question_submission_transformer( obj ):
 	"""
 	Grade it, by adapting the object into an IAssessedQuestion
 	"""
-	return asm_interfaces.IQAssessedQuestion
+	return IQAssessedQuestion
 
-@component.adapter(asm_interfaces.IQuestionSetSubmission)
-@interface.implementer(app_interfaces.INewObjectTransformer)
+@component.adapter(IQuestionSetSubmission)
+@interface.implementer(INewObjectTransformer)
 def _question_set_submission_transformer( obj ):
 	"""
 	Grade it, by adapting the object into an IAssessedQuestionSet
 	"""
-	return asm_interfaces.IQAssessedQuestionSet
+	return IQAssessedQuestionSet
 
 from functools import partial
 
@@ -68,15 +73,15 @@ from pyramid.interfaces import IExceptionResponse
 
 from nti.externalization.oids import to_external_oid
 
-@component.adapter(IRequest, asm_interfaces.IQAssignmentSubmission)
-@interface.implementer(app_interfaces.INewObjectTransformer)
+@component.adapter(IRequest, IQAssignmentSubmission)
+@interface.implementer(INewObjectTransformer)
 def _assignment_submission_transformer_factory(request, obj):
 	"""
 	Begin the grading process by adapting it to an IQAssignmentSubmissionPendingAssessment.
 	"""
 	return partial(_assignment_submission_transformer, request)
 
-@component.adapter(IRequest, asm_interfaces.IQAssignmentSubmission)
+@component.adapter(IRequest, IQAssignmentSubmission)
 @interface.implementer(IExceptionResponse)
 def _assignment_submission_transformer(request, obj):
 	"""
@@ -87,7 +92,7 @@ def _assignment_submission_transformer(request, obj):
 	value. Instead, we take control as documented in our
 	interface and raise a Created exception
 	"""
-	pending = asm_interfaces.IQAssignmentSubmissionPendingAssessment(obj)
+	pending = IQAssignmentSubmissionPendingAssessment(obj)
 
 	result = request.response = HTTPCreated()
 	# TODO: Shouldn't this be the external NTIID? This is what ugd_edit_views does though
@@ -107,15 +112,15 @@ def _check_submission_before(dates, assignment):
 	if available_beginning is not None:
 		if datetime.datetime.utcnow() < available_beginning:
 			ex = ConstraintNotSatisfied("Submitting too early")
-			ex.field = asm_interfaces.IQAssignment['available_for_submission_beginning']
+			ex.field = IQAssignment['available_for_submission_beginning']
 			ex.value = available_beginning
 			raise ex
 
 from ._utils import find_course_for_assignment
 from ._submission import set_submission_lineage
 
-@component.adapter(asm_interfaces.IQAssignmentSubmission)
-@interface.implementer(asm_interfaces.IQAssignmentSubmissionPendingAssessment)
+@component.adapter(IQAssignmentSubmission)
+@interface.implementer(IQAssignmentSubmissionPendingAssessment)
 def _begin_assessment_for_assignment_submission(submission):
 	"""
 	Begins the assessment process for an assignment by handling
@@ -126,14 +131,13 @@ def _begin_assessment_for_assignment_submission(submission):
 	no longer exactly true, but we can still associate a course enrollment).
 	"""
 	# Get the assignment
-	assignment = component.getUtility(asm_interfaces.IQAssignment,
-									  name=submission.assignmentId)
+	assignment = component.getUtility(IQAssignment, name=submission.assignmentId)
 
 	# Submissions to an assignment with zero parts are not allowed;
 	# those are reserved for the professor
 	if len(assignment.parts) == 0:
 		ex = ConstraintNotSatisfied("Cannot submit zero-part assignment")
-		ex.field = asm_interfaces.IQAssignment['parts']
+		ex.field = IQAssignment['parts']
 		raise ex
 
 	# Check that the submission has something for all parts
@@ -142,7 +146,7 @@ def _begin_assessment_for_assignment_submission(submission):
 
 	if sorted(assignment_part_ids) != sorted(submission_part_ids):
 		ex = ConstraintNotSatisfied("Incorrect submission parts")
-		ex.field = asm_interfaces.IQAssignmentSubmission['parts']
+		ex.field = IQAssignmentSubmission['parts']
 		raise ex
 
 	course = find_course_for_assignment(assignment, submission.creator)
@@ -153,16 +157,12 @@ def _begin_assessment_for_assignment_submission(submission):
 													IUsersCourseAssignmentHistory )
 	if submission.assignmentId in assignment_history:
 		ex = NotUnique("Assignment already submitted")
-		ex.field = asm_interfaces.IQAssignmentSubmission['assignmentId']
+		ex.field = IQAssignmentSubmission['assignmentId']
 		ex.value = submission.assignmentId
 		raise ex
 
 	set_submission_lineage(submission)
 	submission.containerId = submission.assignmentId
-	
-	assignment_savepoint = component.getMultiAdapter((course, submission.creator),
-													 IUsersCourseAssignmentSavepoint )
-	assignment_savepoint.removeSubmission(submission)
 	
 	# Ok, now for each part that can be auto graded, do so, leaving all the others
 	# as-they-are
@@ -172,7 +172,7 @@ def _begin_assessment_for_assignment_submission(submission):
 							if p.question_set.ntiid == submission_part.questionSetId]
 		if assignment_part.auto_grade:
 			__traceback_info__ = submission_part
-			submission_part = asm_interfaces.IQAssessedQuestionSet(submission_part)
+			submission_part = IQAssessedQuestionSet(submission_part)
 		new_parts.append( submission_part )
 
 	pending_assessment = QAssignmentSubmissionPendingAssessment( assignmentId=submission.assignmentId,
@@ -184,18 +184,19 @@ def _begin_assessment_for_assignment_submission(submission):
 	# added events for the HistoryItem and an added event for the pending assessment.
 	# The HistoryItem will have
 	# the course in its lineage.
-	assignment_history.recordSubmission( submission, pending_assessment )
+	assignment_history.recordSubmission(submission, pending_assessment)
 	return pending_assessment
 
 from zope.security.interfaces import IPrincipal
 
 from nti.contentlibrary.interfaces import IContentPackage
+
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.contenttypes.courses.interfaces import IPrincipalEnrollments
 
 @interface.implementer(ICourseInstance)
-@component.adapter(asm_interfaces.IQAssignment, IUser)
+@component.adapter(IQAssignment, IUser)
 def _course_from_assignment_lineage(assignment, user):
 	"""
 	Given a generic assignment and a user, we
@@ -345,7 +346,6 @@ class _UsersCourseAssignmentHistoriesTraversable(ContainerAdapterTraversable):
 				return _history_for_user_in_course( self.context.__parent__, user)
 			raise
 
-from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from .interfaces import ICourseAssignmentCatalog

@@ -74,6 +74,17 @@ class TestMetadata(AssessmentLayerTest):
 
 		metadata.remove('foo')
 		assert_that(metadata, has_length(0))
+		
+	@WithMockDSTrans
+	def test_get_or_create(self):
+		connection = mock_dataserver.current_transaction
+		metadata = UsersCourseAssignmentMetadata()
+		connection.add(metadata)
+		item = metadata.get_or_create('foo', 1.0)
+		assert_that(item, is_not(none()))
+		assert_that( item, has_property( 'StartTime', is_(1.0)))
+		item = metadata.get_or_create('foo', 100.0)
+		assert_that( item, has_property( 'StartTime', is_(1.0)))
 
 import fudge
 from urllib import unquote

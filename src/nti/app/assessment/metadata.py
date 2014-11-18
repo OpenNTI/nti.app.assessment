@@ -276,6 +276,7 @@ def _on_assignment_history_item_added(item, event):
 		if meta_item.StartTime is None:
 			meta_item.StartTime = time.time()
 		meta_item.Duration = time.time() - meta_item.StartTime
+		meta_item.updateLastMod()
 
 @component.adapter(IUsersCourseAssignmentHistoryItem, IObjectRemovedEvent)
 def _on_assignment_history_item_deleted(item, event):

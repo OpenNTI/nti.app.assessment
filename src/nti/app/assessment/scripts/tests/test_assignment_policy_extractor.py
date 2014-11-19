@@ -109,5 +109,4 @@ class TestAssignmentPolicyExtractor(AssessmentLayerTest):
 										  'auto_grade': None,
 										  'excluded': True,
 										  'available_for_submission_beginning': '2014-01-13T00:00:00Z',
-										  'available_for_submission_ending': None,
-										  'maximum_time_allowed': None}) )
+										  'available_for_submission_ending': None}) )

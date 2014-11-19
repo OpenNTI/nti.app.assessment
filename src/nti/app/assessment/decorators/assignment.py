@@ -112,7 +112,7 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
 							rel='ExportFiles',
 							elements=('BulkFilePartDownload',) ) )
 
-class _AssignmentSectionOverrides(AbstractAuthenticatedRequestAwareDecorator):
+class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
 	When an assignment is externalized, check for overrides
 	"""

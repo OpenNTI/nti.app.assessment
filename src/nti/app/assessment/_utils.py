@@ -21,6 +21,7 @@ from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQFilePart
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQTimedAssignment
 from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.randomized import questionbank_question_chooser
 
@@ -177,6 +178,8 @@ def iface_of_assessment(thing):
 	iface = IQuestion
 	if IQuestionSet.providedBy(thing):
 		iface = IQuestionSet
+	elif IQTimedAssignment.providedBy(thing):
+		iface = IQTimedAssignment
 	elif IQAssignment.providedBy(thing):
 		iface = IQAssignment
 	return iface

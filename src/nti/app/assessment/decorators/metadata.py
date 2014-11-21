@@ -12,12 +12,16 @@ from zope import interface
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
+from nti.assessment.interfaces import IQTimedAssignment
+
 from nti.dataserver.links import Link
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.links_external import render_link
 
 from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import IExternalMappingDecorator
+
+from ..common import get_assessment_metadata_item
 
 from . import _get_course_from_assignment
 from . import _AbstractTraversableLinkDecorator
@@ -28,20 +32,27 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _do_decorate_external(self, assignment, result):
 		course = _get_course_from_assignment(assignment, self.remoteUser)
-		if course is not None:
-			links = result.setdefault(LINKS, [])
-			links.append( Link( assignment,
-								rel='Metadata',
-								elements=('Metadata',)))
-			links.append( Link( assignment,
-								method='POST',
-								rel='Commence',
-								elements=('Commence',)))
-			links.append( Link( assignment,
-								method='GET',
-								rel='StartTime',
-								elements=('StartTime',)))
-					
+		if course is None:
+			return
+		
+		links = result.setdefault(LINKS, [])
+		links.append( Link( assignment,
+							rel='Metadata',
+							elements=('Metadata',)))
+		
+		if IQTimedAssignment.providedBy(assignment):
+			item = get_assessment_metadata_item(course, self.remoteUser, assignment)	
+			if item is None or item.StartTime is None:
+				links.append( Link( assignment,
+									method='POST',
+									rel='Commence',
+									elements=('Commence',)))
+			else:
+				links.append( Link( assignment,
+									method='GET',
+									rel='StartTime',
+									elements=('StartTime',)))
+						
 @interface.implementer(IExternalMappingDecorator)
 class _AssignmentMetadataContainerDecorator(_AbstractTraversableLinkDecorator):
 	

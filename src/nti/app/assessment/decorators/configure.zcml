@@ -64,6 +64,16 @@
 				for="nti.assessment.interfaces.IQAssessedQuestion"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator" />
 
+	<subscriber factory=".assessed._QAssignmentSubmissionDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="nti.assessment.interfaces.IQAssignmentSubmission
+					 pyramid.interfaces.IRequest" />
+	
+	<subscriber factory=".assessed._QAssignmentSubmissionDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator" 
+				for="nti.assessment.interfaces.IQAssignmentSubmissionPendingAssessment
+					 pyramid.interfaces.IRequest"/>
+							
 	<subscriber factory=".history._AssignmentHistoryItemDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.contenttypes.courses.interfaces.ICourseInstance

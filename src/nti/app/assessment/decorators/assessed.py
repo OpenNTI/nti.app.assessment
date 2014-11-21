@@ -21,10 +21,12 @@ from nti.app.products.courseware.utils import is_course_instructor
 
 from nti.assessment import grader_for_response
 from nti.assessment.interfaces import IQuestion
+from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssessedPart
-from nti.assessment.interfaces import IQuestionSubmission 
 from nti.assessment.interfaces import IQAssessedQuestion
+from nti.assessment.interfaces import IQuestionSubmission 
 from nti.assessment.interfaces import IQPartSolutionsExternalizer
+
 from nti.assessment.randomized.interfaces import IQRandomizedPart
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -33,6 +35,8 @@ from nti.dataserver.traversal import find_interface
 
 from nti.externalization.singleton import SingletonDecorator
 from nti.externalization.externalization import to_external_object
+
+from ..common import get_assessment_metadata_item
 
 from ..interfaces import IUsersCourseAssignmentHistory
 
@@ -165,3 +169,24 @@ class _QAssessedQuestionExplanationSolutionAdder(object):
 			else:
 				external_part['solutions'] = to_external_object(question_part.solutions)
 			external_part['explanation'] = to_external_object(question_part.explanation)
+
+class _QAssignmentSubmissionDecorator(AbstractAuthenticatedRequestAwareDecorator):
+	
+	def _do_decorate_external(self, context, result_map):
+		course = find_interface(context, ICourseInstance, strict=False)
+		assignment = component.queryUtility(IQAssignment, name=context.assignmentId)
+		if assignment is None or course is None:
+			return
+
+		# find creator
+		creator = getattr(context, 'creator', None)
+		if creator is None:
+			uca_history = find_interface(context, IUsersCourseAssignmentHistory, 
+										 strict=False)
+			creator = uca_history.creator if uca_history is not None else None
+		if creator is None:
+			return
+		
+		item = get_assessment_metadata_item(course, creator, context.assignmentId)
+		if item is not None:
+			result_map['Metadata'] = to_external_object(item)

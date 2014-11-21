@@ -73,6 +73,7 @@ class RemovedMatchedSavePointsView(	AbstractAuthenticatedView,
 	"""
 	Remove savepoint for already submitted assignment(s)
 	"""
+	
 	def _do_call(self):
 		result = LocatedExternalDict()
 		catalog = component.getUtility(ICourseCatalog)
@@ -105,7 +106,9 @@ class UnmatchedSavePointsView(AbstractAuthenticatedView):
 	def __call__(self):
 		catalog = component.getUtility(ICourseCatalog)
 		params = CaseInsensitiveDict(self.request.params)
-		ntiid = params.get('ntiid') or params.get('course')
+		ntiid = params.get('ntiid') or \
+				params.get('entry') or \
+				params.get('course')
 		if ntiid:
 			try:
 				ntiid = urllib.unquote(ntiid)
@@ -113,12 +116,12 @@ class UnmatchedSavePointsView(AbstractAuthenticatedView):
 			except KeyError:
 				raise hexc.HTTPUnprocessableEntity("Invalid course NTIID")
 		else:
-			entries = list(catalog.iterCatalogEntries())
+			entries = catalog.iterCatalogEntries()
 			
 		response = self.request.response	
 		response.content_encoding = str('identity' )
 		response.content_type = str('text/csv; charset=UTF-8')
-		response.content_disposition = str( 'attachment; filename="report.txt"' )
+		response.content_disposition = str( 'attachment; filename="report.csv"' )
 		
 		stream = BytesIO()
 		writer = csv.writer(stream)

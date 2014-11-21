@@ -272,9 +272,7 @@ def _on_assignment_history_item_added(item, event):
 	assignment_metadata = component.queryMultiAdapter( (course, user),
 														IUsersCourseAssignmentMetadata)
 	if assignment_metadata is not None:
-		meta_item = assignment_metadata.get_or_create(item.assignmentId)
-		if meta_item.StartTime is None:
-			meta_item.StartTime = time.time()
+		meta_item = assignment_metadata.get_or_create(item.assignmentId, time.time())
 		meta_item.Duration = time.time() - meta_item.StartTime
 		meta_item.updateLastMod()
 

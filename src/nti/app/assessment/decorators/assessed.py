@@ -173,18 +173,14 @@ class _QAssessedQuestionExplanationSolutionAdder(object):
 class _QAssignmentSubmissionDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	
 	def _do_decorate_external(self, context, result_map):
+		uca_history = find_interface(context, IUsersCourseAssignmentHistory, strict=False)
+		creator = uca_history.creator if uca_history is not None else None
+		if creator is None:
+			return
+		
 		course = find_interface(context, ICourseInstance, strict=False)
 		assignment = component.queryUtility(IQAssignment, name=context.assignmentId)
 		if assignment is None or course is None:
-			return
-
-		# find creator
-		creator = getattr(context, 'creator', None)
-		if creator is None:
-			uca_history = find_interface(context, IUsersCourseAssignmentHistory, 
-										 strict=False)
-			creator = uca_history.creator if uca_history is not None else None
-		if creator is None:
 			return
 		
 		item = get_assessment_metadata_item(course, creator, context.assignmentId)

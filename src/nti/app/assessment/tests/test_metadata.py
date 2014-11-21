@@ -124,10 +124,10 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 						'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentMetadata/' +
 						self.default_username))
 
-		res = self.testapp.post_json( '/dataserver2/users/outest5/Courses/EnrolledCourses',
-								'CLC 3403',
-								status=201,
-								extra_environ=outest_environ )
+		res = self.testapp.post_json('/dataserver2/users/outest5/Courses/EnrolledCourses',
+									 'CLC 3403',
+									 status=201,
+									 extra_environ=outest_environ )
 
 		user2_enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'AssignmentMetadata')
 
@@ -240,3 +240,22 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		instructor_environ = self._make_extra_environ(username='harp4162')
 		self.testapp.delete(metadata_item_href, extra_environ=instructor_environ, status=204)
 
+	@WithSharedApplicationMockDS(users=('outest5',),testapp=True,default_authenticate=True)
+	@fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
+	def test_metadata_start(self, fake_active):
+		fake_active.is_callable().returns(True)
+		
+		# Make sure we're enrolled
+		self.testapp.post_json('/dataserver2/users/' + self.default_username + '/Courses/EnrolledCourses',
+ 							   'CLC 3403',
+ 							   status=201 )
+		
+		href = '/dataserver2/Objects/' + self.assignment_id + '/Commence'
+		self.testapp.get(href, status=404)
+		
+		res = self.testapp.post_json(href)
+		assert_that(res.json_body, has_entry('StartTime', is_not(none()) ))
+		
+		href = '/dataserver2/Objects/' + self.assignment_id + '/StartTime'
+		res = self.testapp.get(href, status=200)
+		assert_that(res.json_body, has_entry('StartTime', is_not(none()) ))

@@ -33,6 +33,14 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			links.append( Link( assignment,
 								rel='Metadata',
 								elements=('Metadata',)))
+			links.append( Link( assignment,
+								method='POST',
+								rel='Commence',
+								elements=('Commence',)))
+			links.append( Link( assignment,
+								method='GET',
+								rel='StartTime',
+								elements=('StartTime',)))
 					
 @interface.implementer(IExternalMappingDecorator)
 class _AssignmentMetadataContainerDecorator(_AbstractTraversableLinkDecorator):

@@ -8,6 +8,8 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+import time
+
 from zope import component
 from zope import lifecycleevent
 from zope.schema.interfaces import RequiredMissing
@@ -25,7 +27,11 @@ from nti.assessment.interfaces import IQAssignment
 
 from nti.dataserver import authorization as nauth
 
+from nti.externalization.interfaces import LocatedExternalDict
+
 from .._utils import find_course_for_assignment
+
+from ..metadata import UsersCourseAssignmentMetadataItem
 
 from ..interfaces import IUsersCourseAssignmentMetadata
 from ..interfaces import IUsersCourseAssignmentMetadataItem
@@ -45,7 +51,7 @@ class AssignmentSubmissionMetataPostView(AbstractAuthenticatedView,
 
 	content_predicate = IUsersCourseAssignmentMetadataItem.providedBy
 
-	def _do_call(self):
+	def _validate(self):
 		creator = self.remoteUser
 		if not creator:
 			raise hexc.HTTPForbidden("Must be Authenticated")
@@ -56,7 +62,13 @@ class AssignmentSubmissionMetataPostView(AbstractAuthenticatedView,
 		except RequiredMissing:
 			raise hexc.HTTPForbidden("Must be enrolled in a course.")
 		
-		item = self.readCreateUpdateContentObject(creator)
+		return creator, course
+	
+	def _process(self, creator=None, course=None, item=None):
+		if creator is None or course is None:
+			creator, course = self._validate()
+	
+		item = self.readCreateUpdateContentObject(creator) if item is None else item
 		lifecycleevent.created(item)
 		
 		self.request.response.status_int = 201
@@ -67,7 +79,31 @@ class AssignmentSubmissionMetataPostView(AbstractAuthenticatedView,
 		item.containerId = assignmentId	
 		result = metadata.append(assignmentId, item)
 		return result
+	
+	def _do_call(self):
+		return self._process()
 
+@view_config(route_name="objects.generic.traversal",
+			 context=IQAssignment,
+			 renderer='rest',
+			 request_method='POST',
+			 permission=nauth.ACT_READ,
+			 name="Commence")
+class AssignmentSubmissionStartPostView(AssignmentSubmissionMetataPostView):
+
+	def _do_call(self):
+		creator, course = self._validate()
+		container = component.getMultiAdapter( (course, creator),
+												IUsersCourseAssignmentMetadata)
+		try:
+			item = container[self.context.ntiid]
+			result = item
+		except KeyError:
+			item = UsersCourseAssignmentMetadataItem()
+			item.StartTime = time.time()
+			result = self._process(creator=creator, course=course, item=item)
+		return result
+	
 @view_config(route_name="objects.generic.traversal",
 			 context=IQAssignment,
 			 renderer='rest',
@@ -76,7 +112,7 @@ class AssignmentSubmissionMetataPostView(AbstractAuthenticatedView,
 			 name="Metadata")
 class AssignmentSubmissionMetadataGetView(AbstractAuthenticatedView):
 	
-	def __call__(self):
+	def _do_call(self):
 		creator = self.remoteUser
 		if not creator:
 			raise hexc.HTTPForbidden("Must be Authenticated")
@@ -89,8 +125,29 @@ class AssignmentSubmissionMetadataGetView(AbstractAuthenticatedView):
 				
 		container = component.getMultiAdapter( (course, creator),
 												IUsersCourseAssignmentMetadata)
+	
+		result = container[self.context.ntiid]
+		return result
+	
+	def __call__(self):		
 		try:
-			result = container[self.context.ntiid]
+			result = self._do_call()
+			return result
+		except KeyError:
+			return hexc.HTTPNotFound()
+
+@view_config(route_name="objects.generic.traversal",
+			 context=IQAssignment,
+			 renderer='rest',
+			 request_method='GET',
+			 permission=nauth.ACT_READ,
+			 name="StartTime")
+class AssignmentSubmissionStartGetView(AssignmentSubmissionMetadataGetView):
+
+	def __call__(self):		
+		try:
+			item = self._do_call()
+			result = LocatedExternalDict({'StartTime': item.StartTime})
 			return result
 		except KeyError:
 			return hexc.HTTPNotFound()

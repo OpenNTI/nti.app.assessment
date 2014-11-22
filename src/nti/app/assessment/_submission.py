@@ -275,6 +275,6 @@ def course_submission_report(context, usernames=(), assignment=None,
 					for idx, sub_part in enumerate(question.parts):
 						ext = json.dumps(to_external_object(sub_part))
 						row_data = [_replace(username), key, qid, idx, ext]
-						writer.writerow([_tx_string[x] for x in row_data])	
+						writer.writerow([_tx_string(x) for x in row_data])	
 	# return
 	return stream

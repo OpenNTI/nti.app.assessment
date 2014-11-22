@@ -10,25 +10,19 @@ logger = __import__('logging').getLogger(__name__)
 
 import os
 import sys
-import json
 import codecs
 import argparse
 
 from zope import component
 from zope.component import hooks
 
-from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
-
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
-from nti.contenttypes.courses.interfaces import ICourseEnrollments
 
 from nti.dataserver.utils import run_with_dataserver
-
-from nti.externalization.externalization import to_external_object
 
 from nti.ntiids.ntiids import TYPE_OID
 from nti.ntiids.ntiids import is_ntiid_of_type
@@ -36,58 +30,26 @@ from nti.ntiids.ntiids import find_object_with_ntiid
 
 from nti.site.site import get_site_for_site_names
 
-from .base import create_context
+from .._submission import course_submission_report
 
-def _replace(username):
-	try:
-		from nti.app.products.gradebook.interfaces import IUsernameSortSubstitutionPolicy
-		policy = component.queryUtility(IUsernameSortSubstitutionPolicy)
-		if policy is not None:
-			return policy.replace(username) or username
-	except ImportError:
-		pass
-	return username
+from .base import create_context
 	
-def _create_report(course, assignment_id=None, question_id=None, output=None,
-				   separator='\t'):
+def _create_report(course, usernames=(), assignment_id=None, 
+				   question_id=None, output=None):
 	
 	if output:
 		output = codecs.open(output, "wb", "UTF-8")
 	else:
 		output = sys.stderr
 		
-	header = ['username', 'assignment', 'question', 'part', 'submission']
-	output.write(separator.join(header))
-	output.write("\n")
-
-	course_enrollments = ICourseEnrollments( course )
-	for record in course_enrollments.iter_enrollments():
-		principal = record.Principal
-		username = principal.username
-		history = component.getMultiAdapter( (course, principal),
-											  IUsersCourseAssignmentHistory )
-		for key, item in history.items():
-			# filter assignment 
-			if assignment_id and assignment_id != key:
-				continue
-			submission = item.Submission
-			for qs_part in submission.parts:
-				# all question submissions
-				for question in qs_part.questions:
-					# filter question 
-					if question_id and question.questionId != question_id:
-						continue
-					
-					qid = question.questionId
-					for idx, sub_part in enumerate(question.parts):
-						ext = json.dumps(to_external_object(sub_part))
-						row_data = [_replace(username), key, qid, str(idx), ext]
-						output.write(separator.join(row_data))
-						output.write("\n")
-
+	course_submission_report(context=course, 
+							 usernames=usernames, 
+							 question=question_id,
+							 assignment=assignment_id,
+							 stream=output)
 	if output != sys.stderr:
 		output.close()
-		
+
 def _process_args(args):
 	site = args.site
 	if site:
@@ -121,10 +83,12 @@ def _process_args(args):
 		if question is None:
 			raise ValueError("Question not found")
 
-	_create_report(course_instance, 
-				   args.assignment,
-				   args.question, 
-				   args.output)
+	usernames = {x.lower() for x in args.usernames or ()}
+	_create_report(	output=args.output,
+					usernames=usernames,
+					course=course_instance, 
+				   	question_id=args.question, 
+				  	assignment_id=args.assignment)
 	
 def main():
 	arg_parser = argparse.ArgumentParser(description="Assignment submission report")
@@ -140,6 +104,10 @@ def main():
 	arg_parser.add_argument('-o', '--output',
 							dest='output',
 							help="Output file name.")
+	arg_parser.add_argument('-u', '--usernames',
+							dest='usernames',
+							nargs="+",
+							help="The object creator user names")
 	arg_parser.add_argument('--site',
 							dest='site',
 							help="Application SITE.")

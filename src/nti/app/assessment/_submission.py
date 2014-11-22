@@ -37,12 +37,16 @@ from nti.assessment.interfaces import IInternalUploadedFileRef
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 
+from nti.externalization.interfaces import LocatedExternalDict
+from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.externalization import to_external_object
 from nti.externalization.externalization import to_external_ntiid_oid
 
 from nti.utils.maps import CaseInsensitiveDict
 
 from .interfaces import IUsersCourseAssignmentHistory
+
+ITEMS = StandardExternalFields
 
 def value_part(part):
 	if IQResponse.providedBy(part):
@@ -234,16 +238,18 @@ def course_submission_report(context, usernames=(), assignment=None,
 							 question=None, stream=None):
 	
 	question_id = question.ntiid \
-				  if IQuestion.providedBy(question) else str(question)
+				  if IQuestion.providedBy(question) else question
 					
 	assignment_id = assignment.ntiid \
-					if IQAssignment.providedBy(assignment) else str(assignment)
+					if IQAssignment.providedBy(assignment) else assignment
 					
 	stream = BytesIO() if stream is None else stream
 	writer = csv.writer(stream)
 	header = ['username', 'assignment', 'question', 'part', 'submission']
 	writer.writerow(header)
 		
+	result = LocatedExternalDict()
+	items = result[ITEMS] = []
 	course = ICourseInstance(context)
 	course_enrollments = ICourseEnrollments(course)
 	for record in course_enrollments.iter_enrollments():
@@ -275,6 +281,11 @@ def course_submission_report(context, usernames=(), assignment=None,
 					for idx, sub_part in enumerate(question.parts):
 						ext = json.dumps(to_external_object(sub_part))
 						row_data = [_replace(username), key, qid, idx, ext]
-						writer.writerow([_tx_string(x) for x in row_data])	
+						writer.writerow([_tx_string(x) for x in row_data])
+						items.append({'part':idx,
+									  'question':qid,
+									  'assignment':key,
+									  'submission':ext,
+									  'username':username})
 	# return
-	return stream
+	return stream, result

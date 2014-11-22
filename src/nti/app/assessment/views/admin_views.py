@@ -176,9 +176,9 @@ class CourseSubmissionReportView(AbstractAuthenticatedView):
 		if not ntiid:
 			raise hexc.HTTPUnprocessableEntity("Must specify a course/entry NTIID")
 		
+		ntiid = urllib.unquote(ntiid)
 		if not is_ntiid_of_type(ntiid, TYPE_OID):
 			try:
-				ntiid = urllib.unquote(ntiid)
 				context = catalog.getCatalogEntry(ntiid)
 			except KeyError:
 				raise hexc.HTTPUnprocessableEntity("Invalid entry NTIID")
@@ -188,19 +188,18 @@ class CourseSubmissionReportView(AbstractAuthenticatedView):
 			if context is None:
 				raise hexc.HTTPUnprocessableEntity("Invalid course NTIID")
 		
-		usernames = params.get('usernames') or \
-					params.get('username')
+		usernames = params.get('usernames') or params.get('username')
 		if isinstance(usernames, six.string_types):
 			usernames = usernames.split(',')
 		usernames = {x.lower() for x in usernames or ()}
 		
-		assignment = params.get('assignmentId') or \
-					 params.get('assignment')
+		assignment = params.get('assignmentId') or params.get('assignment')
+		assignment = urllib.unquote(assignment) if assignment else assignment
 		if assignment and component.queryUtility(IQAssignment, name=assignment) is None:
 			raise hexc.HTTPUnprocessableEntity("Invalid assignment")
 
-		question = params.get('questionId') or \
-				   params.get('question')
+		question = params.get('questionId') or params.get('question')
+		question = urllib.unquote(question) if question else question
 		if question and component.queryUtility(IQuestion, name=question) is None:
 			raise hexc.HTTPUnprocessableEntity("Invalid question")
 		
@@ -209,10 +208,10 @@ class CourseSubmissionReportView(AbstractAuthenticatedView):
 		response.content_type = str('text/csv; charset=UTF-8')
 		response.content_disposition = str( 'attachment; filename="report.csv"' )
 		
-		stream = course_submission_report(context=context, 
-							 	 		  question=question,
-							 	 		  usernames=usernames,
-								 		  assignment=assignment)
+		stream, _ = course_submission_report(context=context, 
+							 	 		  	 question=question,
+							 	 		 	 usernames=usernames,
+								 		 	 assignment=assignment)
 		
 		stream.flush()
 		stream.seek(0)

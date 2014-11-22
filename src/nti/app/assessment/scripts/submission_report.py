@@ -107,7 +107,7 @@ def main():
 	arg_parser.add_argument('-u', '--usernames',
 							dest='usernames',
 							nargs="+",
-							help="The object creator user names")
+							help="The user names")
 	arg_parser.add_argument('--site',
 							dest='site',
 							help="Application SITE.")

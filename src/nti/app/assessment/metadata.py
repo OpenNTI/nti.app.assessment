@@ -94,6 +94,7 @@ class UsersCourseAssignmentMetadata(CheckingLastModifiedBTreeContainer):
 	
 	def get_or_create(self, assignmentId, start_time=None):
 		if assignmentId not in self:
+			start_time = float(start_time) if start_time is not None else start_time
 			result = UsersCourseAssignmentMetadataItem(StartTime=start_time)
 			self.append(assignmentId, result)
 		else:

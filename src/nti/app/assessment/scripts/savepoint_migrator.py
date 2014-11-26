@@ -11,7 +11,6 @@ logger = __import__('logging').getLogger(__name__)
 import os
 import sys
 import argparse
-from urllib import unquote
 
 from zope import component
 from zope.component import hooks
@@ -76,7 +75,7 @@ def _process_args(args):
 	if not creator:
 		raise ValueError("Invalid user")
 	
-	assignmentId = unquote(args.assignment)
+	assignmentId = args.assignment
 	assignment = component.queryUtility(IQAssignment, name=assignmentId)
 	if assignment is None:
 		raise ValueError("Invalid Assignment")

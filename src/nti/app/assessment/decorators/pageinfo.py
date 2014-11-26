@@ -9,6 +9,8 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+from urllib import unquote
+
 from zope import component
 from zope import interface
 
@@ -53,6 +55,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 	def _get_course(self, contentUnit, user):
 		result = None
 		course_id = self.request.params.get('course')
+		course_id = unquote(course_id) if course_id else None
 		if course_id and is_valid_ntiid_string(course_id):
 			result = find_object_with_ntiid(course_id)
 			if 	ICourseInstance.providedBy(result) and \

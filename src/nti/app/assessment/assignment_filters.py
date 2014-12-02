@@ -111,7 +111,7 @@ class AssignmentPolicyExclusionFilter(object):
 	If there is no policy, this for the assignment, it is allowed.
 	"""
 
-	def __init__(self, user, course):
+	def __init__(self, user=None, course=None):
 		self.policies = IQAssignmentPolicies(course)
 
 	def allow_assignment_for_user_in_course(self, asg, user, course):

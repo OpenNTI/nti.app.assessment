@@ -9,9 +9,12 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+from zope import component
 from zope import interface
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
+
+from nti.contenttypes.courses.interfaces import ICourseCatalog
 
 from nti.dataserver.links import Link
 from nti.dataserver.interfaces import IUser
@@ -19,6 +22,9 @@ from nti.dataserver.interfaces import IUser
 from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import IExternalMappingDecorator
 
+from nti.utils.property import Lazy
+
+from . import _get_course_from_assignment
 from . import _AbstractTraversableLinkDecorator
 					
 LINKS = StandardExternalFields.LINKS
@@ -61,3 +67,20 @@ class _LastViewedAssignmentHistoryDecorator(AbstractAuthenticatedRequestAwareDec
 							elements=('lastViewed',),
 							method='PUT' ) )
 
+@interface.implementer(IExternalMappingDecorator)
+class _AssignmentHistoryLinkDecorator(_AbstractTraversableLinkDecorator):
+
+	@Lazy
+	def _catalog(self):
+		result = component.getUtility(ICourseCatalog)
+		return result
+		
+	def _do_decorate_external( self, context, result_map ):
+		user = self.remoteUser
+		course = _get_course_from_assignment(context, user, self._catalog)
+		if course is not None:
+			links = result_map.setdefault( LINKS, [] )
+			links.append( Link( course,
+								rel='History',
+								elements=('AssignmentHistories', user.username,
+										   context.ntiid)) )

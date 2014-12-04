@@ -89,6 +89,11 @@
 				for="..interfaces.IUsersCourseAssignmentHistory
 					 pyramid.interfaces.IRequest" />
 					 
+	<subscriber factory=".history._AssignmentHistoryLinkDecorator"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator"
+				for="nti.assessment.interfaces.IQAssignment
+					 pyramid.interfaces.IRequest" />
+					 
 	<subscriber factory=".feedback._FeedbackItemAssignmentIdDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"/>
 

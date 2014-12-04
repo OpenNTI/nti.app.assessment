@@ -116,12 +116,7 @@
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="..interfaces.IUsersCourseAssignmentSavepointItem
 					 pyramid.interfaces.IRequest" />
-					 
-	<subscriber factory=".savepoint._AssignmentSavepointDecorator"
-				provides="nti.externalization.interfaces.IExternalObjectDecorator"
-				for="nti.assessment.interfaces.IQAssignment
-					 pyramid.interfaces.IRequest" />
-
+	
 	<subscriber factory=".metadata._AssignmentMetadataDecorator"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.assessment.interfaces.IQAssignment

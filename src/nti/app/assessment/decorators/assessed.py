@@ -70,7 +70,7 @@ class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		if IQRandomizedPart.providedBy(question_part):
 			response = context.submittedResponse
 			if response is not None:
-				__traceback_info__ = response, question_part
+				__traceback_info__ = type(response), response, question_part
 				grader = grader_for_response(question_part, response)
 				assert grader is not None
 				

@@ -78,8 +78,7 @@ def get_assessment_metadata_item(course, user, assignment):
 	metadata = component.queryMultiAdapter((course, user),
 											IUsersCourseAssignmentMetadata)
 	if metadata is not None:
-		ntiid = assignment.ntiid \
-				if IQAssignment.providedBy(assignment) else str(assignment)
+		ntiid = assignment.ntiid if IQAssignment.providedBy(assignment) else str(assignment)
 		if ntiid in metadata:
 			return metadata[ntiid]
 	return None

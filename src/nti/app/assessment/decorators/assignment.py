@@ -48,7 +48,6 @@ from ..common import get_assessment_metadata_item
 from .._utils import assignment_download_precondition
 
 from ..interfaces import ACT_VIEW_SOLUTIONS
-from ..interfaces import IUsersCourseAssignmentHistory
 
 from . import _get_course_from_assignment
 from . import _AbstractTraversableLinkDecorator
@@ -239,6 +238,18 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 			question_set = part['question_set']
 			self.strip(question_set)
 
+class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
+
+	def _do_decorate_external(self, context, result):
+		course = _get_course_from_assignment(context, user=self.remoteUser)
+		if course is None:
+			logger.warn("Could not find course for assignment %s", context.ntiid)
+			return
+
+		item = get_assessment_metadata_item(course, self.remoteUser, context.ntiid)
+		if item is not None:
+			result['Metadata'] = to_external_object(item)
+			
 class _AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAwareDecorator):
 	"""
 	When anyone besides the instructor requests an assessed part
@@ -258,19 +269,3 @@ class _AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper(Abstra
 	def _do_decorate_external(self, context, result):
 		for part in result['parts']:
 			_AssignmentBeforeDueDateSolutionStripper.strip(part)
-			
-class _AssignmentSubmissionPendingAssessmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
-
-	def _do_decorate_external(self, context, result):
-		uca_history = find_interface(context, IUsersCourseAssignmentHistory, strict=False)
-		creator = uca_history.creator if uca_history is not None else None
-		if creator is None:
-			return
-		
-		course = find_interface(context, ICourseInstance, strict=False)
-		if course is None:
-			return 
-		
-		item = get_assessment_metadata_item(course, creator, context.assignmentId)
-		if item is not None:
-			result['Metadata'] = to_external_object(item)

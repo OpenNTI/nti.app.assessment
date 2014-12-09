@@ -84,7 +84,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 		if course is not None:
 			# Only things in context of a course should have assignments
 			assignment_predicate = get_course_assignment_predicate_for_user(user, course)
-			entry_ntiid = ICourseCatalogEntry(course).ntiid
+			entry_ntiid = getattr(ICourseCatalogEntry(course, None), 'ntiid', None)
 
 		new_result = {}
 		is_instructor = False if course is None else is_course_instructor(course, user)

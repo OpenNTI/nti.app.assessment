@@ -43,9 +43,12 @@ from nti.externalization.interfaces import IExternalMappingDecorator
 
 from nti.utils.property import Lazy
 
+from ..common import get_assessment_metadata_item
+
 from .._utils import assignment_download_precondition
 
 from ..interfaces import ACT_VIEW_SOLUTIONS
+from ..interfaces import IUsersCourseAssignmentHistory
 
 from . import _get_course_from_assignment
 from . import _AbstractTraversableLinkDecorator
@@ -193,8 +196,8 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 
 	@classmethod
 	def needs_stripped(cls, context, request, remoteUser):
-		due_date = None
 		course = None
+		due_date = None
 		if context is not None:
 			course = _get_course_from_assignment(context, remoteUser)
 			if course is not None:
@@ -255,4 +258,19 @@ class _AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper(Abstra
 	def _do_decorate_external(self, context, result):
 		for part in result['parts']:
 			_AssignmentBeforeDueDateSolutionStripper.strip(part)
-					
+			
+class _AssignmentSubmissionPendingAssessmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
+
+	def _do_decorate_external(self, context, result):
+		uca_history = find_interface(context, IUsersCourseAssignmentHistory, strict=False)
+		creator = uca_history.creator if uca_history is not None else None
+		if creator is None:
+			return
+		
+		course = find_interface(context, ICourseInstance, strict=False)
+		if course is None:
+			return 
+		
+		item = get_assessment_metadata_item(course, creator, context.assignmentId)
+		if item is not None:
+			result['Metadata'] = to_external_object(item)

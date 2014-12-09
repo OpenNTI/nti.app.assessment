@@ -49,7 +49,12 @@
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.assessment.interfaces.IQAssignmentSubmissionPendingAssessment
 					 pyramid.interfaces.IRequest" />
-
+	<!--
+	<subscriber factory=".assignment._AssignmentSubmissionPendingAssessmentMetadataDecorator"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator"
+				for="nti.assessment.interfaces.IQAssignmentSubmissionPendingAssessment
+					 pyramid.interfaces.IRequest" />
+	-->			 
 	<subscriber factory=".assessed._QAssessedPartDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.assessment.interfaces.IQAssessedPart

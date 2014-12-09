@@ -35,7 +35,7 @@ class _AbstractTraversableLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
             else:
                 return True
 
-def _get_course_from_assignment(assignment, user, catalog=None, registry=component):
+def _get_course_from_assignment(assignment, user=None, catalog=None, registry=component):
     ## check if we have the context catalog entry we can use 
     ## as reference (.adapters._QProxy) this way
     ## instructor can find the correct course when they are looking
@@ -53,6 +53,6 @@ def _get_course_from_assignment(assignment, user, catalog=None, registry=compone
         pass
 
     ## could not find a course .. try adapter
-    if result is None:    
+    if result is None and user is not None:    
         result = component.queryMultiAdapter((assignment, user), ICourseInstance)
     return result

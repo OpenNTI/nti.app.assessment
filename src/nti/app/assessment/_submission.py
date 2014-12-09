@@ -44,6 +44,8 @@ from nti.externalization.externalization import to_external_ntiid_oid
 
 from nti.utils.maps import CaseInsensitiveDict
 
+from ._utils import replace_username
+
 from .interfaces import IUsersCourseAssignmentHistory
 
 ITEMS = StandardExternalFields
@@ -224,15 +226,6 @@ def _tx_string(s):
 		s = s.encode('utf-8')
 	return s
 
-def _replace(username):
-	try:
-		from nti.app.products.gradebook.interfaces import IUsernameSortSubstitutionPolicy
-		policy = component.queryUtility(IUsernameSortSubstitutionPolicy)
-		if policy is not None:
-			return policy.replace(username) or username
-	except ImportError:
-		pass
-	return username
 
 def course_submission_report(context, usernames=(), assignment=None,
 							 question=None, stream=None):
@@ -280,7 +273,7 @@ def course_submission_report(context, usernames=(), assignment=None,
 					qid = question.questionId
 					for idx, sub_part in enumerate(question.parts):
 						ext = json.dumps(to_external_object(sub_part))
-						row_data = [_replace(username), key, qid, idx, ext]
+						row_data = [replace_username(username), key, qid, idx, ext]
 						writer.writerow([_tx_string(x) for x in row_data])
 						items.append({'part':idx,
 									  'question':qid,

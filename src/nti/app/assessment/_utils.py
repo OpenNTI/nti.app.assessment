@@ -13,6 +13,7 @@ import os
 import copy
 import simplejson
 
+from zope import component
 from zope import interface
 
 from nti.appserver.pyramid_authorization import has_permission
@@ -183,3 +184,13 @@ def iface_of_assessment(thing):
 	elif IQAssignment.providedBy(thing):
 		iface = IQAssignment
 	return iface
+
+def replace_username(username):
+	try:
+		from nti.app.products.gradebook.interfaces import IUsernameSortSubstitutionPolicy
+		policy = component.queryUtility(IUsernameSortSubstitutionPolicy)
+		if policy is not None:
+			return policy.replace(username) or username
+	except ImportError:
+		pass
+	return username

@@ -46,6 +46,7 @@ from nti.dataserver import authorization as nauth
 from .._submission import get_source
 from .._submission import read_multipart_sources
 
+from .._utils import replace_username
 from .._utils import find_course_for_assignment
 
 from ..interfaces import IUsersCourseAssignmentHistory
@@ -274,7 +275,8 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 							qp_part = qp_part.value
 
 						if IQUploadedFile.providedBy(qp_part):
-							full_filename = "%s-%s-%s-%s-%s" % (principal.id, sub_num, q_num, qp_num, qp_part.filename)
+							prin_id = replace_username(principal.id)
+							full_filename = "%s-%s-%s-%s-%s" % (prin_id, sub_num, q_num, qp_num, qp_part.filename)
 							info = ZipInfo(full_filename,
 										   date_time=datetime.utcfromtimestamp(qp_part.lastModified).timetuple())
 

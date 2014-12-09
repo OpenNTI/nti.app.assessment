@@ -58,7 +58,8 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 		course_id = unquote(course_id) if course_id else None
 		if course_id and is_valid_ntiid_string(course_id):
 			result = find_object_with_ntiid(course_id)
-			if 	ICourseInstance.providedBy(result) and \
+			result = ICourseInstance(result, None)
+			if 	result is not None and \
 				not (is_enrolled(result, user) or is_course_instructor(result, user)):
 				result = None
 		if result is None:

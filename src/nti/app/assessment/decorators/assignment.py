@@ -248,7 +248,8 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 		item = get_assessment_metadata_item(course, self.remoteUser, context.ntiid)
 		if item is not None:
-			result['Metadata'] = to_external_object(item)
+			result['Metadata'] = {'Duration': item.Duration,
+								  'StartTime': item.StartTime}
 			
 class _AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAwareDecorator):
 	"""

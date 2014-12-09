@@ -166,4 +166,3 @@ class _QAssessedQuestionExplanationSolutionAdder(object):
 			else:
 				external_part['solutions'] = to_external_object(question_part.solutions)
 			external_part['explanation'] = to_external_object(question_part.explanation)
-

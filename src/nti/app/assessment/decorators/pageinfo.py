@@ -59,14 +59,20 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 		if course_id and is_valid_ntiid_string(course_id):
 			result = find_object_with_ntiid(course_id)
 			result = ICourseInstance(result, None)
-			if 	result is not None and \
-				not (is_enrolled(result, user) or is_course_instructor(result, user)):
-				result = None
+			if result is not None:
+				## CS: make sure the user is either enrolled or is an instructor in the 
+				## course passed as parameter
+				if not (is_enrolled(result, user) or is_course_instructor(result, user)):
+					result = None
 		if result is None:
 			result = component.queryMultiAdapter((contentUnit, user), ICourseInstance)	
 		return result		 
 	
 	def _do_decorate_external( self, context, result_map ):
+		entry_ntiid = None
+		qsids_to_strip = set()
+		assignment_predicate = None
+		
 		# When we return page info, we return questions
 		# for all of the embedded units as well
 		result = get_assessment_items_from_unit(context.contentUnit)
@@ -74,15 +80,11 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 		# Filter out things they aren't supposed to see...currently only
 		# assignments...we can only do this if we have a user and a course
 		user = self.remoteUser
-		qsids_to_strip = set()
 		course = self._get_course(context.contentUnit, user)
-		catalog_entry = ICourseCatalogEntry(course, None)
-		entry_ntiid = getattr(catalog_entry, 'ntiid', None)
 		if course is not None:
-			assignment_predicate = get_course_assignment_predicate_for_user(user, course)
-		else:
 			# Only things in context of a course should have assignments
-			assignment_predicate = None
+			assignment_predicate = get_course_assignment_predicate_for_user(user, course)
+			entry_ntiid = ICourseCatalogEntry(course).ntiid
 
 		new_result = {}
 		is_instructor = False if course is None else is_course_instructor(course, user)

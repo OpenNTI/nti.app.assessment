@@ -31,6 +31,7 @@ from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
+from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseInstanceVendorInfo
 
@@ -51,7 +52,7 @@ from ..interfaces import ACT_VIEW_SOLUTIONS
 
 from . import _get_course_from_assignment
 from . import _AbstractTraversableLinkDecorator
-		
+
 LINKS = StandardExternalFields.LINKS
 
 @interface.implementer(IExternalMappingDecorator)
@@ -68,11 +69,11 @@ class _AssignmentsByOutlineNodeDecorator(_AbstractTraversableLinkDecorator):
 	# (because of issues resolving really old enrollment records), although
 	# the enrollment record is a better place to go because it has the username
 	# in the path
-	
+
 	def show_links(self, course):
 		"""
-		Returns a true value if the course should show the links [Non] assignments 
-		by outline ode links
+		Returns a true value if the course should show the links [Non] assignments
+		by outline node links
 		"""
 		## TODO: We will remove when a preference course/user? policy is in place.
 		vendor_info = ICourseInstanceVendorInfo(course, {})
@@ -81,12 +82,12 @@ class _AssignmentsByOutlineNodeDecorator(_AbstractTraversableLinkDecorator):
 		except (TypeError, KeyError):
 			result = True
 		return result
-	
+
 	def _do_decorate_external(self, context, result_map):
 		course = ICourseInstance(context, context)
 		if not self.show_links(course):
 			return
-		
+
 		links = result_map.setdefault( LINKS, [] )
 		for rel in ('AssignmentsByOutlineNode', 'NonAssignmentAssessmentItemsByOutlineNode'):
 			# Prefer to canonicalize these through to the course, if possible
@@ -100,7 +101,7 @@ class _AssignmentsByOutlineNodeDecorator(_AbstractTraversableLinkDecorator):
 
 class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
-	When an instructor feteches an assignment that contains a file part
+	When an instructor fetches an assignment that contains a file part
 	somewhere, provide access to the link do download it.
 	"""
 
@@ -109,26 +110,32 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
 			return assignment_download_precondition(context, self.request, self.remoteUser) # XXX Hack
 
 	def _do_decorate_external(self, context, result):
+		# TODO It would be better to have the course context in our link,
+		# but for now, we'll just have a course param.
+		course = _get_course_from_assignment(context, self.remoteUser)
+		catalog_entry = ICourseCatalogEntry( course )
+
 		links = result.setdefault( LINKS, [] )
 		links.append( Link( context,
 							rel='ExportFiles',
-							elements=('BulkFilePartDownload',) ) )
+							elements=('BulkFilePartDownload',),
+							params={ 'course' : catalog_entry.ntiid } ) )
 
 class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
 	When an assignment is externalized, check for overrides
 	"""
-		
+
 	@Lazy
 	def _catalog(self):
 		result = component.getUtility(ICourseCatalog)
 		return result
-	
+
 	def _do_decorate_external(self, assignment, result):
 		course = _get_course_from_assignment(assignment, self.remoteUser, self._catalog)
 		if course is None:
 			return
-		
+
 		dates = IQAssignmentDateContext(course).of(assignment)
 		for k in ('available_for_submission_ending',
 				  'available_for_submission_beginning'):
@@ -136,20 +143,20 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			dates_date = getattr(dates, k)
 			if dates_date != asg_date:
 				result[k] = to_external_object(dates_date)
-		
+
 		if not IQTimedAssignment.providedBy(assignment):
 			result['IsTimedAssignment'] = False
 			return
-		
+
 		max_time_allowed = assignment.maximum_time_allowed
 		policy = IQAssignmentPolicies(course).getPolicyForAssignment(assignment.ntiid)
 		if 	policy and 'maximum_time_allowed' in policy and \
 			policy['maximum_time_allowed'] != max_time_allowed:
 			max_time_allowed = policy['maximum_time_allowed']
-		
+
 		result['IsTimedAssignment'] = True
 		result['MaximumTimeAllowed'] = result['maximum_time_allowed' ] = max_time_allowed
-			
+
 @repoze.lru.lru_cache(1000, timeout=3600)
 def _root_url(ntiid):
 	library = component.queryUtility(IContentPackageLibrary)
@@ -167,7 +174,7 @@ class _AssignmentQuestionContentRootURLAdder(AbstractAuthenticatedRequestAwareDe
 	"""
 	When an assignment question is externalized, add the bucket root
 	"""
-	
+
 	def _do_decorate_external(self, context, result):
 		ntiid = getattr(context, 'ContentUnitNTIID', None)
 		if not ntiid:
@@ -181,7 +188,7 @@ class _AssignmentQuestionContentRootURLAdder(AbstractAuthenticatedRequestAwareDe
 		bucket_root = _root_url(ntiid) if ntiid else None
 		if bucket_root:
 			result['ContentRoot' ] = bucket_root
-	
+
 class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAwareDecorator):
 	"""
 	When anyone besides the instructor requests an assignment
@@ -250,7 +257,7 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		if item is not None:
 			result['Metadata'] = {'Duration': item.Duration,
 								  'StartTime': item.StartTime}
-			
+
 class _AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAwareDecorator):
 	"""
 	When anyone besides the instructor requests an assessed part

@@ -11,6 +11,8 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+from urllib import unquote
+
 from zope import component
 from zope.location.interfaces import LocationError
 
@@ -184,6 +186,9 @@ from nti.assessment.interfaces import IQUploadedFile
 
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 
+from nti.ntiids.ntiids import is_valid_ntiid_string
+from nti.ntiids.ntiids import find_object_with_ntiid
+
 from . import assignment_download_precondition
 
 @view_config(route_name="objects.generic.traversal",
@@ -195,7 +200,7 @@ from . import assignment_download_precondition
 class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 	"""
 	A view that returns a ZIP file containing all
-	the files submitted by any student in the course for
+	the files submitted by any student in the course forz
 	any file part in the given assignment.
 
 	The ZIP has the following structure::
@@ -219,6 +224,19 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 		to do something with app_iter and stream in \"chunks\".
 	"""
 
+	def _get_course(self, context):
+		result = None
+		course_id = self.request.params.get('course')
+
+		if course_id and is_valid_ntiid_string(course_id):
+			result = find_object_with_ntiid(course_id)
+			result = ICourseInstance( result, None )
+
+		if result is None:
+			# Ok, pick the first course we find.
+			result = find_course_for_assignment(context, self.remoteUser)
+		return result
+
 	@classmethod
 	def _precondition(cls, context, request, remoteUser):
 		return assignment_download_precondition(context, request, remoteUser)
@@ -233,9 +251,9 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 		# We're assuming we'll find some submitted files.
 		# What should we do if we don't?
 		assignment_id = context.__name__
-		course = find_course_for_assignment(context, self.remoteUser)
-		enrollments = ICourseEnrollments(course)
 
+		course = self._get_course( context )
+		enrollments = ICourseEnrollments(course)
 
 		buf = StringIO()
 		zipfile = ZipFile( buf, 'w' )

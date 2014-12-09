@@ -62,7 +62,7 @@ from nti.dataserver.tests import mock_dataserver
 from nti.testing.matchers import validly_provides
 
 class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
-	
+
 	layer = RegisterAssignmentsForEveryoneLayer
 	features = ('assignments_for_everyone',)
 
@@ -503,7 +503,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 				del assignment._old_parts
 
 class TestAssignmentFiltering(RegisterAssignmentLayerMixin, ApplicationLayerTest):
-	
+
 	layer = RegisterAssignmentLayer
 	default_origin = str('http://janux.ou.edu')
 	# With the feature missing

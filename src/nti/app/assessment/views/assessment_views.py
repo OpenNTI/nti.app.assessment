@@ -227,11 +227,10 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 	def _get_course(self, context):
 		result = None
 		course_id = self.request.params.get('course')
-
+		course_id = unquote(course_id) if course_id else None
 		if course_id and is_valid_ntiid_string(course_id):
 			result = find_object_with_ntiid(course_id)
 			result = ICourseInstance( result, None )
-
 		if result is None:
 			# Ok, pick the first course we find.
 			result = find_course_for_assignment(context, self.remoteUser)

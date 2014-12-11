@@ -96,10 +96,12 @@ class _AssignmentHistoryLinkDecorator(_AbstractTraversableLinkDecorator):
 class _AssignmentHistoryItemDecorator(_AbstractTraversableLinkDecorator):
 	
 	def _do_decorate_external( self, context, result_map ):
-		user = self.remoteUser
+		creator = context.creator
+		remoteUser = self.remoteUser
 		course = find_interface(context, ICourseInstance, strict=False)
-		if course is None or is_course_instructor(course, user):
+		if course is None:
 			return
+		user = creator if is_course_instructor(course, remoteUser) else remoteUser
 		item = get_assessment_metadata_item(course, user, context.assignmentId)
 		if item is not None:
 			result_map['Metadata'] = to_external_object(item)

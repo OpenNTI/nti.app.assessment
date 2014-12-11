@@ -16,6 +16,8 @@ import repoze.lru
 from zope import component
 from zope import interface
 
+from nti.app.products.courseware.utils import is_course_instructor
+
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
 from nti.appserver.pyramid_authorization import has_permission
@@ -252,7 +254,8 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		if course is None:
 			logger.warn("Could not find course for assignment %s", context.ntiid)
 			return
-
+		if is_course_instructor(course, self.remoteUser):
+			return
 		item = get_assessment_metadata_item(course, self.remoteUser, context.ntiid)
 		if item is not None:
 			result['Metadata'] = {'Duration': item.Duration,

@@ -115,13 +115,16 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
 		# TODO It would be better to have the course context in our link,
 		# but for now, we'll just have a course param.
 		course = _get_course_from_assignment(context, self.remoteUser)
-		catalog_entry = ICourseCatalogEntry( course )
-
+		catalog_entry = ICourseCatalogEntry( course, None )
+		if catalog_entry is not None:
+			parameters = { 'course' : catalog_entry.ntiid }
+		else:
+			parameters = None
 		links = result.setdefault( LINKS, [] )
 		links.append( Link( context,
 							rel='ExportFiles',
 							elements=('BulkFilePartDownload',),
-							params={ 'course' : catalog_entry.ntiid } ) )
+							params=parameters ) )
 
 class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""

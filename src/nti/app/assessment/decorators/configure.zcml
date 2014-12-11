@@ -93,7 +93,12 @@
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="..interfaces.IUsersCourseAssignmentHistoryItem
 					 pyramid.interfaces.IRequest" />
-					 
+				
+	<subscriber factory=".history._AssignmentHistoryItemDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="..interfaces.IUsersCourseAssignmentHistoryItemSummary
+					 pyramid.interfaces.IRequest" />
+					 	 
 	<subscriber factory=".feedback._FeedbackItemAssignmentIdDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"/>
 

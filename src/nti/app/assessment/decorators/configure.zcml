@@ -69,12 +69,12 @@
 				for="nti.assessment.interfaces.IQAssessedQuestion"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator" />
 								
-	<subscriber factory=".history._AssignmentHistoryItemDecorator"
+	<subscriber factory=".history._CourseAssignmentHistoryDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.contenttypes.courses.interfaces.ICourseInstance
 					 pyramid.interfaces.IRequest" />
 
-	<subscriber factory=".history._AssignmentHistoryItemDecorator"
+	<subscriber factory=".history._CourseAssignmentHistoryDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.app.products.courseware.interfaces.ICourseInstanceEnrollment
 					 pyramid.interfaces.IRequest" />
@@ -87,6 +87,11 @@
 	<subscriber factory=".history._AssignmentHistoryLinkDecorator"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.assessment.interfaces.IQAssignment
+					 pyramid.interfaces.IRequest" />
+					 
+	<subscriber factory=".history._AssignmentHistoryItemDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="..interfaces.IUsersCourseAssignmentHistoryItem
 					 pyramid.interfaces.IRequest" />
 					 
 	<subscriber factory=".feedback._FeedbackItemAssignmentIdDecorator"

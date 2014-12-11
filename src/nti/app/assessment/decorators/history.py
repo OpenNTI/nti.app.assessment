@@ -12,17 +12,24 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope import interface
 
+from nti.app.products.courseware.utils import is_course_instructor
+
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
+from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver.links import Link
 from nti.dataserver.interfaces import IUser
+from nti.dataserver.traversal import find_interface
 
 from nti.externalization.interfaces import StandardExternalFields
+from nti.externalization.externalization import to_external_object
 from nti.externalization.interfaces import IExternalMappingDecorator
 
 from nti.utils.property import Lazy
+
+from ..common import get_assessment_metadata_item
 
 from . import _get_course_from_assignment
 from . import _AbstractTraversableLinkDecorator
@@ -30,7 +37,7 @@ from . import _AbstractTraversableLinkDecorator
 LINKS = StandardExternalFields.LINKS
 
 @interface.implementer(IExternalMappingDecorator)
-class _AssignmentHistoryItemDecorator(_AbstractTraversableLinkDecorator):
+class _CourseAssignmentHistoryDecorator(_AbstractTraversableLinkDecorator):
 	"""
 	For things that have an assignment history, add this
 	as a link.
@@ -84,3 +91,15 @@ class _AssignmentHistoryLinkDecorator(_AbstractTraversableLinkDecorator):
 								rel='History',
 								elements=('AssignmentHistories', user.username,
 										   context.ntiid)) )
+
+@interface.implementer(IExternalMappingDecorator)
+class _AssignmentHistoryItemDecorator(_AbstractTraversableLinkDecorator):
+	
+	def _do_decorate_external( self, context, result_map ):
+		user = self.remoteUser
+		course = find_interface(context, ICourseInstance, strict=False)
+		if course is None or is_course_instructor(course, user):
+			return
+		item = get_assessment_metadata_item(course, user, context.assignmentId)
+		if item is not None:
+			result_map['Metadata'] = to_external_object(item)

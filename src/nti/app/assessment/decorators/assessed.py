@@ -15,9 +15,9 @@ from zope import component
 
 from nti.app.authentication import get_remote_user
 
-from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
-
 from nti.app.products.courseware.utils import is_course_instructor
+
+from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
 from nti.assessment import grader_for_response
 from nti.assessment.interfaces import IQuestion

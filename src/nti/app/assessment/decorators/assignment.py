@@ -162,6 +162,29 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		result['IsTimedAssignment'] = True
 		result['MaximumTimeAllowed'] = result['maximum_time_allowed' ] = max_time_allowed
 
+class _TimedAssignmentPartStripperDecorator(AbstractAuthenticatedRequestAwareDecorator):
+	
+	def _do_decorate_external(self, context, result):
+		course = _get_course_from_assignment(context, user=self.remoteUser)
+		if course is None or is_course_instructor(course, self.remoteUser):
+			return
+		item = get_assessment_metadata_item(course, self.remoteUser, context.ntiid)
+		if item is None or not item.StartTime:
+			result['parts'] = None
+
+class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
+
+	def _do_decorate_external(self, context, result):
+		course = _get_course_from_assignment(context, user=self.remoteUser)
+		if course is None:
+			return
+		if is_course_instructor(course, self.remoteUser):
+			return
+		item = get_assessment_metadata_item(course, self.remoteUser, context.ntiid)
+		if item is not None:
+			result['Metadata'] = {'Duration': item.Duration,
+								  'StartTime': item.StartTime}
+
 @repoze.lru.lru_cache(1000, timeout=3600)
 def _root_url(ntiid):
 	library = component.queryUtility(IContentPackageLibrary)
@@ -249,20 +272,6 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 		for part in result['parts']:
 			question_set = part['question_set']
 			self.strip(question_set)
-
-class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
-
-	def _do_decorate_external(self, context, result):
-		course = _get_course_from_assignment(context, user=self.remoteUser)
-		if course is None:
-			logger.warn("Could not find course for assignment %s", context.ntiid)
-			return
-		if is_course_instructor(course, self.remoteUser):
-			return
-		item = get_assessment_metadata_item(course, self.remoteUser, context.ntiid)
-		if item is not None:
-			result['Metadata'] = {'Duration': item.Duration,
-								  'StartTime': item.StartTime}
 
 class _AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAwareDecorator):
 	"""

@@ -242,7 +242,7 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
 	@WithSharedApplicationMockDS(users=('outest5',),testapp=True,default_authenticate=True)
 	@fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
-	def test_metadata_start(self, fake_active):
+	def test_metadata_commence(self, fake_active):
 		fake_active.is_callable().returns(True)
 		
 		# Make sure we're enrolled
@@ -254,7 +254,7 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		self.testapp.get(href, status=404)
 		
 		res = self.testapp.post_json(href)
-		assert_that(res.json_body, has_entry('StartTime', is_not(none()) ))
+		assert_that(res.json_body, has_entry('Class', is_('Assignment')))
 		
 		href = '/dataserver2/Objects/' + self.assignment_id + '/StartTime'
 		res = self.testapp.get(href, status=200)

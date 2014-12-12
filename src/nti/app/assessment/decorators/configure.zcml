@@ -54,13 +54,12 @@
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.assessment.interfaces.IQAssignment
 					 pyramid.interfaces.IRequest" />
-	<!--
+
 	<subscriber factory=".assignment._TimedAssignmentPartStripperDecorator"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.assessment.interfaces.IQTimedAssignment
 					 pyramid.interfaces.IRequest" />
-	-->
-			 
+
 	<subscriber factory=".assessed._QAssessedPartDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.assessment.interfaces.IQAssessedPart

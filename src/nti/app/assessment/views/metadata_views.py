@@ -97,12 +97,13 @@ class AssignmentSubmissionStartPostView(AssignmentSubmissionMetataPostView):
 												IUsersCourseAssignmentMetadata)
 		try:
 			item = container[self.context.ntiid]
-			result = item
 		except KeyError:
 			item = UsersCourseAssignmentMetadataItem()
+			self._process(creator=creator, course=course, item=item)
+		if not item.StartTime:
 			item.StartTime = time.time()
-			result = self._process(creator=creator, course=course, item=item)
-		return result
+		## return assignment
+		return self.context
 	
 @view_config(route_name="objects.generic.traversal",
 			 context=IQAssignment,

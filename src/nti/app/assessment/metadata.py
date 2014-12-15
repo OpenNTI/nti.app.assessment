@@ -3,6 +3,7 @@
 """
 .. $Id$
 """
+
 from __future__ import print_function, unicode_literals, absolute_import, division
 __docformat__ = "restructuredtext en"
 
@@ -32,6 +33,7 @@ from nti.dataserver.interfaces import ACE_DENY_ALL
 from nti.dataserver.interfaces import ALL_PERMISSIONS
 
 from nti.dataserver.authorization import ACT_READ
+from nti.dataserver.authorization import ROLE_ADMIN
 from nti.dataserver.authorization import ACT_CREATE
 from nti.dataserver.authorization import ACT_UPDATE
 
@@ -179,7 +181,11 @@ class UsersCourseAssignmentMetadataItem(PersistentCreatedModDateTrackingObject,
 		for instructor in instructors:
 			aces.append(ace_allowing(instructor, ALL_PERMISSIONS,
 									 UsersCourseAssignmentMetadataItem))
-		aces.append(ACE_DENY_ALL)
+		
+		aces.append(ace_allowing(ROLE_ADMIN, ALL_PERMISSIONS,
+								 UsersCourseAssignmentMetadataItem)) 
+		
+		aces.append(ACE_DENY_ALL)			
 		result = acl_from_aces( aces )
 		return result
 

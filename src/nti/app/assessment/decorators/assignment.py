@@ -185,8 +185,7 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			result['Metadata'] = {'Duration': item.Duration,
 								  'StartTime': item.StartTime}
 
-# TODO Do we need this cache now that we have the lower level cache?
-@repoze.lru.lru_cache(1000, timeout=3600)
+
 def _root_url(ntiid):
 	library = component.queryUtility(IContentPackageLibrary)
 	if ntiid and library is not None:

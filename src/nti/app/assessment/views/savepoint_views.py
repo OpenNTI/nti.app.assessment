@@ -23,8 +23,11 @@ from nti.appserver.ugd_edit_views import UGDDeleteView
 
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssignmentSubmission
+from nti.assessment.interfaces import IQTimedAssignment
 
 from nti.dataserver import authorization as nauth
+
+from ..common import get_assessment_metadata_item
 
 from .._submission import get_source
 from .._submission import check_upload_files
@@ -64,7 +67,13 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 				raise hexc.HTTPForbidden("Must be enrolled in a course.")
 		except RequiredMissing:
 			raise hexc.HTTPForbidden("Must be enrolled in a course.")
-		
+
+		# No savepoints unless the timed assignment has been started
+		if IQTimedAssignment.providedBy( self.context ):
+			item = get_assessment_metadata_item( course, self.remoteUser, self.context.ntiid )
+			if item is None or not item.StartTime:
+				raise hexc.HTTPClientError( "Cannot savepoint timed assignment unless started." )
+
 		if not self.request.POST:
 			submission = self.readCreateUpdateContentObject(creator)
 			check_upload_files(submission)
@@ -75,7 +84,7 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 			extValue = self.readInput(value=extValue.read())
 			submission = self.readCreateUpdateContentObject(creator, externalValue=extValue)
 			submission = read_multipart_sources(submission, self.request)
-			
+
 		savepoint = component.getMultiAdapter( (course, submission.creator),
 												IUsersCourseAssignmentSavepoint)
 		submission.containerId = submission.assignmentId
@@ -84,7 +93,7 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 		metadata = component.getMultiAdapter( (course, submission.creator),
 											  IUsersCourseAssignmentMetadata)
 		metadata.get_or_create(submission.assignmentId, time.time())
-		
+
 		# Now record the submission.
 		self.request.response.status_int = 201
 		result = savepoint.recordSubmission(submission)
@@ -97,7 +106,7 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 			 permission=nauth.ACT_READ,
 			 name="Savepoint")
 class AssignmentSubmissionSavepointGetView(AbstractAuthenticatedView):
-	
+
 	def __call__(self):
 		creator = self.remoteUser
 		if not creator:
@@ -108,7 +117,7 @@ class AssignmentSubmissionSavepointGetView(AbstractAuthenticatedView):
 				raise hexc.HTTPForbidden("Must be enrolled in a course.")
 		except RequiredMissing:
 			raise hexc.HTTPForbidden("Must be enrolled in a course.")
-				
+
 		savepoint = component.getMultiAdapter( (course, creator),
 												IUsersCourseAssignmentSavepoint)
 		try:

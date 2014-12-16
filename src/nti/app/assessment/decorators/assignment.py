@@ -11,8 +11,6 @@ logger = __import__('logging').getLogger(__name__)
 
 from datetime import datetime
 
-import repoze.lru
-
 from zope import component
 from zope import interface
 

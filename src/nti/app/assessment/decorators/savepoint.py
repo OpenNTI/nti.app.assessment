@@ -3,9 +3,8 @@
 """
 .. $Id$
 """
-from __future__ import print_function, unicode_literals, absolute_import, division
-from __builtin__ import True
 
+from __future__ import print_function, unicode_literals, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -33,13 +32,15 @@ LINKS = StandardExternalFields.LINKS
 class _AssignmentSavepointDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _predicate(self, context, result):
-		"Do not decorate non-started timed assignments."
+		"""
+		Do not decorate non-started timed assignments.
+		"""
 		result = True
 		if IQTimedAssignment.providedBy( context ):
 			course = _get_course_from_assignment( context, user=self.remoteUser )
 			if course is not None:
 				item = get_assessment_metadata_item(course, self.remoteUser, context.ntiid)
-				result =  item is not None and item.StartTime
+				result = bool(item is not None and item.StartTime)
 		return result
 
 	def _do_decorate_external(self, assignment, result):
@@ -75,4 +76,3 @@ class _AssignmentSavepointItemDecorator(AbstractAuthenticatedRequestAwareDecorat
 			result_map['href'] = render_link( link )['href']
 		except (KeyError, ValueError, AssertionError):
 			pass # Nope
-

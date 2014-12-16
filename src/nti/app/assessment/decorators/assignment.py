@@ -163,7 +163,7 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		result['MaximumTimeAllowed'] = result['maximum_time_allowed' ] = max_time_allowed
 
 class _TimedAssignmentPartStripperDecorator(AbstractAuthenticatedRequestAwareDecorator):
-	
+
 	def _do_decorate_external(self, context, result):
 		course = _get_course_from_assignment(context, user=self.remoteUser)
 		if course is None or is_course_instructor(course, self.remoteUser):
@@ -185,6 +185,7 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			result['Metadata'] = {'Duration': item.Duration,
 								  'StartTime': item.StartTime}
 
+# TODO Do we need this cache now that we have the lower level cache?
 @repoze.lru.lru_cache(1000, timeout=3600)
 def _root_url(ntiid):
 	library = component.queryUtility(IContentPackageLibrary)

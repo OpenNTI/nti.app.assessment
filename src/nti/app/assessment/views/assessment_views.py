@@ -37,11 +37,15 @@ from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssignmentSubmission
+from nti.assessment.interfaces import IQTimedAssignment
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver import authorization as nauth
+
+from nti.app.assessment.decorators import _get_course_from_assignment
+from nti.app.assessment.common import get_assessment_metadata_item
 
 from .._submission import get_source
 from .._submission import read_multipart_sources
@@ -511,3 +515,25 @@ class NonAssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
 					items.remove(item)
 
 		return result
+
+@view_config(route_name="objects.generic.traversal",
+			 context=IQTimedAssignment,
+			 renderer='rest',
+			 permission=nauth.ACT_READ,
+			 request_method='GET')
+class TimedAssignmentGetView(AbstractAuthenticatedView):
+	"""
+	For a timed assignment, use the user's metadata to determine
+	if last_modified has changed since the last request.  Used for
+	caching purposes.
+	"""
+
+	def __call__(self):
+		response = self.request.response
+		assignment = IQTimedAssignment( self.request.context )
+		course = _get_course_from_assignment( assignment, user=self.remoteUser )
+
+		item = get_assessment_metadata_item( course, self.remoteUser, assignment.ntiid )
+		if item is not None and item.StartTime:
+			response.last_modified = item.StartTime
+		return assignment

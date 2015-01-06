@@ -254,5 +254,5 @@
 				for=".interfaces.IUsersCourseAssignmentHistoryItemFeedback" />
 
 	<!-- user events -->
-	<subscriber handler=".subscribers._on_user_removed" />
+	<subscriber handler=".subscribers._on_user_will_be_removed" />
 </configure>

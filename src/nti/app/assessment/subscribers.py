@@ -16,7 +16,6 @@ from datetime import datetime
 from functools import partial
 
 from zope import component
-from zope.lifecycleevent.interfaces import IObjectRemovedEvent
 
 from pyramid.httpexceptions import HTTPUnprocessableEntity
 
@@ -35,6 +34,7 @@ from nti.contenttypes.courses.interfaces import IPrincipalEnrollments
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.traversal import find_interface
+from nti.dataserver.users.interfaces import IWillDeleteEntityEvent
 
 from nti.externalization.externalization import to_external_object
 
@@ -152,8 +152,8 @@ def delete_user_data(user):
 					container.clear()
 					del user_data[username]
 
-@component.adapter(IUser, IObjectRemovedEvent)
-def _on_user_removed(user, event):
+@component.adapter(IUser, IWillDeleteEntityEvent)
+def _on_user_will_be_removed(user, event):
 	logger.info("Removing assignment data for user %s", user)
 	func = partial(delete_user_data, user=user)
 	run_job_in_all_host_sites(func)

@@ -101,7 +101,7 @@ class UserEnrolledForCreditInCourseOrInstructsFilter(object):
 UserEnrolledForCreditInCourseFilter = UserEnrolledForCreditInCourseOrInstructsFilter # BWC
 
 @interface.implementer(ICourseAssignmentUserFilter)
-@component.adapter(IUser,ICourseInstance)
+@component.adapter(IUser, ICourseInstance)
 class AssignmentPolicyExclusionFilter(object):
 	"""
 	If the assignment policies for the course instance exclude the
@@ -114,6 +114,6 @@ class AssignmentPolicyExclusionFilter(object):
 	def __init__(self, user=None, course=None):
 		self.policies = IQAssignmentPolicies(course)
 
-	def allow_assignment_for_user_in_course(self, asg, user, course):
+	def allow_assignment_for_user_in_course(self, asg, user=None, course=None):
 		excluded = self.policies.getPolicyForAssignment(asg.ntiid).get('excluded', False)
 		return not excluded

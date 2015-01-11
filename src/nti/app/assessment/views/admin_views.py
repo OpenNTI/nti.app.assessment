@@ -30,29 +30,34 @@ from nti.assessment.interfaces import IQAssignment
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
+from nti.contenttypes.courses.interfaces import	ICourseCatalogEntry
 
 from nti.dataserver import authorization as nauth
 from nti.dataserver.interfaces import IDataserverFolder
 
 from nti.externalization.interfaces import LocatedExternalDict
+from nti.externalization.interfaces import StandardExternalFields
 
-from nti.ntiids.ntiids import TYPE_OID
-from nti.ntiids.ntiids import is_ntiid_of_type
 from nti.ntiids.ntiids import find_object_with_ntiid
 
 from nti.utils.maps import CaseInsensitiveDict
 
 from .._submission import course_submission_report
 
+from ..interfaces import ICourseAssignmentCatalog
 from ..interfaces import ICourseAssessmentItemCatalog
 from ..interfaces import IUsersCourseAssignmentHistory
 from ..interfaces import IUsersCourseAssignmentSavepoint
+
+from ..assignment_filters import AssignmentPolicyExclusionFilter
+
+ITEMS = StandardExternalFields.ITEMS
 
 @view_config(context=ICourseInstance)
 @view_config(context=ICourseInstanceEnrollment)
 @view_defaults(route_name='objects.generic.traversal',
 			   renderer='rest',
-			   permission=nauth.ACT_MODERATE,
+			   permission=nauth.ACT_NTI_ADMIN,
 			   request_method='GET',
 			   name='AllTasksOutline')
 class AllTasksOutlineView(AbstractAuthenticatedView):
@@ -72,7 +77,7 @@ class AllTasksOutlineView(AbstractAuthenticatedView):
 
 @view_config(route_name='objects.generic.traversal',
 			 renderer='rest',
-			 permission=nauth.ACT_MODERATE,
+			 permission=nauth.ACT_NTI_ADMIN,
 			 request_method='POST',
 			 context=IDataserverFolder,
 			 name='RemoveMatchedSavePoints')
@@ -104,9 +109,26 @@ class RemovedMatchedSavePointsView(	AbstractAuthenticatedView,
 						items.append(assignmentId)
 		return result
 
+def _parse_catalog_entry(params):
+	ntiid = params.get('ntiid') or \
+			params.get('entry') or \
+			params.get('course')
+	if not ntiid:
+		return None
+	
+	context = find_object_with_ntiid(ntiid)
+	result = ICourseCatalogEntry(context, None)
+	if result is None:	
+		try:
+			catalog = component.getUtility(ICourseCatalog)
+			result = catalog.getCatalogEntry(ntiid)
+		except KeyError:
+			raise hexc.HTTPUnprocessableEntity("Invalid course NTIID")
+	return result
+	
 @view_config(route_name='objects.generic.traversal',
 			 renderer='rest',
-			 permission=nauth.ACT_MODERATE,
+			 permission=nauth.ACT_NTI_ADMIN,
 			 request_method='GET',
 			 context=IDataserverFolder,
 			 name='UnmatchedSavePoints')
@@ -115,14 +137,9 @@ class UnmatchedSavePointsView(AbstractAuthenticatedView):
 	def __call__(self):
 		catalog = component.getUtility(ICourseCatalog)
 		params = CaseInsensitiveDict(self.request.params)
-		ntiid = params.get('ntiid') or \
-				params.get('entry') or \
-				params.get('course')
-		if ntiid:
-			try:
-				entries = (catalog.getCatalogEntry(ntiid),)
-			except KeyError:
-				raise hexc.HTTPUnprocessableEntity("Invalid course NTIID")
+		entry = _parse_catalog_entry(params)
+		if entry is not None:
+			entries = (entry,)
 		else:
 			entries = catalog.iterCatalogEntries()
 			
@@ -159,31 +176,17 @@ class UnmatchedSavePointsView(AbstractAuthenticatedView):
 
 @view_config(route_name='objects.generic.traversal',
 			 renderer='rest',
-			 permission=nauth.ACT_MODERATE,
+			 permission=nauth.ACT_NTI_ADMIN,
 			 request_method='GET',
 			 context=IDataserverFolder,
 			 name='CourseSubmissionReport')
 class CourseSubmissionReportView(AbstractAuthenticatedView):
 
 	def __call__(self):
-		catalog = component.getUtility(ICourseCatalog)
 		params = CaseInsensitiveDict(self.request.params)
-		ntiid = params.get('ntiid') or \
-				params.get('entry') or \
-				params.get('course')
-		if not ntiid:
-			raise hexc.HTTPUnprocessableEntity("Must specify a course/entry NTIID")
-		
-		if not is_ntiid_of_type(ntiid, TYPE_OID):
-			try:
-				context = catalog.getCatalogEntry(ntiid)
-			except KeyError:
-				raise hexc.HTTPUnprocessableEntity("Invalid entry NTIID")
-		else:
-			obj = find_object_with_ntiid(ntiid)
-			context = ICourseInstance(obj, None)
-			if context is None:
-				raise hexc.HTTPUnprocessableEntity("Invalid course NTIID")
+		context = _parse_catalog_entry(params)
+		if context is None:
+			raise hexc.HTTPUnprocessableEntity("Invalid course NTIID")
 		
 		usernames = params.get('usernames') or params.get('username')
 		if isinstance(usernames, six.string_types):
@@ -212,3 +215,29 @@ class CourseSubmissionReportView(AbstractAuthenticatedView):
 		stream.seek(0)
 		response.body_file = stream
 		return response
+
+@view_config(route_name='objects.generic.traversal',
+			 renderer='rest',
+			 permission=nauth.ACT_NTI_ADMIN,
+			 request_method='GET',
+			 context=IDataserverFolder,
+			 name='CourseAssignments')
+class CourseAssignmentsView(AbstractAuthenticatedView):
+
+	def __call__(self):
+		params = CaseInsensitiveDict(self.request.params)
+		context = _parse_catalog_entry(params)
+		if context is None:
+			raise hexc.HTTPUnprocessableEntity("Invalid course NTIID")
+		
+		course = ICourseInstance(context)
+		catalog = ICourseAssignmentCatalog(course)
+		policy_filter = AssignmentPolicyExclusionFilter(user=None, course=course)
+				
+		result = LocatedExternalDict()
+		items = result[ITEMS] = {}
+		for assignment in catalog.iter_assignments():
+			if policy_filter.allow_assignment_for_user_in_course(assignment):
+				items[assignment.ntiid] = assignment
+		result['Total'] = len(items)
+		return result

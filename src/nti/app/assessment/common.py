@@ -21,8 +21,11 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver.traversal import find_interface
 		
+from .interfaces import ICourseAssignmentCatalog
 from .interfaces import IUsersCourseAssignmentHistory
 from .interfaces import IUsersCourseAssignmentMetadata
+
+from .assignment_filters import AssignmentPolicyExclusionFilter
 
 def same_content_unit_file(unit1, unit2):
 	try:
@@ -82,3 +85,26 @@ def get_assessment_metadata_item(course, user, assignment):
 		if ntiid in metadata:
 			return metadata[ntiid]
 	return None
+
+def assignment_comparator(a, b):
+	a_end = a.available_for_submission_ending
+	b_end = b.available_for_submission_ending
+	if a_end and b_end:
+		return -1 if a_end < b_end else 1
+
+	a_begin = a.available_for_submission_beginning
+	b_begin = b.available_for_submission_beginning
+	if a_begin and b_begin:
+		return -1 if a_begin < b_begin else 1
+	return 0
+
+def get_course_assignments(course, sort=True, reverse=False):
+	# Filter out excluded assignments so they don't show in the gradebook either
+	course = ICourseInstance(course)
+	assignment_catalog = ICourseAssignmentCatalog(course)
+	pcy_filter = AssignmentPolicyExclusionFilter(course=course)
+	assignments = [x for x in assignment_catalog.iter_assignments()
+			 	   if pcy_filter.allow_assignment_for_user_in_course(x, course=course)]
+	if sort:
+		assignments = sorted(assignments, cmp=assignment_comparator, reverse=reverse)
+	return assignments

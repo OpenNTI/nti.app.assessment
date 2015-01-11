@@ -44,12 +44,12 @@ from nti.utils.maps import CaseInsensitiveDict
 
 from .._submission import course_submission_report
 
-from ..interfaces import ICourseAssignmentCatalog
 from ..interfaces import ICourseAssessmentItemCatalog
 from ..interfaces import IUsersCourseAssignmentHistory
 from ..interfaces import IUsersCourseAssignmentSavepoint
 
-from ..assignment_filters import AssignmentPolicyExclusionFilter
+from ..common import get_course_assignments
+
 
 ITEMS = StandardExternalFields.ITEMS
 
@@ -229,15 +229,11 @@ class CourseAssignmentsView(AbstractAuthenticatedView):
 		context = _parse_catalog_entry(params)
 		if context is None:
 			raise hexc.HTTPUnprocessableEntity("Invalid course NTIID")
+		course = ICourseInstance(context)				
 		
-		course = ICourseInstance(context)
-		catalog = ICourseAssignmentCatalog(course)
-		policy_filter = AssignmentPolicyExclusionFilter(user=None, course=course)
-				
 		result = LocatedExternalDict()
 		items = result[ITEMS] = {}
-		for assignment in catalog.iter_assignments():
-			if policy_filter.allow_assignment_for_user_in_course(assignment):
-				items[assignment.ntiid] = assignment
+		for assignment in get_course_assignments(course=course):
+			items[assignment.ntiid] = assignment
 		result['Total'] = len(items)
 		return result

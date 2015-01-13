@@ -21,6 +21,7 @@ from zope import component
 from zope import interface
 from zope.proxy import ProxyBase
 from zope.file.upload import nameFinder
+from zope.security.interfaces import IPrincipal
 from zope.schema.interfaces import ConstraintNotSatisfied
 
 from pyramid import httpexceptions as hexc
@@ -246,11 +247,11 @@ def course_submission_report(context, usernames=(), assignment=None,
 	course = ICourseInstance(context)
 	course_enrollments = ICourseEnrollments(course)
 	for record in course_enrollments.iter_enrollments():
-		principal = record.Principal
-		username = principal.username.lower()
+		principal = IPrincipal(record.Principal, None)
+		username = principal.id.lower() if principal is not None else None
 		
 		# filter user 
-		if usernames and username not in usernames:
+		if not username or (usernames and username not in usernames):
 			continue
 		
 		history = component.queryMultiAdapter( (course, principal),

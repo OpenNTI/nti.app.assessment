@@ -14,6 +14,7 @@ import six
 from io import BytesIO
 
 from zope import component
+from zope.security.interfaces import IPrincipal
 
 from pyramid.view import view_config
 from pyramid.view import view_defaults
@@ -49,7 +50,6 @@ from ..interfaces import IUsersCourseAssignmentHistory
 from ..interfaces import IUsersCourseAssignmentSavepoint
 
 from ..common import get_course_assignments
-
 
 ITEMS = StandardExternalFields.ITEMS
 
@@ -159,13 +159,19 @@ class UnmatchedSavePointsView(AbstractAuthenticatedView):
 			enrollments = ICourseEnrollments(course)
 			for record in enrollments.iter_enrollments():
 				principal = record.Principal
+				if IPrincipal(principal, None) is None:
+					continue
+				
 				history = component.queryMultiAdapter((course, principal), 
 													  IUsersCourseAssignmentHistory)
+				
 				savepoint = component.queryMultiAdapter((course, principal), 
 													    IUsersCourseAssignmentSavepoint)
-	
+				if not savepoint:
+					continue
+				
 				for assignmentId in savepoint.keys():
-					if assignmentId not in history:
+					if assignmentId not in history or ():
 						row_data = [ntiid, principal.username, assignmentId]
 						writer.writerow(row_data)
 			

@@ -23,6 +23,7 @@ from nti.assessment.interfaces import IQFilePart
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQTimedAssignment
+
 from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.randomized import questionbank_question_chooser
 
@@ -185,12 +186,10 @@ def iface_of_assessment(thing):
 		iface = IQAssignment
 	return iface
 
+from nti.dataserver.interfaces import IUsernameSubstitutionPolicy
+
 def replace_username(username):
-	try:
-		from nti.app.products.gradebook.interfaces import IUsernameSortSubstitutionPolicy
-		policy = component.queryUtility(IUsernameSortSubstitutionPolicy)
-		if policy is not None:
-			return policy.replace(username) or username
-	except ImportError:
-		pass
+	policy = component.queryUtility(IUsernameSubstitutionPolicy)
+	if policy is not None:
+		return policy.replace(username) or username
 	return username

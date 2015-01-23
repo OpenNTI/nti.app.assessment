@@ -138,7 +138,8 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 	# If the user submits a badly formed submission, we can get
 	# this, especially if we try to autograde. (That particular case
 	# is now handled, but still.)
-	_EXTRA_INPUT_ERRORS = ModeledContentUploadRequestUtilsMixin._EXTRA_INPUT_ERRORS + (AttributeError,)
+	_EXTRA_INPUT_ERRORS = ModeledContentUploadRequestUtilsMixin._EXTRA_INPUT_ERRORS + \
+						  (AttributeError,)
 
 	# XXX: We would like to express access control via
 	# an ACL or the zope security role map.
@@ -175,8 +176,8 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 			submission = read_multipart_sources(submission, self.request)
 
 		# Re-use the same code for putting to a user
-		return component.getMultiAdapter( (self.request, submission),
-										  IExceptionResponse)
+		result = component.getMultiAdapter( (self.request, submission), IExceptionResponse)
+		return result
 
 from zipfile import ZipInfo
 from zipfile import ZipFile
@@ -187,7 +188,6 @@ from nti.assessment.interfaces import IQUploadedFile
 
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 
-from nti.ntiids.ntiids import is_valid_ntiid_string
 from nti.ntiids.ntiids import find_object_with_ntiid
 
 from . import assignment_download_precondition
@@ -229,7 +229,7 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 		result = None
 		course_id = self.request.params.get('course')
 		course_id = unquote(course_id) if course_id else None
-		if course_id and is_valid_ntiid_string(course_id):
+		if course_id:
 			result = find_object_with_ntiid(course_id)
 			result = ICourseInstance( result, None )
 		if result is None:
@@ -266,8 +266,7 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 				continue # No submission for this assignment
 
 			# Hmm, if they don't submit or submit in different orders,
-			# numbers won't work. We need to canonicalize this to the assignment
-			# order.
+			# numbers won't work. We need to canonicalize this to the assignment order.
 			for sub_num, sub_part in enumerate(history_item.Submission.parts):
 				for q_num, q_part in enumerate(sub_part.questions):
 					for qp_num, qp_part in enumerate(q_part.parts):
@@ -276,9 +275,11 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 
 						if IQUploadedFile.providedBy(qp_part):
 							prin_id = replace_username(principal.id)
-							full_filename = "%s-%s-%s-%s-%s" % (prin_id, sub_num, q_num, qp_num, qp_part.filename)
-							info = ZipInfo(full_filename,
-										   date_time=datetime.utcfromtimestamp(qp_part.lastModified).timetuple())
+							full_filename = "%s-%s-%s-%s-%s" % (prin_id, sub_num, q_num, 
+																qp_num, qp_part.filename)
+							
+							date_time = datetime.utcfromtimestamp(qp_part.lastModified)
+							info = ZipInfo(full_filename, date_time=date_time.timetuple())
 
 							zipfile.writestr( info, qp_part.data )
 		zipfile.close()
@@ -437,7 +438,6 @@ class AssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
 	def __call__(self):
 		instance = ICourseInstance(self.request.context)
 		catalog = ICourseAssignmentCatalog(instance)
-
 		uber_filter = get_course_assignment_predicate_for_user(self.remoteUser, instance)
 
 		result = LocatedExternalDict()

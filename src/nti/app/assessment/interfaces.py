@@ -199,16 +199,15 @@ class IUsersCourseAssignmentHistoryItem(IContained,
 
 	# Recall that the implementation of AssignmentSubmission is NOT
 	# Persistent.
-	Submission = Object(IQAssignmentSubmission,
-							   required=False)
+	Submission = Object(IQAssignmentSubmission, required=False)
 
 	# This object is persistent, and should be modified
 	# in place if needed.
 	pendingAssessment = Object(IQAssignmentSubmissionPendingAssessment,
-									  required=False)
+							   required=False)
 
 	Feedback = Object(IUsersCourseAssignmentHistoryItemFeedbackContainer,
-							 required=False)
+					  required=False)
 
 	FeedbackCount = Int(title="How many feedback items", default=0)
 

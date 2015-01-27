@@ -18,7 +18,12 @@ from brownie.caching import LFUCache
 from zope import interface
 from zope import component
 from zope import lifecycleevent
+
 from zope.annotation.interfaces import IAnnotations
+
+from zope.container.contained import Contained
+
+from zope.traversing.interfaces import IEtcNamespace
 
 from zope.schema.interfaces import NotUnique
 from zope.schema.interfaces import ConstraintNotSatisfied
@@ -37,11 +42,16 @@ from nti.assessment.interfaces import IQAssignmentDateContext
 from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
 from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 
+from nti.contentlibrary.interfaces import IContentPackageLibrary
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.traversal import find_interface
+
+from nti.utils.property import alias
+from nti.utils.property import CachedProperty
 
 from .history import UsersCourseAssignmentHistory
 
@@ -367,23 +377,30 @@ def get_content_packages_assessments(package):
 	# On py3.3, can easily 'yield from' nested generators
 	return result
 
-class _PackageCacheEntry(object):
+class _PackageCacheEntry(Contained):
 	
-	__slots__ = ('ntiid', 'assessments', 'lastModified')
+	ntiid = alias('__name__')
 	
-	def __init__(self , ntiid, lastModified=0):
+	def __init__(self , ntiid, parent):
 		self.ntiid = ntiid
-		self.assessments = None
-		self.lastModified = lastModified
+		self.__parent__ = parent
 
-	def get_assessments(self, package):
-		if self.assessments is None or self.lastModified != package.lastModified:
-			logger.debug("Caching assessment item ntiids for package %s", package.ntiid)
-			assessments = get_content_packages_assessments(package)
-			self.assessments = tuple( (iface_of_assessment(a), a.ntiid, a.ContentUnitNTIID)
-									  for a in assessments)
-			self.lastModified = package.lastModified
-		return self.assessments
+	@property
+	def lastSynchronized(self):
+		result = self.__parent__.lastSynchronized
+		return result
+	
+	@CachedProperty('lastSynchronized')
+	def assessments(self):
+		library = component.queryUtility(IContentPackageLibrary)
+		paths = library.pathToNTIID(self.ntiid) if library is not None else None
+		if paths:
+			logger.debug("Caching assessment item ntiids for package %s", self.ntiid)
+			assessments = get_content_packages_assessments(paths[0]) # root pkg
+			assessments = tuple( (iface_of_assessment(a), a.ntiid, a.ContentUnitNTIID)
+								  for a in assessments)
+			return assessments
+		return ()
 			
 @component.adapter(ICourseInstance)
 @interface.implementer(ICourseAssessmentItemCatalog)
@@ -434,12 +451,19 @@ class _CachingCourseAssessmentItemCatalog(_DefaultCourseAssessmentItemCatalog):
 	## we only keep the [max_cache_size] most used items. 
 	catalog_cache = LFUCache(maxsize=max_cache_size)
 	
+	@property
+	def lastSynchronized(self):
+		hostsites = component.queryUtility(IEtcNamespace, name='hostsites')
+		result = getattr(hostsites, 'lastSynchronized', 0)
+		return result
+	
 	def _get_assessments(self, package):
 		ntiid = package.ntiid
 		entry = self.catalog_cache.get(ntiid)
 		if entry is None:
-			entry = self.catalog_cache[ntiid] = _PackageCacheEntry(ntiid)
-		return entry.get_assessments(package)
+			entry = self.catalog_cache[ntiid] = _PackageCacheEntry(ntiid, self)
+		result = entry.assessments
+		return result
 	
 	def _proxy(self, iface, ntiid, unit=None):
 		item = component.getUtility(iface, ntiid)

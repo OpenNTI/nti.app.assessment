@@ -5,6 +5,7 @@ Adapters for application-level events.
 
 .. $Id$
 """
+
 from __future__ import print_function, unicode_literals, absolute_import, division
 __docformat__ = "restructuredtext en"
 
@@ -318,7 +319,6 @@ def _course_from_history_item_lineage(item):
 	if course is None:
 		__traceback_info__ = item
 		raise component.ComponentLookupError("Unable to find course")
-
 	return course
 
 from zope.location.interfaces import LocationError
@@ -468,3 +468,11 @@ class _DefaultCourseAssignmentCatalog(object):
 		items = ICourseAssessmentItemCatalog(self.context).iter_assessment_items()
 		result = tuple(self._proxy(x, ntiid) for x in items if IQAssignment.providedBy(x))
 		return result
+
+from .interfaces import IUsersCourseAssignmentHistoryItemFeedback
+
+@interface.implementer(ICourseInstance)
+@component.adapter(IUsersCourseAssignmentHistoryItemFeedback)
+def _course_from_feedback_lineage(feedback):
+	result = find_interface(feedback, ICourseInstance, strict=False)
+	return result

@@ -5,6 +5,7 @@ Implementations of the feedback content types.
 
 .. $Id$
 """
+
 from __future__ import print_function, unicode_literals, absolute_import, division
 __docformat__ = "restructuredtext en"
 
@@ -15,11 +16,20 @@ from zope.container.constraints import checkObject
 from zope.container.ordered import OrderedContainer
 from zope.annotation.interfaces import IAttributeAnnotatable
 
+from nti.contenttypes.courses.interfaces import ICourseInstance
+
 from nti.dataserver.interfaces import IUser
+from nti.dataserver.interfaces import ACE_DENY_ALL
+from nti.dataserver.interfaces import ALL_PERMISSIONS
+
 from nti.dataserver.contenttypes.note import BodyFieldProperty
 
 from nti.dataserver.datastructures import ContainedMixin
 from nti.dataserver.datastructures import PersistentCreatedModDateTrackingObject
+
+from nti.dataserver.authorization import ACT_READ
+from nti.dataserver.authorization_acl import ace_allowing
+from nti.dataserver.authorization_acl import acl_from_aces
 
 from nti.schema.field import SchemaConfigured
 from nti.schema.fieldproperty import AdaptingFieldProperty
@@ -41,9 +51,6 @@ class UsersCourseAssignmentHistoryItemFeedback(PersistentCreatedModDateTrackingO
 	body = BodyFieldProperty(IUsersCourseAssignmentHistoryItemFeedback['body'])
 	title = AdaptingFieldProperty(IUsersCourseAssignmentHistoryItemFeedback['title'])
 
-	#: We want to inherit the read access for the instructors
-	__acl_deny_all__ = False
-
 	@property
 	def creator(self):
 		# as a Created object, we need to have a creator;
@@ -53,7 +60,9 @@ class UsersCourseAssignmentHistoryItemFeedback(PersistentCreatedModDateTrackingO
 			return creator() if callable(creator) else creator
 
 		# If the user is deleted we won't be able to do this
-		return IUser(self.__parent__.__parent__, None)
+		if self.__parent__ is not None:
+			return IUser(self.__parent__.__parent__, None)
+		return None
 
 	@creator.setter
 	def creator(self,nv):
@@ -67,6 +76,30 @@ class UsersCourseAssignmentHistoryItemFeedback(PersistentCreatedModDateTrackingO
 		except TypeError:
 			self.__dict__['creator'] = nv
 		self._p_changed = True
+		
+	@property
+	def __acl__(self):
+		aces = []
+		# give all permissions to the owner
+		creator = self.creator
+		if creator is not None:
+			aces.append(ace_allowing(creator, ALL_PERMISSIONS, 
+									 UsersCourseAssignmentHistoryItemFeedback))
+			
+		# read access for the instructors
+		course = ICourseInstance(self, None)
+		if course is not None:
+			aces.extend(ace_allowing(i, ACT_READ, UsersCourseAssignmentHistoryItemFeedback)
+				 		for i in course.instructors)
+		
+		# read access to the container feedback ownwer	
+		if self.__parent__ is not None:
+			container_owner = IUser(self.__parent__.__parent__, None)
+			if container_owner is not None and container_owner != creator:
+				aces.append(ace_allowing(container_owner, ACT_READ, 
+										 UsersCourseAssignmentHistoryItemFeedback))
+		aces.append(ACE_DENY_ALL)
+		return acl_from_aces( aces )
 
 @interface.implementer(IUsersCourseAssignmentHistoryItemFeedbackContainer,
 					   IAttributeAnnotatable)

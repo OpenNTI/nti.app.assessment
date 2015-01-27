@@ -154,6 +154,7 @@
 	<adapter factory=".adapters._histories_for_course" />
 	<adapter factory=".adapters._history_for_user_in_course" />
 
+	<adapter factory=".adapters._course_from_feedback_lineage" />
 	<adapter factory=".adapters._course_from_assignment_lineage" />
 	<adapter factory=".adapters._course_from_history_item_lineage" />
 

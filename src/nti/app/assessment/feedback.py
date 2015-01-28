@@ -7,6 +7,7 @@ Implementations of the feedback content types.
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
+from zope.mimetype.interfaces import IContentTypeAware
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -40,12 +41,14 @@ from .interfaces import IUsersCourseAssignmentHistoryItemFeedback
 from .interfaces import IUsersCourseAssignmentHistoryItemFeedbackContainer
 
 @interface.implementer(IUsersCourseAssignmentHistoryItemFeedback,
-					   IAttributeAnnotatable)
+					   IAttributeAnnotatable,
+					   IContentTypeAware)
 class UsersCourseAssignmentHistoryItemFeedback(PersistentCreatedModDateTrackingObject,
 											   SchemaConfigured,
 											   ContainedMixin):
-
-	mimeType = None
+	
+	parameters = {}
+	mime_type = mimeType = "application/vnd.nextthought.assessment.userscourseassignmenthistoryitemfeedback"
 	__external_can_create = True
 
 	body = BodyFieldProperty(IUsersCourseAssignmentHistoryItemFeedback['body'])

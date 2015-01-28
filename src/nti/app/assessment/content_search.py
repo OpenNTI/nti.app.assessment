@@ -3,6 +3,7 @@
 """
 .. $Id$
 """
+
 from __future__ import print_function, unicode_literals, absolute_import, division
 __docformat__ = "restructuredtext en"
 
@@ -19,8 +20,8 @@ from nti.contentsearch.interfaces import IUserDataSearchHit
 from nti.contentsearch.interfaces import ISearchHitPredicate
 from nti.contentsearch.interfaces import ISearchTypeMetaData
 from nti.contentsearch.interfaces import ContentMixinResolver
-from nti.contentsearch.content_utils import resolve_content_parts
 from nti.contentsearch.search_metadata import SearchTypeMetaData
+from nti.contentsearch.content_utils import resolve_content_parts
 
 from nti.contenttypes.courses.interfaces import RID_TA
 from nti.contenttypes.courses.interfaces import RID_INSTRUCTOR
@@ -38,7 +39,7 @@ from .interfaces import IUsersCourseAssignmentHistoryItemFeedback
 
 assignmentfeedback_ = u'assignmentfeedback'
 ASSIGNMENT_FEEDBACK_ITEM = u'AssignmentFeedbackItem'
-ASSIGNMENT_FEEDBACK_ITEM_MIMETYPE = u'application/vnd.nextthought.assignmentfeedbacktem'
+ASSIGNMENT_FEEDBACK_ITEM_MIMETYPE = u'application/vnd.nextthought.assessment.userscourseassignmenthistoryitemfeedback'
 
 class IAssignmentFeedbackItemResolver(ContentMixinResolver,
 								  	  ICreatorResolver,
@@ -123,8 +124,6 @@ class AssignmentFeedbackItemSearchHit(SearchHit):
 
 @interface.implementer(ISearchTypeMetaData)
 def _assignmentfeedbackitem_metadata():
-	## IUsersCourseAssignmentHistoryItemFeedback does not have a mime type
-	## then let's assign one for it
 	return SearchTypeMetaData(Name=assignmentfeedback_,
 							  MimeType=ASSIGNMENT_FEEDBACK_ITEM_MIMETYPE,
 							  IsUGD=True,

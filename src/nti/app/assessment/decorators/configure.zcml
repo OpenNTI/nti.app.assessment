@@ -152,6 +152,27 @@
 				for="..interfaces.IUsersCourseAssignmentMetadataItem
 					 pyramid.interfaces.IRequest" />
 
+	<!-- lineage -->
+	<subscriber factory=".lineage._ContextCatalogEntryDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="..interfaces.IUsersCourseAssignmentHistoryItemFeedbackContainer
+					 pyramid.interfaces.IRequest" />
+					 
+	<subscriber factory=".lineage._ContextCatalogEntryDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="..interfaces.IUsersCourseAssignmentHistoryItemFeedback
+					 pyramid.interfaces.IRequest" />
+
+	<subscriber factory=".lineage._ContextCatalogEntryDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="..interfaces.IUsersCourseAssignmentHistoryItem
+					 pyramid.interfaces.IRequest" />
+					 
+	<subscriber factory=".lineage._ContextCatalogEntryDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="..interfaces.IUsersCourseAssignmentMetadataItem
+					 pyramid.interfaces.IRequest" />
+					 
 	<!-- hrefs -->
 	<!-- NOTE: This is the general implementation; could be better -->
 	<!-- NOTE 2: We must produce OID hrefs for these, not traversal,

@@ -18,6 +18,7 @@ from brownie.caching import LFUCache
 from zope import interface
 from zope import component
 from zope import lifecycleevent
+from zope.component.hooks import getSite
 
 from zope.annotation.interfaces import IAnnotations
 
@@ -453,7 +454,11 @@ class _CachingCourseAssessmentItemCatalog(_DefaultCourseAssessmentItemCatalog):
 		return result
 	
 	def _proxy(self, iface, ntiid, unit=None):
-		item = component.getUtility(iface, ntiid)
+		item = component.queryUtility(iface, ntiid)
+		if item is None:
+			current_site = getSite()
+			__traceback_info__ = getattr(current_site, '__name__', None), iface, ntiid
+			raise component.ComponentLookupError("Unable to find %s,%s" % (iface, ntiid))
 		item = AssessmentItemProxy(item, content_unit=unit)
 		return item
 

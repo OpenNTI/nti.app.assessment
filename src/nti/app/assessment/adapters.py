@@ -362,14 +362,14 @@ from .interfaces import ICourseAssignmentCatalog
 from .interfaces import ICourseAssessmentItemCatalog
 
 from ._utils import iface_of_assessment
-from ._utils import AssessmentItemProxy as _AIProxy
+from ._utils import AssessmentItemProxy
 
 def get_content_packages_assessments(package):
 	result = []
 	def _recur(unit):
 		items = IQAssessmentItemContainer(unit, ())
 		for item in items:
-			item = _AIProxy(item, content_unit=unit.ntiid)
+			item = AssessmentItemProxy(item, content_unit=unit.ntiid)
 			result.append(item)
 		for child in unit.children:
 			_recur(child)
@@ -434,6 +434,7 @@ class _DefaultCourseAssessmentItemCatalog(object):
 
 		assessments = None if len(packages) <= 1 else list()
 		for package in packages:
+			# Assesments should be proxied
 			iterable = self._get_assessments(package)
 			if assessments is None:
 				assessments = iterable
@@ -467,7 +468,7 @@ class _CachingCourseAssessmentItemCatalog(_DefaultCourseAssessmentItemCatalog):
 	
 	def _proxy(self, iface, ntiid, unit=None):
 		item = component.getUtility(iface, ntiid)
-		item = _AIProxy(item, content_unit=unit)
+		item = AssessmentItemProxy(item, content_unit=unit)
 		return item
 
 	def _iter_items(self, assessments):
@@ -480,17 +481,17 @@ class _DefaultCourseAssignmentCatalog(object):
 
 	def __init__(self, context):
 		self.context = context
-		self.catalog_entry = ICourseCatalogEntry(context, None)
+		self.ntiid = getattr(ICourseCatalogEntry(context, None), 'ntiid', None)
 	
 	def _proxy(self, item, ntiid):
-		item = item if type(item) == _AIProxy else _AIProxy(item)
+		item = item if type(item) == AssessmentItemProxy else AssessmentItemProxy(item)
 		item.CatalogEntryNTIID = ntiid
 		return item
 	
 	def iter_assignments(self):
-		ntiid = getattr(self.catalog_entry, 'ntiid', None)
 		items = ICourseAssessmentItemCatalog(self.context).iter_assessment_items()
-		result = tuple(self._proxy(x, ntiid) for x in items if IQAssignment.providedBy(x))
+		result = tuple(	self._proxy(x, self.ntiid) 
+						for x in items if IQAssignment.providedBy(x))
 		return result
 
 from .interfaces import IUsersCourseAssignmentHistoryItemFeedback

@@ -316,15 +316,6 @@ def _histories_for_course_path_adapter(course, request):
 def _histories_for_courseenrollment_path_adapter(enrollment, request):
 	return _histories_for_course( ICourseInstance(enrollment) )
 
-@interface.implementer(ICourseInstance)
-@component.adapter(IUsersCourseAssignmentHistoryItem)
-def _course_from_history_item_lineage(item):
-	course = find_interface(item, ICourseInstance, strict=False)
-	if course is None:
-		__traceback_info__ = item
-		raise component.ComponentLookupError("Unable to find course")
-	return course
-
 from zope.location.interfaces import LocationError
 
 from nti.dataserver.users import User
@@ -485,10 +476,15 @@ class _DefaultCourseAssignmentCatalog(object):
 						for x in items if IQAssignment.providedBy(x))
 		return result
 
-from .interfaces import IUsersCourseAssignmentHistoryItemFeedback
+@interface.implementer(ICourseInstance)
+def _course_from_context_lineage(context, validate=False):
+	course = find_interface(context, ICourseInstance, strict=False)
+	if validate and course is None:
+		__traceback_info__ = context
+		raise component.ComponentLookupError("Unable to find course")
+	return course
 
 @interface.implementer(ICourseInstance)
-@component.adapter(IUsersCourseAssignmentHistoryItemFeedback)
-def _course_from_feedback_lineage(feedback):
-	result = find_interface(feedback, ICourseInstance, strict=False)
-	return result
+@component.adapter(IUsersCourseAssignmentHistoryItem)
+def _course_from_history_item_lineage(item):
+	return _course_from_context_lineage(item, validate=True)

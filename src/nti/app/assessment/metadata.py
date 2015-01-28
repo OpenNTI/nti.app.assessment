@@ -244,13 +244,12 @@ def _metadatacontainer_for_course_path_adapter(course, request):
 def _metadatacontainer_for_courseenrollment_path_adapter(enrollment, request):
 	return _metadatacontainer_for_course( ICourseInstance(enrollment) )
 
+from .adapters import _course_from_context_lineage
+
 @interface.implementer(ICourseInstance)
 @component.adapter(IUsersCourseAssignmentMetadataItem)
 def _course_from_metadataitem_lineage(item):
-	course = find_interface(item, ICourseInstance, strict=False)
-	if course is None:
-		raise component.ComponentLookupError("Unable to find course")
-	return course
+	return _course_from_context_lineage(item, validate=True)
 
 @component.adapter(IUsersCourseAssignmentMetadataContainer, IRequest)
 class _UsersCourseAssignmentMetadataTraversable(ContainerAdapterTraversable):

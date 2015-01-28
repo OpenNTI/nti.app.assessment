@@ -3,6 +3,7 @@
 """
 .. $Id$
 """
+
 from __future__ import print_function, unicode_literals, absolute_import, division
 __docformat__ = "restructuredtext en"
 
@@ -10,14 +11,18 @@ logger = __import__('logging').getLogger(__name__)
 
 from zope import component
 from zope import interface
-from zope import lifecycleevent
-from zope.location.location import locate
-from zope.container.contained import Contained
-from zope.location.interfaces import LocationError
-from zope.location.interfaces import ISublocations
+
 from zope.annotation.interfaces import IAnnotations
+
+from zope.container.contained import Contained
+
+from zope import lifecycleevent
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
 from zope.lifecycleevent.interfaces import IObjectRemovedEvent
+
+from zope.location.location import locate
+from zope.location.interfaces import LocationError
+from zope.location.interfaces import ISublocations
 
 from ZODB.interfaces import IConnection
 
@@ -39,8 +44,9 @@ from nti.dataserver.authorization_acl import ace_allowing
 from nti.dataserver.authorization_acl import acl_from_aces
 
 from nti.dataserver.containers import CheckingLastModifiedBTreeContainer
-from nti.dataserver.datastructures import PersistentCreatedModDateTrackingObject
 from nti.dataserver.containers import CaseInsensitiveCheckingLastModifiedBTreeContainer
+
+from nti.dataserver.datastructures import PersistentCreatedModDateTrackingObject
 
 from nti.externalization.interfaces import StandardExternalFields
 
@@ -223,14 +229,12 @@ def _savepoints_for_course_path_adapter(course, request):
 def _savepoints_for_courseenrollment_path_adapter(enrollment, request):
 	return _savepoints_for_course( ICourseInstance(enrollment) )
 
+from .adapters import _course_from_context_lineage
+
 @interface.implementer(ICourseInstance)
 @component.adapter(IUsersCourseAssignmentSavepointItem)
 def _course_from_savepointitem_lineage(item):
-	course = find_interface(item, ICourseInstance, strict=False)
-	if course is None:
-		__traceback_info__ = item
-		raise component.ComponentLookupError("Unable to find course")
-	return course
+	return _course_from_context_lineage(item, validate=True)
 
 @component.adapter(IUsersCourseAssignmentSavepoints, IRequest)
 class _UsersCourseAssignmentSavepointsTraversable(ContainerAdapterTraversable):

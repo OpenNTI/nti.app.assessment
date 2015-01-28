@@ -85,8 +85,6 @@
 
 	<adapter factory=".adapters._DefaultCourseAssignmentCatalog" />
 	
-	<adapter factory=".adapters._CachingCourseAssessmentItemCatalog" />
-
  	<configure zcml:condition="have testmode">
 		<adapter factory=".adapters._DefaultCourseAssessmentItemCatalog" />
 	</configure>

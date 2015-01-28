@@ -376,16 +376,15 @@ class _PackageCacheEntry(object):
 	
 	def __init__(self , ntiid, lastSynchronized=0):
 		self.ntiid = ntiid
-		self.assessments = ()
+		self.assessments = None
 		self.lastSynchronized = lastSynchronized
 
 	def get_assessments(self, package, lastSynchronized):
-		if not self.assessments or self.lastSynchronized != lastSynchronized: 
+		if self.assessments is None or self.lastSynchronized != lastSynchronized: 
 			logger.debug("Caching assessment item ntiids for package %s", self.ntiid)
-			result = get_content_packages_assessments(package)
-			result = tuple( ( iface_of_assessment(a), a.ntiid, a.ContentUnitNTIID)
-							  for a in result)
-			self.assessments = result
+			package_assessments = get_content_packages_assessments(package)
+			self.assessments = tuple( ( iface_of_assessment(a), a.ntiid, a.ContentUnitNTIID)
+							  			for a in package_assessments)
 			self.lastSynchronized = lastSynchronized
 		return self.assessments
 			

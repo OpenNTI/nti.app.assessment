@@ -21,8 +21,6 @@ from zope import lifecycleevent
 
 from zope.annotation.interfaces import IAnnotations
 
-from zope.container.contained import Contained
-
 from zope.traversing.interfaces import IEtcNamespace
 
 from zope.schema.interfaces import NotUnique
@@ -42,16 +40,11 @@ from nti.assessment.interfaces import IQAssignmentDateContext
 from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
 from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 
-from nti.contentlibrary.interfaces import IContentPackageLibrary
-
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.traversal import find_interface
-
-from nti.utils.property import alias
-from nti.utils.property import CachedProperty
 
 from .history import UsersCourseAssignmentHistory
 
@@ -377,30 +370,24 @@ def get_content_packages_assessments(package):
 	# On py3.3, can easily 'yield from' nested generators
 	return result
 
-class _PackageCacheEntry(Contained):
-	
-	ntiid = alias('__name__')
-	
-	def __init__(self , ntiid, parent):
-		self.ntiid = ntiid
-		self.__parent__ = parent
+class _PackageCacheEntry(object):
 
-	@property
-	def lastSynchronized(self):
-		result = self.__parent__.lastSynchronized
-		return result
+	__slots__ = ('ntiid', 'assessments', 'lastSynchronized')
 	
-	@CachedProperty('lastSynchronized')
-	def assessments(self):
-		library = component.queryUtility(IContentPackageLibrary)
-		paths = library.pathToNTIID(self.ntiid) if library is not None else None
-		if paths:
+	def __init__(self , ntiid, lastSynchronized=0):
+		self.ntiid = ntiid
+		self.assessments = ()
+		self.lastSynchronized = lastSynchronized
+
+	def get_assessments(self, package, lastSynchronized):
+		if not self.assessments or self.lastSynchronized != lastSynchronized: 
 			logger.debug("Caching assessment item ntiids for package %s", self.ntiid)
-			assessments = get_content_packages_assessments(paths[0]) # root pkg
-			assessments = tuple( (iface_of_assessment(a), a.ntiid, a.ContentUnitNTIID)
-								  for a in assessments)
-			return assessments
-		return ()
+			result = get_content_packages_assessments(package)
+			result = tuple( ( iface_of_assessment(a), a.ntiid, a.ContentUnitNTIID)
+							  for a in result)
+			self.assessments = result
+			self.lastSynchronized = lastSynchronized
+		return self.assessments
 			
 @component.adapter(ICourseInstance)
 @interface.implementer(ICourseAssessmentItemCatalog)
@@ -462,8 +449,8 @@ class _CachingCourseAssessmentItemCatalog(_DefaultCourseAssessmentItemCatalog):
 		ntiid = package.ntiid
 		entry = self.catalog_cache.get(ntiid)
 		if entry is None:
-			entry = self.catalog_cache[ntiid] = _PackageCacheEntry(ntiid, self)
-		result = entry.assessments
+			entry = self.catalog_cache[ntiid] = _PackageCacheEntry(ntiid)
+		result = entry.get_assessments(package, self.lastSynchronized)
 		return result
 	
 	def _proxy(self, iface, ntiid, unit=None):

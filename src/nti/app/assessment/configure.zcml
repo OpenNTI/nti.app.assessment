@@ -85,13 +85,14 @@
 
 	<adapter factory=".adapters._DefaultCourseAssignmentCatalog" />
 	
-	<adapter factory=".adapters._DefaultCourseAssessmentItemCatalog" />
+	<adapter factory=".adapters._CachingCourseAssessmentItemCatalog" />
 
-	<!--
+ 	<configure zcml:condition="have testmode">
+		<adapter factory=".adapters._DefaultCourseAssessmentItemCatalog" />
+	</configure>
 	<configure zcml:condition="not-have testmode">
 		<adapter factory=".adapters._CachingCourseAssessmentItemCatalog" />
 	</configure>
-	-->
 	
 	<adapter factory=".history.UsersCourseAssignmentHistoryItemSummary"
 			 provides=".interfaces.IUsersCourseAssignmentHistoryItemSummary"/>

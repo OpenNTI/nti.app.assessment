@@ -267,5 +267,5 @@ class CourseAssignmentItemsView(AbstractAuthenticatedView):
 		items = result[ITEMS] = {}
 		for item in get_course_assignment_items(course=course):
 			items[item.ntiid] = item
-		result['Total'] = len(items)
+		result['Count'] = result['Total'] = len(items)
 		return result

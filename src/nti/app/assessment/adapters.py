@@ -377,7 +377,7 @@ class _PackageCacheEntry(object):
 			self.assessments = tuple( ( iface_of_assessment(a), a.ntiid, a.ContentUnitNTIID)
 							  			for a in package_assessments)
 			self.lastSynchronized = lastSynchronized
-			logger.debug("%s assessment item(s) references for package were cached %s", 
+			logger.debug("%s assessment item reference(s) for package were cached %s", 
 						 len(self.assessments), self.ntiid)
 		return self.assessments
 			

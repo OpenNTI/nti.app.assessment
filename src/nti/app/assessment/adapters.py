@@ -373,11 +373,12 @@ class _PackageCacheEntry(object):
 
 	def get_assessments(self, package, lastSynchronized):
 		if self.assessments is None or self.lastSynchronized != lastSynchronized: 
-			logger.debug("Caching assessment item ntiids for package %s", self.ntiid)
 			package_assessments = get_content_packages_assessments(package)
 			self.assessments = tuple( ( iface_of_assessment(a), a.ntiid, a.ContentUnitNTIID)
 							  			for a in package_assessments)
 			self.lastSynchronized = lastSynchronized
+			logger.debug("%s assessment item(s) references for package were cached %s", 
+						 len(self.assessments), self.ntiid)
 		return self.assessments
 			
 @component.adapter(ICourseInstance)

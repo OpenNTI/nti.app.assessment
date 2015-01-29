@@ -18,6 +18,7 @@ from zope import interface
 
 from nti.appserver.pyramid_authorization import has_permission
 
+from nti.assessment.interfaces import IQPart
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQFilePart
 from nti.assessment.interfaces import IQuestionSet
@@ -184,6 +185,8 @@ def iface_of_assessment(thing):
 		iface = IQTimedAssignment
 	elif IQAssignment.providedBy(thing):
 		iface = IQAssignment
+	elif IQPart.providedBy(thing):
+		iface = IQPart
 	return iface
 
 from nti.dataserver.interfaces import IUsernameSubstitutionPolicy

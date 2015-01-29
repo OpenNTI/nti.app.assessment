@@ -349,6 +349,16 @@ class QuestionMap(object):
 			questions.sort( key=lambda q: q.__name__ )
 		return by_file
 
+def _assessment_index_lastModified(content_package):
+	key = content_package.does_sibling_entry_exist('assessment_index.json')
+	if not key:
+		return None
+	return key.lastModified
+
+def _container_lastModified(content_package):
+	main_container = IQAssessmentItemContainer(content_package)
+	return main_container.lastModified
+	
 def _needs_load_or_update(content_package):
 	key = content_package.does_sibling_entry_exist('assessment_index.json')
 	if not key:
@@ -371,12 +381,11 @@ def add_assessment_items_from_new_content( content_package, event, key=None ):
 	container within this context as their __parent__ (that should really be the hierarchy entry)
 	"""
 	question_map = QuestionMap()
-
 	key = key or _needs_load_or_update(content_package) # let other callers give us the key
 	if not key:
 		return
 
-	logger.info("Reading assessment items from new content %s %s %s",
+	logger.info("Reading/Adding assessment items from new content %s %s %s",
 				content_package, key, event)
 	asm_index_text = key.readContentsAsText()
 	_populate_question_map_from_text( question_map, asm_index_text, content_package )
@@ -415,7 +424,9 @@ def _load_question_map_json(asm_index_text):
 		result = factory(v)
 		_fragment_cache[v] = result
 		return result
+
 	_PLAIN_KEYS = {'NTIID', 'filename', 'href', 'Class', 'MimeType'}
+	
 	def _tx(v, k=None):
 		if isinstance(v, list):
 			v = [_tx(x, k) for x in v]
@@ -430,6 +441,7 @@ def _load_question_map_json(asm_index_text):
 				v = _fragment_cache[v]
 
 		return v
+
 	def hook(o):
 		result = dict()
 		for k, v in o:
@@ -499,6 +511,7 @@ def update_assessment_items_when_modified(content_package, event):
 	original = getattr(event, 'original', content_package)
 	updated = content_package
 
-	logger.info("Updating assessment items from modified content %s %s", content_package, event)
+	logger.info("Updating assessment items from modified content %s %s", 
+				content_package, event)
 	remove_assessment_items_from_oldcontent(original, event)
 	add_assessment_items_from_new_content(updated, event)

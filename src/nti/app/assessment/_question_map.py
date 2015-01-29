@@ -23,6 +23,10 @@ from zope.lifecycleevent.interfaces import IObjectAddedEvent
 from zope.lifecycleevent.interfaces import IObjectRemovedEvent
 from zope.lifecycleevent.interfaces import IObjectModifiedEvent
 
+from zope.site.interfaces import ILocalSiteManager
+
+from ZODB.loglevels import TRACE
+
 from persistent.list import PersistentList
 
 from nti.assessment.interfaces import IQuestion
@@ -76,7 +80,6 @@ class _AssessmentItemContainer(PersistentList,
 	__parent__ = None
 	_SET_CREATED_MODTIME_ON_INIT = False
 
-
 # Instead of using annotations on the content objects, because we're
 # not entirely convinced that the annotation utility, which is ntiid
 # based, works correctly for our cases of having matching ntiids but
@@ -96,6 +99,11 @@ def ContentUnitAssessmentItems(unit):
 
 _iface_to_register = iface_of_assessment # BWC
 
+def _site_name(registry):
+	if ILocalSiteManager.providedBy(registry):
+		return registry.__parent__.__name__
+	return registry.__name__
+			
 @NoPickle
 class QuestionMap(object):
 	"""
@@ -182,14 +190,19 @@ class QuestionMap(object):
 			# the parent, but we really need the registration to be local; this
 			# is especially an issue if the parent is global but we're
 			# persistent)
-			## existing_utility = registry.queryUtility(iface, name=thing_to_register.ntiid)
-			## if existing_utility == thing_to_register:
-			##	continue
+			# existing_utility = registry.queryUtility(iface, name=thing_to_register.ntiid)
+			# if existing_utility == thing_to_register:
+			#	continue
+			
 			registry.registerUtility( thing_to_register,
 									  provided=iface,
 									  name=thing_to_register.ntiid,
 									  event=False)
-
+			
+			# a bit of logging
+			logger.log(TRACE, "%s registered in %s", thing_to_register.ntiid, 
+					   _site_name(registry))
+			
 		# Now that everything is in place, we can canonicalize
 		for o in things_to_register:
 			self.__canonicalize_object(o, registry)
@@ -324,16 +337,16 @@ class QuestionMap(object):
 		by_file = self._get_by_file()
 		assert 'Items' in assessment_index_json['Items'][root_ntiid], "Root's 'Items' contains the actual section Items"
 
-
 		things_to_register = set()
-
+		
 		for child_ntiid, child_index in assessment_index_json['Items'][root_ntiid]['Items'].items():
 			__traceback_info__ = child_ntiid, child_index, content_package
 			# Each of these should have a filename. If they do not, they obviously cannot contain
 			# assessment items. The condition of a missing/bad filename has been seen in
 			# jacked-up content that abuses the section hierarchy (skips levels) and/or jacked-up themes/configurations
 			# that split incorrectly.
-			if 'filename' not in child_index or not child_index['filename'] or child_index['filename'].startswith( 'index.html#' ):
+			if 'filename' not in child_index or not child_index['filename'] or \
+				child_index['filename'].startswith( 'index.html#' ):
 				logger.warn( "Ignoring invalid child with invalid filename '%s'; cannot contain assessments: %s",
 							  child_index.get('filename', ''),
 							  child_index )
@@ -343,15 +356,17 @@ class QuestionMap(object):
 			i = self.__from_index_entry( child_index, content_package,
 										 by_file,
 										 nearest_containing_ntiid=child_ntiid)
-
 			things_to_register.update(i)
-
+			
+		# register assessment items
 		self.__register_and_canonicalize(things_to_register, registry)
 
 		# For tests and such, sort
 		for questions in by_file.values():
 			questions.sort( key=lambda q: q.__name__ )
-		return by_file
+		
+		registered =  {x.ntiid for x in things_to_register}
+		return by_file, registered
 
 def _assessment_index_lastModified(content_package):
 	key = content_package.does_sibling_entry_exist('assessment_index.json')
@@ -392,7 +407,9 @@ def add_assessment_items_from_new_content( content_package, event, key=None ):
 	logger.info("Reading/Adding assessment items from new content %s %s %s",
 				content_package, key, event)
 	asm_index_text = key.readContentsAsText()
-	_populate_question_map_from_text( question_map, asm_index_text, content_package )
+	result = _populate_question_map_from_text(question_map, asm_index_text,
+											  content_package )
+	return result
 
 # We usually get two or more copies, one at the top-level, one embedded
 # in a question set, and possibly in an assignment. Although we get the
@@ -405,7 +422,8 @@ def _load_question_map_json(asm_index_text):
 	if not asm_index_text:
 		return
 
-	asm_index_text = unicode(asm_index_text, 'utf-8') if isinstance(asm_index_text, bytes) else asm_index_text
+	asm_index_text = unicode(asm_index_text, 'utf-8') \
+					 if isinstance(asm_index_text, bytes) else asm_index_text
 	# In this one specific case, we know that these are already
 	# content fragments (probably HTML content fragments)
 	# If we go through the normal adapter process from string to
@@ -462,7 +480,8 @@ def _populate_question_map_from_text( question_map, asm_index_text, content_pack
 		return
 
 	try:
-		question_map._from_root_index( index, content_package )
+		result = question_map._from_root_index( index, content_package )
+		return set() if result is None else result[1] # registered
 	except (interface.Invalid, ValueError): # pragma: no cover
 		# Because the map is updated in place, depending on where the error
 		# was, we might have some data...that's not good, but it's not a show stopper either,
@@ -484,17 +503,23 @@ def remove_assessment_items_from_oldcontent(content_package, event):
 		logger.warn("Removing assessment items from wrong site %s should be %s; may not work",
 					sm, component.getSiteManager(content_package))
 
-
+	result = set()
 	def _unregister(unit):
 		items = IQAssessmentItemContainer(unit)
-		for item in items:
+		for item in items or ():
 			# TODO: Check the parent? If it's an IContentUnit, only
 			# unregister if it's us?
 			sm.unregisterUtility( item,
 								  provided=_iface_to_register(item),
 								  name=item.ntiid )
+			result.add(item.ntiid)
+			
+			# a bit of logging
+			logger.log(TRACE, "%s unregistered from %s", item.ntiid, _site_name(sm))
+			
 		# clear out the items, since they are persistent
 		del items[:]
+
 		# reset the timestamps
 		items.lastModified = items.createdTime = -1
 
@@ -502,6 +527,7 @@ def remove_assessment_items_from_oldcontent(content_package, event):
 			_unregister(child)
 
 	_unregister(content_package)
+	return result
 
 @component.adapter(IContentPackage, IObjectModifiedEvent)
 def update_assessment_items_when_modified(content_package, event):
@@ -512,10 +538,20 @@ def update_assessment_items_when_modified(content_package, event):
 	# Because instance storage, we MUST always load things from the new packages;
 	# it would be better to simply copy the assignment objects over and change
 	# their parents (less DB churn) but its safer to do it the bulk-force way
+	# from IPython.core.debugger import Tracer; Tracer()()
 	original = getattr(event, 'original', content_package)
 	updated = content_package
 
 	logger.info("Updating assessment items from modified content %s %s", 
 				content_package, event)
-	remove_assessment_items_from_oldcontent(original, event)
-	add_assessment_items_from_new_content(updated, event)
+
+	removed = remove_assessment_items_from_oldcontent(original, event)
+	registered = add_assessment_items_from_new_content(updated, event)
+	
+	items_removed = removed.difference(registered)
+	items_added = registered.difference(removed)
+	if items_added:
+		logger.info("%s added from %s ", items_added, content_package)
+		
+	if items_removed:
+		logger.info("%s removed from %s ", items_removed, content_package)

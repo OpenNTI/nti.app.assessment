@@ -538,7 +538,8 @@ def update_assessment_items_when_modified(content_package, event):
 	# Because instance storage, we MUST always load things from the new packages;
 	# it would be better to simply copy the assignment objects over and change
 	# their parents (less DB churn) but its safer to do it the bulk-force way
-	# from IPython.core.debugger import Tracer; Tracer()()
+
+	#### from IPython.core.debugger import Tracer; Tracer()()
 	original = getattr(event, 'original', content_package)
 	updated = content_package
 
@@ -548,13 +549,13 @@ def update_assessment_items_when_modified(content_package, event):
 	removed = remove_assessment_items_from_oldcontent(original, event)
 	registered = add_assessment_items_from_new_content(updated, event)
 	
-	logger.info("%s assessment item(s) have been registered for content",
+	logger.info("%s assessment item(s) have been registered for content %s",
 				len(registered), content_package)
 	
 	items_removed = removed.difference(registered)
 	items_added = registered.difference(removed)
 	if items_added:
-		logger.info("%s added from %s ", items_added, content_package)
+		logger.debug("%s added from %s ", items_added, content_package)
 		
 	if items_removed:
-		logger.info("%s removed from %s ", items_removed, content_package)
+		logger.debug("%s removed from %s ", items_removed, content_package)

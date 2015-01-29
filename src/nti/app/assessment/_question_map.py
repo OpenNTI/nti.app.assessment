@@ -4,8 +4,9 @@
 Implementation of the assessment question map and supporting
 functions to maintain it.
 
-$Id$
+.. $Id$
 """
+
 from __future__ import print_function, unicode_literals, absolute_import, division
 __docformat__ = "restructuredtext en"
 
@@ -29,7 +30,9 @@ from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
-from nti.contentfragments import interfaces as cfg_interfaces
+from nti.contentfragments.interfaces import LatexContentFragment
+from nti.contentfragments.interfaces import PlainTextContentFragment
+from nti.contentfragments.interfaces import SanitizedHTMLContentFragment
 
 from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.interfaces import IContentPackage
@@ -38,10 +41,11 @@ from nti.contentlibrary.interfaces import IGlobalContentPackageLibrary
 
 from nti.dataserver.interfaces import IZContained
 
-from nti.externalization import internalization
-from nti.externalization.persistence import NoPickle
-
 from nti.dublincore.time_mixins import PersistentCreatedAndModifiedTimeObject
+
+from nti.externalization.persistence import NoPickle
+from nti.externalization.internalization import find_factory_for
+from nti.externalization.internalization import update_from_external_object
 
 from ._utils import iface_of_assessment
 
@@ -60,7 +64,7 @@ def _ntiid_object_hook( k, v, x ):
 		# and if we re-convert when we read, we tend to over-escape
 		# One thing we do need to do, though, is replace long dashes with standard
 		# minus signs
-		v.value = cfg_interfaces.LatexContentFragment(x['value'].replace(u'\u2212', '-'))
+		v.value = LatexContentFragment(x['value'].replace(u'\u2212', '-'))
 
 	return v
 
@@ -214,12 +218,12 @@ class QuestionMap(object):
 		result = set()
 		for k, v in assessment_item_dict.items():
 			__traceback_info__ = k, v
-			factory = internalization.find_factory_for( v )
+			factory = find_factory_for( v )
 			assert factory is not None
 			obj = factory()
-			internalization.update_from_external_object(obj, v, require_updater=True,
-														notify=False,
-														object_hook=_ntiid_object_hook )
+			update_from_external_object(obj, v, require_updater=True,
+										notify=False,
+										object_hook=_ntiid_object_hook )
 			obj.ntiid = k
 			obj.__name__ = unicode( k ).encode('utf8').decode('utf8')
 			self._store_object(k, obj)
@@ -274,9 +278,9 @@ class QuestionMap(object):
 				# old versions of the exporter, but we ensure we can't put any questions on it
 				if index_key == 'index.html':
 					factory = tuple
-					logger.warning("Duplicate 'index.html' entry in %s; update content", content_package )
+					logger.warn("Duplicate 'index.html' entry in %s; update content", content_package )
 				else: # pragma: no cover
-					logger.debug("Second entry for the same file %s,%s", index_key, key_for_this_level)
+					logger.warn("Second entry for the same file %s,%s", index_key, key_for_this_level)
 					__traceback_info__ = index_key, key_for_this_level
 					raise ValueError( key_for_this_level, "Found a second entry for the same file" )
 
@@ -312,7 +316,7 @@ class QuestionMap(object):
 		assert 'Items' in assessment_index_json, "Root must contain 'Items'"
 		root_items = assessment_index_json['Items']
 		if not root_items:
-			logger.debug( "Ignoring assessment index that contains no assessments at any level %s", content_package )
+			logger.warn("Ignoring assessment index that contains no assessments at any level %s", content_package )
 			return
 
 		assert len(root_items) == 1, "Root's 'Items' must only have Root NTIID"
@@ -330,7 +334,7 @@ class QuestionMap(object):
 			# jacked-up content that abuses the section hierarchy (skips levels) and/or jacked-up themes/configurations
 			# that split incorrectly.
 			if 'filename' not in child_index or not child_index['filename'] or child_index['filename'].startswith( 'index.html#' ):
-				logger.debug( "Ignoring invalid child with invalid filename '%s'; cannot contain assessments: %s",
+				logger.warn( "Ignoring invalid child with invalid filename '%s'; cannot contain assessments: %s",
 							  child_index.get('filename', ''),
 							  child_index )
 				continue
@@ -418,9 +422,9 @@ def _load_question_map_json(asm_index_text):
 		if v in _fragment_cache:
 			return _fragment_cache[v]
 
-		factory = cfg_interfaces.PlainTextContentFragment
+		factory = PlainTextContentFragment
 		if '<' in v:
-			factory = cfg_interfaces.SanitizedHTMLContentFragment
+			factory = SanitizedHTMLContentFragment
 		result = factory(v)
 		_fragment_cache[v] = result
 		return result

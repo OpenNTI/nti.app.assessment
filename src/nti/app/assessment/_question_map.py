@@ -548,6 +548,9 @@ def update_assessment_items_when_modified(content_package, event):
 	removed = remove_assessment_items_from_oldcontent(original, event)
 	registered = add_assessment_items_from_new_content(updated, event)
 	
+	logger.info("%s assessment item(s) have been registered for content",
+				len(registered), content_package)
+	
 	items_removed = removed.difference(registered)
 	items_added = registered.difference(removed)
 	if items_added:

@@ -50,6 +50,7 @@ from ..interfaces import IUsersCourseAssignmentHistory
 from ..interfaces import IUsersCourseAssignmentSavepoint
 
 from ..common import get_course_assignments
+from ..common import get_course_assignment_items
 
 ITEMS = StandardExternalFields.ITEMS
 
@@ -237,9 +238,34 @@ class CourseAssignmentsView(AbstractAuthenticatedView):
 			raise hexc.HTTPUnprocessableEntity("Invalid course NTIID")
 		course = ICourseInstance(context)				
 		
+		do_filtering = params.get('filter') or 'true'
+		do_filtering = do_filtering.lower() in ('true', 'T', '1')
+		
 		result = LocatedExternalDict()
 		items = result[ITEMS] = {}
-		for assignment in get_course_assignments(course=course):
+		for assignment in get_course_assignments(course=course, do_filtering=do_filtering):
 			items[assignment.ntiid] = assignment
+		result['Total'] = len(items)
+		return result
+
+@view_config(route_name='objects.generic.traversal',
+			 renderer='rest',
+			 permission=nauth.ACT_NTI_ADMIN,
+			 request_method='GET',
+			 context=IDataserverFolder,
+			 name='CourseAssignmentItems')
+class CourseAssignmentItemsView(AbstractAuthenticatedView):
+
+	def __call__(self):
+		params = CaseInsensitiveDict(self.request.params)
+		context = _parse_catalog_entry(params)
+		if context is None:
+			raise hexc.HTTPUnprocessableEntity("Invalid course NTIID")
+		course = ICourseInstance(context)				
+		
+		result = LocatedExternalDict()
+		items = result[ITEMS] = {}
+		for item in get_course_assignment_items(course=course):
+			items[item.ntiid] = item
 		result['Total'] = len(items)
 		return result

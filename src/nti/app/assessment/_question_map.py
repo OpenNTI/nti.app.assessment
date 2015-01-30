@@ -16,8 +16,11 @@ import six
 import time
 import simplejson
 
+import BTrees
+
 from zope import interface
 from zope import component
+from zope.interface.common.sequence import IReadSequence
 
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
 from zope.lifecycleevent.interfaces import IObjectRemovedEvent
@@ -73,13 +76,24 @@ def _ntiid_object_hook( k, v, x ):
 
 	return v
 
-@interface.implementer(IQAssessmentItemContainer, IZContained)
+@interface.implementer(IQAssessmentItemContainer, IZContained, IReadSequence)
 @component.adapter(IContentUnit)
 class _AssessmentItemContainer(PersistentList,
 							   PersistentCreatedAndModifiedTimeObject):
 	__name__ = None
 	__parent__ = None
 	_SET_CREATED_MODTIME_ON_INIT = False
+
+@interface.implementer(IQAssessmentItemContainer, IZContained)
+@component.adapter(IContentUnit)
+class _BTreeAssessmentItemContainer(BTrees.OOBTree.BTree, PersistentCreatedAndModifiedTimeObject):
+	
+	def append(self, x):
+		self[x.ntiid] = x
+		
+	def __iter__(self):
+		for x in self.values():
+			yield x
 
 # Instead of using annotations on the content objects, because we're
 # not entirely convinced that the annotation utility, which is ntiid
@@ -248,7 +262,9 @@ class QuestionMap(object):
 			# XXX CS/JZ, 1-29-15: Now that the library is caching paths to ntiid,
 			# we're manually traversing our content unit to find our path.  We
 			# want to make sure we get our new content units to add assessments to.
-			containing_content_units = _pathToPropertyValue( content_package, 'ntiid', level_ntiid )
+			containing_content_units = _pathToPropertyValue( content_package, 
+															'ntiid', 
+															level_ntiid )
 			if containing_content_units:
 				parent = containing_content_units[-1]
 				parents_questions = IQAssessmentItemContainer(parent)
@@ -358,7 +374,10 @@ class QuestionMap(object):
 			return
 
 		assert len(root_items) == 1, "Root's 'Items' must only have Root NTIID"
-		root_ntiid = assessment_index_json['Items'].keys()[0] # TODO: This ought to come from the content_package. We need to update tests to be sure
+		
+		# TODO: This ought to come from the content_package. We need to update tests to be sure
+		root_ntiid = assessment_index_json['Items'].keys()[0] 
+		
 		by_file = self._get_by_file()
 		assert 'Items' in assessment_index_json['Items'][root_ntiid], "Root's 'Items' contains the actual section Items"
 

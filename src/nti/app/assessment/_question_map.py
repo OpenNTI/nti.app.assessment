@@ -409,6 +409,9 @@ def add_assessment_items_from_new_content( content_package, event, key=None ):
 	asm_index_text = key.readContentsAsText()
 	result = _populate_question_map_from_text(question_map, asm_index_text,
 											  content_package )
+	
+	logger.info("%s assessment item(s) read from %s %s", 
+				len(result or ()), content_package, key)
 	return result
 
 # We usually get two or more copies, one at the top-level, one embedded

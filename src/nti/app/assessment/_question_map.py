@@ -89,7 +89,8 @@ class _AssessmentItemContainer(PersistentList,
 @component.adapter(IContentUnit)
 def ContentUnitAssessmentItems(unit):
 	try:
-		return unit._question_map_assessment_item_container
+		result = unit._question_map_assessment_item_container
+		return result
 	except AttributeError:
 		result = unit._question_map_assessment_item_container = _AssessmentItemContainer()
 		result.createdTime = time.time()
@@ -104,7 +105,30 @@ def _site_name(registry):
 	if ILocalSiteManager.providedBy(registry):
 		return registry.__parent__.__name__
 	return registry.__name__
-			
+
+# XXX Copied from library.py
+def _pathToPropertyValue( unit, prop, value ):
+	"""
+	A convenience function for returning, in order from the root down,
+	the sequence of children required to reach one with a property equal to
+	the given value.
+	"""
+	results = __pathToPropertyValue( unit, prop, value )
+	if results:
+		results.reverse()
+	return results
+
+def __pathToPropertyValue( unit, prop, value ):
+	if getattr( unit, prop, None ) == value:
+		return [unit]
+
+	for child in unit.children:
+		childPath = __pathToPropertyValue( child, prop, value )
+		if childPath:
+			childPath.append( unit )
+			return childPath
+	return None
+
 @NoPickle
 class QuestionMap(object):
 	"""
@@ -194,16 +218,16 @@ class QuestionMap(object):
 			# existing_utility = registry.queryUtility(iface, name=thing_to_register.ntiid)
 			# if existing_utility == thing_to_register:
 			#	continue
-			
+
 			registry.registerUtility( thing_to_register,
 									  provided=iface,
 									  name=thing_to_register.ntiid,
 									  event=False)
-			
+
 			# a bit of logging
-			logger.log(TRACE, "%s registered in %s", thing_to_register.ntiid, 
+			logger.log(TRACE, "%s registered in %s", thing_to_register.ntiid,
 					   _site_name(registry))
-			
+
 		# Now that everything is in place, we can canonicalize
 		for o in things_to_register:
 			self.__canonicalize_object(o, registry)
@@ -218,13 +242,13 @@ class QuestionMap(object):
 		canonicalized.
 
 		"""
-		library = component.queryUtility(IContentPackageLibrary)
-
 		parent = None
 		parents_questions = []
-		if level_ntiid and library is not None:
-			# Older tests may not have a library available.
-			containing_content_units = library.pathToNTIID(level_ntiid)
+		if level_ntiid:
+			# XXX CS/JZ, 1-29-15: Now that the library is caching paths to ntiid,
+			# we're manually traversing our content unit to find our path.  We
+			# want to make sure we get our new content units to add assessments to.
+			containing_content_units = _pathToPropertyValue( content_package, 'ntiid', level_ntiid )
 			if containing_content_units:
 				parent = containing_content_units[-1]
 				parents_questions = IQAssessmentItemContainer(parent)
@@ -339,7 +363,7 @@ class QuestionMap(object):
 		assert 'Items' in assessment_index_json['Items'][root_ntiid], "Root's 'Items' contains the actual section Items"
 
 		things_to_register = set()
-		
+
 		for child_ntiid, child_index in assessment_index_json['Items'][root_ntiid]['Items'].items():
 			__traceback_info__ = child_ntiid, child_index, content_package
 			# Each of these should have a filename. If they do not, they obviously cannot contain
@@ -358,14 +382,14 @@ class QuestionMap(object):
 										 by_file,
 										 nearest_containing_ntiid=child_ntiid)
 			things_to_register.update(i)
-			
+
 		# register assessment items
 		self.__register_and_canonicalize(things_to_register, registry)
 
 		# For tests and such, sort
 		for questions in by_file.values():
 			questions.sort( key=lambda q: q.__name__ )
-		
+
 		registered =  {x.ntiid for x in things_to_register}
 		return by_file, registered
 
@@ -400,8 +424,8 @@ def add_assessment_items_from_new_content( content_package, event, key=None ):
 	asm_index_text = key.readContentsAsText()
 	result = _populate_question_map_from_text(question_map, asm_index_text,
 											  content_package )
-	
-	logger.info("%s assessment item(s) read from %s %s", 
+
+	logger.info("%s assessment item(s) read from %s %s",
 				len(result or ()), content_package, key)
 	return result
 
@@ -442,7 +466,7 @@ def _load_question_map_json(asm_index_text):
 		return result
 
 	_PLAIN_KEYS = {'NTIID', 'filename', 'href', 'Class', 'MimeType'}
-	
+
 	def _tx(v, k=None):
 		if isinstance(v, list):
 			v = [_tx(x, k) for x in v]
@@ -507,10 +531,10 @@ def remove_assessment_items_from_oldcontent(content_package, event):
 								  provided=_iface_to_register(item),
 								  name=item.ntiid )
 			result.add(item.ntiid)
-			
+
 			# a bit of logging
 			logger.log(TRACE, "%s unregistered from %s", item.ntiid, _site_name(sm))
-			
+
 		# clear out the items, since they are persistent
 		del items[:]
 
@@ -532,20 +556,18 @@ def update_assessment_items_when_modified(content_package, event):
 	# Because instance storage, we MUST always load things from the new packages;
 	# it would be better to simply copy the assignment objects over and change
 	# their parents (less DB churn) but its safer to do it the bulk-force way
-
-	#### from IPython.core.debugger import Tracer; Tracer()()
 	original = getattr(event, 'original', content_package)
 	updated = content_package
 
-	logger.info("Updating assessment items from modified content %s %s", 
+	logger.info("Updating assessment items from modified content %s %s",
 				content_package, event)
 
 	removed = remove_assessment_items_from_oldcontent(original, event)
 	registered = add_assessment_items_from_new_content(updated, event)
-	
+
 	logger.info("%s assessment item(s) have been registered for content %s",
 				len(registered), content_package)
-	
+
 	assesments = get_content_packages_assessments(updated)
 	if len(assesments) < len(registered):
 		raise AssertionError("Items in content package are less that in the [site] registry")
@@ -553,7 +575,7 @@ def update_assessment_items_when_modified(content_package, event):
 	items_added = list(registered.difference(removed))
 	if items_added:
 		logger.debug("%s added from %s ", items_added, content_package)
-		
+
 	items_removed = list(removed.difference(registered))
 	if items_removed:
 		logger.debug("%s removed from %s ", items_removed, content_package)

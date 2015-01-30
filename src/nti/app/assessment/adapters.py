@@ -341,26 +341,12 @@ class _UsersCourseAssignmentHistoriesTraversable(ContainerAdapterTraversable):
 				return _history_for_user_in_course( self.context.__parent__, user)
 			raise
 
-from nti.assessment.interfaces import IQAssessmentItemContainer
-
 from .interfaces import ICourseAssignmentCatalog
 from .interfaces import ICourseAssessmentItemCatalog
 
-from ._utils import iface_of_assessment
 from ._utils import AssessmentItemProxy
-
-def get_content_packages_assessments(package):
-	result = []
-	def _recur(unit):
-		items = IQAssessmentItemContainer(unit, ())
-		for item in items:
-			item = AssessmentItemProxy(item, content_unit=unit.ntiid)
-			result.append(item)
-		for child in unit.children:
-			_recur(child)
-	_recur(package)
-	# On py3.3, can easily 'yield from' nested generators
-	return result
+from ._utils import iface_of_assessment
+from ._utils import get_content_packages_assessments
 
 class _PackageCacheEntry(object):
 

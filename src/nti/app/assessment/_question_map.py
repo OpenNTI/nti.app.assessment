@@ -52,6 +52,7 @@ from nti.externalization.internalization import find_factory_for
 from nti.externalization.internalization import update_from_external_object
 
 from ._utils import iface_of_assessment
+from ._utils import get_content_packages_assessments
 
 def _ntiid_object_hook( k, v, x ):
 	"""
@@ -368,16 +369,6 @@ class QuestionMap(object):
 		registered =  {x.ntiid for x in things_to_register}
 		return by_file, registered
 
-def _assessment_index_lastModified(content_package):
-	key = content_package.does_sibling_entry_exist('assessment_index.json')
-	if not key:
-		return None
-	return key.lastModified
-
-def _container_lastModified(content_package):
-	main_container = IQAssessmentItemContainer(content_package)
-	return main_container.lastModified
-	
 def _needs_load_or_update(content_package):
 	key = content_package.does_sibling_entry_exist('assessment_index.json')
 	if not key:
@@ -555,10 +546,14 @@ def update_assessment_items_when_modified(content_package, event):
 	logger.info("%s assessment item(s) have been registered for content %s",
 				len(registered), content_package)
 	
-	items_removed = removed.difference(registered)
-	items_added = registered.difference(removed)
+	assesments = get_content_packages_assessments(updated)
+	if len(assesments) < len(registered):
+		raise AssertionError("Items in content package are less that in the [site] registry")
+
+	items_added = list(registered.difference(removed))
 	if items_added:
-		logger.info("%s added from %s ", items_added, content_package)
+		logger.debug("%s added from %s ", items_added, content_package)
 		
+	items_removed = list(removed.difference(registered))
 	if items_removed:
-		logger.info("%s removed from %s ", items_removed, content_package)
+		logger.debug("%s removed from %s ", items_removed, content_package)

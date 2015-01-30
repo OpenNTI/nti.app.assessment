@@ -189,6 +189,21 @@ def iface_of_assessment(thing):
 		iface = IQPart
 	return iface
 
+from nti.assessment.interfaces import IQAssessmentItemContainer
+
+def get_content_packages_assessments(package):
+	result = []
+	def _recur(unit):
+		items = IQAssessmentItemContainer(unit, ())
+		for item in items:
+			item = AssessmentItemProxy(item, content_unit=unit.ntiid)
+			result.append(item)
+		for child in unit.children:
+			_recur(child)
+	_recur(package)
+	# On py3.3, can easily 'yield from' nested generators
+	return result
+
 from nti.dataserver.interfaces import IUsernameSubstitutionPolicy
 
 def replace_username(username):

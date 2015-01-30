@@ -37,6 +37,7 @@
 	<permission
 		id="nti.actions.assessment.download_grades"
 		title="Download grades" />
+
 	<permission
 		id="nti.actions.assessment.view_solutions"
 		title="View solutions" />
@@ -48,12 +49,15 @@
 	<grant
 		permission="nti.actions.assessment.download_grades"
 		role="nti.roles.course_instructor" />
+		
 	<grant
 		permission="nti.actions.assessment.download_grades"
 		role="nti.roles.course_ta" />
+		
 	<grant
 		permission="nti.actions.assessment.view_solutions"
 		role="nti.roles.course_instructor" />
+		
 	<grant
 		permission="nti.actions.assessment.view_solutions"
 		role="nti.roles.course_ta" />
@@ -77,14 +81,21 @@
 	</configure>
 
 	<!-- Populating questions from content -->
+	<adapter factory="._question_map.ContentUnitAssessmentItems" />
+		
 	<subscriber	handler="._question_map.add_assessment_items_from_new_content" />
 	<subscriber handler="._question_map.update_assessment_items_when_modified" />
 	<subscriber	handler="._question_map.remove_assessment_items_from_oldcontent" />
-
-	<adapter factory="._question_map.ContentUnitAssessmentItems" />
-
-	<adapter factory=".adapters._DefaultCourseAssignmentCatalog" />
 	
+	<configure zcml:condition="have testmode">
+		<utility factory="._question_map._LibraryPathFinder" />
+	</configure>
+	<configure zcml:condition="not-have testmode">
+		<utility factory="._question_map._PackagePathFinder" />
+	</configure>
+	
+	<adapter factory=".adapters._DefaultCourseAssignmentCatalog" />
+
  	<configure zcml:condition="have testmode">
 		<adapter factory=".adapters._DefaultCourseAssessmentItemCatalog" />
 	</configure>

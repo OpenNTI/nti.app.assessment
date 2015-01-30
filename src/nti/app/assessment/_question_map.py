@@ -86,7 +86,8 @@ class _AssessmentItemContainer(PersistentList,
 
 @interface.implementer(IQAssessmentItemContainer, IZContained)
 @component.adapter(IContentUnit)
-class _BTreeAssessmentItemContainer(BTrees.OOBTree.BTree, PersistentCreatedAndModifiedTimeObject):
+class _BTreeAssessmentItemContainer(BTrees.OOBTree.BTree, 
+									PersistentCreatedAndModifiedTimeObject):
 	
 	def append(self, x):
 		self[x.ntiid] = x
@@ -120,28 +121,56 @@ def _site_name(registry):
 		return registry.__parent__.__name__
 	return registry.__name__
 
-# XXX Copied from library.py
-def _pathToPropertyValue( unit, prop, value ):
+class IPathFinder(interface.Interface):
 	"""
-	A convenience function for returning, in order from the root down,
-	the sequence of children required to reach one with a property equal to
-	the given value.
+	internal interface to find the path to a content unit
 	"""
-	results = __pathToPropertyValue( unit, prop, value )
-	if results:
-		results.reverse()
-	return results
 
-def __pathToPropertyValue( unit, prop, value ):
-	if getattr( unit, prop, None ) == value:
-		return [unit]
+	def find(unit, ntiid):
+		pass
 
-	for child in unit.children:
-		childPath = __pathToPropertyValue( child, prop, value )
-		if childPath:
-			childPath.append( unit )
-			return childPath
-	return None
+@interface.implementer(IPathFinder)
+class _LibraryPathFinder(object):
+	
+	def find(self, unit, ntiid):
+		library = component.queryUtility(IContentPackageLibrary)
+		result = library.pathToNTIID(ntiid) if library else ()
+		return result
+	
+@interface.implementer(IPathFinder)
+class _PackagePathFinder(object):
+	
+	def _finder(self, unit, prop, value ):
+		if getattr( unit, prop, None ) == value:
+			return [unit]
+	
+		for child in unit.children:
+			childPath = self._finder( child, prop, value )
+			if childPath:
+				childPath.append( unit )
+				return childPath
+		return None
+	
+	# XXX Copied from library.py
+	def _pathToPropertyValue(self, unit, prop, value ):
+		"""
+		A convenience function for returning, in order from the root down,
+		the sequence of children required to reach one with a property equal to
+		the given value.
+		"""
+		results = self._finder( unit, prop, value )
+		if results:
+			results.reverse()
+		return results
+	
+	def find(self, unit, ntiid):
+		result = self._pathToPropertyValue( unit, 'ntiid', ntiid )
+		return result
+
+def pathToNTIID(unit, ntiid):
+	finder = component.getUtility(IPathFinder)
+	result = finder.find(unit, ntiid)
+	return result
 
 @NoPickle
 class QuestionMap(object):
@@ -262,9 +291,7 @@ class QuestionMap(object):
 			# XXX CS/JZ, 1-29-15: Now that the library is caching paths to ntiid,
 			# we're manually traversing our content unit to find our path.  We
 			# want to make sure we get our new content units to add assessments to.
-			containing_content_units = _pathToPropertyValue( content_package, 
-															'ntiid', 
-															level_ntiid )
+			containing_content_units = pathToNTIID( content_package, level_ntiid )
 			if containing_content_units:
 				parent = containing_content_units[-1]
 				parents_questions = IQAssessmentItemContainer(parent)

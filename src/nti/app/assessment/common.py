@@ -73,12 +73,15 @@ def find_course_for_assignment(assignment, user, exc=True):
 
 	return course
 
-def has_assigments_submitted(course, user):
+def has_assigments_submitted(context, user):
+	course = ICourseInstance(context, None)
 	histories = component.queryMultiAdapter((course, user),
 											IUsersCourseAssignmentHistory )
-	return histories is not None and len(histories) > 0
+	result = histories is not None and len(histories) > 0
+	return result
 
-def get_assessment_metadata_item(course, user, assignment):
+def get_assessment_metadata_item(context, user, assignment):
+	course = ICourseInstance(context, None)
 	metadata = component.queryMultiAdapter((course, user),
 											IUsersCourseAssignmentMetadata)
 	if metadata is not None:
@@ -99,15 +102,15 @@ def assignment_comparator(a, b):
 		return -1 if a_begin < b_begin else 1
 	return 0
 
-def get_course_assignment_items(course, sort=True, reverse=False):
-	course = ICourseInstance(course)
+def get_course_assignment_items(context, sort=True, reverse=False):
+	course = ICourseInstance(context)
 	item_catalog = ICourseAssessmentItemCatalog(course)
 	result = [x for x in item_catalog.iter_assessment_items()]
 	return result
 
-def get_course_assignments(course, sort=True, reverse=False, do_filtering=True):
+def get_course_assignments(context, sort=True, reverse=False, do_filtering=True):
 	# Filter out excluded assignments so they don't show in the gradebook either
-	course = ICourseInstance(course)
+	course = ICourseInstance(context)
 	assignment_catalog = ICourseAssignmentCatalog(course)
 	if do_filtering:
 		_filter = AssignmentPolicyExclusionFilter(course=course)

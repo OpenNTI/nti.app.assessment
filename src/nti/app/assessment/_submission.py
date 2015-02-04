@@ -35,6 +35,8 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQUploadedFile
 from nti.assessment.interfaces import IInternalUploadedFileRef
 
+from nti.common.maps import CaseInsensitiveDict
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 
@@ -42,8 +44,6 @@ from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.externalization import to_external_object
 from nti.externalization.externalization import to_external_ntiid_oid
-
-from nti.utils.maps import CaseInsensitiveDict
 
 from ._utils import replace_username
 

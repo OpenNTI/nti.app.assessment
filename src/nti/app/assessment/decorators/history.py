@@ -16,6 +16,8 @@ from nti.app.products.courseware.utils import is_course_instructor
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
+from nti.common.property import Lazy
+
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
@@ -26,8 +28,6 @@ from nti.dataserver.traversal import find_interface
 from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.externalization import to_external_object
 from nti.externalization.interfaces import IExternalMappingDecorator
-
-from nti.utils.property import Lazy
 
 from ..common import get_assessment_metadata_item
 

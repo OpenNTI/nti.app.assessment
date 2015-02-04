@@ -1,38 +1,32 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-"""
-
-
-$Id$
-"""
 
 from __future__ import print_function, unicode_literals, absolute_import, division
 __docformat__ = "restructuredtext en"
 
-logger = __import__('logging').getLogger(__name__)
+# disable: accessing protected members, too many methods
+# pylint: disable=W0212,R0904
 
-#disable: accessing protected members, too many methods
-#pylint: disable=W0212,R0904
-
-
-from hamcrest import assert_that
-from hamcrest import contains
-from hamcrest import same_instance
 from hamcrest import is_
+from hamcrest import contains
+from hamcrest import assert_that
 from hamcrest import greater_than
 from hamcrest import has_property
+from hamcrest import same_instance
 
-from .. import feedback
-from .. import interfaces
-from .. import history
-from . import AssessmentLayerTest
+import unittest
+
+from nti.app.assessment import history
+from nti.app.assessment import feedback
+from nti.app.assessment import interfaces
+
+from nti.app.assessment.tests import AssessmentLayerTest
 
 from nti.testing.matchers import validly_provides
 from nti.testing.time import time_monotonically_increases
 
-import unittest
-
 class TestFeedback(unittest.TestCase):
+	
 	def test_interfaces(self):
 		item = feedback.UsersCourseAssignmentHistoryItemFeedback()
 		item.creator = 'foo' # anything is accepted eventually
@@ -71,8 +65,9 @@ class TestFeedback(unittest.TestCase):
 		# but still last value
 		assert_that( container.Items[-1], is_( same_instance(item)) )
 
-from zope import lifecycleevent
 import fudge
+
+from zope import lifecycleevent
 
 class TestFunctionalFeedback(AssessmentLayerTest):
 

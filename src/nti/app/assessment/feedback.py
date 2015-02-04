@@ -7,15 +7,18 @@ Implementations of the feedback content types.
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
-from zope.mimetype.interfaces import IContentTypeAware
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
 from zope import interface
+
+from zope.annotation.interfaces import IAttributeAnnotatable
+
 from zope.container.constraints import checkObject
 from zope.container.ordered import OrderedContainer
-from zope.annotation.interfaces import IAttributeAnnotatable
+
+from zope.mimetype.interfaces import IContentTypeAware
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 

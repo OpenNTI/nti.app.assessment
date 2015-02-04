@@ -25,6 +25,8 @@ from nti.assessment.interfaces import IQTimedAssignment
 from nti.assessment.interfaces import IQAssignmentPolicies
 from nti.assessment.interfaces import IQAssignmentDateContext
 
+from nti.common.property import Lazy
+
 from nti.contentlibrary.externalization import root_url_of_unit
 
 from nti.contentlibrary.interfaces import IContentUnit
@@ -41,8 +43,6 @@ from nti.dataserver.traversal import find_interface
 from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.externalization import to_external_object
 from nti.externalization.interfaces import IExternalMappingDecorator
-
-from nti.utils.property import Lazy
 
 from ..common import get_assessment_metadata_item
 

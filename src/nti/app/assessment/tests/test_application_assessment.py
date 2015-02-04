@@ -1,20 +1,22 @@
 #!/usr/bin/env python
-from __future__ import print_function, unicode_literals
+# -*- coding: utf-8 -*-
 
-#disable: accessing protected members, too many methods
-#pylint: disable=W0212,R0904
+from __future__ import print_function, unicode_literals, absolute_import, division
+__docformat__ = "restructuredtext en"
 
-from hamcrest import assert_that
+# disable: accessing protected members, too many methods
+# pylint: disable=W0212,R0904
+
 from hamcrest import is_
-from hamcrest import has_entry
-from hamcrest import has_item
+from hamcrest import is_not
+from hamcrest import any_of
 from hamcrest import has_key
+from hamcrest import has_item
+from hamcrest import not_none
+from hamcrest import has_entry
+from hamcrest import assert_that
 from hamcrest import has_entries
 from hamcrest import greater_than
-from hamcrest import not_none
-from hamcrest import any_of
-
-from hamcrest import is_not
 does_not = is_not
 
 from nti.assessment import submission as asm_submission

@@ -28,6 +28,8 @@ from nti.app.products.courseware.interfaces import ICourseInstanceEnrollment
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 
+from nti.common.maps import CaseInsensitiveDict
+
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
@@ -40,8 +42,6 @@ from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.ntiids.ntiids import find_object_with_ntiid
-
-from nti.utils.maps import CaseInsensitiveDict
 
 from .._submission import course_submission_report
 

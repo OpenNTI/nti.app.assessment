@@ -26,6 +26,9 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssignmentPolicies
 from nti.assessment.interfaces import IQAssignmentDateContext
 
+from nti.common.property import alias
+from nti.common.property import CachedProperty
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver.interfaces import IUser
@@ -43,9 +46,6 @@ from nti.dataserver.containers import CaseInsensitiveCheckingLastModifiedBTreeCo
 
 from nti.schema.field import SchemaConfigured
 from nti.schema.fieldproperty import createDirectFieldProperties
-
-from nti.utils.property import alias
-from nti.utils.property import CachedProperty
 
 from nti.wref.interfaces import IWeakRef
 

@@ -16,6 +16,8 @@ from zope import component
 
 from nti.assessment.interfaces import IQAssignmentPolicies
 
+from nti.common.property import Lazy
+
 from nti.contenttypes.courses.interfaces import ES_PUBLIC
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseSubInstance
@@ -23,8 +25,6 @@ from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.contenttypes.courses.interfaces import is_instructed_by_name
 
 from nti.dataserver.interfaces import IUser
-
-from nti.utils.property import Lazy
 
 from .interfaces import ICourseAssignmentUserFilter
 

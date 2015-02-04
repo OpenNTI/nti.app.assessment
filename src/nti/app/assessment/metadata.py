@@ -26,6 +26,8 @@ from zope.lifecycleevent.interfaces import IObjectRemovedEvent
 
 from pyramid.interfaces import IRequest
 
+from nti.common.property import alias
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver.interfaces import IUser
@@ -57,8 +59,6 @@ from nti.externalization.externalization import to_external_ntiid_oid
 
 from nti.schema.field import SchemaConfigured
 from nti.schema.fieldproperty import createDirectFieldProperties
-
-from nti.utils.property import alias
 
 from nti.wref.interfaces import IWeakRef
 

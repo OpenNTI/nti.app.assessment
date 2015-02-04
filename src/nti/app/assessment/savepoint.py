@@ -28,6 +28,8 @@ from ZODB.interfaces import IConnection
 
 from pyramid.interfaces import IRequest
 
+from nti.common.property import alias
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver.interfaces import IUser
@@ -52,8 +54,6 @@ from nti.externalization.interfaces import StandardExternalFields
 
 from nti.schema.field import SchemaConfigured
 from nti.schema.fieldproperty import createDirectFieldProperties
-
-from nti.utils.property import alias
 
 from nti.wref.interfaces import IWeakRef
 

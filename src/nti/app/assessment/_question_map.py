@@ -572,7 +572,7 @@ def remove_assessment_items_from_oldcontent(content_package, event):
 	result = set()
 	def _unregister(unit):
 		items = IQAssessmentItemContainer(unit)
-		for item in items or ():
+		for item in items:
 			# TODO: Check the parent? If it's an IContentUnit, only
 			# unregister if it's us?
 			sm.unregisterUtility( item,

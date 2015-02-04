@@ -463,7 +463,7 @@ def add_assessment_items_from_new_content( content_package, event, key=None ):
 	question_map = QuestionMap()
 	key = key or _needs_load_or_update(content_package) # let other callers give us the key
 	if not key:
-		return
+		return ()
 
 	logger.info("Reading/Adding assessment items from new content %s %s %s",
 				content_package, key, event)
@@ -473,7 +473,7 @@ def add_assessment_items_from_new_content( content_package, event, key=None ):
 
 	logger.info("%s assessment item(s) read from %s %s",
 				len(result or ()), content_package, key)
-	return result
+	return result or ()
 
 # We usually get two or more copies, one at the top-level, one embedded
 # in a question set, and possibly in an assignment. Although we get the

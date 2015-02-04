@@ -397,16 +397,19 @@ class QuestionMap(object):
 		assert 'Items' in assessment_index_json, "Root must contain 'Items'"
 		root_items = assessment_index_json['Items']
 		if not root_items:
-			logger.warn("Ignoring assessment index that contains no assessments at any level %s", content_package )
+			logger.warn("Ignoring assessment index that contains no assessments at any level %s", 
+						content_package )
 			return
 
 		assert len(root_items) == 1, "Root's 'Items' must only have Root NTIID"
 		
-		# TODO: This ought to come from the content_package. We need to update tests to be sure
+		# TODO: This ought to come from the content_package. 
+		# We need to update tests to be sure
 		root_ntiid = assessment_index_json['Items'].keys()[0] 
 		
 		by_file = self._get_by_file()
-		assert 'Items' in assessment_index_json['Items'][root_ntiid], "Root's 'Items' contains the actual section Items"
+		assert 	'Items' in assessment_index_json['Items'][root_ntiid], \
+				"Root's 'Items' contains the actual section Items"
 
 		things_to_register = set()
 
@@ -455,25 +458,23 @@ def _needs_load_or_update(content_package):
 	return key
 
 @component.adapter(IContentPackage, IObjectAddedEvent)
-def add_assessment_items_from_new_content( content_package, event, key=None ):
+def add_assessment_items_from_new_content(content_package, event, key=None):
 	"""
 	Assessment items have their NTIID as their __name__, and the NTIID of their primary
 	container within this context as their __parent__ (that should really be the hierarchy entry)
 	"""
-	question_map = QuestionMap()
+	result = None
 	key = key or _needs_load_or_update(content_package) # let other callers give us the key
-	if not key:
-		return ()
-
-	logger.info("Reading/Adding assessment items from new content %s %s %s",
-				content_package, key, event)
-	asm_index_text = key.readContentsAsText()
-	result = _populate_question_map_from_text(question_map, asm_index_text,
-											  content_package )
-
-	logger.info("%s assessment item(s) read from %s %s",
-				len(result or ()), content_package, key)
-	return result or ()
+	if key:
+		logger.info("Reading/Adding assessment items from new content %s %s %s",
+					content_package, key, event)
+		question_map = QuestionMap()
+		asm_index_text = key.readContentsAsText()
+		result = _populate_question_map_from_text(question_map, asm_index_text,
+											  	  content_package )
+		logger.info("%s assessment item(s) read from %s %s",
+					len(result or ()), content_package, key)
+	return result or set()
 
 # We usually get two or more copies, one at the top-level, one embedded
 # in a question set, and possibly in an assignment. Although we get the
@@ -539,18 +540,19 @@ def _load_question_map_json(asm_index_text):
 	return index
 
 def _populate_question_map_from_text( question_map, asm_index_text, content_package ):
+	result = None
 	index = _load_question_map_json(asm_index_text)
-	if not index:
-		return
-
-	try:
-		result = question_map._from_root_index( index, content_package )
-		return set() if result is None else result[1] # registered
-	except (interface.Invalid, ValueError): # pragma: no cover
-		# Because the map is updated in place, depending on where the error
-		# was, we might have some data...that's not good, but it's not a show stopper either,
-		# since we shouldn't get content like this out of the rendering process
-		logger.exception( "Failed to load assessment items, invalid assessment_index for %s", content_package )
+	if index:
+		try:
+			result = question_map._from_root_index( index, content_package )
+			result = None if result is None else result[1] # registered
+		except (interface.Invalid, ValueError): # pragma: no cover
+			# Because the map is updated in place, depending on where the error
+			# was, we might have some data...that's not good, but it's not a show stopper either,
+			# since we shouldn't get content like this out of the rendering process
+			logger.exception("Failed to load assessment items, invalid assessment_index for %s", 
+							 content_package )
+	return result or set()
 
 @component.adapter(IContentPackage, IObjectRemovedEvent)
 def remove_assessment_items_from_oldcontent(content_package, event):

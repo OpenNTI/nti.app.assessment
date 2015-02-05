@@ -607,11 +607,15 @@ def update_assessment_items_when_modified(content_package, event):
 	original = getattr(event, 'original', content_package)
 	updated = content_package
 
+	update_key = _needs_load_or_update(updated)
+	if not update_key:
+		return
+
 	logger.info("Updating assessment items from modified content %s %s",
 				content_package, event)
 
 	removed = remove_assessment_items_from_oldcontent(original, event)
-	registered = add_assessment_items_from_new_content(updated, event)
+	registered = add_assessment_items_from_new_content(updated, event, key=update_key)
 
 	logger.info("%s assessment item(s) have been registered for content %s",
 				len(registered), content_package)

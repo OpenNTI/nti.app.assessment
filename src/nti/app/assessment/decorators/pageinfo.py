@@ -38,9 +38,9 @@ from nti.ntiids.ntiids import find_object_with_ntiid
 from .._utils import check_assessment
 from .._utils import copy_questionset
 from .._utils import copy_questionbank
-from .._utils import AssessmentItemProxy as AssignmentProxy
 
 from ..common import get_assessment_items_from_unit
+from ..common import AssessmentItemProxy as AssignmentProxy
 
 from ..interfaces import get_course_assignment_predicate_for_user
 				

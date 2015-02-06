@@ -22,8 +22,6 @@ from zope.component.hooks import getSite
 
 from zope.annotation.interfaces import IAnnotations
 
-from zope.traversing.interfaces import IEtcNamespace
-
 from zope.schema.interfaces import NotUnique
 from zope.schema.interfaces import ConstraintNotSatisfied
 
@@ -344,29 +342,13 @@ class _UsersCourseAssignmentHistoriesTraversable(ContainerAdapterTraversable):
 from .interfaces import ICourseAssignmentCatalog
 from .interfaces import ICourseAssessmentItemCatalog
 
-from ._utils import AssessmentItemProxy
+from .common import AssessmentItemProxy
+from .common import get_course_packages
+from .common import get_course_assessments
+from .common import get_content_packages_assessments
+
 from ._utils import iface_of_assessment
-from ._utils import get_content_packages_assessments
 
-class _PackageCacheEntry(object):
-
-	__slots__ = ('ntiid', 'assessments', 'lastSynchronized')
-	
-	def __init__(self , ntiid, lastSynchronized=0):
-		self.ntiid = ntiid
-		self.assessments = None
-		self.lastSynchronized = lastSynchronized
-
-	def get_assessments(self, package, lastSynchronized):
-		if self.assessments is None or self.lastSynchronized != lastSynchronized: 
-			package_assessments = get_content_packages_assessments(package)
-			self.assessments = tuple( ( iface_of_assessment(a), a.ntiid, a.ContentUnitNTIID)
-							  			for a in package_assessments)
-			self.lastSynchronized = lastSynchronized
-			logger.info("%s assessment item reference(s) for package were cached %s", 
-						len(self.assessments), self.ntiid)
-		return self.assessments
-			
 @component.adapter(ICourseInstance)
 @interface.implementer(ICourseAssessmentItemCatalog)
 class _DefaultCourseAssessmentItemCatalog(object):
@@ -374,42 +356,32 @@ class _DefaultCourseAssessmentItemCatalog(object):
 	def __init__(self, context):
 		self.context = context
 
-	def _get_assessments(self, package):
-		result = get_content_packages_assessments(package)
+	def iter_assessment_items(self):	
+		result = get_course_assessments(self.context)
 		return result
 
-	def _iter_items(self, assessments):
-		return assessments or ()
+class _PackageCacheEntry(object):
+
+	__slots__ = ('ntiid', 'assessments', 'lastModified')
 	
-	def iter_assessment_items(self):		
-		# We have now a specific interface for courses that
-		# are tied to content: IContentCourseInstance; they have
-		# the ContentBundle attribut.
-		# However, we still have the LegacyCommunityBasedCourseInstances
-		# to deal with that have one content package; it's easiest
-		# to support both types in one single place.
+	def __init__(self , ntiid, lastModified=0):
+		self.ntiid = ntiid
+		self.assessments = None
+		self.lastModified = lastModified
 
-		# TODO: Date overrides
-		packages = ()
-		try:
-			packages = self.context.ContentPackageBundle.ContentPackages
-		except AttributeError:
-			# Ok, the old legacy case
-			packages = (self.context.legacy_content_package,)
-
-		assessments = None if len(packages) <= 1 else list()
-		for package in packages:
-			# Assesments should be proxied
-			iterable = self._get_assessments(package)
-			if assessments is None:
-				assessments = iterable
-			else:
-				assessments.extend(iterable)
-
-		result = self._iter_items(assessments)
-		return result
+	def get_assessments(self, package, lastModified):
+		if self.assessments is None or self.lastModified != lastModified: 
+			package_assessments = get_content_packages_assessments(package)
+			self.assessments = tuple( ( iface_of_assessment(a), a.ntiid, a.ContentUnitNTIID)
+							  			for a in package_assessments)
+			self.lastModified = lastModified
+			logger.info("%s assessment item reference(s) for package were cached %s @ %s", 
+						len(self.assessments), self.ntiid, self.lastModified)
+		return self.assessments
 	
-class _CachingCourseAssessmentItemCatalog(_DefaultCourseAssessmentItemCatalog):
+@component.adapter(ICourseInstance)
+@interface.implementer(ICourseAssessmentItemCatalog)
+class _CachingCourseAssessmentItemCatalog(object):
 
 	max_cache_size = 10
 		
@@ -417,20 +389,9 @@ class _CachingCourseAssessmentItemCatalog(_DefaultCourseAssessmentItemCatalog):
 	## we only keep the [max_cache_size] most used items. 
 	catalog_cache = LFUCache(maxsize=max_cache_size)
 	
-	@property
-	def lastSynchronized(self):
-		hostsites = component.queryUtility(IEtcNamespace, name='hostsites')
-		result = getattr(hostsites, 'lastSynchronized', 0)
-		return result
-	
-	def _get_assessments(self, package):
-		ntiid = package.ntiid
-		entry = self.catalog_cache.get(ntiid)
-		if entry is None:
-			entry = self.catalog_cache[ntiid] = _PackageCacheEntry(ntiid)
-		result = entry.get_assessments(package, self.lastSynchronized)
-		return result
-	
+	def __init__(self, context):
+		self.context = context
+		
 	def _proxy(self, iface, ntiid, unit=None):
 		item = component.queryUtility(iface, ntiid)
 		if item is None:
@@ -439,9 +400,25 @@ class _CachingCourseAssessmentItemCatalog(_DefaultCourseAssessmentItemCatalog):
 			raise component.ComponentLookupError("Unable to find %s,%s" % (iface, ntiid))
 		item = AssessmentItemProxy(item, content_unit=unit)
 		return item
-
-	def _iter_items(self, assessments):
-		result = tuple(self._proxy(t[0], t[1], t[2]) for t in assessments or ())
+	
+	def _get_assessment_items(self, package):
+		ntiid = package.ntiid
+		entry = self.catalog_cache.get(ntiid)
+		if entry is None:
+			entry = self.catalog_cache[ntiid] = _PackageCacheEntry(ntiid)
+		result = entry.get_assessments(package, package.lastModified)
+		result = [self._proxy(t[0], t[1], t[2]) for t in result or ()]
+		return result
+	
+	def iter_assessment_items(self):
+		result = ()
+		pacakges = get_course_packages(self.context)
+		for idx, pacakge in enumerate(pacakges):
+			items = self._get_assessment_items(pacakge)
+			if idx == 0:
+				result = items
+			else:
+				result.extend(items)
 		return result
 	
 @interface.implementer(ICourseAssignmentCatalog)

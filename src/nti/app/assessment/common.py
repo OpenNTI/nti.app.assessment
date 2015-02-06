@@ -121,3 +121,67 @@ def get_course_assignments(context, sort=True, reverse=False, do_filtering=True)
 	if sort:
 		assignments = sorted(assignments, cmp=assignment_comparator, reverse=reverse)
 	return assignments
+
+from zope.proxy import ProxyBase
+
+class AssessmentItemProxy(ProxyBase):
+	
+	ContentUnitNTIID = property(
+					lambda s: s.__dict__.get('_v_content_unit'),
+					lambda s, v: s.__dict__.__setitem__('_v_content_unit', v))
+	
+	CatalogEntryNTIID = property(
+					lambda s: s.__dict__.get('_v_catalog_entry'),
+					lambda s, v: s.__dict__.__setitem__('_v_catalog_entry', v))
+		
+	def __new__(cls, base, *args, **kwargs):
+		return ProxyBase.__new__(cls, base)
+
+	def __init__(self, base, content_unit=None, catalog_entry=None):
+		ProxyBase.__init__(self, base)
+		self.ContentUnitNTIID = content_unit
+		self.CatalogEntryNTIID = catalog_entry
+
+def get_content_packages_assessment_items(package):
+	result = []
+	def _recur(unit):
+		items = IQAssessmentItemContainer(unit, ())
+		for item in items:
+			item = AssessmentItemProxy(item, content_unit=unit.ntiid)
+			result.append(item)
+		for child in unit.children:
+			_recur(child)
+	_recur(package)
+	# On py3.3, can easily 'yield from' nested generators
+	return result
+get_content_packages_assessments = get_content_packages_assessment_items
+
+def get_course_packages(context):
+	context = ICourseInstance(context)
+	# We have now a specific interface for courses that
+	# are tied to content: IContentCourseInstance; they have
+	# the ContentBundle attribut.
+	# However, we still have the LegacyCommunityBasedCourseInstances
+	# to deal with that have one content package; it's easiest
+	# to support both types in one single place.
+	# TODO: Date overrides
+	packages = ()
+	try:
+		packages = context.ContentPackageBundle.ContentPackages
+	except AttributeError:
+		# Ok, the old legacy case
+		packages = (context.legacy_content_package,)
+	return packages
+
+def get_course_assessments_items(context):
+	packages = get_course_packages(context)
+	assessments = None if len(packages) <= 1 else list()
+	for package in packages:
+		# Assesments should be proxied
+		iterable = get_content_packages_assessments(package)
+		if assessments is None:
+			assessments = iterable
+		else:
+			assessments.extend(iterable)			
+	return assessments
+get_course_assessments = get_course_assessments_items

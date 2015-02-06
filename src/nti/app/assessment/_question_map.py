@@ -54,8 +54,9 @@ from nti.externalization.persistence import NoPickle
 from nti.externalization.internalization import find_factory_for
 from nti.externalization.internalization import update_from_external_object
 
+from .common import get_content_packages_assessments
+
 from ._utils import iface_of_assessment
-from ._utils import get_content_packages_assessments
 
 def _ntiid_object_hook( k, v, x ):
 	"""

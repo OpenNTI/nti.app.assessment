@@ -157,26 +157,6 @@ def assignment_download_precondition(context, request, remoteUser):
 					return True # TODO: Consider caching this?
 	return False
 
-from zope.proxy import ProxyBase
-
-class AssessmentItemProxy(ProxyBase):
-	
-	ContentUnitNTIID = property(
-					lambda s: s.__dict__.get('_v_content_unit'),
-					lambda s, v: s.__dict__.__setitem__('_v_content_unit', v))
-	
-	CatalogEntryNTIID = property(
-					lambda s: s.__dict__.get('_v_catalog_entry'),
-					lambda s, v: s.__dict__.__setitem__('_v_catalog_entry', v))
-		
-	def __new__(cls, base, *args, **kwargs):
-		return ProxyBase.__new__(cls, base)
-
-	def __init__(self, base, content_unit=None, catalog_entry=None):
-		ProxyBase.__init__(self, base)
-		self.ContentUnitNTIID = content_unit
-		self.CatalogEntryNTIID = catalog_entry
-
 def iface_of_assessment(thing):
 	iface = IQuestion
 	if IQuestionSet.providedBy(thing):
@@ -188,21 +168,6 @@ def iface_of_assessment(thing):
 	elif IQPart.providedBy(thing):
 		iface = IQPart
 	return iface
-
-from nti.assessment.interfaces import IQAssessmentItemContainer
-
-def get_content_packages_assessments(package):
-	result = []
-	def _recur(unit):
-		items = IQAssessmentItemContainer(unit, ())
-		for item in items:
-			item = AssessmentItemProxy(item, content_unit=unit.ntiid)
-			result.append(item)
-		for child in unit.children:
-			_recur(child)
-	_recur(package)
-	# On py3.3, can easily 'yield from' nested generators
-	return result
 
 from nti.dataserver.interfaces import IUsernameSubstitutionPolicy
 

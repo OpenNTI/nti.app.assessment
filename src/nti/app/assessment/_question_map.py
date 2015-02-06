@@ -442,40 +442,6 @@ class QuestionMap(object):
 		registered =  {x.ntiid for x in things_to_register}
 		return by_file, registered
 
-def _needs_load_or_update(content_package):
-	key = content_package.does_sibling_entry_exist('assessment_index.json')
-	if not key:
-		return
-
-	main_container = IQAssessmentItemContainer(content_package)
-	if key.lastModified <= main_container.lastModified:
-		logger.info("No change to %s since %s, ignoring",
-					key,
-					key.modified)
-		return
-
-	main_container.lastModified = key.lastModified
-	return key
-
-@component.adapter(IContentPackage, IObjectAddedEvent)
-def add_assessment_items_from_new_content(content_package, event, key=None):
-	"""
-	Assessment items have their NTIID as their __name__, and the NTIID of their primary
-	container within this context as their __parent__ (that should really be the hierarchy entry)
-	"""
-	result = None
-	key = key or _needs_load_or_update(content_package) # let other callers give us the key
-	if key:
-		logger.info("Reading/Adding assessment items from new content %s %s %s",
-					content_package, key, event)
-		question_map = QuestionMap()
-		asm_index_text = key.readContentsAsText()
-		result = _populate_question_map_from_text(question_map, asm_index_text,
-											  	  content_package )
-		logger.info("%s assessment item(s) read from %s %s",
-					len(result or ()), content_package, key)
-	return result or set()
-
 # We usually get two or more copies, one at the top-level, one embedded
 # in a question set, and possibly in an assignment. Although we get the
 # most reuse within a single index, we get some reuse across indexes,
@@ -539,7 +505,7 @@ def _load_question_map_json(asm_index_text):
 							  object_pairs_hook=hook )
 	return index
 
-def _populate_question_map_from_text( question_map, asm_index_text, content_package ):
+def _populate_question_map_from_text(question_map, asm_index_text, content_package):
 	result = None
 	index = _load_question_map_json(asm_index_text)
 	if index:
@@ -554,10 +520,44 @@ def _populate_question_map_from_text( question_map, asm_index_text, content_pack
 							 content_package )
 	return result or set()
 
-@component.adapter(IContentPackage, IObjectRemovedEvent)
-def remove_assessment_items_from_oldcontent(content_package, event):
-	logger.info("Removing assessment items from old content %s %s", content_package, event)
+def _add_assessment_items_from_new_content(content_package, key):
+	question_map = QuestionMap()
+	asm_index_text = key.readContentsAsText()
+	result = _populate_question_map_from_text(question_map, asm_index_text, content_package )
+	logger.info("%s assessment item(s) read from %s %s",
+				len(result or ()), content_package, key)
+	return result
 
+def _needs_load_or_update(content_package):
+	key = content_package.does_sibling_entry_exist('assessment_index.json')
+	if not key:
+		return
+
+	main_container = IQAssessmentItemContainer(content_package)
+	if key.lastModified <= main_container.lastModified:
+		logger.info("No change to %s since %s, ignoring",
+					key,
+					key.modified)
+		return
+
+	main_container.lastModified = key.lastModified
+	return key
+
+@component.adapter(IContentPackage, IObjectAddedEvent)
+def add_assessment_items_from_new_content(content_package, event, key=None):
+	"""
+	Assessment items have their NTIID as their __name__, and the NTIID of their primary
+	container within this context as their __parent__ (that should really be the hierarchy entry)
+	"""
+	result = None
+	key = key or _needs_load_or_update(content_package) # let other callers give us the key
+	if key:
+		logger.info("Reading/Adding assessment items from new content %s %s %s",
+					content_package, key, event)
+		result = _add_assessment_items_from_new_content(content_package, key)
+	return result or set()
+
+def _remove_assessment_items_from_oldcontent(content_package):
 	# Unregister the things from the component registry.
 	# We SHOULD be run in the registry where the library item was initially
 	# loaded. (We use the context argument to check)
@@ -569,16 +569,16 @@ def remove_assessment_items_from_oldcontent(content_package, event):
 		logger.warn("Removing assessment items from wrong site %s should be %s; may not work",
 					sm, component.getSiteManager(content_package))
 
-	result = set()
+	result = {}
 	def _unregister(unit):
 		items = IQAssessmentItemContainer(unit)
 		for item in items:
 			# TODO: Check the parent? If it's an IContentUnit, only
 			# unregister if it's us?
-			sm.unregisterUtility( item,
-								  provided=_iface_to_register(item),
-								  name=item.ntiid )
-			result.add(item.ntiid)
+			name = item.ntiid
+			provided = _iface_to_register(item)
+			sm.unregisterUtility( item, provided=provided, name=name )
+			result[name] = provided
 
 			# a bit of logging
 			logger.log(TRACE, "%s unregistered from %s", item.ntiid, _site_name(sm))
@@ -594,6 +594,12 @@ def remove_assessment_items_from_oldcontent(content_package, event):
 
 	_unregister(content_package)
 	return result
+
+@component.adapter(IContentPackage, IObjectRemovedEvent)
+def remove_assessment_items_from_oldcontent(content_package, event):
+	logger.info("Removing assessment items from old content %s %s", content_package, event)
+	result = _remove_assessment_items_from_oldcontent(content_package)
+	return set(result.keys())
 
 @component.adapter(IContentPackage, IObjectModifiedEvent)
 def update_assessment_items_when_modified(content_package, event):

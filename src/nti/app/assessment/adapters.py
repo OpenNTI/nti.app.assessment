@@ -360,7 +360,7 @@ class _DefaultCourseAssignmentCatalog(object):
 		self.context = context
 	
 	def iter_assignments(self):
-		result = get_course_assignments(self.context)
+		result = get_course_assignments(self.context, sort=False)
 		return result
 
 @interface.implementer(ICourseInstance)

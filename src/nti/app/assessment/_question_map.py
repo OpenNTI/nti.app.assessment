@@ -54,7 +54,7 @@ from nti.externalization.persistence import NoPickle
 from nti.externalization.internalization import find_factory_for
 from nti.externalization.internalization import update_from_external_object
 
-from .common import get_content_packages_assessments
+from .common import get_content_packages_assessment_items
 
 from ._utils import iface_of_assessment
 
@@ -630,8 +630,8 @@ def update_assessment_items_when_modified(content_package, event):
 	logger.info("%s assessment item(s) have been registered for content %s",
 				len(registered), updated)
 
-	assesments = get_content_packages_assessments(updated)
-	if len(assesments) < len(registered):
+	assesment_items = get_content_packages_assessment_items(updated)
+	if len(assesment_items) < len(registered):
 		raise AssertionError("Items in content package are less that in the [site] registry")
 
 	items_added = list(registered.difference(removed))

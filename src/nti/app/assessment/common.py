@@ -18,11 +18,10 @@ from nti.assessment.interfaces import IQAssessmentItemContainer
 from nti.contentlibrary.interfaces import IContentPackage
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.dataserver.traversal import find_interface
 		
-from .interfaces import ICourseAssignmentCatalog
-from .interfaces import ICourseAssessmentItemCatalog
 from .interfaces import IUsersCourseAssignmentHistory
 from .interfaces import IUsersCourseAssignmentMetadata
 
@@ -102,26 +101,6 @@ def assignment_comparator(a, b):
 		return -1 if a_begin < b_begin else 1
 	return 0
 
-def get_course_assignment_items(context, sort=True, reverse=False):
-	course = ICourseInstance(context)
-	item_catalog = ICourseAssessmentItemCatalog(course)
-	result = [x for x in item_catalog.iter_assessment_items()]
-	return result
-
-def get_course_assignments(context, sort=True, reverse=False, do_filtering=True):
-	# Filter out excluded assignments so they don't show in the gradebook either
-	course = ICourseInstance(context)
-	assignment_catalog = ICourseAssignmentCatalog(course)
-	if do_filtering:
-		_filter = AssignmentPolicyExclusionFilter(course=course)
-		assignments = [x for x in assignment_catalog.iter_assignments()
-			 	  	   if _filter.allow_assignment_for_user_in_course(x, course=course)]
-	else:
-		assignments = [x for x in assignment_catalog.iter_assignments()]
-	if sort:
-		assignments = sorted(assignments, cmp=assignment_comparator, reverse=reverse)
-	return assignments
-
 from zope.proxy import ProxyBase
 
 class AssessmentItemProxy(ProxyBase):
@@ -142,19 +121,11 @@ class AssessmentItemProxy(ProxyBase):
 		self.ContentUnitNTIID = content_unit
 		self.CatalogEntryNTIID = catalog_entry
 
-def get_content_packages_assessment_items(package):
-	result = []
-	def _recur(unit):
-		items = IQAssessmentItemContainer(unit, ())
-		for item in items:
-			item = AssessmentItemProxy(item, content_unit=unit.ntiid)
-			result.append(item)
-		for child in unit.children:
-			_recur(child)
-	_recur(package)
-	# On py3.3, can easily 'yield from' nested generators
-	return result
-get_content_packages_assessments = get_content_packages_assessment_items
+def proxy(item, content_unit=None, catalog_entry=None):
+	item = item if type(item) == AssessmentItemProxy else AssessmentItemProxy(item)
+	item.ContentUnitNTIID = content_unit or item.ContentUnitNTIID 
+	item.CatalogEntryNTIID = catalog_entry or item.CatalogEntryNTIID 
+	return item	
 
 def get_course_packages(context):
 	context = ICourseInstance(context)
@@ -173,15 +144,44 @@ def get_course_packages(context):
 		packages = (context.legacy_content_package,)
 	return packages
 
-def get_course_assessments_items(context):
+def get_content_packages_assessment_items(package):
+	result = []
+	def _recur(unit):
+		items = IQAssessmentItemContainer(unit, ())
+		for item in items:
+			item = proxy(item, content_unit=unit.ntiid)
+			result.append(item)
+		for child in unit.children:
+			_recur(child)
+	_recur(package)
+	# On py3.3, can easily 'yield from' nested generators
+	return result
+
+def get_course_assessment_items(context):
 	packages = get_course_packages(context)
 	assessments = None if len(packages) <= 1 else list()
 	for package in packages:
 		# Assesments should be proxied
-		iterable = get_content_packages_assessments(package)
+		iterable = get_content_packages_assessment_items(package)
 		if assessments is None:
 			assessments = iterable
 		else:
 			assessments.extend(iterable)			
 	return assessments
-get_course_assessments = get_course_assessments_items
+
+def get_course_assignments(context, sort=True, reverse=False, do_filtering=True):
+	items = get_course_assessment_items(context)
+	ntiid = getattr(ICourseCatalogEntry(context, None), 'ntiid', None)
+	if do_filtering:
+		# Filter out excluded assignments so they don't show in the gradebook either
+		course = ICourseInstance(context)
+		_filter = AssignmentPolicyExclusionFilter(course=course)
+		assignments = [ proxy(x, catalog_entry=ntiid) for x in items
+			 	  	    if IQAssignment.providedBy(x) and \
+			 	  	   	   _filter.allow_assignment_for_user_in_course(x, course=course)]
+	else:
+		assignments = [	proxy(x, catalog_entry=ntiid) 
+						for x in items if IQAssignment.providedBy(x)]
+	if sort:
+		assignments = sorted(assignments, cmp=assignment_comparator, reverse=reverse)
+	return assignments

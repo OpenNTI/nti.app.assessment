@@ -56,7 +56,7 @@ from ..interfaces import IUsersCourseAssignmentHistory
 from ..interfaces import IUsersCourseAssignmentSavepoint
 
 from ..common import get_course_assignments
-from ..common import get_course_assignment_items
+from ..common import get_course_assessment_items
 
 ITEMS = StandardExternalFields.ITEMS
 
@@ -258,8 +258,8 @@ class CourseAssignmentsView(AbstractAuthenticatedView):
 			 permission=nauth.ACT_NTI_ADMIN,
 			 request_method='GET',
 			 context=IDataserverFolder,
-			 name='CourseAssignmentItems')
-class CourseAssignmentItemsView(AbstractAuthenticatedView):
+			 name='CourseAssessmentItems')
+class CourseAssessmentItemsView(AbstractAuthenticatedView):
 
 	def __call__(self):
 		params = CaseInsensitiveDict(self.request.params)
@@ -270,7 +270,7 @@ class CourseAssignmentItemsView(AbstractAuthenticatedView):
 		
 		result = LocatedExternalDict()
 		items = result[ITEMS] = {}
-		for item in get_course_assignment_items(course=course):
+		for item in get_course_assessment_items(course=course):
 			items[item.ntiid] = item
 		result['Count'] = result['Total'] = len(items)
 		return result

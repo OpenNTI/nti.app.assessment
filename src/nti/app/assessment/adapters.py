@@ -342,10 +342,10 @@ class _UsersCourseAssignmentHistoriesTraversable(ContainerAdapterTraversable):
 from .interfaces import ICourseAssignmentCatalog
 from .interfaces import ICourseAssessmentItemCatalog
 
-from .common import AssessmentItemProxy
+from .common import proxy
 from .common import get_course_packages
-from .common import get_course_assessments
-from .common import get_content_packages_assessments
+from .common import get_course_assessment_items
+from .common import get_content_packages_assessment_items
 
 from ._utils import iface_of_assessment
 
@@ -357,7 +357,7 @@ class _DefaultCourseAssessmentItemCatalog(object):
 		self.context = context
 
 	def iter_assessment_items(self):	
-		result = get_course_assessments(self.context)
+		result = get_course_assessment_items(self.context)
 		return result
 
 class _PackageCacheEntry(object):
@@ -371,7 +371,7 @@ class _PackageCacheEntry(object):
 
 	def get_assessments(self, package, lastModified):
 		if self.assessments is None or self.lastModified != lastModified: 
-			package_assessments = get_content_packages_assessments(package)
+			package_assessments = get_content_packages_assessment_items(package)
 			self.assessments = tuple( ( iface_of_assessment(a), a.ntiid, a.ContentUnitNTIID)
 							  			for a in package_assessments)
 			self.lastModified = lastModified
@@ -392,13 +392,13 @@ class _CachingCourseAssessmentItemCatalog(object):
 	def __init__(self, context):
 		self.context = context
 		
-	def _proxy(self, iface, ntiid, unit=None):
+	def _reify(self, iface, ntiid, unit=None):
 		item = component.queryUtility(iface, ntiid)
 		if item is None:
 			current_site = getSite()
 			__traceback_info__ = getattr(current_site, '__name__', None), iface, ntiid
 			raise component.ComponentLookupError("Unable to find %s,%s" % (iface, ntiid))
-		item = AssessmentItemProxy(item, content_unit=unit)
+		item = proxy(item, content_unit=unit)
 		return item
 	
 	def _get_assessment_items(self, package):
@@ -407,7 +407,7 @@ class _CachingCourseAssessmentItemCatalog(object):
 		if entry is None:
 			entry = self.catalog_cache[ntiid] = _PackageCacheEntry(ntiid)
 		result = entry.get_assessments(package, package.lastModified)
-		result = [self._proxy(t[0], t[1], t[2]) for t in result or ()]
+		result = [self._reify(t[0], t[1], t[2]) for t in result or ()]
 		return result
 	
 	def iter_assessment_items(self):
@@ -429,14 +429,9 @@ class _DefaultCourseAssignmentCatalog(object):
 		self.context = context
 		self.ntiid = getattr(ICourseCatalogEntry(context, None), 'ntiid', None)
 	
-	def _proxy(self, item, ntiid):
-		item = item if type(item) == AssessmentItemProxy else AssessmentItemProxy(item)
-		item.CatalogEntryNTIID = ntiid
-		return item
-	
 	def iter_assignments(self):
 		items = ICourseAssessmentItemCatalog(self.context).iter_assessment_items()
-		result = tuple(	self._proxy(x, self.ntiid) 
+		result = tuple(	proxy(x, catalog_entry=self.ntiid) 
 						for x in items if IQAssignment.providedBy(x))
 		return result
 

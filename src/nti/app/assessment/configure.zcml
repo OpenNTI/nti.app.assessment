@@ -95,18 +95,7 @@
 	</configure>
 	
 	<adapter factory=".adapters._DefaultCourseAssignmentCatalog" />
-
- 	<configure zcml:condition="have testmode">
-		<adapter factory=".adapters._DefaultCourseAssessmentItemCatalog" />
-	</configure>
-	<configure zcml:condition="not-have testmode">
-		<configure zcml:condition="not-have alpha_env">
-			<adapter factory=".adapters._CachingCourseAssessmentItemCatalog" />
-		</configure>
-		<configure zcml:condition="have alpha_env">
-			<adapter factory=".adapters._DefaultCourseAssessmentItemCatalog" />
-		</configure>
-	</configure>
+	<adapter factory=".adapters._DefaultCourseAssessmentItemCatalog" />
 	
 	<adapter factory=".history.UsersCourseAssignmentHistoryItemSummary"
 			 provides=".interfaces.IUsersCourseAssignmentHistoryItemSummary"/>

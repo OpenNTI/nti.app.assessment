@@ -13,12 +13,9 @@ logger = __import__('logging').getLogger(__name__)
 
 import datetime
 
-from brownie.caching import LFUCache
-
 from zope import interface
 from zope import component
 from zope import lifecycleevent
-from zope.component.hooks import getSite
 
 from zope.annotation.interfaces import IAnnotations
 
@@ -40,7 +37,6 @@ from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
 from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
-from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.traversal import find_interface
@@ -342,12 +338,8 @@ class _UsersCourseAssignmentHistoriesTraversable(ContainerAdapterTraversable):
 from .interfaces import ICourseAssignmentCatalog
 from .interfaces import ICourseAssessmentItemCatalog
 
-from .common import proxy
-from .common import get_course_packages
+from .common import get_course_assignments
 from .common import get_course_assessment_items
-from .common import get_content_packages_assessment_items
-
-from ._utils import iface_of_assessment
 
 @component.adapter(ICourseInstance)
 @interface.implementer(ICourseAssessmentItemCatalog)
@@ -359,67 +351,6 @@ class _DefaultCourseAssessmentItemCatalog(object):
 	def iter_assessment_items(self):	
 		result = get_course_assessment_items(self.context)
 		return result
-
-class _PackageCacheEntry(object):
-
-	__slots__ = ('ntiid', 'assessments', 'lastModified')
-	
-	def __init__(self , ntiid, lastModified=0):
-		self.ntiid = ntiid
-		self.assessments = None
-		self.lastModified = lastModified
-
-	def get_assessments(self, package, lastModified):
-		if self.assessments is None or self.lastModified != lastModified: 
-			package_assessments = get_content_packages_assessment_items(package)
-			self.assessments = tuple( ( iface_of_assessment(a), a.ntiid, a.ContentUnitNTIID)
-							  			for a in package_assessments)
-			self.lastModified = lastModified
-			logger.info("%s assessment item reference(s) for package were cached %s @ %s", 
-						len(self.assessments), self.ntiid, self.lastModified)
-		return self.assessments
-	
-@component.adapter(ICourseInstance)
-@interface.implementer(ICourseAssessmentItemCatalog)
-class _CachingCourseAssessmentItemCatalog(object):
-
-	max_cache_size = 10
-		
-	## CS: We cache the assessment item ntiids of a content pacakge
-	## we only keep the [max_cache_size] most used items. 
-	catalog_cache = LFUCache(maxsize=max_cache_size)
-	
-	def __init__(self, context):
-		self.context = context
-		
-	def _reify(self, iface, ntiid, unit=None):
-		item = component.queryUtility(iface, ntiid)
-		if item is None:
-			current_site = getSite()
-			__traceback_info__ = getattr(current_site, '__name__', None), iface, ntiid
-			raise component.ComponentLookupError("Unable to find %s,%s" % (iface, ntiid))
-		item = proxy(item, content_unit=unit)
-		return item
-	
-	def _get_assessment_items(self, package):
-		ntiid = package.ntiid
-		entry = self.catalog_cache.get(ntiid)
-		if entry is None:
-			entry = self.catalog_cache[ntiid] = _PackageCacheEntry(ntiid)
-		result = entry.get_assessments(package, package.lastModified)
-		result = [self._reify(t[0], t[1], t[2]) for t in result or ()]
-		return result
-	
-	def iter_assessment_items(self):
-		result = ()
-		pacakges = get_course_packages(self.context)
-		for idx, pacakge in enumerate(pacakges):
-			items = self._get_assessment_items(pacakge)
-			if idx == 0:
-				result = items
-			else:
-				result.extend(items)
-		return result
 	
 @interface.implementer(ICourseAssignmentCatalog)
 @component.adapter(ICourseInstance)
@@ -427,12 +358,9 @@ class _DefaultCourseAssignmentCatalog(object):
 
 	def __init__(self, context):
 		self.context = context
-		self.ntiid = getattr(ICourseCatalogEntry(context, None), 'ntiid', None)
 	
 	def iter_assignments(self):
-		items = ICourseAssessmentItemCatalog(self.context).iter_assessment_items()
-		result = tuple(	proxy(x, catalog_entry=self.ntiid) 
-						for x in items if IQAssignment.providedBy(x))
+		result = get_course_assignments(self.context)
 		return result
 
 @interface.implementer(ICourseInstance)

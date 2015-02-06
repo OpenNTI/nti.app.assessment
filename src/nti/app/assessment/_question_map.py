@@ -615,6 +615,9 @@ def update_assessment_items_when_modified(content_package, event):
 				content_package, event)
 
 	removed = remove_assessment_items_from_oldcontent(original, event)
+	logger.info("%s assessment item(s) have been removed from content %s",
+				len(removed), content_package)
+	
 	registered = add_assessment_items_from_new_content(updated, event, key=update_key)
 
 	logger.info("%s assessment item(s) have been registered for content %s",

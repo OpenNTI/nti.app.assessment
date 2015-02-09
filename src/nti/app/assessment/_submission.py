@@ -26,7 +26,7 @@ from zope.schema.interfaces import ConstraintNotSatisfied
 
 from pyramid import httpexceptions as hexc
 
-from ZODB.POSException import POSKeyError
+from ZODB.POSException import POSError
 
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQFilePart
@@ -190,34 +190,33 @@ def transfer_upload_ownership(submission, old_submission, force=False):
 	
 	for question_set in submission.parts:
 		try:
-			# make sure we have a question set
+			## make sure we have a question set
 			old_question_set = old_submission.get(question_set.questionSetId)
 			if old_question_set is None:
 				continue
 			for question in question_set.questions:
-				# make sure we have a question
+				## make sure we have a question
 				old_question = old_question_set.get(question.questionId)
 				if old_question is None:
 					continue
 				for idx, part in enumerate(question.parts):
 					part = value_part(part)
-					# check there is a part
+					## check there is a part
 					try:
 						old_part = old_question[idx]
 						old_part = value_part(old_part)
 					except IndexError:
 						break
-					# check if the uploaded file has been internalized empty 
-					# this is tightly coupled w/ the way IQUploadedFile are updated.
+					## check if the uploaded file has been internalized empty 
+					## this is tightly coupled w/ the way IQUploadedFile are updated.
 					if IQUploadedFile.providedBy(old_part) and _is_internal(part):
-						#TODO: Check against reference, delete old
 						logger.info("Copy from previously uploaded file '%s(%s)'", 
 									old_part.filename, to_external_ntiid_oid(old_part))
 						part.data = old_part.data
 						part.filename = old_part.filename
 						part.contentType = old_part.contentType
 						interface.noLongerProvides(part, IInternalUploadedFileRef)
-		except POSKeyError:
+		except POSError:
 			logger.exception("Failed to transfer data from savepoints")
 			break
 	return submission
@@ -226,7 +225,6 @@ def _tx_string(s):
 	if s and isinstance(s, unicode):
 		s = s.encode('utf-8')
 	return s
-
 
 def course_submission_report(context, usernames=(), assignment=None,
 							 question=None, stream=None):
@@ -250,7 +248,7 @@ def course_submission_report(context, usernames=(), assignment=None,
 		principal = IPrincipal(record.Principal, None)
 		username = principal.id.lower() if principal is not None else None
 		
-		# filter user 
+		## filter user 
 		if not username or (usernames and username not in usernames):
 			continue
 		
@@ -260,14 +258,14 @@ def course_submission_report(context, usernames=(), assignment=None,
 			continue
 		
 		for key, item in history.items():
-			# filter assignment 
+			## filter assignment 
 			if assignment_id and assignment_id != key:
 				continue
 			submission = item.Submission
 			for qs_part in submission.parts:
-				# all question submissions
+				## all question submissions
 				for question in qs_part.questions:
-					# filter question 
+					## filter question 
 					if question_id and question.questionId != question_id:
 						continue
 					
@@ -281,5 +279,5 @@ def course_submission_report(context, usernames=(), assignment=None,
 									  'assignment':key,
 									  'submission':ext,
 									  'username':username})
-	# return
+	## return
 	return stream, result

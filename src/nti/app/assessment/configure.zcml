@@ -269,4 +269,10 @@
 
 	<!-- user events -->
 	<subscriber handler=".subscribers._on_user_will_be_removed" />
+	
+	<!-- Metadata -->
+	<configure zcml:condition="installed nti.metadata">
+		<subscriber	factory=".predicates._AssignmentHistoryPrincipalObjects"
+					provides="nti.dataserver.interfaces.IPrincipalMetadataObjects" />
+	</configure>
 </configure>

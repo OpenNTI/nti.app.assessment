@@ -11,4 +11,4 @@ logger = __import__('logging').getLogger(__name__)
 
 from .. import MessageFactory
 
-from .._utils import assignment_download_precondition 
+from .._utils import assignment_download_precondition

@@ -15,7 +15,6 @@ import sys
 import argparse
 
 from zope import component
-from zope.component import hooks
 
 from nti.app.assessment.adapters import _history_for_user_in_course
 
@@ -28,10 +27,8 @@ from nti.contenttypes.courses.sharing import on_enroll_record_scope_membership
 
 from nti.dataserver.users import User
 from nti.dataserver.utils import run_with_dataserver
-
-from nti.site.site import get_site_for_site_names
-
-from .base import create_context
+from nti.dataserver.utils.base_script import set_site
+from nti.dataserver.utils.base_script import create_context
 
 def fix_enrollment_perms(verbose=True):
 	cat = component.getUtility(ICourseCatalog)
@@ -70,7 +67,6 @@ def move_user_assignments(input_file, dry_run=False, verbose=True):
 	catalog = component.getUtility(ICourseCatalog)
 	with open(input_file, 'rU') as f:
 		rdr = csv.reader(f)
-
 		for row in rdr:
 			username = row[0]
 			user = User.get_user(username)
@@ -84,23 +80,20 @@ def move_user_assignments(input_file, dry_run=False, verbose=True):
 
 			old_course = catalog.getCatalogEntry(old_course_name)
 			old_course = ICourseInstance(old_course)
+			
 			new_course = catalog.getCatalogEntry(new_course_name)
 			new_course = ICourseInstance(new_course)
+			
 			if verbose:
 				print("\tMoving assignment history for", username, "from",
 					  old_course_name, "to", new_course_name)
+			
 			if not dry_run:
 				move_user_assignment_from_course_to_course(user, old_course, new_course,
 														   verbose=verbose)
 			
-def _process_args(site, input_file, dry_run=False, verbose=True,
-				  with_library=True):
-	
-	cur_site = hooks.getSite()
-	new_site = get_site_for_site_names((site,), site=cur_site )
-	if new_site is cur_site:
-		raise ValueError("Unknown site name", site)
-	hooks.setSite(new_site)
+def _process_args(site, input_file, dry_run=False, verbose=True, with_library=True):
+	set_site(site)
 
 	if dry_run and not verbose:
 		verbose = True
@@ -149,8 +142,7 @@ def main():
 						context=context,
 						minimal_ds=True,
 						verbose=verbose,
-						function=lambda: _process_args(	site, input_file,
-														dry_run, verbose))
+						function=lambda: _process_args(	site, input_file, dry_run, verbose))
 	sys.exit(0)
 
 if __name__ == '__main__':

@@ -15,7 +15,6 @@ import codecs
 import argparse
 
 from zope import component
-from zope.component import hooks
 
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
@@ -24,16 +23,14 @@ from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver.utils import run_with_dataserver
+from nti.dataserver.utils.base_script import set_site
+from nti.dataserver.utils.base_script import create_context
 
 from nti.ntiids.ntiids import TYPE_OID
 from nti.ntiids.ntiids import is_ntiid_of_type
 from nti.ntiids.ntiids import find_object_with_ntiid
 
-from nti.site.site import get_site_for_site_names
-
 from .._submission import course_submission_report
-
-from .base import create_context
 	
 def _create_report(course, usernames=(), assignment_id=None, 
 				   question_id=None, output=None):
@@ -52,13 +49,7 @@ def _create_report(course, usernames=(), assignment_id=None,
 		output.close()
 
 def _process_args(args):
-	site = args.site
-	if site:
-		cur_site = hooks.getSite()
-		new_site = get_site_for_site_names( (site,), site=cur_site )
-		if new_site is cur_site:
-			raise ValueError("Unknown site name", site)
-		hooks.setSite(new_site)
+	set_site(args.site())
 
 	course_id = args.course
 	if not is_ntiid_of_type(course_id, TYPE_OID):

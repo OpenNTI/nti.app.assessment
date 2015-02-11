@@ -14,7 +14,6 @@ import sys
 import argparse
 
 from zope import component
-from zope.component import hooks
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
@@ -26,10 +25,9 @@ from nti.assessment.interfaces import IQAssignment
 
 from nti.dataserver.users import User
 from nti.dataserver.utils import run_with_dataserver
+from nti.dataserver.utils.base_script import set_site
+from nti.dataserver.utils.base_script import create_context
 
-from nti.site.site import get_site_for_site_names
-
-from .base import create_context
 	
 def _migrator(creator, assignmentId, delete=False):
 	assignment = component.getUtility(IQAssignment, assignmentId)
@@ -63,13 +61,7 @@ def _migrator(creator, assignmentId, delete=False):
 		del assignment_savepoint[assignmentId]
 		
 def _process_args(args):
-	site = args.site
-	if site:
-		cur_site = hooks.getSite()
-		new_site = get_site_for_site_names( (site,), site=cur_site )
-		if new_site is cur_site:
-			raise ValueError("Unknown site name", site)
-		hooks.setSite(new_site)
+	set_site(args.site)
 
 	username = args.username
 	creator = User.get_entity(username or u'')

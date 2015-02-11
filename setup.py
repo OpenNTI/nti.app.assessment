@@ -8,10 +8,10 @@ entry_points = {
 		'target = nti.app',
 	],
 	"console_scripts": [
-		"nti_fix_enrollements = nti.app.assessment.scripts.fix_enrollements:main",
-		"nti_submission_report = nti.app.assessment.scripts.submission_report:main",
-		"nti_savepoint_migrator = nti.app.assessment.scripts.savepoint_migrator:main",
-		"nti_extract_assessments = nti.app.assessment.scripts.task_policy_extractor:main"
+		"nti_fix_enrollements = nti.app.assessment.scripts.nti_fix_enrollements:main",
+		"nti_submission_report = nti.app.assessment.scripts.nti_submission_report:main",
+		"nti_savepoint_migrator = nti.app.assessment.scripts.nti_savepoint_migrator:main",
+		"nti_extract_assessments = nti.app.assessment.scripts.nti_task_policy_extractor:main"
 	],
 }
 

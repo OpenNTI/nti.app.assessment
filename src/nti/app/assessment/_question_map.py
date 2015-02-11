@@ -145,7 +145,8 @@ class _PackagePathFinder(object):
 		if getattr( unit, prop, None ) == value:
 			return [unit]
 	
-		for child in unit.children:
+		children = getattr(unit, 'children', None)
+		for child in children or ():
 			childPath = self._finder( child, prop, value )
 			if childPath:
 				childPath.append( unit )

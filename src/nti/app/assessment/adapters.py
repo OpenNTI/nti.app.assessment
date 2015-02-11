@@ -277,7 +277,7 @@ def _histories_for_course(course):
 
 @interface.implementer(IUsersCourseAssignmentHistory)
 @component.adapter(ICourseInstance, IUser)
-def _history_for_user_in_course(course,user,create=True):
+def _history_for_user_in_course(course,user, create=True):
 	"""
 	We use an annotation on the course to store a map
 	from username to history object.

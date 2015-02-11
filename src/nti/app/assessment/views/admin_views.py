@@ -38,6 +38,7 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.contenttypes.courses.interfaces import	ICourseCatalogEntry
 
+from nti.dataserver.users import User
 from nti.dataserver import authorization as nauth
 from nti.dataserver.interfaces import IDataserverFolder
 
@@ -116,10 +117,12 @@ class RemovedMatchedSavePointsView(	AbstractAuthenticatedView,
 						items.append(assignmentId)
 		return result
 
-def _parse_catalog_entry(params):
-	ntiid = params.get('ntiid') or \
-			params.get('entry') or \
-			params.get('course')
+def _parse_catalog_entry(params, names=('ntiid', 'entry', 'course')):
+	ntiid = None
+	for name in names:
+		ntiid = params.get(name)
+		if ntiid:
+			break
 	if not ntiid:
 		return None
 	
@@ -130,7 +133,7 @@ def _parse_catalog_entry(params):
 			catalog = component.getUtility(ICourseCatalog)
 			result = catalog.getCatalogEntry(ntiid)
 		except KeyError:
-			raise hexc.HTTPUnprocessableEntity("Invalid course NTIID")
+			pass
 	return result
 	
 @view_config(route_name='objects.generic.traversal',
@@ -190,9 +193,76 @@ class UnmatchedSavePointsView(AbstractAuthenticatedView):
 @view_config(route_name='objects.generic.traversal',
 			 renderer='rest',
 			 permission=nauth.ACT_NTI_ADMIN,
-			 request_method='GET',
+			 request_method='POST',
 			 context=IDataserverFolder,
-			 name='CourseSubmissionReport')
+			 name='UnregisterAssessmentItems')
+class UnregisterAssessmentItemsView(AbstractAuthenticatedView,
+							   		ModeledContentUploadRequestUtilsMixin):
+	
+	def _do_call(self):
+		values = CaseInsensitiveDict(self.readInput())
+		ntiid = values.get('ntiid') or values.get('pacakge')
+		if not ntiid:
+			raise hexc.HTTPUnprocessableEntity("Invalid content package NTIID")
+		
+		package = find_object_with_ntiid(ntiid)
+		package = IContentPackage(package, None)
+		if package is None:
+			raise hexc.HTTPUnprocessableEntity("Invalid content package")
+		
+		items = _remove_assessment_items_from_oldcontent(package)
+		result = LocatedExternalDict()
+		result[ITEMS] = sorted(items.keys())
+		result['Count'] = result['Total'] = len(items)
+		return result
+
+@view_config(route_name='objects.generic.traversal',
+			 renderer='rest',
+			 permission=nauth.ACT_NTI_ADMIN,
+			 request_method='POST',
+			 context=IDataserverFolder,
+			 name='RegisterAssessmentItems')
+class RegisterAssessmentItemsView(AbstractAuthenticatedView,
+						   		  ModeledContentUploadRequestUtilsMixin):
+	
+	def _do_call(self):
+		values = CaseInsensitiveDict(self.readInput())
+		ntiid = values.get('ntiid') or values.get('pacakge')
+		if not ntiid:
+			raise hexc.HTTPUnprocessableEntity("Invalid content package NTIID")
+		
+		package = find_object_with_ntiid(ntiid)
+		package = IContentPackage(package, None)
+		if package is None:
+			raise hexc.HTTPUnprocessableEntity("Invalid content package")
+		
+		items = ()
+		result = LocatedExternalDict()
+		key = package.does_sibling_entry_exist('assessment_index.json')
+		if key is not None:
+			items = _add_assessment_items_from_new_content(package, key)
+			main_container = IQAssessmentItemContainer(package)
+			main_container.lastModified = key.lastModified
+			result.lastModified = key.lastModified
+		result[ITEMS] = sorted(items)
+		result['Count'] = result['Total'] = len(items)
+		return result
+
+# course views 
+
+from nti.app.externalization.internalization import read_body_as_external_object
+
+from nti.app.products.courseware.views import CourseAdminPathAdapter
+
+from .._assignment import move_user_assignment_from_course_to_course
+
+@view_config(context=IDataserverFolder)
+@view_config(context=CourseAdminPathAdapter)
+@view_defaults(	route_name='objects.generic.traversal',
+				renderer='rest',
+				permission=nauth.ACT_NTI_ADMIN,
+				request_method='GET',
+				name='CourseSubmissionReport')
 class CourseSubmissionReportView(AbstractAuthenticatedView):
 
 	def __call__(self):
@@ -228,12 +298,13 @@ class CourseSubmissionReportView(AbstractAuthenticatedView):
 		response.body_file = stream
 		return response
 
-@view_config(route_name='objects.generic.traversal',
-			 renderer='rest',
-			 permission=nauth.ACT_NTI_ADMIN,
-			 request_method='GET',
-			 context=IDataserverFolder,
-			 name='CourseAssignments')
+@view_config(context=IDataserverFolder)
+@view_config(context=CourseAdminPathAdapter)
+@view_defaults(	route_name='objects.generic.traversal',
+			 	renderer='rest',
+			 	permission=nauth.ACT_NTI_ADMIN,
+			 	request_method='GET',
+			 	name='CourseAssignments')
 class CourseAssignmentsView(AbstractAuthenticatedView):
 
 	def __call__(self):
@@ -253,12 +324,13 @@ class CourseAssignmentsView(AbstractAuthenticatedView):
 		result['Total'] = len(items)
 		return result
 
-@view_config(route_name='objects.generic.traversal',
-			 renderer='rest',
-			 permission=nauth.ACT_NTI_ADMIN,
-			 request_method='GET',
-			 context=IDataserverFolder,
-			 name='CourseAssessmentItems')
+@view_config(context=IDataserverFolder)
+@view_config(context=CourseAdminPathAdapter)
+@view_defaults(	route_name='objects.generic.traversal',
+				renderer='rest',
+				permission=nauth.ACT_NTI_ADMIN,
+				request_method='GET',
+				name='CourseAssessmentItems')
 class CourseAssessmentItemsView(AbstractAuthenticatedView):
 
 	def __call__(self):
@@ -275,58 +347,50 @@ class CourseAssessmentItemsView(AbstractAuthenticatedView):
 		result['Count'] = result['Total'] = len(items)
 		return result
 
-@view_config(route_name='objects.generic.traversal',
-			 renderer='rest',
-			 permission=nauth.ACT_NTI_ADMIN,
-			 request_method='POST',
-			 context=IDataserverFolder,
-			 name='UnregisterAssessmentItems')
-class UnregisterAssessmentItemsView(AbstractAuthenticatedView,
-							   		ModeledContentUploadRequestUtilsMixin):
-	
-	def _do_call(self):
-		values = CaseInsensitiveDict(self.readInput())
-		ntiid = values.get('ntiid') or values.get('pacakge')
-		if not ntiid:
-			raise hexc.HTTPUnprocessableEntity("Invalid content package NTIID")
-		
-		package = find_object_with_ntiid(ntiid)
-		if not IContentPackage.providedBy(package):
-			raise hexc.HTTPUnprocessableEntity("Invalid content package")
-		
-		items = _remove_assessment_items_from_oldcontent(package)
-		result = LocatedExternalDict()
-		result[ITEMS] = sorted(items.keys())
-		result['Count'] = result['Total'] = len(items)
+@view_config(context=IDataserverFolder)
+@view_config(context=CourseAdminPathAdapter)
+@view_defaults(	route_name='objects.generic.traversal',
+				renderer='rest',
+				permission=nauth.ACT_NTI_ADMIN,
+				name='MoveUserAssignmentsView')
+class MoveUserAssignmentsView(AbstractAuthenticatedView,
+							  ModeledContentUploadRequestUtilsMixin):
+
+	def readInput(self, value=None):
+		if self.request.body:
+			values = read_body_as_external_object(self.request)
+		else:
+			values = self.request.params
+		result = CaseInsensitiveDict(values)
 		return result
 
-@view_config(route_name='objects.generic.traversal',
-			 renderer='rest',
-			 permission=nauth.ACT_NTI_ADMIN,
-			 request_method='POST',
-			 context=IDataserverFolder,
-			 name='RegisterAssessmentItems')
-class RegisterAssessmentItemsView(AbstractAuthenticatedView,
-						   		  ModeledContentUploadRequestUtilsMixin):
-	
-	def _do_call(self):
-		values = CaseInsensitiveDict(self.readInput())
-		ntiid = values.get('ntiid') or values.get('pacakge')
-		if not ntiid:
-			raise hexc.HTTPUnprocessableEntity("Invalid content package NTIID")
+	def __call__(self):
+		values = self.readInput()
+		source = _parse_catalog_entry(values, names=("source", "origin"))
+		target = _parse_catalog_entry(values, names=("target", "dest"))
+		if source is None:
+			raise hexc.HTTPUnprocessableEntity("Invalid source NTIID")
+		if target is None:
+			raise hexc.HTTPUnprocessableEntity("Invalid target NTIID")
+		if source == target:
+			raise hexc.HTTPUnprocessableEntity("Source and Target courses are the same")
 		
-		package = find_object_with_ntiid(ntiid)
-		if not IContentPackage.providedBy(package):
-			raise hexc.HTTPUnprocessableEntity("Invalid content package")
+		source = ICourseInstance(source)	
+		target = ICourseInstance(target)
 		
-		items = ()
+		usernames = values.get('usernames') or values.get('username')
+		if usernames:
+			usernames = usernames.split(',')
+		else:
+			usernames = tuple(ICourseEnrollments(source).iter_principals())
+		
 		result = LocatedExternalDict()
-		key = package.does_sibling_entry_exist('assessment_index.json')
-		if key is not None:
-			items = _add_assessment_items_from_new_content(package, key)
-			main_container = IQAssessmentItemContainer(package)
-			main_container.lastModified = key.lastModified
-			result.lastModified = key.lastModified
-		result[ITEMS] = sorted(items)
+		items = result[ITEMS] = {}
+		for username in usernames:
+			user = User.get_user(username)
+			if user is None:
+				logger.info("User %s does not exists", username)
+			moved = move_user_assignment_from_course_to_course(user, source, target)
+			items[username] = sorted(moved)
 		result['Count'] = result['Total'] = len(items)
 		return result

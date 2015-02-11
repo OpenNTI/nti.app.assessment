@@ -15,12 +15,6 @@ import argparse
 
 from zope import component
 
-from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
-from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
-
-from nti.app.assessment._utils import find_course_for_assignment
-from nti.app.assessment._submission import transfer_upload_ownership
-
 from nti.assessment.interfaces import IQAssignment
 
 from nti.dataserver.users import User
@@ -28,7 +22,13 @@ from nti.dataserver.utils import run_with_dataserver
 from nti.dataserver.utils.base_script import set_site
 from nti.dataserver.utils.base_script import create_context
 
-	
+from .._utils import find_course_for_assignment
+
+from .._submission import transfer_upload_ownership
+
+from ..interfaces import IUsersCourseAssignmentHistory
+from ..interfaces import IUsersCourseAssignmentSavepoint
+
 def _migrator(creator, assignmentId, delete=False):
 	assignment = component.getUtility(IQAssignment, assignmentId)
 	course = find_course_for_assignment(assignment, creator)

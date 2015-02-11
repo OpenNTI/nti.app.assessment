@@ -365,29 +365,3 @@ class UsersCourseAssignmentHistoryItemSummary(Contained):
 		This isn't really correct from a model perspective.
 		"""
 		return to_external_ntiid_oid(self._history_item)
-
-from .adapters import _history_for_user_in_course
-
-def move_user_assignment_from_course_to_course(user, old_course, new_course,
-											   verbose=True):
-	old_history = _history_for_user_in_course(old_course, user)
-	new_history = _history_for_user_in_course(new_course, user)
-	for k in list(old_history): # we are changing
-		item = old_history[k]
-		
-		## JAM: do a full delete/re-add so that ObjectAdded event gets fired, 
-		## because that's where auto-grading takes place
-		del old_history[k]
-		assert item.__name__ is None
-		assert item.__parent__ is None
-		
-		if k in new_history:
-			if verbose:
-				logger.info("Skipped moving %s for %s from %s to %s", k, user, 
-							old_course.__name__, new_course.__name__)
-			continue
-
-		new_history[k] = item
-		if verbose:
-			logger.info("Moved %s for %s from %s to %s", k, user,
-						old_course.__name__, new_course.__name__)

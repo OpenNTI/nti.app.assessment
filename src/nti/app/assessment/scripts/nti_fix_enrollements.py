@@ -16,8 +16,6 @@ import argparse
 
 from zope import component
 
-from nti.app.assessment.adapters import _history_for_user_in_course
-
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 		
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -30,6 +28,8 @@ from nti.dataserver.utils import run_with_dataserver
 from nti.dataserver.utils.base_script import set_site
 from nti.dataserver.utils.base_script import create_context
 
+from .._assignment import move_user_assignment_from_course_to_course
+
 def fix_enrollment_perms(verbose=True):
 	cat = component.getUtility(ICourseCatalog)
 	for cat_entry in cat.iterCatalogEntries():
@@ -38,30 +38,9 @@ def fix_enrollment_perms(verbose=True):
 		for record in enrollments.iter_enrollments():
 			if record.Principal:
 				if verbose:
-					print("Setting scopes for", record.Principal, "in", 
-						  cat_entry.ProviderUniqueID)
+					logger.info("Setting scopes for %s in %s", 
+								record.Principal, cat_entry.ProviderUniqueID)
 				on_enroll_record_scope_membership(record, None, course)
-
-def move_user_assignment_from_course_to_course(user, old_course, new_course, verbose=True):
-	old_history = _history_for_user_in_course(old_course, user)
-	new_history = _history_for_user_in_course(new_course, user)
-	for k in list(old_history):
-		item = old_history[k]
-		## JAM: do a full delete/re-add so that ObjectAdded event gets fired, 
-		## because that's where auto-grading takes place
-		del old_history[k]
-		assert item.__name__ is None
-		assert item.__parent__ is None
-		if k in new_history:
-			if verbose:
-				print("Skipped moving", k, "for", user, "from", old_course.__name__, 
-					  'to', new_course.__name__)
-			continue
-
-		new_history[k] = item
-		if verbose:
-			print("Moved", k, "for", user, "from", old_course.__name__, 
-				  'to', new_course.__name__)
 
 def move_user_assignments(input_file, dry_run=False, verbose=True):
 	catalog = component.getUtility(ICourseCatalog)
@@ -72,7 +51,7 @@ def move_user_assignments(input_file, dry_run=False, verbose=True):
 			user = User.get_user(username)
 			if user is None:
 				if verbose:
-					print('\t', username, 'not found')
+					logger.warn('User %s not found', username)
 				continue
 
 			old_course_name = row[1]
@@ -85,8 +64,8 @@ def move_user_assignments(input_file, dry_run=False, verbose=True):
 			new_course = ICourseInstance(new_course)
 			
 			if verbose:
-				print("\tMoving assignment history for", username, "from",
-					  old_course_name, "to", new_course_name)
+				logger.info("Moving assignment history for %s from %s to %s",
+							username, old_course_name, new_course_name)
 			
 			if not dry_run:
 				move_user_assignment_from_course_to_course(user, old_course, new_course,

@@ -86,7 +86,6 @@ class AllTasksOutlineView(AbstractAuthenticatedView):
 @view_config(route_name='objects.generic.traversal',
 			 renderer='rest',
 			 permission=nauth.ACT_NTI_ADMIN,
-			 request_method='POST',
 			 context=IDataserverFolder,
 			 name='RemoveMatchedSavePoints')
 class RemovedMatchedSavePointsView(	AbstractAuthenticatedView,
@@ -193,14 +192,21 @@ class UnmatchedSavePointsView(AbstractAuthenticatedView):
 @view_config(route_name='objects.generic.traversal',
 			 renderer='rest',
 			 permission=nauth.ACT_NTI_ADMIN,
-			 request_method='POST',
 			 context=IDataserverFolder,
 			 name='UnregisterAssessmentItems')
 class UnregisterAssessmentItemsView(AbstractAuthenticatedView,
 							   		ModeledContentUploadRequestUtilsMixin):
 	
+	def readInput(self, value=None):
+		if self.request.body:
+			values = read_body_as_external_object(self.request)
+		else:
+			values = self.request.params
+		result = CaseInsensitiveDict(values)
+		return result
+	
 	def _do_call(self):
-		values = CaseInsensitiveDict(self.readInput())
+		values = self.readInput()
 		ntiid = values.get('ntiid') or values.get('pacakge')
 		if not ntiid:
 			raise hexc.HTTPUnprocessableEntity("Invalid content package NTIID")
@@ -219,14 +225,21 @@ class UnregisterAssessmentItemsView(AbstractAuthenticatedView,
 @view_config(route_name='objects.generic.traversal',
 			 renderer='rest',
 			 permission=nauth.ACT_NTI_ADMIN,
-			 request_method='POST',
 			 context=IDataserverFolder,
 			 name='RegisterAssessmentItems')
 class RegisterAssessmentItemsView(AbstractAuthenticatedView,
 						   		  ModeledContentUploadRequestUtilsMixin):
 	
+	def readInput(self, value=None):
+		if self.request.body:
+			values = read_body_as_external_object(self.request)
+		else:
+			values = self.request.params
+		result = CaseInsensitiveDict(values)
+		return result
+	
 	def _do_call(self):
-		values = CaseInsensitiveDict(self.readInput())
+		values = self.readInput()
 		ntiid = values.get('ntiid') or values.get('pacakge')
 		if not ntiid:
 			raise hexc.HTTPUnprocessableEntity("Invalid content package NTIID")

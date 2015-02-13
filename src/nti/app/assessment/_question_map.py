@@ -87,12 +87,12 @@ class _AssessmentItemContainer(PersistentList,
 
 @interface.implementer(IQAssessmentItemContainer, IZContained)
 @component.adapter(IContentUnit)
-class _BTreeAssessmentItemContainer(BTrees.OOBTree.BTree, 
+class _BTreeAssessmentItemContainer(BTrees.OOBTree.BTree,
 									PersistentCreatedAndModifiedTimeObject):
-	
+
 	def append(self, x):
 		self[x.ntiid] = x
-		
+
 	def __iter__(self):
 		for x in self.values():
 			yield x
@@ -121,58 +121,6 @@ def _site_name(registry):
 	if ILocalSiteManager.providedBy(registry):
 		return registry.__parent__.__name__
 	return registry.__name__
-
-class IPathFinder(interface.Interface):
-	"""
-	internal interface to find the path to a content unit
-	"""
-
-	def find(unit, ntiid):
-		pass
-
-@interface.implementer(IPathFinder)
-class _LibraryPathFinder(object):
-	
-	def find(self, unit, ntiid):
-		library = component.queryUtility(IContentPackageLibrary)
-		result = library.pathToNTIID(ntiid) if library else ()
-		return result
-	
-@interface.implementer(IPathFinder)
-class _PackagePathFinder(object):
-	
-	def _finder(self, unit, prop, value ):
-		if getattr( unit, prop, None ) == value:
-			return [unit]
-	
-		children = getattr(unit, 'children', None)
-		for child in children or ():
-			childPath = self._finder( child, prop, value )
-			if childPath:
-				childPath.append( unit )
-				return childPath
-		return None
-	
-	# XXX Copied from library.py
-	def _pathToPropertyValue(self, unit, prop, value ):
-		"""
-		A convenience function for returning, in order from the root down,
-		the sequence of children required to reach one with a property equal to
-		the given value.
-		"""
-		results = self._finder( unit, prop, value )
-		if results:
-			results.reverse()
-		return results
-	
-	def find(self, unit, ntiid):
-		result = self._pathToPropertyValue( unit, 'ntiid', ntiid )
-		return result
-
-def pathToNTIID(unit, ntiid):
-	finder = component.getUtility(IPathFinder)
-	result = finder.find(unit, ntiid)
-	return result
 
 @NoPickle
 class QuestionMap(object):
@@ -289,11 +237,10 @@ class QuestionMap(object):
 		"""
 		parent = None
 		parents_questions = []
-		if level_ntiid:
-			# XXX CS/JZ, 1-29-15: Now that the library is caching paths to ntiid,
-			# we're manually traversing our content unit to find our path.  We
-			# want to make sure we get our new content units to add assessments to.
-			containing_content_units = pathToNTIID( content_package, level_ntiid )
+		library = component.queryUtility( IContentPackageLibrary )
+
+		if level_ntiid and library is not None:
+			containing_content_units = library.pathToNTIID( level_ntiid, skip_cache=True )
 			if containing_content_units:
 				parent = containing_content_units[-1]
 				parents_questions = IQAssessmentItemContainer(parent)
@@ -399,16 +346,16 @@ class QuestionMap(object):
 		assert 'Items' in assessment_index_json, "Root must contain 'Items'"
 		root_items = assessment_index_json['Items']
 		if not root_items:
-			logger.warn("Ignoring assessment index that contains no assessments at any level %s", 
+			logger.warn("Ignoring assessment index that contains no assessments at any level %s",
 						content_package )
 			return
 
 		assert len(root_items) == 1, "Root's 'Items' must only have Root NTIID"
-		
-		# TODO: This ought to come from the content_package. 
+
+		# TODO: This ought to come from the content_package.
 		# We need to update tests to be sure
-		root_ntiid = assessment_index_json['Items'].keys()[0] 
-		
+		root_ntiid = assessment_index_json['Items'].keys()[0]
+
 		by_file = self._get_by_file()
 		assert 	'Items' in assessment_index_json['Items'][root_ntiid], \
 				"Root's 'Items' contains the actual section Items"
@@ -518,7 +465,7 @@ def _populate_question_map_from_text(question_map, asm_index_text, content_packa
 			# Because the map is updated in place, depending on where the error
 			# was, we might have some data...that's not good, but it's not a show stopper either,
 			# since we shouldn't get content like this out of the rendering process
-			logger.exception("Failed to load assessment items, invalid assessment_index for %s", 
+			logger.exception("Failed to load assessment items, invalid assessment_index for %s",
 							 content_package )
 	return result or set()
 
@@ -625,7 +572,7 @@ def update_assessment_items_when_modified(content_package, event):
 	removed = remove_assessment_items_from_oldcontent(original, event)
 	logger.info("%s assessment item(s) have been removed from content %s",
 				len(removed), original)
-	
+
 	registered = add_assessment_items_from_new_content(updated, event, key=update_key)
 
 	logger.info("%s assessment item(s) have been registered for content %s",

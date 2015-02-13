@@ -49,15 +49,15 @@
 	<grant
 		permission="nti.actions.assessment.download_grades"
 		role="nti.roles.course_instructor" />
-		
+
 	<grant
 		permission="nti.actions.assessment.download_grades"
 		role="nti.roles.course_ta" />
-		
+
 	<grant
 		permission="nti.actions.assessment.view_solutions"
 		role="nti.roles.course_instructor" />
-		
+
 	<grant
 		permission="nti.actions.assessment.view_solutions"
 		role="nti.roles.course_ta" />
@@ -82,21 +82,14 @@
 
 	<!-- Populating questions from content -->
 	<adapter factory="._question_map.ContentUnitAssessmentItems" />
-		
+
 	<subscriber	handler="._question_map.add_assessment_items_from_new_content" />
 	<subscriber handler="._question_map.update_assessment_items_when_modified" />
 	<subscriber	handler="._question_map.remove_assessment_items_from_oldcontent" />
-	
-	<configure zcml:condition="have testmode">
-		<utility factory="._question_map._LibraryPathFinder" />
-	</configure>
-	<configure zcml:condition="not-have testmode">
-		<utility factory="._question_map._PackagePathFinder" />
-	</configure>
-	
+
 	<adapter factory=".adapters._DefaultCourseAssignmentCatalog" />
 	<adapter factory=".adapters._DefaultCourseAssessmentItemCatalog" />
-	
+
 	<adapter factory=".history.UsersCourseAssignmentHistoryItemSummary"
 			 provides=".interfaces.IUsersCourseAssignmentHistoryItemSummary"/>
 
@@ -161,15 +154,15 @@
 
 	<adapter factory=".adapters._course_from_assignment_lineage" />
 	<adapter factory=".adapters._course_from_history_item_lineage" />
-	
+
 	<!-- Common course lineage adapters -->
 	<adapter factory=".adapters._course_from_context_lineage"
 			 for=".interfaces.IUsersCourseAssignmentHistoryItemFeedback"
 			 provides="nti.contenttypes.courses.interfaces.ICourseInstance" />
-	
+
 	<adapter factory=".adapters._course_from_context_lineage"
 			 for=".interfaces.IUsersCourseAssignmentHistoryItemFeedbackContainer"
-			 provides="nti.contenttypes.courses.interfaces.ICourseInstance" /> 	
+			 provides="nti.contenttypes.courses.interfaces.ICourseInstance" />
 
 	<!-- Traversal-ish stuff -->
 	<utility factory=".ntiids._AssessmentResolver" name="NAQ" />
@@ -261,7 +254,7 @@
 	<adapter factory=".metadata._UsersCourseAssignmentMetadataItemUpdater"
 			 for=".interfaces.IUsersCourseAssignmentMetadataItem"
 			 provides="nti.externalization.interfaces.IInternalObjectUpdater" />
-			 
+
 	<!-- Notables -->
 	<subscriber factory=".notables.AssignmentFeedbackNotableFilter"
 				provides="nti.dataserver.interfaces.INotableFilter"
@@ -269,7 +262,7 @@
 
 	<!-- user events -->
 	<subscriber handler=".subscribers._on_user_will_be_removed" />
-	
+
 	<!-- Metadata -->
 	<configure zcml:condition="installed nti.metadata">
 		<subscriber	factory=".predicates._AssignmentHistoryPrincipalObjects"

@@ -160,7 +160,7 @@ class TestQuestionMap(AssessmentLayerTest):
 	def tearDown(self):
 		component.getGlobalSiteManager().unregisterUtility(self, IGlobalContentPackageLibrary)
 
-	def pathToNTIID(self, ntiid):
+	def pathToNTIID(self, ntiid, skip_cache=False):
 		return ()
 
 	def test_create_question_map_captures_set_ntiids(self, index_string=ASSM_STRING_W_SET):

@@ -18,6 +18,7 @@ from zope.container.interfaces import IContainer
 from zope.container.constraints import containers
 from zope.container.interfaces import IContainerNamesContainer
 
+from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssignmentSubmission
 from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 
@@ -180,6 +181,7 @@ class IUsersCourseAssignmentHistoryItemFeedbackContainer(IContainerNamesContaine
 	"""
 	contains(str('.IUsersCourseAssignmentHistoryItemFeedback'))
 	__setitem__.__doc__ = None
+
 	Items = List(title="The contained feedback items",
 			 	 description="Unlike forums, we expect very few of these, so we "
 				 			 "inline them for externalization.",
@@ -210,7 +212,9 @@ class IUsersCourseAssignmentHistoryItem(IContained,
 					  required=False)
 
 	FeedbackCount = Int(title="How many feedback items", default=0)
-
+	
+	Assignment = Object(IQAssignment, title="The assigment that generated this item",
+						required=False)
 
 class IUsersCourseAssignmentHistoryItemSummary(IContained,
 											   ILastModified,

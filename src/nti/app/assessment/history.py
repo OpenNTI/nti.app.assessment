@@ -28,6 +28,7 @@ from nti.assessment.interfaces import IQAssignmentPolicies
 from nti.assessment.interfaces import IQAssignmentDateContext
 
 from nti.common.property import alias
+from nti.common.property import readproperty
 from nti.common.property import CachedProperty
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -135,7 +136,8 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 		instructors = getattr(course, 'instructors', ()) # already principals
 		aces = [ace_allowing( self.owner, ACT_READ, UsersCourseAssignmentHistory )]
 		for instructor in instructors:
-			aces.append( ace_allowing(instructor, ALL_PERMISSIONS, UsersCourseAssignmentHistory) )
+			aces.append( ace_allowing(instructor, ALL_PERMISSIONS, 
+									  UsersCourseAssignmentHistory) )
 		aces.append(ACE_DENY_ALL)
 		return acl_from_aces( aces )
 
@@ -157,10 +159,13 @@ def _get_available_for_submission_ending(course, assignment):
 class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 									   Contained,
 									   SchemaConfigured):
+	
+	__external_can_create__ = False
+	
 	createDirectFieldProperties(IUsersCourseAssignmentHistoryItem)
 
-	__external_can_create__ = False
-
+	assignment = alias('Assignment')
+	
 	@Lazy
 	def Feedback(self):
 		container = UsersCourseAssignmentHistoryItemFeedbackContainer()
@@ -196,6 +201,11 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 	def creator(self, nv):
 		# Ignored
 		pass
+
+	@readproperty
+	def Assignment(self):
+		result = component.queryUtility(IQAssignment, name=self.__name__)
+		return result
 
 	@property
 	def assignmentId(self):
@@ -276,9 +286,11 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 		instructors = getattr(course, 'instructors', ()) # already principals
 		aces = [ace_allowing( self.creator, ACT_READ, UsersCourseAssignmentHistoryItem )]
 		if self._student_nuclear_reset_capable:
-			aces.append( ace_allowing(self.creator, ACT_DELETE, UsersCourseAssignmentHistoryItem) )
+			aces.append( ace_allowing(self.creator, ACT_DELETE,
+                                      UsersCourseAssignmentHistoryItem) )
 		for instructor in instructors:
-			aces.append( ace_allowing(instructor, ALL_PERMISSIONS, UsersCourseAssignmentHistoryItem) )
+			aces.append( ace_allowing(instructor, ALL_PERMISSIONS, 
+                                      UsersCourseAssignmentHistoryItem) )
 		aces.append(ACE_DENY_ALL)
 		return acl_from_aces( aces )
 

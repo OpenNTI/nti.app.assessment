@@ -47,7 +47,7 @@ def _create_report(course, usernames=(), assignment_id=None,
 		output.close()
 
 def _process_args(args):
-	set_site(args.site())
+	set_site(args.site)
 
 	course_id = args.course
 	obj = find_object_with_ntiid(course_id)

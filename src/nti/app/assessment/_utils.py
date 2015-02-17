@@ -144,7 +144,7 @@ def copy_taken_assignment(assignment, user):
 			make_nonrandomized(question_set) 
 		else:
 			## copy all question set. Don't mark questions them as non-randomized
-			question_set = copy_questionset(part.question_set, nonrandomized=False)
+			question_set = copy_questionset(question_set, nonrandomized=False)
 		new_part.question_set = question_set
 	result.parts = new_parts
 	sublocations(result)

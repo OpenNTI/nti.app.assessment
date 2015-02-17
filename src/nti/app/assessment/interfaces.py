@@ -215,6 +215,7 @@ class IUsersCourseAssignmentHistoryItem(IContained,
 	
 	Assignment = Object(IQAssignment, title="The assigment that generated this item",
 						required=False)
+	Assignment.setTaggedValue('_ext_excluded_out', True)
 
 class IUsersCourseAssignmentHistoryItemSummary(IContained,
 											   ILastModified,

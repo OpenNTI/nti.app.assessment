@@ -16,6 +16,8 @@ from io import BytesIO
 from cStringIO import StringIO
 
 import json
+import isodate
+from datetime import datetime
 
 from zope import component
 from zope import interface
@@ -243,7 +245,7 @@ def course_submission_report(context, usernames=(), assignment=None,
 					
 	stream = BytesIO() if stream is None else stream
 	writer = csv.writer(stream)
-	header = ['username', 'assignment', 'question', 'part', 'submission']
+	header = ['createdTime', 'username', 'assignment', 'question', 'part', 'submission']
 	writer.writerow(header)
 		
 	result = LocatedExternalDict()
@@ -271,7 +273,9 @@ def course_submission_report(context, usernames=(), assignment=None,
 			## filter assignment 
 			if assignment_id and assignment_id != key:
 				continue
+
 			submission = item.Submission
+			createdTime = datetime.fromtimestamp(item.createdTime)
 			for qs_part in submission.parts:
 				## all question submissions
 				for question in qs_part.questions:
@@ -282,12 +286,14 @@ def course_submission_report(context, usernames=(), assignment=None,
 					qid = question.questionId
 					for idx, sub_part in enumerate(question.parts):
 						ext = json.dumps(to_external_object(sub_part))
-						row_data = [replace_username(username), key, qid, idx, ext]
+						row_data = [isodate.datetime_isoformat(createdTime),
+									replace_username(username), key, qid, idx, ext]
 						writer.writerow([_tx_string(x) for x in row_data])
 						items.append({'part':idx,
 									  'question':qid,
 									  'assignment':key,
 									  'submission':ext,
-									  'username':username})
+									  'username':username,
+									  'created':createdTime})
 	## return
 	return stream, result

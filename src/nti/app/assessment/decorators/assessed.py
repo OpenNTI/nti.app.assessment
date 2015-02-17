@@ -36,6 +36,19 @@ from nti.externalization.singleton import SingletonDecorator
 from nti.externalization.externalization import to_external_object
 
 from ..interfaces import IUsersCourseAssignmentHistory
+from ..interfaces import IUsersCourseAssignmentHistoryItem
+
+def _question_from_context(context, questionId):
+	item = find_interface(context, IUsersCourseAssignmentHistoryItem, strict=False)
+	if item is None or item.Assignment is None:
+		result = component.queryUtility(IQuestion, name=questionId)
+		return result
+	else:
+		for part in item.Assignment.parts:
+			for question in part.question_set.questions:
+				if question.ntiid == questionId:
+					return question
+		return result
 
 @component.adapter(IQAssessedPart)
 class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):

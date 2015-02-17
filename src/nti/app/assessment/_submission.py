@@ -19,9 +19,13 @@ import json
 
 from zope import component
 from zope import interface
-from zope.proxy import ProxyBase
+
 from zope.file.upload import nameFinder
+
+from zope.proxy import ProxyBase
+
 from zope.security.interfaces import IPrincipal
+
 from zope.schema.interfaces import ConstraintNotSatisfied
 
 from pyramid import httpexceptions as hexc
@@ -39,6 +43,8 @@ from nti.common.maps import CaseInsensitiveDict
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
+
+from nti.dataserver.interfaces import IUser
 
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
@@ -246,13 +252,17 @@ def course_submission_report(context, usernames=(), assignment=None,
 	course_enrollments = ICourseEnrollments(course)
 	for record in course_enrollments.iter_enrollments():
 		principal = IPrincipal(record.Principal, None)
-		username = principal.id.lower() if principal is not None else None
-		
-		## filter user 
-		if not username or (usernames and username not in usernames):
+		if principal is None: # dupped enrollment
 			continue
 		
-		history = component.queryMultiAdapter( (course, principal),
+		user = IUser(record.Principal)
+		username = user.username
+		
+		## filter user 
+		if usernames and username not in usernames:
+			continue
+		
+		history = component.queryMultiAdapter( (course, user),
 											  IUsersCourseAssignmentHistory )
 		if not history:
 			continue

@@ -26,8 +26,6 @@ from nti.dataserver.utils import run_with_dataserver
 from nti.dataserver.utils.base_script import set_site
 from nti.dataserver.utils.base_script import create_context
 
-from nti.ntiids.ntiids import TYPE_OID
-from nti.ntiids.ntiids import is_ntiid_of_type
 from nti.ntiids.ntiids import find_object_with_ntiid
 
 from .._submission import course_submission_report
@@ -52,18 +50,18 @@ def _process_args(args):
 	set_site(args.site())
 
 	course_id = args.course
-	if not is_ntiid_of_type(course_id, TYPE_OID):
+	obj = find_object_with_ntiid(course_id)
+	course_instance = ICourseInstance(obj, None)
+	if course_instance is None:
 		try:
 			catalog = component.getUtility(ICourseCatalog)
 			catalog_entry = catalog.getCatalogEntry(course_id)
-			course_instance = ICourseInstance(catalog_entry)
+			course_instance = ICourseInstance(catalog_entry, None)
 		except KeyError:
 			raise ValueError("Course not found")
-	else:
-		obj = find_object_with_ntiid(course_id)
-		course_instance = ICourseInstance(obj, None)
-		if course_instance is None:
-			raise ValueError("Course not found")
+
+	if course_instance is None:
+		raise ValueError("Course not found")
 	
 	if args.assignment:
 		assignment = component.queryUtility(IQAssignment, name=args.assignment)
@@ -110,10 +108,10 @@ def main():
 		raise IOError("Invalid dataserver environment root directory")
 
 	if not args.course:
-		raise IOError("Must specify a course NTIID")
+		raise IOError("Must specify a course/catalog entry NTIID")
 	
-	context = create_context(env_dir, with_library=False)
 	conf_packages = ('nti.appserver',)
+	context = create_context(env_dir, with_library=False)
 
 	run_with_dataserver(environment_dir=env_dir,
 						xmlconfig_packages=conf_packages,

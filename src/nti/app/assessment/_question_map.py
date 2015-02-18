@@ -229,7 +229,8 @@ class QuestionMap(object):
 							   containing_hierarchy_key,
 							   content_package,
 							   by_file,
-							   level_ntiid=None):
+							   level_ntiid=None,
+							   signatures_dict=None):
 		"""
 		Returns a set of object that should be placed in the registry, and then
 		canonicalized.
@@ -237,6 +238,7 @@ class QuestionMap(object):
 		"""
 		parent = None
 		parents_questions = []
+		signatures_dict = signatures_dict or {}
 		library = component.queryUtility( IContentPackageLibrary )
 
 		if level_ntiid and library is not None:
@@ -255,6 +257,7 @@ class QuestionMap(object):
 										notify=False,
 										object_hook=_ntiid_object_hook )
 			obj.ntiid = k
+			obj.signature = signatures_dict.get(k)
 			obj.__name__ = unicode( k ).encode('utf8').decode('utf8')
 			self._store_object(k, obj)
 
@@ -322,7 +325,8 @@ class QuestionMap(object):
 										key_for_this_level,
 										content_package,
 										by_file,
-										level_ntiid)
+										level_ntiid,
+										index.get( "Signatures"))
 
 		things_to_register.update(i)
 		for child_item in index.get('Items',{}).values():

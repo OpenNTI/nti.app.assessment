@@ -260,8 +260,11 @@
 				provides="nti.dataserver.interfaces.INotableFilter"
 				for=".interfaces.IUsersCourseAssignmentHistoryItemFeedback" />
 
-	<!-- user events -->
+	<!-- User Events -->
 	<subscriber handler=".subscribers._on_user_will_be_removed" />
+	
+	<!-- Utilities -->
+	<utility factory=".utilities.PrincipalSeeedSelector" />
 
 	<!-- Metadata -->
 	<configure zcml:condition="installed nti.metadata">

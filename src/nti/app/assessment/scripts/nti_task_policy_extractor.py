@@ -106,6 +106,7 @@ def _merge_disk(automatic_values, merge_values):
 				  'available_for_submission_ending',
 				  'auto_grade',
 				  'excluded',
+				  'grader',
 				  'maximum_time_allowed',
 				  'student_nuclear_reset_capable'):
 			if d in manual_value:

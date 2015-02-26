@@ -48,7 +48,7 @@ from nti.dataserver.authorization_acl import acl_from_aces
 from nti.dataserver.containers import CheckingLastModifiedBTreeContainer
 from nti.dataserver.containers import CaseInsensitiveCheckingLastModifiedBTreeContainer
 
-from nti.dataserver.datastructures import PersistentCreatedModDateTrackingObject
+from nti.dublincore.datastructures import PersistentCreatedModDateTrackingObject
 
 from nti.externalization.interfaces import StandardExternalFields
 

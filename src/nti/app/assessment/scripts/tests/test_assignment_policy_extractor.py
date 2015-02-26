@@ -102,11 +102,13 @@ class TestAssignmentPolicyExtractor(AssessmentLayerTest):
 		_merge_disk(ext_value,
 					{asg_id:
 					 { 'auto_grade': None,
-					   'excluded': True}} )
+					   'excluded': True,
+					   'grader': {'group':'exam'} } } )
 
 		assert_that(ext_value, has_entry(asg_id,
 										 {'Title': 'Main Title',
 										  'auto_grade': None,
 										  'excluded': True,
+										  'grader': {'group':'exam'}, 
 										  'available_for_submission_beginning': '2014-01-13T00:00:00Z',
 										  'available_for_submission_ending': None}) )

@@ -12,6 +12,9 @@ logger = __import__('logging').getLogger(__name__)
 import numbers
 
 from zope import component
+from zope import interface
+
+from zope.location.interfaces import ILocation
 
 from nti.app.authentication import get_remote_user
 
@@ -31,6 +34,8 @@ from nti.assessment.randomized.interfaces import IQRandomizedPart
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
+from nti.dataserver.interfaces import IDataserver
+
 from nti.dataserver.links import Link
 from nti.dataserver.links_external import render_link
 
@@ -38,6 +43,7 @@ from nti.dataserver.traversal import find_interface
 
 from nti.externalization.singleton import SingletonDecorator
 from nti.externalization.externalization import to_external_object
+from nti.externalization.externalization import to_external_ntiid_oid
 
 from ..interfaces import IUsersCourseAssignmentHistory
 from ..interfaces import IUsersCourseAssignmentHistoryItem
@@ -188,14 +194,19 @@ class _QAssessedQuestionExplanationSolutionAdder(object):
 class _QAssignmentSubmissionPendingAssessmentDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	
 	def _predicate(self, context, result):
-		creator = context.creator
+		creator = getattr(context.__parent__, 'creator', None)
 		return (AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
 				and creator is not None
 				and creator == self.remoteUser)
 		
 	def _do_decorate_external(self, context, result_map ):
-		try:
-			link = Link(context)
-			result_map['href'] = render_link( link )['href']
-		except (KeyError, ValueError, AssertionError):
-			pass # Nope
+		if 'href' in result_map:
+			return
+		
+		ntiid = to_external_ntiid_oid(context)
+		root_site = component.getUtility( IDataserver ).root
+		link = Link( root_site, elements=('Objects', ntiid) )
+		link.__name__ = ''
+		link.__parent__ =  None
+		interface.alsoProvides( link, ILocation )
+		result_map['href'] = render_link( link, nearest_site=root_site)['href']

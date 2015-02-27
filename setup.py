@@ -24,7 +24,6 @@ setup(
 	long_description = codecs.open('README.rst', encoding='utf-8').read(),
 	license = 'Proprietary',
 	keywords = 'pyramid assessment',
-	#url = 'https://github.com/NextThought/nti.nose_traceback_info',
 	classifiers = [
 		'Intended Audience :: Developers',
 		'Natural Language :: English',
@@ -32,7 +31,7 @@ setup(
 		'Programming Language :: Python :: 2',
 		'Programming Language :: Python :: 2.7',
 		'Framework :: Pyramid',
-		],
+	],
 	packages=find_packages('src'),
 	package_dir={'': 'src'},
 	namespace_packages=['nti', 'nti.app'],

@@ -160,7 +160,6 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		submission = AssignmentSubmission(assignmentId=self.assignment_id, parts=(qs_submission,))
 		ext_obj = to_external_object( submission )
 
-
 		self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id,
 								 ext_obj,
 								 status=403)
@@ -171,8 +170,6 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		instructor_environ = self._make_extra_environ(username='harp4162')
 		outest_environ = self._make_extra_environ(username='outest5')
 		outest_environ.update( {b'HTTP_ORIGIN': b'http://janux.ou.edu'} )
-
-
 
 		res = self.testapp.post_json( '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses',
 									  'CLC 3403',
@@ -206,16 +203,17 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		self.testapp.get(user2_enrollment_history_link, status=403)
 
 
-
 	def _check_submission(self, res, history=None, last_viewed=0):
 		assert_that( res.status_int, is_( 201 ))
 		assert_that( res.json_body, has_entry( StandardExternalFields.CREATED_TIME, is_( float ) ) )
 		assert_that( res.json_body, has_entry( StandardExternalFields.LAST_MODIFIED, is_( float ) ) )
-		assert_that( res.json_body, has_entry( StandardExternalFields.MIMETYPE, 'application/vnd.nextthought.assessment.assignmentsubmissionpendingassessment' ) )
+		assert_that( res.json_body, has_entry( StandardExternalFields.MIMETYPE, 
+											  'application/vnd.nextthought.assessment.assignmentsubmissionpendingassessment' ) )
 
 		assert_that( res.json_body, has_entry( 'ContainerId', self.assignment_id ))
 		assert_that( res.json_body, has_key( 'NTIID' ) )
-
+		assert_that( res.json_body, has_entry( 'href', contains_string('Objects/') ) )
+		
 		assert_that( res, has_property( 'location', contains_string('Objects/')))
 
 		# This object can be found in my history

@@ -15,6 +15,7 @@
 				for="nti.appserver.interfaces.IContentUnitInfo
 					 pyramid.interfaces.IRequest" />
 
+	<!-- assignment -->
 	<subscriber factory=".assignment._AssignmentsByOutlineNodeDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.contenttypes.courses.interfaces.ICourseInstance
@@ -59,7 +60,8 @@
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.assessment.interfaces.IQTimedAssignment
 					 pyramid.interfaces.IRequest" />
-
+	
+	<!-- assessed -->	
 	<subscriber factory=".assessed._QAssessedPartDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.assessment.interfaces.IQAssessedPart
@@ -73,7 +75,13 @@
 	<subscriber factory=".assessed._QAssessedQuestionExplanationSolutionAdder"
 				for="nti.assessment.interfaces.IQAssessedQuestion"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator" />
-								
+				
+	<subscriber factory=".assessed._QAssignmentSubmissionPendingAssessmentDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="nti.assessment.interfaces.IQAssignmentSubmissionPendingAssessment
+					 pyramid.interfaces.IRequest" />
+					
+	<!-- history -->			
 	<subscriber factory=".history._CourseAssignmentHistoryDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.contenttypes.courses.interfaces.ICourseInstance
@@ -103,15 +111,18 @@
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="..interfaces.IUsersCourseAssignmentHistoryItemSummary
 					 pyramid.interfaces.IRequest" />
-					 	 
+					 
+	<!-- feedback -->	 
 	<subscriber factory=".feedback._FeedbackItemAssignmentIdDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"/>
 
+	<!-- ipad -->
 	<subscriber factory=".ipad._IPad110NoSubmitPartAdjuster"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.assessment.interfaces.IQAssignment
 					 pyramid.interfaces.IRequest" />
 		
+	<!-- savepoint -->
 	<subscriber factory=".savepoint._AssignmentSavepointDecorator"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.assessment.interfaces.IQAssignment
@@ -132,6 +143,7 @@
 				for="..interfaces.IUsersCourseAssignmentSavepointItem
 					 pyramid.interfaces.IRequest" />
 	
+	<!-- metadata -->
 	<subscriber factory=".metadata._AssignmentMetadataDecorator"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.assessment.interfaces.IQAssignment

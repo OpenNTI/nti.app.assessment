@@ -20,6 +20,7 @@ from nti.app.products.courseware.utils import is_course_instructor
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
 from nti.assessment import grader_for_response
+
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssessedPart
 from nti.assessment.interfaces import IQAssessedQuestion
@@ -29,6 +30,9 @@ from nti.assessment.interfaces import IQPartSolutionsExternalizer
 from nti.assessment.randomized.interfaces import IQRandomizedPart
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+
+from nti.dataserver.links import Link
+from nti.dataserver.links_external import render_link
 
 from nti.dataserver.traversal import find_interface
 
@@ -179,3 +183,19 @@ class _QAssessedQuestionExplanationSolutionAdder(object):
 			else:
 				external_part['solutions'] = to_external_object(question_part.solutions)
 			external_part['explanation'] = to_external_object(question_part.explanation)
+
+
+class _QAssignmentSubmissionPendingAssessmentDecorator(AbstractAuthenticatedRequestAwareDecorator):
+	
+	def _predicate(self, context, result):
+		creator = context.creator
+		return (AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
+				and creator is not None
+				and creator == self.remoteUser)
+		
+	def _do_decorate_external(self, context, result_map ):
+		try:
+			link = Link(context)
+			result_map['href'] = render_link( link )['href']
+		except (KeyError, ValueError, AssertionError):
+			pass # Nope

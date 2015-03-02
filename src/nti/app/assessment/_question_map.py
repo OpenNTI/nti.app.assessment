@@ -142,42 +142,42 @@ class QuestionMap(object):
 	def _store_object(self, k, v):
 		pass
 
-	def __explode_assignment_to_register(self, assignment):
+	def _explode_assignment_to_register(self, assignment):
 		things_to_register = set([assignment])
 		for part in assignment.parts:
 			qset = part.question_set
-			things_to_register.update(self.__explode_object_to_register(qset))
+			things_to_register.update(self._explode_object_to_register(qset))
 		return things_to_register
 
-	def __explode_question_set_to_register(self, question_set):
+	def _explode_question_set_to_register(self, question_set):
 		things_to_register = set([question_set])
 		for child_question in question_set.questions:
 			things_to_register.add( child_question )
 		return things_to_register
 
-	def __explode_object_to_register(self, obj):
+	def _explode_object_to_register(self, obj):
 		things_to_register = set([obj])
 		if IQAssignment.providedBy(obj):
-			things_to_register.update(self.__explode_assignment_to_register(obj))
+			things_to_register.update(self._explode_assignment_to_register(obj))
 		elif IQuestionSet.providedBy(obj):
-			things_to_register.update(self.__explode_question_set_to_register(obj))
+			things_to_register.update(self._explode_question_set_to_register(obj))
 		return things_to_register
 
-	def __canonicalize_question_set(self, obj, registry):
+	def _canonicalize_question_set(self, obj, registry):
 		obj.questions = [registry.getUtility(IQuestion, name=x.ntiid)
 						 for x
 						 in obj.questions]
 
-	def __canonicalize_object(self, obj, registry):
+	def _canonicalize_object(self, obj, registry):
 		if IQAssignment.providedBy(obj):
 			for part in obj.parts:
 				ntiid = part.question_set.ntiid
 				part.question_set = registry.getUtility(IQuestionSet, name=ntiid)
-				self.__canonicalize_question_set(part.question_set, registry)
+				self._canonicalize_question_set(part.question_set, registry)
 		elif IQuestionSet.providedBy(obj):
-			self.__canonicalize_question_set(obj, registry)
+			self._canonicalize_question_set(obj, registry)
 
-	def __register_and_canonicalize(self, things_to_register, registry):
+	def _register_and_canonicalize(self, things_to_register, registry):
 
 		library = component.queryUtility(IContentPackageLibrary)
 
@@ -223,9 +223,9 @@ class QuestionMap(object):
 
 		# Now that everything is in place, we can canonicalize
 		for o in things_to_register:
-			self.__canonicalize_object(o, registry)
+			self._canonicalize_object(o, registry)
 
-	def __process_assessments( self, assessment_item_dict,
+	def _process_assessments( self, assessment_item_dict,
 							   containing_hierarchy_key,
 							   content_package,
 							   by_file,
@@ -265,7 +265,7 @@ class QuestionMap(object):
 			# first, register the question objects exactly once. Replace
 			# any question children of a question set by the registered
 			# object.
-			things_to_register = self.__explode_object_to_register(obj)
+			things_to_register = self._explode_object_to_register(obj)
 			result.update(things_to_register)
 
 			for thing_to_register in things_to_register:
@@ -289,7 +289,7 @@ class QuestionMap(object):
 
 		return result
 
-	def __from_index_entry(self, index, content_package,
+	def _from_index_entry(self, index, content_package,
 						   by_file,
 						   nearest_containing_key=None,
 						   nearest_containing_ntiid=None):
@@ -321,7 +321,7 @@ class QuestionMap(object):
 
 		level_ntiid = index.get( 'NTIID' ) or nearest_containing_ntiid
 		things_to_register = set()
-		i = self.__process_assessments( index.get( "AssessmentItems", {} ),
+		i = self._process_assessments( index.get( "AssessmentItems", {} ),
 										key_for_this_level,
 										content_package,
 										by_file,
@@ -330,7 +330,7 @@ class QuestionMap(object):
 
 		things_to_register.update(i)
 		for child_item in index.get('Items',{}).values():
-			i = self.__from_index_entry( child_item, content_package,
+			i = self._from_index_entry( child_item, content_package,
 										 by_file,
 										 nearest_containing_key=key_for_this_level,
 										 nearest_containing_ntiid=level_ntiid)
@@ -380,13 +380,13 @@ class QuestionMap(object):
 				continue
 
 			assert child_index.get( 'filename' ), 'Child must contain valid filename to contain assessments'
-			i = self.__from_index_entry( child_index, content_package,
+			i = self._from_index_entry( child_index, content_package,
 										 by_file,
 										 nearest_containing_ntiid=child_ntiid)
 			things_to_register.update(i)
 
 		# register assessment items
-		self.__register_and_canonicalize(things_to_register, registry)
+		self._register_and_canonicalize(things_to_register, registry)
 
 		# For tests and such, sort
 		for questions in by_file.values():

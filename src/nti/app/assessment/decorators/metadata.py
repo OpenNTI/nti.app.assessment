@@ -14,12 +14,13 @@ from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecora
 
 from nti.assessment.interfaces import IQTimedAssignment
 
-from nti.dataserver.links import Link
 from nti.dataserver.interfaces import IUser
-from nti.dataserver.links_external import render_link
 
 from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import IExternalMappingDecorator
+
+from nti.links.links import Link
+from nti.links.externalization import render_link
 
 from ..common import get_assessment_metadata_item
 

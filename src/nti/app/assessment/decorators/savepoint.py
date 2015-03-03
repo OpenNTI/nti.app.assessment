@@ -13,14 +13,15 @@ from zope import interface
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
-from nti.dataserver.links import Link
+from nti.assessment.interfaces import IQTimedAssignment
+
 from nti.dataserver.interfaces import IUser
-from nti.dataserver.links_external import render_link
 
 from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import IExternalMappingDecorator
 
-from nti.assessment.interfaces import IQTimedAssignment
+from nti.links.links import Link
+from nti.links.externalization import render_link
 
 from . import _get_course_from_assignment
 from . import _AbstractTraversableLinkDecorator

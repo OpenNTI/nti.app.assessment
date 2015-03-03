@@ -37,12 +37,13 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 from nti.contenttypes.courses.interfaces import ICourseInstanceVendorInfo
 
-from nti.dataserver.links import Link
-from nti.dataserver.traversal import find_interface
-
 from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.externalization import to_external_object
 from nti.externalization.interfaces import IExternalMappingDecorator
+
+from nti.links.links import Link
+
+from nti.traversal.traversal import find_interface
 
 from ..common import get_assessment_metadata_item
 

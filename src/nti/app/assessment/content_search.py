@@ -30,9 +30,10 @@ from nti.contenttypes.courses.interfaces import ICourseEnrollments
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import IEntity
-from nti.dataserver.traversal import find_interface
 
 from nti.externalization.oids import to_external_ntiid_oid
+
+from nti.traversal.traversal import find_interface
 
 from .interfaces import IUsersCourseAssignmentHistoryItem
 from .interfaces import IUsersCourseAssignmentHistoryItemFeedback

@@ -39,9 +39,6 @@ from nti.dataserver.interfaces import ALL_PERMISSIONS
 from nti.dataserver.users import User
 from nti.dataserver.interfaces import IACLProvider
 
-from nti.dataserver.traversal import find_interface
-from nti.dataserver.traversal import ContainerAdapterTraversable
-
 from nti.dataserver.authorization_acl import ace_allowing
 from nti.dataserver.authorization_acl import acl_from_aces
 
@@ -54,6 +51,9 @@ from nti.externalization.interfaces import StandardExternalFields
 
 from nti.schema.field import SchemaConfigured
 from nti.schema.fieldproperty import createDirectFieldProperties
+
+from nti.traversal.traversal import find_interface
+from nti.traversal.traversal import ContainerAdapterTraversable
 
 from nti.wref.interfaces import IWeakRef
 

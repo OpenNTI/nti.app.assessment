@@ -33,12 +33,13 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import IPrincipalEnrollments
 
 from nti.dataserver.interfaces import IUser
-from nti.dataserver.traversal import find_interface
 from nti.dataserver.users.interfaces import IWillDeleteEntityEvent
 
 from nti.externalization.externalization import to_external_object
 
 from nti.site.hostpolicy import run_job_in_all_host_sites
+
+from nti.traversal.traversal import find_interface
 
 from ._utils import find_course_for_assignment
 

@@ -36,14 +36,14 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver.interfaces import IDataserver
 
-from nti.dataserver.links import Link
-from nti.dataserver.links_external import render_link
-
-from nti.dataserver.traversal import find_interface
-
 from nti.externalization.singleton import SingletonDecorator
 from nti.externalization.externalization import to_external_object
 from nti.externalization.externalization import to_external_ntiid_oid
+
+from nti.links.links import Link
+from nti.links.externalization import render_link
+
+from nti.traversal.traversal import find_interface
 
 from ..interfaces import IUsersCourseAssignmentHistory
 from ..interfaces import IUsersCourseAssignmentHistoryItem

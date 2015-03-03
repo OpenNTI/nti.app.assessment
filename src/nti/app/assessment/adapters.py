@@ -39,7 +39,8 @@ from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver.interfaces import IUser
-from nti.dataserver.traversal import find_interface
+
+from nti.traversal.traversal import find_interface
 
 from .history import UsersCourseAssignmentHistory
 
@@ -313,7 +314,8 @@ def _histories_for_courseenrollment_path_adapter(enrollment, request):
 from zope.location.interfaces import LocationError
 
 from nti.dataserver.users import User
-from nti.dataserver.traversal import ContainerAdapterTraversable
+
+from nti.traversal.traversal import ContainerAdapterTraversable
 
 @component.adapter(IUsersCourseAssignmentHistories,IRequest)
 class _UsersCourseAssignmentHistoriesTraversable(ContainerAdapterTraversable):

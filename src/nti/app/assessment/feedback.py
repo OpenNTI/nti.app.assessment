@@ -28,7 +28,7 @@ from nti.dataserver.interfaces import ALL_PERMISSIONS
 
 from nti.dataserver.contenttypes.note import BodyFieldProperty
 
-from nti.dataserver.datastructures import ContainedMixin
+from nti.dataserver.core.mixins import ContainedMixin
 
 from nti.dublincore.datastructures import PersistentCreatedModDateTrackingObject
 

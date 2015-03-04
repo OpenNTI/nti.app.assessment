@@ -22,7 +22,7 @@ from nti.app.products.courseware.utils import is_course_instructor
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
-from nti.assessment import grader_for_response
+from nti.assessment.common import grader_for_response
 
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssessedPart

@@ -20,8 +20,6 @@ from pyramid.view import view_config
 from pyramid.view import view_defaults
 from pyramid import httpexceptions as hexc
 
-from nti.analytics.assessments import get_self_assessments_for_course
-
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
@@ -48,8 +46,6 @@ from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.ntiids.ntiids import find_object_with_ntiid
-
-from .._utils import replace_username
 
 from .._submission import course_submission_report
 
@@ -413,60 +409,3 @@ class MoveUserAssignmentsView(AbstractAuthenticatedView,
 			items[username] = sorted(moved)
 		result['Count'] = result['Total'] = len(items)
 		return result
-
-@view_config(context=IDataserverFolder)
-@view_config(context=CourseAdminPathAdapter)
-@view_defaults(	route_name='objects.generic.traversal',
-				renderer='rest',
-				permission=nauth.ACT_NTI_ADMIN,
-				request_method='GET',
-				name='CourseAssessmentsTakenCounts')
-class UserCourseAssessmentsTakenCountsView(AbstractAuthenticatedView):
-	"""
-	For a course, return a CSV with the self assessment counts
-	for each user, by assessment.
-	"""
-
-	def __call__(self):
-		params = CaseInsensitiveDict(self.request.params)
-		context = _parse_catalog_entry(params)
-		if context is None:
-			raise hexc.HTTPUnprocessableEntity("Invalid course NTIID")
-		course = ICourseInstance(context)
-
-		response = self.request.response
-		response.content_encoding = str('identity' )
-		response.content_type = str('text/csv; charset=UTF-8')
-		filename = context.ProviderUniqueID + '_self_assessment.csv'
-		response.content_disposition = str( 'attachment; filename="%s"' % filename )
-
-		stream = BytesIO()
-		writer = csv.writer(stream)
-		course_header = [ context.ProviderUniqueID ]
-		writer.writerow( course_header )
-
-		user_assessment_dict = {}
-		user_assessments = get_self_assessments_for_course( course )
-
-		for user_assessment in user_assessments:
-			assessment_dict = user_assessment_dict.setdefault( user_assessment.AssessmentId, {} )
-			username = user_assessment.user.username
-
-			prev_val = assessment_dict.setdefault( username, 0 )
-			assessment_dict[username] = prev_val + 1
-
-		for assessment_id, users_vals in user_assessment_dict.items():
-			assessment_header = [ assessment_id ]
-			writer.writerow( () )
-			writer.writerow( assessment_header )
-			writer.writerow( [ 'Username', 'Username2', 'AssessmentCount' ] )
-
-			for username, user_count in users_vals.items():
-				username2 = replace_username( username )
-				user_row = [ username, username2, user_count ]
-				writer.writerow( user_row )
-
-		stream.flush()
-		stream.seek(0)
-		response.body_file = stream
-		return response

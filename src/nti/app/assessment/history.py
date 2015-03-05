@@ -305,8 +305,9 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 		if 'Feedback' in self.__dict__:
 			yield self.Feedback
 
-from nti.dataserver.links import Link
 from nti.externalization.oids import to_external_ntiid_oid
+
+from nti.links.links import Link
 
 @interface.implementer(IUsersCourseAssignmentHistoryItemSummary,
 					   IACLProvider)

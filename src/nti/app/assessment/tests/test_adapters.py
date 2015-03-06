@@ -89,7 +89,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 						 raises(ConstraintNotSatisfied, 'parts') )
 
 	@WithSharedApplicationMockDS
-	@fudge.patch('nti.app.assessment._utils.find_course_for_assignment')
+	@fudge.patch('nti.app.assessment.adapters.get_course_from_assignment')
 	def test_before_open(self, mock_find):
 		from nti.contenttypes.courses.assignment import EmptyAssignmentDateContext
 		mock_find.is_callable().returns(EmptyAssignmentDateContext(None))
@@ -107,7 +107,6 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 				assignment = component.getUtility(asm_interfaces.IQAssignment, name=self.assignment_id)
 
 				assignment.available_for_submission_beginning = None
-
 
 	@WithSharedApplicationMockDS(users=True)
 	def test_pending(self):

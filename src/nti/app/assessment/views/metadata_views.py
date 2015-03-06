@@ -30,7 +30,7 @@ from nti.dataserver import authorization as nauth
 
 from nti.externalization.interfaces import LocatedExternalDict
 
-from .._utils import find_course_for_assignment
+from ..common import get_course_from_assignment
 
 from ..metadata import UsersCourseAssignmentMetadataItem
 
@@ -57,7 +57,7 @@ class AssignmentSubmissionMetataPostView(AbstractAuthenticatedView,
 		if not creator:
 			raise hexc.HTTPForbidden("Must be Authenticated")
 		try:
-			course = find_course_for_assignment(self.context, creator)
+			course = get_course_from_assignment(self.context, creator)
 			if course is None:
 				raise hexc.HTTPForbidden("Must be enrolled in a course.")
 		except RequiredMissing:
@@ -119,7 +119,7 @@ class AssignmentSubmissionMetadataGetView(AbstractAuthenticatedView):
 		if not creator:
 			raise hexc.HTTPForbidden("Must be Authenticated")
 		try:
-			course = find_course_for_assignment(self.context, creator)
+			course = get_course_from_assignment(self.context, creator)
 			if course is None:
 				raise hexc.HTTPForbidden("Must be enrolled in a course.")
 		except RequiredMissing:

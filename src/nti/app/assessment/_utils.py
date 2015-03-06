@@ -26,7 +26,7 @@ from nti.assessment.randomized import questionbank_question_chooser
 
 from .interfaces import ACT_DOWNLOAD_GRADES
 
-from .common import find_course_for_assignment
+from .common import get_course_from_assignment
 
 _r47694_map = None
 def r47694():
@@ -166,7 +166,7 @@ def assignment_download_precondition(context, request, remoteUser):
 	if not username:
 		return False
 	
-	course = find_course_for_assignment(context, remoteUser, exc=False)
+	course = get_course_from_assignment(context, remoteUser)
 	if course is None or not has_permission(ACT_DOWNLOAD_GRADES, course, request):
 		return False
 

@@ -28,13 +28,12 @@ from nti.assessment.interfaces import IQTimedAssignment
 
 from nti.dataserver import authorization as nauth
 
+from ..common import get_course_from_assignment
 from ..common import get_assessment_metadata_item
 
 from .._submission import get_source
 from .._submission import check_upload_files
 from .._submission import read_multipart_sources
-
-from .._utils import find_course_for_assignment
 
 from ..interfaces import IUsersCourseAssignmentMetadata
 from ..interfaces import IUsersCourseAssignmentSavepoint
@@ -63,7 +62,7 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 		if not creator:
 			raise hexc.HTTPForbidden("Must be Authenticated")
 		try:
-			course = find_course_for_assignment(self.context, creator)
+			course = get_course_from_assignment(self.context, creator)
 			if course is None:
 				raise hexc.HTTPForbidden("Must be enrolled in a course.")
 		except RequiredMissing:
@@ -113,7 +112,7 @@ class AssignmentSubmissionSavepointGetView(AbstractAuthenticatedView):
 		if not creator:
 			raise hexc.HTTPForbidden("Must be Authenticated")
 		try:
-			course = find_course_for_assignment(self.context, creator)
+			course = get_course_from_assignment(self.context, creator)
 			if course is None:
 				raise hexc.HTTPForbidden("Must be enrolled in a course.")
 		except RequiredMissing:

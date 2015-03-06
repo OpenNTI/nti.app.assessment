@@ -116,7 +116,8 @@ def _check_submission_before(dates, assignment):
 			ex.value = available_beginning
 			raise ex
 
-from ._utils import find_course_for_assignment
+from .common import get_course_from_assignment
+
 from ._submission import set_submission_lineage
 
 @component.adapter(IQAssignmentSubmission)
@@ -149,7 +150,7 @@ def _begin_assessment_for_assignment_submission(submission):
 		ex.field = IQAssignmentSubmission['parts']
 		raise ex
 
-	course = find_course_for_assignment(assignment, submission.creator)
+	course = get_course_from_assignment(assignment, submission.creator)
 
 	_check_submission_before(IQAssignmentDateContext(course), assignment)
 

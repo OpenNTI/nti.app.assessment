@@ -22,7 +22,7 @@ from nti.dataserver.utils import run_with_dataserver
 from nti.dataserver.utils.base_script import set_site
 from nti.dataserver.utils.base_script import create_context
 
-from .._utils import find_course_for_assignment
+from ..common import get_course_from_assignment
 
 from .._submission import transfer_upload_ownership
 
@@ -31,7 +31,7 @@ from ..interfaces import IUsersCourseAssignmentSavepoint
 
 def _migrator(creator, assignmentId, delete=False):
 	assignment = component.getUtility(IQAssignment, assignmentId)
-	course = find_course_for_assignment(assignment, creator)
+	course = get_course_from_assignment(assignment, creator)
 	if course is None:
 		logger.error("User not enrolled in course (invalid  assignment/creator pair?)")
 		return 

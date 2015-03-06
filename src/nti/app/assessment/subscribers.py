@@ -41,7 +41,7 @@ from nti.site.hostpolicy import run_job_in_all_host_sites
 
 from nti.traversal.traversal import find_interface
 
-from ._utils import find_course_for_assignment
+from .common import get_course_from_assignment
 
 from .interfaces import IUsersCourseAssignmentHistories
 from .interfaces import IUsersCourseAssignmentSavepoints
@@ -122,7 +122,7 @@ def prevent_note_on_assignment_part(note, event):
 
 	for asg in items:
 		if IQAssignment.providedBy(asg):
-			course = find_course_for_assignment(asg, remoteUser, exc=False)
+			course = get_course_from_assignment(asg, remoteUser)
 			if course:
 				dates = IQAssignmentDateContext(course).of(asg)
 			else:

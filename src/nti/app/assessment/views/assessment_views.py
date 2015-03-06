@@ -47,7 +47,8 @@ from .._submission import get_source
 from .._submission import read_multipart_sources
 
 from .._utils import replace_username
-from .._utils import find_course_for_assignment
+
+from ..common import get_course_from_assignment
 
 from ..interfaces import IUsersCourseAssignmentHistory
 from ..interfaces import IUsersCourseAssignmentHistoryItemFeedback
@@ -234,7 +235,7 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 			result = ICourseInstance( result, None )
 		if result is None:
 			# Ok, pick the first course we find.
-			result = find_course_for_assignment(context, self.remoteUser)
+			result = get_course_from_assignment(context, self.remoteUser, exc=True)
 		return result
 
 	@classmethod

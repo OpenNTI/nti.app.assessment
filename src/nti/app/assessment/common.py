@@ -17,6 +17,7 @@ from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.contentlibrary.interfaces import IContentPackage
 
+from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
@@ -71,6 +72,26 @@ def find_course_for_assignment(assignment, user, exc=True):
 		raise RequiredMissing("Course cannot be found")
 
 	return course
+
+def get_course_from_assignment(assignment, user=None, catalog=None, registry=component,
+							   exc=False):
+	## check if we have the context catalog entry we can use 
+	## as reference (.adapters._QProxy) this way
+	## instructor can find the correct course when they are looking
+	## at a section.
+	result = None
+	try:
+		ntiid = assignment.CatalogEntryNTIID
+		catalog = catalog if catalog is not None else registry.getUtility(ICourseCatalog)
+		entry = catalog.getCatalogEntry(ntiid) if ntiid else None
+		result = ICourseInstance(entry, None)
+	except (KeyError, AttributeError):
+		pass
+
+	## could not find a course .. try adapter
+	if result is None and user is not None:	
+		result = find_course_for_assignment(assignment, user, exc=exc)
+	return result
 
 def has_assigments_submitted(context, user):
 	course = ICourseInstance(context, None)

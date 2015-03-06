@@ -129,8 +129,8 @@ class _QuestionSubmissionDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		if question is None:
 			return # old question?
 
-		if question.parts != context.parts:
-			logger.warn("No all question parts were submitted")
+		if len(question.parts) != len(context.parts):
+			logger.warn("Not all question parts were submitted")
 
 		## CS: We need the user that submitted the question
 		## in order to unshuffle the response

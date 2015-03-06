@@ -48,7 +48,7 @@ class _AssignmentHistoryPrincipalObjects(BasePrincipalObjects):
                     if not items:
                         continue
                     result.append(items)
-                    for item in items:
+                    for item in items.values():
                         result.append(item)
                         result.append(item.Submission)
                         result.append(item.pendingAssessment)

@@ -86,8 +86,11 @@ class _AssignmentHistoryPrincipalObjects(BasePrincipalObjects):
                     continue
         return result
     
+    def _collector(self, result):
+        self._feedback_collector(result)
+        self._enrollment_collector(result)
+        
     def iter_objects(self):
         result = []
-        run_job_in_all_host_sites(partial(self._enrollment_collector, result))
-        run_job_in_all_host_sites(partial(self._feedback_collector, result))
+        run_job_in_all_host_sites(partial(self._collector, result))
         return result

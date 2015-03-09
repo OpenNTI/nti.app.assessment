@@ -11,6 +11,8 @@ logger = __import__('logging').getLogger(__name__)
 
 from zope import component
 from zope import interface
+
+from zope.securitypolicy.interfaces import Allow
 from zope.securitypolicy.interfaces import IPrincipalRoleMap
 
 from nti.contentsearch.search_hits import SearchHit
@@ -93,13 +95,13 @@ class _AssignmentFeedbackItemResolver(object):
 		return self.obj.createdTime
 
 	@classmethod
-	def get_course_rids(self, course):
+	def get_course_principals(self, course):
 		result = set()
 		role_map = IPrincipalRoleMap(course, None)
 		if role_map is not None:
 			for role in (RID_INSTRUCTOR, RID_TA):
 				settings = role_map.getPrincipalsForRole(role) or ()
-				result.update(x[0].lower() for x in settings)
+				result.update(x[0].lower() for x in settings if x[1] == Allow)
 		return result
 
 	@property
@@ -109,7 +111,7 @@ class _AssignmentFeedbackItemResolver(object):
 		if creator: # check just in case
 			result.add(self.creator.lower())
 		course = find_interface(self.obj, ICourseInstance, strict=False)
-		result.update(self.get_course_rids(course))
+		result.update(self.get_course_principals(course))
 		return list(result) if result else None
 
 @interface.implementer(IAssignmentFeedbackItemSearchHit)

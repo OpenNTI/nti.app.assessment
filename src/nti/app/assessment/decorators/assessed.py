@@ -12,9 +12,6 @@ logger = __import__('logging').getLogger(__name__)
 import numbers
 
 from zope import component
-from zope import interface
-
-from zope.location.interfaces import ILocation
 
 from nti.app.authentication import get_remote_user
 
@@ -34,19 +31,18 @@ from nti.assessment.randomized.interfaces import IQRandomizedPart
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
-from nti.dataserver.interfaces import IDataserver
-
 from nti.externalization.singleton import SingletonDecorator
+from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.externalization import to_external_object
-from nti.externalization.externalization import to_external_ntiid_oid
 
 from nti.links.links import Link
-from nti.links.externalization import render_link
 
 from nti.traversal.traversal import find_interface
 
 from ..interfaces import IUsersCourseAssignmentHistory
 from ..interfaces import IUsersCourseAssignmentHistoryItem
+
+LINKS = StandardExternalFields.LINKS
 
 def _question_from_context(context, questionId):
 	item = find_interface(context, IUsersCourseAssignmentHistoryItem, strict=False)
@@ -190,7 +186,6 @@ class _QAssessedQuestionExplanationSolutionAdder(object):
 				external_part['solutions'] = to_external_object(question_part.solutions)
 			external_part['explanation'] = to_external_object(question_part.explanation)
 
-
 class _QAssignmentSubmissionPendingAssessmentDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	
 	def _predicate(self, context, result):
@@ -200,13 +195,7 @@ class _QAssignmentSubmissionPendingAssessmentDecorator(AbstractAuthenticatedRequ
 				and creator == self.remoteUser)
 		
 	def _do_decorate_external(self, context, result_map ):
-		if 'href' in result_map:
-			return
-		
-		ntiid = to_external_ntiid_oid(context)
-		root_site = component.getUtility( IDataserver ).root
-		link = Link( root_site, elements=('Objects', ntiid) )
-		link.__name__ = ''
-		link.__parent__ =  None
-		interface.alsoProvides( link, ILocation )
-		result_map['href'] = render_link( link, nearest_site=root_site)['href']
+		item = find_interface(context, IUsersCourseAssignmentHistoryItem, strict=False)
+		if item is not None:
+			links = result_map.setdefault( LINKS, [] )
+			links.append( Link( item, rel='AssignmentHistoryItem'))

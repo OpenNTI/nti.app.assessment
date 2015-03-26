@@ -36,7 +36,7 @@ from nti.assessment._question_index import QuestionIndex
 from nti.assessment._question_index import _ntiid_object_hook
 from nti.assessment._question_index import _load_question_map_json
 
-from nti.assessment._util import iface_of_assessment as _iface_to_register
+from nti.assessment.common import iface_of_assessment as _iface_to_register
 
 from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.interfaces import IContentPackage

@@ -22,6 +22,9 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssignmentSubmission
 from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 
+from nti.assessment.interfaces import IQSurvey
+from nti.assessment.interfaces import IQSurveySubmission
+
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import ICreated
 from nti.dataserver.interfaces import ILastViewed
@@ -353,3 +356,77 @@ class IUsersCourseAssignmentMetadataItem(interface.Interface):
 
 	StartTime = Float(title="Assignment Start time", required=False)
 	Duration = Float(title="Assignment Duration", required=False)
+
+class IUsersCourseSurveys(IContainer,
+						  IContained,
+						  IShouldHaveTraversablePath):
+	"""
+	A container for all the survey in a course, keyed by username.
+	"""
+	contains(str('.IUsersCourseSurvey'))
+
+class IUsersCourseSurvey(IContainer,
+						 ILastViewed,
+						 IContained,
+						 IShouldHaveTraversablePath):
+	"""
+	A :class:`IContainer`-like object that stores the history of
+	survey for a particular user in a course. The keys of this
+	object are :class:`IQSurvey` IDs (this class may or may not
+	enforce that the survey ID is actually scoped to the course it
+	is registered for). The values are instances of
+	:class:`.IUsersCourseSurveyItem`.
+
+	Implementations of this object are typically found as a
+	multi-adapter between a particular :class:`.ICourseInstance` and
+	an :class:`.IUser`. Their ``__parent__`` will be the course
+	instance; therefore, items stored in this object will have the
+	course they were assigned by in their lineage.
+
+	This object claims storage and ownership of the objects given to it through
+	:meth:`recordSubmission`. Lifecycle events will be emitted for
+	the creation of the :class:`IUsersCourseSurveyItem`
+	"""
+
+	contains(str('.IUsersCourseSurveyItem'))
+	containers(IUsersCourseSurveys)
+	__setitem__.__doc__ = None
+
+	owner = Object(IUser, required=False, title="The user this survey is for.")
+	owner.setTaggedValue('_ext_excluded_out', True)
+
+	Items = Dict(title='For externalization only, a copy of the items',
+			 	 readonly=True)
+
+	def recordSubmission( submission ):
+		"""
+		When a user submits a survey, call this method to record
+		that fact. If a submission has already been recorded, this will
+		raise the standard container error, so use ``in`` first of that's
+		a problem.
+
+		:param submission: The original :class:`.IQSurveySubmission`
+			the user provided. We will become part of the lineage
+			of this object and all its children objects (they will
+			be set to the correct __parent__ relationship within the part/question
+			structure).
+		:return: The new :class:`.IUsersCourseSurveyItem` representing
+			the record of this submission.
+		"""
+
+class IUsersCourseSurveyItem(IContained,
+						  	 ILastModified,
+							 ICreated,
+							 IShouldHaveTraversablePath):
+	"""
+	A record of something being submitted for an survey.
+	"""
+	containers(IUsersCourseSurvey)
+	__parent__.required = False
+
+	# Recall that the implementation of SurveySubmission is NOT Persistent.
+	Submission = Object(IQSurveySubmission, required=False)
+
+	Survey = Object(IQSurvey, title="The survey that generated this item",
+					required=False)
+	Survey.setTaggedValue('_ext_excluded_out', True)

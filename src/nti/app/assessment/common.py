@@ -12,6 +12,7 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope.schema.interfaces import RequiredMissing
 
+from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
@@ -27,6 +28,34 @@ from .interfaces import IUsersCourseAssignmentHistory
 from .interfaces import IUsersCourseAssignmentMetadata
 
 from .assignment_filters import AssignmentPolicyExclusionFilter
+
+## assessment
+
+from zope.proxy import ProxyBase
+
+class AssessmentItemProxy(ProxyBase):
+	
+	ContentUnitNTIID = property(
+					lambda s: s.__dict__.get('_v_content_unit'),
+					lambda s, v: s.__dict__.__setitem__('_v_content_unit', v))
+	
+	CatalogEntryNTIID = property(
+					lambda s: s.__dict__.get('_v_catalog_entry'),
+					lambda s, v: s.__dict__.__setitem__('_v_catalog_entry', v))
+		
+	def __new__(cls, base, *args, **kwargs):
+		return ProxyBase.__new__(cls, base)
+
+	def __init__(self, base, content_unit=None, catalog_entry=None):
+		ProxyBase.__init__(self, base)
+		self.ContentUnitNTIID = content_unit
+		self.CatalogEntryNTIID = catalog_entry
+
+def proxy(item, content_unit=None, catalog_entry=None):
+	item = item if type(item) == AssessmentItemProxy else AssessmentItemProxy(item)
+	item.ContentUnitNTIID = content_unit or item.ContentUnitNTIID 
+	item.CatalogEntryNTIID = catalog_entry or item.CatalogEntryNTIID 
+	return item	
 
 def same_content_unit_file(unit1, unit2):
 	try:
@@ -52,6 +81,49 @@ def get_assessment_items_from_unit(contentUnit):
 	recur(contentUnit, result )
 	return result
 
+def get_course_packages(context):
+	context = ICourseInstance(context)
+	# We have now a specific interface for courses that
+	# are tied to content: IContentCourseInstance; they have
+	# the ContentBundle attribute.
+	# However, we still have the LegacyCommunityBasedCourseInstances
+	# to deal with that have one content package; it's easiest
+	# to support both types in one single place.
+	packages = ()
+	try:
+		packages = context.ContentPackageBundle.ContentPackages
+	except AttributeError:
+		# Ok, the old legacy case
+		packages = (context.legacy_content_package,)
+	return packages
+
+def get_content_packages_assessment_items(package):
+	result = []
+	def _recur(unit):
+		items = IQAssessmentItemContainer(unit, ())
+		for item in items:
+			item = proxy(item, content_unit=unit.ntiid)
+			result.append(item)
+		for child in unit.children:
+			_recur(child)
+	_recur(package)
+	# On py3.3, can easily 'yield from' nested generators
+	return result
+
+def get_course_assessment_items(context):
+	packages = get_course_packages(context)
+	assessments = None if len(packages) <= 1 else list()
+	for package in packages:
+		# Assesments should be proxied
+		iterable = get_content_packages_assessment_items(package)
+		if assessments is None:
+			assessments = iterable
+		else:
+			assessments.extend(iterable)			
+	return assessments
+
+## assignment
+
 def find_course_for_assignment(assignment, user, exc=True):
 	# Check that they're enrolled in the course that has the assignment
 	course = component.queryMultiAdapter( (assignment, user),
@@ -76,9 +148,8 @@ def find_course_for_assignment(assignment, user, exc=True):
 def get_course_from_assignment(assignment, user=None, catalog=None, registry=component,
 							   exc=False):
 	## check if we have the context catalog entry we can use 
-	## as reference (.adapters._QProxy) this way
-	## instructor can find the correct course when they are looking
-	## at a section.
+	## as reference (.AssessmentItemProxy) this way
+	## instructor can find the correct course when they are looking at a section.
 	result = None
 	try:
 		ntiid = assignment.CatalogEntryNTIID
@@ -122,74 +193,6 @@ def assignment_comparator(a, b):
 		return -1 if a_begin < b_begin else 1
 	return 0
 
-from zope.proxy import ProxyBase
-
-class AssessmentItemProxy(ProxyBase):
-	
-	ContentUnitNTIID = property(
-					lambda s: s.__dict__.get('_v_content_unit'),
-					lambda s, v: s.__dict__.__setitem__('_v_content_unit', v))
-	
-	CatalogEntryNTIID = property(
-					lambda s: s.__dict__.get('_v_catalog_entry'),
-					lambda s, v: s.__dict__.__setitem__('_v_catalog_entry', v))
-		
-	def __new__(cls, base, *args, **kwargs):
-		return ProxyBase.__new__(cls, base)
-
-	def __init__(self, base, content_unit=None, catalog_entry=None):
-		ProxyBase.__init__(self, base)
-		self.ContentUnitNTIID = content_unit
-		self.CatalogEntryNTIID = catalog_entry
-
-def proxy(item, content_unit=None, catalog_entry=None):
-	item = item if type(item) == AssessmentItemProxy else AssessmentItemProxy(item)
-	item.ContentUnitNTIID = content_unit or item.ContentUnitNTIID 
-	item.CatalogEntryNTIID = catalog_entry or item.CatalogEntryNTIID 
-	return item	
-
-def get_course_packages(context):
-	context = ICourseInstance(context)
-	# We have now a specific interface for courses that
-	# are tied to content: IContentCourseInstance; they have
-	# the ContentBundle attribut.
-	# However, we still have the LegacyCommunityBasedCourseInstances
-	# to deal with that have one content package; it's easiest
-	# to support both types in one single place.
-	# TODO: Date overrides
-	packages = ()
-	try:
-		packages = context.ContentPackageBundle.ContentPackages
-	except AttributeError:
-		# Ok, the old legacy case
-		packages = (context.legacy_content_package,)
-	return packages
-
-def get_content_packages_assessment_items(package):
-	result = []
-	def _recur(unit):
-		items = IQAssessmentItemContainer(unit, ())
-		for item in items:
-			item = proxy(item, content_unit=unit.ntiid)
-			result.append(item)
-		for child in unit.children:
-			_recur(child)
-	_recur(package)
-	# On py3.3, can easily 'yield from' nested generators
-	return result
-
-def get_course_assessment_items(context):
-	packages = get_course_packages(context)
-	assessments = None if len(packages) <= 1 else list()
-	for package in packages:
-		# Assesments should be proxied
-		iterable = get_content_packages_assessment_items(package)
-		if assessments is None:
-			assessments = iterable
-		else:
-			assessments.extend(iterable)			
-	return assessments
-
 def get_course_assignments(context, sort=True, reverse=False, do_filtering=True):
 	items = get_course_assessment_items(context)
 	ntiid = getattr(ICourseCatalogEntry(context, None), 'ntiid', None)
@@ -206,3 +209,35 @@ def get_course_assignments(context, sort=True, reverse=False, do_filtering=True)
 	if sort:
 		assignments = sorted(assignments, cmp=assignment_comparator, reverse=reverse)
 	return assignments
+
+## surveys
+
+def find_course_for_survey(survey, user, exc=True):
+	# Check that they're enrolled in the course that has the survey
+	course = component.queryMultiAdapter( (survey, user), ICourseInstance)
+	if course is None and exc:
+		raise RequiredMissing("Course cannot be found")
+	return course
+
+def get_course_from_survey(survey, user=None, catalog=None, registry=component, exc=False):
+	## check if we have the context catalog entry we can use 
+	## as reference (.AssessmentItemProxy)
+	result = None
+	try:
+		ntiid = survey.CatalogEntryNTIID
+		catalog = catalog if catalog is not None else registry.getUtility(ICourseCatalog)
+		entry = catalog.getCatalogEntry(ntiid) if ntiid else None
+		result = ICourseInstance(entry, None)
+	except (KeyError, AttributeError):
+		pass
+
+	## could not find a course .. try adapter
+	if result is None and user is not None:	
+		result = find_course_for_assignment(survey, user, exc=exc)
+	return result
+
+def get_course_surveys(context, sort=True, reverse=False):
+	items = get_course_assessment_items(context)
+	ntiid = getattr(ICourseCatalogEntry(context, None), 'ntiid', None)
+	surveys = [proxy(x, catalog_entry=ntiid) for x in items if IQSurvey.providedBy(x)]
+	return surveys

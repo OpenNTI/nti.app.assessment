@@ -11,13 +11,15 @@ logger = __import__('logging').getLogger(__name__)
 
 from zope import component
 from zope import interface
+from zope import lifecycleevent
 
 from zope.annotation.interfaces import IAnnotations
 
 from zope.container.contained import Contained
 
-from zope import lifecycleevent
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
+
+from zope.security.interfaces import IPrincipal
 
 from zope.location.location import locate
 from zope.location.interfaces import LocationError
@@ -32,7 +34,12 @@ from nti.assessment.interfaces import IQSurvey
 from nti.common.property import alias
 from nti.common.property import readproperty
 
+from nti.contentlibrary.interfaces import IContentPackage
+
+from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ICourseEnrollments
+from nti.contenttypes.courses.interfaces import IPrincipalEnrollments
 
 from nti.dataserver.users import User
 
@@ -55,6 +62,7 @@ from nti.externalization.interfaces import StandardExternalFields
 from nti.schema.field import SchemaConfigured
 from nti.schema.fieldproperty import createDirectFieldProperties
 
+from nti.traversal.traversal import find_interface
 from nti.traversal.traversal import ContainerAdapterTraversable
 
 from nti.wref.interfaces import IWeakRef
@@ -255,3 +263,47 @@ class _UsersCourseSurveysTraversable(ContainerAdapterTraversable):
 @component.adapter(ICourseInstance, IObjectAddedEvent)
 def _on_course_added(course, event):
 	_surveys_for_course(course)
+
+@interface.implementer(ICourseInstance)
+@component.adapter(IQSurvey, IUser)
+def _course_from_survey_lineage(survey, user):
+	"""
+	Given a generic survey and a user, we attempt to associate the survey with the most
+	specific course instance relevant for the user.
+
+	In more sophisticated cases involving sections, the assumption that a course instance 
+	is one-to-one with a contentpackage is broken. In that case, it's better to try to 
+	look through the things the user is enrolled in and try to match the content
+	package to the first course.
+	"""
+
+	package = find_interface(survey, IContentPackage, strict=False)
+	if package is None:
+		return None
+
+	catalog = component.queryUtility(ICourseCatalog)
+	if catalog is None:
+		return
+
+	prin = IPrincipal(user)
+	for entry in catalog.iterCatalogEntries():
+		course = ICourseInstance(entry)
+		if package in course.ContentPackageBundle.ContentPackages:
+			## Ok, found one. Are we enrolled or an instructor?
+			if prin in course.instructors:
+				return course
+			
+			enrollments = ICourseEnrollments(course)
+			if enrollments.get_enrollment_for_principal(user) is not None:
+				return course
+
+	## No current course matches. Fall back and check all your enrollments.
+	for enrollments in component.subscribers( (user,), IPrincipalEnrollments):
+		for enrollment in enrollments.iter_enrollments():
+			course = ICourseInstance(enrollment)
+			if package in course.ContentPackageBundle.ContentPackages:
+				return course
+
+			enrollments = ICourseEnrollments(course)
+			if ICourseEnrollments(course).get_enrollment_for_principal(user) is not None:
+				return course

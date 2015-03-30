@@ -277,4 +277,28 @@
 		<subscriber	factory=".predicates._AssignmentHistoryPrincipalObjects"
 					provides="nti.dataserver.interfaces.IPrincipalMetadataObjects" />
 	</configure>
+	
+	<!-- Surveys -->
+	<adapter factory=".survey._surveys_for_course_path_adapter"
+			 for="nti.contenttypes.courses.interfaces.ICourseInstance pyramid.interfaces.IRequest"
+			 provides="zope.traversing.interfaces.IPathAdapter"
+			 name="Surveys" />
+
+	<adapter factory=".survey._surveys_for_courseenrollment_path_adapter"
+			 for="nti.app.products.courseware.interfaces.ICourseInstanceEnrollment pyramid.interfaces.IRequest"
+			 provides="zope.traversing.interfaces.IPathAdapter"
+			 name="Surveys" />
+
+	<adapter factory=".survey._surveys_for_course" />
+	<adapter factory=".survey._survey_for_user_in_course" />
+	<adapter factory=".survey._course_from_surveyitem_lineage" />
+	<adapter factory=".survey._UsersCourseSurveysTraversable" />
+
+	<subscriber handler=".survey._on_course_added" />
+
+	<ext:registerAutoPackageIO
+		root_interfaces=".interfaces.IUsersCourseSurvey
+						 .interfaces.IUsersCourseSurveyItem"
+		modules=".survey" />
+
 </configure>

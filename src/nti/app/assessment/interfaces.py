@@ -235,7 +235,6 @@ class IUsersCourseAssignmentHistoryItemSummary(IContained,
 								   description="Typically set automatically by the object.",
 								   default=0.0)
 
-
 class IUsersCourseAssignmentHistoryItemFeedback(IContained,
 												IModeledContent,
 												ITitledContent,
@@ -398,7 +397,7 @@ class IUsersCourseSurvey(IContainer,
 	Items = Dict(title='For externalization only, a copy of the items',
 			 	 readonly=True)
 
-	def recordSubmission( submission ):
+	def recordSubmission( submission, event=False ):
 		"""
 		When a user submits a survey, call this method to record
 		that fact. If a submission has already been recorded, this will
@@ -410,8 +409,18 @@ class IUsersCourseSurvey(IContainer,
 			of this object and all its children objects (they will
 			be set to the correct __parent__ relationship within the part/question
 			structure).
+		:param event: Flag to avoid sending an add/modified event
+		
 		:return: The new :class:`.IUsersCourseSurveyItem` representing
 			the record of this submission.
+		"""
+
+	def removeSubmission(self, submission, event=False):
+		"""
+		remove a submission
+		
+		:param submission: The :class:`.IQSurveySubmission` to remove
+		:param event: Flag to avoid sending a removal/modified event
 		"""
 
 class IUsersCourseSurveyItem(IContained,

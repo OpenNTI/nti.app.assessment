@@ -365,7 +365,6 @@ class IUsersCourseSurveys(IContainer,
 	contains(str('.IUsersCourseSurvey'))
 
 class IUsersCourseSurvey(IContainer,
-						 ILastViewed,
 						 IContained,
 						 IShouldHaveTraversablePath):
 	"""
@@ -415,7 +414,7 @@ class IUsersCourseSurvey(IContainer,
 			the record of this submission.
 		"""
 
-	def removeSubmission(self, submission, event=False):
+	def removeSubmission(submission, event=False):
 		"""
 		remove a submission
 		

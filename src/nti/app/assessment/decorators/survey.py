@@ -50,7 +50,6 @@ class _SurveyPollContentRootURLAdder(AbstractAuthenticatedRequestAwareDecorator)
 		if bucket_root:
 			result['ContentRoot' ] = bucket_root
 
-
 @interface.implementer(IExternalMappingDecorator)
 class _SurveysDecorator(_AbstractTraversableLinkDecorator):
 

@@ -160,21 +160,28 @@ def read_multipart_sources(submission, request):
 					sub_part.filename = nameFinder(source)
 	return submission
 
+def _set_parent_(child, parent):
+	if hasattr(child, '__parent__') and child.__parent__ is None:
+		child.__parent__ = parent
+			
 def set_submission_lineage(submission):
 	## The constituent parts of these things need parents as well.
 	## XXX It would be nice if externalization took care of this,
 	## but that would be a bigger change
-	def _set_parent(child, parent):
-		if hasattr(child, '__parent__') and child.__parent__ is None:
-			child.__parent__ = parent
-
 	for submission_set in submission.parts:
 		# submission_part e.g. assessed question set
-		_set_parent(submission_set, submission)
+		_set_parent_(submission_set, submission)
 		for submitted_question in submission_set.questions:
-			_set_parent(submitted_question, submission_set)
+			_set_parent_(submitted_question, submission_set)
 			for submitted_question_part in submitted_question.parts:
-				_set_parent(submitted_question_part, submitted_question)
+				_set_parent_(submitted_question_part, submitted_question)
+	return submission
+
+def set_survey_submission_lineage(submission):
+	for submitted_question in submission.questions:
+		_set_parent_(submitted_question, submission)
+		for submitted_question_part in submitted_question.parts:
+			_set_parent_(submitted_question_part, submitted_question)
 	return submission
 
 def transfer_upload_ownership(submission, old_submission, force=False):

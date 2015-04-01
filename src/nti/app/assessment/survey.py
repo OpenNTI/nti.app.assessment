@@ -67,7 +67,7 @@ from nti.traversal.traversal import ContainerAdapterTraversable
 
 from nti.wref.interfaces import IWeakRef
 
-from ._submission import set_submission_lineage
+from ._submission import set_survey_submission_lineage
 
 from .interfaces import IUsersCourseSurvey
 from .interfaces import IUsersCourseSurveys
@@ -107,7 +107,7 @@ class UsersCourseSurvey(CheckingLastModifiedBTreeContainer):
 		
 		item = UsersCourseSurveyItem(Submission=submission)
 		submission.__parent__ = item
-		set_submission_lineage(submission)
+		set_survey_submission_lineage(submission)
 		
 		# check for removal
 		self.removeSubmission(submission, event=event)

@@ -14,6 +14,8 @@ logger = __import__('logging').getLogger(__name__)
 from zope import interface
 from zope import component
 
+from nti.assessment.interfaces import IQPoll
+from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
@@ -30,7 +32,7 @@ class _AssessmentResolver(object):
 	"""
 
 	def resolve( self, key ):
-		for iface in (IQuestion,IQuestionSet,IQAssignment):
+		for iface in (IQuestion, IQuestionSet, IQAssignment, IQPoll, IQSurvey):
 			result = component.queryUtility(iface, name=key)
 			if result is not None:
 				break

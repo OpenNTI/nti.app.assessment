@@ -200,7 +200,12 @@
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="..interfaces.IUsersCourseAssignmentMetadataItem
 					 pyramid.interfaces.IRequest" />
-					 
+				
+	<subscriber factory=".lineage._ContextCatalogEntryDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="..interfaces.IUsersCourseSurveyItem
+					 pyramid.interfaces.IRequest" />
+	 
 	<!-- hrefs -->
 	<!-- NOTE: This is the general implementation; could be better -->
 	<!-- NOTE 2: We must produce OID hrefs for these, not traversal,

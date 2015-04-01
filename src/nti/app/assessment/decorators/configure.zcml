@@ -164,6 +164,12 @@
 				for="..interfaces.IUsersCourseAssignmentMetadataItem
 					 pyramid.interfaces.IRequest" />
 
+	<!-- survey -->
+	<subscriber factory=".survey._SurveyPollContentRootURLAdder"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator"
+				for="nti.assessment.interfaces.IQPoll
+					 pyramid.interfaces.IRequest" />
+					 
 	<!-- lineage -->
 	<subscriber factory=".lineage._ContextCatalogEntryDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"

@@ -27,10 +27,7 @@ from nti.assessment.interfaces import IQAssignmentDateContext
 
 from nti.common.property import Lazy
 
-from nti.contentlibrary.externalization import root_url_of_unit
-
 from nti.contentlibrary.interfaces import IContentUnit
-from nti.contentlibrary.interfaces import IContentPackageLibrary
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -51,6 +48,7 @@ from .._utils import assignment_download_precondition
 
 from ..interfaces import ACT_VIEW_SOLUTIONS
 
+from . import _root_url
 from . import _get_course_from_assignment
 from . import _AbstractTraversableLinkDecorator
 
@@ -184,18 +182,6 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			result['Metadata'] = {'Duration': item.Duration,
 								  'StartTime': item.StartTime}
 
-
-def _root_url(ntiid):
-	library = component.queryUtility(IContentPackageLibrary)
-	if ntiid and library is not None:
-		paths = library.pathToNTIID(ntiid)
-		package = paths[0] if paths else None
-		try:
-			result = root_url_of_unit(package) if package is not None else None
-			return result
-		except StandardError:
-			pass
-	return None
 
 class _AssignmentQuestionContentRootURLAdder(AbstractAuthenticatedRequestAwareDecorator):
 	"""

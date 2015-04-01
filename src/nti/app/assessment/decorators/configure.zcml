@@ -170,6 +170,16 @@
 				for="nti.assessment.interfaces.IQPoll
 					 pyramid.interfaces.IRequest" />
 					 
+	<subscriber factory=".survey._SurveysDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="nti.contenttypes.courses.interfaces.ICourseInstance
+					 pyramid.interfaces.IRequest" />
+
+	<subscriber factory=".survey._SurveysDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="nti.app.products.courseware.interfaces.ICourseInstanceEnrollment
+					 pyramid.interfaces.IRequest" />
+					 
 	<!-- lineage -->
 	<subscriber factory=".lineage._ContextCatalogEntryDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"

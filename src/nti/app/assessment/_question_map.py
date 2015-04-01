@@ -51,6 +51,8 @@ from nti.externalization.persistence import NoPickle
 from nti.externalization.internalization import find_factory_for
 from nti.externalization.internalization import update_from_external_object
 
+from nti.site.interfaces import IHostPolicySiteManager
+
 from .common import get_content_packages_assessment_items
 
 @interface.implementer(IQAssessmentItemContainer, IZContained, IReadSequence)
@@ -116,6 +118,18 @@ class QuestionMap(QuestionIndex):
 	def _store_object(self, k, v):
 		pass
 
+	def _registry_utility(self, registry, component, provided, name, event=False):
+		if IHostPolicySiteManager.providedBy(registry):
+			registry.subscribedRegisterUtility( component,
+									  			provided=provided,
+									  			name=name,
+									  			event=event)
+		else:
+			registry.registerUtility( component,
+									  provided=provided,
+									  name=name,
+									  event=event)
+		
 	def _register_and_canonicalize(self, things_to_register, registry=None):
 
 		library = component.queryUtility(IContentPackageLibrary)
@@ -163,6 +177,7 @@ class QuestionMap(QuestionIndex):
 			__traceback_info__ = k, v
 			factory = find_factory_for( v )
 			assert factory is not None
+			
 			obj = factory()
 			update_from_external_object(obj, v, require_updater=True,
 										notify=False,
@@ -367,6 +382,16 @@ def add_assessment_items_from_new_content(content_package, event, key=None):
 		result = _add_assessment_items_from_new_content(content_package, key)
 	return result or set()
 
+def _unregisterUtility(registry, component, provided, name):
+	if IHostPolicySiteManager.providedBy(registry):
+		return registry.subscribedUnregisterUtility(component=component,
+													provided=provided,
+													name=name)
+	else:
+		return registry.unregisterUtility(component=component, 
+										  provided=provided, 
+										  name=name)
+
 def _remove_assessment_items_from_oldcontent(content_package):
 	# Unregister the things from the component registry.
 	# We SHOULD be run in the registry where the library item was initially
@@ -383,11 +408,10 @@ def _remove_assessment_items_from_oldcontent(content_package):
 	def _unregister(unit):
 		items = IQAssessmentItemContainer(unit)
 		for item in items:
-			# TODO: Check the parent? If it's an IContentUnit, only
-			# unregister if it's us?
+			# TODO: Check the parent? If it's an IContentUnit, onlyunregister if it's us?
 			name = item.ntiid
 			provided = _iface_to_register(item)
-			sm.unregisterUtility( item, provided=provided, name=name )
+			_unregisterUtility(sm, item, provided=provided, name=name )
 			result[name] = provided
 
 			# a bit of logging

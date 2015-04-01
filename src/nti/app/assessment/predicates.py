@@ -27,6 +27,7 @@ from nti.metadata.predicates import BasePrincipalObjects
  
 from nti.site.hostpolicy import run_job_in_all_host_sites
 
+from .interfaces import IUsersCourseSurvey
 from .interfaces import IUsersCourseAssignmentHistory
 
 @component.adapter(IUser)
@@ -37,7 +38,7 @@ class _AssignmentHistoryPrincipalObjects(BasePrincipalObjects):
             if x.creator == creator:
                 yield x
 
-    def _enrollment_collector(self, result):
+    def _history_collector(self, result):
         user = self.user
         for enrollments in component.subscribers( (user,), IPrincipalEnrollments):
             for enrollment in enrollments.iter_enrollments():
@@ -88,9 +89,35 @@ class _AssignmentHistoryPrincipalObjects(BasePrincipalObjects):
     
     def _collector(self, result):
         self._feedback_collector(result)
-        self._enrollment_collector(result)
+        self._history_collector(result)
         
     def iter_objects(self):
         result = []
         run_job_in_all_host_sites(partial(self._collector, result))
+        return result
+
+@component.adapter(IUser)
+class _SurveyPrincipalObjects(BasePrincipalObjects):
+
+    def _item_collector(self, result):
+        user = self.user
+        for enrollments in component.subscribers( (user,), IPrincipalEnrollments):
+            for enrollment in enrollments.iter_enrollments():
+                try:
+                    course = ICourseInstance(enrollment, None)
+                    items = component.queryMultiAdapter( (course, user),
+                                                          IUsersCourseSurvey)
+                    if not items:
+                        continue
+                    result.append(items)
+                    for item in items.values():
+                        result.append(item)
+                        result.append(item.Submission)
+                except (TypeError, POSError):
+                    continue
+        return result
+        
+    def iter_objects(self):
+        result = []
+        run_job_in_all_host_sites(partial(self._item_collector, result))
         return result

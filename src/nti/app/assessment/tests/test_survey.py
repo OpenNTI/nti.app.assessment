@@ -175,7 +175,8 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 	
 		enrollment_surveys_link = self.require_link_href_with_rel(res.json_body, 'Surveys')
 		course_surveys_link = self.require_link_href_with_rel( res.json_body['CourseInstance'], 'Surveys')
-			
+		course_instance_link = res.json_body['CourseInstance']['href']
+		
 		assert_that( enrollment_surveys_link,
 					 is_('/dataserver2/users/' + 
 						 self.default_username +
@@ -220,3 +221,8 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		# we cannnot delete
 		self.testapp.delete(survey_item_href, status=403)
 		self.testapp.get(survey_item_href, status=200)
+		
+		instructor_environ = self._make_extra_environ(username='harp4162')
+		activity_link = course_instance_link + '/CourseActivity'
+		res = self.testapp.get(activity_link, extra_environ=instructor_environ)
+		assert_that( res.json_body, has_entry('TotalItemCount', 1) )

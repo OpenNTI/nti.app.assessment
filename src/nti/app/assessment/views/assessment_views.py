@@ -33,6 +33,7 @@ from nti.app.contentlibrary.library_views import find_page_info_view_helper
 
 from nti.app.products.courseware.interfaces import ICourseInstanceEnrollment
 
+from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
@@ -379,7 +380,6 @@ class AsssignmentHistoryItemFeedbackPostView(AbstractAuthenticatedView,
 		self.request.response.location = self.request.resource_url( creator,
 																	'Objects',
 																	to_external_oid( feedback ) )
-
 		return feedback
 
 from nti.appserver.ugd_edit_views import UGDDeleteView
@@ -450,7 +450,6 @@ class AssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
 			# content unit
 			unit = asg.__parent__
 			result.setdefault(unit.ntiid, []).append(asg)
-
 		return result
 
 @view_config(context=ICourseInstance)
@@ -483,8 +482,6 @@ class NonAssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
 		# the question sets that they refer to if they are not allowed
 		# by the filter; we assume such sets are only used by the
 		# assignment.
-		# XXX FIXME not right. See also decorators.py
-		# which does this for page info
 
 		result = LocatedExternalDict()
 		result.__name__ = self.request.view_name
@@ -499,9 +496,11 @@ class NonAssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
 					qsids_to_strip.add(question_set.ntiid)
 					for question in question_set.questions:
 						qsids_to_strip.add(question.ntiid)
+			elif IQSurvey.providedBy(item):
+				for poll in item.questions:
+					qsids_to_strip.add(poll.ntiid)
 			else:
-				# The assignment's __parent__ is always the 'home'
-				# content unit
+				# The assessment's __parent__ is always the 'home' content unit
 				unit = item.__parent__
 				result.setdefault(unit.ntiid, []).append(item)
 
@@ -510,5 +509,4 @@ class NonAssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
 			for item in list(items):
 				if item.ntiid in qsids_to_strip:
 					items.remove(item)
-
 		return result

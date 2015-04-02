@@ -73,7 +73,38 @@ ASSM_ITEMS = {
 							   'explanation': '',
 							   'hints': [],
 							   'solutions': [{'Class': 'LatexSymbolicMathSolution', 'MimeType': 'application/vnd.nextthought.assessment.mathsolution',
-											  'value': 'Some solution', 'weight': 1.0}]}]}]}
+											  'value': 'Some solution', 'weight': 1.0}]}]}]},
+	'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testpoll':
+	{'Class': 'Poll',
+	 'MimeType': 'application/vnd.nextthought.napoll',
+	 'NTIID': 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.napoll',
+	 'content': '<a name="testquestion"></a> Arbitrary content goes here.',
+	 'parts': [{'Class': 'MultipleChoicePart',
+				'MimeType': 'application/vnd.nextthought.assessment.nongradablemultiplechoicepart',
+				'content': 'Arbitrary content goes here.',
+				"choices": [
+					"<a name=\"1e5cd4b70d0ca146665b0073e3512f12\" ></a>\n\n<p class=\"par\" id=\"1e5cd4b70d0ca146665b0073e3512f12\">Distributive </p>",
+					"<a name=\"82a183f5bbcaf7607f1e0fb56399a565\" ></a>\n\n<p class=\"par\" id=\"82a183f5bbcaf7607f1e0fb56399a565\">Corrective </p>",
+					"<a name=\"d7140284ac92d169d24484726d8a2f10\" ></a>\n\n<p class=\"par\" id=\"d7140284ac92d169d24484726d8a2f10\">Transactional </p>"
+				],
+				'hints': [] }]},
+	'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.survey.testsurvey':
+	{'Class': 'Survey',
+	 'MimeType': 'application/vnd.nextthought.nasurvey',
+	 'NTIID': 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.set.testset',
+	 'questions': [{'Class': 'Poll',
+					'MimeType': 'application/vnd.nextthought.napoll',
+					'NTIID': 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.napoll',
+					'content': '<a name="testquestion">Arbitrary content goes here.',
+					'parts': [{'Class': 'MultipleChoicePart',
+							   'MimeType': 'application/vnd.nextthought.assessment.nongradablemultiplechoicepart',
+							   'content': 'Arbitrary content goes here.',
+								"choices": [
+										"<a name=\"1e5cd4b70d0ca146665b0073e3512f12\" ></a>\n\n<p class=\"par\" id=\"1e5cd4b70d0ca146665b0073e3512f12\">Distributive </p>",
+										"<a name=\"82a183f5bbcaf7607f1e0fb56399a565\" ></a>\n\n<p class=\"par\" id=\"82a183f5bbcaf7607f1e0fb56399a565\">Corrective </p>",
+										"<a name=\"d7140284ac92d169d24484726d8a2f10\" ></a>\n\n<p class=\"par\" id=\"d7140284ac92d169d24484726d8a2f10\">Transactional </p>"
+								] }]}]}
+	
 }
 
 SECTION_ONE = {
@@ -103,8 +134,6 @@ ASSM_JSON_W_SET = {
 
 ASSM_STRING_W_SET = json.dumps( ASSM_JSON_W_SET, indent='\t' )
 
-
-
 ASSESSMENT_STRING_QUESTIONS_IN_FIRST_FILE = """
 {
 	"Items": {
@@ -130,7 +159,7 @@ ASSESSMENT_STRING_QUESTIONS_IN_FIRST_FILE = """
 }
 """
 
-from . import AssessmentLayerTest
+from nti.app.assessment.tests import AssessmentLayerTest
 
 @interface.implementer(IContentUnit,IAttributeAnnotatable)
 class MockEntry(object):
@@ -165,29 +194,32 @@ class TestQuestionMap(AssessmentLayerTest):
 
 	def test_create_question_map_captures_set_ntiids(self, index_string=ASSM_STRING_W_SET):
 		question_map = QuestionMap()
+		
 		_populate_question_map_from_text( question_map, index_string, MockEntry() )
 
-
 		assm_items = question_map.by_file['tag_nextthought_com_2011-10_testing-HTML-temp_chapter_one.html']
+		
+		qset = None
+		question = None
+		assert_that( assm_items, has_length( 4 ) ) # one question, one set
+		for item in assm_items:
+			if IQuestion.providedBy(item):
+				question = item
+				assert_that(item, has_property('ntiid', 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion' ) )
+				assert_that(item, has_property('__name__', 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion' ) )
+			elif IQuestionSet.providedBy(item):
+				qset = item
+				assert_that( item, has_property('ntiid', 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.set.testset' ) )
+				assert_that( item, has_property('__name__', 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.set.testset' ) )
 
-		assert_that( assm_items, has_length( 2 ) ) # one question, one set
-		assert_that( assm_items[1], has_property( 'ntiid',     'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion' ) )
-		assert_that( assm_items[1], has_property( '__name__',  'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion' ) )
-		assert_that( assm_items[0], has_property( 'ntiid',     'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.set.testset' ) )
-		assert_that( assm_items[0], has_property( '__name__',  'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.set.testset' ) )
-
-		qset = assm_items[0]
 		qset_question = qset.questions[0]
-
-		assert_that( qset_question, is_( assm_items[1] ) )
+		assert_that( qset_question, is_( question ) )
 		assert_that( qset_question, has_property( 'ntiid',     'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion' ) )
 		assert_that( qset_question, has_property( '__name__',  'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion' ) )
 
-
 		assert_that( question_map[qset_question.ntiid], is_( qset_question ) )
-		assert_that( question_map[qset_question.ntiid], is_( assm_items[1] ) )
+		assert_that( question_map[qset_question.ntiid], is_( question) )
 		assert_that( question_map[qset.ntiid], is_( qset ) )
-
 
 		# And it has an ACL
 		assert_that( ACL(qset_question), is_( () ) )
@@ -211,7 +243,6 @@ class TestQuestionMap(AssessmentLayerTest):
 
 		self.test_create_question_map_captures_set_ntiids( assm_string )
 
-
 	def test_create_question_map_nested_two_level_with_no_filename(self):
 
 		section_one = SECTION_ONE.copy()
@@ -234,7 +265,6 @@ class TestQuestionMap(AssessmentLayerTest):
 
 		self.test_create_question_map_captures_set_ntiids( assm_string )
 
-
 	def test_create_from_mathcounts2012_no_Question_section_in_chapter(self):
 		index_string = str(ASSESSMENT_STRING_QUESTIONS_IN_FIRST_FILE)
 
@@ -252,7 +282,6 @@ class TestQuestionMap(AssessmentLayerTest):
 		assert_that( question, has_property( '__name__', 'tag:nextthought.com,2011-10:mathcounts-NAQ-mathcounts2012.naq.qid.1' ) )
 		assert_that( question, has_property( 'ntiid', 'tag:nextthought.com,2011-10:mathcounts-NAQ-mathcounts2012.naq.qid.1', ) )
 
-
 	def test_create_with_assignment(self):
 		question = {'Class': 'Question',
 					'MimeType': 'application/vnd.nextthought.naquestion',
@@ -267,7 +296,6 @@ class TestQuestionMap(AssessmentLayerTest):
 							   'hints': [],
 							   'max_file_size': None,
 							   'solutions': []}]}
-
 
 		the_map = {'Items':
 		 {'tag:nextthought.com,2011-10:testing-HTML-temp.0':
@@ -309,12 +337,10 @@ class TestQuestionMap(AssessmentLayerTest):
 				'href': 'index.html'}
 		the_text = json.dumps(the_map)
 
-
 		question_map = QuestionMap()
 
 		entry = MockEntry()
 		_populate_question_map_from_text( question_map, the_text, entry )
-
 
 		# Check that they were canonicalizade
 		asg = component.getUtility(IQAssignment, name='tag:nextthought.com,2011-10:testing-NAQ-temp.naq.asg.assignment' )
@@ -323,7 +349,3 @@ class TestQuestionMap(AssessmentLayerTest):
 
 		assert_that( asg.parts[0].question_set, is_( same_instance( qset )))
 		assert_that( qset.questions[0], is_( same_instance(q)) )
-
-		# We would need the library to be able to do this
-		#items = IQAssessmentItemContainer(entry)
-		#assert_that( items, contains_inanyorder( asg, qset, q ))

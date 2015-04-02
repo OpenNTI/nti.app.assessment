@@ -337,10 +337,11 @@ def _populate_question_map_from_text(question_map, asm_index_text, content_packa
 		try:
 			result = question_map._from_root_index( index, content_package )
 			result = None if result is None else result[1] # registered
-		except (interface.Invalid, ValueError): # pragma: no cover
+		except (interface.Invalid, ValueError) as e: # pragma: no cover
 			# Because the map is updated in place, depending on where the error
 			# was, we might have some data...that's not good, but it's not a show stopper either,
 			# since we shouldn't get content like this out of the rendering process
+			print(e)
 			logger.exception("Failed to load assessment items, invalid assessment_index for %s",
 							 content_package )
 	return result or set()

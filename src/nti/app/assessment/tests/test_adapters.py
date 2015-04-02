@@ -178,14 +178,12 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		assert_that( default_enrollment_history_link,
 					 is_('/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentHistories/' + self.default_username))
 
-
 		res = self.testapp.post_json( '/dataserver2/users/outest5/Courses/EnrolledCourses',
 								'CLC 3403',
 								status=201,
 								extra_environ=outest_environ )
 
 		user2_enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'AssignmentHistory')
-
 
 		# each can fetch his own
 		self.testapp.get(default_enrollment_history_link)
@@ -200,7 +198,6 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 						 extra_environ=outest_environ,
 						 status=403)
 		self.testapp.get(user2_enrollment_history_link, status=403)
-
 
 	def _check_submission(self, res, history=None, last_viewed=0):
 		assert_that( res.status_int, is_( 201 ))
@@ -257,12 +254,10 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		assert_that( course_history_link,
 					 is_('/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice/AssignmentHistories/' + self.default_username) )
 
-
 		# Both history links are equivalent and work; and both are empty before I submit
 		for link in course_history_link, enrollment_history_link:
 			history_res = self.testapp.get(link)
 			assert_that( history_res.json_body, has_entry('Items', has_length(0)))
-
 
 		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id,
 									  ext_obj)
@@ -374,7 +369,6 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		notable_res = self.fetch_user_recursive_notable_ugd()
 		assert_that( notable_res.json_body, has_entry('TotalItemCount', 0))
 
-
 		# The instructor can delete our submission
 		self.testapp.delete(item['href'], extra_environ=instructor_environ, status=204)
 		# Which empties out the activity
@@ -403,7 +397,6 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		assert_that( res.json_body, has_entry(self.lesson_page_id,
 											  contains( has_entries( 'Class', 'Assignment',
 																	 'NTIID', self.assignment_id ))))
-
 		# The due date strips these
 		assg = res.json_body[self.lesson_page_id][0]
 		for part in assg['parts']:
@@ -424,7 +417,6 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 				for qpart in question['parts']:
 					assert_that( qpart, has_entries('solutions', not_none(),
 													'explanation', not_none()))
-
 
 		# If we submit...
 		from nti.assessment.submission import QuestionSubmission
@@ -471,7 +463,6 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 			res = self.testapp.post_json( '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses',
 										  'CLC 3403',
 										  status=201 )
-
 
 			enrollment_assignments = self.require_link_href_with_rel( res.json_body, 'AssignmentsByOutlineNode')
 			self.require_link_href_with_rel( res.json_body['CourseInstance'], 'AssignmentsByOutlineNode')
@@ -539,7 +530,6 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin, ApplicationLayerTest
 			# (pointing to the enrollment record)
 			for k in 'AssignmentsByOutlineNode', 'NonAssignmentAssessmentItemsByOutlineNode':
 				link = self.link_with_rel(res.json_body, k)
-
 				assert_that( link, does_not( has_key('ntiid') ))
 				assert_that( link, does_not( has_key('type') ))
 			return
@@ -554,7 +544,6 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin, ApplicationLayerTest
 		if course_href[-1] != '/':
 			course_href += '/'
 		course_href = urlparse.unquote(course_href)
-
 
 		# It's also not on the page info, and the question sets it contains
 		# aren't either
@@ -574,7 +563,6 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin, ApplicationLayerTest
 						 does_not( contains( has_entry('Class', 'Assignment')) ) )
 			assert_that( items,
 						 does_not( contains( has_entry('NTIID', question_set_id ) ) ) )
-			assert_that( items, is_( () ) )
 
 			# Nor are they in the non-assignment-items
 			res = self.testapp.get(enrollment_non_assignments)
@@ -601,15 +589,24 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin, ApplicationLayerTest
 					 has_entries('href', course_href + 'NonAssignmentAssessmentItemsByOutlineNode',
 								 lesson_page_id, []) )
 
+		ntiid_set = set()
+		found_survey = False
+		found_assignment = False
+		
 		# When we get the page info, only the assignment comes back,
 		# not the things it contains
 		res = self.fetch_by_ntiid( lesson_page_id,
 								   headers={b'Accept': str(page_info_mt) })
 		items = res.json_body.get('AssessmentItems', ())
-		assert_that( items,
-					 contains( has_entry('Class', 'Assignment')) )
-		assert_that( items,
-					 does_not( contains( has_entry('NTIID', question_set_id ) ) ) )
+		for item in items:
+			ntiid_set.add(item.get('NTIID'))
+			found_survey = found_survey or item.get('Class') == 'Survey'
+			found_assignment = found_assignment or item.get('Class') == 'Assignment'
+		assert_that(found_survey, is_(True))
+		assert_that(found_assignment, is_(True))
+		
+		assert_that( ntiid_set,
+					 does_not( contains( question_set_id ) ) ) 
 
 		# If, however, we set the assignment policy to exclude, it's not present again
 		with mock_dataserver.mock_db_trans(site_name='platform.ou.edu'):
@@ -648,11 +645,9 @@ class TestNoteCreation(RegisterAssignmentLayerMixin,ApplicationLayerTest):
 	def test_cannot_post_to_assignment(self):
 		self._do_post(self.assignment_id)
 
-
 	@WithSharedApplicationMockDS(users=True,testapp=True)
 	def test_cannot_post_to_question_set(self):
 		self._do_post(self.question_set_id)
-
 
 	@WithSharedApplicationMockDS(users=True,testapp=True)
 	def test_cannot_post_to_question(self):

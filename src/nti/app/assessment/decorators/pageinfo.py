@@ -21,6 +21,7 @@ from nti.app.products.courseware.utils import is_course_instructor
 
 from nti.appserver.interfaces import IContentUnitInfo
 
+from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet 
 from nti.assessment.randomized.interfaces import IQuestionBank
@@ -105,6 +106,10 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 				new_result[ntiid] = x 
 			elif IQuestionSet.providedBy(x):
 				new_result[ntiid] = x
+			elif IQSurvey.providedBy(x):
+				new_result[ntiid] = x
+				for poll in x.questions:
+					qsids_to_strip.add(poll.ntiid)
 			elif IQAssignment.providedBy(x):
 				if assignment_predicate is None:
 					logger.warn("Found assignment (%s) outside of course context "

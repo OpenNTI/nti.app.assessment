@@ -119,13 +119,14 @@ class UsersCourseSurvey(CheckingLastModifiedBTreeContainer):
 		return item
 
 	def removeSubmission(self, submission, event=False):
-		if submission.surveyId not in self:
+		surveyId = getattr(submission, 'surveyId', str(submission))
+		if surveyId not in self:
 			return
-		item = self[submission.surveyId]
+		item = self[surveyId]
 		if event:
-			del self[submission.surveyId]
+			del self[surveyId]
 		else:
-			self._delitemf(submission.surveyId, event=False)
+			self._delitemf(surveyId, event=False)
 			locate(item, None, None)
 		
 	def _append(self, key, item, event=False):

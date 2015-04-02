@@ -202,12 +202,10 @@ class IUsersCourseAssignmentHistoryItem(IContained,
 	containers(IUsersCourseAssignmentHistory)
 	__parent__.required = False
 
-	# Recall that the implementation of AssignmentSubmission is NOT
-	# Persistent.
+	# Recall that the implementation of AssignmentSubmission is NOT Persistent.
 	Submission = Object(IQAssignmentSubmission, required=False)
 
-	# This object is persistent, and should be modified
-	# in place if needed.
+	# This object is persistent, and should be modified in place if needed.
 	pendingAssessment = Object(IQAssignmentSubmissionPendingAssessment,
 							   required=False)
 
@@ -318,7 +316,6 @@ def get_course_assignment_predicate_for_user(user, course):
 	filters = list(filters) # Does that return a generator? We need to use it many times
 	def uber_filter(asg):
 		return all((f.allow_assignment_for_user_in_course(asg, user, course) for f in filters))
-
 	return uber_filter
 
 class IUsersCourseAssignmentMetadataContainer(IContainer,
@@ -396,7 +393,7 @@ class IUsersCourseSurvey(IContainer,
 	Items = Dict(title='For externalization only, a copy of the items',
 			 	 readonly=True)
 
-	def recordSubmission( submission, event=False ):
+	def recordSubmission(submission, event=False ):
 		"""
 		When a user submits a survey, call this method to record
 		that fact. If a submission has already been recorded, this will
@@ -418,7 +415,7 @@ class IUsersCourseSurvey(IContainer,
 		"""
 		remove a submission
 		
-		:param submission: The :class:`.IQSurveySubmission` to remove
+		:param submission: The survey submission to remove
 		:param event: Flag to avoid sending a removal/modified event
 		"""
 
@@ -434,7 +431,7 @@ class IUsersCourseSurveyItem(IContained,
 
 	# Recall that the implementation of SurveySubmission is NOT Persistent.
 	Submission = Object(IQSurveySubmission, required=False)
-
+	
 	Survey = Object(IQSurvey, title="The survey that generated this item",
 					required=False)
 	Survey.setTaggedValue('_ext_excluded_out', True)

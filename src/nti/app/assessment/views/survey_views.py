@@ -10,7 +10,10 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 from zope import component
+
+from zope.schema.interfaces import NotUnique
 from zope.schema.interfaces import RequiredMissing
+from zope.schema.interfaces import ConstraintNotSatisfied
 
 from pyramid.view import view_config
 from pyramid import httpexceptions as hexc
@@ -54,16 +57,34 @@ class SurveySubmissionPostView(	AbstractAuthenticatedView,
 				raise hexc.HTTPForbidden("Must be enrolled in a course.")
 		except RequiredMissing:
 			raise hexc.HTTPForbidden("Must be enrolled in a course.")
-
+		
 		submission = self.readCreateUpdateContentObject(creator)
 		
-		creator = submission.creator
-		survey = component.getMultiAdapter( (course, creator), IUsersCourseSurvey)
-		submission.containerId = submission.surveyId
+		# Get the assignment
+		survey = component.getUtility(IQSurvey, name=submission.surveyId)
+	
+		# Check that the submission has something for all parts
+		survey_poll_ids = [poll.ntiid for poll in survey.questions]
+		submission_poll_ids = [poll.pollId for poll in submission.questions]
 
+		if sorted(survey_poll_ids) != sorted(submission_poll_ids):
+			ex = ConstraintNotSatisfied("Incorrect submission questions")
+			ex.field = IQSurveySubmission['questions']
+			raise ex
+	
+		creator = submission.creator
+		course_survey = component.getMultiAdapter( (course, creator), IUsersCourseSurvey)
+		submission.containerId = submission.surveyId
+		
+		if submission.surveyId in course_survey:
+			ex = NotUnique("Survey already submitted")
+			ex.field = IQSurveySubmission['surveyId']
+			ex.value = submission.surveyId
+			raise ex
+	
 		## Now record the submission.
 		self.request.response.status_int = 201
-		result = survey.recordSubmission(submission)
+		result = course_survey.recordSubmission(submission)
 		return result
 
 @view_config(route_name="objects.generic.traversal",

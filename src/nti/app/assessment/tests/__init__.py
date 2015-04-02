@@ -53,12 +53,16 @@ from nti.contentlibrary.interfaces import IContentPackageLibrary
 
 from zope import component
 
-from nti.assessment.assignment import QAssignmentPart, QAssignment
+
+from nti.assessment.assignment import QAssignment
+from nti.assessment.assignment import QAssignmentPart
+
 from nti.assessment.submission import AssignmentSubmission
 from nti.assessment.submission import QuestionSetSubmission
+
 from nti.assessment import interfaces as asm_interfaces
-from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 from nti.assessment.interfaces import IQAssessmentItemContainer
+from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 
 import ZODB
 from nti.dataserver.tests.mock_dataserver import WithMockDS
@@ -188,6 +192,10 @@ class RegisterAssignmentLayerMixin(object):
 	
 	def setUp(self):
 		super(RegisterAssignmentLayerMixin,self).setUp()
+		
+		self.poll_id = RegisterAssignmentLayer.poll_id
+		self.survey_id = RegisterAssignmentLayer.survey_id
+		
 		self.question_id = RegisterAssignmentLayer.question_id
 		self.question_set = RegisterAssignmentLayer.question_set
 		self.question_set_id = RegisterAssignmentLayer.question_set_id

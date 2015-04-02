@@ -37,9 +37,6 @@ from nti.dataserver.interfaces import IUser
 
 from nti.testing.matchers import validly_provides
 
-from nti.dataserver.tests import mock_dataserver
-from nti.dataserver.tests.mock_dataserver import WithMockDSTrans
-
 from nti.app.assessment.tests import AssessmentLayerTest
 
 class TestSurvey(AssessmentLayerTest):
@@ -59,23 +56,19 @@ class TestSurvey(AssessmentLayerTest):
 		assert_that( IUser(item), is_(survey.owner))
 		assert_that( IUser(survey), is_(survey.owner))
 
-	@WithMockDSTrans
-	def test_record(self):
-		connection = mock_dataserver.current_transaction
-		for event  in (True, False):
-			course_survey = UsersCourseSurvey()
-			connection.add(course_survey)
-			submission = QSurveySubmission(surveyId='b', questions=())
-			assert_that( submission, validly_provides(IQSurveySubmission))
+	def test_record(self):		
+		course_survey = UsersCourseSurvey()
+		submission = QSurveySubmission(surveyId='b', questions=())
+		assert_that( submission, validly_provides(IQSurveySubmission))
 
-			item = course_survey.recordSubmission( submission, event=event )
-			assert_that( item, has_property( 'Submission', is_( submission )))
-			assert_that( item, has_property( '__name__', is_( submission.surveyId)) )
-			assert_that( item.__parent__, is_( course_survey ))
-			assert_that(course_survey, has_length(1))
-		
-			course_survey.removeSubmission(submission, event=event)
-			assert_that(course_survey, has_length(0))
+		item = course_survey.recordSubmission( submission )
+		assert_that( item, has_property( 'Submission', is_( submission )))
+		assert_that( item, has_property( '__name__', is_( submission.surveyId)) )
+		assert_that( item.__parent__, is_( course_survey ))
+		assert_that(course_survey, has_length(1))
+	
+		course_survey.removeSubmission(submission )
+		assert_that(course_survey, has_length(0))
 
 import fudge
 from urllib import unquote

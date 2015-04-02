@@ -11,7 +11,6 @@ logger = __import__('logging').getLogger(__name__)
 
 from zope import component
 from zope import interface
-from zope import lifecycleevent
 
 from zope.annotation.interfaces import IAnnotations
 
@@ -21,11 +20,8 @@ from zope.lifecycleevent.interfaces import IObjectAddedEvent
 
 from zope.security.interfaces import IPrincipal
 
-from zope.location.location import locate
 from zope.location.interfaces import LocationError
 from zope.location.interfaces import ISublocations
-
-from ZODB.interfaces import IConnection
 
 from pyramid.interfaces import IRequest
 
@@ -101,7 +97,7 @@ class UsersCourseSurvey(CheckingLastModifiedBTreeContainer):
 	def Items(self):
 		return dict(self)
 	
-	def recordSubmission(self, submission, event=False):
+	def recordSubmission(self, submission):
 		if submission.__parent__ is not None:
 			raise ValueError("Objects already parented")
 		
@@ -109,40 +105,15 @@ class UsersCourseSurvey(CheckingLastModifiedBTreeContainer):
 		submission.__parent__ = item
 		set_survey_submission_lineage(submission)
 		
-		# check for removal
-		self.removeSubmission(submission, event=event)
-		if event:
-			lifecycleevent.created(item)
-		else:
-			IConnection(self).add(item)
-		self._append(submission.surveyId, item, event=event)
+		self[submission.surveyId] = item
 		return item
 
-	def removeSubmission(self, submission, event=False):
+	def removeSubmission(self, submission):
 		surveyId = getattr(submission, 'surveyId', str(submission))
 		if surveyId not in self:
 			return
-		item = self[surveyId]
-		if event:
-			del self[surveyId]
-		else:
-			self._delitemf(surveyId, event=False)
-			locate(item, None, None)
-		
-	def _append(self, key, item, event=False):
-		if CheckingLastModifiedBTreeContainer.__contains__(self, key):
-			if item.__parent__ is self:
-				return
-			raise ValueError("Adding duplicate entry", item)
+		del self[surveyId]
 
-		if event:
-			self[key] = item
-		else:
-			self._setitemf(key, item)
-			locate(item, self, name=key)
-
-		self.lastModified = max( self.lastModified, item.lastModified )
-		
 	def __conform__(self, iface):
 		if IUser.isOrExtends(iface):
 			return self.owner

@@ -141,6 +141,12 @@
 	<subscriber handler=".subscribers.remove_object_from_course_activity"
 				for=".interfaces.IUsersCourseAssignmentHistoryItemFeedback zope.intid.interfaces.IIntIdRemovedEvent"/>
 
+	<subscriber handler=".subscribers.add_object_to_course_activity"
+				for="nti.assessment.interfaces.IQSurveySubmission zope.intid.interfaces.IIntIdAddedEvent"/>
+			
+	<subscriber handler=".subscribers.remove_object_from_course_activity"
+				for="nti.assessment.interfaces.IQSurveySubmission zope.intid.interfaces.IIntIdRemovedEvent"/>
+					
 	<!-- Other events -->
 	<subscriber handler=".feedback.when_feedback_modified_modify_history_item" />
 	<subscriber handler=".feedback.when_feedback_container_modified_modify_history_item" />

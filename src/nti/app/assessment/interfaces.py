@@ -393,7 +393,7 @@ class IUsersCourseSurvey(IContainer,
 	Items = Dict(title='For externalization only, a copy of the items',
 			 	 readonly=True)
 
-	def recordSubmission(submission, event=False ):
+	def recordSubmission(submission):
 		"""
 		When a user submits a survey, call this method to record
 		that fact. If a submission has already been recorded, this will
@@ -411,12 +411,11 @@ class IUsersCourseSurvey(IContainer,
 			the record of this submission.
 		"""
 
-	def removeSubmission(submission, event=False):
+	def removeSubmission(submission):
 		"""
 		remove a submission
 		
 		:param submission: The survey submission to remove
-		:param event: Flag to avoid sending a removal/modified event
 		"""
 
 class IUsersCourseSurveyItem(IContained,

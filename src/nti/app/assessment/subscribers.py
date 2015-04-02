@@ -21,6 +21,8 @@ from pyramid.httpexceptions import HTTPUnprocessableEntity
 
 from nti.app.products.courseware.interfaces import ICourseInstanceActivity
 
+from nti.assessment.interfaces import IQPoll
+from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
@@ -43,6 +45,7 @@ from nti.traversal.traversal import find_interface
 
 from .common import get_course_from_assignment
 
+from .interfaces import IUsersCourseSurveys
 from .interfaces import IUsersCourseAssignmentHistories
 from .interfaces import IUsersCourseAssignmentSavepoints
 from .interfaces import IUsersCourseAssignmentSavepointItem
@@ -53,20 +56,24 @@ def add_object_to_course_activity(submission, event):
 	This can be registered for anything we want to submit to course activity
 	as a subscriber to :class:`zope.intid.interfaces.IIntIdAddedEvent`
 	"""
-	if not IUsersCourseAssignmentSavepointItem.providedBy(submission.__parent__):
-		course = find_interface(submission, ICourseInstance)
-		activity = ICourseInstanceActivity(course)
-		activity.append(submission)		
+	if IUsersCourseAssignmentSavepointItem.providedBy(submission.__parent__):
+		return
+
+	course = find_interface(submission, ICourseInstance)
+	activity = ICourseInstanceActivity(course)
+	activity.append(submission)		
 
 def remove_object_from_course_activity(submission, event):
 	"""
 	This can be registered for anything we want to submit to course activity
 	as a subscriber to :class:`zope.intid.interfaces.IIntIdRemovedEvent`
 	"""
-	if not IUsersCourseAssignmentSavepointItem.providedBy(submission.__parent__):
-		course = find_interface(submission, ICourseInstance)
-		activity = ICourseInstanceActivity(course)
-		activity.remove(submission)
+	if IUsersCourseAssignmentSavepointItem.providedBy(submission.__parent__):
+		return
+
+	course = find_interface(submission, ICourseInstance)
+	activity = ICourseInstanceActivity(course)
+	activity.remove(submission)
 
 def prevent_note_on_assignment_part(note, event):
 	"""
@@ -86,16 +93,18 @@ def prevent_note_on_assignment_part(note, event):
 
 	container_id = note.containerId
 
-	# Find an assignment or part of one
 	item = None
 	items = ()
-	for iface in IQAssignment, IQuestion, IQuestionSet:
+	for iface in (IQSurvey, IQPoll, IQAssignment, IQuestion, IQuestionSet):
 		item = component.queryUtility(iface,name=container_id)
 		if item is not None:
 			items = (item,)
 			break
 
-	if IQuestion.providedBy(item) or IQuestionSet.providedBy(item):
+	if 	IQPoll.providedBy(item) or \
+		IQuestion.providedBy(item) or \
+		IQuestionSet.providedBy(item):
+		
 		parent = item.__parent__
 		if parent:
 			# Ok, we found the content unit defining this question.
@@ -134,7 +143,8 @@ def prevent_note_on_assignment_part(note, event):
 				e.text = simplejson.dumps(
 						{'message': _("You cannot make notes on an assignment before the due date."),
 						 'code': 'CannotNoteOnAssignmentBeforeDueDate',
-						 'available_for_submission_ending': to_external_object(dates.available_for_submission_ending)},
+						 'available_for_submission_ending': 
+						 		to_external_object(dates.available_for_submission_ending)},
 						ensure_ascii=False)
 				e.content_type = b'application/json'
 				raise e
@@ -144,7 +154,8 @@ def delete_user_data(user):
 	for enrollments in component.subscribers( (user,), IPrincipalEnrollments):
 		for enrollment in enrollments.iter_enrollments():
 			course = ICourseInstance(enrollment)
-			for iface in (IUsersCourseAssignmentHistories,
+			for iface in (IUsersCourseSurveys,
+						  IUsersCourseAssignmentHistories,
 						  IUsersCourseAssignmentSavepoints,
 						  IUsersCourseAssignmentMetadataContainer):
 				user_data = iface(course, None)

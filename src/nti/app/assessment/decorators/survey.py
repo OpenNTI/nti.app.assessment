@@ -23,6 +23,7 @@ from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import IExternalMappingDecorator
 
 from nti.links.links import Link
+from nti.links.externalization import render_link
 
 from nti.traversal.traversal import find_interface
 
@@ -59,3 +60,19 @@ class _SurveysDecorator(_AbstractTraversableLinkDecorator):
 		links.append( Link( context,
 							rel='Surveys',
 							elements=('Surveys', user.username)) )
+
+@interface.implementer(IExternalMappingDecorator)
+class _SurveyItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
+
+	def _predicate(self, context, result):
+		creator = context.creator
+		return (AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
+				and creator is not None
+				and creator == self.remoteUser)
+
+	def _do_decorate_external(self, context, result_map ):
+		try:
+			link = Link(context)
+			result_map['href'] = render_link( link )['href']
+		except (KeyError, ValueError, AssertionError):
+			pass # Nope

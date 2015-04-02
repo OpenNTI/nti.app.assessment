@@ -180,6 +180,11 @@
 				for="nti.app.products.courseware.interfaces.ICourseInstanceEnrollment
 					 pyramid.interfaces.IRequest" />
 					 
+	<subscriber factory=".survey._SurveyItemDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="..interfaces.IUsersCourseSurveyItem
+					 pyramid.interfaces.IRequest" />
+
 	<!-- lineage -->
 	<subscriber factory=".lineage._ContextCatalogEntryDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"

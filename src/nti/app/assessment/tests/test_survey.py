@@ -204,36 +204,26 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		res = self.testapp.post_json( href, ext_obj)
 		survey_item_href = res.json_body['href']
 		assert_that(survey_item_href, is_not(none()))
-		return
+		
 		self._check_submission(res, enrollment_surveys_link)
 			
 		res = self.testapp.get(survey_item_href)
 		assert_that(res.json_body, has_entry('href', is_not(none())))
-# 			
-# 		res = self.testapp.get(href)
-# 		assert_that(res.json_body, has_entry('href', is_not(none())))
-# 			
-# 		# Both savepoint links are equivalent and work
-# 		for link in course_savepoints_link, enrollment_savepoints_link:
-# 			savepoints_res = self.testapp.get(link)
-# 			assert_that(savepoints_res.json_body, has_entry('Items', has_length(1)))
-# 			assert_that(savepoints_res.json_body, has_entry('Items', has_key(self.assignment_id)))
-# 	
-# 		# simply adding get us to an item
-# 		href = savepoints_res.json_body['href'] + '/' + self.assignment_id
-# 		res = self.testapp.get(href)
-# 		assert_that(res.json_body, has_entry('href', is_not(none())))
-# 				
-# 		# we can delete
-# 		self.testapp.delete(savepoint_item_href, status=204)
-# 		self.testapp.get(savepoint_item_href, status=404)
-# 			
-# 		# Whereupon we can submit again
-# 		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id + '/Savepoint',
-# 									  ext_obj)
-# 		self._check_submission(res, enrollment_savepoints_link)
-# 			
-# 		# and again
-# 		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id + '/Savepoint',
-# 									  ext_obj)
-# 		self._check_submission(res, enrollment_savepoints_link)
+			
+		res = self.testapp.get(href)
+		assert_that(res.json_body, has_entry('href', is_not(none())))
+			
+		# Both survey links are equivalent and work
+		for link in course_surveys_link, enrollment_surveys_link:
+			surveys_res = self.testapp.get(link)
+			assert_that(surveys_res.json_body, has_entry('Items', has_length(1)))
+			assert_that(surveys_res.json_body, has_entry('Items', has_key(self.survey_id)))
+	
+		# simply adding get us to an item
+		href = surveys_res.json_body['href'] + '/' + self.survey_id
+		res = self.testapp.get(href)
+		assert_that(res.json_body, has_entry('href', is_not(none())))
+				
+		# we cannnot delete
+		self.testapp.delete(survey_item_href, status=403)
+		self.testapp.get(survey_item_href, status=200)

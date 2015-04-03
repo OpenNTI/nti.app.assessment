@@ -279,3 +279,18 @@ def _course_from_survey_lineage(survey, user):
 			enrollments = ICourseEnrollments(course)
 			if ICourseEnrollments(course).get_enrollment_for_principal(user) is not None:
 				return course
+
+from .interfaces import ICourseSurveyCatalog
+
+from .common import get_course_surveys
+	
+@interface.implementer(ICourseSurveyCatalog)
+@component.adapter(ICourseInstance)
+class _DefaultCourseSurveyCatalog(object):
+
+	def __init__(self, context):
+		self.context = context
+	
+	def iter_surveys(self):
+		result = get_course_surveys(self.context)
+		return result

@@ -280,10 +280,10 @@
 
 	<adapter factory=".survey._surveys_for_course" />
 	<adapter factory=".survey._survey_for_user_in_course" />
-	
 	<adapter factory=".survey._course_from_survey_lineage" />
 	<adapter factory=".survey._course_from_surveyitem_lineage" />
 	
+	<adapter factory=".survey._DefaultCourseSurveyCatalog" />
 	<adapter factory=".survey._UsersCourseSurveysTraversable" />
 
 	<subscriber handler=".survey._on_course_added" />

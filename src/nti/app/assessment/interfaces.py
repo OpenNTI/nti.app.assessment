@@ -434,3 +434,19 @@ class IUsersCourseSurveyItem(IContained,
 	Survey = Object(IQSurvey, title="The survey that generated this item",
 					required=False)
 	Survey.setTaggedValue('_ext_excluded_out', True)
+
+class ICourseSurveyCatalog(interface.Interface):
+	"""
+	Provides access to the surveys related to a course.
+
+	Typically this will be registered as an adapter
+	from the :class:`.ICourseInstance`.
+	"""
+
+	def iter_surveys():
+		"""
+		Return the surveys.
+
+		Recall that surveys typically will have their 'home'
+		content unit in their lineage.
+		"""

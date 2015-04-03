@@ -236,7 +236,7 @@ def get_course_from_survey(survey, user=None, catalog=None, registry=component, 
 		result = find_course_for_assignment(survey, user, exc=exc)
 	return result
 
-def get_course_surveys(context, sort=True, reverse=False):
+def get_course_surveys(context):
 	items = get_course_assessment_items(context)
 	ntiid = getattr(ICourseCatalogEntry(context, None), 'ntiid', None)
 	surveys = [proxy(x, catalog_entry=ntiid) for x in items if IQSurvey.providedBy(x)]

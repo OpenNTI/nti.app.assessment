@@ -25,8 +25,8 @@ from nti.app.assessment.survey import UsersCourseSurvey
 from nti.app.assessment.survey import UsersCourseSurveys
 from nti.app.assessment.survey import UsersCourseSurveyItem
 
-from nti.assessment.poll import QPollSubmission
-from nti.assessment.poll import QSurveySubmission
+from nti.assessment.survey import QPollSubmission
+from nti.assessment.survey import QSurveySubmission
 
 from nti.app.assessment.interfaces import IUsersCourseSurvey
 from nti.app.assessment.interfaces import IUsersCourseSurveyItem

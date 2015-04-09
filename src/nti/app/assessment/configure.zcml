@@ -312,6 +312,5 @@
 		<subscriber	factory=".predicates._SurveyPrincipalObjects"
 					provides="nti.dataserver.interfaces.IPrincipalMetadataObjects" />
 	</configure>
-	
 
 </configure>

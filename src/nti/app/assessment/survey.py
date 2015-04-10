@@ -25,7 +25,7 @@ from zope.security.interfaces import IPrincipal
 
 from pyramid.interfaces import IRequest
 
-from nti.assessment.interfaces import IQSurvey
+from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAggregatedSurvey
 
 from nti.common.property import alias
@@ -65,26 +65,26 @@ from nti.traversal.traversal import ContainerAdapterTraversable
 
 from nti.wref.interfaces import IWeakRef
 
-from ._submission import set_survey_submission_lineage
+from ._submission import set_inquiry_submission_lineage
 
-from .common import get_course_surveys
+from .common import get_course_inquiries
 
-from .interfaces import IUsersCourseSurvey
-from .interfaces import IUsersCourseSurveys
-from .interfaces import ICourseSurveyCatalog
-from .interfaces import IUsersCourseSurveyItem
+from .interfaces import IUsersCourseInquiry
+from .interfaces import ICourseInquiryCatalog
+from .interfaces import IUsersCourseInquiries
+from .interfaces import IUsersCourseInquiryItem
 from .interfaces import ICourseAggregatedSurveys
 
 LINKS = StandardExternalFields.LINKS
 
-@interface.implementer(IUsersCourseSurveys)
-class UsersCourseSurveys(CaseInsensitiveCheckingLastModifiedBTreeContainer):
+@interface.implementer(IUsersCourseInquiries)
+class UsersCourseInquiries(CaseInsensitiveCheckingLastModifiedBTreeContainer):
 	"""
-	Implementation of the course surveys for all users in a course.
+	Implementation of the course inquirys for all users in a course.
 	"""
 
-@interface.implementer(IUsersCourseSurvey)
-class UsersCourseSurvey(CheckingLastModifiedBTreeContainer):
+@interface.implementer(IUsersCourseInquiry)
+class UsersCourseInquiry(CheckingLastModifiedBTreeContainer):
 	
 	__external_can_create__ = False
 
@@ -107,18 +107,18 @@ class UsersCourseSurvey(CheckingLastModifiedBTreeContainer):
 		if submission.__parent__ is not None:
 			raise ValueError("Objects already parented")
 		
-		item = UsersCourseSurveyItem(Submission=submission)
+		item = UsersCourseInquiryItem(Submission=submission)
 		submission.__parent__ = item
-		set_survey_submission_lineage(submission)
+		set_inquiry_submission_lineage(submission)
 		
-		self[submission.surveyId] = item
+		self[submission.id] = item
 		return item
 
 	def removeSubmission(self, submission):
-		surveyId = getattr(submission, 'surveyId', str(submission))
-		if surveyId not in self:
+		inquiryId = getattr(submission, 'id', str(submission))
+		if inquiryId not in self:
 			return
-		del self[surveyId]
+		del self[inquiryId]
 
 	def __conform__(self, iface):
 		if IUser.isOrExtends(iface):
@@ -131,19 +131,19 @@ class UsersCourseSurvey(CheckingLastModifiedBTreeContainer):
 	def __acl__(self):
 		course = ICourseInstance(self, None)
 		instructors = getattr(course, 'instructors', ()) # already principals
-		aces = [ace_allowing( self.owner, ACT_READ, UsersCourseSurvey )]
+		aces = [ace_allowing( self.owner, ACT_READ, UsersCourseInquiry )]
 		for instructor in instructors:
-			aces.append( ace_allowing(instructor, ALL_PERMISSIONS, UsersCourseSurvey) )
+			aces.append( ace_allowing(instructor, ALL_PERMISSIONS, UsersCourseInquiry) )
 		aces.append(ACE_DENY_ALL)
 		return acl_from_aces( aces )
 
-@interface.implementer(IUsersCourseSurveyItem,
+@interface.implementer(IUsersCourseInquiryItem,
 					   IACLProvider,
 					   ISublocations)
-class UsersCourseSurveyItem(PersistentCreatedModDateTrackingObject,
-				            Contained,
-						    SchemaConfigured):
-	createDirectFieldProperties(IUsersCourseSurveyItem)
+class UsersCourseInquiryItem(PersistentCreatedModDateTrackingObject,
+				             Contained,
+						     SchemaConfigured):
+	createDirectFieldProperties(IUsersCourseInquiryItem)
 
 	__external_can_create__ = False
 
@@ -163,21 +163,21 @@ class UsersCourseSurveyItem(PersistentCreatedModDateTrackingObject,
 		pass
 
 	@property
-	def surveyId(self):
+	def inquiryId(self):
 		return self.__name__
 
 	@readproperty
-	def Survey(self):
-		result = component.queryUtility(IQSurvey, name=self.__name__)
+	def Inquiry(self):
+		result = component.queryUtility(IQInquiry, name=self.__name__)
 		return result
 
 	@property
 	def __acl__(self):
 		course = ICourseInstance(self, None)
 		instructors = getattr(course, 'instructors', ()) # already principals
-		aces = [ace_allowing( self.creator, ACT_READ, UsersCourseSurveyItem )]
+		aces = [ace_allowing( self.creator, ACT_READ, UsersCourseInquiryItem )]
 		for instructor in instructors:
-			aces.append( ace_allowing(instructor, ALL_PERMISSIONS, UsersCourseSurveyItem) )
+			aces.append( ace_allowing(instructor, ALL_PERMISSIONS, UsersCourseInquiryItem) )
 		aces.append(ACE_DENY_ALL)
 		return acl_from_aces( aces )
 
@@ -186,63 +186,63 @@ class UsersCourseSurveyItem(PersistentCreatedModDateTrackingObject,
 			yield self.Submission
 
 @component.adapter(ICourseInstance)
-@interface.implementer(IUsersCourseSurveys)
-def _surveys_for_course(course):
+@interface.implementer(IUsersCourseInquiries)
+def _inquiries_for_course(course):
 	annotations = IAnnotations(course)
 	try:
-		KEY = 'Surveys'
+		KEY = 'Inquiries'
 		result = annotations[KEY]
 	except KeyError:
-		result = UsersCourseSurveys()
+		result = UsersCourseInquiries()
 		annotations[KEY] = result
 		result.__name__ = KEY
 		result.__parent__ = course
 	return result
 
 @component.adapter(ICourseInstance, IUser)
-@interface.implementer(IUsersCourseSurvey)
-def _survey_for_user_in_course(course, user, create=True):
+@interface.implementer(IUsersCourseInquiry)
+def _inquiry_for_user_in_course(course, user, create=True):
 	result = None
-	surveys = _surveys_for_course(course)
+	inquirys = _inquiries_for_course(course)
 	try:
-		result = surveys[user.username]
+		result = inquirys[user.username]
 	except KeyError:
 		if create:
-			result = UsersCourseSurvey()
+			result = UsersCourseInquiry()
 			result.owner = user
-			surveys[user.username] = result
+			inquirys[user.username] = result
 	return result
 
-def _surveys_for_course_path_adapter(course, request):
-	return _surveys_for_course(course)
+def _inquiries_for_course_path_adapter(course, request):
+	return _inquiries_for_course(course)
 
-def _surveys_for_courseenrollment_path_adapter(enrollment, request):
-	return _surveys_for_course( ICourseInstance(enrollment) )
+def _inquiries_for_courseenrollment_path_adapter(enrollment, request):
+	return _inquiries_for_course( ICourseInstance(enrollment) )
 
 from .adapters import _course_from_context_lineage
 
 @interface.implementer(ICourseInstance)
-@component.adapter(IUsersCourseSurveyItem)
-def _course_from_surveyitem_lineage(item):
+@component.adapter(IUsersCourseInquiryItem)
+def _course_from_inquiryitem_lineage(item):
 	return _course_from_context_lineage(item, validate=True)
 
-@component.adapter(IUsersCourseSurveys, IRequest)
-class _UsersCourseSurveysTraversable(ContainerAdapterTraversable):
+@component.adapter(IUsersCourseInquiries, IRequest)
+class _UsersCourseInquiriesTraversable(ContainerAdapterTraversable):
 
 	def traverse( self, key, remaining_path ):
 		try:
-			return super(_UsersCourseSurveysTraversable, self).traverse(key, remaining_path)
+			return super(_UsersCourseInquiriesTraversable, self).traverse(key, remaining_path)
 		except LocationError:
 			user = User.get_user(key)
 			if user is not None:
-				return _survey_for_user_in_course( self.context.__parent__, user)			
+				return _inquiry_for_user_in_course( self.context.__parent__, user)			
 			raise		
 
 @interface.implementer(ICourseInstance)
-@component.adapter(IQSurvey, IUser)
-def _course_from_survey_lineage(survey, user):
+@component.adapter(IQInquiry, IUser)
+def _course_from_inquiry_lineage(inquiry, user):
 	"""
-	Given a generic survey and a user, we attempt to associate the survey with the most
+	Given a generic inquiry and a user, we attempt to associate the inquiry with the most
 	specific course instance relevant for the user.
 
 	In more sophisticated cases involving sections, the assumption that a course instance 
@@ -251,7 +251,7 @@ def _course_from_survey_lineage(survey, user):
 	package to the first course.
 	"""
 
-	package = find_interface(survey, IContentPackage, strict=False)
+	package = find_interface(inquiry, IContentPackage, strict=False)
 	if package is None:
 		return None
 
@@ -282,15 +282,15 @@ def _course_from_survey_lineage(survey, user):
 			if ICourseEnrollments(course).get_enrollment_for_principal(user) is not None:
 				return course
 	
-@interface.implementer(ICourseSurveyCatalog)
+@interface.implementer(ICourseInquiryCatalog)
 @component.adapter(ICourseInstance)
-class _DefaultCourseSurveyCatalog(object):
+class _DefaultCourseInquiryCatalog(object):
 
 	def __init__(self, context):
 		self.context = context
 	
-	def iter_surveys(self):
-		result = get_course_surveys(self.context)
+	def iter_inquiries(self):
+		result = get_course_inquiries(self.context)
 		return result
 
 @interface.implementer(ICourseAggregatedSurveys)
@@ -313,10 +313,10 @@ class CourseAggregatedSurveys(CheckingLastModifiedBTreeContainer):
 	
 @component.adapter(ICourseInstance)
 @interface.implementer(ICourseAggregatedSurveys)
-def _aggreated_analysis_for_course(course):
+def _aggreated_inquiries_for_course(course):
 	annotations = IAnnotations(course)
 	try:
-		KEY = 'AggregatedAnalysis'
+		KEY = 'AggregatedInquiries'
 		result = annotations[KEY]
 	except KeyError:
 		result = CourseAggregatedSurveys()
@@ -325,24 +325,23 @@ def _aggreated_analysis_for_course(course):
 		result.__parent__ = course
 	return result
 
-def _aggreated_analysis_for_course_path_adapter(course, request):
-	return _aggreated_analysis_for_course(course)
+def _aggreated_inquiries_for_course_path_adapter(course, request):
+	return _aggreated_inquiries_for_course(course)
 
-def _aggreated_analysis_for_courseenrollment_path_adapter(enrollment, request):
-	return _aggreated_analysis_for_course( ICourseInstance(enrollment) )
+def _aggreated_inquiries_for_courseenrollment_path_adapter(enrollment, request):
+	return _aggreated_inquiries_for_course( ICourseInstance(enrollment) )
 
 @component.adapter(ICourseInstance, IObjectAddedEvent)
 def _on_course_added(course, event):
-	_surveys_for_course(course)
-	_aggreated_analysis_for_course(course)
+	_inquiries_for_course(course)
 
-@component.adapter(IUsersCourseSurveyItem, IObjectAddedEvent)
-def _on_course_survey_item_added(item, event):
+@component.adapter(IUsersCourseInquiryItem, IObjectAddedEvent)
+def _on_course_inquiry_item_added(item, event):
 	pass
 
 def aggregate_survey_submission(storage, submission):
-	aggregated_survey = IQAggregatedSurvey(submission)
-	for aggregated_poll in aggregated_survey.questions:
+	aggregated_inquiry = IQAggregatedSurvey(submission)
+	for aggregated_poll in aggregated_inquiry.questions:
 		pollId = aggregated_poll.pollId
 		if pollId not in storage:
 			storage[pollId] = aggregated_poll

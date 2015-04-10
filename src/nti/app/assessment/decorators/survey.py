@@ -32,10 +32,7 @@ from . import _AbstractTraversableLinkDecorator
 
 LINKS = StandardExternalFields.LINKS
 
-class _SurveyPollContentRootURLAdder(AbstractAuthenticatedRequestAwareDecorator):
-	"""
-	When an survey question/poll is externalized, add the bucket root
-	"""
+class _InquiryContentRootURLAdder(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _do_decorate_external(self, context, result):
 		ntiid = getattr(context, 'ContentUnitNTIID', None)
@@ -52,17 +49,17 @@ class _SurveyPollContentRootURLAdder(AbstractAuthenticatedRequestAwareDecorator)
 			result['ContentRoot' ] = bucket_root
 
 @interface.implementer(IExternalMappingDecorator)
-class _SurveysDecorator(_AbstractTraversableLinkDecorator):
+class _InquiriesDecorator(_AbstractTraversableLinkDecorator):
 
 	def _do_decorate_external( self, context, result_map ):
 		links = result_map.setdefault( LINKS, [] )
 		user = IUser(context, self.remoteUser)
 		links.append( Link( context,
-							rel='Surveys',
-							elements=('Surveys', user.username)) )
+							rel='Inquiries',
+							elements=('Inquiries', user.username)) )
 
 @interface.implementer(IExternalMappingDecorator)
-class _SurveyItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
+class _InquiryItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _predicate(self, context, result):
 		creator = context.creator

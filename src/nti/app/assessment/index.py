@@ -29,17 +29,17 @@ from nti.zope_catalog.index import AttributeValueIndex as ValueIndex
 
 from nti.zope_catalog.string import StringTokenNormalizer
 
-from .interfaces import IUsersCourseSurveyItem
+from .interfaces import IUsersCourseInquiryItem
 
-CATALOG_NAME = 'nti.dataserver.++etc++survey-catalog'
+CATALOG_NAME = 'nti.dataserver.++etc++inquiry-catalog'
 
 IX_COURSE = 'course'
-IX_SURVEY_ID = 'surveyId'
+IX_INQUIRY_ID = 'inquiryId'
 IX_CREATOR = IX_STUDENT = IX_USERNAME = 'creator'
 
-class SurveyIdIndex(ValueIndex):
-    default_field_name = 'surveyId'
-    default_interface = IUsersCourseSurveyItem
+class InquiryIdIndex(ValueIndex):
+    default_field_name = 'inquiryId'
+    default_interface = IUsersCourseInquiryItem
 
 class CreatorRawIndex(RawValueIndex):
     pass
@@ -58,7 +58,7 @@ class ValidatingCatalogEntryID(object):
     __slots__ = (b'ntiid',)
 
     def __init__(self, obj, default=None):
-        grade = IUsersCourseSurveyItem(obj, default)
+        grade = IUsersCourseInquiryItem(obj, default)
         entry = ICourseCatalogEntry(ICourseInstance(grade, None), None)
         if entry is not None:
             self.ntiid = unicode(entry.ntiid)
@@ -96,7 +96,7 @@ def install_survey_catalog(site_manager_container, intids=None):
     lsm.registerUtility(catalog, provided=IMetadataCatalog, name=CATALOG_NAME )
 
     for name, clazz in ( (IX_CREATOR, CreatorIndex),
-                         (IX_SURVEY_ID, SurveyIdIndex), 
+                         (IX_INQUIRY_ID, InquiryIdIndex), 
                          (IX_COURSE, CatalogEntryIDIndex) ):
         index = clazz( family=intids.family )
         assert ICatalogIndex.providedBy(index)

@@ -22,9 +22,9 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssignmentSubmission
 from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 
-from nti.assessment.interfaces import IQSurvey
-from nti.assessment.interfaces import IQSurveySubmission
-from nti.assessment.interfaces import IQAggregatedAnalysis
+from nti.assessment.interfaces import IQInquiry
+from nti.assessment.interfaces import IQInquirySubmission
+from nti.assessment.interfaces import IQAggregatedInquiry
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import ICreated
@@ -354,24 +354,24 @@ class IUsersCourseAssignmentMetadataItem(interface.Interface):
 	StartTime = Float(title="Assignment Start time", required=False)
 	Duration = Float(title="Assignment Duration", required=False)
 
-class IUsersCourseSurveys(IContainer,
+class IUsersCourseInquiries(IContainer,
+						  	IContained,
+						  	IShouldHaveTraversablePath):
+	"""
+	A container for all the survey/poll submissions in a course, keyed by username.
+	"""
+	contains(str('.IUsersCourseInquiry'))
+
+class IUsersCourseInquiry(IContainer,
 						  IContained,
 						  IShouldHaveTraversablePath):
 	"""
-	A container for all the survey submissions in a course, keyed by username.
-	"""
-	contains(str('.IUsersCourseSurvey'))
-
-class IUsersCourseSurvey(IContainer,
-						 IContained,
-						 IShouldHaveTraversablePath):
-	"""
 	A :class:`IContainer`-like object that stores the history of
-	survey for a particular user in a course. The keys of this
-	object are :class:`IQSurvey` IDs (this class may or may not
-	enforce that the survey ID is actually scoped to the course it
+	inquiries for a particular user in a course. The keys of this
+	object are :class:`IQInquiry` IDs (this class may or may not
+	enforce that the Inquiry ID is actually scoped to the course it
 	is registered for). The values are instances of
-	:class:`.IUsersCourseSurveyItem`.
+	:class:`.IUsersCourseInquiryItem`.
 
 	Implementations of this object are typically found as a
 	multi-adapter between a particular :class:`.ICourseInstance` and
@@ -381,14 +381,14 @@ class IUsersCourseSurvey(IContainer,
 
 	This object claims storage and ownership of the objects given to it through
 	:meth:`recordSubmission`. Lifecycle events will be emitted for
-	the creation of the :class:`IUsersCourseSurveyItem`
+	the creation of the :class:`IUsersCourseInquiryItem`
 	"""
 
-	contains(str('.IUsersCourseSurveyItem'))
-	containers(IUsersCourseSurveys)
+	contains(str('.IUsersCourseInquiryItem'))
+	containers(IUsersCourseInquiries)
 	__setitem__.__doc__ = None
 
-	owner = Object(IUser, required=False, title="The user this survey is for.")
+	owner = Object(IUser, required=False, title="The user this inquiry is for.")
 	owner.setTaggedValue('_ext_excluded_out', True)
 
 	Items = Dict(title='For externalization only, a copy of the items',
@@ -396,19 +396,19 @@ class IUsersCourseSurvey(IContainer,
 
 	def recordSubmission(submission):
 		"""
-		When a user submits a survey, call this method to record
+		When a user submits an inquiry, call this method to record
 		that fact. If a submission has already been recorded, this will
 		raise the standard container error, so use ``in`` first of that's
 		a problem.
 
-		:param submission: The original :class:`.IQSurveySubmission`
+		:param submission: The original :class:`.IQInquirySubmission`
 			the user provided. We will become part of the lineage
 			of this object and all its children objects (they will
 			be set to the correct __parent__ relationship within the part/question
 			structure).
 		:param event: Flag to avoid sending an add/modified event
 		
-		:return: The new :class:`.IUsersCourseSurveyItem` representing
+		:return: The new :class:`.IUsersCourseInquiryItem` representing
 			the record of this submission.
 		"""
 
@@ -416,40 +416,40 @@ class IUsersCourseSurvey(IContainer,
 		"""
 		remove a submission
 		
-		:param submission: The survey submission to remove
+		:param submission: The submission to remove
 		"""
 
-class IUsersCourseSurveyItem(IContained,
-						  	 ILastModified,
-							 ICreated,
-							 IShouldHaveTraversablePath):
+class IUsersCourseInquiryItem(IContained,
+							  ILastModified,
+							  ICreated,
+							  IShouldHaveTraversablePath):
 	"""
-	A record of something being submitted for an survey.
+	A record of something being submitted for a survey/poll.
 	"""
-	containers(IUsersCourseSurvey)
+	containers(IUsersCourseInquiry)
 	__parent__.required = False
 
-	# Recall that the implementation of SurveySubmission is NOT Persistent.
-	Submission = Object(IQSurveySubmission, required=False)
+	# Recall that the implementation of IQInquirySubmission is NOT Persistent.
+	Submission = Object(IQInquirySubmission, required=False)
 	
-	Survey = Object(IQSurvey, title="The survey that generated this item",
+	Inquiry = Object(IQInquiry, title="The inquiry that generated this item",
 					required=False)
-	Survey.setTaggedValue('_ext_excluded_out', True)
+	Inquiry.setTaggedValue('_ext_excluded_out', True)
 	
-	surveyId = ValidTextLine(title="Survey id")
-	surveyId.setTaggedValue('_ext_excluded_out', True)
+	inquiryId = ValidTextLine(title="Survey/Poll id", required=False)
+	inquiryId.setTaggedValue('_ext_excluded_out', True)
 
-class ICourseSurveyCatalog(interface.Interface):
+class ICourseInquiryCatalog(interface.Interface):
 	"""
-	Provides access to the surveys related to a course.
+	Provides access to the surveys/polls related to a course.
 
 	Typically this will be registered as an adapter
 	from the :class:`.ICourseInstance`.
 	"""
 
-	def iter_surveys():
+	def iter_inquiries():
 		"""
-		Return the surveys.
+		Return the inquiry objects.
 
 		Recall that surveys typically will have their 'home'
 		content unit in their lineage.
@@ -461,4 +461,4 @@ class ICourseAggregatedSurveys(	IContainer,
 	"""
 	A container for all the aggreated survey and polls key by their ntiids
 	"""
-	contains(IQAggregatedAnalysis)
+	contains(IQAggregatedInquiry)

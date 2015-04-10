@@ -21,15 +21,15 @@ import weakref
 
 from nti.assessment.interfaces import IQSurveySubmission
 
-from nti.app.assessment.survey import UsersCourseSurvey
-from nti.app.assessment.survey import UsersCourseSurveys
-from nti.app.assessment.survey import UsersCourseSurveyItem
+from nti.app.assessment.survey import UsersCourseInquiry
+from nti.app.assessment.survey import UsersCourseInquiries
+from nti.app.assessment.survey import UsersCourseInquiryItem
 
 from nti.assessment.survey import QPollSubmission
 from nti.assessment.survey import QSurveySubmission
 
-from nti.app.assessment.interfaces import IUsersCourseSurvey
-from nti.app.assessment.interfaces import IUsersCourseSurveyItem
+from nti.app.assessment.interfaces import IUsersCourseInquiry
+from nti.app.assessment.interfaces import IUsersCourseInquiryItem
 	
 
 from nti.dataserver.users import User
@@ -42,22 +42,22 @@ from nti.app.assessment.tests import AssessmentLayerTest
 class TestSurvey(AssessmentLayerTest):
 
 	def test_provides(self):
-		surveys = UsersCourseSurveys()
-		survey = UsersCourseSurvey()
+		surveys = UsersCourseInquiries()
+		survey = UsersCourseInquiry()
 		survey.__parent__ = surveys
 	
 		survey.owner = weakref.ref(User('sjohnson@nextthought.com'))
-		item = UsersCourseSurveyItem()
+		item = UsersCourseInquiryItem()
 		item.creator = 'foo'
 		item.__parent__ = survey
-		assert_that( item, validly_provides(IUsersCourseSurveyItem))
+		assert_that( item, validly_provides(IUsersCourseInquiryItem))
 
-		assert_that( survey, validly_provides(IUsersCourseSurvey))
+		assert_that( survey, validly_provides(IUsersCourseInquiry))
 		assert_that( IUser(item), is_(survey.owner))
 		assert_that( IUser(survey), is_(survey.owner))
 
 	def test_record(self):		
-		course_survey = UsersCourseSurvey()
+		course_survey = UsersCourseInquiry()
 		submission = QSurveySubmission(surveyId='b', questions=())
 		assert_that( submission, validly_provides(IQSurveySubmission))
 
@@ -101,11 +101,11 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 									  'CLC 3403',
 									  status=201 )
 
-		default_enrollment_savepoints_link = self.require_link_href_with_rel(res.json_body, 'Surveys')
+		default_enrollment_savepoints_link = self.require_link_href_with_rel(res.json_body, 'Inquiries')
 		assert_that( default_enrollment_savepoints_link,
 					 is_('/dataserver2/users/' +
 						self.default_username  +
-						'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/Surveys/' +
+						'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/Inquiries/' +
 						self.default_username))
 
 		res = self.testapp.post_json( '/dataserver2/users/outest5/Courses/EnrolledCourses',
@@ -113,7 +113,7 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 								status=201,
 								extra_environ=outest_environ )
 
-		user2_enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'Surveys')
+		user2_enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'Inquiries')
 
 		# each can fetch his own
 		self.testapp.get(default_enrollment_savepoints_link)
@@ -130,7 +130,7 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		assert_that(res.json_body, has_entry(StandardExternalFields.CREATED_TIME, is_(float)))
 		assert_that(res.json_body, has_entry(StandardExternalFields.LAST_MODIFIED, is_(float)))
 		assert_that(res.json_body, has_entry(StandardExternalFields.MIMETYPE, 
-											 'application/vnd.nextthought.assessment.userscoursesurveyitem' ) )
+											 'application/vnd.nextthought.assessment.userscourseinquiryitem' ) )
 
 		assert_that(res.json_body, has_key('Submission'))
 		assert_that(res.json_body, has_entry('href', is_not(none())))
@@ -151,7 +151,7 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 			items = list(survey_res.json_body['Items'].values())
 			assert_that(items[0], has_key('href'))
 		else:
-			self._fetch_user_url('/Courses/EnrolledCourses/CLC3403/Surveys/' + 
+			self._fetch_user_url('/Courses/EnrolledCourses/CLC3403/Inquiries/' + 
 								self.default_username, status=404 )
 	
 	@WithSharedApplicationMockDS(users=('outest5',),testapp=True,default_authenticate=True)
@@ -173,22 +173,22 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 									  'CLC 3403',
 									  status=201 )
 	
-		enrollment_surveys_link = self.require_link_href_with_rel(res.json_body, 'Surveys')
-		course_surveys_link = self.require_link_href_with_rel( res.json_body['CourseInstance'], 'Surveys')
+		enrollment_inquiries_link = self.require_link_href_with_rel(res.json_body, 'Inquiries')
+		course_inquiries_link = self.require_link_href_with_rel( res.json_body['CourseInstance'], 'Inquiries')
 		course_instance_link = res.json_body['CourseInstance']['href']
 		
-		assert_that( enrollment_surveys_link,
+		assert_that( enrollment_inquiries_link,
 					 is_('/dataserver2/users/' + 
 						 self.default_username +
-						 '/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/Surveys/' +
+						 '/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/Inquiries/' +
 						 self.default_username))
 	
-		assert_that( course_surveys_link,
-					 is_('/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice/Surveys/' + 
+		assert_that( course_inquiries_link,
+					 is_('/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice/Inquiries/' + 
 						 self.default_username) )
 	
 		# Both survey links are equivalent and work; and both are empty before I submit
-		for link in course_surveys_link, enrollment_surveys_link:
+		for link in course_inquiries_link, enrollment_inquiries_link:
 			survey_res = self.testapp.get(link)
 			assert_that(survey_res.json_body, has_entry('Items', has_length(0)))
 	
@@ -199,7 +199,7 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		survey_item_href = res.json_body['href']
 		assert_that(survey_item_href, is_not(none()))
 		
-		self._check_submission(res, enrollment_surveys_link)
+		self._check_submission(res, enrollment_inquiries_link)
 			
 		res = self.testapp.get(survey_item_href)
 		assert_that(res.json_body, has_entry('href', is_not(none())))
@@ -208,7 +208,7 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		assert_that(res.json_body, has_entry('href', is_not(none())))
 			
 		# Both survey links are equivalent and work
-		for link in course_surveys_link, enrollment_surveys_link:
+		for link in course_inquiries_link, enrollment_inquiries_link:
 			surveys_res = self.testapp.get(link)
 			assert_that(surveys_res.json_body, has_entry('Items', has_length(1)))
 			assert_that(surveys_res.json_body, has_entry('Items', has_key(self.survey_id)))

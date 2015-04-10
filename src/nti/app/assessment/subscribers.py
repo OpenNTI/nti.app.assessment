@@ -45,7 +45,7 @@ from nti.traversal.traversal import find_interface
 
 from .common import get_course_from_assignment
 
-from .interfaces import IUsersCourseSurveys
+from .interfaces import IUsersCourseInquiries
 from .interfaces import IUsersCourseAssignmentHistories
 from .interfaces import IUsersCourseAssignmentSavepoints
 from .interfaces import IUsersCourseAssignmentSavepointItem
@@ -154,7 +154,7 @@ def delete_user_data(user):
 	for enrollments in component.subscribers( (user,), IPrincipalEnrollments):
 		for enrollment in enrollments.iter_enrollments():
 			course = ICourseInstance(enrollment)
-			for iface in (IUsersCourseSurveys,
+			for iface in (IUsersCourseInquiries,
 						  IUsersCourseAssignmentHistories,
 						  IUsersCourseAssignmentSavepoints,
 						  IUsersCourseAssignmentMetadataContainer):

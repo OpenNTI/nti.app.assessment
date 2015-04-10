@@ -27,7 +27,7 @@ from nti.metadata.predicates import BasePrincipalObjects
  
 from nti.site.hostpolicy import run_job_in_all_host_sites
 
-from .interfaces import IUsersCourseSurvey
+from .interfaces import IUsersCourseInquiry
 from .interfaces import IUsersCourseAssignmentHistory
 
 @component.adapter(IUser)
@@ -97,7 +97,7 @@ class _AssignmentHistoryPrincipalObjects(BasePrincipalObjects):
         return result
 
 @component.adapter(IUser)
-class _SurveyPrincipalObjects(BasePrincipalObjects):
+class _InquiryPrincipalObjects(BasePrincipalObjects):
 
     def _item_collector(self, result):
         user = self.user
@@ -106,7 +106,7 @@ class _SurveyPrincipalObjects(BasePrincipalObjects):
                 try:
                     course = ICourseInstance(enrollment, None)
                     items = component.queryMultiAdapter( (course, user),
-                                                          IUsersCourseSurvey)
+                                                          IUsersCourseInquiry)
                     if not items:
                         continue
                     result.append(items)

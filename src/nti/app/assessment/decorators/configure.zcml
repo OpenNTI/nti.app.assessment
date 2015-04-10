@@ -165,24 +165,24 @@
 					 pyramid.interfaces.IRequest" />
 
 	<!-- survey -->
-	<subscriber factory=".survey._SurveyPollContentRootURLAdder"
+	<subscriber factory=".survey._InquiryContentRootURLAdder"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
-				for="nti.assessment.interfaces.IQPoll
+				for="nti.assessment.interfaces.IQInquiry
 					 pyramid.interfaces.IRequest" />
 					 
-	<subscriber factory=".survey._SurveysDecorator"
+	<subscriber factory=".survey._InquiriesDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.contenttypes.courses.interfaces.ICourseInstance
 					 pyramid.interfaces.IRequest" />
 
-	<subscriber factory=".survey._SurveysDecorator"
+	<subscriber factory=".survey._InquiriesDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.app.products.courseware.interfaces.ICourseInstanceEnrollment
 					 pyramid.interfaces.IRequest" />
 					 
-	<subscriber factory=".survey._SurveyItemDecorator"
+	<subscriber factory=".survey._InquiryItemDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
-				for="..interfaces.IUsersCourseSurveyItem
+				for="..interfaces.IUsersCourseInquiryItem
 					 pyramid.interfaces.IRequest" />
 
 	<!-- lineage -->
@@ -208,7 +208,7 @@
 				
 	<subscriber factory=".lineage._ContextCatalogEntryDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
-				for="..interfaces.IUsersCourseSurveyItem
+				for="..interfaces.IUsersCourseInquiryItem
 					 pyramid.interfaces.IRequest" />
 	 
 	<!-- hrefs -->

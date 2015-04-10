@@ -267,42 +267,42 @@
 			 for=".interfaces.IUsersCourseAssignmentMetadataItem"
 			 provides="nti.externalization.interfaces.IInternalObjectUpdater" />
 
-	<!-- Surveys -->
-	<adapter factory=".survey._surveys_for_course_path_adapter"
+	<!-- Surveys/Polls -->
+	<adapter factory=".survey._inquiries_for_course_path_adapter"
 			 for="nti.contenttypes.courses.interfaces.ICourseInstance pyramid.interfaces.IRequest"
 			 provides="zope.traversing.interfaces.IPathAdapter"
-			 name="Surveys" />
+			 name="Inquiries" />
 
-	<adapter factory=".survey._surveys_for_courseenrollment_path_adapter"
+	<adapter factory=".survey._inquiries_for_courseenrollment_path_adapter"
 			 for="nti.app.products.courseware.interfaces.ICourseInstanceEnrollment pyramid.interfaces.IRequest"
 			 provides="zope.traversing.interfaces.IPathAdapter"
-			 name="Surveys" />
+			 name="Inquiries" />
 
-	<adapter factory=".survey._surveys_for_course" />
-	<adapter factory=".survey._survey_for_user_in_course" />
-	<adapter factory=".survey._course_from_survey_lineage" />
-	<adapter factory=".survey._course_from_surveyitem_lineage" />
+	<adapter factory=".survey._inquiries_for_course" />
+	<adapter factory=".survey._inquiry_for_user_in_course" />
+	<adapter factory=".survey._course_from_inquiry_lineage" />
+	<adapter factory=".survey._course_from_inquiryitem_lineage" />
 	
-	<adapter factory=".survey._aggreated_analysis_for_course_path_adapter"
+	<adapter factory=".survey._aggreated_inquiries_for_course_path_adapter"
 			 for="nti.contenttypes.courses.interfaces.ICourseInstance pyramid.interfaces.IRequest"
 			 provides="zope.traversing.interfaces.IPathAdapter"
-			 name="AggregatedAnalysis" />
+			 name="AggregatedInquiries" />
 
-	<adapter factory=".survey._aggreated_analysis_for_courseenrollment_path_adapter"
+	<adapter factory=".survey._aggreated_inquiries_for_courseenrollment_path_adapter"
 			 for="nti.app.products.courseware.interfaces.ICourseInstanceEnrollment pyramid.interfaces.IRequest"
 			 provides="zope.traversing.interfaces.IPathAdapter"
-			 name="AggregatedAnalysis" />
+			 name="AggregatedInquiries" />
 			 
-	<adapter factory=".survey._aggreated_analysis_for_course" />
+	<adapter factory=".survey._aggreated_inquiries_for_course" />
 	
-	<adapter factory=".survey._DefaultCourseSurveyCatalog" />
-	<adapter factory=".survey._UsersCourseSurveysTraversable" />
+	<adapter factory=".survey._DefaultCourseInquiryCatalog" />
+	<adapter factory=".survey._UsersCourseInquiriesTraversable" />
 
 	<subscriber handler=".survey._on_course_added" />
 
 	<ext:registerAutoPackageIO
-		root_interfaces=".interfaces.IUsersCourseSurvey
-						 .interfaces.IUsersCourseSurveyItem"
+		root_interfaces=".interfaces.IUsersCourseInquiry
+						 .interfaces.IUsersCourseInquiryItem"
 		modules=".survey" />
 
 	<!-- Notables -->
@@ -321,7 +321,7 @@
 		<subscriber	factory=".predicates._AssignmentHistoryPrincipalObjects"
 					provides="nti.dataserver.interfaces.IPrincipalMetadataObjects" />
 	
-		<subscriber	factory=".predicates._SurveyPrincipalObjects"
+		<subscriber	factory=".predicates._InquiryPrincipalObjects"
 					provides="nti.dataserver.interfaces.IPrincipalMetadataObjects" />
 	</configure>
 

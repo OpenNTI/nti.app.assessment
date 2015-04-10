@@ -39,6 +39,8 @@ from nti.assessment.interfaces import IQFilePart
 from nti.assessment.interfaces import IQResponse
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQUploadedFile
+from nti.assessment.interfaces import IQPollSubmission
+from nti.assessment.interfaces import IQSurveySubmission
 from nti.assessment.interfaces import IInternalUploadedFileRef
 
 from nti.common.maps import CaseInsensitiveDict
@@ -177,11 +179,22 @@ def set_submission_lineage(submission):
 				_set_parent_(submitted_question_part, submitted_question)
 	return submission
 
+def set_poll_submission_lineage(submission):
+	for submitted_question_part in submission.parts:
+		_set_parent_(submitted_question_part, submission)
+	return submission
+
 def set_survey_submission_lineage(submission):
 	for submitted_question in submission.questions:
 		_set_parent_(submitted_question, submission)
-		for submitted_question_part in submitted_question.parts:
-			_set_parent_(submitted_question_part, submitted_question)
+		set_poll_submission_lineage(submitted_question)
+	return submission
+
+def set_inquiry_submission_lineage(submission):
+	if IQPollSubmission.providedBy(submission):
+		set_poll_submission_lineage(submission)
+	elif IQSurveySubmission.providedBy(submission):
+		set_survey_submission_lineage(submission)
 	return submission
 
 def transfer_upload_ownership(submission, old_submission, force=False):

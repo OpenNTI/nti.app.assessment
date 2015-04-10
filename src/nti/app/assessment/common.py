@@ -12,7 +12,7 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope.schema.interfaces import RequiredMissing
 
-from nti.assessment.interfaces import IQSurvey
+from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
@@ -126,8 +126,7 @@ def get_course_assessment_items(context):
 
 def find_course_for_assignment(assignment, user, exc=True):
 	# Check that they're enrolled in the course that has the assignment
-	course = component.queryMultiAdapter( (assignment, user),
-										  ICourseInstance)
+	course = component.queryMultiAdapter( (assignment, user), ICourseInstance)
 	if course is None:
 		# For BWC, we also check to see if we can just get
 		# one based on the content package of the assignment, not
@@ -212,19 +211,19 @@ def get_course_assignments(context, sort=True, reverse=False, do_filtering=True)
 
 ## surveys
 
-def find_course_for_survey(survey, user, exc=True):
-	# Check that they're enrolled in the course that has the survey
-	course = component.queryMultiAdapter( (survey, user), ICourseInstance)
+def find_course_for_inquiry(inquiry, user, exc=True):
+	# Check that they're enrolled in the course that has the inquiry
+	course = component.queryMultiAdapter( (inquiry, user), ICourseInstance)
 	if course is None and exc:
 		raise RequiredMissing("Course cannot be found")
 	return course
 
-def get_course_from_survey(survey, user=None, catalog=None, registry=component, exc=False):
+def get_course_from_inquiry(inquiry, user=None, catalog=None, registry=component, exc=False):
 	## check if we have the context catalog entry we can use 
 	## as reference (.AssessmentItemProxy)
 	result = None
 	try:
-		ntiid = survey.CatalogEntryNTIID
+		ntiid = inquiry.CatalogEntryNTIID
 		catalog = catalog if catalog is not None else registry.getUtility(ICourseCatalog)
 		entry = catalog.getCatalogEntry(ntiid) if ntiid else None
 		result = ICourseInstance(entry, None)
@@ -233,11 +232,11 @@ def get_course_from_survey(survey, user=None, catalog=None, registry=component, 
 
 	## could not find a course .. try adapter
 	if result is None and user is not None:	
-		result = find_course_for_assignment(survey, user, exc=exc)
+		result = find_course_for_inquiry(inquiry, user, exc=exc)
 	return result
 
-def get_course_surveys(context):
+def get_course_inquiries(context):
 	items = get_course_assessment_items(context)
 	ntiid = getattr(ICourseCatalogEntry(context, None), 'ntiid', None)
-	surveys = [proxy(x, catalog_entry=ntiid) for x in items if IQSurvey.providedBy(x)]
+	surveys = [proxy(x, catalog_entry=ntiid) for x in items if IQInquiry.providedBy(x)]
 	return surveys

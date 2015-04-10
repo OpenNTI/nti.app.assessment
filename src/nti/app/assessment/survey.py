@@ -26,6 +26,7 @@ from zope.security.interfaces import IPrincipal
 from pyramid.interfaces import IRequest
 
 from nti.assessment.interfaces import IQSurvey
+from nti.assessment.interfaces import IQAggregatedSurvey
 
 from nti.common.property import alias
 from nti.common.property import readproperty
@@ -334,3 +335,17 @@ def _aggreated_analysis_for_courseenrollment_path_adapter(enrollment, request):
 def _on_course_added(course, event):
 	_surveys_for_course(course)
 	_aggreated_analysis_for_course(course)
+
+@component.adapter(IUsersCourseSurveyItem, IObjectAddedEvent)
+def _on_course_survey_item_added(item, event):
+	pass
+
+def aggregate_survey_submission(storage, submission):
+	aggregated_survey = IQAggregatedSurvey(submission)
+	for aggregated_poll in aggregated_survey.questions:
+		pollId = aggregated_poll.pollId
+		if pollId not in storage:
+			storage[pollId] = aggregated_poll
+		else:
+			stored = storage[pollId]
+			stored += aggregated_poll

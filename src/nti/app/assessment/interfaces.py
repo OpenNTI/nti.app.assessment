@@ -36,7 +36,7 @@ from nti.dataserver.interfaces import CompoundModeledContentBody
 from nti.dataserver.interfaces import INeverStoredInSharedStream
 from nti.dataserver.interfaces import IShouldHaveTraversablePath
 
-from nti.schema.field import Int
+from nti.schema.field import Int, ValidTextLine
 from nti.schema.field import Dict
 from nti.schema.field import List
 from nti.schema.field import Float
@@ -435,6 +435,9 @@ class IUsersCourseSurveyItem(IContained,
 	Survey = Object(IQSurvey, title="The survey that generated this item",
 					required=False)
 	Survey.setTaggedValue('_ext_excluded_out', True)
+	
+	surveyId = ValidTextLine(title="Survey id")
+	surveyId.setTaggedValue('_ext_excluded_out', True)
 
 class ICourseSurveyCatalog(interface.Interface):
 	"""

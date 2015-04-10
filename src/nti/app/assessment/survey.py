@@ -18,10 +18,10 @@ from zope.container.contained import Contained
 
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
 
-from zope.security.interfaces import IPrincipal
-
 from zope.location.interfaces import LocationError
 from zope.location.interfaces import ISublocations
+
+from zope.security.interfaces import IPrincipal
 
 from pyramid.interfaces import IRequest
 
@@ -50,6 +50,7 @@ from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import IACLProvider
 from nti.dataserver.interfaces import ACE_DENY_ALL
 from nti.dataserver.interfaces import ALL_PERMISSIONS
+from nti.dataserver.interfaces import EVERYONE_USER_NAME
 
 from nti.dublincore.datastructures import PersistentCreatedModDateTrackingObject
 
@@ -65,9 +66,13 @@ from nti.wref.interfaces import IWeakRef
 
 from ._submission import set_survey_submission_lineage
 
+from .common import get_course_surveys
+
 from .interfaces import IUsersCourseSurvey
 from .interfaces import IUsersCourseSurveys
+from .interfaces import ICourseSurveyCatalog
 from .interfaces import IUsersCourseSurveyItem
+from .interfaces import ICourseAggregatedSurveys
 
 LINKS = StandardExternalFields.LINKS
 
@@ -232,10 +237,6 @@ class _UsersCourseSurveysTraversable(ContainerAdapterTraversable):
 				return _survey_for_user_in_course( self.context.__parent__, user)			
 			raise		
 
-@component.adapter(ICourseInstance, IObjectAddedEvent)
-def _on_course_added(course, event):
-	_surveys_for_course(course)
-
 @interface.implementer(ICourseInstance)
 @component.adapter(IQSurvey, IUser)
 def _course_from_survey_lineage(survey, user):
@@ -279,10 +280,6 @@ def _course_from_survey_lineage(survey, user):
 			enrollments = ICourseEnrollments(course)
 			if ICourseEnrollments(course).get_enrollment_for_principal(user) is not None:
 				return course
-
-from .interfaces import ICourseSurveyCatalog
-
-from .common import get_course_surveys
 	
 @interface.implementer(ICourseSurveyCatalog)
 @component.adapter(ICourseInstance)
@@ -294,3 +291,46 @@ class _DefaultCourseSurveyCatalog(object):
 	def iter_surveys(self):
 		result = get_course_surveys(self.context)
 		return result
+
+@interface.implementer(ICourseAggregatedSurveys)
+class CourseAggregatedSurveys(CheckingLastModifiedBTreeContainer):
+	
+	__external_can_create__ = False
+	
+	def __conform__(self, iface):
+		if ICourseInstance.isOrExtends(iface):
+			return self.__parent__
+		
+	@property
+	def __acl__(self):
+		course = ICourseInstance(self, None)
+		instructors = getattr(course, 'instructors', ()) # already principals
+		aces = [ace_allowing(i, ALL_PERMISSIONS, CourseAggregatedSurveys) 
+				for i in instructors]
+		aces.append(ace_allowing(EVERYONE_USER_NAME, ACT_READ))
+		return acl_from_aces( aces )
+	
+@component.adapter(ICourseInstance)
+@interface.implementer(ICourseAggregatedSurveys)
+def _aggreated_analysis_for_course(course):
+	annotations = IAnnotations(course)
+	try:
+		KEY = 'AggregatedAnalysis'
+		result = annotations[KEY]
+	except KeyError:
+		result = CourseAggregatedSurveys()
+		annotations[KEY] = result
+		result.__name__ = KEY
+		result.__parent__ = course
+	return result
+
+def _aggreated_analysis_for_course_path_adapter(course, request):
+	return _aggreated_analysis_for_course(course)
+
+def _aggreated_analysis_for_courseenrollment_path_adapter(enrollment, request):
+	return _aggreated_analysis_for_course( ICourseInstance(enrollment) )
+
+@component.adapter(ICourseInstance, IObjectAddedEvent)
+def _on_course_added(course, event):
+	_surveys_for_course(course)
+	_aggreated_analysis_for_course(course)

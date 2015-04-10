@@ -24,6 +24,7 @@ from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQSurveySubmission
+from nti.assessment.interfaces import IQAggregatedAnalysis
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import ICreated
@@ -357,7 +358,7 @@ class IUsersCourseSurveys(IContainer,
 						  IContained,
 						  IShouldHaveTraversablePath):
 	"""
-	A container for all the survey in a course, keyed by username.
+	A container for all the survey submissions in a course, keyed by username.
 	"""
 	contains(str('.IUsersCourseSurvey'))
 
@@ -450,3 +451,11 @@ class ICourseSurveyCatalog(interface.Interface):
 		Recall that surveys typically will have their 'home'
 		content unit in their lineage.
 		"""
+		
+class ICourseAggregatedSurveys(	IContainer,
+						  		IContained,
+						  		IShouldHaveTraversablePath):
+	"""
+	A container for all the aggreated survey and polls key by their ntiids
+	"""
+	contains(IQAggregatedAnalysis)

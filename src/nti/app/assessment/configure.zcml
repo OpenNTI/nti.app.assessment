@@ -283,6 +283,18 @@
 	<adapter factory=".survey._course_from_survey_lineage" />
 	<adapter factory=".survey._course_from_surveyitem_lineage" />
 	
+	<adapter factory=".survey._aggreated_analysis_for_course_path_adapter"
+			 for="nti.contenttypes.courses.interfaces.ICourseInstance pyramid.interfaces.IRequest"
+			 provides="zope.traversing.interfaces.IPathAdapter"
+			 name="AggregatedAnalysis" />
+
+	<adapter factory=".survey._aggreated_analysis_for_courseenrollment_path_adapter"
+			 for="nti.app.products.courseware.interfaces.ICourseInstanceEnrollment pyramid.interfaces.IRequest"
+			 provides="zope.traversing.interfaces.IPathAdapter"
+			 name="AggregatedAnalysis" />
+			 
+	<adapter factory=".survey._aggreated_analysis_for_course" />
+	
 	<adapter factory=".survey._DefaultCourseSurveyCatalog" />
 	<adapter factory=".survey._UsersCourseSurveysTraversable" />
 

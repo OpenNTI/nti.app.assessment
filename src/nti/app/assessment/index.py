@@ -34,13 +34,10 @@ from .interfaces import IUsersCourseAssignmentHistoryItem
 
 CATALOG_NAME = 'nti.dataserver.++etc++inquiry-catalog'
 
-IX_COURSE = 'course'
-IX_INQUIRY_ID = 'inquiryId'
+IX_ITEM_ID = 'itemId'
+IX_ITEM_MIME_TYPE = 'mimeType'
+IX_ENTRY = IX_COURSE = 'course'
 IX_CREATOR = IX_STUDENT = IX_USERNAME = 'creator'
-
-class InquiryIdIndex(ValueIndex):
-    default_field_name = 'inquiryId'
-    default_interface = IUsersCourseInquiryItem
 
 class CreatorRawIndex(RawValueIndex):
     pass
@@ -52,24 +49,21 @@ def CreatorIndex(family=None):
                                 normalizer=StringTokenNormalizer())
 
 class ValidatingCatalogEntryID(object):
-    """
-    The "interface" we adapt to to find the submission course.
-    """
 
     __slots__ = (b'ntiid',)
 
-    @staticmethod
-    def _trax(self, obj, default=None):
+    @classmethod
+    def _entry(cls, obj):
         for iface in (IUsersCourseInquiryItem, IUsersCourseAssignmentHistoryItem):
-            item = iface(obj, default)
-            if item is not default:
-                return item
-        return default
+            item = iface(obj, None)
+            if item is not None:
+                course = ICourseInstance(item, None)
+                entry = ICourseCatalogEntry(course, None)
+                return entry
+        return None
 
     def __init__(self, obj, default=None):
-        item = self._trax(obj, default)
-        course = ICourseInstance(item, None)
-        entry = ICourseCatalogEntry(course, None)
+        entry = self._entry(obj, default)
         if entry is not None:
             self.ntiid = unicode(entry.ntiid)
 
@@ -80,6 +74,42 @@ class CatalogEntryIDIndex(ValueIndex):
     default_field_name = 'ntiid'
     default_interface = ValidatingCatalogEntryID
 
+class ValidatingItemID(object):
+ 
+    __slots__ = (b'itemId',)
+
+    def __init__(self, obj, default=None):
+        if  IUsersCourseAssignmentHistoryItem.providedBy(obj) or \
+            IUsersCourseInquiryItem.providedBy(obj):
+            self.itemId = self.__name__
+
+    def __reduce__(self):
+        raise TypeError()
+    
+class ItemIdIndex(ValueIndex):
+    default_field_name = 'itemId'
+    default_interface = ValidatingItemID
+    
+class ValidatingItemMimeType(object):
+ 
+    __slots__ = (b'mimeType',)
+
+    def __init__(self, obj, default=None):
+        try:
+            if IUsersCourseAssignmentHistoryItem.providedBy(obj):
+                self.mimeType = getattr(obj.Assignment, 'mimeType', None)
+            elif IUsersCourseInquiryItem.providedBy(obj):
+                self.mimeType = getattr(obj.Inquiry, 'mimeType', None)
+        except (AttributeError, TypeError):
+            pass
+        
+    def __reduce__(self):
+        raise TypeError()
+    
+class ItemMimeTypeIndex(ValueIndex):
+    default_field_name = 'mimeType'
+    default_interface = ValidatingItemMimeType
+    
 @interface.implementer(IMetadataCatalog)
 class MetadataAssesmentCatalog(Catalog):
     
@@ -91,7 +121,7 @@ class MetadataAssesmentCatalog(Catalog):
     def force_index_doc(self, docid, ob):
         self.super_index_doc( docid, ob)
 
-def install_survey_catalog(site_manager_container, intids=None):
+def install_assesment_catalog(site_manager_container, intids=None):
     lsm = site_manager_container.getSiteManager()
     if intids is None:
         intids = lsm.getUtility(IIntIds)
@@ -105,13 +135,13 @@ def install_survey_catalog(site_manager_container, intids=None):
     intids.register( catalog )
     lsm.registerUtility(catalog, provided=IMetadataCatalog, name=CATALOG_NAME )
 
-    for name, clazz in ( (IX_CREATOR, CreatorIndex),
-                         (IX_INQUIRY_ID, InquiryIdIndex), 
-                         (IX_COURSE, CatalogEntryIDIndex) ):
+    for name, clazz in ( (IX_ITEM_ID, ItemIdIndex), 
+                         (IX_CREATOR, CreatorIndex),
+                         (IX_COURSE, CatalogEntryIDIndex) 
+                         (IX_ITEM_MIME_TYPE, ItemMimeTypeIndex)):
         index = clazz( family=intids.family )
         assert ICatalogIndex.providedBy(index)
         intids.register( index )
         locate(index, catalog, name)
         catalog[name] = index
-
     return catalog

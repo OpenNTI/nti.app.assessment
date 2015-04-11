@@ -23,8 +23,10 @@ from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtils
 
 from nti.appserver.ugd_edit_views import UGDDeleteView
 
+from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQInquiry
+from nti.assessment.interfaces import IQPollSubmission
 from nti.assessment.interfaces import IQSurveySubmission
 from nti.assessment.interfaces import IQInquirySubmission
 
@@ -49,6 +51,13 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 
 	content_predicate = IQInquirySubmission.providedBy
 
+	def _check_poll_submission(self, submission):
+		poll = component.getUtility(IQPoll, name=submission.id)
+		if len(poll.parts) != len(submission.parts):
+			ex = ConstraintNotSatisfied("Incorrect submission parts")
+			ex.field = IQPollSubmission['parts']
+			raise ex
+			
 	def _do_call(self):
 		creator = self.remoteUser
 		if not creator:
@@ -71,7 +80,10 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 				ex = ConstraintNotSatisfied("Incorrect submission questions")
 				ex.field = IQSurveySubmission['questions']
 				raise ex
-		##TODO: Check poll submissions?
+			for question_sub in submission.questions:
+				self._check_poll_submission(question_sub)
+		elif IQPollSubmission.providedBy(submission):
+			self._check_poll_submission(submission)
 		
 		creator = submission.creator
 		course_inquiry = component.getMultiAdapter( (course, creator), IUsersCourseInquiry)

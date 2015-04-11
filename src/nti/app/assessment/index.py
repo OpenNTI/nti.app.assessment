@@ -30,6 +30,7 @@ from nti.zope_catalog.index import AttributeValueIndex as ValueIndex
 from nti.zope_catalog.string import StringTokenNormalizer
 
 from .interfaces import IUsersCourseInquiryItem
+from .interfaces import IUsersCourseAssignmentHistoryItem
 
 CATALOG_NAME = 'nti.dataserver.++etc++inquiry-catalog'
 
@@ -57,9 +58,18 @@ class ValidatingCatalogEntryID(object):
 
     __slots__ = (b'ntiid',)
 
+    @staticmethod
+    def _trax(self, obj, default=None):
+        for iface in (IUsersCourseInquiryItem, IUsersCourseAssignmentHistoryItem):
+            item = iface(obj, default)
+            if item is not default:
+                return item
+        return default
+
     def __init__(self, obj, default=None):
-        grade = IUsersCourseInquiryItem(obj, default)
-        entry = ICourseCatalogEntry(ICourseInstance(grade, None), None)
+        item = self._trax(obj, default)
+        course = ICourseInstance(item, None)
+        entry = ICourseCatalogEntry(course, None)
         if entry is not None:
             self.ntiid = unicode(entry.ntiid)
 
@@ -71,7 +81,7 @@ class CatalogEntryIDIndex(ValueIndex):
     default_interface = ValidatingCatalogEntryID
 
 @interface.implementer(IMetadataCatalog)
-class MetadataSurveyCatalog(Catalog):
+class MetadataAssesmentCatalog(Catalog):
     
     super_index_doc = Catalog.index_doc
 
@@ -90,7 +100,7 @@ def install_survey_catalog(site_manager_container, intids=None):
     if catalog is not None:
         return catalog
 
-    catalog = MetadataSurveyCatalog(family=intids.family)
+    catalog = MetadataAssesmentCatalog(family=intids.family)
     locate(catalog, site_manager_container, CATALOG_NAME)
     intids.register( catalog )
     lsm.registerUtility(catalog, provided=IMetadataCatalog, name=CATALOG_NAME )

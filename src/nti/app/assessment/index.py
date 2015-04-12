@@ -16,6 +16,9 @@ from zope.location import locate
 
 from zope.catalog.interfaces import ICatalogIndex
 
+from nti.assessment.interfaces import IQPollSubmission
+from nti.assessment.interfaces import IQSurveySubmission 
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
     
@@ -36,7 +39,7 @@ CATALOG_NAME = 'nti.dataserver.++etc++assesment-catalog'
 
 IX_ENTRY = IX_COURSE = 'course'
 IX_ASSESSMENT_ID = 'assesmentId'
-IX_ASSESSMENT_MIME_TYPE = 'mimeType'
+IX_ASSESSMENT_TYPE = 'assesmentType'
 IX_CREATOR = IX_STUDENT = IX_USERNAME = 'creator'
 
 class CreatorRawIndex(RawValueIndex):
@@ -57,8 +60,8 @@ class ValidatingCatalogEntryID(object):
         for iface in (IUsersCourseInquiryItem, IUsersCourseAssignmentHistoryItem):
             assesment = iface(obj, None)
             if assesment is not None:
-                course = ICourseInstance(assesment, None)
-                entry = ICourseCatalogEntry(course, None)
+                course = ICourseInstance(assesment, None) # course is lineage
+                entry = ICourseCatalogEntry(course, None) # entry is an annotation
                 return entry
         return None
 
@@ -90,25 +93,28 @@ class AssesmentIdIndex(ValueIndex):
     default_field_name = 'assesmentId'
     default_interface = ValidatingAssesmentID
     
-class ValidatingAssesmentMimeType(object):
+class ValidatingAssesmentType(object):
  
-    __slots__ = (b'mimeType',)
+    __slots__ = (b'type',)
 
     def __init__(self, obj, default=None):
         try:
             if IUsersCourseAssignmentHistoryItem.providedBy(obj):
-                self.mimeType = getattr(obj.Assignment, 'mimeType', None)
+                self.type = 'Assignment'
             elif IUsersCourseInquiryItem.providedBy(obj):
-                self.mimeType = getattr(obj.Inquiry, 'mimeType', None)
+                if IQSurveySubmission.providedBy(obj.Submission):
+                    self.type = 'Survey'
+                elif IQPollSubmission.providedBy(obj.Submission):
+                    self.type = 'Poll'
         except (AttributeError, TypeError):
             pass
         
     def __reduce__(self):
         raise TypeError()
     
-class AssesmentMimeTypeIndex(ValueIndex):
-    default_field_name = 'mimeType'
-    default_interface = ValidatingAssesmentMimeType
+class AssesmentTypeIndex(ValueIndex):
+    default_field_name = 'type'
+    default_interface = ValidatingAssesmentType
     
 @interface.implementer(IMetadataCatalog)
 class MetadataAssesmentCatalog(Catalog):
@@ -138,7 +144,7 @@ def install_assesment_catalog(site_manager_container, intids=None):
     for name, clazz in ( (IX_CREATOR, CreatorIndex),
                          (IX_COURSE, CatalogEntryIDIndex) 
                          (IX_ASSESSMENT_ID, AssesmentIdIndex), 
-                         (IX_ASSESSMENT_MIME_TYPE, AssesmentMimeTypeIndex)):
+                         (IX_ASSESSMENT_TYPE, AssesmentTypeIndex)):
         index = clazz( family=intids.family )
         assert ICatalogIndex.providedBy(index)
         intids.register( index )

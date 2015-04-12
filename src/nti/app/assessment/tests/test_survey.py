@@ -14,6 +14,7 @@ from hamcrest import has_key
 from hamcrest import has_entry
 from hamcrest import has_length
 from hamcrest import assert_that
+from hamcrest import greater_than
 from hamcrest import has_property
 from hamcrest import contains_string
 
@@ -30,7 +31,6 @@ from nti.assessment.survey import QSurveySubmission
 
 from nti.app.assessment.interfaces import IUsersCourseInquiry
 from nti.app.assessment.interfaces import IUsersCourseInquiryItem
-	
 
 from nti.dataserver.users import User
 from nti.dataserver.interfaces import IUser
@@ -125,7 +125,7 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 						 status=403)
 		self.testapp.get(user2_enrollment_history_link, status=403)
 
-	def _check_submission(self, res, survey=None):
+	def _check_submission(self, res, inquiry=None, containerId=None):
 		assert_that(res.status_int, is_(201))
 		assert_that(res.json_body, has_entry(StandardExternalFields.CREATED_TIME, is_(float)))
 		assert_that(res.json_body, has_entry(StandardExternalFields.LAST_MODIFIED, is_(float)))
@@ -136,38 +136,25 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		assert_that(res.json_body, has_entry('href', is_not(none())))
 		
 		submission = res.json_body['Submission']
-		#assert_that(submission, has_key('NTIID'))
-		assert_that(submission, has_entry('ContainerId', self.survey_id ))
+		if containerId:
+			assert_that(submission, has_entry('ContainerId', containerId ))
 		assert_that(submission, has_entry( StandardExternalFields.CREATED_TIME, is_( float ) ) )
 		assert_that(submission, has_entry( StandardExternalFields.LAST_MODIFIED, is_( float ) ) )
 
-		# This object can be found in my savepoints
-		if survey:
-			__traceback_info__ = survey
-			survey_res = self.testapp.get(survey)
-			assert_that(survey_res.json_body, has_entry('href', contains_string(unquote(survey)) ) )
-			assert_that(survey_res.json_body, has_entry('Items', has_length(1)))
+		if inquiry:
+			__traceback_info__ = inquiry
+			inquiry_res = self.testapp.get(inquiry)
+			assert_that(inquiry_res.json_body, has_entry('href', contains_string(unquote(inquiry)) ) )
+			assert_that(inquiry_res.json_body, has_entry('Items', has_length(1)))
 			
-			items = list(survey_res.json_body['Items'].values())
+			items = list(inquiry_res.json_body['Items'].values())
 			assert_that(items[0], has_key('href'))
 		else:
 			self._fetch_user_url('/Courses/EnrolledCourses/CLC3403/Inquiries/' + 
 								self.default_username, status=404 )
 	
-	@WithSharedApplicationMockDS(users=('outest5',),testapp=True,default_authenticate=True)
-	@fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
-	def test_survey(self, fake_active):
-		fake_active.is_callable().returns(True)
+	def _test_submission(self, item_id, ext_obj):
 		
-		# Sends through the application by posting to the survey
-		poll_sub = QPollSubmission(pollId=self.poll_id, parts=[0])
-		submission = QSurveySubmission(	surveyId=self.survey_id,
-										questions=[poll_sub])
-		
-		ext_obj = to_external_object( submission )
-		del ext_obj['Class']
-		assert_that( ext_obj, has_entry('MimeType', 'application/vnd.nextthought.assessment.surveysubmission'))
-			
 		# Make sure we're enrolled
 		res = self.testapp.post_json( '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses',
 									  'CLC 3403',
@@ -192,14 +179,14 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 			survey_res = self.testapp.get(link)
 			assert_that(survey_res.json_body, has_entry('Items', has_length(0)))
 	
-		href = '/dataserver2/Objects/' + self.survey_id
+		href = '/dataserver2/Objects/' + item_id
 		self.testapp.get(href, status=404)
 			
 		res = self.testapp.post_json( href, ext_obj)
 		survey_item_href = res.json_body['href']
 		assert_that(survey_item_href, is_not(none()))
 		
-		self._check_submission(res, enrollment_inquiries_link)
+		self._check_submission(res, enrollment_inquiries_link, item_id)
 			
 		res = self.testapp.get(survey_item_href)
 		assert_that(res.json_body, has_entry('href', is_not(none())))
@@ -211,10 +198,10 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		for link in course_inquiries_link, enrollment_inquiries_link:
 			surveys_res = self.testapp.get(link)
 			assert_that(surveys_res.json_body, has_entry('Items', has_length(1)))
-			assert_that(surveys_res.json_body, has_entry('Items', has_key(self.survey_id)))
+			assert_that(surveys_res.json_body, has_entry('Items', has_key(item_id)))
 	
 		# simply adding get us to an item
-		href = surveys_res.json_body['href'] + '/' + self.survey_id
+		href = surveys_res.json_body['href'] + '/' + item_id
 		res = self.testapp.get(href)
 		assert_that(res.json_body, has_entry('href', is_not(none())))
 				
@@ -225,4 +212,32 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		instructor_environ = self._make_extra_environ(username='harp4162')
 		activity_link = course_instance_link + '/CourseActivity'
 		res = self.testapp.get(activity_link, extra_environ=instructor_environ)
-		assert_that( res.json_body, has_entry('TotalItemCount', 1) )
+		assert_that( res.json_body, has_entry('TotalItemCount', greater_than(0) ))
+
+	@WithSharedApplicationMockDS(users=('outest5',),testapp=True,default_authenticate=True)
+	@fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
+	def test_survey(self, fake_active):
+		fake_active.is_callable().returns(True)
+		
+		poll_sub = QPollSubmission(pollId=self.poll_id, parts=[0])
+		submission = QSurveySubmission(	surveyId=self.survey_id,
+										questions=[poll_sub])
+		
+		ext_obj = to_external_object( submission )
+		del ext_obj['Class']
+		assert_that( ext_obj, has_entry('MimeType', 'application/vnd.nextthought.assessment.surveysubmission'))
+			
+		self._test_submission(self.survey_id, ext_obj)
+		
+	@WithSharedApplicationMockDS(users=('outest5',),testapp=True,default_authenticate=True)
+	@fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
+	def test_poll(self, fake_active):
+		fake_active.is_callable().returns(True)
+		
+		submission = QPollSubmission(pollId=self.poll_id, parts=[0])
+
+		ext_obj = to_external_object( submission )
+		del ext_obj['Class']
+		assert_that( ext_obj, has_entry('MimeType', 'application/vnd.nextthought.assessment.pollsubmission'))
+			
+		self._test_submission(self.poll_id, ext_obj)

@@ -5,6 +5,7 @@ generation 3.
 
 .. $Id$
 """
+
 from __future__ import print_function, unicode_literals, absolute_import, division
 __docformat__ = "restructuredtext en"
 
@@ -52,6 +53,6 @@ def do_evolve(context, generation=generation):
 
 def evolve(context):
 	"""
-	Evolve to generation 3; by installing an assesment
+	Evolve to generation 3 by installing an assesment index
 	"""
-	do_evolve
+	do_evolve(context)

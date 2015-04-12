@@ -32,11 +32,11 @@ from nti.zope_catalog.string import StringTokenNormalizer
 from .interfaces import IUsersCourseInquiryItem
 from .interfaces import IUsersCourseAssignmentHistoryItem
 
-CATALOG_NAME = 'nti.dataserver.++etc++inquiry-catalog'
+CATALOG_NAME = 'nti.dataserver.++etc++assesment-catalog'
 
-IX_ITEM_ID = 'itemId'
-IX_ITEM_MIME_TYPE = 'mimeType'
 IX_ENTRY = IX_COURSE = 'course'
+IX_ASSESSMENT_ID = 'assesmentId'
+IX_ASSESSMENT_MIME_TYPE = 'mimeType'
 IX_CREATOR = IX_STUDENT = IX_USERNAME = 'creator'
 
 class CreatorRawIndex(RawValueIndex):
@@ -55,9 +55,9 @@ class ValidatingCatalogEntryID(object):
     @classmethod
     def _entry(cls, obj):
         for iface in (IUsersCourseInquiryItem, IUsersCourseAssignmentHistoryItem):
-            item = iface(obj, None)
-            if item is not None:
-                course = ICourseInstance(item, None)
+            assesment = iface(obj, None)
+            if assesment is not None:
+                course = ICourseInstance(assesment, None)
                 entry = ICourseCatalogEntry(course, None)
                 return entry
         return None
@@ -74,23 +74,23 @@ class CatalogEntryIDIndex(ValueIndex):
     default_field_name = 'ntiid'
     default_interface = ValidatingCatalogEntryID
 
-class ValidatingItemID(object):
+class ValidatingAssesmentID(object):
  
-    __slots__ = (b'itemId',)
+    __slots__ = (b'assesmentId',)
 
     def __init__(self, obj, default=None):
         if  IUsersCourseAssignmentHistoryItem.providedBy(obj) or \
             IUsersCourseInquiryItem.providedBy(obj):
-            self.itemId = self.__name__
+            self.assesmentId = self.__name__
 
     def __reduce__(self):
         raise TypeError()
     
-class ItemIdIndex(ValueIndex):
-    default_field_name = 'itemId'
-    default_interface = ValidatingItemID
+class AssesmentIdIndex(ValueIndex):
+    default_field_name = 'assesmentId'
+    default_interface = ValidatingAssesmentID
     
-class ValidatingItemMimeType(object):
+class ValidatingAssesmentMimeType(object):
  
     __slots__ = (b'mimeType',)
 
@@ -106,9 +106,9 @@ class ValidatingItemMimeType(object):
     def __reduce__(self):
         raise TypeError()
     
-class ItemMimeTypeIndex(ValueIndex):
+class AssesmentMimeTypeIndex(ValueIndex):
     default_field_name = 'mimeType'
-    default_interface = ValidatingItemMimeType
+    default_interface = ValidatingAssesmentMimeType
     
 @interface.implementer(IMetadataCatalog)
 class MetadataAssesmentCatalog(Catalog):
@@ -135,10 +135,10 @@ def install_assesment_catalog(site_manager_container, intids=None):
     intids.register( catalog )
     lsm.registerUtility(catalog, provided=IMetadataCatalog, name=CATALOG_NAME )
 
-    for name, clazz in ( (IX_ITEM_ID, ItemIdIndex), 
-                         (IX_CREATOR, CreatorIndex),
+    for name, clazz in ( (IX_CREATOR, CreatorIndex),
                          (IX_COURSE, CatalogEntryIDIndex) 
-                         (IX_ITEM_MIME_TYPE, ItemMimeTypeIndex)):
+                         (IX_ASSESSMENT_ID, AssesmentIdIndex), 
+                         (IX_ASSESSMENT_MIME_TYPE, AssesmentMimeTypeIndex)):
         index = clazz( family=intids.family )
         assert ICatalogIndex.providedBy(index)
         intids.register( index )

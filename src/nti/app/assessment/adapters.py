@@ -377,4 +377,4 @@ def _course_from_context_lineage(context, validate=False):
 @interface.implementer(ICourseInstance)
 @component.adapter(IUsersCourseAssignmentHistoryItem)
 def _course_from_history_item_lineage(item):
-	return _course_from_context_lineage(item, validate=True)
+	return _course_from_context_lineage(item)

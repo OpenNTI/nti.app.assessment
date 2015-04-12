@@ -224,7 +224,7 @@ from .adapters import _course_from_context_lineage
 @interface.implementer(ICourseInstance)
 @component.adapter(IUsersCourseInquiryItem)
 def _course_from_inquiryitem_lineage(item):
-	return _course_from_context_lineage(item, validate=True)
+	return _course_from_context_lineage(item)
 
 @component.adapter(IUsersCourseInquiries, IRequest)
 class _UsersCourseInquiriesTraversable(ContainerAdapterTraversable):

@@ -8,6 +8,7 @@ __docformat__ = "restructuredtext en"
 # pylint: disable=W0212,R0904
 
 from hamcrest import is_
+from hamcrest import has_entries
 from hamcrest import assert_that
 from hamcrest import has_property
 
@@ -27,8 +28,10 @@ from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
 from nti.dataserver.users import User
 from nti.dataserver.interfaces import IUser
 
-from nti.testing.matchers import validly_provides
+from nti.externalization.tests import externalizes
+
 from nti.testing.matchers import is_false
+from nti.testing.matchers import validly_provides
 
 from nti.app.assessment.tests import AssessmentLayerTest
 
@@ -58,6 +61,9 @@ class TestHistory(AssessmentLayerTest):
 		assert_that( summ,
 					 validly_provides(IUsersCourseAssignmentHistoryItemSummary))
 
+		assert_that(item, externalizes( has_entries( 'Class', 'UsersCourseAssignmentHistoryItem',
+													 'MimeType', 'application/vnd.nextthought.assessment.userscourseassignmenthistoryitem' ) ) )
+		
 	def test_record(self):
 		history = UsersCourseAssignmentHistory()
 		submission = AssignmentSubmission(assignmentId='b')
@@ -71,7 +77,6 @@ class TestHistory(AssessmentLayerTest):
 		assert_that( item.__parent__, is_( history ))
 
 		assert_that( history, has_property( 'lastViewed', 0 ))
-
 
 	def test_nuclear_option(self):
 		history = UsersCourseAssignmentHistory()

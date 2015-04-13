@@ -15,7 +15,6 @@ generation = 3
 
 import zope.intid
 
-from zope import component
 from zope.catalog.interfaces import ICatalog
 
 from nti.dataserver.metadata_index import CATALOG_NAME as METADATA_CATALOG_NAME
@@ -37,7 +36,7 @@ def do_evolve(context, generation=generation):
 	
 	# index all course history items
 	total = 0
-	metadata_catalog = component.getUtility(ICatalog, METADATA_CATALOG_NAME)
+	metadata_catalog = lsm.getUtility(ICatalog, METADATA_CATALOG_NAME)
 	ITEM_MT = 'application/vnd.nextthought.assessment.userscourseassignmenthistoryitem'
 	item_intids = metadata_catalog['mimeType'].apply({'any_of': (ITEM_MT,)})
 	results = ResultSet(item_intids, intids, True)

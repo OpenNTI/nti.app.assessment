@@ -142,7 +142,7 @@ def install_assesment_catalog(site_manager_container, intids=None):
     lsm.registerUtility(catalog, provided=IMetadataCatalog, name=CATALOG_NAME )
 
     for name, clazz in ( (IX_CREATOR, CreatorIndex),
-                         (IX_COURSE, CatalogEntryIDIndex) 
+                         (IX_COURSE, CatalogEntryIDIndex),
                          (IX_ASSESSMENT_ID, AssesmentIdIndex), 
                          (IX_ASSESSMENT_TYPE, AssesmentTypeIndex)):
         index = clazz( family=intids.family )

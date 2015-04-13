@@ -84,7 +84,7 @@ class ValidatingAssesmentID(object):
     def __init__(self, obj, default=None):
         if  IUsersCourseAssignmentHistoryItem.providedBy(obj) or \
             IUsersCourseInquiryItem.providedBy(obj):
-            self.assesmentId = self.__name__
+            self.assesmentId = obj.__name__
 
     def __reduce__(self):
         raise TypeError()

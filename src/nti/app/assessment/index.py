@@ -66,7 +66,7 @@ class ValidatingCatalogEntryID(object):
         return None
 
     def __init__(self, obj, default=None):
-        entry = self._entry(obj, default)
+        entry = self._entry(obj)
         if entry is not None:
             self.ntiid = unicode(entry.ntiid)
 

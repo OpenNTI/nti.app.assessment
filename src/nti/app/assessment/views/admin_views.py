@@ -13,7 +13,12 @@ import csv
 import six
 from io import BytesIO
 
+import zope.intid
+
 from zope import component
+
+from zope.catalog.interfaces import ICatalog
+
 from zope.security.interfaces import IPrincipal
 
 from pyramid.view import view_config
@@ -41,23 +46,28 @@ from nti.contenttypes.courses.interfaces import	ICourseCatalogEntry
 from nti.dataserver.users import User
 from nti.dataserver import authorization as nauth
 from nti.dataserver.interfaces import IDataserverFolder
+from nti.dataserver.metadata_index import CATALOG_NAME as METADATA_CATALOG_NAME
 
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.ntiids.ntiids import find_object_with_ntiid
 
+from nti.zope_catalog.catalog import ResultSet
+
 from .._submission import course_submission_report
 
 from .._question_map import _add_assessment_items_from_new_content
 from .._question_map import _remove_assessment_items_from_oldcontent
 
+from ..common import get_course_assignments
+from ..common import get_course_assessment_items
+
+from ..index import CATALOG_NAME as ASSESMENT_CATALOG_NAME
+
 from ..interfaces import ICourseAssessmentItemCatalog
 from ..interfaces import IUsersCourseAssignmentHistory
 from ..interfaces import IUsersCourseAssignmentSavepoint
-
-from ..common import get_course_assignments
-from ..common import get_course_assessment_items
 
 ITEMS = StandardExternalFields.ITEMS
 
@@ -261,6 +271,40 @@ class RegisterAssessmentItemsView(AbstractAuthenticatedView,
 		result['Count'] = result['Total'] = len(items)
 		return result
 
+@view_config(name="ReindexAssesmentItems")
+@view_config(name="reindex_assesment_items")
+@view_defaults(	route_name='objects.generic.traversal',
+			 	renderer='rest',
+			 	permission=nauth.ACT_NTI_ADMIN,
+			 	context=IDataserverFolder)
+class ReindexAssesmentItemsView(AbstractAuthenticatedView,
+						   		ModeledContentUploadRequestUtilsMixin):
+
+	def _do_call(self):
+		MIME_TYPES = ('application/vnd.nextthought.assessment.userscourseassignmenthistoryitem',
+					  'application/vnd.nextthought.assessment.userscourseinquiryitem')
+
+		total = 0
+		errors = 0
+		intids = component.getUtility(zope.intid.IIntIds)
+		metadata_catalog = component.getUtility(ICatalog, METADATA_CATALOG_NAME)
+		assesment_catalog = component.getUtility(ICatalog, ASSESMENT_CATALOG_NAME)
+	
+		item_intids = metadata_catalog['mimeType'].apply({'any_of': MIME_TYPES})
+		results = ResultSet(item_intids, intids, True)
+		for uid, obj in results.iter_pairs():
+			try:
+				assesment_catalog.force_index_doc(uid, obj)
+				total += 1
+			except Exception:
+				errors += 1
+				logger.debug("Cannot index object with id %s", uid)
+
+		result = LocatedExternalDict()
+		result['Total'] = total
+		result['Errors'] = errors
+		return result
+
 # course views
 
 from nti.app.externalization.internalization import read_body_as_external_object
@@ -271,11 +315,11 @@ from .._assignment import move_user_assignment_from_course_to_course
 
 @view_config(context=IDataserverFolder)
 @view_config(context=CourseAdminPathAdapter)
+@view_config(name='CourseSubmissionReport')
 @view_defaults(	route_name='objects.generic.traversal',
 				renderer='rest',
 				permission=nauth.ACT_NTI_ADMIN,
-				request_method='GET',
-				name='CourseSubmissionReport')
+				request_method='GET')
 class CourseSubmissionReportView(AbstractAuthenticatedView):
 
 	def __call__(self):

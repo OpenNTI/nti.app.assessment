@@ -71,8 +71,9 @@ def do_evolve(context, generation=generation):
 			library.syncContentPackages()
 			
 		## index all history items
-		ITEM_MT = 'application/vnd.nextthought.assessment.userscourseassignmenthistoryitem'
-		item_intids = metadata_catalog['mimeType'].apply({'any_of': (ITEM_MT,)})
+		MIME_TYPES = ('application/vnd.nextthought.assessment.userscourseassignmenthistoryitem',
+					  'application/vnd.nextthought.assessment.userscourseinquiryitem')
+		item_intids = metadata_catalog['mimeType'].apply({'any_of': MIME_TYPES})
 		results = ResultSet(item_intids, intids, True)
 		for uid, obj in results.iter_pairs():
 			try:

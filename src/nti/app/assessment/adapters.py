@@ -265,16 +265,18 @@ from .history import UsersCourseAssignmentHistories
 
 @component.adapter(ICourseInstance)
 @interface.implementer(IUsersCourseAssignmentHistories)
-def _histories_for_course(course):
+def _histories_for_course(course, create=True):
+	histories = None
 	annotations = IAnnotations(course)
 	try:
 		KEY = 'AssignmentHistories'
 		histories = annotations[KEY]
 	except KeyError:
-		histories = UsersCourseAssignmentHistories()
-		annotations[KEY] = histories
-		histories.__name__ = KEY
-		histories.__parent__ = course
+		if create:
+			histories = UsersCourseAssignmentHistories()
+			annotations[KEY] = histories
+			histories.__name__ = KEY
+			histories.__parent__ = course
 	return histories
 
 @interface.implementer(IUsersCourseAssignmentHistory)

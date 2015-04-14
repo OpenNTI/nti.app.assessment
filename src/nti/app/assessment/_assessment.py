@@ -9,12 +9,18 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+from nti.dataserver.users import User
+
+from .adapters import _histories_for_course
 from .adapters import _history_for_user_in_course
 
 def move_user_assignment_from_course_to_course(user, source, target, verbose=True):
 	result = []
+	log = logger.info if verbose else logger.debug
+	
 	new_history = _history_for_user_in_course(target, user, create=True)
 	old_history = _history_for_user_in_course(source, user, create=False) or ()
+	
 	for k in list(old_history): # we are changing
 		item = old_history[k]
 		
@@ -25,14 +31,26 @@ def move_user_assignment_from_course_to_course(user, source, target, verbose=Tru
 		assert item.__parent__ is None
 		
 		if k in new_history:
-			if verbose:
-				logger.info("Skipped moving %s for %s from %s to %s", k, user, 
-							source.__name__, target.__name__)
+			log("Skipped moving %s for %s from %s to %s", k, user, 
+				source.__name__, target.__name__)
 			continue
 
 		result.append(k)
 		new_history[k] = item
-		if verbose:
-			logger.info("Moved %s for %s from %s to %s", k, user,
-						source.__name__, target.__name__)
+
+		log("Moved %s for %s from %s to %s", k, user,
+			 source.__name__, target.__name__)
+	return result
+
+def move_assignment_histories_from_course_to_course(source, target, verbose=True):
+	result = {}
+	histories = _histories_for_course(source, False)
+	for username in histories:
+		user = User.get_user(username)
+		if user is not None:
+			moves = move_user_assignment_from_course_to_course(user=user,
+															   source=source,
+															   target=target,
+															   verbose=verbose)
+			result[username] =  moves
 	return result

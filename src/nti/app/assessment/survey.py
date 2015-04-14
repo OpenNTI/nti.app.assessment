@@ -187,16 +187,18 @@ class UsersCourseInquiryItem(PersistentCreatedModDateTrackingObject,
 
 @component.adapter(ICourseInstance)
 @interface.implementer(IUsersCourseInquiries)
-def _inquiries_for_course(course):
+def _inquiries_for_course(course, create=True):
+	result = None
 	annotations = IAnnotations(course)
 	try:
 		KEY = 'Inquiries'
 		result = annotations[KEY]
 	except KeyError:
-		result = UsersCourseInquiries()
-		annotations[KEY] = result
-		result.__name__ = KEY
-		result.__parent__ = course
+		if create:
+			result = UsersCourseInquiries()
+			annotations[KEY] = result
+			result.__name__ = KEY
+			result.__parent__ = course
 	return result
 
 @component.adapter(ICourseInstance, IUser)

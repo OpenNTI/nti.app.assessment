@@ -311,7 +311,7 @@ from nti.app.externalization.internalization import read_body_as_external_object
 
 from nti.app.products.courseware.views import CourseAdminPathAdapter
 
-from .._assignment import move_user_assignment_from_course_to_course
+from .._assessment import move_user_assignment_from_course_to_course
 
 @view_config(context=IDataserverFolder)
 @view_config(context=CourseAdminPathAdapter)

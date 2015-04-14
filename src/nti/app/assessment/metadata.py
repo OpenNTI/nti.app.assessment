@@ -213,16 +213,18 @@ class _UsersCourseAssignmentMetadataItemUpdater(object):
 	
 @component.adapter(ICourseInstance)
 @interface.implementer(IUsersCourseAssignmentMetadataContainer)
-def _metadatacontainer_for_course(course):
+def _metadatacontainer_for_course(course, create=True):
+	result = None
 	annotations = IAnnotations(course)
 	try:
 		KEY = 'AssignmentMetadata'
 		result = annotations[KEY]
 	except KeyError:
-		result = UsersCourseAssignmentMetadataContainer()
-		annotations[KEY] = result
-		result.__name__ = KEY
-		result.__parent__ = course
+		if create:
+			result = UsersCourseAssignmentMetadataContainer()
+			annotations[KEY] = result
+			result.__name__ = KEY
+			result.__parent__ = course
 	return result
 
 @component.adapter(ICourseInstance, IUser)

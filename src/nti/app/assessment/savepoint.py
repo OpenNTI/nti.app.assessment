@@ -197,16 +197,18 @@ class UsersCourseAssignmentSavepointItem(PersistentCreatedModDateTrackingObject,
 
 @component.adapter(ICourseInstance)
 @interface.implementer(IUsersCourseAssignmentSavepoints)
-def _savepoints_for_course(course):
+def _savepoints_for_course(course, create=True):
+	result = None
 	annotations = IAnnotations(course)
 	try:
 		KEY = 'AssignmentSavepoints'
 		result = annotations[KEY]
 	except KeyError:
-		result = UsersCourseAssignmentSavepoints()
-		annotations[KEY] = result
-		result.__name__ = KEY
-		result.__parent__ = course
+		if create:
+			result = UsersCourseAssignmentSavepoints()
+			annotations[KEY] = result
+			result.__name__ = KEY
+			result.__parent__ = course
 	return result
 
 @component.adapter(ICourseInstance, IUser)

@@ -14,32 +14,33 @@ from nti.dataserver.users import User
 from .adapters import _histories_for_course
 from .adapters import _history_for_user_in_course
 
-def move_user_assignment_from_course_to_course(user, source, target, verbose=True):
+def _container_mover(old_container, new_container, verbose=True,
+					 user=None, source=None, target=None):
 	result = []
 	log = logger.info if verbose else logger.debug
-	
-	new_history = _history_for_user_in_course(target, user, create=True)
-	old_history = _history_for_user_in_course(source, user, create=False) or ()
-	
-	for k in list(old_history): # we are changing
-		item = old_history[k]
+	for k in list(old_container): # we are changing
+		item = old_container[k]
 		
-		## JAM: do a full delete/re-add so that ObjectAdded event gets fired, 
-		## because that's where auto-grading takes place
-		del old_history[k]
+		del old_container[k]
 		assert item.__name__ is None
 		assert item.__parent__ is None
 		
-		if k in new_history:
-			log("Skipped moving %s for %s from %s to %s", k, user, 
-				source.__name__, target.__name__)
+		if k in new_container:
+			log("Skipped moving %s for %s from %s to %s", k, user, source, target)
 			continue
 
 		result.append(k)
-		new_history[k] = item
+		old_container[k] = item
 
-		log("Moved %s for %s from %s to %s", k, user,
-			 source.__name__, target.__name__)
+		log("Moved %s for %s from %s to %s", k, user, source, target)
+
+	return result
+
+def move_user_assignment_from_course_to_course(user, source, target, verbose=True):
+	new_history = _history_for_user_in_course(target, user, create=True)
+	old_history = _history_for_user_in_course(source, user, create=False) or ()
+	result = _container_mover(old_history, new_history, verbose=verbose, user=user,
+							  source=source.__name__, target=target.__name__)
 	return result
 
 def move_assignment_histories_from_course_to_course(source, target, verbose=True):
@@ -52,5 +53,28 @@ def move_assignment_histories_from_course_to_course(source, target, verbose=True
 															   source=source,
 															   target=target,
 															   verbose=verbose)
+			result[username] =  moves
+	return result
+
+from .metadata import _metadata_for_user_in_course
+from .metadata import _metadatacontainer_for_course
+
+def move_user_metadata_from_course_to_course(user, source, target, verbose=True):
+	new_metadata = _metadata_for_user_in_course(target, user, create=True)
+	old_metadata = _metadata_for_user_in_course(source, user, create=False) or ()
+	result = _container_mover(old_metadata, new_metadata, verbose=verbose, user=user,
+							  source=source.__name__, target=target.__name__)
+	return result
+
+def move_metadata_from_course_to_course(source, target, verbose=True):
+	result = {}
+	histories = _metadatacontainer_for_course(source, False)
+	for username in histories:
+		user = User.get_user(username)
+		if user is not None:
+			moves = move_user_metadata_from_course_to_course(user=user,
+															 source=source,
+															 target=target,
+															 verbose=verbose)
 			result[username] =  moves
 	return result

@@ -45,7 +45,7 @@ class MockDataserver(object):
 		return None
 
 def do_evolve(context, generation=generation):
-	logger.info("Assesment evolution %s started", generation);
+	logger.info("Assessment evolution %s started", generation);
 	
 	setHooks()
 	conn = context.connection
@@ -82,11 +82,11 @@ def do_evolve(context, generation=generation):
 			except Exception:
 				logger.debug("Cannot index object with id %s", uid)
 		
-		logger.info('Assesment evolution %s done; %s items(s) indexed',
+		logger.info('Assessment evolution %s done; %s items(s) indexed',
 					generation, total)
 
 def evolve(context):
 	"""
-	Evolve to generation 3 by installing an assesment index
+	Evolve to generation 3 by installing an assessment index
 	"""
 	do_evolve(context)

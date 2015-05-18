@@ -491,13 +491,13 @@ class NonAssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
 
 		for item in catalog.iter_assessment_items():
 			if IQAssignment.providedBy(item):
-				for assignment_part in item.parts:
+				for assignment_part in item.parts or ():
 					question_set = assignment_part.question_set
 					qsids_to_strip.add(question_set.ntiid)
 					for question in question_set.questions:
 						qsids_to_strip.add(question.ntiid)
 			elif IQSurvey.providedBy(item):
-				for poll in item.questions:
+				for poll in item.questions or ():
 					qsids_to_strip.add(poll.ntiid)
 			else:
 				# The assessment's __parent__ is always the 'home' content unit

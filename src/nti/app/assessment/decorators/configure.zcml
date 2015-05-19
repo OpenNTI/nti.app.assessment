@@ -16,7 +16,8 @@
 					 pyramid.interfaces.IRequest" />
 
 	<!-- upload file -->	 
-	<subscriber factory=".file._QUploadedFileDecorator"
+	<subscriber factory="nti.app.contentfile.decorators._ContentFileDecorator"
+				for="nti.assessment.interfaces.IQUploadedFile"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"/>
 				
 	<!-- assignment -->

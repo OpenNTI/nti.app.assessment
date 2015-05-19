@@ -30,7 +30,7 @@ from pyramid import httpexceptions as hexc
 
 from ZODB.POSException import POSError
 
-from nti.app.contentfile.view_mixins import get_source
+from nti.app.base.abstract_views import get_source
 
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQFilePart

@@ -45,6 +45,7 @@ from nti.dataserver.interfaces import IUser
 from nti.dataserver import authorization as nauth
 
 from .._submission import get_source
+from .._submission import check_upload_files
 from .._submission import read_multipart_sources
 
 from .._utils import replace_username
@@ -56,15 +57,15 @@ from ..interfaces import IUsersCourseAssignmentHistoryItemFeedback
 from ..interfaces import IUsersCourseAssignmentHistoryItemFeedbackContainer
 
 ####
-## In pyramid 1.4, there is some minor wonkiness with the accept= request predicate.
-## Your view can get called even if no Accept header is present if all the defined
-## views include a non-matching accept predicate. Stil, this is much better than
-## the behaviour under 1.3.
+# # In pyramid 1.4, there is some minor wonkiness with the accept= request predicate.
+# # Your view can get called even if no Accept header is present if all the defined
+# # views include a non-matching accept predicate. Stil, this is much better than
+# # the behaviour under 1.3.
 ####
-_read_view_defaults = dict( route_name='objects.generic.traversal',
+_read_view_defaults = dict(route_name='objects.generic.traversal',
 							renderer='rest',
 							permission=nauth.ACT_READ,
-							request_method='GET' )
+							request_method='GET')
 _question_view = dict(context=IQuestion)
 _question_view.update(_read_view_defaults)
 
@@ -74,7 +75,6 @@ _question_set_view.update(_read_view_defaults)
 _assignment_view = dict(context=IQAssignment)
 _assignment_view.update(_read_view_defaults)
 
-
 @view_config(accept=str(PAGE_INFO_MT_JSON),
 			 **_question_view)
 @view_config(accept=str(PAGE_INFO_MT_JSON),
@@ -87,26 +87,25 @@ _assignment_view.update(_read_view_defaults)
 			 **_question_set_view)
 @view_config(accept=str(PAGE_INFO_MT),
 			 **_assignment_view)
-def pageinfo_from_question_view( request ):
+def pageinfo_from_question_view(request):
 	assert request.accept
 	# questions are now generally held within their containing IContentUnit,
 	# but some old tests don't parent them correctly, using strings
 	content_unit_or_ntiid = request.context.__parent__
-	return find_page_info_view_helper( request, content_unit_or_ntiid )
+	return find_page_info_view_helper(request, content_unit_or_ntiid)
 
-
 @view_config(accept=str('application/vnd.nextthought.link+json'),
-			 **_question_view )
+			 **_question_view)
 @view_config(accept=str('application/vnd.nextthought.link+json'),
-			 **_question_set_view )
+			 **_question_set_view)
 @view_config(accept=str('application/vnd.nextthought.link+json'),
-			 **_assignment_view )
-def get_question_view_link( request ):
+			 **_assignment_view)
+def get_question_view_link(request):
 	# Not supported.
 	return hexc.HTTPBadRequest()
 
-@view_config(accept=str(''), 	# explicit empty accept, else we get a ConfigurationConflict
-			 **_question_view)	# and/or no-Accept header goes to the wrong place
+@view_config(accept=str(''),  # explicit empty accept, else we get a ConfigurationConflict
+			 ** _question_view)  # and/or no-Accept header goes to the wrong place
 @view_config(**_question_view)
 @view_config(accept=str(''),
 			 **_question_set_view)
@@ -114,7 +113,7 @@ def get_question_view_link( request ):
 @view_config(accept=str(''),
 			 **_assignment_view)
 @view_config(**_assignment_view)
-def get_question_view( request ):
+def get_question_view(request):
 	return request.context
 
 del _question_view
@@ -129,7 +128,7 @@ from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtils
 @view_config(route_name="objects.generic.traversal",
 			 context=IQAssignment,
 			 renderer='rest',
-			 #permission=nauth.ACT_CREATE, # see below
+			 # permission=nauth.ACT_CREATE, # see below
 			 request_method='POST')
 class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 								   ModeledContentUploadRequestUtilsMixin):
@@ -162,13 +161,14 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 
 	def _do_call(self):
 		creator = self.remoteUser
-		course = component.queryMultiAdapter( (self.context, creator),
+		course = component.queryMultiAdapter((self.context, creator),
 											  ICourseInstance)
 		if course is None:
 			raise hexc.HTTPForbidden("Must be enrolled in a course.")
 
 		if not self.request.POST:
 			submission = self.readCreateUpdateContentObject(creator)
+			check_upload_files(submission)
 		else:
 			extValue = get_source(self.request, 'json', 'input', 'submission')
 			if not extValue:
@@ -178,7 +178,7 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 			submission = read_multipart_sources(submission, self.request)
 
 		# Re-use the same code for putting to a user
-		result = component.getMultiAdapter( (self.request, submission), IExceptionResponse)
+		result = component.getMultiAdapter((self.request, submission), IExceptionResponse)
 		return result
 
 from zipfile import ZipInfo
@@ -197,7 +197,7 @@ from . import assignment_download_precondition
 @view_config(route_name="objects.generic.traversal",
 			 context=IQAssignment,
 			 renderer='rest',
-			 #permission=ACT_DOWNLOAD_GRADES, # handled manually because it's on the course, not the context
+			 # permission=ACT_DOWNLOAD_GRADES, # handled manually because it's on the course, not the context
 			 request_method='GET',
 			 name='BulkFilePartDownload')
 class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
@@ -233,7 +233,7 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 		course_id = unquote(course_id) if course_id else None
 		if course_id:
 			result = find_object_with_ntiid(course_id)
-			result = ICourseInstance( result, None )
+			result = ICourseInstance(result, None)
 		if result is None:
 			# Ok, pick the first course we find.
 			result = get_course_from_assignment(context, self.remoteUser, exc=True)
@@ -254,18 +254,18 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 		# What should we do if we don't?
 		assignment_id = context.__name__
 
-		course = self._get_course( context )
+		course = self._get_course(context)
 		enrollments = ICourseEnrollments(course)
 
 		buf = StringIO()
-		zipfile = ZipFile( buf, 'w' )
+		zipfile = ZipFile(buf, 'w')
 		for record in enrollments.iter_enrollments():
 			principal = IUser(record)
-			assignment_history = component.getMultiAdapter( (course, principal),
-															IUsersCourseAssignmentHistory )
+			assignment_history = component.getMultiAdapter((course, principal),
+															IUsersCourseAssignmentHistory)
 			history_item = assignment_history.get(assignment_id)
 			if history_item is None:
-				continue # No submission for this assignment
+				continue  # No submission for this assignment
 
 			# Hmm, if they don't submit or submit in different orders,
 			# numbers won't work. We need to canonicalize this to the assignment order.
@@ -277,13 +277,13 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 
 						if IQUploadedFile.providedBy(qp_part):
 							prin_id = replace_username(principal.id)
-							full_filename = "%s-%s-%s-%s-%s" % (prin_id, sub_num, q_num, 
+							full_filename = "%s-%s-%s-%s-%s" % (prin_id, sub_num, q_num,
 																qp_num, qp_part.filename)
-							
+
 							date_time = datetime.utcfromtimestamp(qp_part.lastModified)
 							info = ZipInfo(full_filename, date_time=date_time.timetuple())
 
-							zipfile.writestr( info, qp_part.data )
+							zipfile.writestr(info, qp_part.data)
 		zipfile.close()
 		buf.reset()
 
@@ -308,10 +308,10 @@ class AssignmentHistoryGetView(AbstractAuthenticatedView):
 
 from zope.container.traversal import ContainerTraversable
 
-@component.adapter(IUsersCourseAssignmentHistory,IRequest)
+@component.adapter(IUsersCourseAssignmentHistory, IRequest)
 class AssignmentHistoryRequestTraversable(ContainerTraversable):
 	def __init__(self, context, request):
-		ContainerTraversable.__init__(self,context)
+		ContainerTraversable.__init__(self, context)
 
 	def traverse(self, name, further_path):
 		if name == 'lastViewed':
@@ -325,7 +325,7 @@ class AssignmentHistoryRequestTraversable(ContainerTraversable):
 			 context=IUsersCourseAssignmentHistory,
 			 # We handle permissioning manually, not sure
 			 # what context this is going to be in
-			 #permission=nauth.ACT_UPDATE,
+			 # permission=nauth.ACT_UPDATE,
 			 request_method='PUT',
 			 name='lastViewed')
 class AssignmentHistoryLastViewedPutView(AbstractAuthenticatedView,
@@ -376,10 +376,12 @@ class AsssignmentHistoryItemFeedbackPostView(AbstractAuthenticatedView,
 		self.request.context['ignored'] = feedback
 
 		self.request.response.status_int = 201
-		# TODO: Shouldn't this be the external NTIID? This is what ugd_edit_views does though
-		self.request.response.location = self.request.resource_url( creator,
-																	'Objects',
-																	to_external_oid( feedback ) )
+		# TODO: Shouldn't this be the external NTIID? 
+		# This is what ugd_edit_views does though
+		self.request.response.location = \
+				self.request.resource_url(creator,
+										  'Objects',
+										  to_external_oid(feedback))
 		return feedback
 
 from nti.appserver.ugd_edit_views import UGDDeleteView
@@ -393,7 +395,7 @@ from ..interfaces import IUsersCourseAssignmentHistoryItem
 			 request_method='DELETE')
 class AssignmentHistoryItemDeleteView(UGDDeleteView):
 
-	def _do_delete_object( self, theObject ):
+	def _do_delete_object(self, theObject):
 		del theObject.__parent__[theObject.__name__]
 		return theObject
 
@@ -404,7 +406,7 @@ class AssignmentHistoryItemDeleteView(UGDDeleteView):
 			 request_method='DELETE')
 class AssignmentHistoryItemFeedbackDeleteView(UGDDeleteView):
 
-	def _do_delete_object( self, theObject ):
+	def _do_delete_object(self, theObject):
 		del theObject.__parent__[theObject.__name__]
 		return theObject
 
@@ -420,7 +422,7 @@ from ..interfaces import get_course_assignment_predicate_for_user
 			   renderer='rest',
 			   permission=nauth.ACT_READ,
 			   request_method='GET',
-			   name='AssignmentsByOutlineNode') # See decorators
+			   name='AssignmentsByOutlineNode')  # See decorators
 class AssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
 	"""
 	For course instances (and things that can be adapted to them),
@@ -458,7 +460,7 @@ class AssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
 			   renderer='rest',
 			   permission=nauth.ACT_READ,
 			   request_method='GET',
-			   name='NonAssignmentAssessmentItemsByOutlineNode') # See decorators
+			   name='NonAssignmentAssessmentItemsByOutlineNode')  # See decorators
 class NonAssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
 	"""
 	For course instances (and things that can be adapted to them),

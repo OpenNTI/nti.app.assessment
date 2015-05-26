@@ -293,3 +293,16 @@ def _on_assignment_history_item_deleted(item, event):
 														IUsersCourseAssignmentMetadata)
 	if assignment_metadata is not None:
 		assignment_metadata.remove(item.assignmentId)
+
+@component.adapter(IUsersCourseAssignmentHistoryItem)
+@interface.implementer(IUsersCourseAssignmentMetadataItem)
+def _assignment_history_item_2_metadata(item):
+	user = IUser(item, None)
+	course = find_interface(item, ICourseInstance, strict=False)
+	metadata = component.queryMultiAdapter( (course, user),
+											IUsersCourseAssignmentMetadata) or {}
+	try:
+		result = metadata[item.assignmentId]
+	except KeyError:
+		result = None
+	return result

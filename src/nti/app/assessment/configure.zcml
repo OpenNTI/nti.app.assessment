@@ -252,6 +252,7 @@
 	<adapter factory=".metadata._metadata_for_user_in_course" />
 	<adapter factory=".metadata._metadatacontainer_for_course" />
 	<adapter factory=".metadata._course_from_metadataitem_lineage" />
+	<adapter factory=".metadata._assignment_history_item_2_metadata" />
 	<adapter factory=".metadata._UsersCourseAssignmentMetadataTraversable" />
 
 	<subscriber handler=".metadata._on_course_added" />

@@ -11,6 +11,8 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+from itertools import chain
+
 from zope import component
 from zope import interface
 
@@ -71,12 +73,8 @@ class UserEnrolledForCreditInCourseOrInstructsFilter(object):
 		# there is no guarantee that the Course instance derived from a
 		# content unit is the course/section we are enrolled in.
 		# this further assume that sections are sharing assigments.
-
-		ref_course = self.course
-		ref_course = get_parent_course(ref_course)
-		universe = [ref_course] + list(ref_course.SubInstances.values())
-
-		for course in universe:
+		ref_course = get_parent_course(self.course)
+		for course in chain((ref_course,), ref_course.SubInstances.values()):
 			record = ICourseEnrollments(course).get_enrollment_for_principal(self.user)
 			if record is not None and record.Scope != ES_PUBLIC:
 				return True

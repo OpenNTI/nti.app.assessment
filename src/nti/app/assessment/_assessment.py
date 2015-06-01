@@ -18,13 +18,13 @@ def _container_mover(old_container, new_container, verbose=True,
 					 user=None, source=None, target=None):
 	result = []
 	log = logger.info if verbose else logger.debug
-	for k in list(old_container): # we are changing
+	for k in list(old_container):  # we are changing
 		item = old_container[k]
-		
+
 		del old_container[k]
 		assert item.__name__ is None
 		assert item.__parent__ is None
-		
+
 		if k in new_container:
 			log("Skipped moving %s for %s from %s to %s", k, user, source, target)
 			continue
@@ -53,7 +53,7 @@ def move_assignment_histories_from_course_to_course(source, target, verbose=True
 															   source=source,
 															   target=target,
 															   verbose=verbose)
-			result[username] =  moves
+			result[username] = moves
 	return result
 
 from .metadata import _metadata_for_user_in_course
@@ -76,5 +76,5 @@ def move_metadata_from_course_to_course(source, target, verbose=True):
 															 source=source,
 															 target=target,
 															 verbose=verbose)
-			result[username] =  moves
+			result[username] = moves
 	return result

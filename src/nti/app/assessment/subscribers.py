@@ -61,7 +61,7 @@ def add_object_to_course_activity(submission, event):
 
 	course = find_interface(submission, ICourseInstance)
 	activity = ICourseInstanceActivity(course)
-	activity.append(submission)		
+	activity.append(submission)
 
 def remove_object_from_course_activity(submission, event):
 	"""
@@ -96,7 +96,7 @@ def prevent_note_on_assignment_part(note, event):
 	item = None
 	items = ()
 	for iface in (IQSurvey, IQPoll, IQAssignment, IQuestion, IQuestionSet):
-		item = component.queryUtility(iface,name=container_id)
+		item = component.queryUtility(iface, name=container_id)
 		if item is not None:
 			items = (item,)
 			break
@@ -104,7 +104,7 @@ def prevent_note_on_assignment_part(note, event):
 	if 	IQPoll.providedBy(item) or \
 		IQuestion.providedBy(item) or \
 		IQuestionSet.providedBy(item):
-		
+
 		parent = item.__parent__
 		if parent:
 			# Ok, we found the content unit defining this question.
@@ -143,7 +143,7 @@ def prevent_note_on_assignment_part(note, event):
 				e.text = simplejson.dumps(
 						{'message': _("You cannot make notes on an assignment before the due date."),
 						 'code': 'CannotNoteOnAssignmentBeforeDueDate',
-						 'available_for_submission_ending': 
+						 'available_for_submission_ending':
 						 		to_external_object(dates.available_for_submission_ending)},
 						ensure_ascii=False)
 				e.content_type = b'application/json'
@@ -151,7 +151,7 @@ def prevent_note_on_assignment_part(note, event):
 
 def delete_user_data(user):
 	username = user.username
-	for enrollments in component.subscribers( (user,), IPrincipalEnrollments):
+	for enrollments in component.subscribers((user,), IPrincipalEnrollments):
 		for enrollment in enrollments.iter_enrollments():
 			course = ICourseInstance(enrollment)
 			for iface in (IUsersCourseInquiries,

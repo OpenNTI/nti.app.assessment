@@ -17,11 +17,11 @@ from zope.location import locate
 from zope.catalog.interfaces import ICatalogIndex
 
 from nti.assessment.interfaces import IQPollSubmission
-from nti.assessment.interfaces import IQSurveySubmission 
+from nti.assessment.interfaces import IQSurveySubmission
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
-	
+
 from nti.dataserver.interfaces import ICreatedUsername
 from nti.dataserver.interfaces import IMetadataCatalog
 
@@ -60,8 +60,8 @@ class ValidatingCatalogEntryID(object):
 		for iface in (IUsersCourseInquiryItem, IUsersCourseAssignmentHistoryItem):
 			assesment = iface(obj, None)
 			if assesment is not None:
-				course = ICourseInstance(assesment, None) # course is lineage
-				entry = ICourseCatalogEntry(course, None) # entry is an annotation
+				course = ICourseInstance(assesment, None)  # course is lineage
+				entry = ICourseCatalogEntry(course, None)  # entry is an annotation
 				return entry
 		return None
 
@@ -88,11 +88,11 @@ class ValidatingAssesmentID(object):
 
 	def __reduce__(self):
 		raise TypeError()
-	
+
 class AssesmentIdIndex(ValueIndex):
 	default_field_name = 'assesmentId'
 	default_interface = ValidatingAssesmentID
-	
+
 class ValidatingAssesmentType(object):
 
 	__slots__ = (b'type',)
@@ -108,24 +108,24 @@ class ValidatingAssesmentType(object):
 					self.type = 'Poll'
 		except (AttributeError, TypeError):
 			pass
-		
+
 	def __reduce__(self):
 		raise TypeError()
-	
+
 class AssesmentTypeIndex(ValueIndex):
 	default_field_name = 'type'
 	default_interface = ValidatingAssesmentType
-	
+
 @interface.implementer(IMetadataCatalog)
 class MetadataAssesmentCatalog(Catalog):
-	
+
 	super_index_doc = Catalog.index_doc
 
 	def index_doc(self, docid, ob):
 		pass
 
 	def force_index_doc(self, docid, ob):
-		self.super_index_doc( docid, ob)
+		self.super_index_doc(docid, ob)
 
 def install_assesment_catalog(site_manager_container, intids=None):
 	lsm = site_manager_container.getSiteManager()
@@ -138,16 +138,16 @@ def install_assesment_catalog(site_manager_container, intids=None):
 
 	catalog = MetadataAssesmentCatalog(family=intids.family)
 	locate(catalog, site_manager_container, CATALOG_NAME)
-	intids.register( catalog )
-	lsm.registerUtility(catalog, provided=IMetadataCatalog, name=CATALOG_NAME )
+	intids.register(catalog)
+	lsm.registerUtility(catalog, provided=IMetadataCatalog, name=CATALOG_NAME)
 
-	for name, clazz in ( (IX_CREATOR, CreatorIndex),
-						 (IX_COURSE, CatalogEntryIDIndex),
-						 (IX_ASSESSMENT_ID, AssesmentIdIndex), 
-						 (IX_ASSESSMENT_TYPE, AssesmentTypeIndex)):
-		index = clazz( family=intids.family )
+	for name, clazz in ((IX_CREATOR, CreatorIndex),
+						(IX_COURSE, CatalogEntryIDIndex),
+						(IX_ASSESSMENT_ID, AssesmentIdIndex),
+						(IX_ASSESSMENT_TYPE, AssesmentTypeIndex)):
+		index = clazz(family=intids.family)
 		assert ICatalogIndex.providedBy(index)
-		intids.register( index )
+		intids.register(index)
 		locate(index, catalog, name)
 		catalog[name] = index
 	return catalog

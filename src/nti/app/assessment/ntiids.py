@@ -31,7 +31,7 @@ class _AssessmentResolver(object):
 	resolve these using the current component registry.
 	"""
 
-	def resolve( self, key ):
+	def resolve(self, key):
 		for iface in (IQuestion, IQuestionSet, IQAssignment, IQPoll, IQSurvey):
 			result = component.queryUtility(iface, name=key)
 			if result is not None:

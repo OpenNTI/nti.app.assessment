@@ -76,7 +76,7 @@ class IUsersCourseAssignmentSavepoint(IContainer,
 
 	Items = Dict(title='For externalization only, a copy of the items', readonly=True)
 
-	def recordSubmission(submission,  event=False):
+	def recordSubmission(submission, event=False):
 		"""
 		When a user submits an assignment for save point call this method to record
 		that fact. If a submission has already been recorded, this will
@@ -87,22 +87,22 @@ class IUsersCourseAssignmentSavepoint(IContainer,
 			of this object and all its children objects (they will
 			be set to the correct __parent__ relationship within the part/question
 			structure).
-			
+
 		:param event: Flag to avoid sending an add/modified event
-		
+
 		:return: The new :class:`.IUsersCourseAssignmentSavepointItem` representing
 				 the record of this submission.
 		"""
-		
+
 	def removeSubmission(submission, event=False):
 		"""
 		remove a submission
-		
+
 		:param submission: The :class:`.IQAssignmentSubmission` to remove
 		:param event: Flag to avoid sending a removal/modified event
 		"""
 
-class IUsersCourseAssignmentSavepointItem(IContained, 
+class IUsersCourseAssignmentSavepointItem(IContained,
 										  ILastModified,
 										  ICreated,
 										  IShouldHaveTraversablePath):
@@ -157,7 +157,7 @@ class IUsersCourseAssignmentHistory(IContainer,
 	Items = Dict(title='For externalization only, a copy of the items',
 			 	 readonly=True)
 
-	def recordSubmission( submission, pending_assessment ):
+	def recordSubmission(submission, pending_assessment):
 		"""
 		When a user submits an assignment, call this method to record
 		that fact. If a submission has already been recorded, this will
@@ -214,7 +214,7 @@ class IUsersCourseAssignmentHistoryItem(IContained,
 					  required=False)
 
 	FeedbackCount = Int(title="How many feedback items", default=0)
-	
+
 	Assignment = Object(IQAssignment, title="The assigment that generated this item",
 						required=False)
 	Assignment.setTaggedValue('_ext_excluded_out', True)
@@ -246,7 +246,7 @@ class IUsersCourseAssignmentHistoryItemFeedback(IContained,
 	is considered to be top-level.
 	"""
 
-	containers(IUsersCourseAssignmentHistoryItemFeedbackContainer) # Adds __parent__ as required
+	containers(IUsersCourseAssignmentHistoryItemFeedbackContainer)  # Adds __parent__ as required
 	__parent__.required = False
 
 	body = CompoundModeledContentBody()
@@ -314,7 +314,7 @@ def get_course_assignment_predicate_for_user(user, course):
 		course.
 	"""
 	filters = component.subscribers((user, course), ICourseAssignmentUserFilter)
-	filters = list(filters) # Does that return a generator? We need to use it many times
+	filters = list(filters)  # Does that return a generator? We need to use it many times
 	def uber_filter(asg):
 		return all((f.allow_assignment_for_user_in_course(asg, user, course) for f in filters))
 	return uber_filter
@@ -326,12 +326,12 @@ class IUsersCourseAssignmentMetadataContainer(IContainer,
 	A container for all the assignment meta data in a course, keyed by username.
 	"""
 	contains(str('.IUsersCourseAssignmentMetadata'))
-	
+
 class IUsersCourseAssignmentMetadata(IContainer,
 									 IContained,
 									 IShouldHaveTraversablePath):
 	"""
-	A :class:`IContainer`-like object that stores metadata of 
+	A :class:`IContainer`-like object that stores metadata of
 	assignments for a particular user in a course. The keys of this
 	object are :class:`IAssignment` IDs (this class may or may not
 	enforce that the assignment ID is actually scoped to the course it
@@ -407,7 +407,7 @@ class IUsersCourseInquiry(IContainer,
 			be set to the correct __parent__ relationship within the part/question
 			structure).
 		:param event: Flag to avoid sending an add/modified event
-		
+
 		:return: The new :class:`.IUsersCourseInquiryItem` representing
 			the record of this submission.
 		"""
@@ -415,7 +415,7 @@ class IUsersCourseInquiry(IContainer,
 	def removeSubmission(submission):
 		"""
 		remove a submission
-		
+
 		:param submission: The submission to remove
 		"""
 
@@ -431,11 +431,11 @@ class IUsersCourseInquiryItem(IContained,
 
 	# Recall that the implementation of IQInquirySubmission is NOT Persistent.
 	Submission = Object(IQInquirySubmission, required=False)
-	
+
 	Inquiry = Object(IQInquiry, title="The inquiry that generated this item",
 					required=False)
 	Inquiry.setTaggedValue('_ext_excluded_out', True)
-	
+
 	inquiryId = ValidTextLine(title="Survey/Poll id", required=False)
 	inquiryId.setTaggedValue('_ext_excluded_out', True)
 
@@ -454,8 +454,8 @@ class ICourseInquiryCatalog(interface.Interface):
 		Recall that surveys typically will have their 'home'
 		content unit in their lineage.
 		"""
-		
-class ICourseAggregatedSurveys(	IContainer,
+
+class ICourseAggregatedSurveys(IContainer,
 						  		IContained,
 						  		IShouldHaveTraversablePath):
 	"""

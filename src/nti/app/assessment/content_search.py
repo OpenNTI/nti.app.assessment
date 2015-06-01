@@ -62,8 +62,8 @@ class _AssignmentFeedbackItemResolver(object):
 
 	@property
 	def type(self):
-		return assignmentfeedback_ # Stored type
-	
+		return assignmentfeedback_  # Stored type
+
 	@property
 	def content(self):
 		return resolve_content_parts(self.obj.body)
@@ -89,7 +89,7 @@ class _AssignmentFeedbackItemResolver(object):
 	@property
 	def lastModified(self):
 		return self.obj.lastModified
-	
+
 	@property
 	def createdTime(self):
 		return self.obj.createdTime
@@ -108,7 +108,7 @@ class _AssignmentFeedbackItemResolver(object):
 	def acl(self):
 		result = set()
 		creator = self.creator
-		if creator: # check just in case
+		if creator:  # check just in case
 			result.add(self.creator.lower())
 		course = find_interface(self.obj, ICourseInstance, strict=False)
 		result.update(self.get_course_principals(course))
@@ -139,12 +139,12 @@ class _AssignmentFeedbackItemSearchHitPredicate(object):
 
 	def __init__(self, *args):
 		pass
-		
+
 	def allow(self, feedback, score, query=None):
-		result = True # by default allow
+		result = True  # by default allow
 		course = find_interface(feedback, ICourseInstance, strict=False)
 		item = find_interface(feedback, IUsersCourseAssignmentHistoryItem, strict=False)
-		user = IUser(item, None) # get the user enrolled
+		user = IUser(item, None)  # get the user enrolled
 		if course is not None and user is not None:
 			enrollments = ICourseEnrollments(course)
 			result = enrollments.get_enrollment_for_principal(user) is not None

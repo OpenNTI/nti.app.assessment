@@ -85,36 +85,36 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 
 	lastViewed = NumericPropertyDefaultingToZero(str('lastViewed'), NumericMaximum, as_number=True)
 
-	#: An :class:`.IWeakRef` to the owning user, who is probably
-	#: not in our lineage.
+	# : An :class:`.IWeakRef` to the owning user, who is probably
+	# : not in our lineage.
 	_owner_ref = None
 
 	def _get_owner(self):
 		return self._owner_ref() if self._owner_ref else None
-	def _set_owner(self,owner):
+	def _set_owner(self, owner):
 		self._owner_ref = IWeakRef(owner)
-	owner = property(_get_owner,_set_owner)
+	owner = property(_get_owner, _set_owner)
 
-	#: A non-interface attribute for convenience (especially with early
-	#: acls, since we are ICreated we get that by default)
+	# : A non-interface attribute for convenience (especially with early
+	# : acls, since we are ICreated we get that by default)
 	creator = alias('owner')
 
 	@property
 	def Items(self):
 		return dict(self)
 
-	def recordSubmission( self, submission, pending ):
+	def recordSubmission(self, submission, pending):
 		if submission.__parent__ is not None or pending.__parent__ is not None:
 			raise ValueError("Objects already parented")
 
 		item = UsersCourseAssignmentHistoryItem(Submission=submission,
-												pendingAssessment=pending )
+												pendingAssessment=pending)
 		pending.__parent__ = item
 		submission.__parent__ = item
 		set_submission_lineage(submission)
 
 		lifecycleevent.created(item)
-		self[submission.assignmentId] = item # fire object added, which is dispatched to sublocations
+		self[submission.assignmentId] = item  # fire object added, which is dispatched to sublocations
 		return item
 
 	def __conform__(self, iface):
@@ -134,13 +134,13 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 		# testing? Although we might have to grant CREATE access to the child?
 		# (in fact we do)
 		course = ICourseInstance(self, None)
-		instructors = getattr(course, 'instructors', ()) # already principals
-		aces = [ace_allowing( self.owner, ACT_READ, UsersCourseAssignmentHistory )]
+		instructors = getattr(course, 'instructors', ())  # already principals
+		aces = [ace_allowing(self.owner, ACT_READ, UsersCourseAssignmentHistory)]
 		for instructor in instructors:
-			aces.append( ace_allowing(instructor, ALL_PERMISSIONS, 
-									  UsersCourseAssignmentHistory) )
+			aces.append(ace_allowing(instructor, ALL_PERMISSIONS,
+									  UsersCourseAssignmentHistory))
 		aces.append(ACE_DENY_ALL)
-		return acl_from_aces( aces )
+		return acl_from_aces(aces)
 
 from zope.location.interfaces import ISublocations
 
@@ -160,13 +160,13 @@ def _get_available_for_submission_ending(course, assignment):
 class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 									   Contained,
 									   SchemaConfigured):
-	
+
 	__external_can_create__ = False
-	
+
 	createDirectFieldProperties(IUsersCourseAssignmentHistoryItem)
 
 	assignment = alias('Assignment')
-	
+
 	@Lazy
 	def Feedback(self):
 		container = UsersCourseAssignmentHistoryItemFeedbackContainer()
@@ -190,7 +190,7 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 			# If the user is deleted, we will not be able to do this
 			try:
 				return iface(self.__parent__)
-			except (AttributeError,TypeError):
+			except (AttributeError, TypeError):
 				return None
 
 	@property
@@ -284,16 +284,16 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 		DELETE access.
 		"""
 		course = ICourseInstance(self, None)
-		instructors = getattr(course, 'instructors', ()) # already principals
-		aces = [ace_allowing( self.creator, ACT_READ, UsersCourseAssignmentHistoryItem )]
+		instructors = getattr(course, 'instructors', ())  # already principals
+		aces = [ace_allowing(self.creator, ACT_READ, UsersCourseAssignmentHistoryItem)]
 		if self._student_nuclear_reset_capable:
-			aces.append( ace_allowing(self.creator, ACT_DELETE,
-                                      UsersCourseAssignmentHistoryItem) )
+			aces.append(ace_allowing(self.creator, ACT_DELETE,
+									  UsersCourseAssignmentHistoryItem))
 		for instructor in instructors:
-			aces.append( ace_allowing(instructor, ALL_PERMISSIONS, 
-                                      UsersCourseAssignmentHistoryItem) )
+			aces.append(ace_allowing(instructor, ALL_PERMISSIONS,
+									  UsersCourseAssignmentHistoryItem))
 		aces.append(ACE_DENY_ALL)
-		return acl_from_aces( aces )
+		return acl_from_aces(aces)
 
 	def sublocations(self):
 		if self.Submission is not None:
@@ -367,9 +367,9 @@ class UsersCourseAssignmentHistoryItemSummary(Contained):
 
 	# Direct everything else (non-interface) to the history item
 	def __getattr__(self, name):
-		if name.startswith('_p_'): # pragma: no cover
+		if name.startswith('_p_'):  # pragma: no cover
 			raise AttributeError(name)
-		if name == 'NTIID' or name == 'ntiid': # pragma: no cover
+		if name == 'NTIID' or name == 'ntiid':  # pragma: no cover
 			raise AttributeError(name)
 		return getattr(self._history_item, name)
 

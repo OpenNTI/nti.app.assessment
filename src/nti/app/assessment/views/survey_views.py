@@ -42,7 +42,7 @@ from ..interfaces import IUsersCourseInquiryItem
 			 context=IQInquiry,
 			 renderer='rest',
 			 request_method='POST',
-			 permission=nauth.ACT_READ )
+			 permission=nauth.ACT_READ)
 class InquirySubmissionPostView(AbstractAuthenticatedView,
 						  		ModeledContentUploadRequestUtilsMixin):
 
@@ -57,7 +57,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 			ex = ConstraintNotSatisfied("Incorrect submission parts")
 			ex.field = IQPollSubmission['parts']
 			raise ex
-			
+
 	def _do_call(self):
 		creator = self.remoteUser
 		if not creator:
@@ -68,10 +68,10 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 				raise hexc.HTTPForbidden("Must be enrolled in a course.")
 		except RequiredMissing:
 			raise hexc.HTTPForbidden("Must be enrolled in a course.")
-		
+
 		submission = self.readCreateUpdateContentObject(creator)
-			
-		## Check that the submission has something for all polls
+
+		# # Check that the submission has something for all polls
 		if IQSurveySubmission.providedBy(submission):
 			survey = component.getUtility(IQSurvey, name=submission.id)
 			survey_poll_ids = [poll.ntiid for poll in survey.questions]
@@ -84,18 +84,18 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 				self._check_poll_submission(question_sub)
 		elif IQPollSubmission.providedBy(submission):
 			self._check_poll_submission(submission)
-		
+
 		creator = submission.creator
-		course_inquiry = component.getMultiAdapter( (course, creator), IUsersCourseInquiry)
+		course_inquiry = component.getMultiAdapter((course, creator), IUsersCourseInquiry)
 		submission.containerId = submission.id
-		
+
 		if submission.id in course_inquiry:
 			ex = NotUnique("Inquiry already submitted")
 			ex.field = IQInquirySubmission['id']
 			ex.value = submission.id
 			raise ex
-	
-		## Now record the submission.
+
+		# # Now record the submission.
 		self.request.response.status_int = 201
 		result = course_inquiry.recordSubmission(submission)
 		return result
@@ -118,7 +118,7 @@ class InquirySubmissionGetView(AbstractAuthenticatedView):
 		except RequiredMissing:
 			raise hexc.HTTPForbidden("Must be enrolled in a course.")
 
-		course_inquiry = component.getMultiAdapter( (course, creator), IUsersCourseInquiry)
+		course_inquiry = component.getMultiAdapter((course, creator), IUsersCourseInquiry)
 		try:
 			result = course_inquiry[self.context.ntiid]
 			return result
@@ -146,6 +146,6 @@ class InquiriesGetView(AbstractAuthenticatedView):
 			 request_method='DELETE')
 class InquiryItemDeleteView(UGDDeleteView):
 
-	def _do_delete_object( self, theObject ):
+	def _do_delete_object(self, theObject):
 		del theObject.__parent__[theObject.__name__]
 		return theObject

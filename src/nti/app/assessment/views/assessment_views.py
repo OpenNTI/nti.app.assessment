@@ -57,10 +57,10 @@ from ..interfaces import IUsersCourseAssignmentHistoryItemFeedback
 from ..interfaces import IUsersCourseAssignmentHistoryItemFeedbackContainer
 
 ####
-# # In pyramid 1.4, there is some minor wonkiness with the accept= request predicate.
-# # Your view can get called even if no Accept header is present if all the defined
-# # views include a non-matching accept predicate. Stil, this is much better than
-# # the behaviour under 1.3.
+# In pyramid 1.4, there is some minor wonkiness with the accept= request predicate.
+# Your view can get called even if no Accept header is present if all the defined
+# views include a non-matching accept predicate. Stil, this is much better than
+# the behaviour under 1.3.
 ####
 _read_view_defaults = dict(route_name='objects.generic.traversal',
 							renderer='rest',
@@ -376,7 +376,7 @@ class AsssignmentHistoryItemFeedbackPostView(AbstractAuthenticatedView,
 		self.request.context['ignored'] = feedback
 
 		self.request.response.status_int = 201
-		# TODO: Shouldn't this be the external NTIID? 
+		# TODO: Shouldn't this be the external NTIID?
 		# This is what ugd_edit_views does though
 		self.request.response.location = \
 				self.request.resource_url(creator,

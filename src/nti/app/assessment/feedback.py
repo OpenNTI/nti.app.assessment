@@ -50,7 +50,7 @@ from .interfaces import IUsersCourseAssignmentHistoryItemFeedbackContainer
 class UsersCourseAssignmentHistoryItemFeedback(PersistentCreatedModDateTrackingObject,
 											   SchemaConfigured,
 											   ContainedMixin):
-	
+
 	parameters = {}
 	mime_type = mimeType = "application/vnd.nextthought.assessment.userscourseassignmenthistoryitemfeedback"
 	__external_can_create = True
@@ -72,7 +72,7 @@ class UsersCourseAssignmentHistoryItemFeedback(PersistentCreatedModDateTrackingO
 		return None
 
 	@creator.setter
-	def creator(self,nv):
+	def creator(self, nv):
 		if nv is None:
 			if 'creator' in self.__dict__:
 				del self.__dict__['creator']
@@ -83,30 +83,30 @@ class UsersCourseAssignmentHistoryItemFeedback(PersistentCreatedModDateTrackingO
 		except TypeError:
 			self.__dict__['creator'] = nv
 		self._p_changed = True
-		
+
 	@property
 	def __acl__(self):
 		aces = []
 		# give all permissions to the owner
 		creator = self.creator
 		if creator is not None:
-			aces.append(ace_allowing(creator, ALL_PERMISSIONS, 
+			aces.append(ace_allowing(creator, ALL_PERMISSIONS,
 									 UsersCourseAssignmentHistoryItemFeedback))
-			
+
 		# read access for the instructors
 		course = ICourseInstance(self, None)
 		if course is not None:
 			aces.extend(ace_allowing(i, ACT_READ, UsersCourseAssignmentHistoryItemFeedback)
 				 		for i in course.instructors)
-		
-		# read access to the container feedback ownwer	
+
+		# read access to the container feedback ownwer
 		if self.__parent__ is not None:
 			container_owner = IUser(self.__parent__.__parent__, None)
 			if container_owner is not None and container_owner != creator:
-				aces.append(ace_allowing(container_owner, ACT_READ, 
+				aces.append(ace_allowing(container_owner, ACT_READ,
 										 UsersCourseAssignmentHistoryItemFeedback))
 		aces.append(ACE_DENY_ALL)
-		return acl_from_aces( aces )
+		return acl_from_aces(aces)
 
 @interface.implementer(IUsersCourseAssignmentHistoryItemFeedbackContainer,
 					   IAttributeAnnotatable)
@@ -121,7 +121,7 @@ class UsersCourseAssignmentHistoryItemFeedbackContainer(PersistentCreatedModDate
 	choose our own keys; what you pass to the set method is ignored.
 	"""
 
-	#: We want to inherit the read access for the instructors
+	# : We want to inherit the read access for the instructors
 	__acl_deny_all__ = False
 
 	def __setitem__(self, key, value):
@@ -137,8 +137,8 @@ class UsersCourseAssignmentHistoryItemFeedbackContainer(PersistentCreatedModDate
 			count += 1
 			key = '%d' % count
 
-		checkObject(self, key, value )
-		super(UsersCourseAssignmentHistoryItemFeedbackContainer,self).__setitem__( key, value )
+		checkObject(self, key, value)
+		super(UsersCourseAssignmentHistoryItemFeedbackContainer, self).__setitem__(key, value)
 		self.updateLastMod()
 
 	@property
@@ -181,7 +181,7 @@ def when_feedback_container_modified_modify_history_item(container, event,
 				   IObjectModifiedEvent)
 def when_feedback_modified_modify_history_item(feedback, event):
 	try:
-		feedback.updateLastMod() # not sure of order
+		feedback.updateLastMod()  # not sure of order
 		container = feedback.__parent__
 		container.updateLastModIfGreater(feedback.lastModified)
 		when_feedback_container_modified_modify_history_item(container, event, False)

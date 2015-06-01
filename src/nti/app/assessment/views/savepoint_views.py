@@ -69,10 +69,10 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 			raise hexc.HTTPForbidden("Must be enrolled in a course.")
 
 		# No savepoints unless the timed assignment has been started
-		if IQTimedAssignment.providedBy( self.context ):
-			item = get_assessment_metadata_item( course, self.remoteUser, self.context.ntiid )
+		if IQTimedAssignment.providedBy(self.context):
+			item = get_assessment_metadata_item(course, self.remoteUser, self.context.ntiid)
 			if item is None or not item.StartTime:
-				raise hexc.HTTPClientError( "Cannot savepoint timed assignment unless started." )
+				raise hexc.HTTPClientError("Cannot savepoint timed assignment unless started.")
 
 		if not self.request.POST:
 			submission = self.readCreateUpdateContentObject(creator)
@@ -85,12 +85,12 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 			submission = self.readCreateUpdateContentObject(creator, externalValue=extValue)
 			submission = read_multipart_sources(submission, self.request)
 
-		savepoint = component.getMultiAdapter( (course, submission.creator),
+		savepoint = component.getMultiAdapter((course, submission.creator),
 												IUsersCourseAssignmentSavepoint)
 		submission.containerId = submission.assignmentId
 
 		# for legacy purposes we assume the start time as the first savepoint submitted
-		metadata = component.getMultiAdapter( (course, submission.creator),
+		metadata = component.getMultiAdapter((course, submission.creator),
 											  IUsersCourseAssignmentMetadata)
 		metadata.get_or_create(submission.assignmentId, time.time())
 
@@ -118,7 +118,7 @@ class AssignmentSubmissionSavepointGetView(AbstractAuthenticatedView):
 		except RequiredMissing:
 			raise hexc.HTTPForbidden("Must be enrolled in a course.")
 
-		savepoint = component.getMultiAdapter( (course, creator),
+		savepoint = component.getMultiAdapter((course, creator),
 												IUsersCourseAssignmentSavepoint)
 		try:
 			result = savepoint[self.context.ntiid]
@@ -147,6 +147,6 @@ class AssignmentSavepointsGetView(AbstractAuthenticatedView):
 			 request_method='DELETE')
 class AssignmentSavepointItemDeleteView(UGDDeleteView):
 
-	def _do_delete_object( self, theObject ):
+	def _do_delete_object(self, theObject):
 		del theObject.__parent__[theObject.__name__]
 		return theObject

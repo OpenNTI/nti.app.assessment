@@ -22,9 +22,9 @@ from zope import interface
 
 from zope.file.upload import nameFinder
 
-from zope.security.interfaces import IPrincipal
-
 from zope.schema.interfaces import ConstraintNotSatisfied
+
+from zope.security.interfaces import IPrincipal
 
 from pyramid import httpexceptions as hexc
 

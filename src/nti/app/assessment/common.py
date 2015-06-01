@@ -10,6 +10,9 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 from zope import component
+
+from zope.proxy import ProxyBase
+
 from zope.schema.interfaces import RequiredMissing
 
 from nti.assessment.interfaces import IQInquiry
@@ -23,26 +26,24 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.traversal.traversal import find_interface
-		
+
 from .interfaces import IUsersCourseAssignmentHistory
 from .interfaces import IUsersCourseAssignmentMetadata
 
 from .assignment_filters import AssignmentPolicyExclusionFilter
 
-## assessment
-
-from zope.proxy import ProxyBase
+# assessment
 
 class AssessmentItemProxy(ProxyBase):
-	
+
 	ContentUnitNTIID = property(
 					lambda s: s.__dict__.get('_v_content_unit'),
 					lambda s, v: s.__dict__.__setitem__('_v_content_unit', v))
-	
+
 	CatalogEntryNTIID = property(
 					lambda s: s.__dict__.get('_v_catalog_entry'),
 					lambda s, v: s.__dict__.__setitem__('_v_catalog_entry', v))
-		
+
 	def __new__(cls, base, *args, **kwargs):
 		return ProxyBase.__new__(cls, base)
 
@@ -53,18 +54,18 @@ class AssessmentItemProxy(ProxyBase):
 
 def proxy(item, content_unit=None, catalog_entry=None):
 	item = item if type(item) == AssessmentItemProxy else AssessmentItemProxy(item)
-	item.ContentUnitNTIID = content_unit or item.ContentUnitNTIID 
-	item.CatalogEntryNTIID = catalog_entry or item.CatalogEntryNTIID 
-	return item	
+	item.ContentUnitNTIID = content_unit or item.ContentUnitNTIID
+	item.CatalogEntryNTIID = catalog_entry or item.CatalogEntryNTIID
+	return item
 
 def same_content_unit_file(unit1, unit2):
 	try:
-		return unit1.filename.split('#',1)[0] == unit2.filename.split('#',1)[0]
+		return unit1.filename.split('#', 1)[0] == unit2.filename.split('#', 1)[0]
 	except (AttributeError, IndexError):
 		return False
-	
+
 def get_assessment_items_from_unit(contentUnit):
-	
+
 	def recur(unit, accum):
 		if same_content_unit_file(unit, contentUnit):
 			try:
@@ -72,13 +73,13 @@ def get_assessment_items_from_unit(contentUnit):
 			except TypeError:
 				qs = ()
 
-			accum.update( {q.ntiid: q for q in qs} )
+			accum.update({q.ntiid: q for q in qs})
 
 			for child in unit.children:
-				recur( child, accum )
-	
+				recur(child, accum)
+
 	result = dict()
-	recur(contentUnit, result )
+	recur(contentUnit, result)
 	return result
 
 def get_course_packages(context):
@@ -119,20 +120,20 @@ def get_course_assessment_items(context):
 		if assessments is None:
 			assessments = iterable
 		else:
-			assessments.extend(iterable)			
+			assessments.extend(iterable)
 	return assessments
 
-## assignment
+# assignment
 
 def find_course_for_assignment(assignment, user, exc=True):
 	# Check that they're enrolled in the course that has the assignment
-	course = component.queryMultiAdapter( (assignment, user), ICourseInstance)
+	course = component.queryMultiAdapter((assignment, user), ICourseInstance)
 	if course is None:
 		# For BWC, we also check to see if we can just get
 		# one based on the content package of the assignment, not
 		# checking enrollment.
 		# TODO: Drop this
-		course = ICourseInstance( find_interface(assignment, IContentPackage, strict=False),
+		course = ICourseInstance(find_interface(assignment, IContentPackage, strict=False),
 								  None)
 		if course is not None:
 			logger.warning("No enrollment found, assuming generic course. Tests only?")
@@ -146,9 +147,9 @@ def find_course_for_assignment(assignment, user, exc=True):
 
 def get_course_from_assignment(assignment, user=None, catalog=None, registry=component,
 							   exc=False):
-	## check if we have the context catalog entry we can use 
-	## as reference (.AssessmentItemProxy) this way
-	## instructor can find the correct course when they are looking at a section.
+	# # check if we have the context catalog entry we can use
+	# # as reference (.AssessmentItemProxy) this way
+	# # instructor can find the correct course when they are looking at a section.
 	result = None
 	try:
 		ntiid = assignment.CatalogEntryNTIID
@@ -158,15 +159,15 @@ def get_course_from_assignment(assignment, user=None, catalog=None, registry=com
 	except (KeyError, AttributeError):
 		pass
 
-	## could not find a course .. try adapter
-	if result is None and user is not None:	
+	# # could not find a course .. try adapter
+	if result is None and user is not None:
 		result = find_course_for_assignment(assignment, user, exc=exc)
 	return result
 
 def has_assigments_submitted(context, user):
 	course = ICourseInstance(context, None)
 	histories = component.queryMultiAdapter((course, user),
-											IUsersCourseAssignmentHistory )
+											IUsersCourseAssignmentHistory)
 	result = histories is not None and len(histories) > 0
 	return result
 
@@ -200,27 +201,27 @@ def get_course_assignments(context, sort=True, reverse=False, do_filtering=True)
 		course = ICourseInstance(context)
 		_filter = AssignmentPolicyExclusionFilter(course=course)
 		assignments = [ proxy(x, catalog_entry=ntiid) for x in items
-			 	  	    if IQAssignment.providedBy(x) and \
+			 	  		if IQAssignment.providedBy(x) and \
 			 	  	   	   _filter.allow_assignment_for_user_in_course(x, course=course)]
 	else:
-		assignments = [	proxy(x, catalog_entry=ntiid) 
+		assignments = [	proxy(x, catalog_entry=ntiid)
 						for x in items if IQAssignment.providedBy(x)]
 	if sort:
 		assignments = sorted(assignments, cmp=assignment_comparator, reverse=reverse)
 	return assignments
 
-## surveys
+# surveys
 
 def find_course_for_inquiry(inquiry, user, exc=True):
 	# Check that they're enrolled in the course that has the inquiry
-	course = component.queryMultiAdapter( (inquiry, user), ICourseInstance)
+	course = component.queryMultiAdapter((inquiry, user), ICourseInstance)
 	if course is None and exc:
 		raise RequiredMissing("Course cannot be found")
 	return course
 
 def get_course_from_inquiry(inquiry, user=None, catalog=None, registry=component, exc=False):
-	## check if we have the context catalog entry we can use 
-	## as reference (.AssessmentItemProxy)
+	# check if we have the context catalog entry we can use
+	# as reference (.AssessmentItemProxy)
 	result = None
 	try:
 		ntiid = inquiry.CatalogEntryNTIID
@@ -230,8 +231,8 @@ def get_course_from_inquiry(inquiry, user=None, catalog=None, registry=component
 	except (KeyError, AttributeError):
 		pass
 
-	## could not find a course .. try adapter
-	if result is None and user is not None:	
+	# could not find a course .. try adapter
+	if result is None and user is not None:
 		result = find_course_for_inquiry(inquiry, user, exc=exc)
 	return result
 

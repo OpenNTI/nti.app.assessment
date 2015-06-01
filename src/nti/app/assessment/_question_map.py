@@ -16,8 +16,9 @@ import time
 
 import BTrees
 
-from zope import interface
 from zope import component
+from zope import interface
+
 from zope.interface.common.sequence import IReadSequence
 
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
@@ -129,7 +130,7 @@ class QuestionMap(QuestionIndex):
 									  provided=provided,
 									  name=name,
 									  event=event)
-		
+
 	def _register_and_canonicalize(self, things_to_register, registry=None):
 
 		library = component.queryUtility(IContentPackageLibrary)
@@ -149,13 +150,13 @@ class QuestionMap(QuestionIndex):
 
 		QuestionIndex._register_and_canonicalize(self, things_to_register, registry)
 
-	def _process_assessments( self, 
-							  assessment_item_dict,
-							  containing_hierarchy_key,
-							  content_package,
-							  by_file,
-							  level_ntiid=None,
-							  signatures_dict=None):
+	def _process_assessments(self,
+							 assessment_item_dict,
+							 containing_hierarchy_key,
+							 content_package,
+							 by_file,
+							 level_ntiid=None,
+							 signatures_dict=None):
 		"""
 		Returns a set of object that should be placed in the registry, and then
 		canonicalized.
@@ -164,10 +165,10 @@ class QuestionMap(QuestionIndex):
 		parent = None
 		parents_questions = []
 		signatures_dict = signatures_dict or {}
-		library = component.queryUtility( IContentPackageLibrary )
+		library = component.queryUtility(IContentPackageLibrary)
 
 		if level_ntiid and library is not None:
-			containing_content_units = library.pathToNTIID( level_ntiid, skip_cache=True )
+			containing_content_units = library.pathToNTIID(level_ntiid, skip_cache=True)
 			if containing_content_units:
 				parent = containing_content_units[-1]
 				parents_questions = IQAssessmentItemContainer(parent)
@@ -175,16 +176,16 @@ class QuestionMap(QuestionIndex):
 		result = set()
 		for k, v in assessment_item_dict.items():
 			__traceback_info__ = k, v
-			factory = find_factory_for( v )
+			factory = find_factory_for(v)
 			assert factory is not None
-			
+
 			obj = factory()
 			update_from_external_object(obj, v, require_updater=True,
 										notify=False,
-										object_hook=_ntiid_object_hook )
+										object_hook=_ntiid_object_hook)
 			obj.ntiid = k
 			obj.signature = signatures_dict.get(k)
-			obj.__name__ = unicode( k ).encode('utf8').decode('utf8')
+			obj.__name__ = unicode(k).encode('utf8').decode('utf8')
 			self._store_object(k, obj)
 
 			# No matter if we got an assignment or question set first or the questions
@@ -197,7 +198,7 @@ class QuestionMap(QuestionIndex):
 				# We don't actually register it here, but we do need
 				# to record where it came from.
 				# (This is necessary to be sure we can unregister things later)
-				parents_questions.append( thing_to_register )
+				parents_questions.append(thing_to_register)
 
 				# TODO: We are only partially supporting having question/sets
 				# used multiple places. When we get to that point, we need to
@@ -210,16 +211,16 @@ class QuestionMap(QuestionIndex):
 			if containing_hierarchy_key:
 				assert 	containing_hierarchy_key in by_file, \
 						"Container for file must already be present"
-				by_file[containing_hierarchy_key].append( obj )
+				by_file[containing_hierarchy_key].append(obj)
 
 		return result
 
-	def _from_index_entry( self, 
-						   index, 
-						   content_package,
-						   by_file,
-						   nearest_containing_key=None,
-						   nearest_containing_ntiid=None):
+	def _from_index_entry(self,
+						  index,
+						  content_package,
+						  by_file,
+						  nearest_containing_key=None,
+						  nearest_containing_ntiid=None):
 		"""
 		Called with an entry for a file or (sub)section. May or may not have children of its own.
 
@@ -238,39 +239,39 @@ class QuestionMap(QuestionIndex):
 				# old versions of the exporter, but we ensure we can't put any questions on it
 				if index_key == 'index.html':
 					factory = tuple
-					logger.warn("Duplicate 'index.html' entry in %s; update content", 
-								content_package )
-				else: # pragma: no cover
+					logger.warn("Duplicate 'index.html' entry in %s; update content",
+								content_package)
+				else:  # pragma: no cover
 					logger.warn("Second entry for the same file %s,%s",
 								index_key, key_for_this_level)
 					__traceback_info__ = index_key, key_for_this_level
-					raise ValueError( key_for_this_level,
-									 "Found a second entry for the same file" )
+					raise ValueError(key_for_this_level,
+									 "Found a second entry for the same file")
 
 			by_file[key_for_this_level] = factory()
 
 		things_to_register = set()
-		level_ntiid = index.get( 'NTIID' ) or nearest_containing_ntiid
-		i = self._process_assessments(  index.get( "AssessmentItems", {} ),
-										key_for_this_level,
-										content_package,
-										by_file,
-										level_ntiid,
-										index.get( "Signatures"))
+		level_ntiid = index.get('NTIID') or nearest_containing_ntiid
+		i = self._process_assessments(index.get("AssessmentItems", {}),
+									  key_for_this_level,
+									  content_package,
+									  by_file,
+									  level_ntiid,
+									  index.get("Signatures"))
 
 		things_to_register.update(i)
 		for child_item in index.get('Items', {}).values():
-			i = self._from_index_entry( child_item, 
-										content_package,
-										by_file,
-										nearest_containing_key=key_for_this_level,
-										nearest_containing_ntiid=level_ntiid)
+			i = self._from_index_entry(child_item,
+									   content_package,
+									   by_file,
+									   nearest_containing_key=key_for_this_level,
+									   nearest_containing_ntiid=level_ntiid)
 
 			things_to_register.update(i)
 
 		return things_to_register
 
-	def _from_root_index( self, 
+	def _from_root_index(self,
 						  assessment_index_json,
 						  content_package,
 						  registry=None):
@@ -285,7 +286,7 @@ class QuestionMap(QuestionIndex):
 		root_items = assessment_index_json['Items']
 		if not root_items:
 			logger.warn("Ignoring assessment index that contains no assessments at any level %s",
-						content_package )
+						content_package)
 			return
 		assert len(root_items) == 1, "Root's 'Items' must only have Root NTIID"
 
@@ -306,18 +307,18 @@ class QuestionMap(QuestionIndex):
 			# jacked-up content that abuses the section hierarchy (skips levels) and/or jacked-up themes/configurations
 			# that split incorrectly.
 			if 'filename' not in child_index or not child_index['filename'] or \
-				child_index['filename'].startswith( 'index.html#' ):
-				logger.warn( "Ignoring invalid child with invalid filename '%s'; cannot contain assessments: %s",
+				child_index['filename'].startswith('index.html#'):
+				logger.warn("Ignoring invalid child with invalid filename '%s'; cannot contain assessments: %s",
 							  child_index.get('filename', ''),
-							  child_index )
+							  child_index)
 				continue
 
-			assert 	child_index.get( 'filename' ), \
+			assert 	child_index.get('filename'), \
 					'Child must contain valid filename to contain assessments'
 
-			i = self._from_index_entry( child_index, content_package,
-										 by_file,
-										 nearest_containing_ntiid=child_ntiid)
+			i = self._from_index_entry(	child_index, content_package,
+										by_file,
+										nearest_containing_ntiid=child_ntiid)
 			things_to_register.update(i)
 
 		# register assessment items
@@ -325,9 +326,9 @@ class QuestionMap(QuestionIndex):
 
 		# For tests and such, sort
 		for questions in by_file.values():
-			questions.sort( key=lambda q: q.__name__ )
+			questions.sort(key=lambda q: q.__name__)
 
-		registered =  {x.ntiid for x in things_to_register}
+		registered = {x.ntiid for x in things_to_register}
 		return by_file, registered
 
 def _populate_question_map_from_text(question_map, asm_index_text, content_package):
@@ -335,20 +336,20 @@ def _populate_question_map_from_text(question_map, asm_index_text, content_packa
 	index = _load_question_map_json(asm_index_text)
 	if index:
 		try:
-			result = question_map._from_root_index( index, content_package )
-			result = None if result is None else result[1] # registered
-		except (interface.Invalid, ValueError): # pragma: no cover
+			result = question_map._from_root_index(index, content_package)
+			result = None if result is None else result[1]  # registered
+		except (interface.Invalid, ValueError):  # pragma: no cover
 			# Because the map is updated in place, depending on where the error
 			# was, we might have some data...that's not good, but it's not a show stopper either,
 			# since we shouldn't get content like this out of the rendering process
 			logger.exception("Failed to load assessment items, invalid assessment_index for %s",
-							 content_package )
+							 content_package)
 	return result or set()
 
 def _add_assessment_items_from_new_content(content_package, key):
 	question_map = QuestionMap()
 	asm_index_text = key.readContentsAsText()
-	result = _populate_question_map_from_text(question_map, asm_index_text, content_package )
+	result = _populate_question_map_from_text(question_map, asm_index_text, content_package)
 	logger.info("%s assessment item(s) read from %s %s",
 				len(result or ()), content_package, key)
 	return result
@@ -375,7 +376,7 @@ def add_assessment_items_from_new_content(content_package, event, key=None):
 	container within this context as their __parent__ (that should really be the hierarchy entry)
 	"""
 	result = None
-	key = key or _needs_load_or_update(content_package) # let other callers give us the key
+	key = key or _needs_load_or_update(content_package)  # let other callers give us the key
 	if key:
 		logger.info("Reading/Adding assessment items from new content %s %s %s",
 					content_package, key, event)
@@ -388,8 +389,8 @@ def _unregisterUtility(registry, component, provided, name):
 													provided=provided,
 													name=name)
 	else:
-		return registry.unregisterUtility(component=component, 
-										  provided=provided, 
+		return registry.unregisterUtility(component=component,
+										  provided=provided,
 										  name=name)
 
 def _remove_assessment_items_from_oldcontent(content_package):
@@ -411,7 +412,7 @@ def _remove_assessment_items_from_oldcontent(content_package):
 			# TODO: Check the parent? If it's an IContentUnit, onlyunregister if it's us?
 			name = item.ntiid
 			provided = _iface_to_register(item)
-			_unregisterUtility(sm, item, provided=provided, name=name )
+			_unregisterUtility(sm, item, provided=provided, name=name)
 			result[name] = provided
 
 			# a bit of logging
@@ -431,7 +432,7 @@ def _remove_assessment_items_from_oldcontent(content_package):
 
 @component.adapter(IContentPackage, IObjectRemovedEvent)
 def remove_assessment_items_from_oldcontent(content_package, event):
-	logger.info("Removing assessment items from old content %s %s", 
+	logger.info("Removing assessment items from old content %s %s",
 				content_package, event)
 	result = _remove_assessment_items_from_oldcontent(content_package)
 	return set(result.keys())

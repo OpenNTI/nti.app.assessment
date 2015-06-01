@@ -77,24 +77,24 @@ class UsersCourseAssignmentMetadataContainer(CaseInsensitiveCheckingLastModified
 
 @interface.implementer(IUsersCourseAssignmentMetadata)
 class UsersCourseAssignmentMetadata(CheckingLastModifiedBTreeContainer):
-	
+
 	__external_can_create__ = False
 
 	_owner_ref = None
 
 	def _get_owner(self):
 		return self._owner_ref() if self._owner_ref else None
-	def _set_owner(self,owner):
+	def _set_owner(self, owner):
 		self._owner_ref = IWeakRef(owner)
-	owner = property(_get_owner,_set_owner)
+	owner = property(_get_owner, _set_owner)
 
-	#: A non-interface attribute for convenience (acls)
+	# : A non-interface attribute for convenience (acls)
 	creator = alias('owner')
 
 	@property
 	def Items(self):
 		return dict(self)
-	
+
 	def get_or_create(self, assignmentId, start_time=None):
 		if assignmentId not in self:
 			start_time = float(start_time) if start_time is not None else start_time
@@ -104,7 +104,7 @@ class UsersCourseAssignmentMetadata(CheckingLastModifiedBTreeContainer):
 			result = self[assignmentId]
 		return result
 	getOrCreate = get_or_create
-	
+
 	def append(self, assignmentId, item):
 		if item.__parent__ is not None:
 			raise ValueError("Objects already parented")
@@ -135,14 +135,14 @@ class UsersCourseAssignmentMetadata(CheckingLastModifiedBTreeContainer):
 		aces = [ace_allowing(creator, ACT_READ, UsersCourseAssignmentMetadata),
 				ace_allowing(creator, ACT_CREATE, UsersCourseAssignmentMetadata)]
 		aces.append(ACE_DENY_ALL)
-		return acl_from_aces( aces )
+		return acl_from_aces(aces)
 
 @interface.implementer(IUsersCourseAssignmentMetadataItem,
 					   IACLProvider)
 class UsersCourseAssignmentMetadataItem(PersistentCreatedModDateTrackingObject,
 										Contained,
 										SchemaConfigured):
-	
+
 	createDirectFieldProperties(IUsersCourseAssignmentMetadataItem)
 
 	__external_can_create__ = True
@@ -155,7 +155,7 @@ class UsersCourseAssignmentMetadataItem(PersistentCreatedModDateTrackingObject,
 		if IUser.isOrExtends(iface):
 			try:
 				return iface(self.__parent__)
-			except (AttributeError,TypeError):
+			except (AttributeError, TypeError):
 				return None
 
 	@property
@@ -169,25 +169,25 @@ class UsersCourseAssignmentMetadataItem(PersistentCreatedModDateTrackingObject,
 	@property
 	def assignmentId(self):
 		return self.__name__
-	
+
 	@property
 	def __acl__(self):
 		creator = self.creator
 		aces = [ace_allowing(creator, ACT_READ, UsersCourseAssignmentMetadataItem),
 				ace_allowing(creator, ACT_CREATE, UsersCourseAssignmentMetadataItem),
 				ace_allowing(creator, ACT_UPDATE, UsersCourseAssignmentMetadataItem)]
-		
+
 		course = ICourseInstance(self, None)
-		instructors = getattr(course, 'instructors', ()) # already principals
+		instructors = getattr(course, 'instructors', ())  # already principals
 		for instructor in instructors:
 			aces.append(ace_allowing(instructor, ALL_PERMISSIONS,
 									 UsersCourseAssignmentMetadataItem))
-		
+
 		aces.append(ace_allowing(ROLE_ADMIN, ALL_PERMISSIONS,
-								 UsersCourseAssignmentMetadataItem)) 
-		
-		aces.append(ACE_DENY_ALL)			
-		result = acl_from_aces( aces )
+								 UsersCourseAssignmentMetadataItem))
+
+		aces.append(ACE_DENY_ALL)
+		result = acl_from_aces(aces)
 		return result
 
 @interface.implementer(IInternalObjectUpdater)
@@ -210,7 +210,7 @@ class _UsersCourseAssignmentMetadataItemUpdater(object):
 					self.item,
 					IUsersCourseAssignmentMetadataItem).updateFromExternalObject(parsed)
 		return result
-	
+
 @component.adapter(ICourseInstance)
 @interface.implementer(IUsersCourseAssignmentMetadataContainer)
 def _metadatacontainer_for_course(course, create=True):
@@ -245,7 +245,7 @@ def _metadatacontainer_for_course_path_adapter(course, request):
 	return _metadatacontainer_for_course(course)
 
 def _metadatacontainer_for_courseenrollment_path_adapter(enrollment, request):
-	return _metadatacontainer_for_course( ICourseInstance(enrollment) )
+	return _metadatacontainer_for_course(ICourseInstance(enrollment))
 
 from .adapters import _course_from_context_lineage
 
@@ -257,19 +257,19 @@ def _course_from_metadataitem_lineage(item):
 @component.adapter(IUsersCourseAssignmentMetadataContainer, IRequest)
 class _UsersCourseAssignmentMetadataTraversable(ContainerAdapterTraversable):
 
-	def traverse( self, key, remaining_path ):
+	def traverse(self, key, remaining_path):
 		try:
 			return super(_UsersCourseAssignmentMetadataTraversable, self).traverse(key, remaining_path)
 		except LocationError:
 			user = User.get_user(key)
 			if user is not None:
-				return _metadata_for_user_in_course(self.context.__parent__, user)			
-			raise		
+				return _metadata_for_user_in_course(self.context.__parent__, user)
+			raise
 
 @component.adapter(ICourseInstance, IObjectAddedEvent)
 def _on_course_added(course, event):
 	_metadatacontainer_for_course(course)
-	
+
 import time
 
 from .interfaces import IUsersCourseAssignmentHistoryItem
@@ -278,7 +278,7 @@ from .interfaces import IUsersCourseAssignmentHistoryItem
 def _on_assignment_history_item_added(item, event):
 	user = IUser(item, None)
 	course = find_interface(item, ICourseInstance, strict=False)
-	assignment_metadata = component.queryMultiAdapter( (course, user),
+	assignment_metadata = component.queryMultiAdapter((course, user),
 														IUsersCourseAssignmentMetadata)
 	if assignment_metadata is not None:
 		meta_item = assignment_metadata.get_or_create(item.assignmentId, time.time())
@@ -289,7 +289,7 @@ def _on_assignment_history_item_added(item, event):
 def _on_assignment_history_item_deleted(item, event):
 	user = IUser(item, None)
 	course = find_interface(item, ICourseInstance, strict=False)
-	assignment_metadata = component.queryMultiAdapter( (course, user),
+	assignment_metadata = component.queryMultiAdapter((course, user),
 														IUsersCourseAssignmentMetadata)
 	if assignment_metadata is not None:
 		assignment_metadata.remove(item.assignmentId)
@@ -299,7 +299,7 @@ def _on_assignment_history_item_deleted(item, event):
 def _assignment_history_item_2_metadata(item):
 	user = IUser(item, None)
 	course = find_interface(item, ICourseInstance, strict=False)
-	metadata = component.queryMultiAdapter( (course, user),
+	metadata = component.queryMultiAdapter((course, user),
 											IUsersCourseAssignmentMetadata) or {}
 	try:
 		result = metadata[item.assignmentId]

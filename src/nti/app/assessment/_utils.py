@@ -31,7 +31,7 @@ from .common import get_course_from_assignment
 _r47694_map = None
 def r47694():
 	"""
-	in r47694 we introduced a new type of randomizer based on the sha224 hash 
+	in r47694 we introduced a new type of randomizer based on the sha224 hash
 	algorithm, however, we did not take into account the fact that there were
 	assignments (i.e. question banks) already taken. This cause incorrect
 	questions to be returned. Fortunatelly, there were few student takers,
@@ -44,7 +44,7 @@ def r47694():
 		with open(path, "r") as fp:
 			_r47694_map = simplejson.load(fp)
 	return _r47694_map
-		
+
 def make_nonrandomized(context):
 	iface = getattr(context, 'nonrandomized_interface', None)
 	if iface is not None:
@@ -128,18 +128,18 @@ def copy_taken_assignment(assignment, user):
 		new_parts.append(new_part)
 		question_set = part.question_set
 		if IQuestionBank.providedBy(question_set):
-			## select questions from bank
+			# # select questions from bank
 			questions = questionbank_question_chooser(question_set, user=user)
-			## make a copy of the questions. Don't mark them as non-randomized
+			# # make a copy of the questions. Don't mark them as non-randomized
 			questions = [copy_question(x, nonrandomized=False) for x in questions]
-			## create a new bank with copy so we get all properties
+			# # create a new bank with copy so we get all properties
 			new_bank = copy.copy(question_set)
-			## copy question bank with new questions
+			# # copy question bank with new questions
 			question_set = question_set.copyTo(new_bank, questions=questions)
-			## mark as non randomzied so no drawing will be made
-			make_nonrandomized(question_set) 
+			# # mark as non randomzied so no drawing will be made
+			make_nonrandomized(question_set)
 		else:
-			## copy all question set. Don't mark questions them as non-randomized
+			# # copy all question set. Don't mark questions them as non-randomized
 			question_set = copy_questionset(question_set, nonrandomized=False)
 		new_part.question_set = question_set
 	result.parts = new_parts
@@ -153,7 +153,7 @@ def check_assessment(assessment, user=None, is_instructor=False):
 	elif user is not None:
 		ntiid = assessment.ntiid
 		username = user.username
-		# check r47694 
+		# check r47694
 		hack_map = r47694()
 		if ntiid in hack_map and username in hack_map[ntiid]:
 			result = copy_assessment(assessment)
@@ -165,7 +165,7 @@ def assignment_download_precondition(context, request, remoteUser):
 	username = request.authenticated_userid
 	if not username:
 		return False
-	
+
 	course = get_course_from_assignment(context, remoteUser)
 	if course is None or not has_permission(ACT_DOWNLOAD_GRADES, course, request):
 		return False
@@ -176,7 +176,7 @@ def assignment_download_precondition(context, request, remoteUser):
 		for question in question_set.questions:
 			for question_part in question.parts:
 				if IQFilePart.providedBy(question_part):
-					return True # TODO: Consider caching this?
+					return True  # TODO: Consider caching this?
 	return False
 
 from nti.dataserver.interfaces import IUsernameSubstitutionPolicy

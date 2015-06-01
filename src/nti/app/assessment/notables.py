@@ -15,7 +15,7 @@ from nti.dataserver.interfaces import INotableFilter
 
 from .interfaces import IUsersCourseAssignmentHistoryItemFeedback
 
-@interface.implementer( INotableFilter )
+@interface.implementer(INotableFilter)
 class AssignmentFeedbackNotableFilter(object):
 	"""
 	Determines if assignment feedback is notable for the given user.
@@ -28,7 +28,7 @@ class AssignmentFeedbackNotableFilter(object):
 
 	def is_notable(self, obj, user):
 		result = False
-		if IUsersCourseAssignmentHistoryItemFeedback.providedBy( obj ):
+		if IUsersCourseAssignmentHistoryItemFeedback.providedBy(obj):
 			history_item = obj.__parent__
 			submission = history_item.Submission
 			if submission.creator == user and obj.creator != user:

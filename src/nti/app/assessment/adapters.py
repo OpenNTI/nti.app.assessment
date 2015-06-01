@@ -50,7 +50,7 @@ from .interfaces import IUsersCourseAssignmentHistoryItem
 
 @component.adapter(IQuestionSubmission)
 @interface.implementer(INewObjectTransformer)
-def _question_submission_transformer( obj ):
+def _question_submission_transformer(obj):
 	"""
 	Grade it, by adapting the object into an IAssessedQuestion
 	"""
@@ -58,7 +58,7 @@ def _question_submission_transformer( obj ):
 
 @component.adapter(IQuestionSetSubmission)
 @interface.implementer(INewObjectTransformer)
-def _question_set_submission_transformer( obj ):
+def _question_set_submission_transformer(obj):
 	"""
 	Grade it, by adapting the object into an IAssessedQuestionSet
 	"""
@@ -96,9 +96,9 @@ def _assignment_submission_transformer(request, obj):
 
 	result = request.response = HTTPCreated()
 	# TODO: Shouldn't this be the external NTIID? This is what ugd_edit_views does though
-	result.location = request.resource_url( obj.creator,
+	result.location = request.resource_url(obj.creator,
 											'Objects',
-											to_external_oid( pending ) )
+											to_external_oid(pending))
 	# TODO: Assuming things about the client and renderer.
 	renderers.render_to_response('rest', pending, request)
 	raise result
@@ -154,8 +154,8 @@ def _begin_assessment_for_assignment_submission(submission):
 
 	_check_submission_before(IQAssignmentDateContext(course), assignment)
 
-	assignment_history = component.getMultiAdapter( (course, submission.creator),
-													IUsersCourseAssignmentHistory )
+	assignment_history = component.getMultiAdapter((course, submission.creator),
+													IUsersCourseAssignmentHistory)
 	if submission.assignmentId in assignment_history:
 		ex = NotUnique("Assignment already submitted")
 		ex.field = IQAssignmentSubmission['assignmentId']
@@ -164,7 +164,7 @@ def _begin_assessment_for_assignment_submission(submission):
 
 	set_submission_lineage(submission)
 	submission.containerId = submission.assignmentId
-	
+
 	# Ok, now for each part that can be auto graded, do so, leaving all the others
 	# as-they-are
 	new_parts = PersistentList()
@@ -174,10 +174,10 @@ def _begin_assessment_for_assignment_submission(submission):
 		if assignment_part.auto_grade:
 			__traceback_info__ = submission_part
 			submission_part = IQAssessedQuestionSet(submission_part)
-		new_parts.append( submission_part )
+		new_parts.append(submission_part)
 
-	pending_assessment = QAssignmentSubmissionPendingAssessment( assignmentId=submission.assignmentId,
-																 parts=new_parts )
+	pending_assessment = QAssignmentSubmissionPendingAssessment(assignmentId=submission.assignmentId,
+																 parts=new_parts)
 	pending_assessment.containerId = submission.assignmentId
 	lifecycleevent.created(pending_assessment)
 
@@ -253,7 +253,7 @@ def _course_from_assignment_lineage(assignment, user):
 	# Snap. No current course matches. Fall back to the old approach of checking
 	# all your enrollments. This could find things not currently in the catalog.
 	# TODO: Probably really inefficient
-	for enrollments in component.subscribers( (user,), IPrincipalEnrollments):
+	for enrollments in component.subscribers((user,), IPrincipalEnrollments):
 		for enrollment in enrollments.iter_enrollments():
 			course = ICourseInstance(enrollment)
 			if package in course.ContentPackageBundle.ContentPackages:
@@ -281,7 +281,7 @@ def _histories_for_course(course, create=True):
 
 @interface.implementer(IUsersCourseAssignmentHistory)
 @component.adapter(ICourseInstance, IUser)
-def _history_for_user_in_course(course,user, create=True):
+def _history_for_user_in_course(course, user, create=True):
 	"""
 	We use an annotation on the course to store a map
 	from username to history object.
@@ -312,7 +312,7 @@ def _histories_for_course_path_adapter(course, request):
 	return _histories_for_course(course)
 
 def _histories_for_courseenrollment_path_adapter(enrollment, request):
-	return _histories_for_course( ICourseInstance(enrollment) )
+	return _histories_for_course(ICourseInstance(enrollment))
 
 from zope.location.interfaces import LocationError
 
@@ -320,7 +320,7 @@ from nti.dataserver.users import User
 
 from nti.traversal.traversal import ContainerAdapterTraversable
 
-@component.adapter(IUsersCourseAssignmentHistories,IRequest)
+@component.adapter(IUsersCourseAssignmentHistories, IRequest)
 class _UsersCourseAssignmentHistoriesTraversable(ContainerAdapterTraversable):
 	"""
 	During request traversal, we will dummy up an assignment history if
@@ -330,14 +330,14 @@ class _UsersCourseAssignmentHistoriesTraversable(ContainerAdapterTraversable):
 		way to test that first.
 	"""
 
-	def traverse( self, key, remaining_path ):
+	def traverse(self, key, remaining_path):
 		try:
-			return super(_UsersCourseAssignmentHistoriesTraversable,self).traverse(key, remaining_path)
+			return super(_UsersCourseAssignmentHistoriesTraversable, self).traverse(key, remaining_path)
 		except LocationError:
 			# Ok, is the key an existing user?
 			user = User.get_user(key)
 			if user is not None:
-				return _history_for_user_in_course( self.context.__parent__, user)
+				return _history_for_user_in_course(self.context.__parent__, user)
 			raise
 
 from .interfaces import ICourseAssignmentCatalog
@@ -353,17 +353,17 @@ class _DefaultCourseAssessmentItemCatalog(object):
 	def __init__(self, context):
 		self.context = context
 
-	def iter_assessment_items(self):	
+	def iter_assessment_items(self):
 		result = get_course_assessment_items(self.context)
 		return result
-	
+
 @interface.implementer(ICourseAssignmentCatalog)
 @component.adapter(ICourseInstance)
 class _DefaultCourseAssignmentCatalog(object):
 
 	def __init__(self, context):
 		self.context = context
-	
+
 	def iter_assignments(self):
 		result = get_course_assignments(self.context, sort=False)
 		return result

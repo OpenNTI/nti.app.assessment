@@ -13,6 +13,7 @@ import time
 
 from zope import component
 from zope import lifecycleevent
+
 from zope.schema.interfaces import RequiredMissing
 
 from pyramid.view import view_config
@@ -62,25 +63,25 @@ class AssignmentSubmissionMetataPostView(AbstractAuthenticatedView,
 				raise hexc.HTTPForbidden("Must be enrolled in a course.")
 		except RequiredMissing:
 			raise hexc.HTTPForbidden("Must be enrolled in a course.")
-		
+
 		return creator, course
-	
+
 	def _process(self, creator=None, course=None, item=None):
 		if creator is None or course is None:
 			creator, course = self._validate()
-	
+
 		item = self.readCreateUpdateContentObject(creator) if item is None else item
 		lifecycleevent.created(item)
-		
+
 		self.request.response.status_int = 201
-				
+
 		assignmentId = self.context.ntiid
-		metadata = component.getMultiAdapter( (course, creator),
-											  IUsersCourseAssignmentMetadata)
-		item.containerId = assignmentId	
+		metadata = component.getMultiAdapter((course, creator),
+											 IUsersCourseAssignmentMetadata)
+		item.containerId = assignmentId
 		result = metadata.append(assignmentId, item)
 		return result
-	
+
 	def _do_call(self):
 		return self._process()
 
@@ -94,7 +95,7 @@ class AssignmentSubmissionStartPostView(AssignmentSubmissionMetataPostView):
 
 	def _do_call(self):
 		creator, course = self._validate()
-		container = component.getMultiAdapter( (course, creator),
+		container = component.getMultiAdapter((course, creator),
 												IUsersCourseAssignmentMetadata)
 		try:
 			item = container[self.context.ntiid]
@@ -103,9 +104,9 @@ class AssignmentSubmissionStartPostView(AssignmentSubmissionMetataPostView):
 			self._process(creator=creator, course=course, item=item)
 		if not item.StartTime:
 			item.StartTime = time.time()
-		## return assignment
+		# # return assignment
 		return self.context
-	
+
 @view_config(route_name="objects.generic.traversal",
 			 context=IQAssignment,
 			 renderer='rest',
@@ -113,7 +114,7 @@ class AssignmentSubmissionStartPostView(AssignmentSubmissionMetataPostView):
 			 permission=nauth.ACT_READ,
 			 name="Metadata")
 class AssignmentSubmissionMetadataGetView(AbstractAuthenticatedView):
-	
+
 	def _do_call(self):
 		creator = self.remoteUser
 		if not creator:
@@ -124,14 +125,14 @@ class AssignmentSubmissionMetadataGetView(AbstractAuthenticatedView):
 				raise hexc.HTTPForbidden("Must be enrolled in a course.")
 		except RequiredMissing:
 			raise hexc.HTTPForbidden("Must be enrolled in a course.")
-				
-		container = component.getMultiAdapter( (course, creator),
+
+		container = component.getMultiAdapter((course, creator),
 												IUsersCourseAssignmentMetadata)
-	
+
 		result = container[self.context.ntiid]
 		return result
-	
-	def __call__(self):		
+
+	def __call__(self):
 		try:
 			result = self._do_call()
 			return result
@@ -146,7 +147,7 @@ class AssignmentSubmissionMetadataGetView(AbstractAuthenticatedView):
 			 name="StartTime")
 class AssignmentSubmissionStartGetView(AssignmentSubmissionMetadataGetView):
 
-	def __call__(self):		
+	def __call__(self):
 		try:
 			item = self._do_call()
 			result = LocatedExternalDict({'StartTime': item.StartTime})
@@ -183,6 +184,6 @@ class AssignmentMetadataItemPutView(UGDPutView):
 			 request_method='DELETE')
 class AssignmentMetadataItemDeleteView(UGDDeleteView):
 
-	def _do_delete_object( self, theObject ):
+	def _do_delete_object(self, theObject):
 		del theObject.__parent__[theObject.__name__]
 		return theObject

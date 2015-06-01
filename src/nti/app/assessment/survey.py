@@ -265,7 +265,7 @@ def _course_from_inquiry_lineage(inquiry, user):
 	for entry in catalog.iterCatalogEntries():
 		course = ICourseInstance(entry)
 		if package in course.ContentPackageBundle.ContentPackages:
-			## Ok, found one. Are we enrolled or an instructor?
+			# Ok, found one. Are we enrolled or an instructor?
 			if prin in course.instructors:
 				return course
 			
@@ -273,7 +273,7 @@ def _course_from_inquiry_lineage(inquiry, user):
 			if enrollments.get_enrollment_for_principal(user) is not None:
 				return course
 
-	## No current course matches. Fall back and check all your enrollments.
+	# No current course matches. Fall back and check all your enrollments.
 	for enrollments in component.subscribers( (user,), IPrincipalEnrollments):
 		for enrollment in enrollments.iter_enrollments():
 			course = ICourseInstance(enrollment)

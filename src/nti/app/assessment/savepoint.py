@@ -11,12 +11,12 @@ logger = __import__('logging').getLogger(__name__)
 
 from zope import component
 from zope import interface
+from zope import lifecycleevent
 
 from zope.annotation.interfaces import IAnnotations
 
 from zope.container.contained import Contained
 
-from zope import lifecycleevent
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
 from zope.lifecycleevent.interfaces import IObjectRemovedEvent
 
@@ -74,35 +74,35 @@ class UsersCourseAssignmentSavepoints(CaseInsensitiveCheckingLastModifiedBTreeCo
 
 @interface.implementer(IUsersCourseAssignmentSavepoint)
 class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
-	
+
 	__external_can_create__ = False
 
-	#: An :class:`.IWeakRef` to the owning user, who is probably
-	#: not in our lineage.
+	# : An :class:`.IWeakRef` to the owning user, who is probably
+	# : not in our lineage.
 	_owner_ref = None
 
 	def _get_owner(self):
 		return self._owner_ref() if self._owner_ref else None
-	def _set_owner(self,owner):
+	def _set_owner(self, owner):
 		self._owner_ref = IWeakRef(owner)
-	owner = property(_get_owner,_set_owner)
+	owner = property(_get_owner, _set_owner)
 
-	#: A non-interface attribute for convenience (especially with early
-	#: acls, since we are ICreated we get that by default)
+	# : A non-interface attribute for convenience (especially with early
+	# : acls, since we are ICreated we get that by default)
 	creator = alias('owner')
 
 	@property
 	def Items(self):
 		return dict(self)
-	
+
 	def recordSubmission(self, submission, event=False):
 		if submission.__parent__ is not None:
 			raise ValueError("Objects already parented")
-		
+
 		item = UsersCourseAssignmentSavepointItem(Submission=submission)
 		submission.__parent__ = item
 		set_submission_lineage(submission)
-		
+
 		# check for removal
 		self.removeSubmission(submission, event=event)
 
@@ -123,7 +123,7 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 		else:
 			self._delitemf(submission.assignmentId, event=False)
 			locate(item, None, None)
-		
+
 	def _append(self, key, item, event=False):
 		if CheckingLastModifiedBTreeContainer.__contains__(self, key):
 			if item.__parent__ is self:
@@ -136,8 +136,8 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 			self._setitemf(key, item)
 			locate(item, self, name=key)
 
-		self.lastModified = max( self.lastModified, item.lastModified )
-		
+		self.lastModified = max(self.lastModified, item.lastModified)
+
 	def __conform__(self, iface):
 		if IUser.isOrExtends(iface):
 			return self.owner
@@ -150,14 +150,14 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 		aces = [ace_allowing(self.owner, ALL_PERMISSIONS,
 							 UsersCourseAssignmentSavepoint)]
 		aces.append(ACE_DENY_ALL)
-		return acl_from_aces( aces )
+		return acl_from_aces(aces)
 
 @interface.implementer(IUsersCourseAssignmentSavepointItem,
 					   IACLProvider,
 					   ISublocations)
 class UsersCourseAssignmentSavepointItem(PersistentCreatedModDateTrackingObject,
-				                         Contained,
-						                 SchemaConfigured):
+										 Contained,
+										 SchemaConfigured):
 	createDirectFieldProperties(IUsersCourseAssignmentSavepointItem)
 
 	__external_can_create__ = False
@@ -167,7 +167,7 @@ class UsersCourseAssignmentSavepointItem(PersistentCreatedModDateTrackingObject,
 			# If the user is deleted, we will not be able to do this
 			try:
 				return iface(self.__parent__)
-			except (AttributeError,TypeError):
+			except (AttributeError, TypeError):
 				return None
 
 	@property
@@ -186,10 +186,10 @@ class UsersCourseAssignmentSavepointItem(PersistentCreatedModDateTrackingObject,
 
 	@property
 	def __acl__(self):
-		aces = [ace_allowing(self.owner, ALL_PERMISSIONS, 
+		aces = [ace_allowing(self.owner, ALL_PERMISSIONS,
 							 UsersCourseAssignmentSavepointItem)]
 		aces.append(ACE_DENY_ALL)
-		return acl_from_aces( aces )
+		return acl_from_aces(aces)
 
 	def sublocations(self):
 		if self.Submission is not None:
@@ -229,7 +229,7 @@ def _savepoints_for_course_path_adapter(course, request):
 	return _savepoints_for_course(course)
 
 def _savepoints_for_courseenrollment_path_adapter(enrollment, request):
-	return _savepoints_for_course( ICourseInstance(enrollment) )
+	return _savepoints_for_course(ICourseInstance(enrollment))
 
 from .adapters import _course_from_context_lineage
 
@@ -241,19 +241,19 @@ def _course_from_savepointitem_lineage(item):
 @component.adapter(IUsersCourseAssignmentSavepoints, IRequest)
 class _UsersCourseAssignmentSavepointsTraversable(ContainerAdapterTraversable):
 
-	def traverse( self, key, remaining_path ):
+	def traverse(self, key, remaining_path):
 		try:
 			return super(_UsersCourseAssignmentSavepointsTraversable, self).traverse(key, remaining_path)
 		except LocationError:
 			user = User.get_user(key)
 			if user is not None:
-				return _savepoint_for_user_in_course( self.context.__parent__, user)			
-			raise		
+				return _savepoint_for_user_in_course(self.context.__parent__, user)
+			raise
 
 @component.adapter(ICourseInstance, IObjectAddedEvent)
 def _on_course_added(course, event):
 	_savepoints_for_course(course)
-	
+
 from .interfaces import IUsersCourseAssignmentHistoryItem
 
 def _delete_assignment_save_point(item):
@@ -261,7 +261,7 @@ def _delete_assignment_save_point(item):
 	course = find_interface(item, ICourseInstance, strict=False)
 	if user is not None and course is not None:
 		assignment_savepoint = component.getMultiAdapter((course, user),
-													 	 IUsersCourseAssignmentSavepoint )
+													 	 IUsersCourseAssignmentSavepoint)
 		assignment_savepoint.removeSubmission(item.Submission, event=False)
 		return True
 	return False
@@ -269,7 +269,7 @@ def _delete_assignment_save_point(item):
 @component.adapter(IUsersCourseAssignmentHistoryItem, IObjectRemovedEvent)
 def _on_assignment_history_item_deleted(item, event):
 	_delete_assignment_save_point(item)
-	
+
 @component.adapter(IUsersCourseAssignmentHistoryItem, IObjectAddedEvent)
 def _on_assignment_history_item_added(item, event):
 	_delete_assignment_save_point(item)

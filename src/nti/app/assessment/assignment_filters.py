@@ -11,8 +11,10 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-from zope import interface
 from zope import component
+from zope import interface
+
+from nti.app.products.courseware.utils import get_parent_course
 
 from nti.assessment.interfaces import IQAssignmentPolicies
 
@@ -20,7 +22,6 @@ from nti.common.property import Lazy
 
 from nti.contenttypes.courses.interfaces import ES_PUBLIC
 from nti.contenttypes.courses.interfaces import ICourseInstance
-from nti.contenttypes.courses.interfaces import ICourseSubInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.contenttypes.courses.interfaces import is_instructed_by_name
 
@@ -28,8 +29,7 @@ from nti.dataserver.interfaces import IUser
 
 from .interfaces import ICourseAssignmentUserFilter
 
-###
-## ACLs
+# ACLs
 # Notice that everything based on enrollment *could* be done
 # with an ACL. Likewise, everything done with closed enrollment
 # could also be done with an ACL. That's probably a better, more
@@ -42,7 +42,6 @@ from .interfaces import ICourseAssignmentUserFilter
 # but that bakes in a lot of knowledge about the LegacyCourseInstance
 # structure currently, and I'd like to avoid spreading that.
 # So for now, we're implementing the filters with brute force
-##
 
 @interface.implementer(ICourseAssignmentUserFilter)
 @component.adapter(IUser, ICourseInstance)
@@ -67,16 +66,14 @@ class UserEnrolledForCreditInCourseOrInstructsFilter(object):
 
 	@Lazy
 	def is_enrolled_for_credit(self):
-		## CS: check all course sections to see if the user
-		## is enroll for credit. This is done b/c when getting the pageinfo
-		## there is no guarantee that the Course instance derived from a
-		## content unit is the course/section we are enrolled in.
-		## this further assume that sections are sharing assigments.
+		# CS: check all course sections to see if the user
+		# is enroll for credit. This is done b/c when getting the pageinfo
+		# there is no guarantee that the Course instance derived from a
+		# content unit is the course/section we are enrolled in.
+		# this further assume that sections are sharing assigments.
 
 		ref_course = self.course
-		if ICourseSubInstance.providedBy(ref_course):
-			ref_course = self.course.__parent__.__parent__
-
+		ref_course = get_parent_course(ref_course)
 		universe = [ref_course] + list(ref_course.SubInstances.values())
 
 		for course in universe:
@@ -93,12 +90,12 @@ class UserEnrolledForCreditInCourseOrInstructsFilter(object):
 
 		# Note implicit assumption that assignment is in course
 		if self.is_instructor or self.is_enrolled_for_credit:
-			#TODO: check if assignment is indeed in the enroll for credit courses
+			# TODO: check if assignment is indeed in the enroll for credit courses
 			return True
 
 		return not asg.is_non_public
 
-UserEnrolledForCreditInCourseFilter = UserEnrolledForCreditInCourseOrInstructsFilter # BWC
+UserEnrolledForCreditInCourseFilter = UserEnrolledForCreditInCourseOrInstructsFilter  # BWC
 
 @interface.implementer(ICourseAssignmentUserFilter)
 @component.adapter(IUser, ICourseInstance)

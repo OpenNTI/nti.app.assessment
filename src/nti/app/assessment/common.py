@@ -121,7 +121,7 @@ def get_course_assessment_items(context):
 			assessments = iterable
 		else:
 			assessments.extend(iterable)
-	return assessments
+	return assessments or ()
 
 # assignment
 
@@ -194,7 +194,7 @@ def assignment_comparator(a, b):
 	return 0
 
 def get_course_assignments(context, sort=True, reverse=False, do_filtering=True):
-	items = get_course_assessment_items(context) or ()
+	items = get_course_assessment_items(context)
 	ntiid = getattr(ICourseCatalogEntry(context, None), 'ntiid', None)
 	if do_filtering:
 		# Filter out excluded assignments so they don't show in the gradebook either

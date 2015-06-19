@@ -203,13 +203,13 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		assert_that( res.status_int, is_( 201 ))
 		assert_that( res.json_body, has_entry( StandardExternalFields.CREATED_TIME, is_( float ) ) )
 		assert_that( res.json_body, has_entry( StandardExternalFields.LAST_MODIFIED, is_( float ) ) )
-		assert_that( res.json_body, has_entry( StandardExternalFields.MIMETYPE, 
+		assert_that( res.json_body, has_entry( StandardExternalFields.MIMETYPE,
 											  'application/vnd.nextthought.assessment.assignmentsubmissionpendingassessment' ) )
 
 		assert_that( res.json_body, has_entry( 'ContainerId', self.assignment_id ))
 		assert_that( res.json_body, has_key( 'NTIID' ) )
 		assert_that( res.json_body, has_entry( 'href', contains_string('Objects/') ) )
-		
+
 		assert_that( res, has_property( 'location', contains_string('Objects/')))
 
 		# This object can be found in my history
@@ -592,7 +592,7 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin, ApplicationLayerTest
 		ntiid_set = set()
 		found_survey = False
 		found_assignment = False
-		
+
 		# When we get the page info, only the assignment comes back,
 		# not the things it contains
 		res = self.fetch_by_ntiid( lesson_page_id,
@@ -604,9 +604,9 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin, ApplicationLayerTest
 			found_assignment = found_assignment or item.get('Class') == 'Assignment'
 		assert_that(found_survey, is_(True))
 		assert_that(found_assignment, is_(True))
-		
+
 		assert_that( ntiid_set,
-					 does_not( contains( question_set_id ) ) ) 
+					 does_not( contains( question_set_id ) ) )
 
 		# If, however, we set the assignment policy to exclude, it's not present again
 		with mock_dataserver.mock_db_trans(site_name='platform.ou.edu'):

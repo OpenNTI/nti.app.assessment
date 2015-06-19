@@ -121,7 +121,7 @@
 	<adapter factory=".assignment_filters.AssignmentPolicyExclusionFilter"
 			 provides=".interfaces.ICourseAssignmentUserFilter"
 			 for="nti.dataserver.interfaces.IUser
-				  nti.contenttypes.courses.interfaces.ICourseInstance" 
+				  nti.contenttypes.courses.interfaces.ICourseInstance"
 			 name="exclusion" />
 
 	<subscriber handler=".subscribers.prevent_note_on_assignment_part"
@@ -143,10 +143,10 @@
 
 	<subscriber handler=".subscribers.add_object_to_course_activity"
 				for="nti.assessment.interfaces.IQInquirySubmission zope.intid.interfaces.IIntIdAddedEvent"/>
-			
+
 	<subscriber handler=".subscribers.remove_object_from_course_activity"
 				for="nti.assessment.interfaces.IQInquirySubmission zope.intid.interfaces.IIntIdRemovedEvent"/>
-					
+
 	<!-- Other events -->
 	<subscriber handler=".feedback.when_feedback_modified_modify_history_item" />
 	<subscriber handler=".feedback.when_feedback_container_modified_modify_history_item" />
@@ -283,7 +283,7 @@
 	<adapter factory=".survey._inquiry_for_user_in_course" />
 	<adapter factory=".survey._course_from_inquiry_lineage" />
 	<adapter factory=".survey._course_from_inquiryitem_lineage" />
-	
+
 	<adapter factory=".survey._aggreated_inquiries_for_course_path_adapter"
 			 for="nti.contenttypes.courses.interfaces.ICourseInstance pyramid.interfaces.IRequest"
 			 provides="zope.traversing.interfaces.IPathAdapter"
@@ -293,9 +293,9 @@
 			 for="nti.app.products.courseware.interfaces.ICourseInstanceEnrollment pyramid.interfaces.IRequest"
 			 provides="zope.traversing.interfaces.IPathAdapter"
 			 name="AggregatedInquiries" />
-			 
+
 	<adapter factory=".survey._aggreated_inquiries_for_course" />
-	
+
 	<adapter factory=".survey._DefaultCourseInquiryCatalog" />
 	<adapter factory=".survey._UsersCourseInquiriesTraversable" />
 
@@ -313,7 +313,7 @@
 
 	<!-- User Events -->
 	<subscriber handler=".subscribers._on_user_will_be_removed" />
-	
+
 	<!-- Utilities -->
 	<utility factory=".utilities.PrincipalSeeedSelector" />
 
@@ -321,7 +321,7 @@
 	<configure zcml:condition="installed nti.metadata">
 		<subscriber	factory=".predicates._AssignmentHistoryPrincipalObjects"
 					provides="nti.dataserver.interfaces.IPrincipalMetadataObjects" />
-	
+
 		<subscriber	factory=".predicates._InquiryPrincipalObjects"
 					provides="nti.dataserver.interfaces.IPrincipalMetadataObjects" />
 	</configure>

@@ -23,7 +23,7 @@ from nti.appserver.interfaces import IContentUnitInfo
 
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQAssignment
-from nti.assessment.interfaces import IQuestionSet 
+from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
 
@@ -44,7 +44,7 @@ from ..common import get_assessment_items_from_unit
 from ..common import AssessmentItemProxy as AssignmentProxy
 
 from ..interfaces import get_course_assignment_predicate_for_user
-				
+
 @interface.implementer(IExternalMappingDecorator)
 @component.adapter(IContentUnitInfo)
 class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
@@ -52,7 +52,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 	def _predicate(self, context, result_map):
 		return (AbstractAuthenticatedRequestAwareDecorator._predicate(self,context,result_map)
 				and context.contentUnit is not None)
-			
+
 	def _get_course(self, contentUnit, user):
 		result = None
 		course_id = self.request.params.get('course')
@@ -61,23 +61,23 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 			result = find_object_with_ntiid(course_id)
 			result = ICourseInstance(result, None)
 			if result is not None:
-				## CS: make sure the user is either enrolled or is an instructor in the 
+				## CS: make sure the user is either enrolled or is an instructor in the
 				## course passed as parameter
 				if not (is_enrolled(result, user) or is_course_instructor(result, user)):
 					result = None
 		if result is None:
-			result = component.queryMultiAdapter((contentUnit, user), ICourseInstance)	
-		return result		 
-	
+			result = component.queryMultiAdapter((contentUnit, user), ICourseInstance)
+		return result
+
 	def _do_decorate_external( self, context, result_map ):
 		entry_ntiid = None
 		qsids_to_strip = set()
 		assignment_predicate = None
-		
+
 		# When we return page info, we return questions
 		# for all of the embedded units as well
 		result = get_assessment_items_from_unit(context.contentUnit)
-		
+
 		# Filter out things they aren't supposed to see...currently only
 		# assignments...we can only do this if we have a user and a course
 		user = self.remoteUser
@@ -90,20 +90,20 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 		new_result = {}
 		is_instructor = False if course is None else is_course_instructor(course, user)
 		for ntiid, x in result.iteritems():
-			
+
 			# To keep size down, when we send back assignments or question sets,
 			# we don't send back the things they contain as top-level. Moreover,
 			# for assignments we need to apply a visibility predicate to the assignment
 			# itself.
-			
+
 			if IQuestionBank.providedBy(x):
 				x = copy_questionbank(x, is_instructor, qsids_to_strip)
 				x.ntiid = ntiid
-				new_result[ntiid] = x 
+				new_result[ntiid] = x
 			elif IRandomizedQuestionSet.providedBy(x):
 				x = x if not is_instructor else copy_questionset(x, True)
 				x.ntiid = ntiid
-				new_result[ntiid] = x 
+				new_result[ntiid] = x
 			elif IQuestionSet.providedBy(x):
 				new_result[ntiid] = x
 			elif IQSurvey.providedBy(x):
@@ -119,7 +119,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 					x = check_assessment(x, user, is_instructor)
 					x = AssignmentProxy(x, entry_ntiid)
 					new_result[ntiid] = x
-				
+
 				# But in all cases, don't echo back the things
 				# it contains as top-level items.
 				# We are assuming that these are on the same page

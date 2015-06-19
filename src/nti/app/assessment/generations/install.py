@@ -11,13 +11,9 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-generation = 3
-
-import zope.intid
+generation = 4
 
 from zope.generations.generations import SchemaManager
-
-from ..index import install_assesment_catalog
 
 class _AssessmentSchemaManager(SchemaManager):
 	"""
@@ -29,12 +25,4 @@ class _AssessmentSchemaManager(SchemaManager):
 													  	 package_name='nti.app.assessment.generations')
 
 def evolve(context):
-	install_catalog(context)
-	
-def install_catalog(context):
-	conn = context.connection
-	root = conn.root()
-	dataserver_folder = root['nti.dataserver']
-	lsm = dataserver_folder.getSiteManager()
-	intids = lsm.getUtility(zope.intid.IIntIds)
-	install_assesment_catalog(dataserver_folder, intids)
+	pass

@@ -46,30 +46,30 @@ class MockDataserver(object):
 
 def do_evolve(context, generation=generation):
 	logger.info("Assessment evolution %s started", generation);
-	
+
 	setHooks()
 	conn = context.connection
 	ds_folder = conn.root()['nti.dataserver']
 	lsm = ds_folder.getSiteManager()
 	intids = lsm.getUtility(zope.intid.IIntIds)
-	
+
 	mock_ds = MockDataserver()
 	mock_ds.root = ds_folder
 	component.provideUtility( mock_ds, IDataserver )
-	
+
 	with site(ds_folder):
 		assert 	component.getSiteManager() == ds_folder.getSiteManager(), \
 				"Hooks not installed?"
-				
+
 		total = 0
 		metadata_catalog = lsm.getUtility(ICatalog, METADATA_CATALOG_NAME)
 		assesment_catalog = install_assesment_catalog(ds_folder, intids)
-		
+
 		## load libray
 		library = component.queryUtility(IContentPackageLibrary)
 		if library is not None:
 			library.syncContentPackages()
-			
+
 		## index all history items
 		MIME_TYPES = ('application/vnd.nextthought.assessment.userscourseassignmenthistoryitem',
 					  'application/vnd.nextthought.assessment.userscourseinquiryitem')
@@ -81,7 +81,7 @@ def do_evolve(context, generation=generation):
 				total += 1
 			except Exception:
 				logger.debug("Cannot index object with id %s", uid)
-		
+
 		logger.info('Assessment evolution %s done; %s items(s) indexed',
 					generation, total)
 

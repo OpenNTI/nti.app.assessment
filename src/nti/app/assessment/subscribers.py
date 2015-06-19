@@ -30,6 +30,7 @@ from nti.assessment.interfaces import IQAssignmentDateContext
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
+from nti.contentlibrary.indexed_data import get_catalog
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import IPrincipalEnrollments
@@ -121,8 +122,10 @@ def prevent_note_on_assignment_part(note, event):
 		path = library.pathToNTIID(container_id)
 		if path:
 			item = path[-1]
-			item = IQAssessmentItemContainer(item, ())
-			items = [x for x in item if IQAssignment.providedBy(x)]
+# 			catalog = get_catalog()
+# 			items = catalog.search_objects( container_ntiids=item.ntiid )
+			items = IQAssessmentItemContainer(item, ())
+			items = [x for x in items if IQAssignment.providedBy(x)]
 
 	if not items:
 		return

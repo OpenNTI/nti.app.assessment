@@ -37,6 +37,11 @@ from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
 from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contentlibrary.indexed_data.interfaces import IContainedTypeAdapter
+
+from nti.contenttypes.presentation.interfaces import INTIPollRef
+from nti.contenttypes.presentation.interfaces import INTISurveyRef
+from nti.contenttypes.presentation.interfaces import INTIAssignmentRef
 
 from nti.dataserver.interfaces import IUser
 
@@ -175,7 +180,6 @@ def _begin_assessment_for_assignment_submission(submission):
 			__traceback_info__ = submission_part
 			submission_part = IQAssessedQuestionSet(submission_part)
 		new_parts.append(submission_part)
-
 	pending_assessment = QAssignmentSubmissionPendingAssessment(assignmentId=submission.assignmentId,
 																 parts=new_parts)
 	pending_assessment.containerId = submission.assignmentId
@@ -380,3 +384,4 @@ def _course_from_context_lineage(context, validate=False):
 @component.adapter(IUsersCourseAssignmentHistoryItem)
 def _course_from_history_item_lineage(item):
 	return _course_from_context_lineage(item)
+

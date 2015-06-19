@@ -7,13 +7,20 @@ __docformat__ = "restructuredtext en"
 # disable: accessing protected members, too many methods
 # pylint: disable=W0212,R0904
 
+import fudge
+
 from hamcrest import is_
+from hamcrest import not_none
 from hamcrest import has_length
 from hamcrest import assert_that
 from hamcrest import has_property
 from hamcrest import same_instance
 
 import simplejson as json
+
+from zope.component.persistentregistry import PersistentComponents as Components
+
+from persistent import Persistent
 
 from zope import component
 from zope import interface
@@ -25,11 +32,15 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.contentlibrary.interfaces import IContentUnit
+from nti.contentlibrary.indexed_data import get_catalog
 
 from nti.dataserver.authorization_acl import ACL
 
 from nti.app.assessment._question_map import QuestionMap as _QuestionMap
 from nti.app.assessment._question_map import _populate_question_map_from_text
+from nti.app.assessment._question_map import _get_last_mod_namespace
+from nti.app.assessment._question_map import _remove_assessment_items_from_oldcontent
+from nti.app.assessment._question_map import _AssessmentItemContainer
 
 class QuestionMap(_QuestionMap, dict):
 	# For testing, we capture data, emulating
@@ -104,7 +115,7 @@ ASSM_ITEMS = {
 										"<a name=\"82a183f5bbcaf7607f1e0fb56399a565\" ></a>\n\n<p class=\"par\" id=\"82a183f5bbcaf7607f1e0fb56399a565\">Corrective </p>",
 										"<a name=\"d7140284ac92d169d24484726d8a2f10\" ></a>\n\n<p class=\"par\" id=\"d7140284ac92d169d24484726d8a2f10\">Transactional </p>"
 								] }]}]}
-	
+
 }
 
 SECTION_ONE = {
@@ -160,45 +171,58 @@ ASSESSMENT_STRING_QUESTIONS_IN_FIRST_FILE = """
 """
 
 from nti.app.assessment.tests import AssessmentLayerTest
+from nti.dataserver.tests.mock_dataserver import WithMockDSTrans
+import nti.dataserver.tests.mock_dataserver as mock_dataserver
 
 @interface.implementer(IContentUnit,IAttributeAnnotatable)
 class MockEntry(object):
 
 	def __init__(self):
-		self._items = list()
+		self._items = _AssessmentItemContainer()
+		self.ntiid = 'tag:nextthought,2011-05:blehblehbleh'
 
 	children = ()
 
 	def make_sibling_key( self, key ):
 		return key
 
-
 	def __conform__(self, iface):
 		if iface == IQAssessmentItemContainer:
 			return self._items
 
+class PersistentComponents(Components, Persistent):
+	pass
+
 from nti.contentlibrary.interfaces import IGlobalContentPackageLibrary
 
-class TestQuestionMap(AssessmentLayerTest):
+class TestQuestionMap( AssessmentLayerTest ):
 
 	# Provide a fake global library, so that things get registered
 	# in the GSM.
 	def setUp(self):
+		super( TestQuestionMap, self ).setUp()
 		component.getGlobalSiteManager().registerUtility(self, IGlobalContentPackageLibrary)
 
 	def tearDown(self):
+		super( TestQuestionMap, self ).tearDown()
 		component.getGlobalSiteManager().unregisterUtility(self, IGlobalContentPackageLibrary)
 
 	def pathToNTIID(self, ntiid, skip_cache=False):
 		return ()
 
-	def test_create_question_map_captures_set_ntiids(self, index_string=ASSM_STRING_W_SET):
+	def _do_test_create_question_map_captures_set_ntiids(self, index_string=ASSM_STRING_W_SET):
 		question_map = QuestionMap()
-		
-		_populate_question_map_from_text( question_map, index_string, MockEntry() )
+
+		mock_content_package = MockEntry()
+		# Specify our registry, so we can force index
+		_populate_question_map_from_text( question_map, index_string, mock_content_package)
 
 		assm_items = question_map.by_file['tag_nextthought_com_2011-10_testing-HTML-temp_chapter_one.html']
-		
+
+		# Manually add to our content package container
+		container = IQAssessmentItemContainer( mock_content_package )
+		container.extend( question_map.values() )
+
 		qset = None
 		question = None
 		assert_that( assm_items, has_length( 4 ) ) # one question, one set
@@ -224,7 +248,73 @@ class TestQuestionMap(AssessmentLayerTest):
 		# And it has an ACL
 		assert_that( ACL(qset_question), is_( () ) )
 
-	def test_create_question_map_nested_level_with_no_filename(self):
+		# Registered
+		question_set = component.getUtility( IQuestionSet,
+											 name=qset.ntiid )
+		for question in question_set.questions:
+			assert_that( question, is_( same_instance( component.getUtility( IQuestion,
+																			 name=question.ntiid ))))
+
+		# Catalogged
+		catalog = get_catalog()
+		last_mod_namespace = _get_last_mod_namespace( mock_content_package )
+		last_modified = catalog.get_last_modified( last_mod_namespace )
+		assert_that( last_modified, not_none() )
+		results = catalog.search_objects( container_ntiids=(mock_content_package.ntiid,) )
+		assert_that(results, has_length(6))
+
+		# Namespace
+		results = catalog.search_objects(namespace=mock_content_package.ntiid)
+		assert_that(results, has_length(6))
+
+		# Type
+		for provided, count in (('IQPoll', 2),
+								('IQSurvey', 1),
+								('IQuestion', 2),
+								('IQuestionSet', 1)):
+			results = catalog.search_objects(provided=provided)
+			assert_that(results, has_length(count))
+
+		results = catalog.search_objects(provided='IQAssignment')
+		assert_that(results, has_length(0))
+
+		# Remove
+		_remove_assessment_items_from_oldcontent( mock_content_package )
+#
+# 		# Unregistered
+# 		assert_that( component.queryUtility( IQuestionSet, qset.ntiid ), is_( none() ) )
+#
+# 		# Catalog cleared
+# 		results = catalog.search_objects( container_ntiids=(mock_content_package.ntiid,) )
+# 		assert_that(results, has_length(0))
+#
+# 		# Namespace
+# 		results = catalog.search_objects(namespace=mock_content_package.ntiid)
+# 		assert_that(results, has_length(0))
+#
+# 		# Type
+# 		for provided, _ in (('IQPoll', 2),
+# 							('IQSurvey', 1),
+# 							('IQuestion', 2),
+# 							('IQuestionSet', 1),
+# 							('IQAssignment', 1)):
+# 			results = catalog.search_objects(provided=provided)
+# 			assert_that(results, has_length( 0 ))
+
+	@WithMockDSTrans
+	@fudge.patch('nti.app.contentlibrary.subscribers.get_registry')
+	def test_create_question_map_captures_set_ntiids(self, mock_registry):
+		registry = PersistentComponents()
+		mock_dataserver.current_transaction.add(registry)
+		mock_registry.is_callable().returns(registry)
+		self._do_test_create_question_map_captures_set_ntiids()
+
+	@WithMockDSTrans
+	@fudge.patch('nti.app.contentlibrary.subscribers.get_registry')
+	def test_create_question_map_nested_level_with_no_filename(self, mock_registry):
+		registry = PersistentComponents()
+		mock_dataserver.current_transaction.add(registry)
+		mock_registry.is_callable().returns(registry)
 
 		section_one = SECTION_ONE.copy()
 	#	del section_one['filename']
@@ -241,9 +331,14 @@ class TestQuestionMap(AssessmentLayerTest):
 
 		assm_string = json.dumps( assm_json )
 
-		self.test_create_question_map_captures_set_ntiids( assm_string )
+		self._do_test_create_question_map_captures_set_ntiids( assm_string )
 
-	def test_create_question_map_nested_two_level_with_no_filename(self):
+	@WithMockDSTrans
+	@fudge.patch('nti.app.contentlibrary.subscribers.get_registry')
+	def test_create_question_map_nested_two_level_with_no_filename(self, mock_registry):
+		registry = PersistentComponents()
+		mock_dataserver.current_transaction.add(registry)
+		mock_registry.is_callable().returns(registry)
 
 		section_one = SECTION_ONE.copy()
 	#	del section_one['filename']
@@ -263,7 +358,7 @@ class TestQuestionMap(AssessmentLayerTest):
 
 		assm_string = json.dumps( assm_json )
 
-		self.test_create_question_map_captures_set_ntiids( assm_string )
+		self._do_test_create_question_map_captures_set_ntiids( assm_string )
 
 	def test_create_from_mathcounts2012_no_Question_section_in_chapter(self):
 		index_string = str(ASSESSMENT_STRING_QUESTIONS_IN_FIRST_FILE)

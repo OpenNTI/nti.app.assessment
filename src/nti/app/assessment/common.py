@@ -21,6 +21,8 @@ from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.contentlibrary.interfaces import IContentPackage
 
+from nti.contentlibrary.indexed_data import get_catalog
+
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
@@ -65,7 +67,6 @@ def same_content_unit_file(unit1, unit2):
 		return False
 
 def get_assessment_items_from_unit(contentUnit):
-
 	def recur(unit, accum):
 		if same_content_unit_file(unit, contentUnit):
 			try:
@@ -82,6 +83,18 @@ def get_assessment_items_from_unit(contentUnit):
 	recur(contentUnit, result)
 	return result
 
+# # Is this right? Exclude questions?
+# ASSESSMENT_PROVIDED = ('IQAssignment', 'IQuestionSet', 'IQPoll', 'IQSurvey')
+#
+# def get_assessment_items_from_unit(contentUnit):
+# 	# Previously, we checked that the children
+# 	# were in the same file as parent.  Not sure why (pageinfo?).
+# 	catalog = get_catalog()
+# 	results = catalog.search_objects( container_ntiids=contentUnit.ntiid,
+# 						provided=ASSESSMENT_PROVIDED )
+# 	results = {x.ntiid:x for x in results}
+# 	return results
+
 def get_course_packages(context):
 	context = ICourseInstance(context)
 	# We have now a specific interface for courses that
@@ -97,6 +110,13 @@ def get_course_packages(context):
 		# Ok, the old legacy case
 		packages = (context.legacy_content_package,)
 	return packages
+
+# def get_content_packages_assessment_items(package):
+# 	catalog = get_catalog()
+# 	results = catalog.search_objects( container_ntiids=package.ntiid,
+# 						provided=ASSESSMENT_PROVIDED )
+# 	return tuple( results )
+
 
 def get_content_packages_assessment_items(package):
 	result = []

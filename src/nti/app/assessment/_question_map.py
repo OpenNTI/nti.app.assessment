@@ -16,8 +16,9 @@ import time
 
 import BTrees
 
-from zope import component
 from zope import interface
+from zope import component
+from zope.intid.interfaces import IIntIds
 
 from zope.interface.common.sequence import IReadSequence
 
@@ -28,6 +29,7 @@ from zope.lifecycleevent.interfaces import IObjectModifiedEvent
 from zope.site.interfaces import ILocalSiteManager
 
 from ZODB.loglevels import TRACE
+from ZODB.interfaces import IConnection
 
 from persistent.list import PersistentList
 
@@ -44,7 +46,10 @@ from nti.contentlibrary.interfaces import IContentPackage
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 from nti.contentlibrary.interfaces import IGlobalContentPackageLibrary
 
+from nti.contentlibrary.indexed_data import get_catalog
+
 from nti.dataserver.interfaces import IZContained
+from nti.dataserver.interfaces import IDataserver
 
 from nti.dublincore.time_mixins import PersistentCreatedAndModifiedTimeObject
 
@@ -131,24 +136,51 @@ class QuestionMap(QuestionIndex):
 									  name=name,
 									  event=event)
 
-	def _register_and_canonicalize(self, things_to_register, registry=None):
-
-		library = component.queryUtility(IContentPackageLibrary)
-
-		# if we're working in the global library, use the global
-		# site manager to not persist; otherwise, use the current site manager
-		# so persistence works.
-		# NOTE: Because of the way annotations work for content units
-		# (being based on a utility that looks to the parent utility first)
-		# we must not overlap NTIIDs of questions between parent and children
-		# libraries, as we will overwrite the parent
+	def _get_registry(self, registry=None):
 		if registry is None:
+			library = component.queryUtility(IContentPackageLibrary)
 			if IGlobalContentPackageLibrary.providedBy(library):
 				registry = component.getGlobalSiteManager()
 			else:
 				registry = component.getSiteManager()
+		return registry
 
+	def _register_and_canonicalize(self, things_to_register, registry=None):
+		registry = self._get_registry( registry )
 		QuestionIndex._register_and_canonicalize(self, things_to_register, registry)
+
+	def _index_object( self, assessment_item, content_package, hierarchy_ntiids, registry=None ):
+		"""
+		Index the item in our catalog.
+		"""
+		result = False
+		if self._get_registry( registry ) != component.getGlobalSiteManager():
+			catalog = get_catalog()
+			if catalog is not None: # Test mode
+				result = catalog.index(assessment_item, container_ntiids=hierarchy_ntiids,
+								namespace=content_package.ntiid )
+		return result
+
+	def _connection( self, registry=None ):
+		registry = self._get_registry(registry)
+		result = IConnection(registry, None)
+		return result
+
+	def _intid_register(self, item, registry=None, intids=None, connection=None):
+		# We always want to register and persist our assessment items, even
+		# from the global library.
+		registry = self._get_registry( registry )
+		intids = component.queryUtility( IIntIds ) if intids is None else intids
+		connection = self._connection( registry ) if connection is None else connection
+# 		if connection is None:
+# 			# Global
+# 			ds = component.queryUtility( IDataserver )
+# 			connection = IConnection( ds, None )
+		if connection is not None: # Tests
+			connection.add(item)
+			intids.register(item, event=False)
+			return True
+		return False
 
 	def _process_assessments(self,
 							 assessment_item_dict,
@@ -156,7 +188,8 @@ class QuestionMap(QuestionIndex):
 							 content_package,
 							 by_file,
 							 level_ntiid=None,
-							 signatures_dict=None):
+							 signatures_dict=None,
+							 registry=None ):
 		"""
 		Returns a set of object that should be placed in the registry, and then
 		canonicalized.
@@ -167,11 +200,15 @@ class QuestionMap(QuestionIndex):
 		signatures_dict = signatures_dict or {}
 		library = component.queryUtility(IContentPackageLibrary)
 
+		hierarchy_ntiids = set()
+		hierarchy_ntiids.add( content_package.ntiid )
+
 		if level_ntiid and library is not None:
 			containing_content_units = library.pathToNTIID(level_ntiid, skip_cache=True)
 			if containing_content_units:
 				parent = containing_content_units[-1]
 				parents_questions = IQAssessmentItemContainer(parent)
+				hierarchy_ntiids.update( (x.ntiid for x in containing_content_units) )
 
 		result = set()
 		for k, v in assessment_item_dict.items():
@@ -186,7 +223,7 @@ class QuestionMap(QuestionIndex):
 			obj.ntiid = k
 			obj.signature = signatures_dict.get(k)
 			obj.__name__ = unicode(k).encode('utf8').decode('utf8')
-			self._store_object(k, obj)
+			self._store_object( k, obj )
 
 			# No matter if we got an assignment or question set first or the questions
 			# first, register the question objects exactly once. Replace
@@ -195,10 +232,6 @@ class QuestionMap(QuestionIndex):
 			result.update(things_to_register)
 
 			for thing_to_register in things_to_register:
-				# We don't actually register it here, but we do need
-				# to record where it came from.
-				# (This is necessary to be sure we can unregister things later)
-				parents_questions.append(thing_to_register)
 
 				# TODO: We are only partially supporting having question/sets
 				# used multiple places. When we get to that point, we need to
@@ -207,6 +240,12 @@ class QuestionMap(QuestionIndex):
 				# want to do these weakly?
 				if thing_to_register.__parent__ is None and parent is not None:
 					thing_to_register.__parent__ = parent
+
+				# Index and register our object
+				parents_questions.append( thing_to_register )
+				self._intid_register( thing_to_register, registry=registry )
+				self._index_object( thing_to_register, content_package, hierarchy_ntiids,
+								registry=registry )
 
 			if containing_hierarchy_key:
 				assert 	containing_hierarchy_key in by_file, \
@@ -220,7 +259,8 @@ class QuestionMap(QuestionIndex):
 						  content_package,
 						  by_file,
 						  nearest_containing_key=None,
-						  nearest_containing_ntiid=None):
+						  nearest_containing_ntiid=None,
+						  registry=None):
 		"""
 		Called with an entry for a file or (sub)section. May or may not have children of its own.
 
@@ -257,7 +297,8 @@ class QuestionMap(QuestionIndex):
 									  content_package,
 									  by_file,
 									  level_ntiid,
-									  index.get("Signatures"))
+									  index.get("Signatures"),
+									  registry=registry )
 
 		things_to_register.update(i)
 		for child_item in index.get('Items', {}).values():
@@ -265,7 +306,8 @@ class QuestionMap(QuestionIndex):
 									   content_package,
 									   by_file,
 									   nearest_containing_key=key_for_this_level,
-									   nearest_containing_ntiid=level_ntiid)
+									   nearest_containing_ntiid=level_ntiid,
+									   registry=registry)
 
 			things_to_register.update(i)
 
@@ -318,7 +360,8 @@ class QuestionMap(QuestionIndex):
 
 			i = self._from_index_entry(	child_index, content_package,
 										by_file,
-										nearest_containing_ntiid=child_ntiid)
+										nearest_containing_ntiid=child_ntiid,
+										registry=registry)
 			things_to_register.update(i)
 
 		# register assessment items
@@ -331,12 +374,12 @@ class QuestionMap(QuestionIndex):
 		registered = {x.ntiid for x in things_to_register}
 		return by_file, registered
 
-def _populate_question_map_from_text(question_map, asm_index_text, content_package):
+def _populate_question_map_from_text(question_map, asm_index_text, content_package, registry=None):
 	result = None
 	index = _load_question_map_json(asm_index_text)
 	if index:
 		try:
-			result = question_map._from_root_index(index, content_package)
+			result = question_map._from_root_index(index, content_package, registry=registry)
 			result = None if result is None else result[1]  # registered
 		except (interface.Invalid, ValueError):  # pragma: no cover
 			# Because the map is updated in place, depending on where the error
@@ -354,6 +397,9 @@ def _add_assessment_items_from_new_content(content_package, key):
 				len(result or ()), content_package, key)
 	return result
 
+def _get_last_mod_namespace( content_package ):
+	return '%s.%s.LastModified' % ( content_package.ntiid, 'assessment_index.json' )
+
 def _needs_load_or_update(content_package):
 	key = content_package.does_sibling_entry_exist('assessment_index.json')
 	if not key:
@@ -362,11 +408,22 @@ def _needs_load_or_update(content_package):
 	main_container = IQAssessmentItemContainer(content_package)
 	if key.lastModified <= main_container.lastModified:
 		logger.info("No change to %s since %s, ignoring",
-					key,
-					key.modified)
+						key,
+						key.modified)
 		return
-
 	main_container.lastModified = key.lastModified
+# 	last_mod_namespace = _get_last_mod_namespace( content_package )
+# 	catalog = get_catalog()
+# 	if catalog is not None: # Test mode
+# 		last_modified = catalog.get_last_modified( last_mod_namespace )
+# 		if 		last_modified \
+# 			and last_modified >= key.lastModified:
+# 			logger.info("No change to %s since %s, ignoring",
+# 						key,
+# 						key.modified)
+# 			return
+#
+# 		catalog.set_last_modified( last_mod_namespace, key.lastModified )
 	return key
 
 @component.adapter(IContentPackage, IObjectAddedEvent)
@@ -405,28 +462,33 @@ def _remove_assessment_items_from_oldcontent(content_package):
 		logger.warn("Removing assessment items from wrong site %s should be %s; may not work",
 					sm, component.getSiteManager(content_package))
 
+	catalog = get_catalog()
+	intids = component.queryUtility( IIntIds )
 	result = {}
+	# We may not have to be recursive anymore.
 	def _unregister(unit):
 		items = IQAssessmentItemContainer(unit)
-		for item in items:
-			# TODO: Check the parent? If it's an IContentUnit, onlyunregister if it's us?
+		#items = catalog.search_objects(intids=intids, container_ntiids=unit.ntiid)
+		for item in tuple(items):
+			# TODO: Check the parent? If it's an IContentUnit, only unregister if it's us?
 			name = item.ntiid
 			provided = _iface_to_register(item)
-			_unregisterUtility(sm, item, provided=provided, name=name)
+			_unregisterUtility( sm, item, provided=provided, name=name )
+			if intids is not None and intids.queryId( item ):
+				catalog.unindex( item, intids=intids )
+				intids.unregister( item, event=False )
 			result[name] = provided
 
-			# a bit of logging
 			logger.log(TRACE, "%s unregistered from %s", item.ntiid, _site_name(sm))
 
-		# clear out the items, since they are persistent
 		del items[:]
-
-		# reset the timestamps
 		items.lastModified = items.createdTime = -1
 
 		for child in unit.children:
 			_unregister(child)
 
+# 	if catalog is not None:
+# 		_unregister(content_package)
 	_unregister(content_package)
 	return result
 

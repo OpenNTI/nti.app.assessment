@@ -518,8 +518,8 @@ def update_assessment_items_when_modified(content_package, event):
 
 	items_added = list(registered.difference(removed))
 	if items_added:
-		logger.debug("%s added from %s ", items_added, content_package)
+		logger.log(TRACE, "%s added from %s ", items_added, content_package)
 
 	items_removed = list(removed.difference(registered))
 	if items_removed:
-		logger.debug("%s removed from %s ", items_removed, content_package)
+		logger.log(TRACE, "%s removed from %s ", items_removed, content_package)

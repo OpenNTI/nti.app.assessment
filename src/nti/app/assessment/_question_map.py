@@ -14,8 +14,6 @@ logger = __import__('logging').getLogger(__name__)
 
 import time
 
-import BTrees
-
 from zope import interface
 from zope import component
 from zope.intid.interfaces import IIntIds
@@ -49,7 +47,6 @@ from nti.contentlibrary.interfaces import IGlobalContentPackageLibrary
 from nti.contentlibrary.indexed_data import get_catalog
 
 from nti.dataserver.interfaces import IZContained
-from nti.dataserver.interfaces import IDataserver
 
 from nti.dublincore.time_mixins import PersistentCreatedAndModifiedTimeObject
 
@@ -68,18 +65,6 @@ class _AssessmentItemContainer(PersistentList,
 	__name__ = None
 	__parent__ = None
 	_SET_CREATED_MODTIME_ON_INIT = False
-
-@interface.implementer(IQAssessmentItemContainer, IZContained)
-@component.adapter(IContentUnit)
-class _BTreeAssessmentItemContainer(BTrees.OOBTree.BTree,
-									PersistentCreatedAndModifiedTimeObject):
-
-	def append(self, x):
-		self[x.ntiid] = x
-
-	def __iter__(self):
-		for x in self.values():
-			yield x
 
 # Instead of using annotations on the content objects, because we're
 # not entirely convinced that the annotation utility, which is ntiid

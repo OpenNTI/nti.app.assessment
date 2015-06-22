@@ -66,6 +66,10 @@
 				for="nti.assessment.interfaces.IQTimedAssignment
 					 pyramid.interfaces.IRequest" />
 	
+	<subscriber factory=".assignment._QuestionBankDecorator"
+				for="nti.assessment.randomized.interfaces.IQuestionBank"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator"/>
+				
 	<!-- assessed -->	
 	<subscriber factory=".assessed._QAssessedPartDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"

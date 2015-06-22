@@ -24,6 +24,7 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQTimedAssignment
 from nti.assessment.interfaces import IQAssignmentPolicies
 from nti.assessment.interfaces import IQAssignmentDateContext
+from nti.assessment.randomized.interfaces import IQuestionBank
 
 from nti.common.property import Lazy
 
@@ -34,8 +35,10 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 from nti.contenttypes.courses.interfaces import ICourseInstanceVendorInfo
 
+from nti.externalization.singleton import SingletonDecorator
 from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.externalization import to_external_object
+from nti.externalization.interfaces import IExternalObjectDecorator
 from nti.externalization.interfaces import IExternalMappingDecorator
 
 from nti.links.links import Link
@@ -52,6 +55,7 @@ from . import _root_url
 from . import _get_course_from_assignment
 from . import _AbstractTraversableLinkDecorator
 
+OID = StandardExternalFields.OID
 LINKS = StandardExternalFields.LINKS
 
 @interface.implementer(IExternalMappingDecorator)
@@ -277,3 +281,14 @@ class _AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper(Abstra
 	def _do_decorate_external(self, context, result):
 		for part in result['parts']:
 			_AssignmentBeforeDueDateSolutionStripper.strip(part)
+
+@component.adapter(IQuestionBank)
+@interface.implementer(IExternalObjectDecorator)
+class _QuestionBankDecorator(object):
+
+	__metaclass__ = SingletonDecorator
+
+	def decorateExternalObject(self, original, external):
+		oid = getattr(original, 'oid', None)
+		if oid and OID not in external:
+			external[OID] = oid

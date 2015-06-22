@@ -5,6 +5,7 @@
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
+from nti.externalization.oids import to_external_ntiid_oid
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -97,8 +98,10 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 			# itself.
 
 			if IQuestionBank.providedBy(x):
+				oid = to_external_ntiid_oid(x)
 				x = copy_questionbank(x, is_instructor, qsids_to_strip)
-				x.ntiid = ntiid
+				x.ntiid = ntiid # save NTIID
+				x.oid = oid # save OID
 				new_result[ntiid] = x
 			elif IRandomizedQuestionSet.providedBy(x):
 				x = x if not is_instructor else copy_questionset(x, True)

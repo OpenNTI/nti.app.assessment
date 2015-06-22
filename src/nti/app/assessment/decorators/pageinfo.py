@@ -56,7 +56,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 
 	def _get_course(self, contentUnit, user):
 		result = None
-		params = self.request.params.get('course')
+		params = self.request.params
 		course_id = params.get('course') or params.get('ntiid')
 		course_id = unquote(course_id) if course_id else None
 		if course_id and is_valid_ntiid_string(course_id):

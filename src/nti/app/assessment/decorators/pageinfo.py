@@ -51,26 +51,27 @@ from ..interfaces import get_course_assignment_predicate_for_user
 class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _predicate(self, context, result_map):
-		return (AbstractAuthenticatedRequestAwareDecorator._predicate(self,context,result_map)
+		return (AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result_map)
 				and context.contentUnit is not None)
 
 	def _get_course(self, contentUnit, user):
 		result = None
-		course_id = self.request.params.get('course')
+		params = self.request.params.get('course')
+		course_id = params.get('course') or params.get('ntiid')
 		course_id = unquote(course_id) if course_id else None
 		if course_id and is_valid_ntiid_string(course_id):
 			result = find_object_with_ntiid(course_id)
 			result = ICourseInstance(result, None)
 			if result is not None:
-				## CS: make sure the user is either enrolled or is an instructor in the
-				## course passed as parameter
+				# CS: make sure the user is either enrolled or is an instructor in the
+				# course passed as parameter
 				if not (is_enrolled(result, user) or is_course_instructor(result, user)):
 					result = None
 		if result is None:
 			result = component.queryMultiAdapter((contentUnit, user), ICourseInstance)
 		return result
 
-	def _do_decorate_external( self, context, result_map ):
+	def _do_decorate_external(self, context, result_map):
 		entry_ntiid = None
 		qsids_to_strip = set()
 		assignment_predicate = None
@@ -98,14 +99,21 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 			# itself.
 
 			if IQuestionBank.providedBy(x):
+				containerId = getattr(x, 'containerId', None)
 				oid = to_external_ntiid_oid(x)
 				x = copy_questionbank(x, is_instructor, qsids_to_strip)
-				x.ntiid = ntiid # save NTIID
-				x.oid = oid # save OID
+				# copy the following properties for external clients
+				x.oid = oid
+				x.ntiid = ntiid
+				x.containerId = containerId
 				new_result[ntiid] = x
 			elif IRandomizedQuestionSet.providedBy(x):
+				containerId = getattr(x, 'containerId', None)
+				oid = to_external_ntiid_oid(x)
 				x = x if not is_instructor else copy_questionset(x, True)
+				x.oid = oid
 				x.ntiid = ntiid
+				x.containerId = containerId
 				new_result[ntiid] = x
 			elif IQuestionSet.providedBy(x):
 				new_result[ntiid] = x

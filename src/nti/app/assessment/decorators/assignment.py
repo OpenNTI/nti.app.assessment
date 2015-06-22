@@ -24,7 +24,6 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQTimedAssignment
 from nti.assessment.interfaces import IQAssignmentPolicies
 from nti.assessment.interfaces import IQAssignmentDateContext
-from nti.assessment.randomized.interfaces import IQuestionBank
 
 from nti.common.property import Lazy
 
@@ -282,9 +281,8 @@ class _AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper(Abstra
 		for part in result['parts']:
 			_AssignmentBeforeDueDateSolutionStripper.strip(part)
 
-@component.adapter(IQuestionBank)
 @interface.implementer(IExternalObjectDecorator)
-class _QuestionBankDecorator(object):
+class _QuestionSetDecorator(object):
 
 	__metaclass__ = SingletonDecorator
 

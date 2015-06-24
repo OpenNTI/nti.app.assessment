@@ -30,7 +30,6 @@ from nti.assessment.interfaces import IQAssignmentDateContext
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
-from nti.contentlibrary.indexed_data import get_catalog
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import IPrincipalEnrollments
@@ -118,8 +117,8 @@ def prevent_note_on_assignment_part(note, event):
 
 	if item is None:
 		# Look for a page
-		library = component.getUtility(IContentPackageLibrary)
-		path = library.pathToNTIID(container_id)
+		library = component.queryUtility(IContentPackageLibrary)
+		path = library.pathToNTIID(container_id) if library is not None else None
 		if path:
 			item = path[-1]
 # 			catalog = get_catalog()

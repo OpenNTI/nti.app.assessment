@@ -83,8 +83,10 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 		# Filter out things they aren't supposed to see...currently only
 		# assignments...we can only do this if we have a user and a course
 		user = self.remoteUser
+		unit_ntiid = getattr(context.contentUnit, 'ntiid', None)
 		course = self._get_course(context.contentUnit, user)
 		if course is not None:
+			unit_ntiid = to_external_ntiid_oid(course) if not unit_ntiid else unit_ntiid
 			# Only things in context of a course should have assignments
 			assignment_predicate = get_course_assignment_predicate_for_user(user, course)
 			entry_ntiid = getattr(ICourseCatalogEntry(course, None), 'ntiid', None)
@@ -99,7 +101,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 			# itself.
 
 			if IQuestionBank.providedBy(x):
-				containerId = getattr(x, 'containerId', None)
+				containerId = getattr(x, 'containerId', None) or unit_ntiid
 				oid = to_external_ntiid_oid(x)
 				x = copy_questionbank(x, is_instructor, qsids_to_strip)
 				# copy the following properties for external clients
@@ -108,7 +110,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 				x.containerId = containerId
 				new_result[ntiid] = x
 			elif IRandomizedQuestionSet.providedBy(x):
-				containerId = getattr(x, 'containerId', None)
+				containerId = getattr(x, 'containerId', None) or unit_ntiid
 				oid = to_external_ntiid_oid(x)
 				x = x if not is_instructor else copy_questionset(x, True)
 				x.oid = oid

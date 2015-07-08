@@ -9,19 +9,14 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-generation = 4
-
-import functools
+generation = 6
 
 from zope import component
 from zope import interface
 
 from zope.component.hooks import site, setHooks
 
-from zope.intid.interfaces import IIntIds
-
 from nti.assessment.interfaces import IQAssessmentItemContainer
-from nti.app.assessment._question_map import QuestionMap
 
 from nti.dataserver.interfaces import IDataserver
 from nti.dataserver.interfaces import IOIDResolver
@@ -43,48 +38,18 @@ class MockDataserver(object):
 			return resolver.get_object_by_oid(oid, ignore_creator=ignore_creator)
 		return None
 
-def _index_assessment( assessment_item, unit, hierarchy_ntiids ):
-	question_map = QuestionMap()
-	return question_map._index_object( assessment_item, unit, hierarchy_ntiids )
+def _drop_annotation(unit):
+	annote = IQAssessmentItemContainer(unit, None)
+	if hasattr(unit, '_question_map_assessment_item_container'):
+		delattr(unit, '_question_map_assessment_item_container')
+	return annote
 
-def _index_assessment_items( unit, intids ):
-	"""
-	For our unit, index the assessment items, registering
-	as needed.
-	"""
-	def recur(unit, hierarchy_ntiids):
-		indexed_count = 0
-		try:
-			qs = IQAssessmentItemContainer(unit, ())
-		except TypeError:
-			qs = ()
-
-		hierarchy_ntiids = set( hierarchy_ntiids )
-		hierarchy_ntiids.add( unit.ntiid )
-		if qs:
-			for assessment_item in qs:
-				if not intids.queryId( assessment_item ):
-					intids.register( assessment_item, event=False )
-				did_index = _index_assessment( assessment_item, unit, hierarchy_ntiids )
-				if did_index:
-					indexed_count += 1
-
-		for child in unit.children:
-			indexed_count += recur( child, hierarchy_ntiids )
-		return indexed_count
-
-	hierarchy_ntiids = set()
-	indexed_count = recur( unit, hierarchy_ntiids )
-	return indexed_count
-
-def index_library(intids):
+def index_library():
 	library = component.queryUtility(IContentPackageLibrary)
 	if library is not None:
 		logger.info('Migrating library (%s)', library)
 		for package in library.contentPackages:
-			# Migrate/store the global assessments too
-			indexed_count = _index_assessment_items(package, intids)
-			logger.info('Indexed (%s) (count=%s)', package, indexed_count)
+			_drop_annotation(package)
 
 def do_evolve(context):
 	setHooks()
@@ -99,23 +64,20 @@ def do_evolve(context):
 	with site(ds_folder):
 		assert	component.getSiteManager() == ds_folder.getSiteManager(), \
 				"Hooks not installed?"
-		lsm = ds_folder.getSiteManager()
-		intids = lsm.getUtility(IIntIds)
 
 		# Load library
 		library = component.queryUtility(IContentPackageLibrary)
 		if library is not None:
 			library.syncContentPackages()
 
-		# Iterate through packages, dropping annotation
-		# and indexing.
-		index_library( intids )
-		run_job_in_all_host_sites( functools.partial( index_library, intids ))
+		# Iterate through packages, dropping annotations
+		index_library()
+		run_job_in_all_host_sites(index_library)
 
-	logger.info( 'Finished app assessment evolve (%s)', generation )
+	logger.info('Finished app assessment evolve (%s)', generation)
 
 def evolve(context):
 	"""
-	Evolve to generation 4 by moving assessment catalog to library catalog.
+	Evolve to generation 5 dropping old assessment annotations.
 	"""
 	do_evolve(context)

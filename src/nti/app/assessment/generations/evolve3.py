@@ -15,8 +15,9 @@ generation = 3
 
 import zope.intid
 
-from zope import interface
 from zope import component
+from zope import interface
+
 from zope.component.hooks import site, setHooks
 
 from zope.catalog.interfaces import ICatalog
@@ -36,12 +37,12 @@ class MockDataserver(object):
 
 	root = None
 
-	def get_by_oid( self, oid, ignore_creator=False ):
-		resolver = component.queryUtility(IOIDResolver )
+	def get_by_oid(self, oid, ignore_creator=False):
+		resolver = component.queryUtility(IOIDResolver)
 		if resolver is None:
 			logger.warn("Using dataserver without a proper ISiteManager configuration.")
 		else:
-			return resolver.get_object_by_oid( oid, ignore_creator=ignore_creator )
+			return resolver.get_object_by_oid(oid, ignore_creator=ignore_creator)
 		return None
 
 def do_evolve(context, generation=generation):
@@ -55,7 +56,7 @@ def do_evolve(context, generation=generation):
 
 	mock_ds = MockDataserver()
 	mock_ds.root = ds_folder
-	component.provideUtility( mock_ds, IDataserver )
+	component.provideUtility(mock_ds, IDataserver)
 
 	with site(ds_folder):
 		assert 	component.getSiteManager() == ds_folder.getSiteManager(), \
@@ -65,12 +66,12 @@ def do_evolve(context, generation=generation):
 		metadata_catalog = lsm.getUtility(ICatalog, METADATA_CATALOG_NAME)
 		assesment_catalog = install_assesment_catalog(ds_folder, intids)
 
-		## load libray
+		# load libray
 		library = component.queryUtility(IContentPackageLibrary)
 		if library is not None:
 			library.syncContentPackages()
 
-		## index all history items
+		# index all history items
 		MIME_TYPES = ('application/vnd.nextthought.assessment.userscourseassignmenthistoryitem',
 					  'application/vnd.nextthought.assessment.userscourseinquiryitem')
 		item_intids = metadata_catalog['mimeType'].apply({'any_of': MIME_TYPES})

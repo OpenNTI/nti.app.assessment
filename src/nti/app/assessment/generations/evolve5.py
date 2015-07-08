@@ -17,4 +17,4 @@ def evolve(context):
 	"""
 	Evolve to generation 5 recreating assessment index.
 	"""
-	do_evolve(context)
+	do_evolve(context, generation)

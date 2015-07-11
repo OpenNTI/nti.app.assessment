@@ -164,8 +164,9 @@
 	<adapter factory=".adapters._histories_for_course" />
 	<adapter factory=".adapters._history_for_user_in_course" />
 
-	<adapter factory=".adapters._course_from_assignment_lineage" />
 	<adapter factory=".adapters._course_from_history_item_lineage" />
+
+	<adapter factory=".adapters._course_from_submittable_lineage" />
 
 	<!-- Common course lineage adapters -->
 	<adapter factory=".adapters._course_from_context_lineage"
@@ -281,7 +282,6 @@
 
 	<adapter factory=".survey._inquiries_for_course" />
 	<adapter factory=".survey._inquiry_for_user_in_course" />
-	<adapter factory=".survey._course_from_inquiry_lineage" />
 	<adapter factory=".survey._course_from_inquiryitem_lineage" />
 
 	<adapter factory=".survey._aggreated_inquiries_for_course_path_adapter"

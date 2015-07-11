@@ -27,6 +27,7 @@ from persistent.list import PersistentList
 from nti.appserver.interfaces import INewObjectTransformer
 
 from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQSubmittable
 from nti.assessment.interfaces import IQAssessedQuestion
 from nti.assessment.interfaces import IQuestionSubmission
 from nti.assessment.interfaces import IQAssessedQuestionSet
@@ -112,7 +113,7 @@ def _check_submission_before(dates, assignment):
 	if available_beginning is not None:
 		if datetime.datetime.utcnow() < available_beginning:
 			ex = ConstraintNotSatisfied("Submitting too early")
-			ex.field = IQAssignment['available_for_submission_beginning']
+			ex.field = IQSubmittable['available_for_submission_beginning']
 			ex.value = available_beginning
 			raise ex
 
@@ -194,71 +195,6 @@ from nti.contentlibrary.interfaces import IContentPackage
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.contenttypes.courses.interfaces import IPrincipalEnrollments
-
-@interface.implementer(ICourseInstance)
-@component.adapter(IQAssignment, IUser)
-def _course_from_assignment_lineage(assignment, user):
-	"""
-	Given a generic assignment and a user, we
-	attempt to associate the assignment with the most
-	specific course instance relevant for the user.
-
-	In legacy-style courses, the parent of the assignment will be a
-	IContentUnit, and eventually an
-	ILegacyCourseConflatedContentPackage which can become the course
-	directly. (However, these may not be within an IRoot, so using
-	ILocationInfo may not be safe; in that case, fall back to
-	straightforward lineage)
-
-	In more sophisticated cases involving sections, the assumption
-	that a course instance is one-to-one with a contentpackage
-	is broken. In that case, it's better to try to look through
-	the things the user is enrolled in and try to match the content
-	package to the first course.
-	"""
-
-	# Actually, in every case, we want to check enrollment, so
-	# we always use that first.
-
-	# However, in old databases, with really legacy courses,
-	# we find that the instructors are also enrolled in the courses...
-	# and in some places, we had a course that was both old and new, briefly,
-	# leading to issues distinguishing which one we want.
-
-	# To handle that case, and to be robust about removing/delisting
-	# courses, we begin by checking each entry in the course catalog;
-	# the old courses will no longer be present. This also
-	# reduces the number of loops we have to make slightly.
-
-	package = find_interface(assignment, IContentPackage, strict=False)
-	if package is None:
-		return None
-
-	# Nothing. OK, maybe we're an instructor?
-	catalog = component.queryUtility(ICourseCatalog)
-	if catalog is None:
-		return
-
-	prin = IPrincipal(user)
-	for entry in catalog.iterCatalogEntries():
-		course = ICourseInstance(entry)
-		if package in course.ContentPackageBundle.ContentPackages:
-			# Ok, found one. Are we enrolled or an instructor?
-			if prin in course.instructors:
-				return course
-			if ICourseEnrollments(course).get_enrollment_for_principal(user) is not None:
-				return course
-
-	# Snap. No current course matches. Fall back to the old approach of checking
-	# all your enrollments. This could find things not currently in the catalog.
-	# TODO: Probably really inefficient
-	for enrollments in component.subscribers((user,), IPrincipalEnrollments):
-		for enrollment in enrollments.iter_enrollments():
-			course = ICourseInstance(enrollment)
-			if package in course.ContentPackageBundle.ContentPackages:
-				return course
-			if ICourseEnrollments(course).get_enrollment_for_principal(user) is not None:
-				return course
 
 from .history import UsersCourseAssignmentHistories
 
@@ -379,3 +315,70 @@ def _course_from_context_lineage(context, validate=False):
 @component.adapter(IUsersCourseAssignmentHistoryItem)
 def _course_from_history_item_lineage(item):
 	return _course_from_context_lineage(item)
+
+@interface.implementer(ICourseInstance)
+@component.adapter(IQSubmittable, IUser)
+def _course_from_submittable_lineage(assignment, user):
+	"""
+	Given a generic assignment and a user, we
+	attempt to associate the assignment with the most
+	specific course instance relevant for the user.
+
+	In legacy-style courses, the parent of the assignment will be a
+	IContentUnit, and eventually an
+	ILegacyCourseConflatedContentPackage which can become the course
+	directly. (However, these may not be within an IRoot, so using
+	ILocationInfo may not be safe; in that case, fall back to
+	straightforward lineage)
+
+	In more sophisticated cases involving sections, the assumption
+	that a course instance is one-to-one with a contentpackage
+	is broken. In that case, it's better to try to look through
+	the things the user is enrolled in and try to match the content
+	package to the first course.
+	"""
+
+	# Actually, in every case, we want to check enrollment, so
+	# we always use that first.
+
+	# However, in old databases, with really legacy courses,
+	# we find that the instructors are also enrolled in the courses...
+	# and in some places, we had a course that was both old and new, briefly,
+	# leading to issues distinguishing which one we want.
+
+	# To handle that case, and to be robust about removing/delisting
+	# courses, we begin by checking each entry in the course catalog;
+	# the old courses will no longer be present. This also
+	# reduces the number of loops we have to make slightly.
+
+	package = find_interface(assignment, IContentPackage, strict=False)
+	if package is None:
+		return None
+
+	# Nothing. OK, maybe we're an instructor?
+	catalog = component.queryUtility(ICourseCatalog)
+	if catalog is None:
+		return
+
+	prin = IPrincipal(user)
+	for entry in catalog.iterCatalogEntries():
+		course = ICourseInstance(entry)
+		if package in course.ContentPackageBundle.ContentPackages:
+			# Ok, found one. Are we enrolled or an instructor?
+			if prin in course.instructors:
+				return course
+			if ICourseEnrollments(course).get_enrollment_for_principal(user) is not None:
+				return course
+
+	# Snap. No current course matches. Fall back to the old approach of checking
+	# all your enrollments. This could find things not currently in the catalog.
+	# TODO: Probably really inefficient
+	for enrollments in component.subscribers((user,), IPrincipalEnrollments):
+		for enrollment in enrollments.iter_enrollments():
+			course = ICourseInstance(enrollment)
+			if package in course.ContentPackageBundle.ContentPackages:
+				return course
+			if ICourseEnrollments(course).get_enrollment_for_principal(user) is not None:
+				return course
+
+_course_from_assignment_lineage = _course_from_submittable_lineage # BWC

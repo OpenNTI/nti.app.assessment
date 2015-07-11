@@ -21,8 +21,6 @@ from zope.lifecycleevent.interfaces import IObjectAddedEvent
 from zope.location.interfaces import LocationError
 from zope.location.interfaces import ISublocations
 
-from zope.security.interfaces import IPrincipal
-
 from pyramid.interfaces import IRequest
 
 from nti.assessment.interfaces import IQInquiry
@@ -31,12 +29,7 @@ from nti.assessment.interfaces import IQAggregatedSurvey
 from nti.common.property import alias
 from nti.common.property import readproperty
 
-from nti.contentlibrary.interfaces import IContentPackage
-
-from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
-from nti.contenttypes.courses.interfaces import ICourseEnrollments
-from nti.contenttypes.courses.interfaces import IPrincipalEnrollments
 
 from nti.dataserver.users import User
 
@@ -60,7 +53,6 @@ from nti.externalization.interfaces import StandardExternalFields
 from nti.schema.field import SchemaConfigured
 from nti.schema.fieldproperty import createDirectFieldProperties
 
-from nti.traversal.traversal import find_interface
 from nti.traversal.traversal import ContainerAdapterTraversable
 
 from nti.wref.interfaces import IWeakRef
@@ -239,50 +231,6 @@ class _UsersCourseInquiriesTraversable(ContainerAdapterTraversable):
 			if user is not None:
 				return _inquiry_for_user_in_course( self.context.__parent__, user)			
 			raise		
-
-@interface.implementer(ICourseInstance)
-@component.adapter(IQInquiry, IUser)
-def _course_from_inquiry_lineage(inquiry, user):
-	"""
-	Given a generic inquiry and a user, we attempt to associate the inquiry with the most
-	specific course instance relevant for the user.
-
-	In more sophisticated cases involving sections, the assumption that a course instance 
-	is one-to-one with a contentpackage is broken. In that case, it's better to try to 
-	look through the things the user is enrolled in and try to match the content
-	package to the first course.
-	"""
-
-	package = find_interface(inquiry, IContentPackage, strict=False)
-	if package is None:
-		return None
-
-	catalog = component.queryUtility(ICourseCatalog)
-	if catalog is None:
-		return
-
-	prin = IPrincipal(user)
-	for entry in catalog.iterCatalogEntries():
-		course = ICourseInstance(entry)
-		if package in course.ContentPackageBundle.ContentPackages:
-			# Ok, found one. Are we enrolled or an instructor?
-			if prin in course.instructors:
-				return course
-			
-			enrollments = ICourseEnrollments(course)
-			if enrollments.get_enrollment_for_principal(user) is not None:
-				return course
-
-	# No current course matches. Fall back and check all your enrollments.
-	for enrollments in component.subscribers( (user,), IPrincipalEnrollments):
-		for enrollment in enrollments.iter_enrollments():
-			course = ICourseInstance(enrollment)
-			if package in course.ContentPackageBundle.ContentPackages:
-				return course
-
-			enrollments = ICourseEnrollments(course)
-			if ICourseEnrollments(course).get_enrollment_for_principal(user) is not None:
-				return course
 	
 @interface.implementer(ICourseInquiryCatalog)
 @component.adapter(ICourseInstance)

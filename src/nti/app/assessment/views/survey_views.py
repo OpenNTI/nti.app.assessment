@@ -71,7 +71,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 
 		submission = self.readCreateUpdateContentObject(creator)
 
-		# # Check that the submission has something for all polls
+		# Check that the submission has something for all polls
 		if IQSurveySubmission.providedBy(submission):
 			survey = component.getUtility(IQSurvey, name=submission.id)
 			survey_poll_ids = [poll.ntiid for poll in survey.questions]
@@ -95,7 +95,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 			ex.value = submission.id
 			raise ex
 
-		# # Now record the submission.
+		# Now record the submission.
 		self.request.response.status_int = 201
 		result = course_inquiry.recordSubmission(submission)
 		return result

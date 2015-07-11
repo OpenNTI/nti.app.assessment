@@ -21,7 +21,7 @@ from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.contentlibrary.interfaces import IContentPackage
 
-from nti.contentlibrary.indexed_data import get_catalog
+# from nti.contentlibrary.indexed_data import get_catalog
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -83,7 +83,7 @@ def get_assessment_items_from_unit(contentUnit):
 	recur(contentUnit, result)
 	return result
 
-# # Is this right? Exclude questions?
+# Is this right? Exclude questions?
 # ASSESSMENT_PROVIDED = ('IQAssignment', 'IQuestionSet', 'IQPoll', 'IQSurvey')
 #
 # def get_assessment_items_from_unit(contentUnit):
@@ -116,7 +116,6 @@ def get_course_packages(context):
 # 	results = catalog.search_objects( container_ntiids=package.ntiid,
 # 						provided=ASSESSMENT_PROVIDED )
 # 	return tuple( results )
-
 
 def get_content_packages_assessment_items(package):
 	result = []
@@ -167,9 +166,9 @@ def find_course_for_assignment(assignment, user, exc=True):
 
 def get_course_from_assignment(assignment, user=None, catalog=None, registry=component,
 							   exc=False):
-	# # check if we have the context catalog entry we can use
-	# # as reference (.AssessmentItemProxy) this way
-	# # instructor can find the correct course when they are looking at a section.
+	# check if we have the context catalog entry we can use
+	# as reference (.AssessmentItemProxy) this way
+	# instructor can find the correct course when they are looking at a section.
 	result = None
 	try:
 		ntiid = assignment.CatalogEntryNTIID
@@ -179,7 +178,7 @@ def get_course_from_assignment(assignment, user=None, catalog=None, registry=com
 	except (KeyError, AttributeError):
 		pass
 
-	# # could not find a course .. try adapter
+	# could not find a course .. try adapter
 	if result is None and user is not None:
 		result = find_course_for_assignment(assignment, user, exc=exc)
 	return result

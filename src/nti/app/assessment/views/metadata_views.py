@@ -104,7 +104,7 @@ class AssignmentSubmissionStartPostView(AssignmentSubmissionMetataPostView):
 			self._process(creator=creator, course=course, item=item)
 		if not item.StartTime:
 			item.StartTime = time.time()
-		# # return assignment
+		# return assignment
 		return self.context
 
 @view_config(route_name="objects.generic.traversal",

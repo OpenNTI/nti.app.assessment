@@ -13,8 +13,6 @@ from functools import partial
 
 from zope import component
 
-from ZODB.POSException import POSError
-
 from nti.dataserver.interfaces import IUser
 
 from nti.app.products.courseware.interfaces import IPrincipalAdministrativeRoleCatalog
@@ -27,9 +25,24 @@ from nti.metadata.predicates import BasePrincipalObjects
 
 from nti.site.hostpolicy import run_job_in_all_host_sites
 
+from nti.zodb import isBroken
+
 from .interfaces import IUsersCourseInquiry
 from .interfaces import IUsersCourseAssignmentHistory
+from .interfaces import IUsersCourseAssignmentMetadata
 
+def _get_courses_from_enrollments(user, provided=IPrincipalEnrollments,
+								  method='iter_enrollments'):
+	for enrollments in component.subscribers((user,), provided):
+		for enrollment in getattr(enrollments, method)():
+			course = ICourseInstance(enrollment, None)
+			if course is not None and not isBroken(course):
+				yield course
+
+def _add_to_result(result, item):
+	if not isBroken(item):	
+		result.append(item)
+		
 @component.adapter(IUser)
 class _AssignmentHistoryPrincipalObjects(BasePrincipalObjects):
 
@@ -40,56 +53,56 @@ class _AssignmentHistoryPrincipalObjects(BasePrincipalObjects):
 
 	def _history_collector(self, result):
 		user = self.user
-		for enrollments in component.subscribers((user,), IPrincipalEnrollments):
-			for enrollment in enrollments.iter_enrollments():
-				try:
-					course = ICourseInstance(enrollment, None)
-					items = component.queryMultiAdapter((course, user),
-														  IUsersCourseAssignmentHistory)
-					if not items:
-						continue
-					result.append(items)
-					for item in items.values():
-						result.append(item)
-						result.append(item.Submission)
-						result.append(item.pendingAssessment)
-						# check feedback
-						feedback = item.Feedback
-						if feedback is not None:
-							result.append(feedback)
-							result.extend(self._feedbackitem_collector(feedback, user))
-				except (TypeError, POSError):
-					continue
+		for course in _get_courses_from_enrollments(user):
+			items = component.queryMultiAdapter((course, user), 
+												IUsersCourseAssignmentHistory)
+			if not items:
+				continue
+			_add_to_result(result, items)
+			for item in items.values():
+				_add_to_result(result, item)
+				_add_to_result(result, item.Submission)
+				_add_to_result(result, item.pendingAssessment)
+				
+				feedback = item.Feedback
+				if feedback is not None:
+					for item in self._feedbackitem_collector(feedback, user):
+						_add_to_result(result, item)
+			
+			# collect metadata
+			items = component.queryMultiAdapter((course, user), 
+												IUsersCourseAssignmentMetadata)
+			if not items:
+				continue
+			_add_to_result(result, items)
+			for item in items.values():
+				_add_to_result(result, item)
 		return result
 
 	def _feedback_collector(self, result):
 		user = self.user
-		for roles in component.subscribers((user,), IPrincipalAdministrativeRoleCatalog):
-			for role in roles.iter_administrations():
-				try:
-					course = ICourseInstance(role, None)
-					if course is None:
-						continue
-					enrollments = ICourseEnrollments(course)
-					for record in enrollments.iter_enrollments():
-						student = IUser(record.principal, None)
-						if student is None:
-							continue
-						items = component.queryMultiAdapter((course, student),
-															 IUsersCourseAssignmentHistory)
-						if not items:
-							continue
-						for item in items:
-							feedback = item.Feedback
-							if feedback is not None:
-								result.extend(self._feedbackitem_collector(feedback, user))
-				except (TypeError, POSError):
+		for course in _get_courses_from_enrollments(user, 
+													IPrincipalAdministrativeRoleCatalog,
+													'iter_administrations'):
+			enrollments = ICourseEnrollments(course)
+			for record in enrollments.iter_enrollments():
+				student = IUser(record.principal, None)
+				if student is None:
 					continue
+				items = component.queryMultiAdapter((course, student),
+													 IUsersCourseAssignmentHistory)
+				if not items:
+					continue
+				for item in items:
+					feedback = item.Feedback
+					if feedback is not None:
+						for item in self._feedbackitem_collector(feedback, user):
+							_add_to_result(result, item)
 		return result
 
 	def _collector(self, result):
-		self._feedback_collector(result)
 		self._history_collector(result)
+		self._feedback_collector(result)
 
 	def iter_objects(self):
 		result = []
@@ -101,20 +114,14 @@ class _InquiryPrincipalObjects(BasePrincipalObjects):
 
 	def _item_collector(self, result):
 		user = self.user
-		for enrollments in component.subscribers((user,), IPrincipalEnrollments):
-			for enrollment in enrollments.iter_enrollments():
-				try:
-					course = ICourseInstance(enrollment, None)
-					items = component.queryMultiAdapter((course, user),
-														  IUsersCourseInquiry)
-					if not items:
-						continue
-					result.append(items)
-					for item in items.values():
-						result.append(item)
-						result.append(item.Submission)
-				except (TypeError, POSError):
-					continue
+		for course in _get_courses_from_enrollments(user):
+			items = component.queryMultiAdapter((course, user), IUsersCourseInquiry)
+			if not items:
+				continue
+			_add_to_result(result, items)
+			for item in items.values():
+				_add_to_result(result, item)
+				_add_to_result(result, item.Submission)
 		return result
 
 	def iter_objects(self):

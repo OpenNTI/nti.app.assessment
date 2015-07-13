@@ -9,13 +9,7 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-import csv
 import sys
-from io import BytesIO
-
-import json
-import isodate
-from datetime import datetime
 
 from zope import component
 from zope import interface
@@ -23,8 +17,6 @@ from zope import interface
 from zope.file.upload import nameFinder
 
 from zope.schema.interfaces import ConstraintNotSatisfied
-
-from zope.security.interfaces import IPrincipal
 
 from pyramid import httpexceptions as hexc
 
@@ -35,27 +27,12 @@ from nti.app.base.abstract_views import get_source
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQFilePart
 from nti.assessment.interfaces import IQResponse
-from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQUploadedFile
 from nti.assessment.interfaces import IQPollSubmission
 from nti.assessment.interfaces import IQSurveySubmission
 from nti.assessment.interfaces import IInternalUploadedFileRef
 
-from nti.contenttypes.courses.interfaces import ICourseInstance
-from nti.contenttypes.courses.interfaces import ICourseEnrollments
-
-from nti.dataserver.interfaces import IUser
-
-from nti.externalization.interfaces import LocatedExternalDict
-from nti.externalization.interfaces import StandardExternalFields
-from nti.externalization.externalization import to_external_object
 from nti.externalization.externalization import to_external_ntiid_oid
-
-from ._utils import replace_username
-
-from .interfaces import IUsersCourseAssignmentHistory
-
-ITEMS = StandardExternalFields
 
 def _set_parent_(child, parent):
 	if hasattr(child, '__parent__') and child.__parent__ is None:
@@ -206,72 +183,3 @@ def transfer_upload_ownership(submission, old_submission, force=False):
 			logger.exception("Failed to transfer data from savepoints")
 			break
 	return submission
-
-def _tx_string(s):
-	if s and isinstance(s, unicode):
-		s = s.encode('utf-8')
-	return s
-
-def course_submission_report(context, usernames=(), assignment=None,
-							 question=None, stream=None):
-
-	question_id = question.ntiid \
-				  if IQuestion.providedBy(question) else question
-
-	assignment_id = assignment.ntiid \
-					if IQAssignment.providedBy(assignment) else assignment
-
-	stream = BytesIO() if stream is None else stream
-	writer = csv.writer(stream)
-	header = ['createdTime', 'username', 'assignment', 'question', 'part', 'submission']
-	writer.writerow(header)
-
-	result = LocatedExternalDict()
-	items = result[ITEMS] = []
-	course = ICourseInstance(context)
-	course_enrollments = ICourseEnrollments(course)
-	for record in course_enrollments.iter_enrollments():
-		principal = IPrincipal(record.Principal, None)
-		if principal is None:  # dupped enrollment
-			continue
-
-		user = IUser(record.Principal)
-		username = user.username
-
-		# filter user
-		if usernames and username not in usernames:
-			continue
-
-		history = component.queryMultiAdapter((course, user),
-											  IUsersCourseAssignmentHistory)
-		if not history:
-			continue
-
-		for key, item in history.items():
-			# filter assignment
-			if assignment_id and assignment_id != key:
-				continue
-
-			submission = item.Submission
-			createdTime = datetime.fromtimestamp(item.createdTime)
-			for qs_part in submission.parts:
-				# all question submissions
-				for question in qs_part.questions:
-					# filter question
-					if question_id and question.questionId != question_id:
-						continue
-
-					qid = question.questionId
-					for idx, sub_part in enumerate(question.parts):
-						ext = json.dumps(to_external_object(sub_part))
-						row_data = [isodate.datetime_isoformat(createdTime),
-									replace_username(username), key, qid, idx, ext]
-						writer.writerow([_tx_string(x) for x in row_data])
-						items.append({'part':idx,
-									  'question':qid,
-									  'assignment':key,
-									  'submission':ext,
-									  'username':username,
-									  'created':createdTime})
-	# return
-	return stream, result

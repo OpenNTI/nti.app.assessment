@@ -17,7 +17,7 @@ import argparse
 from zope import component
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
-		
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
@@ -34,11 +34,11 @@ def fix_enrollment_perms(verbose=True):
 	cat = component.getUtility(ICourseCatalog)
 	for cat_entry in cat.iterCatalogEntries():
 		course = ICourseInstance(cat_entry)
-		enrollments  = ICourseEnrollments(course)
+		enrollments = ICourseEnrollments(course)
 		for record in enrollments.iter_enrollments():
 			if record.Principal:
 				if verbose:
-					logger.info("Setting scopes for %s in %s", 
+					logger.info("Setting scopes for %s in %s",
 								record.Principal, cat_entry.ProviderUniqueID)
 				on_enroll_record_scope_membership(record, None, course)
 
@@ -59,27 +59,27 @@ def move_user_assignments(input_file, dry_run=False, verbose=True):
 
 			old_course = catalog.getCatalogEntry(old_course_name)
 			old_course = ICourseInstance(old_course)
-			
+
 			new_course = catalog.getCatalogEntry(new_course_name)
 			new_course = ICourseInstance(new_course)
-			
+
 			if verbose:
 				logger.info("Moving assignment history for %s from %s to %s",
 							username, old_course_name, new_course_name)
-			
+
 			if not dry_run:
 				move_user_assignment_from_course_to_course(user, old_course, new_course,
 														   verbose=verbose)
-			
+
 def _process_args(site, input_file, dry_run=False, verbose=True, with_library=True):
 	set_site(site)
 
 	if dry_run and not verbose:
 		verbose = True
-		
+
 	if with_library and not dry_run:
 		component.getUtility(IContentPackageLibrary).syncContentPackages()
-		
+
 	move_user_assignments(input_file, dry_run=dry_run, verbose=verbose)
 
 def main():
@@ -97,23 +97,23 @@ def main():
 							dest='input',
 							default='/tmp/move_assignments.csv',
 							help="Input file.")
-	
+
 	args = arg_parser.parse_args()
 	env_dir = os.getenv('DATASERVER_DIR')
 	if not env_dir or not os.path.exists(env_dir) and not os.path.isdir(env_dir):
 		raise IOError("Invalid dataserver environment root directory")
-	
+
 	if not args.site:
 		raise IOError("Must specify a site name")
-	
+
 	site = args.site
 	verbose = args.verbose
 	dry_run = args.dry_run
-	
+
 	input_file = args.input
 	if not os.path.exists(input_file):
 		raise IOError("Move assignments file not found")
-	
+
 	context = create_context(env_dir)
 	conf_packages = ('nti.appserver',)
 	run_with_dataserver(environment_dir=env_dir,
@@ -121,7 +121,7 @@ def main():
 						context=context,
 						minimal_ds=True,
 						verbose=verbose,
-						function=lambda: _process_args(	site, input_file, dry_run, verbose))
+						function=lambda: _process_args(site, input_file, dry_run, verbose))
 	sys.exit(0)
 
 if __name__ == '__main__':

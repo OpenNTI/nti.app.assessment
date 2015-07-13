@@ -55,7 +55,7 @@ from nti.ntiids.ntiids import find_object_with_ntiid
 
 from nti.zope_catalog.catalog import ResultSet
 
-from .._submission import course_submission_report
+from .._common_reports import course_submission_report
 
 from .._question_map import _add_assessment_items_from_new_content
 from .._question_map import _remove_assessment_items_from_oldcontent
@@ -98,7 +98,7 @@ class AllTasksOutlineView(AbstractAuthenticatedView):
 			 permission=nauth.ACT_NTI_ADMIN,
 			 context=IDataserverFolder,
 			 name='RemoveMatchedSavePoints')
-class RemovedMatchedSavePointsView(	AbstractAuthenticatedView,
+class RemovedMatchedSavePointsView(AbstractAuthenticatedView,
 							   		ModeledContentUploadRequestUtilsMixin):
 
 	"""
@@ -116,7 +116,7 @@ class RemovedMatchedSavePointsView(	AbstractAuthenticatedView,
 				history = component.queryMultiAdapter((course, principal),
 													  IUsersCourseAssignmentHistory)
 				savepoint = component.queryMultiAdapter((course, principal),
-													    IUsersCourseAssignmentSavepoint)
+														IUsersCourseAssignmentSavepoint)
 				if not savepoint or not history:
 					continue
 				for assignmentId in history.keys():
@@ -163,9 +163,9 @@ class UnmatchedSavePointsView(AbstractAuthenticatedView):
 			entries = catalog.iterCatalogEntries()
 
 		response = self.request.response
-		response.content_encoding = str('identity' )
+		response.content_encoding = str('identity')
 		response.content_type = str('text/csv; charset=UTF-8')
-		response.content_disposition = str( 'attachment; filename="report.csv"' )
+		response.content_disposition = str('attachment; filename="report.csv"')
 
 		stream = BytesIO()
 		writer = csv.writer(stream)
@@ -185,7 +185,7 @@ class UnmatchedSavePointsView(AbstractAuthenticatedView):
 													  IUsersCourseAssignmentHistory)
 
 				savepoint = component.queryMultiAdapter((course, principal),
-													    IUsersCourseAssignmentSavepoint)
+														IUsersCourseAssignmentSavepoint)
 				if not savepoint:
 					continue
 
@@ -273,7 +273,7 @@ class RegisterAssessmentItemsView(AbstractAuthenticatedView,
 
 @view_config(name="ReindexAssesmentItems")
 @view_config(name="reindex_assesment_items")
-@view_defaults(	route_name='objects.generic.traversal',
+@view_defaults(route_name='objects.generic.traversal',
 			 	renderer='rest',
 			 	permission=nauth.ACT_NTI_ADMIN,
 			 	context=IDataserverFolder)
@@ -289,7 +289,7 @@ class ReindexAssesmentItemsView(AbstractAuthenticatedView,
 		intids = component.getUtility(zope.intid.IIntIds)
 		metadata_catalog = component.getUtility(ICatalog, METADATA_CATALOG_NAME)
 		assesment_catalog = component.getUtility(ICatalog, ASSESMENT_CATALOG_NAME)
-	
+
 		item_intids = metadata_catalog['mimeType'].apply({'any_of': MIME_TYPES})
 		results = ResultSet(item_intids, intids, True)
 		for uid, obj in results.iter_pairs():
@@ -316,7 +316,7 @@ from .._assessment import move_user_assignment_from_course_to_course
 @view_config(context=IDataserverFolder)
 @view_config(context=CourseAdminPathAdapter)
 @view_config(name='CourseSubmissionReport')
-@view_defaults(	route_name='objects.generic.traversal',
+@view_defaults(route_name='objects.generic.traversal',
 				renderer='rest',
 				permission=nauth.ACT_NTI_ADMIN,
 				request_method='GET')
@@ -342,9 +342,9 @@ class CourseSubmissionReportView(AbstractAuthenticatedView):
 			raise hexc.HTTPUnprocessableEntity("Invalid question")
 
 		response = self.request.response
-		response.content_encoding = str('identity' )
+		response.content_encoding = str('identity')
 		response.content_type = str('text/csv; charset=UTF-8')
-		response.content_disposition = str( 'attachment; filename="report.csv"' )
+		response.content_disposition = str('attachment; filename="report.csv"')
 
 		stream, _ = course_submission_report(context=context,
 							 	 		  	 question=question,
@@ -357,7 +357,7 @@ class CourseSubmissionReportView(AbstractAuthenticatedView):
 
 @view_config(context=IDataserverFolder)
 @view_config(context=CourseAdminPathAdapter)
-@view_defaults(	route_name='objects.generic.traversal',
+@view_defaults(route_name='objects.generic.traversal',
 			 	renderer='rest',
 			 	permission=nauth.ACT_NTI_ADMIN,
 			 	request_method='GET',
@@ -383,7 +383,7 @@ class CourseAssignmentsView(AbstractAuthenticatedView):
 
 @view_config(context=IDataserverFolder)
 @view_config(context=CourseAdminPathAdapter)
-@view_defaults(	route_name='objects.generic.traversal',
+@view_defaults(route_name='objects.generic.traversal',
 				renderer='rest',
 				permission=nauth.ACT_NTI_ADMIN,
 				request_method='GET',
@@ -408,7 +408,7 @@ class CourseAssessmentItemsView(AbstractAuthenticatedView):
 @view_config(context=CourseAdminPathAdapter)
 @view_config(name="MoveUserAssignments")
 @view_config(name="MoveUserAssignmentsView")
-@view_defaults(	route_name='objects.generic.traversal',
+@view_defaults(route_name='objects.generic.traversal',
 				renderer='rest',
 				permission=nauth.ACT_NTI_ADMIN,
 				name='MoveUserAssignmentsView')

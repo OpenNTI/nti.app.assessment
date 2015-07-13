@@ -28,18 +28,18 @@ from nti.dataserver.utils.base_script import create_context
 
 from nti.ntiids.ntiids import find_object_with_ntiid
 
-from .._submission import course_submission_report
-	
-def _create_report(course, usernames=(), assignment_id=None, 
+from .._common_reports import course_submission_report
+
+def _create_report(course, usernames=(), assignment_id=None,
 				   question_id=None, output=None):
-	
+
 	if output:
 		output = codecs.open(output, "wb", "UTF-8")
 	else:
 		output = sys.stderr
-		
-	course_submission_report(context=course, 
-							 usernames=usernames, 
+
+	course_submission_report(context=course,
+							 usernames=usernames,
 							 question=question_id,
 							 assignment=assignment_id,
 							 stream=output)
@@ -62,7 +62,7 @@ def _process_args(args):
 
 	if course_instance is None:
 		raise ValueError("Course not found")
-	
+
 	if args.assignment:
 		assignment = component.queryUtility(IQAssignment, name=args.assignment)
 		if assignment is None:
@@ -74,12 +74,12 @@ def _process_args(args):
 			raise ValueError("Question not found")
 
 	usernames = {x.lower() for x in args.usernames or ()}
-	_create_report(	output=args.output,
-					usernames=usernames,
-					course=course_instance, 
-				   	question_id=args.question, 
-				  	assignment_id=args.assignment)
-	
+	_create_report(output=args.output,
+				   usernames=usernames,
+				   course=course_instance,
+				   question_id=args.question,
+				   assignment_id=args.assignment)
+
 def main():
 	arg_parser = argparse.ArgumentParser(description="Assignment submission report")
 	arg_parser.add_argument('-c', '--course',
@@ -101,7 +101,7 @@ def main():
 	arg_parser.add_argument('--site',
 							dest='site',
 							help="Application SITE.")
-	
+
 	args = arg_parser.parse_args()
 	env_dir = os.getenv('DATASERVER_DIR')
 	if not env_dir or not os.path.exists(env_dir) and not os.path.isdir(env_dir):
@@ -109,7 +109,7 @@ def main():
 
 	if not args.course:
 		raise IOError("Must specify a course/catalog entry NTIID")
-	
+
 	conf_packages = ('nti.appserver',)
 	context = create_context(env_dir, with_library=False)
 

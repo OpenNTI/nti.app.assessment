@@ -388,37 +388,37 @@ def _course_from_submittable_lineage(assignment, user):
 			if ICourseEnrollments(course).get_enrollment_for_principal(user) is not None:
 				return course
 
-_course_from_assignment_lineage = _course_from_submittable_lineage # BWC
+_course_from_assignment_lineage = _course_from_submittable_lineage  # BWC
 
-def _get_top_level_contexts_for_user( obj, user ):
+def _get_top_level_contexts_for_user(obj, user):
 	results = []
 	for top_level_contexts in component.subscribers((obj, user),
-													ITopLevelContainerContextProvider ):
-		results.extend( top_level_contexts )
+													ITopLevelContainerContextProvider):
+		results.extend(top_level_contexts)
 	return results
 
-def _get_top_level_contexts( obj ):
+def _get_top_level_contexts(obj):
 	results = []
 	for top_level_contexts in component.subscribers((obj,),
-													ITopLevelContainerContextProvider ):
-		results.extend( top_level_contexts )
+													ITopLevelContainerContextProvider):
+		results.extend(top_level_contexts)
 	return results
 
-def _get_hierarchy_context( obj, user ):
+def _get_hierarchy_context(obj, user):
 	results = []
-	for hiearchy_contexts in component.subscribers((obj,user),
-												   IHierarchicalContextProvider ):
-		results.extend( hiearchy_contexts )
+	for hiearchy_contexts in component.subscribers((obj, user),
+												   IHierarchicalContextProvider):
+		results.extend(hiearchy_contexts)
 	return results
 
-def _get_assessment_item_lineage_obj( obj ):
-	return find_interface( obj, IContentUnit, strict=False )
+def _get_assessment_item_lineage_obj(obj):
+	return find_interface(obj, IContentUnit, strict=False)
 
 @interface.implementer(ITopLevelContainerContextProvider)
 @component.adapter(IQInquiry)
 @component.adapter(IQAssessment)
 def _courses_from_obj(obj):
-	unit = _get_assessment_item_lineage_obj( obj )
+	unit = _get_assessment_item_lineage_obj(obj)
 	results = ()
 	if unit is not None:
 		results = _get_top_level_contexts(unit.__parent__)
@@ -428,7 +428,7 @@ def _courses_from_obj(obj):
 @component.adapter(IQInquiry, IUser)
 @component.adapter(IQAssessment, IUser)
 def _courses_from_obj_and_user(obj, user):
-	unit = _get_assessment_item_lineage_obj( obj )
+	unit = _get_assessment_item_lineage_obj(obj)
 	results = ()
 	if unit is not None:
 		results = _get_top_level_contexts_for_user(unit, user)
@@ -438,7 +438,7 @@ def _courses_from_obj_and_user(obj, user):
 @component.adapter(IQInquiry, IUser)
 @component.adapter(IQAssessment, IUser)
 def _hierarchy_from_obj_and_user(obj, user):
-	unit = _get_assessment_item_lineage_obj( obj )
+	unit = _get_assessment_item_lineage_obj(obj)
 	results = ()
 	if unit is not None:
 		results = _get_hierarchy_context(unit, user)
@@ -448,8 +448,8 @@ def _hierarchy_from_obj_and_user(obj, user):
 @component.adapter(IQInquiry)
 @component.adapter(IQAssessment)
 def _joinable_courses_from_obj(obj):
-	unit = _get_assessment_item_lineage_obj( obj )
+	unit = _get_assessment_item_lineage_obj(obj)
 	results = ()
 	if unit is not None:
-		results = _get_top_level_contexts( unit )
+		results = _get_top_level_contexts(unit)
 	return results

@@ -14,11 +14,12 @@ logger = __import__('logging').getLogger(__name__)
 
 import time
 
-from zope import interface
 from zope import component
-from zope.intid.interfaces import IIntIds
+from zope import interface
 
 from zope.interface.common.sequence import IReadSequence
+
+from zope.intid.interfaces import IIntIds
 
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
 from zope.lifecycleevent.interfaces import IObjectRemovedEvent
@@ -42,9 +43,9 @@ from nti.assessment.common import iface_of_assessment as _iface_to_register
 from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.interfaces import IContentPackage
 from nti.contentlibrary.interfaces import IContentPackageLibrary
-from nti.contentlibrary.interfaces import IGlobalContentPackageLibrary
 
 from nti.contentlibrary.indexed_data import get_catalog
+from nti.contentlibrary.indexed_data import get_registry
 
 from nti.dataserver.interfaces import IZContained
 
@@ -54,7 +55,8 @@ from nti.externalization.persistence import NoPickle
 from nti.externalization.internalization import find_factory_for
 from nti.externalization.internalization import update_from_external_object
 
-from nti.site.interfaces import IHostPolicySiteManager
+from nti.site.utils import registerUtility
+from nti.site.utils import unregisterUtility
 
 from .common import get_content_packages_assessment_items
 
@@ -110,43 +112,29 @@ class QuestionMap(QuestionIndex):
 		pass
 
 	def _registry_utility(self, registry, component, provided, name, event=False):
-		if IHostPolicySiteManager.providedBy(registry):
-			registry.subscribedRegisterUtility( component,
-									  			provided=provided,
-									  			name=name,
-									  			event=event)
-		else:
-			registry.registerUtility( component,
-									  provided=provided,
-									  name=name,
-									  event=event)
+		registerUtility(registry, component, provided=provided, name=name, event=event)
 
 	def _get_registry(self, registry=None):
-		if registry is None:
-			library = component.queryUtility(IContentPackageLibrary)
-			if IGlobalContentPackageLibrary.providedBy(library):
-				registry = component.getGlobalSiteManager()
-			else:
-				registry = component.getSiteManager()
-		return registry
+		return get_registry(registry)
 
 	def _register_and_canonicalize(self, things_to_register, registry=None):
-		registry = self._get_registry( registry )
+		registry = self._get_registry(registry)
 		QuestionIndex._register_and_canonicalize(self, things_to_register, registry)
 
-	def _index_object( self, assessment_item, content_package, hierarchy_ntiids, registry=None ):
+	def _index_object(self, assessment_item, content_package, 
+					  hierarchy_ntiids, registry=None):
 		"""
 		Index the item in our catalog.
 		"""
 		result = False
-		if self._get_registry( registry ) != component.getGlobalSiteManager():
+		if self._get_registry(registry) != component.getGlobalSiteManager():
 			catalog = get_catalog()
 			if catalog is not None: # Test mode
 				result = catalog.index(assessment_item, container_ntiids=hierarchy_ntiids,
-								namespace=content_package.ntiid )
+									   namespace=content_package.ntiid)
 		return result
 
-	def _connection( self, registry=None ):
+	def _connection(self, registry=None):
 		registry = self._get_registry(registry)
 		result = IConnection(registry, None)
 		return result
@@ -154,14 +142,14 @@ class QuestionMap(QuestionIndex):
 	def _intid_register(self, item, registry=None, intids=None, connection=None):
 		# We always want to register and persist our assessment items, even
 		# from the global library.
-		registry = self._get_registry( registry )
-		intids = component.queryUtility( IIntIds ) if intids is None else intids
-		connection = self._connection( registry ) if connection is None else connection
-# 		if connection is None:
-# 			# Global
-# 			ds = component.queryUtility( IDataserver )
-# 			connection = IConnection( ds, None )
-		if connection is not None: # Tests
+		registry = self._get_registry(registry)
+		intids = component.queryUtility(IIntIds) if intids is None else intids
+		connection = self._connection(registry) if connection is None else connection
+		# if connection is None:
+		# # Global
+		# ds = component.queryUtility( IDataserver )
+		# connection = IConnection( ds, None )
+		if connection is not None:  # Tests
 			connection.add(item)
 			intids.register(item, event=False)
 			return True
@@ -174,7 +162,7 @@ class QuestionMap(QuestionIndex):
 							 by_file,
 							 level_ntiid=None,
 							 signatures_dict=None,
-							 registry=None ):
+							 registry=None):
 		"""
 		Returns a set of object that should be placed in the registry, and then
 		canonicalized.
@@ -186,18 +174,19 @@ class QuestionMap(QuestionIndex):
 		library = component.queryUtility(IContentPackageLibrary)
 
 		hierarchy_ntiids = set()
-		hierarchy_ntiids.add( content_package.ntiid )
+		hierarchy_ntiids.add(content_package.ntiid)
 
 		if level_ntiid and library is not None:
 			containing_content_units = library.pathToNTIID(level_ntiid, skip_cache=True)
 			if containing_content_units:
 				parent = containing_content_units[-1]
 				parents_questions = IQAssessmentItemContainer(parent)
-				hierarchy_ntiids.update( (x.ntiid for x in containing_content_units) )
+				hierarchy_ntiids.update((x.ntiid for x in containing_content_units))
 
 		result = set()
 		for k, v in assessment_item_dict.items():
 			__traceback_info__ = k, v
+
 			factory = find_factory_for(v)
 			assert factory is not None
 
@@ -208,7 +197,7 @@ class QuestionMap(QuestionIndex):
 			obj.ntiid = k
 			obj.signature = signatures_dict.get(k)
 			obj.__name__ = unicode(k).encode('utf8').decode('utf8')
-			self._store_object( k, obj )
+			self._store_object(k, obj)
 
 			# No matter if we got an assignment or question set first or the questions
 			# first, register the question objects exactly once. Replace
@@ -227,10 +216,12 @@ class QuestionMap(QuestionIndex):
 					thing_to_register.__parent__ = parent
 
 				# Index and register our object
-				parents_questions.append( thing_to_register )
-				self._intid_register( thing_to_register, registry=registry )
-				self._index_object( thing_to_register, content_package, hierarchy_ntiids,
-								registry=registry )
+				parents_questions.append(thing_to_register)
+				self._intid_register(thing_to_register, registry=registry)
+				self._index_object(thing_to_register, 
+								   content_package,
+								   hierarchy_ntiids,
+								   registry=registry)
 
 			if containing_hierarchy_key:
 				assert 	containing_hierarchy_key in by_file, \
@@ -247,7 +238,8 @@ class QuestionMap(QuestionIndex):
 						  nearest_containing_ntiid=None,
 						  registry=None):
 		"""
-		Called with an entry for a file or (sub)section. May or may not have children of its own.
+		Called with an entry for a file or (sub)section. May or may not have 
+		children of its own.
 
 		Returns a set of things to register and canonicalize.
 
@@ -283,7 +275,7 @@ class QuestionMap(QuestionIndex):
 									  by_file,
 									  level_ntiid,
 									  index.get("Signatures"),
-									  registry=registry )
+									  registry=registry)
 
 		things_to_register.update(i)
 		for child_item in index.get('Items', {}).values():
@@ -299,9 +291,9 @@ class QuestionMap(QuestionIndex):
 		return things_to_register
 
 	def _from_root_index(self,
-						  assessment_index_json,
-						  content_package,
-						  registry=None):
+						 assessment_index_json,
+						 content_package,
+						 registry=None):
 		"""
 		The top-level is handled specially: ``index.html`` is never allowed to have
 		assessment items.
@@ -329,21 +321,21 @@ class QuestionMap(QuestionIndex):
 
 		for child_ntiid, child_index in root_items[root_ntiid]['Items'].items():
 			__traceback_info__ = child_ntiid, child_index, content_package
-			# Each of these should have a filename. If they do not, they obviously cannot contain
-			# assessment items. The condition of a missing/bad filename has been seen in
-			# jacked-up content that abuses the section hierarchy (skips levels) and/or jacked-up themes/configurations
-			# that split incorrectly.
+			# Each of these should have a filename. If they do not, they obviously 
+			# cannot contain  assessment items. The condition of a missing/bad filename 
+			# has been seen in jacked-up content that abuses the section hierarchy 
+			# (skips levels) and/or jacked-up themes/configurations  that split incorrectly.
 			if 'filename' not in child_index or not child_index['filename'] or \
 				child_index['filename'].startswith('index.html#'):
 				logger.warn("Ignoring invalid child with invalid filename '%s'; cannot contain assessments: %s",
-							  child_index.get('filename', ''),
-							  child_index)
+							child_index.get('filename', ''),
+							child_index)
 				continue
 
 			assert 	child_index.get('filename'), \
 					'Child must contain valid filename to contain assessments'
 
-			i = self._from_index_entry(	child_index, content_package,
+			i = self._from_index_entry(child_index, content_package,
 										by_file,
 										nearest_containing_ntiid=child_ntiid,
 										registry=registry)
@@ -359,19 +351,23 @@ class QuestionMap(QuestionIndex):
 		registered = {x.ntiid for x in things_to_register}
 		return by_file, registered
 
-def _populate_question_map_from_text(question_map, asm_index_text, content_package, registry=None):
+def _populate_question_map_from_text(question_map, asm_index_text, 
+									 content_package, registry=None):
 	result = None
 	index = _load_question_map_json(asm_index_text)
 	if index:
 		try:
-			result = question_map._from_root_index(index, content_package, registry=registry)
+			result = question_map._from_root_index(index, content_package,
+												   registry=registry)
 			result = None if result is None else result[1]  # registered
 		except (interface.Invalid, ValueError):  # pragma: no cover
 			# Because the map is updated in place, depending on where the error
-			# was, we might have some data...that's not good, but it's not a show stopper either,
-			# since we shouldn't get content like this out of the rendering process
-			logger.exception("Failed to load assessment items, invalid assessment_index for %s",
-							 content_package)
+			# was, we might have some data...that's not good, but it's not a show stopper
+			# either, since we shouldn't get content like this out of the rendering 
+			# process
+			logger.exception(
+				"Failed to load assessment items, invalid assessment_index for %s",
+				 content_package)
 	return result or set()
 
 def _add_assessment_items_from_new_content(content_package, key):
@@ -382,8 +378,8 @@ def _add_assessment_items_from_new_content(content_package, key):
 				len(result or ()), content_package, key)
 	return result
 
-def _get_last_mod_namespace( content_package ):
-	return '%s.%s.LastModified' % ( content_package.ntiid, 'assessment_index.json' )
+def _get_last_mod_namespace(content_package):
+	return '%s.%s.LastModified' % (content_package.ntiid, 'assessment_index.json')
 
 def _needs_load_or_update(content_package):
 	key = content_package.does_sibling_entry_exist('assessment_index.json')
@@ -397,18 +393,18 @@ def _needs_load_or_update(content_package):
 						key.modified)
 		return
 	main_container.lastModified = key.lastModified
-# 	last_mod_namespace = _get_last_mod_namespace( content_package )
-# 	catalog = get_catalog()
-# 	if catalog is not None: # Test mode
-# 		last_modified = catalog.get_last_modified( last_mod_namespace )
-# 		if 		last_modified \
-# 			and last_modified >= key.lastModified:
-# 			logger.info("No change to %s since %s, ignoring",
-# 						key,
-# 						key.modified)
-# 			return
-#
-# 		catalog.set_last_modified( last_mod_namespace, key.lastModified )
+	# last_mod_namespace = _get_last_mod_namespace( content_package )
+	# catalog = get_catalog()
+	# if catalog is not None: # Test mode
+	#		last_modified = catalog.get_last_modified( last_mod_namespace )
+	# if	last_modified \
+	#	and last_modified >= key.lastModified:
+	# 	logger.info("No change to %s since %s, ignoring",
+	# 				key,
+	# 				key.modified)
+	# 	return
+	#
+	# catalog.set_last_modified( last_mod_namespace, key.lastModified )
 	return key
 
 @component.adapter(IContentPackage, IObjectAddedEvent)
@@ -425,16 +421,6 @@ def add_assessment_items_from_new_content(content_package, event, key=None):
 		result = _add_assessment_items_from_new_content(content_package, key)
 	return result or set()
 
-def _unregisterUtility(registry, component, provided, name):
-	if IHostPolicySiteManager.providedBy(registry):
-		return registry.subscribedUnregisterUtility(component=component,
-													provided=provided,
-													name=name)
-	else:
-		return registry.unregisterUtility(component=component,
-										  provided=provided,
-										  name=name)
-
 def _remove_assessment_items_from_oldcontent(content_package):
 	# Unregister the things from the component registry.
 	# We SHOULD be run in the registry where the library item was initially
@@ -447,33 +433,30 @@ def _remove_assessment_items_from_oldcontent(content_package):
 		logger.warn("Removing assessment items from wrong site %s should be %s; may not work",
 					sm, component.getSiteManager(content_package))
 
-	catalog = get_catalog()
-	intids = component.queryUtility( IIntIds )
 	result = {}
+	catalog = get_catalog()
+	intids = component.queryUtility(IIntIds)
+
 	# We may not have to be recursive anymore.
 	def _unregister(unit):
 		items = IQAssessmentItemContainer(unit)
-		#items = catalog.search_objects(intids=intids, container_ntiids=unit.ntiid)
+		# TODO: Check the parent? If it's an IContentUnit, only unregister if it's us?
 		for item in tuple(items):
-			# TODO: Check the parent? If it's an IContentUnit, only unregister if it's us?
 			name = item.ntiid
 			provided = _iface_to_register(item)
-			_unregisterUtility( sm, item, provided=provided, name=name )
-			if intids is not None and intids.queryId( item ):
-				catalog.unindex( item, intids=intids )
-				intids.unregister( item, event=False )
+			unregisterUtility(sm, provided=provided, name=name)
+			if intids is not None and intids.queryId(item):
+				catalog.unindex(item, intids=intids)
+				intids.unregister(item, event=False)
 			result[name] = provided
-
 			logger.log(TRACE, "%s unregistered from %s", item.ntiid, _site_name(sm))
 
 		del items[:]
 		items.lastModified = items.createdTime = -1
 
-		for child in unit.children:
+		for child in unit.children or ():
 			_unregister(child)
 
-# 	if catalog is not None:
-# 		_unregister(content_package)
 	_unregister(content_package)
 	return result
 

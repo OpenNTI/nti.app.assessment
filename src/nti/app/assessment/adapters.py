@@ -25,7 +25,12 @@ from zope.schema.interfaces import ConstraintNotSatisfied
 from persistent.list import PersistentList
 
 from nti.appserver.interfaces import INewObjectTransformer
+from nti.appserver.interfaces import IJoinableContextProvider
+from nti.appserver.interfaces import IHierarchicalContextProvider
+from nti.appserver.interfaces import ITopLevelContainerContextProvider
 
+from nti.assessment.interfaces import IQuestion
+from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQSubmittable
 from nti.assessment.interfaces import IQAssessedQuestion
@@ -36,6 +41,8 @@ from nti.assessment.interfaces import IQuestionSetSubmission
 from nti.assessment.interfaces import IQAssignmentDateContext
 from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
 from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
+
+from nti.contentlibrary.interfaces import IContentUnit
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
@@ -382,3 +389,72 @@ def _course_from_submittable_lineage(assignment, user):
 				return course
 
 _course_from_assignment_lineage = _course_from_submittable_lineage # BWC
+
+def _get_top_level_contexts_for_user( obj, user ):
+	results = []
+	for top_level_contexts in component.subscribers( (obj, user),
+													ITopLevelContainerContextProvider ):
+		results.extend( top_level_contexts )
+	return results
+
+def _get_top_level_contexts( obj ):
+	results = []
+	for top_level_contexts in component.subscribers( (obj,),
+													ITopLevelContainerContextProvider ):
+		results.extend( top_level_contexts )
+	return results
+
+def _get_hierarchy_context( obj, user ):
+	results = []
+	for hiearchy_contexts in component.subscribers( (obj,user),
+												IHierarchicalContextProvider ):
+		results.extend( hiearchy_contexts )
+	return results
+
+def _get_assessment_item_lineage_obj( obj ):
+	return find_interface( obj, IContentUnit, strict=False )
+
+@interface.implementer(ITopLevelContainerContextProvider)
+@component.adapter(IQuestion)
+@component.adapter(IQuestionSet)
+@component.adapter(IQAssignment)
+def _courses_from_obj(obj):
+	unit = _get_assessment_item_lineage_obj( obj )
+	results = ()
+	if unit is not None:
+		results = _get_top_level_contexts(unit.__parent__)
+	return results
+
+@interface.implementer(ITopLevelContainerContextProvider)
+@component.adapter(IQuestion, IUser)
+@component.adapter(IQuestionSet, IUser)
+@component.adapter(IQAssignment, IUser)
+def _courses_from_obj_and_user(obj, user):
+	unit = _get_assessment_item_lineage_obj( obj )
+	results = ()
+	if unit is not None:
+		results = _get_top_level_contexts_for_user(unit, user)
+	return results
+
+@interface.implementer(IHierarchicalContextProvider)
+@component.adapter(IQuestion, IUser)
+@component.adapter(IQuestionSet, IUser)
+@component.adapter(IQAssignment, IUser)
+def _hierarchy_from_obj_and_user(obj, user):
+	unit = _get_assessment_item_lineage_obj( obj )
+	results = ()
+	if unit is not None:
+		results = _get_hierarchy_context(unit, user)
+	return results
+
+@interface.implementer(IJoinableContextProvider)
+@component.adapter(IQuestion)
+@component.adapter(IQuestionSet)
+@component.adapter(IQAssignment)
+def _joinable_courses_from_obj(obj):
+	unit = _get_assessment_item_lineage_obj( obj )
+	results = ()
+	if unit is not None:
+		results = _get_top_level_contexts( unit )
+	return results
+

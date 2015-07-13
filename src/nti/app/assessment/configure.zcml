@@ -326,4 +326,18 @@
 					provides="nti.dataserver.interfaces.IPrincipalMetadataObjects" />
 	</configure>
 
+	<!-- Hierarchy/Joinable/TopLevelContext -->
+	<subscriber factory=".adapters._courses_from_obj"
+				provides="nti.appserver.interfaces.ITopLevelContainerContextProvider"/>
+
+	<subscriber factory=".adapters._courses_from_obj_and_user"
+				provides="nti.appserver.interfaces.ITopLevelContainerContextProvider"/>
+
+	<subscriber factory=".adapters._joinable_courses_from_obj"
+				provides="nti.appserver.interfaces.IJoinableContextProvider"/>
+
+	<subscriber factory=".adapters._hierarchy_from_obj_and_user"
+				provides="nti.appserver.interfaces.IHierarchicalContextProvider"/>
+
+
 </configure>

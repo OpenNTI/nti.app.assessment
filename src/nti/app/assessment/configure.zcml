@@ -328,16 +328,40 @@
 
 	<!-- Hierarchy/Joinable/TopLevelContext -->
 	<subscriber factory=".adapters._courses_from_obj"
-				provides="nti.appserver.interfaces.ITopLevelContainerContextProvider"/>
+				provides="nti.appserver.interfaces.ITopLevelContainerContextProvider"
+				for="nti.assessment.interfaces.IQAssessment"/>
+
+	<subscriber factory=".adapters._courses_from_obj"
+				provides="nti.appserver.interfaces.ITopLevelContainerContextProvider"
+				for="nti.assessment.interfaces.IQInquiry"/>
 
 	<subscriber factory=".adapters._courses_from_obj_and_user"
-				provides="nti.appserver.interfaces.ITopLevelContainerContextProvider"/>
+				provides="nti.appserver.interfaces.ITopLevelContainerContextProvider"
+				for="nti.assessment.interfaces.IQAssessment
+					nti.dataserver.interfaces.IUser"/>
+
+	<subscriber factory=".adapters._courses_from_obj_and_user"
+				provides="nti.appserver.interfaces.ITopLevelContainerContextProvider"
+				for="nti.assessment.interfaces.IQInquiry
+					nti.dataserver.interfaces.IUser"/>
 
 	<subscriber factory=".adapters._joinable_courses_from_obj"
-				provides="nti.appserver.interfaces.IJoinableContextProvider"/>
+				provides="nti.appserver.interfaces.IJoinableContextProvider"
+				for="nti.assessment.interfaces.IQAssessment"/>
+
+	<subscriber factory=".adapters._joinable_courses_from_obj"
+				provides="nti.appserver.interfaces.IJoinableContextProvider"
+				for="nti.assessment.interfaces.IQInquiry"/>
 
 	<subscriber factory=".adapters._hierarchy_from_obj_and_user"
-				provides="nti.appserver.interfaces.IHierarchicalContextProvider"/>
+				provides="nti.appserver.interfaces.IHierarchicalContextProvider"
+				for="nti.assessment.interfaces.IQAssessment
+					nti.dataserver.interfaces.IUser"/>
+
+	<subscriber factory=".adapters._hierarchy_from_obj_and_user"
+				provides="nti.appserver.interfaces.IHierarchicalContextProvider"
+				for="nti.assessment.interfaces.IQInquiry
+					nti.dataserver.interfaces.IUser"/>
 
 
 </configure>

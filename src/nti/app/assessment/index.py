@@ -9,9 +9,10 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-from zc.intid import IIntIds
-
 from zope import interface
+
+from zope.intid import IIntIds
+
 from zope.location import locate
 
 from zope.catalog.interfaces import ICatalogIndex

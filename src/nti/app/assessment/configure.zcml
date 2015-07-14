@@ -363,5 +363,4 @@
 				for="nti.assessment.interfaces.IQInquiry
 					nti.dataserver.interfaces.IUser"/>
 
-
 </configure>

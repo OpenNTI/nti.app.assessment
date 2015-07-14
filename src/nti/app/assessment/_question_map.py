@@ -393,18 +393,6 @@ def _needs_load_or_update(content_package):
 						key.modified)
 		return
 	main_container.lastModified = key.lastModified
-	# last_mod_namespace = _get_last_mod_namespace( content_package )
-	# catalog = get_catalog()
-	# if catalog is not None: # Test mode
-	#		last_modified = catalog.get_last_modified( last_mod_namespace )
-	# if	last_modified \
-	#	and last_modified >= key.lastModified:
-	# 	logger.info("No change to %s since %s, ignoring",
-	# 				key,
-	# 				key.modified)
-	# 	return
-	#
-	# catalog.set_last_modified( last_mod_namespace, key.lastModified )
 	return key
 
 @component.adapter(IContentPackage, IObjectAddedEvent)

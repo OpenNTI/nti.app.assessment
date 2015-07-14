@@ -9,14 +9,16 @@ Application (integration) level interfaces for assessments.
 from __future__ import print_function, unicode_literals, absolute_import, division
 __docformat__ = "restructuredtext en"
 
-from zope import interface
 from zope import component
+from zope import interface
 
 from zope.container.constraints import contains
 from zope.container.interfaces import IContained
 from zope.container.interfaces import IContainer
 from zope.container.constraints import containers
 from zope.container.interfaces import IContainerNamesContainer
+
+from zope.security.permission import Permission
 
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssignmentSubmission
@@ -36,14 +38,13 @@ from nti.dataserver.interfaces import CompoundModeledContentBody
 from nti.dataserver.interfaces import INeverStoredInSharedStream
 from nti.dataserver.interfaces import IShouldHaveTraversablePath
 
-from nti.schema.field import Int, ValidTextLine
+from nti.schema.field import Int
 from nti.schema.field import Dict
 from nti.schema.field import List
 from nti.schema.field import Float
 from nti.schema.field import Number
 from nti.schema.field import Object
-
-from zope.security.permission import Permission
+from nti.schema.field import ValidTextLine
 
 ACT_VIEW_SOLUTIONS = Permission('nti.actions.assessment.view_solutions')
 ACT_DOWNLOAD_GRADES = Permission('nti.actions.assessment.download_grades')

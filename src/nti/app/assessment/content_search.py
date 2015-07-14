@@ -15,14 +15,16 @@ from zope import interface
 from zope.securitypolicy.interfaces import Allow
 from zope.securitypolicy.interfaces import IPrincipalRoleMap
 
-from nti.contentsearch.search_hits import SearchHit
 from nti.contentsearch.interfaces import IACLResolver
 from nti.contentsearch.interfaces import ICreatorResolver
 from nti.contentsearch.interfaces import IUserDataSearchHit
 from nti.contentsearch.interfaces import ISearchHitPredicate
 from nti.contentsearch.interfaces import ISearchTypeMetaData
 from nti.contentsearch.interfaces import ContentMixinResolver
+
+from nti.contentsearch.search_hits import SearchHit
 from nti.contentsearch.search_metadata import SearchTypeMetaData
+
 from nti.contentsearch.content_utils import resolve_content_parts
 
 from nti.contenttypes.courses.interfaces import RID_TA

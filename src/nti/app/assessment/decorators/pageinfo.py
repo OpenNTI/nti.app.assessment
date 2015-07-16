@@ -46,8 +46,8 @@ from ..common import AssessmentItemProxy as AssignmentProxy
 
 from ..interfaces import get_course_assignment_predicate_for_user
 
-@interface.implementer(IExternalMappingDecorator)
 @component.adapter(IContentUnitInfo)
+@interface.implementer(IExternalMappingDecorator)
 class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _predicate(self, context, result_map):
@@ -70,6 +70,12 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 		if result is None:
 			result = component.queryMultiAdapter((contentUnit, user), ICourseInstance)
 		return result
+
+	def _set_triplet(self, x, oid, ntiid, containerId):
+		x.oid = oid
+		x.ntiid = ntiid
+		x.containerId = containerId
+		return x
 
 	def _do_decorate_external(self, context, result_map):
 		entry_ntiid = None
@@ -101,28 +107,25 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 			# itself.
 
 			if IQuestionBank.providedBy(x):
+				qsids_to_strip.update([q.ntiid for q in x.questions])
 				containerId = getattr(x, 'containerId', None) or unit_ntiid
 				oid = to_external_ntiid_oid(x)
-				x = copy_questionbank(x, is_instructor, qsids_to_strip, user=user)
-				# copy the following properties for external clients
-				x.oid = oid
-				x.ntiid = ntiid
-				x.containerId = containerId
+				x = copy_questionbank(x, is_instructor, user=user)
+				self._set_triplet(x, oid, ntiid, containerId)
 				new_result[ntiid] = x
 			elif IRandomizedQuestionSet.providedBy(x):
+				qsids_to_strip.update([q.ntiid for q in x.questions])
 				containerId = getattr(x, 'containerId', None) or unit_ntiid
 				oid = to_external_ntiid_oid(x)
 				x = x if not is_instructor else copy_questionset(x, True)
-				x.oid = oid
-				x.ntiid = ntiid
-				x.containerId = containerId
+				self._set_triplet(x, oid, ntiid, containerId)
 				new_result[ntiid] = x
 			elif IQuestionSet.providedBy(x):
 				new_result[ntiid] = x
+				qsids_to_strip.update([q.ntiid for q in x.questions])
 			elif IQSurvey.providedBy(x):
 				new_result[ntiid] = x
-				for poll in x.questions:
-					qsids_to_strip.add(poll.ntiid)
+				qsids_to_strip.update([poll.ntiid for poll in x.questions])
 			elif IQAssignment.providedBy(x):
 				if assignment_predicate is None:
 					logger.warn("Found assignment (%s) outside of course context "
@@ -141,8 +144,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 				for assignment_part in x.parts:
 					question_set = assignment_part.question_set
 					qsids_to_strip.add(question_set.ntiid)
-					for question in question_set.questions:
-						qsids_to_strip.add(question.ntiid)
+					qsids_to_strip.update([q.ntiid for q in question_set.questions])
 			else:
 				new_result[ntiid] = x
 
@@ -153,3 +155,4 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 		if result:
 			ext_items = to_external_object(result)
 			result_map['AssessmentItems'] = ext_items
+			result_map['ItemCount'] = len(ext_items)

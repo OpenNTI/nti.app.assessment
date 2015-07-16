@@ -16,27 +16,16 @@ from zope.security.interfaces import IPrincipal
 
 from zc.intid import IIntIds
 
-from zope.security.management import queryInteraction
+from nti.app.authentication import get_remote_user
 
 from nti.assessment.randomized.interfaces import IPrincipalSeedSelector
 
 from nti.dataserver.users import User
 from nti.dataserver.interfaces import IUser
 
-def get_current_principal():
-	interaction = queryInteraction()
-	participations = list(getattr(interaction, 'participations', None) or ())
-	participation = participations[0] if participations else None
-	principal = getattr(participation, 'principal', None)
-	return principal
-
-def get_current_user():
-	principal = get_current_principal()
-	return principal.id if principal is not None else None
-
 def get_user(user=None):
 	if user is None:
-		user = get_current_user()
+		user = get_remote_user()
 	elif IPrincipal.providedBy(user):
 		user = user.id
 	if user is not None and not IUser.providedBy(user):

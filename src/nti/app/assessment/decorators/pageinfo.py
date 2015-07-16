@@ -103,7 +103,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 			if IQuestionBank.providedBy(x):
 				containerId = getattr(x, 'containerId', None) or unit_ntiid
 				oid = to_external_ntiid_oid(x)
-				x = copy_questionbank(x, is_instructor, qsids_to_strip)
+				x = copy_questionbank(x, is_instructor, qsids_to_strip, user=user)
 				# copy the following properties for external clients
 				x.oid = oid
 				x.ntiid = ntiid

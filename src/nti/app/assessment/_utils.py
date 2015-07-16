@@ -95,11 +95,11 @@ def copy_questionset(qs, nonrandomized=False):
 	sublocations(result)
 	return result
 
-def copy_questionbank(bank, is_instructor=False, qsids_to_strip=None):
+def copy_questionbank(bank, is_instructor=False, qsids_to_strip=None, user=None):
 	if is_instructor:
 		result = copy_questionset(bank, True)
 	else:
-		result = bank.copy(questions=questionbank_question_chooser(bank))
+		result = bank.copy(questions=questionbank_question_chooser(bank, user=user))
 		if qsids_to_strip is not None:
 			drawn_ntiids = {q.ntiid for q in result.questions}
 			# remove any question that has not been drawn

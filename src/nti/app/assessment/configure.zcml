@@ -315,7 +315,7 @@
 	<subscriber handler=".subscribers._on_user_will_be_removed" />
 
 	<!-- Utilities -->
-	<utility factory=".utilities.PrincipalSeeedSelector" />
+	<utility factory=".utilities.PrincipalSeedSelector" />
 
 	<!-- Metadata -->
 	<configure zcml:condition="installed nti.metadata">

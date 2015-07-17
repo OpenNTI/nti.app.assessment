@@ -37,7 +37,7 @@ def get_uid(context):
 	return result
 
 @interface.implementer(IPrincipalSeedSelector)
-class PrincipalSeeedSelector(object):
+class PrincipalSeedSelector(object):
 
 	def __call__(self, principal=None):
 		user = get_user(principal)

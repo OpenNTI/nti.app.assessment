@@ -12,6 +12,7 @@ logger = __import__('logging').getLogger(__name__)
 import time
 
 from zope import component
+
 from zope.schema.interfaces import RequiredMissing
 
 from pyramid.view import view_config
@@ -28,12 +29,12 @@ from nti.assessment.interfaces import IQTimedAssignment
 
 from nti.dataserver import authorization as nauth
 
-from ..common import get_course_from_assignment
-from ..common import get_assessment_metadata_item
-
 from .._submission import get_source
 from .._submission import check_upload_files
 from .._submission import read_multipart_sources
+
+from ..common import get_course_from_assignment
+from ..common import get_assessment_metadata_item
 
 from ..interfaces import IUsersCourseAssignmentMetadata
 from ..interfaces import IUsersCourseAssignmentSavepoint
@@ -70,7 +71,9 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 
 		# No savepoints unless the timed assignment has been started
 		if IQTimedAssignment.providedBy(self.context):
-			item = get_assessment_metadata_item(course, self.remoteUser, self.context.ntiid)
+			item = get_assessment_metadata_item(course, 
+												self.remoteUser, 
+												self.context.ntiid)
 			if item is None or not item.StartTime:
 				raise hexc.HTTPClientError("Cannot savepoint timed assignment unless started.")
 
@@ -82,11 +85,12 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 			if not extValue:
 				raise hexc.HTTPUnprocessableEntity("No submission source was specified")
 			extValue = self.readInput(value=extValue.read())
-			submission = self.readCreateUpdateContentObject(creator, externalValue=extValue)
+			submission = self.readCreateUpdateContentObject(creator,
+															externalValue=extValue)
 			submission = read_multipart_sources(submission, self.request)
 
 		savepoint = component.getMultiAdapter((course, submission.creator),
-												IUsersCourseAssignmentSavepoint)
+											   IUsersCourseAssignmentSavepoint)
 		submission.containerId = submission.assignmentId
 
 		# for legacy purposes we assume the start time as the first savepoint submitted
@@ -119,7 +123,7 @@ class AssignmentSubmissionSavepointGetView(AbstractAuthenticatedView):
 			raise hexc.HTTPForbidden("Must be enrolled in a course.")
 
 		savepoint = component.getMultiAdapter((course, creator),
-												IUsersCourseAssignmentSavepoint)
+											  IUsersCourseAssignmentSavepoint)
 		try:
 			result = savepoint[self.context.ntiid]
 			return result

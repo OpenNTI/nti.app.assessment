@@ -96,7 +96,7 @@ class AssignmentSubmissionStartPostView(AssignmentSubmissionMetataPostView):
 	def _do_call(self):
 		creator, course = self._validate()
 		container = component.getMultiAdapter((course, creator),
-												IUsersCourseAssignmentMetadata)
+											  IUsersCourseAssignmentMetadata)
 		try:
 			item = container[self.context.ntiid]
 		except KeyError:
@@ -127,7 +127,7 @@ class AssignmentSubmissionMetadataGetView(AbstractAuthenticatedView):
 			raise hexc.HTTPForbidden("Must be enrolled in a course.")
 
 		container = component.getMultiAdapter((course, creator),
-												IUsersCourseAssignmentMetadata)
+											  IUsersCourseAssignmentMetadata)
 
 		result = container[self.context.ntiid]
 		return result

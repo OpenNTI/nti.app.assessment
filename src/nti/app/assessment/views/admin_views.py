@@ -14,7 +14,6 @@ import six
 from io import BytesIO
 
 import zope.intid
-
 from zope import component
 
 from zope.catalog.interfaces import ICatalog
@@ -41,7 +40,6 @@ from nti.contentlibrary.interfaces import IContentPackage
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
-from nti.contenttypes.courses.interfaces import	ICourseCatalogEntry
 
 from nti.dataserver.users import User
 from nti.dataserver import authorization as nauth
@@ -68,6 +66,8 @@ from ..index import CATALOG_NAME as ASSESMENT_CATALOG_NAME
 from ..interfaces import ICourseAssessmentItemCatalog
 from ..interfaces import IUsersCourseAssignmentHistory
 from ..interfaces import IUsersCourseAssignmentSavepoint
+
+from . import parse_catalog_entry
 
 ITEMS = StandardExternalFields.ITEMS
 
@@ -126,25 +126,6 @@ class RemovedMatchedSavePointsView(AbstractAuthenticatedView,
 						items.append(assignmentId)
 		return result
 
-def _parse_catalog_entry(params, names=('ntiid', 'entry', 'course')):
-	ntiid = None
-	for name in names:
-		ntiid = params.get(name)
-		if ntiid:
-			break
-	if not ntiid:
-		return None
-
-	context = find_object_with_ntiid(ntiid)
-	result = ICourseCatalogEntry(context, None)
-	if result is None:
-		try:
-			catalog = component.getUtility(ICourseCatalog)
-			result = catalog.getCatalogEntry(ntiid)
-		except KeyError:
-			pass
-	return result
-
 @view_config(route_name='objects.generic.traversal',
 			 renderer='rest',
 			 permission=nauth.ACT_NTI_ADMIN,
@@ -156,7 +137,7 @@ class UnmatchedSavePointsView(AbstractAuthenticatedView):
 	def __call__(self):
 		catalog = component.getUtility(ICourseCatalog)
 		params = CaseInsensitiveDict(self.request.params)
-		entry = _parse_catalog_entry(params)
+		entry = parse_catalog_entry(params)
 		if entry is not None:
 			entries = (entry,)
 		else:
@@ -324,7 +305,7 @@ class CourseSubmissionReportView(AbstractAuthenticatedView):
 
 	def __call__(self):
 		params = CaseInsensitiveDict(self.request.params)
-		context = _parse_catalog_entry(params)
+		context = parse_catalog_entry(params)
 		if context is None:
 			raise hexc.HTTPUnprocessableEntity("Invalid course NTIID")
 
@@ -366,7 +347,7 @@ class CourseAssignmentsView(AbstractAuthenticatedView):
 
 	def __call__(self):
 		params = CaseInsensitiveDict(self.request.params)
-		context = _parse_catalog_entry(params)
+		context = parse_catalog_entry(params)
 		if context is None:
 			raise hexc.HTTPUnprocessableEntity("Invalid course NTIID")
 		course = ICourseInstance(context)
@@ -376,7 +357,8 @@ class CourseAssignmentsView(AbstractAuthenticatedView):
 
 		result = LocatedExternalDict()
 		items = result[ITEMS] = {}
-		for assignment in get_course_assignments(course=course, do_filtering=do_filtering):
+		for assignment in get_course_assignments(course=course,
+												 do_filtering=do_filtering):
 			items[assignment.ntiid] = assignment
 		result['Total'] = len(items)
 		return result
@@ -392,7 +374,7 @@ class CourseAssessmentItemsView(AbstractAuthenticatedView):
 
 	def __call__(self):
 		params = CaseInsensitiveDict(self.request.params)
-		context = _parse_catalog_entry(params)
+		context = parse_catalog_entry(params)
 		if context is None:
 			raise hexc.HTTPUnprocessableEntity("Invalid course NTIID")
 		course = ICourseInstance(context)
@@ -425,8 +407,8 @@ class MoveUserAssignmentsView(AbstractAuthenticatedView,
 
 	def __call__(self):
 		values = self.readInput()
-		source = _parse_catalog_entry(values, names=("source", "origin"))
-		target = _parse_catalog_entry(values, names=("target", "dest"))
+		source = parse_catalog_entry(values, names=("source", "origin"))
+		target = parse_catalog_entry(values, names=("target", "dest"))
 		if source is None:
 			raise hexc.HTTPUnprocessableEntity("Invalid source NTIID")
 		if target is None:

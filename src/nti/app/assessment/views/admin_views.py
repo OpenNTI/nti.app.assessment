@@ -42,6 +42,7 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 
 from nti.dataserver.users import User
+from nti.dataserver.interfaces import IUser
 from nti.dataserver import authorization as nauth
 from nti.dataserver.interfaces import IDataserverFolder
 from nti.dataserver.metadata_index import CATALOG_NAME as METADATA_CATALOG_NAME
@@ -429,7 +430,7 @@ class MoveUserAssignmentsView(AbstractAuthenticatedView,
 		items = result[ITEMS] = {}
 		for username in usernames:
 			user = User.get_user(username)
-			if user is None:
+			if user is None or not IUser.providedBy(user):
 				logger.info("User %s does not exists", username)
 			moved = move_user_assignment_from_course_to_course(user, source, target)
 			items[username] = sorted(moved)

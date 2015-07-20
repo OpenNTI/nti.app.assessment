@@ -74,6 +74,7 @@ class UsersCourseInquiries(CaseInsensitiveCheckingLastModifiedBTreeContainer):
 	"""
 	Implementation of the course inquirys for all users in a course.
 	"""
+UsersCourseSurveys = UsersCourseInquiries # BWC
 
 @interface.implementer(IUsersCourseInquiry)
 class UsersCourseInquiry(CheckingLastModifiedBTreeContainer):

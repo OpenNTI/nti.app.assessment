@@ -24,12 +24,9 @@ from pyramid.view import view_defaults
 from pyramid.interfaces import IRequest
 from pyramid import httpexceptions as hexc
 
-# TODO: Break these direct dependencies....
-from nti.app.contentlibrary.library_views import PAGE_INFO_MT
-from nti.app.contentlibrary.library_views import PAGE_INFO_MT_JSON
-
-# ... this in particular could be a view.
-from nti.app.contentlibrary.library_views import find_page_info_view_helper
+from nti.app.contentlibrary.utils import PAGE_INFO_MT
+from nti.app.contentlibrary.utils import PAGE_INFO_MT_JSON
+from nti.app.contentlibrary.utils import find_page_info_view_helper
 
 from nti.app.products.courseware.interfaces import ICourseInstanceEnrollment
 

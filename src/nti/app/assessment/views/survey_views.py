@@ -104,7 +104,8 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 			 context=IQInquiry,
 			 renderer='rest',
 			 request_method='GET',
-			 permission=nauth.ACT_READ,)
+			 permission=nauth.ACT_READ,
+			 name="Submission")
 class InquirySubmissionGetView(AbstractAuthenticatedView):
 
 	def __call__(self):

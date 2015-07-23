@@ -180,7 +180,7 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 			assert_that(survey_res.json_body, has_entry('Items', has_length(0)))
 	
 		href = '/dataserver2/Objects/' + item_id
-		self.testapp.get(href, status=404)
+		self.testapp.get(href +'/Submission', status=404)
 			
 		res = self.testapp.post_json( href, ext_obj)
 		survey_item_href = res.json_body['href']

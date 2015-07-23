@@ -30,7 +30,7 @@ from nti.app.contentlibrary.utils import find_page_info_view_helper
 
 from nti.app.products.courseware.interfaces import ICourseInstanceEnrollment
 
-from nti.assessment.interfaces import IQSurvey
+from nti.assessment.interfaces import IQSurvey, IQInquiry
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
@@ -72,16 +72,23 @@ _question_set_view.update(_read_view_defaults)
 _assignment_view = dict(context=IQAssignment)
 _assignment_view.update(_read_view_defaults)
 
+_inquiry_view = dict(context=IQInquiry)
+_inquiry_view.update(_read_view_defaults)
+
 @view_config(accept=str(PAGE_INFO_MT_JSON),
 			 **_question_view)
 @view_config(accept=str(PAGE_INFO_MT_JSON),
 			 **_question_set_view)
 @view_config(accept=str(PAGE_INFO_MT_JSON),
 			 **_assignment_view)
+@view_config(accept=str(PAGE_INFO_MT_JSON),
+			 **_inquiry_view)
 @view_config(accept=str(PAGE_INFO_MT),
 			 **_question_view)
 @view_config(accept=str(PAGE_INFO_MT),
 			 **_question_set_view)
+@view_config(accept=str(PAGE_INFO_MT),
+			 **_inquiry_view)
 @view_config(accept=str(PAGE_INFO_MT),
 			 **_assignment_view)
 def pageinfo_from_question_view(request):
@@ -97,6 +104,8 @@ def pageinfo_from_question_view(request):
 			 **_question_set_view)
 @view_config(accept=str('application/vnd.nextthought.link+json'),
 			 **_assignment_view)
+@view_config(accept=str('application/vnd.nextthought.link+json'),
+			 **_inquiry_view)
 def get_question_view_link(request):
 	# Not supported.
 	return hexc.HTTPBadRequest()
@@ -110,9 +119,13 @@ def get_question_view_link(request):
 @view_config(accept=str(''),
 			 **_assignment_view)
 @view_config(**_assignment_view)
+@view_config(accept=str(''),
+			 **_inquiry_view)
+@view_config(**_inquiry_view)
 def get_question_view(request):
 	return request.context
 
+del _inquiry_view
 del _question_view
 del _assignment_view
 del _read_view_defaults

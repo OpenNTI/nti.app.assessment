@@ -5,7 +5,6 @@
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
-from nti.app.assessment.common import can_disclose_inquiry
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -34,6 +33,8 @@ from nti.links.links import Link
 from nti.links.externalization import render_link
 
 from nti.traversal.traversal import find_interface
+
+from ..common import can_disclose_inquiry
 
 from . import _root_url
 from . import _get_course_from_assignment
@@ -64,7 +65,7 @@ class _InquiriesDecorator(_AbstractTraversableLinkDecorator):
 		links = result_map.setdefault( LINKS, [] )
 		user = IUser(context, self.remoteUser)
 		links.append( Link( context,
-							rel='Inquiries',
+							rel='InquiryHistory',
 							elements=('Inquiries', user.username)) )
 
 @interface.implementer(IExternalMappingDecorator)
@@ -97,8 +98,8 @@ class _InquiryHistoryLinkDecorator(_AbstractTraversableLinkDecorator):
 		if course is not None:
 			links = result_map.setdefault( LINKS, [] )
 			links.append( Link( course,
-								rel='InquiryHistories',
-								elements=('InquiryHistories', user.username,
+								rel='History',
+								elements=('Inquiries', user.username,
 										   context.ntiid)) )
 
 @interface.implementer(IExternalMappingDecorator)

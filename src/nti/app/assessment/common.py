@@ -9,6 +9,7 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+import itertools
 from datetime import datetime
 
 from zope import component
@@ -266,7 +267,7 @@ def can_disclose_inquiry(context):
 		result = not not_after or datetime.utcnow() >= not_after
 	return result
 
-def aggregate_inquiry(inquiry, course):
+def aggregate_inquiry(inquiry, course, *items):
 	catalog = get_catalog()
 	entry = ICourseCatalogEntry(course)
 	intids = component.getUtility(IIntIds)
@@ -275,7 +276,8 @@ def aggregate_inquiry(inquiry, course):
 	
 	result = None
 	uids =  catalog.apply(query) or ()
-	for item in ResultSet(uids, intids, True):
+	items = itertools.chain(ResultSet(uids, intids, True), items)
+	for item in items:
 		if not IUsersCourseInquiryItem.providedBy(item): # always check
 			continue
 		submission = item.Submission

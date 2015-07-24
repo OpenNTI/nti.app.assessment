@@ -17,6 +17,9 @@ from zope.location import locate
 
 from zope.catalog.interfaces import ICatalogIndex
 
+from nti.assessment.interfaces import IQPoll
+from nti.assessment.interfaces import IQSurvey
+from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQPollSubmission
 from nti.assessment.interfaces import IQSurveySubmission
 
@@ -94,21 +97,32 @@ class AssesmentIdIndex(ValueIndex):
 	default_field_name = 'assesmentId'
 	default_interface = ValidatingAssesmentID
 
+def get_assesment_type(obj):
+	result = None
+	try:
+		if IUsersCourseAssignmentHistoryItem.providedBy(obj):
+			result = 'Assignment'
+		elif IUsersCourseInquiryItem.providedBy(obj):
+			if IQSurveySubmission.providedBy(obj.Submission):
+				result = 'Survey'
+			elif IQPollSubmission.providedBy(obj.Submission):
+				result = 'Poll'
+		elif IQAssignment.providedBy(obj):
+			result = 'Assignment'
+		elif IQPoll.providedBy(obj):
+			result = 'Poll'
+		elif IQSurvey.providedBy(obj):
+			result = 'Survey'
+	except (AttributeError, TypeError):
+		pass
+	return result
+
 class ValidatingAssesmentType(object):
 
 	__slots__ = (b'type',)
 
 	def __init__(self, obj, default=None):
-		try:
-			if IUsersCourseAssignmentHistoryItem.providedBy(obj):
-				self.type = 'Assignment'
-			elif IUsersCourseInquiryItem.providedBy(obj):
-				if IQSurveySubmission.providedBy(obj.Submission):
-					self.type = 'Survey'
-				elif IQPollSubmission.providedBy(obj.Submission):
-					self.type = 'Poll'
-		except (AttributeError, TypeError):
-			pass
+		self.type = get_assesment_type(obj)
 
 	def __reduce__(self):
 		raise TypeError()

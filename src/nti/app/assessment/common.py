@@ -9,7 +9,11 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+from datetime import datetime
+
 from zope import component
+
+from zope.intid import IIntIds
 
 from zope.proxy import ProxyBase
 
@@ -17,7 +21,11 @@ from zope.schema.interfaces import RequiredMissing
 
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQAggregatedInquiry
 from nti.assessment.interfaces import IQAssessmentItemContainer
+
+from nti.assessment.interfaces import DISCLOSURE_NEVER
+from nti.assessment.interfaces import DISCLOSURE_ALWAYS
 
 from nti.contentlibrary.interfaces import IContentPackage
 
@@ -27,10 +35,18 @@ from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.traversal.traversal import find_interface
 
+from nti.zope_catalog.catalog import ResultSet
+
+from .assignment_filters import AssignmentPolicyExclusionFilter
+
+from .interfaces import IUsersCourseInquiryItem
 from .interfaces import IUsersCourseAssignmentHistory
 from .interfaces import IUsersCourseAssignmentMetadata
 
-from .assignment_filters import AssignmentPolicyExclusionFilter
+from .index import IX_COURSE
+from .index import IX_ASSESSMENT_ID
+
+from . import get_catalog
 
 # assessment
 
@@ -240,3 +256,32 @@ def get_course_inquiries(context):
 	ntiid = getattr(ICourseCatalogEntry(context, None), 'ntiid', None)
 	surveys = [proxy(x, catalog_entry=ntiid) for x in items if IQInquiry.providedBy(x)]
 	return surveys
+
+def can_disclose_inquiry(context):
+	# TODO: Get values from overrides
+	disclosure = context.disclosure
+	not_after = context.available_for_submission_ending
+	result = disclosure == DISCLOSURE_ALWAYS
+	if not result and disclosure != DISCLOSURE_NEVER:
+		result = not not_after or datetime.utcnow() >= not_after
+	return result
+
+def aggregate_inquiry(inquiry, course):
+	catalog = get_catalog()
+	entry = ICourseCatalogEntry(course)
+	intids = component.getUtility(IIntIds)
+	query = { IX_COURSE: {'any_of':(entry.ntiid,)},
+			  IX_ASSESSMENT_ID: {'any_of':(inquiry.ntiid,)} }
+	
+	result = None
+	uids =  catalog.apply(query) or ()
+	for item in ResultSet(uids, intids, True):
+		if not IUsersCourseInquiryItem.providedBy(item): # always check
+			continue
+		submission = item.Submission
+		aggregated = IQAggregatedInquiry(submission)
+		if result is None:
+			result = aggregated
+		else:
+			result += aggregated
+	return result

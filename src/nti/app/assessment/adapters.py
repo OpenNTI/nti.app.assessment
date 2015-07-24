@@ -325,13 +325,13 @@ def _course_from_history_item_lineage(item):
 
 @interface.implementer(ICourseInstance)
 @component.adapter(IQSubmittable, IUser)
-def _course_from_submittable_lineage(assignment, user):
+def _course_from_submittable_lineage(assesment, user):
 	"""
-	Given a generic assignment and a user, we
-	attempt to associate the assignment with the most
+	Given a generic assesment and a user, we
+	attempt to associate the assesment with the most
 	specific course instance relevant for the user.
 
-	In legacy-style courses, the parent of the assignment will be a
+	In legacy-style courses, the parent of the assesment will be a
 	IContentUnit, and eventually an
 	ILegacyCourseConflatedContentPackage which can become the course
 	directly. (However, these may not be within an IRoot, so using
@@ -358,7 +358,7 @@ def _course_from_submittable_lineage(assignment, user):
 	# the old courses will no longer be present. This also
 	# reduces the number of loops we have to make slightly.
 
-	package = find_interface(assignment, IContentPackage, strict=False)
+	package = find_interface(assesment, IContentPackage, strict=False)
 	if package is None:
 		return None
 

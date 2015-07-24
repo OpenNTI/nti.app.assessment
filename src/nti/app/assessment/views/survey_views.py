@@ -9,6 +9,8 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+from . import MessageFactory as _
+
 from zope import component
 
 from zope.schema.interfaces import NotUnique
@@ -21,6 +23,8 @@ from pyramid import httpexceptions as hexc
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
+from nti.app.products.courseware.utils import is_course_instructor
+
 from nti.appserver.ugd_edit_views import UGDDeleteView
 
 from nti.assessment.interfaces import IQPoll
@@ -30,13 +34,32 @@ from nti.assessment.interfaces import IQPollSubmission
 from nti.assessment.interfaces import IQSurveySubmission
 from nti.assessment.interfaces import IQInquirySubmission
 
+from nti.common.property import Lazy
+
 from nti.dataserver import authorization as nauth
 
+from ..common import aggregate_inquiry
+from ..common import can_disclose_inquiry
 from ..common import get_course_from_inquiry
 
 from ..interfaces import IUsersCourseInquiry
 from ..interfaces import IUsersCourseInquiries
 from ..interfaces import IUsersCourseInquiryItem
+
+class InquiryViewMixin(object):
+
+	@Lazy
+	def course(self):
+		creator = self.remoteUser
+		if not creator:
+			raise hexc.HTTPForbidden("Must be Authenticated")
+		try:
+			course = get_course_from_inquiry(self.context, creator)
+			if course is None:
+				raise hexc.HTTPForbidden("Must be enrolled in a course.")
+			return course
+		except RequiredMissing:
+			raise hexc.HTTPForbidden("Must be enrolled in a course.")
 
 @view_config(route_name="objects.generic.traversal",
 			 context=IQInquiry,
@@ -44,7 +67,8 @@ from ..interfaces import IUsersCourseInquiryItem
 			 request_method='POST',
 			 permission=nauth.ACT_READ)
 class InquirySubmissionPostView(AbstractAuthenticatedView,
-						  		ModeledContentUploadRequestUtilsMixin):
+						  		ModeledContentUploadRequestUtilsMixin,
+						  		InquiryViewMixin):
 
 	_EXTRA_INPUT_ERRORS = \
 			ModeledContentUploadRequestUtilsMixin._EXTRA_INPUT_ERRORS + (AttributeError,)
@@ -59,16 +83,8 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 			raise ex
 
 	def _do_call(self):
+		course = self.course
 		creator = self.remoteUser
-		if not creator:
-			raise hexc.HTTPForbidden("Must be Authenticated")
-		try:
-			course = get_course_from_inquiry(self.context, creator)
-			if course is None:
-				raise hexc.HTTPForbidden("Must be enrolled in a course.")
-		except RequiredMissing:
-			raise hexc.HTTPForbidden("Must be enrolled in a course.")
-
 		submission = self.readCreateUpdateContentObject(creator)
 
 		# Check that the submission has something for all polls
@@ -86,7 +102,8 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 			self._check_poll_submission(submission)
 
 		creator = submission.creator
-		course_inquiry = component.getMultiAdapter((course, creator), IUsersCourseInquiry)
+		course_inquiry = component.getMultiAdapter((course, creator), 
+												   IUsersCourseInquiry)
 		submission.containerId = submission.id
 
 		if submission.id in course_inquiry:
@@ -106,20 +123,13 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 			 request_method='GET',
 			 permission=nauth.ACT_READ,
 			 name="Submission")
-class InquirySubmissionGetView(AbstractAuthenticatedView):
+class InquirySubmissionGetView(AbstractAuthenticatedView, InquiryViewMixin):
 
 	def __call__(self):
+		course = self.course
 		creator = self.remoteUser
-		if not creator:
-			raise hexc.HTTPForbidden("Must be Authenticated")
-		try:
-			course = get_course_from_inquiry(self.context, creator)
-			if course is None:
-				raise hexc.HTTPForbidden("Must be enrolled in a course.")
-		except RequiredMissing:
-			raise hexc.HTTPForbidden("Must be enrolled in a course.")
-
-		course_inquiry = component.getMultiAdapter((course, creator), IUsersCourseInquiry)
+		course_inquiry = component.getMultiAdapter((course, creator), 
+												   IUsersCourseInquiry)
 		try:
 			result = course_inquiry[self.context.ntiid]
 			return result
@@ -150,3 +160,19 @@ class InquiryItemDeleteView(UGDDeleteView):
 	def _do_delete_object(self, theObject):
 		del theObject.__parent__[theObject.__name__]
 		return theObject
+
+@view_config(route_name="objects.generic.traversal",
+			 context=IQInquiry,
+			 renderer='rest',
+			 request_method='GET',
+			 permission=nauth.ACT_READ,
+			 name="Aggregate")
+class InquiryAggregatedGetView(AbstractAuthenticatedView, InquiryViewMixin):
+
+	def __call__(self):
+		course = self.course
+		if not is_course_instructor(course, self.remoteUser):
+			if not can_disclose_inquiry(self.context):
+				return hexc.HTTPForbidden(_("Cannot disclose inquiry results"))
+		result = aggregate_inquiry(self.context, course)
+		return result

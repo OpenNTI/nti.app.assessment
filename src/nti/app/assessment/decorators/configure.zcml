@@ -198,6 +198,11 @@
 				for="..interfaces.IUsersCourseInquiryItem
 					 pyramid.interfaces.IRequest" />
 
+	<subscriber factory=".survey._InquiryHistoryLinkDecorator"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator"
+				for="nti.assessment.interfaces.IQAssignment
+					 pyramid.interfaces.IRequest" />
+
 	<!-- lineage -->
 	<subscriber factory=".lineage._ContextCatalogEntryDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"

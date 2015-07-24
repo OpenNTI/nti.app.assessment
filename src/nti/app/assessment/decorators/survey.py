@@ -9,13 +9,18 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+from zope import component
 from zope import interface
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
 from nti.assessment.interfaces import IQSurvey
 
+from nti.common.property import Lazy
+
 from nti.contentlibrary.interfaces import IContentUnit
+
+from nti.contenttypes.courses.interfaces import ICourseCatalog
 
 from nti.dataserver.interfaces import IUser
 
@@ -28,6 +33,7 @@ from nti.links.externalization import render_link
 from nti.traversal.traversal import find_interface
 
 from . import _root_url
+from . import _get_course_from_assignment
 from . import _AbstractTraversableLinkDecorator
 
 LINKS = StandardExternalFields.LINKS
@@ -73,3 +79,21 @@ class _InquiryItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			result_map['href'] = render_link( link )['href']
 		except (KeyError, ValueError, AssertionError):
 			pass # Nope
+
+@interface.implementer(IExternalMappingDecorator)
+class _InquiryHistoryLinkDecorator(_AbstractTraversableLinkDecorator):
+
+	@Lazy
+	def _catalog(self):
+		result = component.getUtility(ICourseCatalog)
+		return result
+		
+	def _do_decorate_external( self, context, result_map ):
+		user = self.remoteUser
+		course = _get_course_from_assignment(context, user, self._catalog)
+		if course is not None:
+			links = result_map.setdefault( LINKS, [] )
+			links.append( Link( course,
+								rel='InquiryHistories',
+								elements=('InquiryHistories', user.username,
+										   context.ntiid)) )

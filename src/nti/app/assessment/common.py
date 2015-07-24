@@ -23,6 +23,7 @@ from zope.schema.interfaces import RequiredMissing
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAggregatedInquiry
+from nti.assessment.interfaces import IQAssessmentDateContext
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.assessment.interfaces import DISCLOSURE_NEVER
@@ -138,6 +139,12 @@ def get_course_assessment_items(context):
 		else:
 			assessments.extend(iterable)
 	return assessments or ()
+
+def get_available_for_submission_ending(context, assesment):
+	course = ICourseInstance(context)
+	dates = IQAssessmentDateContext(course)
+	due_date = dates.of(assesment).available_for_submission_ending
+	return due_date
 
 # assignment
 

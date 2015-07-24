@@ -20,12 +20,15 @@ from datetime import datetime
 from zope import component
 from zope import interface
 from zope import lifecycleevent
-from zope.container.contained import Contained
+
 from zope.cachedescriptors.property import Lazy
 
+from zope.container.contained import Contained
+
+from zope.location.interfaces import ISublocations
+
 from nti.assessment.interfaces import IQAssignment
-from nti.assessment.interfaces import IQAssignmentPolicies
-from nti.assessment.interfaces import IQAssignmentDateContext
+from nti.assessment.interfaces import IQAssessmentPolicies
 
 from nti.common.property import alias
 from nti.common.property import readproperty
@@ -33,14 +36,16 @@ from nti.common.property import CachedProperty
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
-from nti.dataserver.interfaces import IUser
 from nti.dataserver.authorization import ACT_READ
-from nti.dataserver.interfaces import ACE_DENY_ALL
-from nti.dataserver.interfaces import IACLProvider
 from nti.dataserver.authorization import ACT_DELETE
-from nti.dataserver.interfaces import ALL_PERMISSIONS
 from nti.dataserver.authorization_acl import ace_allowing
 from nti.dataserver.authorization_acl import acl_from_aces
+
+from nti.dataserver.interfaces import ACE_DENY_ALL
+from nti.dataserver.interfaces import ALL_PERMISSIONS
+
+from nti.dataserver.interfaces import IUser
+from nti.dataserver.interfaces import IACLProvider
 
 from nti.dataserver.containers import CheckingLastModifiedBTreeContainer
 from nti.dataserver.containers import CaseInsensitiveCheckingLastModifiedBTreeContainer
@@ -56,6 +61,8 @@ from nti.zodb.minmax import NumericMaximum
 from nti.zodb.minmax import NumericPropertyDefaultingToZero
 
 from ._submission import set_submission_lineage
+
+from .common import get_available_for_submission_ending
 
 from .feedback import UsersCourseAssignmentHistoryItemFeedbackContainer
 
@@ -138,21 +145,14 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 		aces = [ace_allowing(self.owner, ACT_READ, UsersCourseAssignmentHistory)]
 		for instructor in instructors:
 			aces.append(ace_allowing(instructor, ALL_PERMISSIONS,
-									  UsersCourseAssignmentHistory))
+									 UsersCourseAssignmentHistory))
 		aces.append(ACE_DENY_ALL)
 		return acl_from_aces(aces)
 
-from zope.location.interfaces import ISublocations
-
 def _get_policy_for_assignment(course, asg_id):
-	policies = IQAssignmentPolicies(course)
-	policy = policies.getPolicyForAssignment(asg_id)
+	policies = IQAssessmentPolicies(course)
+	policy = policies.getPolicyForAssessment(asg_id)
 	return policy
-
-def _get_available_for_submission_ending(course, assignment):
-	dates = IQAssignmentDateContext(course)
-	due_date = dates.of(assignment).available_for_submission_ending
-	return due_date
 
 @interface.implementer(IUsersCourseAssignmentHistoryItem,
 					   IACLProvider,
@@ -257,7 +257,7 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 			# time...have that process apply marker interfaces
 			return False
 
-		due_date = _get_available_for_submission_ending(course, assignment)
+		due_date = get_available_for_submission_ending(course, assignment)
 		if due_date and datetime.utcnow() >= due_date:
 			# past due
 			return False
@@ -288,10 +288,10 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 		aces = [ace_allowing(self.creator, ACT_READ, UsersCourseAssignmentHistoryItem)]
 		if self._student_nuclear_reset_capable:
 			aces.append(ace_allowing(self.creator, ACT_DELETE,
-									  UsersCourseAssignmentHistoryItem))
+									 UsersCourseAssignmentHistoryItem))
 		for instructor in instructors:
 			aces.append(ace_allowing(instructor, ALL_PERMISSIONS,
-									  UsersCourseAssignmentHistoryItem))
+									 UsersCourseAssignmentHistoryItem))
 		aces.append(ACE_DENY_ALL)
 		return acl_from_aces(aces)
 

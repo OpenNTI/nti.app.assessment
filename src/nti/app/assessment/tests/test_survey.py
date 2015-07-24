@@ -101,7 +101,7 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 									  'CLC 3403',
 									  status=201 )
 
-		default_enrollment_savepoints_link = self.require_link_href_with_rel(res.json_body, 'Inquiries')
+		default_enrollment_savepoints_link = self.require_link_href_with_rel(res.json_body, 'InquiryHistory')
 		assert_that( default_enrollment_savepoints_link,
 					 is_('/dataserver2/users/' +
 						self.default_username  +
@@ -113,7 +113,7 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 								status=201,
 								extra_environ=outest_environ )
 
-		user2_enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'Inquiries')
+		user2_enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'InquiryHistory')
 
 		# each can fetch his own
 		self.testapp.get(default_enrollment_savepoints_link)
@@ -160,8 +160,8 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 									  'CLC 3403',
 									  status=201 )
 	
-		enrollment_inquiries_link = self.require_link_href_with_rel(res.json_body, 'Inquiries')
-		course_inquiries_link = self.require_link_href_with_rel( res.json_body['CourseInstance'], 'Inquiries')
+		enrollment_inquiries_link = self.require_link_href_with_rel(res.json_body, 'InquiryHistory')
+		course_inquiries_link = self.require_link_href_with_rel( res.json_body['CourseInstance'], 'InquiryHistory')
 		course_instance_link = res.json_body['CourseInstance']['href']
 		
 		assert_that( enrollment_inquiries_link,

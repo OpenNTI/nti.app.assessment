@@ -32,27 +32,30 @@ LINKS = StandardExternalFields.LINKS
 class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _do_decorate_external(self, assignment, result):
-		course = _get_course_from_assignment(assignment, self.remoteUser)
+		user = self.remoteUser
+		course = _get_course_from_assignment(assignment, user)
 		if course is None:
 			return
 		
+		elements = ('AssignmentMetadata', user.username, assignment.ntiid)
+
 		links = result.setdefault(LINKS, [])
-		links.append( Link( assignment,
+		links.append( Link( course,
 							rel='Metadata',
-							elements=('Metadata',)))
-		
+							elements=elements))
+			
 		if IQTimedAssignment.providedBy(assignment):
 			item = get_assessment_metadata_item(course, self.remoteUser, assignment)	
 			if item is None or item.StartTime is None:
-				links.append( Link( assignment,
+				links.append( Link( course,
 									method='POST',
 									rel='Commence',
-									elements=('Commence',)))
+									elements=elements + ('Commence',)))
 			else:
-				links.append( Link( assignment,
+				links.append( Link( course,
 									method='GET',
 									rel='StartTime',
-									elements=('StartTime',)))
+									elements=elements + ('StartTime',)))
 						
 @interface.implementer(IExternalMappingDecorator)
 class _AssignmentMetadataContainerDecorator(_AbstractTraversableLinkDecorator):

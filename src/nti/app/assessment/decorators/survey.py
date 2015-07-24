@@ -99,8 +99,7 @@ class _InquiryHistoryLinkDecorator(_AbstractTraversableLinkDecorator):
 			links = result_map.setdefault( LINKS, [] )
 			links.append( Link( course,
 								rel='History',
-								elements=('Inquiries', user.username,
-										   context.ntiid)) )
+								elements=('Inquiries', user.username, context.ntiid)) )
 
 @interface.implementer(IExternalMappingDecorator)
 class _AggregatedInquiryLinkDecorator(_AbstractTraversableLinkDecorator):

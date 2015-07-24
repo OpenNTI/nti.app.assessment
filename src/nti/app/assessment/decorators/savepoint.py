@@ -45,12 +45,14 @@ class _AssignmentSavepointDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		return result
 
 	def _do_decorate_external(self, assignment, result):
-		course = _get_course_from_assignment(assignment, self.remoteUser)
+		user = self.remoteUser
+		course = _get_course_from_assignment(assignment, user)
 		if course is not None:
 			links = result.setdefault(LINKS, [])
-			links.append( Link( assignment,
+			links.append( Link( course,
 								rel='Savepoint',
-								elements=('Savepoint',)))
+								elements=('AssignmentSavepoints', user.username, 
+										  assignment.ntiid)))
 
 @interface.implementer(IExternalMappingDecorator)
 class _AssignmentSavepointsDecorator(_AbstractTraversableLinkDecorator):

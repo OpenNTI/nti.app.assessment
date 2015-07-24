@@ -5,6 +5,7 @@
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
+from nti.app.assessment.common import can_disclose_inquiry
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -13,6 +14,8 @@ from zope import component
 from zope import interface
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
+
+from nti.app.products.courseware.utils import is_course_instructor
 
 from nti.assessment.interfaces import IQSurvey
 
@@ -97,3 +100,21 @@ class _InquiryHistoryLinkDecorator(_AbstractTraversableLinkDecorator):
 								rel='InquiryHistories',
 								elements=('InquiryHistories', user.username,
 										   context.ntiid)) )
+
+@interface.implementer(IExternalMappingDecorator)
+class _AggregatedInquiryLinkDecorator(_AbstractTraversableLinkDecorator):
+
+	@Lazy
+	def _catalog(self):
+		result = component.getUtility(ICourseCatalog)
+		return result
+		
+	def _do_decorate_external( self, context, result_map ):
+		user = self.remoteUser
+		course = _get_course_from_assignment(context, user, self._catalog)
+		if 	course is not None and \
+			(is_course_instructor(course, user) or can_disclose_inquiry(context)):
+			links = result_map.setdefault( LINKS, [] )
+			links.append( Link( context,
+								rel='Aggregated',
+								elements=('Aggregated')) )

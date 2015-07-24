@@ -200,7 +200,12 @@
 
 	<subscriber factory=".survey._InquiryHistoryLinkDecorator"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
-				for="nti.assessment.interfaces.IQAssignment
+				for="nti.assessment.interfaces.IQInquiry
+					 pyramid.interfaces.IRequest" />
+
+	<subscriber factory=".survey._AggregatedInquiryLinkDecorator"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator"
+				for="nti.assessment.interfaces.IQInquiry
 					 pyramid.interfaces.IRequest" />
 
 	<!-- lineage -->

@@ -166,8 +166,8 @@ class InquiryItemDeleteView(UGDDeleteView):
 			 renderer='rest',
 			 request_method='GET',
 			 permission=nauth.ACT_READ,
-			 name="Aggregate")
-class InquiryAggregatedGetView(AbstractAuthenticatedView, InquiryViewMixin):
+			 name="Aggregated")
+class AggregatedInquiryGetView(AbstractAuthenticatedView, InquiryViewMixin):
 
 	def __call__(self):
 		course = self.course

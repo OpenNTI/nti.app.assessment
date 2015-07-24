@@ -21,6 +21,8 @@ from nti.ntiids.ntiids import find_object_with_ntiid
 
 from .._utils import assignment_download_precondition
 
+from ..common import can_disclose_inquiry
+
 def parse_catalog_entry(params, names=('ntiid', 'entry', 'course')):
 	ntiid = None
 	for name in names:

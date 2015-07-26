@@ -238,7 +238,7 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 
 	@WithSharedApplicationMockDS(users=True,testapp=True)
 	@fudge.patch('nti.app.assessment.history._get_policy_for_assignment',
-				 'nti.app.assessment.history._get_available_for_submission_ending')
+				 'nti.app.assessment.history.get_available_for_submission_ending')
 	def test_student_nuclear_option(self, mock_gpa, mock_se):
 		mock_gpa.is_callable().with_args().returns({'student_nuclear_reset_capable':True})
 		mock_se.is_callable().with_args().returns(datetime.utcfromtimestamp(time.time() + 20000))

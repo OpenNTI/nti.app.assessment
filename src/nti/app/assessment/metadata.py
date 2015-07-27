@@ -26,6 +26,8 @@ from zope.lifecycleevent.interfaces import IObjectRemovedEvent
 
 from pyramid.interfaces import IRequest
 
+from nti.assessment.interfaces import IQAssessment
+
 from nti.common.property import alias
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -255,15 +257,27 @@ def _course_from_metadataitem_lineage(item):
 	return _course_from_context_lineage(item, validate=True)
 
 @component.adapter(IUsersCourseAssignmentMetadataContainer, IRequest)
-class _UsersCourseAssignmentMetadataTraversable(ContainerAdapterTraversable):
+class _UsersCourseMetadataContainerTraversable(ContainerAdapterTraversable):
 
 	def traverse(self, key, remaining_path):
 		try:
-			return super(_UsersCourseAssignmentMetadataTraversable, self).traverse(key, remaining_path)
+			return super(_UsersCourseMetadataContainerTraversable, self).traverse(key, remaining_path)
 		except LocationError:
 			user = User.get_user(key)
 			if user is not None:
 				return _metadata_for_user_in_course(self.context.__parent__, user)
+			raise
+
+@component.adapter(IUsersCourseAssignmentMetadata, IRequest)
+class _UsersCourseMetadataTraversable(ContainerAdapterTraversable):
+
+	def traverse(self, key, remaining_path):
+		try:
+			return super(_UsersCourseMetadataTraversable, self).traverse(key, remaining_path)
+		except LocationError:
+			assesment = component.queryUtility(IQAssessment, name=key)
+			if assesment is not None:
+				return assesment
 			raise
 
 @component.adapter(ICourseInstance, IObjectAddedEvent)

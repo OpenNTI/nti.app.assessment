@@ -28,6 +28,8 @@ from ZODB.interfaces import IConnection
 
 from pyramid.interfaces import IRequest
 
+from nti.assessment.interfaces import IQAssessment
+
 from nti.common.property import alias
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -248,6 +250,18 @@ class _UsersCourseAssignmentSavepointsTraversable(ContainerAdapterTraversable):
 			user = User.get_user(key)
 			if user is not None:
 				return _savepoint_for_user_in_course(self.context.__parent__, user)
+			raise
+
+@component.adapter(IUsersCourseAssignmentSavepoint, IRequest)
+class _UsersCourseAssignmentSavepointTraversable(ContainerAdapterTraversable):
+
+	def traverse(self, key, remaining_path):
+		try:
+			return super(_UsersCourseAssignmentSavepointTraversable, self).traverse(key, remaining_path)
+		except LocationError:
+			assesment = component.queryUtility(IQAssessment, name=key)
+			if assesment is not None:
+				return assesment
 			raise
 
 @component.adapter(ICourseInstance, IObjectAddedEvent)

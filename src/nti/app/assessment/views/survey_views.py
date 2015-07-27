@@ -95,7 +95,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 	def _do_call(self):
 		course = self.course
 		creator = self.remoteUser
-		ending = get_available_for_submission_ending(self.context)
+		ending = get_available_for_submission_ending(course, self.context)
 		if datetime.utcnow() > ending:
 			ex = ConstraintNotSatisfied(_("Inquiry has been closed."))
 			ex.field = IQSubmittable['available_for_submission_ending']

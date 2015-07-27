@@ -11,6 +11,8 @@ logger = __import__('logging').getLogger(__name__)
 
 from . import MessageFactory as _
 
+from datetime import datetime
+
 from zope import component
 
 from zope.schema.interfaces import NotUnique
@@ -30,6 +32,7 @@ from nti.appserver.ugd_edit_views import UGDDeleteView
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQInquiry
+from nti.assessment.interfaces import IQSubmittable
 from nti.assessment.interfaces import IQPollSubmission
 from nti.assessment.interfaces import IQSurveySubmission
 from nti.assessment.interfaces import IQInquirySubmission
@@ -41,10 +44,17 @@ from nti.dataserver import authorization as nauth
 from ..common import aggregate_inquiry
 from ..common import can_disclose_inquiry
 from ..common import get_course_from_inquiry
+from ..common import get_available_for_submission_ending
 
 from ..interfaces import IUsersCourseInquiry
 from ..interfaces import IUsersCourseInquiries
 from ..interfaces import IUsersCourseInquiryItem
+
+def allow_to_disclose_inquiry(context, course, user):
+	if not is_course_instructor(course, user):
+		if not can_disclose_inquiry(context):
+			return False
+	return True
 
 class InquiryViewMixin(object):
 
@@ -52,14 +62,14 @@ class InquiryViewMixin(object):
 	def course(self):
 		creator = self.remoteUser
 		if not creator:
-			raise hexc.HTTPForbidden("Must be Authenticated")
+			raise hexc.HTTPForbidden(_("Must be Authenticated."))
 		try:
 			course = get_course_from_inquiry(self.context, creator)
 			if course is None:
-				raise hexc.HTTPForbidden("Must be enrolled in a course.")
+				raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
 			return course
 		except RequiredMissing:
-			raise hexc.HTTPForbidden("Must be enrolled in a course.")
+			raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
 
 @view_config(route_name="objects.generic.traversal",
 			 context=IQInquiry,
@@ -78,13 +88,19 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 	def _check_poll_submission(self, submission):
 		poll = component.getUtility(IQPoll, name=submission.id)
 		if len(poll.parts) != len(submission.parts):
-			ex = ConstraintNotSatisfied("Incorrect submission parts")
+			ex = ConstraintNotSatisfied(_("Incorrect submission parts."))
 			ex.field = IQPollSubmission['parts']
 			raise ex
 
 	def _do_call(self):
 		course = self.course
 		creator = self.remoteUser
+		ending = get_available_for_submission_ending(self.context)
+		if datetime.utcnow() > ending:
+			ex = ConstraintNotSatisfied(_("Inquiry has been closed."))
+			ex.field = IQSubmittable['available_for_submission_ending']
+			raise ex
+
 		submission = self.readCreateUpdateContentObject(creator)
 
 		# Check that the submission has something for all polls
@@ -93,7 +109,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 			survey_poll_ids = [poll.ntiid for poll in survey.questions]
 			submission_poll_ids = [poll.pollId for poll in submission.questions]
 			if sorted(survey_poll_ids) != sorted(submission_poll_ids):
-				ex = ConstraintNotSatisfied("Incorrect submission questions")
+				ex = ConstraintNotSatisfied(_("Incorrect submission questions."))
 				ex.field = IQSurveySubmission['questions']
 				raise ex
 			for question_sub in submission.questions:
@@ -107,7 +123,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 		submission.containerId = submission.id
 
 		if submission.id in course_inquiry:
-			ex = NotUnique("Inquiry already submitted")
+			ex = NotUnique(_("Inquiry already submitted"))
 			ex.field = IQInquirySubmission['id']
 			ex.value = submission.id
 			raise ex
@@ -171,8 +187,7 @@ class AggregatedInquiryGetView(AbstractAuthenticatedView, InquiryViewMixin):
 
 	def __call__(self):
 		course = self.course
-		if not is_course_instructor(course, self.remoteUser):
-			if not can_disclose_inquiry(self.context):
-				return hexc.HTTPForbidden(_("Cannot disclose inquiry results"))
+		if not allow_to_disclose_inquiry(self.context, course, self.remoteUser):
+			raise hexc.HTTPForbidden(_("Cannot disclose inquiry results."))
 		result = aggregate_inquiry(self.context, course)
 		return result

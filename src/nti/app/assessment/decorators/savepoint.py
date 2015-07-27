@@ -52,7 +52,7 @@ class _AssignmentSavepointDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			links.append( Link( course,
 								rel='Savepoint',
 								elements=('AssignmentSavepoints', user.username, 
-										  assignment.ntiid)))
+										  assignment.ntiid, 'Savepoint')))
 
 @interface.implementer(IExternalMappingDecorator)
 class _AssignmentSavepointsDecorator(_AbstractTraversableLinkDecorator):

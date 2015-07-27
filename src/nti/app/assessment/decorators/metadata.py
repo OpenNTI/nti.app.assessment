@@ -37,7 +37,7 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		if course is None:
 			return
 		
-		elements = ('AssignmentMetadata', user.username, assignment.ntiid)
+		elements = ('AssignmentMetadata', user.username, assignment.ntiid, 'Metadata')
 
 		links = result.setdefault(LINKS, [])
 		links.append( Link( course,

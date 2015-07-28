@@ -12,12 +12,14 @@ logger = __import__('logging').getLogger(__name__)
 import time
 
 from zope import component
+from zope import interface
 
 from zope.schema.interfaces import RequiredMissing
 
 from pyramid.view import view_config
 from pyramid import httpexceptions as hexc
 
+from nti.app.renderers.interfaces import INoHrefInResponse
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
@@ -28,6 +30,9 @@ from nti.assessment.interfaces import IQAssignmentSubmission
 from nti.assessment.interfaces import IQTimedAssignment
 
 from nti.dataserver import authorization as nauth
+
+from nti.externalization.oids import to_external_ntiid_oid
+from nti.externalization.externalization import to_external_object
 
 from .._submission import get_source
 from .._submission import check_upload_files
@@ -40,6 +45,8 @@ from ..interfaces import IUsersCourseAssignmentMetadata
 from ..interfaces import IUsersCourseAssignmentSavepoint
 from ..interfaces import IUsersCourseAssignmentSavepoints
 from ..interfaces import IUsersCourseAssignmentSavepointItem
+
+from . import get_ds2
 
 @view_config(route_name="objects.generic.traversal",
 			 context=IQAssignment,
@@ -100,7 +107,11 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 
 		# Now record the submission.
 		self.request.response.status_int = 201
-		result = savepoint.recordSubmission(submission)
+		result = recorded = savepoint.recordSubmission(submission)
+		result = to_external_object(result)
+		result['href'] = "/%s/Objects/%s" % (get_ds2(self.request), 
+											 to_external_ntiid_oid(recorded))
+		interface.alsoProvides(result, INoHrefInResponse)
 		return result
 
 @view_config(route_name="objects.generic.traversal",

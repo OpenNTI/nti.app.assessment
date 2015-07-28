@@ -228,7 +228,7 @@ class TestSavepointViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 			
 		# we can delete
 		self.testapp.delete(savepoint_item_href, status=204)
-		self.testapp.get(savepoint_item_href, status=404)
+		self.testapp.get(savepoint_item_href, status=403)
 		
 		# Whereupon we can submit again
 		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id + '/Savepoint',

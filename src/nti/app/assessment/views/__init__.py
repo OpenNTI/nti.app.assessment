@@ -12,7 +12,10 @@ logger = __import__('logging').getLogger(__name__)
 from .. import MessageFactory
 
 from zope import component
+
 from zope.component.interfaces import ComponentLookupError
+
+from pyramid.threadlocal import get_current_request
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
@@ -41,3 +44,10 @@ def parse_catalog_entry(params, names=('ntiid', 'entry', 'course')):
 		except (KeyError, ComponentLookupError):
 			pass
 	return result
+
+def get_ds2(request=None):
+	request = request if request else get_current_request()
+	try:
+		return request.path_info_peek() if request else None  # e.g. /dataserver2
+	except AttributeError:  # in unit test we may see this
+		return "dataserver2"

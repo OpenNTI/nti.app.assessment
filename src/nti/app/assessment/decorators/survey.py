@@ -105,18 +105,18 @@ class _InquiryLinkDecorator(_AbstractTraversableLinkDecorator):
 			
 		# aggregated
 		if 	course is not None and \
-			(is_course_instructor(course, user) or can_disclose_inquiry(context)):
+			(is_course_instructor(course, user) or can_disclose_inquiry(context, course)):
 			links.append( Link( context,
 								rel='Aggregated',
-								elements=('Aggregated')) )
+								elements=('Aggregated',)) )
 			
 		# close/open
-		if 	course is not None and is_course_instructor(course, user):
+		if course is not None and is_course_instructor(course, user):
 			if not self.context.closed:
 				links.append( Link( context,
 									rel='close',
-									elements=('close')) )
+									elements=('close',)) )
 			else:
 				links.append( Link( context,
 									rel='open',
-									elements=('open')) )
+									elements=('open',)) )

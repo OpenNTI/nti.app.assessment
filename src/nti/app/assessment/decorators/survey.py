@@ -41,6 +41,8 @@ from nti.traversal.traversal import find_interface
 from ..common import can_disclose_inquiry
 from ..common import get_policy_for_assessment
 
+from ..interfaces import IUsersCourseInquiry
+
 from . import _root_url
 from . import _get_course_from_assignment
 from . import _AbstractTraversableLinkDecorator
@@ -120,8 +122,10 @@ class _InquiryLinkDecorator(_AbstractTraversableLinkDecorator):
 			if policy and 'disclosure' in policy:
 				result_map['disclosure'] = policy['disclosure']
 			
+		course_inquiry = component.queryMultiAdapter((course, user), 
+													 IUsersCourseInquiry)
 		# history
-		if course is not None:
+		if course is not None and course_inquiry and context.ntiid in course_inquiry:
 			links.append( Link( course,
 								rel='History',
 								elements=('Inquiries', user.username, context.ntiid)) )

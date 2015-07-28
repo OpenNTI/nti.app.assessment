@@ -242,11 +242,15 @@ class InquiryOpenView(AbstractAuthenticatedView, InquiryViewMixin):
 			 request_method='GET',
 			 permission=nauth.ACT_READ,
 			 name="Aggregated")
-class AggregatedInquiryGetView(AbstractAuthenticatedView, InquiryViewMixin):
+class InquiryAggregatedGetView(AbstractAuthenticatedView, InquiryViewMixin):
 
 	def __call__(self):
 		course = self.course
 		if not allow_to_disclose_inquiry(self.context, course, self.remoteUser):
 			raise hexc.HTTPForbidden(_("Cannot disclose inquiry results."))
-		result = aggregate_inquiry(self.context, course)
+		if self.context.closed:
+			container = ICourseAggregatedInquiries(course)
+			result = container[self.context.ntiid]
+		else:
+			result = aggregate_inquiry(self.context, course)
 		return result

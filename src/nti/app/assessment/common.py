@@ -140,11 +140,17 @@ def get_course_assessment_items(context):
 			assessments.extend(iterable)
 	return assessments or ()
 
+def get_available_for_submission_beginning(context, assesment):
+	course = ICourseInstance(context)
+	dates = IQAssessmentDateContext(course)
+	result = dates.of(assesment).available_for_submission_beginning
+	return result
+
 def get_available_for_submission_ending(context, assesment):
 	course = ICourseInstance(context)
 	dates = IQAssessmentDateContext(course)
-	due_date = dates.of(assesment).available_for_submission_ending
-	return due_date
+	result = dates.of(assesment).available_for_submission_ending
+	return result
 
 # assignment
 

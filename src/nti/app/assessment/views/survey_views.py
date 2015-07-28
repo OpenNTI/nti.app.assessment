@@ -5,6 +5,7 @@
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
+from nti.app.assessment.interfaces import ICourseAggregatedInquiries
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -45,6 +46,7 @@ from ..common import aggregate_inquiry
 from ..common import can_disclose_inquiry
 from ..common import get_course_from_inquiry
 from ..common import get_available_for_submission_ending
+from ..common import get_available_for_submission_beginning
 
 from ..interfaces import IUsersCourseInquiry
 from ..interfaces import IUsersCourseInquiries
@@ -92,14 +94,33 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 			ex.field = IQPollSubmission['parts']
 			raise ex
 
+	def _check_submission_before(self, course):
+		beginning = get_available_for_submission_beginning(course, self.context)
+		if beginning is not None and datetime.datetime.utcnow() < beginning:
+			ex = ConstraintNotSatisfied("Submitting too early")
+			ex.field = IQSubmittable['available_for_submission_beginning']
+			ex.value = beginning
+			raise ex
+		
+	def _check_submission_ending(self, course):
+		ending = get_available_for_submission_ending(course, self.context)
+		if ending is not None and datetime.utcnow() > ending:
+			ex = ConstraintNotSatisfied(_("Submitting too late."))
+			ex.field = IQSubmittable['available_for_submission_ending']
+			raise ex
+
+	def _check_inquiry_close(self):
+		if self.context.closed:
+			ex = ConstraintNotSatisfied(_("Inquiry has been closed."))
+			ex.field = IQInquiry['closed']
+			raise ex
+		
 	def _do_call(self):
 		course = self.course
 		creator = self.remoteUser
-		ending = get_available_for_submission_ending(course, self.context)
-		if ending and datetime.utcnow() > ending:
-			ex = ConstraintNotSatisfied(_("Inquiry has been closed."))
-			ex.field = IQSubmittable['available_for_submission_ending']
-			raise ex
+		self._check_inquiry_close()
+		self._check_submission_before(course)
+		self._check_submission_ending(course)
 
 		submission = self.readCreateUpdateContentObject(creator)
 
@@ -176,6 +197,44 @@ class InquiryItemDeleteView(UGDDeleteView):
 	def _do_delete_object(self, theObject):
 		del theObject.__parent__[theObject.__name__]
 		return theObject
+
+@view_config(route_name="objects.generic.traversal",
+			 context=IQInquiry,
+			 renderer='rest',
+			 request_method='POST',
+			 permission=nauth.ACT_READ,
+			 name="close")
+class InquiryCloseView(AbstractAuthenticatedView, InquiryViewMixin):
+
+	def __call__(self):
+		course = self.course
+		if not is_course_instructor(course, self.remoteUser):
+			raise hexc.HTTPForbidden(_("Cannot close inquiry."))
+		self.context.closed = True
+		result = aggregate_inquiry(self.context, course)
+		container = ICourseAggregatedInquiries(course)
+		container[self.context.ntiid] = result
+		return result
+	
+@view_config(route_name="objects.generic.traversal",
+			 context=IQInquiry,
+			 renderer='rest',
+			 request_method='POST',
+			 permission=nauth.ACT_READ,
+			 name="open")
+class InquiryOpenView(AbstractAuthenticatedView, InquiryViewMixin):
+
+	def __call__(self):
+		course = self.course
+		if not is_course_instructor(course, self.remoteUser):
+			raise hexc.HTTPForbidden(_("Cannot close inquiry."))
+		self.context.closed = False
+		try:
+			container = ICourseAggregatedInquiries(course)
+			del container[self.context.ntiid]
+		except KeyError:
+			pass
+		return hexc.HTTPNoContent()
 
 @view_config(route_name="objects.generic.traversal",
 			 context=IQInquiry,

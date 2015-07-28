@@ -65,7 +65,7 @@ from .interfaces import IUsersCourseInquiry
 from .interfaces import ICourseInquiryCatalog
 from .interfaces import IUsersCourseInquiries
 from .interfaces import IUsersCourseInquiryItem
-from .interfaces import ICourseAggregatedSurveys
+from .interfaces import ICourseAggregatedInquiries
 
 LINKS = StandardExternalFields.LINKS
 
@@ -244,7 +244,7 @@ class _DefaultCourseInquiryCatalog(object):
 		result = get_course_inquiries(self.context)
 		return result
 
-@interface.implementer(ICourseAggregatedSurveys)
+@interface.implementer(ICourseAggregatedInquiries)
 class CourseAggregatedSurveys(CheckingLastModifiedBTreeContainer):
 	
 	__external_can_create__ = False
@@ -263,7 +263,7 @@ class CourseAggregatedSurveys(CheckingLastModifiedBTreeContainer):
 		return acl_from_aces( aces )
 	
 @component.adapter(ICourseInstance)
-@interface.implementer(ICourseAggregatedSurveys)
+@interface.implementer(ICourseAggregatedInquiries)
 def _aggreated_inquiries_for_course(course):
 	annotations = IAnnotations(course)
 	try:

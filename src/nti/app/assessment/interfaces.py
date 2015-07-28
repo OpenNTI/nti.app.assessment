@@ -456,9 +456,9 @@ class ICourseInquiryCatalog(interface.Interface):
 		content unit in their lineage.
 		"""
 
-class ICourseAggregatedSurveys(IContainer,
-						  		IContained,
-						  		IShouldHaveTraversablePath):
+class ICourseAggregatedInquiries(IContainer,
+						  		 IContained,
+						  		 IShouldHaveTraversablePath):
 	"""
 	A container for all the aggreated survey and polls key by their ntiids
 	"""

@@ -104,7 +104,7 @@ def _assignment_submission_transformer(request, obj):
 
 	result = request.response = HTTPCreated()
 	# TODO: Shouldn't this be the external NTIID? This is what ugd_edit_views does though
-	result.location = request.resource_url(obj.creator,
+	result.location = request.resource_url(	obj.creator,
 											'Objects',
 											to_external_oid(pending))
 	# TODO: Assuming things about the client and renderer.

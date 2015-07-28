@@ -15,6 +15,7 @@ from . import MessageFactory as _
 from datetime import datetime
 
 from zope import component
+from zope import interface
 
 from zope.schema.interfaces import NotUnique
 from zope.schema.interfaces import RequiredMissing
@@ -23,6 +24,7 @@ from zope.schema.interfaces import ConstraintNotSatisfied
 from pyramid.view import view_config
 from pyramid import httpexceptions as hexc
 
+from nti.app.renderers.interfaces import INoHrefInResponse
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
@@ -42,6 +44,10 @@ from nti.common.property import Lazy
 
 from nti.dataserver import authorization as nauth
 
+from nti.externalization.oids import to_external_ntiid_oid
+from nti.externalization.interfaces import LocatedExternalDict
+from nti.externalization.externalization import to_external_object
+
 from ..common import aggregate_inquiry
 from ..common import can_disclose_inquiry
 from ..common import get_course_from_inquiry
@@ -52,9 +58,11 @@ from ..interfaces import IUsersCourseInquiry
 from ..interfaces import IUsersCourseInquiries
 from ..interfaces import IUsersCourseInquiryItem
 
+from . import get_ds2
+
 def allow_to_disclose_inquiry(context, course, user):
 	if not is_course_instructor(course, user):
-		if not can_disclose_inquiry(context):
+		if not can_disclose_inquiry(context, course):
 			return False
 	return True
 
@@ -151,7 +159,17 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 
 		# Now record the submission.
 		self.request.response.status_int = 201
-		result = course_inquiry.recordSubmission(submission)
+		recorded = course_inquiry.recordSubmission(submission)
+		result = LocatedExternalDict()
+		result['Submission'] = recorded
+		if allow_to_disclose_inquiry(self.context, course, self.remoteUser):
+			result['Aggregated'] = aggregate_inquiry(self.context, course, recorded)
+
+		result = to_external_object(result)
+		result['href'] = "/%s/Objects/%s" % (get_ds2(self.request), 
+											 to_external_ntiid_oid(recorded))
+		interface.alsoProvides(result, INoHrefInResponse)
+		
 		return result
 
 @view_config(route_name="objects.generic.traversal",

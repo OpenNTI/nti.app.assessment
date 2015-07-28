@@ -28,7 +28,6 @@ from zope.container.contained import Contained
 from zope.location.interfaces import ISublocations
 
 from nti.assessment.interfaces import IQAssignment
-from nti.assessment.interfaces import IQAssessmentPolicies
 
 from nti.common.property import alias
 from nti.common.property import readproperty
@@ -63,6 +62,7 @@ from nti.zodb.minmax import NumericPropertyDefaultingToZero
 from ._submission import set_submission_lineage
 
 from .common import get_available_for_submission_ending
+from .common import get_policy_for_assessment as _get_policy_for_assignment
 
 from .feedback import UsersCourseAssignmentHistoryItemFeedbackContainer
 
@@ -148,11 +148,6 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 									 UsersCourseAssignmentHistory))
 		aces.append(ACE_DENY_ALL)
 		return acl_from_aces(aces)
-
-def _get_policy_for_assignment(course, asg_id):
-	policies = IQAssessmentPolicies(course)
-	policy = policies.getPolicyForAssessment(asg_id)
-	return policy
 
 @interface.implementer(IUsersCourseAssignmentHistoryItem,
 					   IACLProvider,

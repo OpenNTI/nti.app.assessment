@@ -127,15 +127,17 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
 	def _check_submission(self, res, inquiry=None, containerId=None):
 		assert_that(res.status_int, is_(201))
-		assert_that(res.json_body, has_entry(StandardExternalFields.CREATED_TIME, is_(float)))
-		assert_that(res.json_body, has_entry(StandardExternalFields.LAST_MODIFIED, is_(float)))
-		assert_that(res.json_body, has_entry(StandardExternalFields.MIMETYPE, 
-											 'application/vnd.nextthought.assessment.userscourseinquiryitem' ) )
-
 		assert_that(res.json_body, has_key('Submission'))
 		assert_that(res.json_body, has_entry('href', is_not(none())))
 		
 		submission = res.json_body['Submission']
+		assert_that(submission, has_entry(StandardExternalFields.CREATED_TIME, is_(float)))
+		assert_that(submission, has_entry(StandardExternalFields.LAST_MODIFIED, is_(float)))
+		assert_that(submission, has_entry(StandardExternalFields.MIMETYPE, 
+										 'application/vnd.nextthought.assessment.userscourseinquiryitem' ) )
+
+		assert_that(submission, has_key('Submission'))	
+		submission = submission['Submission']
 		if containerId:
 			assert_that(submission, has_entry('ContainerId', containerId ))
 		assert_that(submission, has_entry( StandardExternalFields.CREATED_TIME, is_( float ) ) )

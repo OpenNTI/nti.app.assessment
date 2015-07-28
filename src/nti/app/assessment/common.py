@@ -23,6 +23,7 @@ from zope.schema.interfaces import RequiredMissing
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAggregatedInquiry
+from nti.assessment.interfaces import IQAssessmentPolicies
 from nti.assessment.interfaces import IQAssessmentDateContext
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
@@ -139,6 +140,12 @@ def get_course_assessment_items(context):
 		else:
 			assessments.extend(iterable)
 	return assessments or ()
+
+def get_policy_for_assessment(context, asm_id):
+	course = ICourseInstance(context)
+	policies = IQAssessmentPolicies(course)
+	policy = policies.getPolicyForAssessment(asm_id)
+	return policy
 
 def get_available_for_submission_beginning(context, assesment):
 	course = ICourseInstance(context)
@@ -271,13 +278,21 @@ def get_course_inquiries(context):
 	surveys = [proxy(x, catalog_entry=ntiid) for x in items if IQInquiry.providedBy(x)]
 	return surveys
 
-def can_disclose_inquiry(context):
-	# TODO: Get values from overrides
-	disclosure = context.disclosure
-	not_after = context.available_for_submission_ending
+def can_disclose_inquiry(inquiry, context):
+	course = ICourseInstance(context)
+	policy = get_policy_for_assessment(course, inquiry.ntiid)
+	not_after = get_available_for_submission_ending(course, inquiry)
+	
+	# get disclosure policy
+	if policy and 'disclosure' in policy:
+		disclosure = policy['disclosure'] or inquiry.disclosure
+	else:
+		disclosure = inquiry.disclosure
+	
+	# eval
 	result = disclosure == DISCLOSURE_ALWAYS
 	if not result and disclosure != DISCLOSURE_NEVER:
-		result = not not_after or datetime.utcnow() >= not_after
+		result = not_after and datetime.utcnow() >= not_after
 	return result
 
 def aggregate_inquiry(inquiry, course, *items):

@@ -17,6 +17,7 @@ from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecora
 from nti.app.products.courseware.utils import is_course_instructor
 
 from nti.assessment.interfaces import IQSurvey
+from nti.assessment.interfaces import IQAssessmentDateContext
 
 from nti.common.property import Lazy
 
@@ -25,6 +26,8 @@ from nti.contentlibrary.interfaces import IContentUnit
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 
 from nti.dataserver.interfaces import IUser
+
+from nti.externalization.externalization import to_external_object
 
 from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import IExternalMappingDecorator
@@ -35,6 +38,7 @@ from nti.links.externalization import render_link
 from nti.traversal.traversal import find_interface
 
 from ..common import can_disclose_inquiry
+from ..common import get_policy_for_assessment
 
 from . import _root_url
 from . import _get_course_from_assignment
@@ -92,11 +96,25 @@ class _InquiryLinkDecorator(_AbstractTraversableLinkDecorator):
 		result = component.getUtility(ICourseCatalog)
 		return result
 		
-	def _do_decorate_external( self, context, result_map ):
+	def _do_decorate_external( self, context, result_map):
 		user = self.remoteUser
 		links = result_map.setdefault( LINKS, [] )
 		course = _get_course_from_assignment(context, user, self._catalog)
-
+		
+		# overrides
+		if course is not None:
+			dates = IQAssessmentDateContext(course).of(context)
+			for k in ('available_for_submission_ending',
+					  'available_for_submission_beginning'):
+				asg_date = getattr(context, k)
+				dates_date = getattr(dates, k)
+				if dates_date != asg_date:
+					result_map[k] = to_external_object(dates_date)
+	
+			policy = get_policy_for_assessment(course, context)
+			if policy and 'disclosure' in policy:
+				result_map['disclosure'] = policy['disclosure']
+			
 		# history
 		if course is not None:
 			links.append( Link( course,

@@ -85,7 +85,7 @@ class _InquiryItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			pass # Nope
 
 @interface.implementer(IExternalMappingDecorator)
-class _InquiryHistoryLinkDecorator(_AbstractTraversableLinkDecorator):
+class _InquiryLinkDecorator(_AbstractTraversableLinkDecorator):
 
 	@Lazy
 	def _catalog(self):
@@ -94,27 +94,29 @@ class _InquiryHistoryLinkDecorator(_AbstractTraversableLinkDecorator):
 		
 	def _do_decorate_external( self, context, result_map ):
 		user = self.remoteUser
+		links = result_map.setdefault( LINKS, [] )
 		course = _get_course_from_assignment(context, user, self._catalog)
+
+		# history
 		if course is not None:
-			links = result_map.setdefault( LINKS, [] )
 			links.append( Link( course,
 								rel='History',
 								elements=('Inquiries', user.username, context.ntiid)) )
-
-@interface.implementer(IExternalMappingDecorator)
-class _AggregatedInquiryLinkDecorator(_AbstractTraversableLinkDecorator):
-
-	@Lazy
-	def _catalog(self):
-		result = component.getUtility(ICourseCatalog)
-		return result
-		
-	def _do_decorate_external( self, context, result_map ):
-		user = self.remoteUser
-		course = _get_course_from_assignment(context, user, self._catalog)
+			
+		# aggregated
 		if 	course is not None and \
 			(is_course_instructor(course, user) or can_disclose_inquiry(context)):
-			links = result_map.setdefault( LINKS, [] )
 			links.append( Link( context,
 								rel='Aggregated',
 								elements=('Aggregated')) )
+			
+		# close/open
+		if 	course is not None and is_course_instructor(course, user):
+			if not self.context.closed:
+				links.append( Link( context,
+									rel='close',
+									elements=('close')) )
+			else:
+				links.append( Link( context,
+									rel='open',
+									elements=('open')) )

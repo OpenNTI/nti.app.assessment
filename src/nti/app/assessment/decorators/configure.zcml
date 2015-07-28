@@ -198,12 +198,7 @@
 				for="..interfaces.IUsersCourseInquiryItem
 					 pyramid.interfaces.IRequest" />
 
-	<subscriber factory=".survey._InquiryHistoryLinkDecorator"
-				provides="nti.externalization.interfaces.IExternalObjectDecorator"
-				for="nti.assessment.interfaces.IQInquiry
-					 pyramid.interfaces.IRequest" />
-
-	<subscriber factory=".survey._AggregatedInquiryLinkDecorator"
+	<subscriber factory=".survey._InquiryLinkDecorator"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.assessment.interfaces.IQInquiry
 					 pyramid.interfaces.IRequest" />

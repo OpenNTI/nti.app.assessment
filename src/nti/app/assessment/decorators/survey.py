@@ -17,6 +17,7 @@ from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecora
 from nti.app.products.courseware.utils import is_course_instructor
 
 from nti.assessment.interfaces import IQSurvey
+from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssessmentDateContext
 
 from nti.common.property import Lazy
@@ -97,6 +98,10 @@ class _InquiryLinkDecorator(_AbstractTraversableLinkDecorator):
 		return result
 		
 	def _do_decorate_external( self, context, result_map):
+		context = IQInquiry(context, None)
+		if context is None:
+			return
+
 		user = self.remoteUser
 		links = result_map.setdefault( LINKS, [] )
 		course = _get_course_from_assignment(context, user, self._catalog)

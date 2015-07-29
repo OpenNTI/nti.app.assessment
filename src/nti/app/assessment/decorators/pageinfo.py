@@ -122,7 +122,8 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 				new_result[ntiid] = x
 			elif IQuestionSet.providedBy(x):
 				new_result[ntiid] = x
-				qsids_to_strip.update([q.ntiid for q in x.questions])
+				# CS:20150729 allow the questions to return along with question set
+				# this is for legacy iPad.
 			elif IQSurvey.providedBy(x):
 				new_result[ntiid] = x
 				qsids_to_strip.update([poll.ntiid for poll in x.questions])

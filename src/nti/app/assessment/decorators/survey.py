@@ -139,7 +139,7 @@ class _InquiryLinkDecorator(_AbstractTraversableLinkDecorator):
 			
 		# close/open
 		if course is not None and is_course_instructor(course, user):
-			if not self.context.closed:
+			if not context.closed:
 				links.append( Link( context,
 									rel='close',
 									elements=('close',)) )

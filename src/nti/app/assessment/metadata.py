@@ -10,6 +10,7 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 import six
+import time
 
 from zope import component
 from zope import interface
@@ -66,6 +67,7 @@ from nti.traversal.traversal import ContainerAdapterTraversable
 from nti.wref.interfaces import IWeakRef
 
 from .interfaces import IUsersCourseAssignmentMetadata
+from .interfaces import IUsersCourseAssignmentHistoryItem
 from .interfaces import IUsersCourseAssignmentMetadataItem
 from .interfaces import IUsersCourseAssignmentMetadataContainer
 
@@ -272,21 +274,14 @@ class _UsersCourseMetadataContainerTraversable(ContainerAdapterTraversable):
 class _UsersCourseMetadataTraversable(ContainerAdapterTraversable):
 
 	def traverse(self, key, remaining_path):
-		try:
-			return super(_UsersCourseMetadataTraversable, self).traverse(key, remaining_path)
-		except LocationError:
-			assesment = component.queryUtility(IQAssessment, name=key)
-			if assesment is not None:
-				return assesment
-			raise
+		assesment = component.queryUtility(IQAssessment, name=key)
+		if assesment is not None:
+			return assesment
+		raise
 
 @component.adapter(ICourseInstance, IObjectAddedEvent)
 def _on_course_added(course, event):
 	_metadatacontainer_for_course(course)
-
-import time
-
-from .interfaces import IUsersCourseAssignmentHistoryItem
 
 @component.adapter(IUsersCourseAssignmentHistoryItem, IObjectAddedEvent)
 def _on_assignment_history_item_added(item, event):

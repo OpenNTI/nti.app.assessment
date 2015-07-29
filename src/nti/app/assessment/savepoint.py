@@ -64,6 +64,7 @@ from ._submission import transfer_upload_ownership
 
 from .interfaces import IUsersCourseAssignmentSavepoint
 from .interfaces import IUsersCourseAssignmentSavepoints
+from .interfaces import IUsersCourseAssignmentHistoryItem
 from .interfaces import IUsersCourseAssignmentSavepointItem
 
 LINKS = StandardExternalFields.LINKS
@@ -256,19 +257,14 @@ class _UsersCourseAssignmentSavepointsTraversable(ContainerAdapterTraversable):
 class _UsersCourseAssignmentSavepointTraversable(ContainerAdapterTraversable):
 
 	def traverse(self, key, remaining_path):
-		try:
-			return super(_UsersCourseAssignmentSavepointTraversable, self).traverse(key, remaining_path)
-		except LocationError:
-			assesment = component.queryUtility(IQAssessment, name=key)
-			if assesment is not None:
-				return assesment
-			raise
+		assesment = component.queryUtility(IQAssessment, name=key)
+		if assesment is not None:
+			return assesment
+		raise
 
 @component.adapter(ICourseInstance, IObjectAddedEvent)
 def _on_course_added(course, event):
 	_savepoints_for_course(course)
-
-from .interfaces import IUsersCourseAssignmentHistoryItem
 
 def _delete_assignment_save_point(item):
 	user = IUser(item, None)

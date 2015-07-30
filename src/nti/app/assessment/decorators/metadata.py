@@ -3,6 +3,7 @@
 """
 .. $Id$
 """
+
 from __future__ import print_function, unicode_literals, absolute_import, division
 __docformat__ = "restructuredtext en"
 
@@ -36,49 +37,49 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		course = _get_course_from_assignment(assignment, user)
 		if course is None:
 			return
-		
+
 		elements = ('AssignmentMetadata', user.username, assignment.ntiid)
 
 		links = result.setdefault(LINKS, [])
-		links.append( Link( course,
-							rel='Metadata',
-							elements=elements + ('Metadata',)))
-			
+		links.append(Link(course,
+						  rel='Metadata',
+						  elements=elements + ('Metadata',)))
+
 		if IQTimedAssignment.providedBy(assignment):
-			item = get_assessment_metadata_item(course, self.remoteUser, assignment)	
+			item = get_assessment_metadata_item(course, self.remoteUser, assignment)
 			if item is None or item.StartTime is None:
-				links.append( Link( course,
-									method='POST',
-									rel='Commence',
-									elements=elements + ('Commence',)))
+				links.append(Link(course,
+								  method='POST',
+								  rel='Commence',
+								  elements=elements + ('Commence',)))
 			else:
-				links.append( Link( course,
-									method='GET',
-									rel='StartTime',
-									elements=elements + ('StartTime',)))
-						
+				links.append(Link(course,
+								  method='GET',
+								  rel='StartTime',
+								  elements=elements + ('StartTime',)))
+
 @interface.implementer(IExternalMappingDecorator)
 class _AssignmentMetadataContainerDecorator(_AbstractTraversableLinkDecorator):
-	
-	def _do_decorate_external( self, context, result_map ):
-		links = result_map.setdefault( LINKS, [] )
+
+	def _do_decorate_external(self, context, result_map):
+		links = result_map.setdefault(LINKS, [])
 		user = IUser(context, self.remoteUser)
-		links.append( Link( context,
-							rel='AssignmentMetadata',
-							elements=('AssignmentMetadata', user.username)) )
+		links.append(Link(context,
+						  rel='AssignmentMetadata',
+						  elements=('AssignmentMetadata', user.username)))
 
 @interface.implementer(IExternalMappingDecorator)
 class _AssignmentMetadataItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
-	
+
 	def _predicate(self, context, result):
 		creator = context.creator
 		return (AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
 				and creator is not None
 				and creator == self.remoteUser)
-		
-	def _do_decorate_external(self, context, result_map ):
+
+	def _do_decorate_external(self, context, result_map):
 		try:
 			link = Link(context)
-			result_map['href'] = render_link( link )['href']
+			result_map['href'] = render_link(link)['href']
 		except (KeyError, ValueError, AssertionError):
-			pass # Nope
+			pass  # Nope

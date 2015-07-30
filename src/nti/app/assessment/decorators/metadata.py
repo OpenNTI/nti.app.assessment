@@ -37,12 +37,12 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		if course is None:
 			return
 		
-		elements = ('AssignmentMetadata', user.username, assignment.ntiid, 'Metadata')
+		elements = ('AssignmentMetadata', user.username, assignment.ntiid)
 
 		links = result.setdefault(LINKS, [])
 		links.append( Link( course,
 							rel='Metadata',
-							elements=elements))
+							elements=elements + ('Metadata',)))
 			
 		if IQTimedAssignment.providedBy(assignment):
 			item = get_assessment_metadata_item(course, self.remoteUser, assignment)	

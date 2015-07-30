@@ -122,28 +122,32 @@ class _InquiryLinkDecorator(_AbstractTraversableLinkDecorator):
 			if policy and 'disclosure' in policy:
 				result_map['disclosure'] = policy['disclosure']
 			
+		elements=('Inquiries', user.username, context.ntiid)
+		
 		course_inquiry = component.queryMultiAdapter((course, user), 
 													 IUsersCourseInquiry)
 		# history
 		if course is not None and course_inquiry and context.ntiid in course_inquiry:
 			links.append( Link( course,
 								rel='History',
-								elements=('Inquiries', user.username, context.ntiid)) )
+								elements=elements) )
 			
 		# aggregated
 		if 	course is not None and \
 			(is_course_instructor(course, user) or can_disclose_inquiry(context, course)):
-			links.append( Link( context,
+			links.append( Link( course,
 								rel='Aggregated',
-								elements=('Aggregated',)) )
+								elements=elements + ('Aggregated',)) )
 			
 		# close/open
 		if course is not None and is_course_instructor(course, user):
 			if not context.closed:
-				links.append( Link( context,
+				links.append( Link( course,
 									rel='close',
-									elements=('close',)) )
+									method='POST',
+									elements=elements + ('close',)) )
 			else:
-				links.append( Link( context,
+				links.append( Link( course,
 									rel='open',
-									elements=('open',)) )
+									method='POST',
+									elements=elements + ('open',)) )

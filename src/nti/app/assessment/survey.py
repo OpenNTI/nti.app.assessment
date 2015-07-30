@@ -233,6 +233,15 @@ class _UsersCourseInquiriesTraversable(ContainerAdapterTraversable):
 				return _inquiry_for_user_in_course( self.context.__parent__, user)			
 			raise		
 	
+@component.adapter(IUsersCourseInquiry, IRequest)
+class _UsersCourseInquiryTraversable(ContainerAdapterTraversable):
+
+	def traverse(self, key, remaining_path):
+		assesment = component.queryUtility(IQInquiry, name=key)
+		if assesment is not None:
+			return assesment
+		raise
+
 @interface.implementer(ICourseInquiryCatalog)
 @component.adapter(ICourseInstance)
 class _DefaultCourseInquiryCatalog(object):

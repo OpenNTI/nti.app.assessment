@@ -300,6 +300,7 @@
 	<adapter factory=".survey._aggreated_inquiries_for_course" />
 
 	<adapter factory=".survey._DefaultCourseInquiryCatalog" />
+	<adapter factory=".survey._UsersCourseInquiryTraversable" />
 	<adapter factory=".survey._UsersCourseInquiriesTraversable" />
 
 	<subscriber handler=".survey._on_course_added" />

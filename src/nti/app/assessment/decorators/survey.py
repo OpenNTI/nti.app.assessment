@@ -130,7 +130,7 @@ class _InquiryLinkDecorator(_AbstractTraversableLinkDecorator):
 		if course is not None and course_inquiry and context.ntiid in course_inquiry:
 			links.append( Link( course,
 								rel='History',
-								elements=elements) )
+								elements=elements + ('Submission',)) )
 			
 		# aggregated
 		if 	course is not None and \

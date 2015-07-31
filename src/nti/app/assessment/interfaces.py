@@ -440,6 +440,10 @@ class IUsersCourseInquiryItem(IContained,
 	inquiryId = ValidTextLine(title="Survey/Poll id", required=False)
 	inquiryId.setTaggedValue('_ext_excluded_out', True)
 
+class IUsersCourseInquiryItemResponse(interface.Interface):
+	Submission = Object(IUsersCourseInquiryItem, required=True)
+	Aggregated = Object(IQAggregatedInquiry, required=False)
+
 class ICourseInquiryCatalog(interface.Interface):
 	"""
 	Provides access to the surveys/polls related to a course.

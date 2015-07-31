@@ -44,7 +44,6 @@ from nti.common.property import Lazy
 from nti.dataserver import authorization as nauth
 
 from nti.externalization.oids import to_external_ntiid_oid
-from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.externalization import to_external_object
 
 from ..common import aggregate_inquiry
@@ -57,6 +56,8 @@ from ..interfaces import IUsersCourseInquiry
 from ..interfaces import IUsersCourseInquiries
 from ..interfaces import IUsersCourseInquiryItem
 from ..interfaces import ICourseAggregatedInquiries
+
+from ..survey import UsersCourseInquiryItemResponse
 
 from . import get_ds2
 
@@ -160,10 +161,9 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 		# Now record the submission.
 		self.request.response.status_int = 201
 		recorded = course_inquiry.recordSubmission(submission)
-		result = LocatedExternalDict()
-		result['Submission'] = recorded
+		result = UsersCourseInquiryItemResponse(Submission=recorded)
 		if allow_to_disclose_inquiry(self.context, course, self.remoteUser):
-			result['Aggregated'] = aggregate_inquiry(self.context, course, recorded)
+			result.Aggregated = aggregate_inquiry(self.context, course, recorded)
 
 		result = to_external_object(result)
 		result['href'] = "/%s/Objects/%s" % (get_ds2(self.request), 

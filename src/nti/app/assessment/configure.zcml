@@ -307,7 +307,8 @@
 
 	<ext:registerAutoPackageIO
 		root_interfaces=".interfaces.IUsersCourseInquiry
-						 .interfaces.IUsersCourseInquiryItem"
+						 .interfaces.IUsersCourseInquiryItem
+						 .interfaces.IUsersCourseInquiryItemResponse"
 		modules=".survey" />
 
 	<!-- Notables -->

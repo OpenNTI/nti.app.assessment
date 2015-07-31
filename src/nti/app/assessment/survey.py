@@ -5,6 +5,7 @@
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
+from nti.app.assessment.interfaces import IUsersCourseInquiryItemResponse
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -177,6 +178,10 @@ class UsersCourseInquiryItem(PersistentCreatedModDateTrackingObject,
 	def sublocations(self):
 		if self.Submission is not None:
 			yield self.Submission
+
+@interface.implementer(IUsersCourseInquiryItemResponse)
+class UsersCourseInquiryItemResponse(SchemaConfigured):
+	createDirectFieldProperties(IUsersCourseInquiryItemResponse)
 
 @component.adapter(ICourseInstance)
 @interface.implementer(IUsersCourseInquiries)

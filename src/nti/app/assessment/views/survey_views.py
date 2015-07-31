@@ -5,7 +5,6 @@
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
-from nti.app.assessment.interfaces import ICourseAggregatedInquiries
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -57,6 +56,7 @@ from ..common import get_available_for_submission_beginning
 from ..interfaces import IUsersCourseInquiry
 from ..interfaces import IUsersCourseInquiries
 from ..interfaces import IUsersCourseInquiryItem
+from ..interfaces import ICourseAggregatedInquiries
 
 from . import get_ds2
 
@@ -104,7 +104,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 
 	def _check_submission_before(self, course):
 		beginning = get_available_for_submission_beginning(course, self.context)
-		if beginning is not None and datetime.datetime.utcnow() < beginning:
+		if beginning is not None and datetime.utcnow() < beginning:
 			ex = ConstraintNotSatisfied("Submitting too early")
 			ex.field = IQSubmittable['available_for_submission_beginning']
 			ex.value = beginning

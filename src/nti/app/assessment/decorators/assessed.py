@@ -83,9 +83,9 @@ class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		except IndexError:
 			return
 		
-		## CS: for instructors we no longer randomized the questions
-		## since the submittedResponse is stored randomized 
-		## we unshuffle it, so the instructor can see the correct answer
+		# CS: for instructors we no longer randomized the questions
+		# since the submittedResponse is stored randomized 
+		# we unshuffle it, so the instructor can see the correct answer
 		if IQRandomizedPart.providedBy(question_part):
 			response = context.submittedResponse
 			if response is not None:
@@ -93,8 +93,8 @@ class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):
 				grader = grader_for_response(question_part, response)
 				assert grader is not None
 				
-				## CS: We need the user that submitted the question
-				## in order to unshuffle the response
+				# CS: We need the user that submitted the question
+				# in order to unshuffle the response
 				creator = uca_history.creator 
 				response = grader.unshuffle(response,
 											user=creator, 
@@ -128,8 +128,8 @@ class _QuestionSubmissionDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		if len(question.parts) != len(context.parts):
 			logger.warn("Not all question parts were submitted")
 
-		## CS: We need the user that submitted the question
-		## in order to unshuffle the response
+		# CS: We need the user that submitted the question
+		# in order to unshuffle the response
 		creator = uca_history.creator 
 		parts = result_map['parts'] = []
 		for question_part, sub_part in zip(question.parts, context.parts):

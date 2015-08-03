@@ -49,6 +49,8 @@ from ..common import get_assessment_metadata_item
 from .._utils import assignment_download_precondition
 
 from ..interfaces import ACT_VIEW_SOLUTIONS
+from ..interfaces import IUsersCourseAssignmentHistory
+from ..interfaces import IUsersCourseAssignmentSavepoint
 
 from . import _root_url
 from . import _get_course_from_assignment
@@ -218,15 +220,35 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 
 	@classmethod
 	def needs_stripped(cls, context, request, remoteUser):
-		course = None
 		due_date = None
 		if context is not None:
 			course = _get_course_from_assignment(context, remoteUser)
-			if course is not None:
-				due_date = IQAssignmentDateContext(course).of(context).available_for_submission_ending
-			else:
-				due_date = context.available_for_submission_ending
+		else:
+			course = None
+
+		if course is not None:
+			dates = IQAssignmentDateContext(course)
+			due_date = dates.of(context).available_for_submission_ending
+		else:
+			due_date = context.available_for_submission_ending
+
 		if not due_date or due_date <= datetime.utcnow():
+			# if a student check if there is no submission for the assignment
+			# make sure there is not a save point (which indicates it has been started)
+			if 	course is not None and not is_course_instructor(course, remoteUser) and \
+				IQAssignment.providedBy(context):
+				
+				history = component.queryMultiAdapter((course, remoteUser),
+											  		  IUsersCourseAssignmentHistory)
+				if history and context.ntiid in history: # there is a submission
+					return False
+
+				# check if there is a savepoint
+				savepoint = component.queryMultiAdapter((course, remoteUser),
+											  		 	IUsersCourseAssignmentSavepoint)
+				if savepoint and context.ntiid in savepoint:
+					return True
+
 			# No due date, nothing to do
 			# Past the due date, nothing to do
 			return False
@@ -242,13 +264,13 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 		return True
 
 	@classmethod
-	def strip(cls,item):
-		_cls = item.get('Class')
-		if _cls in ('Question','AssessedQuestion'):
+	def strip(cls, item):
+		clazz = item.get('Class')
+		if clazz in ('Question', 'AssessedQuestion'):
 			for part in item['parts']:
 				part['solutions'] = None
 				part['explanation'] = None
-		elif _cls in ('QuestionSet','AssessedQuestionSet'):
+		elif clazz in ('QuestionSet', 'AssessedQuestionSet'):
 			for q in item['questions']:
 				cls.strip(q)
 

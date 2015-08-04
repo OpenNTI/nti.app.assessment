@@ -39,6 +39,7 @@ from nti.dataserver.interfaces import ACE_DENY_ALL
 from nti.dataserver.interfaces import ALL_PERMISSIONS
 
 from nti.dataserver.users import User
+from nti.dataserver.authorization import ACT_READ
 from nti.dataserver.interfaces import IACLProvider
 
 from nti.dataserver.authorization_acl import ace_allowing
@@ -152,6 +153,12 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 	def __acl__(self):
 		aces = [ace_allowing(self.owner, ALL_PERMISSIONS,
 							 UsersCourseAssignmentSavepoint)]
+		
+		course = ICourseInstance(self, None)
+		instructors = getattr(course, 'instructors', ())  # already principals
+		for instructor in instructors:
+			aces.append(ace_allowing(instructor, ACT_READ,
+									 UsersCourseAssignmentSavepoint))
 		aces.append(ACE_DENY_ALL)
 		return acl_from_aces(aces)
 

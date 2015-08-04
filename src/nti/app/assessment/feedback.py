@@ -11,12 +11,16 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+from zope import component
 from zope import interface
 
 from zope.annotation.interfaces import IAttributeAnnotatable
 
 from zope.container.constraints import checkObject
 from zope.container.ordered import OrderedContainer
+from zope.container.interfaces import IContainerModifiedEvent
+
+from zope.lifecycleevent.interfaces import IObjectModifiedEvent
 
 from zope.mimetype.interfaces import IContentTypeAware
 
@@ -151,10 +155,6 @@ class UsersCourseAssignmentHistoryItemFeedbackContainer(PersistentCreatedModDate
 		# our default ACL provider uses that.
 		# If the user is deleted, we won't be able to do this
 		return IUser(self.__parent__, None)
-
-from zope import component
-from zope.container.interfaces import IContainerModifiedEvent
-from zope.lifecycleevent.interfaces import IObjectModifiedEvent
 
 @component.adapter(IUsersCourseAssignmentHistoryItemFeedbackContainer,
 				   IContainerModifiedEvent)

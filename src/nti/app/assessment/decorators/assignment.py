@@ -226,11 +226,12 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 		else:
 			course = None
 
-		if course is not None:
-			dates = IQAssignmentDateContext(course)
-			due_date = dates.of(context).available_for_submission_ending
-		else:
-			due_date = context.available_for_submission_ending
+		if context is not None:
+			if course is not None:
+				dates = IQAssignmentDateContext(course)
+				due_date = dates.of(context).available_for_submission_ending
+			else:
+				due_date = context.available_for_submission_ending
 
 		if not due_date or due_date <= datetime.utcnow():
 			# if a student check if there is no submission for the assignment

@@ -50,7 +50,6 @@ from .._utils import assignment_download_precondition
 
 from ..interfaces import ACT_VIEW_SOLUTIONS
 from ..interfaces import IUsersCourseAssignmentHistory
-from ..interfaces import IUsersCourseAssignmentSavepoint
 
 from . import _root_url
 from . import _get_course_from_assignment
@@ -234,25 +233,19 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 				due_date = context.available_for_submission_ending
 
 		if not due_date or due_date <= datetime.utcnow():
-			# if a student check if there is no submission for the assignment
-			# make sure there is not a save point (which indicates it has been started)
-			if 	course is not None and not is_course_instructor(course, remoteUser) and \
-				IQAssignment.providedBy(context):
-				
+			
+			if course is not None and is_course_instructor(course, remoteUser):
+				return False
+			
+			# if student check if there is a submission for the assignment
+			if course is not None and IQAssignment.providedBy(context):
 				history = component.queryMultiAdapter((course, remoteUser),
 											  		  IUsersCourseAssignmentHistory)
 				if history and context.ntiid in history: # there is a submission
 					return False
 
-				# check if there is a savepoint
-				savepoint = component.queryMultiAdapter((course, remoteUser),
-											  		 	IUsersCourseAssignmentSavepoint)
-				if savepoint and context.ntiid in savepoint:
-					return True
-
-			# No due date, nothing to do
-			# Past the due date, nothing to do
-			return False
+			# Nothing done always strip
+			return True
 
 		if course is None:
 			logger.warn("could not adapt %s to course", context)

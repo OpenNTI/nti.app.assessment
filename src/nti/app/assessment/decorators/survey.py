@@ -113,6 +113,12 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 		result = catalog.apply(query) or ()
 		return len(result)
 			
+	def _predicate(self, context, result):
+		context = IQInquiry(context, None)
+		if context is not None:
+			return super(_InquiryDecorator, self)._predicate(context, result)
+		return False
+		
 	def _do_decorate_external( self, context, result_map):
 		source = context
 		context = IQInquiry(source, None)

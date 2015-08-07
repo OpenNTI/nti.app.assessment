@@ -24,7 +24,8 @@ from nti.common.property import Lazy
 
 from nti.contentlibrary.interfaces import IContentUnit
 
-from nti.contenttypes.courses.interfaces import ICourseCatalog
+from nti.contenttypes.courses.interfaces import ICourseCatalog,\
+	ICourseCatalogEntry
 
 from nti.dataserver.interfaces import IUser
 
@@ -42,6 +43,11 @@ from ..common import can_disclose_inquiry
 from ..common import get_policy_for_assessment
 
 from ..interfaces import IUsersCourseInquiry
+
+from ..index import IX_COURSE
+from ..index import IX_ASSESSMENT_ID
+
+from .. import get_catalog
 
 from . import _root_url
 from . import _get_course_from_assignment
@@ -92,15 +98,24 @@ class _InquiryItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			pass # Nope
 
 @interface.implementer(IExternalMappingDecorator)
-class _InquiryLinkDecorator(_AbstractTraversableLinkDecorator):
+class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 
 	@Lazy
 	def _catalog(self):
 		result = component.getUtility(ICourseCatalog)
 		return result
 		
+	def _submissions(self, course, context):
+		catalog = get_catalog()
+		entry = ICourseCatalogEntry(course)
+		query = { IX_COURSE: {'any_of':(entry.ntiid,)},
+				  IX_ASSESSMENT_ID : {'any_of':(context.ntiid,)}}
+		result = catalog.apply(query) or ()
+		return len(result)
+			
 	def _do_decorate_external( self, context, result_map):
-		context = IQInquiry(context, None)
+		source = context
+		context = IQInquiry(source, None)
 		if context is None:
 			return
 
@@ -121,7 +136,9 @@ class _InquiryLinkDecorator(_AbstractTraversableLinkDecorator):
 			policy = get_policy_for_assessment(course, context)
 			if policy and 'disclosure' in policy:
 				result_map['disclosure'] = policy['disclosure']
-			
+		
+			result_map['submissions'] = self._submissions(course, context)
+		
 		elements=('Inquiries', user.username, context.ntiid)
 		
 		course_inquiry = component.queryMultiAdapter((course, user), 

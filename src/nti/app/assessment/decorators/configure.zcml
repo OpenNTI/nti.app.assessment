@@ -198,13 +198,13 @@
 				for="..interfaces.IUsersCourseInquiryItem
 					 pyramid.interfaces.IRequest" />
 
-	<subscriber factory=".survey._InquiryLinkDecorator"
+	<subscriber factory=".survey._InquiryDecorator"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.assessment.interfaces.IQInquiry
 					 pyramid.interfaces.IRequest" />
 
 	<configure zcml:condition="installed nti.app.contenttypes.presentation">
-		<subscriber factory=".survey._InquiryLinkDecorator"
+		<subscriber factory=".survey._InquiryDecorator"
 					provides="nti.externalization.interfaces.IExternalObjectDecorator"
 					for="nti.contenttypes.presentation.interfaces.INTISurveyRef
 						 pyramid.interfaces.IRequest" />

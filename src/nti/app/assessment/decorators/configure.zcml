@@ -203,6 +203,13 @@
 				for="nti.assessment.interfaces.IQInquiry
 					 pyramid.interfaces.IRequest" />
 
+	<configure zcml:condition="installed nti.app.contenttypes.presentation">
+		<subscriber factory=".survey._InquiryLinkDecorator"
+					provides="nti.externalization.interfaces.IExternalObjectDecorator"
+					for="nti.contenttypes.presentation.interfaces.INTISurveyRef
+						 pyramid.interfaces.IRequest" />
+	</configure>
+	
 	<!-- lineage -->
 	<subscriber factory=".lineage._ContextCatalogEntryDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"

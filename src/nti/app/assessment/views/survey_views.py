@@ -153,12 +153,12 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 		creator = submission.creator
 		course_inquiry = component.getMultiAdapter((course, creator),
 												   IUsersCourseInquiry)
-		submission.containerId = submission.id
+		submission.containerId = submission.inquiryId
 
-		if submission.id in course_inquiry:
+		if submission.inquiryId in course_inquiry:
 			ex = NotUnique(_("Inquiry already submitted"))
-			ex.field = IQInquirySubmission['id']
-			ex.value = submission.id
+			ex.field = IQInquirySubmission['inquiryId']
+			ex.value = submission.inquiryId
 			raise ex
 
 		# Now record the submission.
@@ -285,7 +285,7 @@ class InquirySubmisionPostView(UGDPostView):
 
 	def __call__(self):
 		result = super(InquirySubmisionPostView, self).__call__()
-		inquiry = component.getUtility(IQInquiry, name=self.context.id)
+		inquiry = component.getUtility(IQInquiry, name=self.context.inquiryId)
 		if can_disclose_inquiry(inquiry):
 			mimeType = self.context.mimeType
 			containerId = self.context.containerId

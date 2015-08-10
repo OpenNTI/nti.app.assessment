@@ -105,11 +105,11 @@ class UsersCourseInquiry(CheckingLastModifiedBTreeContainer):
 		submission.__parent__ = item
 		set_inquiry_submission_lineage(submission)
 		
-		self[submission.id] = item
+		self[submission.inquiryId] = item
 		return item
 
 	def removeSubmission(self, submission):
-		inquiryId = getattr(submission, 'id', str(submission))
+		inquiryId = getattr(submission, 'inquiryId', str(submission))
 		if inquiryId not in self:
 			return
 		del self[inquiryId]

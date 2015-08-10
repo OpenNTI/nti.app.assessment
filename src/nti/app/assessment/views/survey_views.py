@@ -100,7 +100,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 	content_predicate = IQInquirySubmission.providedBy
 
 	def _check_poll_submission(self, submission):
-		poll = component.getUtility(IQPoll, name=submission.id)
+		poll = component.getUtility(IQPoll, name=submission.inquiryId)
 		if len(poll.parts) != len(submission.parts):
 			ex = ConstraintNotSatisfied(_("Incorrect submission parts."))
 			ex.field = IQPollSubmission['parts']
@@ -138,7 +138,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 
 		# Check that the submission has something for all polls
 		if IQSurveySubmission.providedBy(submission):
-			survey = component.getUtility(IQSurvey, name=submission.id)
+			survey = component.getUtility(IQSurvey, name=submission.inquiryId)
 			survey_poll_ids = [poll.ntiid for poll in survey.questions]
 			submission_poll_ids = [poll.pollId for poll in submission.questions]
 			if sorted(survey_poll_ids) != sorted(submission_poll_ids):

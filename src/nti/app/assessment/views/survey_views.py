@@ -29,6 +29,7 @@ from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtils
 
 from nti.app.products.courseware.utils import is_course_instructor
 
+from nti.appserver.ugd_edit_views import UGDPutView
 from nti.appserver.ugd_edit_views import UGDPostView
 from nti.appserver.ugd_edit_views import UGDDeleteView
 
@@ -48,6 +49,7 @@ from nti.externalization.oids import to_external_ntiid_oid
 from nti.externalization.externalization import to_external_object
 
 from ..common import can_disclose_inquiry
+from ..common import aggregate_page_inquiry
 from ..common import get_course_from_inquiry
 from ..common import aggregate_course_inquiry
 from ..common import get_available_for_submission_ending
@@ -111,7 +113,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 			ex.field = IQSubmittable['available_for_submission_beginning']
 			ex.value = beginning
 			raise ex
-		
+
 	def _check_submission_ending(self, course):
 		ending = get_available_for_submission_ending(self.context, course)
 		if ending is not None and datetime.utcnow() > ending:
@@ -124,7 +126,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 			ex = ConstraintNotSatisfied(_("Inquiry has been closed."))
 			ex.field = IQInquiry['closed']
 			raise ex
-		
+
 	def _do_call(self):
 		course = self.course
 		creator = self.remoteUser
@@ -149,7 +151,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 			self._check_poll_submission(submission)
 
 		creator = submission.creator
-		course_inquiry = component.getMultiAdapter((course, creator), 
+		course_inquiry = component.getMultiAdapter((course, creator),
 												   IUsersCourseInquiry)
 		submission.containerId = submission.id
 
@@ -167,10 +169,10 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 			result.Aggregated = aggregate_course_inquiry(self.context, course, recorded)
 
 		result = to_external_object(result)
-		result['href'] = "/%s/Objects/%s" % (get_ds2(self.request), 
+		result['href'] = "/%s/Objects/%s" % (get_ds2(self.request),
 											 to_external_ntiid_oid(recorded))
 		interface.alsoProvides(result, INoHrefInResponse)
-		
+
 		return result
 
 @view_config(route_name="objects.generic.traversal",
@@ -184,7 +186,7 @@ class InquirySubmissionGetView(AbstractAuthenticatedView, InquiryViewMixin):
 	def __call__(self):
 		course = self.course
 		creator = self.remoteUser
-		course_inquiry = component.getMultiAdapter((course, creator), 
+		course_inquiry = component.getMultiAdapter((course, creator),
 												   IUsersCourseInquiry)
 		try:
 			result = course_inquiry[self.context.ntiid]
@@ -234,7 +236,7 @@ class InquiryCloseView(AbstractAuthenticatedView, InquiryViewMixin):
 		container = ICourseAggregatedInquiries(course)
 		container[self.context.ntiid] = result
 		return result
-	
+
 @view_config(route_name="objects.generic.traversal",
 			 context=IQInquiry,
 			 renderer='rest',
@@ -280,6 +282,22 @@ class InquiryAggregatedGetView(AbstractAuthenticatedView, InquiryViewMixin):
 			 permission=nauth.ACT_READ,
 			 request_method='POST')
 class InquirySubmisionPostView(UGDPostView):
+
 	def __call__(self):
 		result = super(InquirySubmisionPostView, self).__call__()
+		inquiry = component.getUtility(IQInquiry, name=self.context.id)
+		if can_disclose_inquiry(inquiry):
+			mimeType = self.context.mimeType
+			containerId = self.context.containerId
+			result = aggregate_page_inquiry(containerId, mimeType, self.context)
 		return result
+
+@view_config(route_name="objects.generic.traversal",
+			 context=IQInquirySubmission,
+			 renderer='rest',
+			 permission=nauth.ACT_READ,
+			 request_method='PUT')
+class InquirySubmisionPutView(UGDPutView):
+
+	def __call__(self):
+		raise hexc.HTTPForbidden(_("Cannot put an inquiry"))

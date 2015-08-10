@@ -23,6 +23,7 @@ from zope.schema.interfaces import RequiredMissing
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAggregatedInquiry
+from nti.assessment.interfaces import IQInquirySubmission
 from nti.assessment.interfaces import IQAssessmentPolicies
 from nti.assessment.interfaces import IQAssessmentDateContext
 from nti.assessment.interfaces import IQAssessmentItemContainer
@@ -35,6 +36,11 @@ from nti.contentlibrary.interfaces import IContentPackage
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
+
+from nti.dataserver.metadata_index import IX_MIMETYPE
+from nti.dataserver.metadata_index import IX_CONTAINERID
+
+from nti.metadata import dataserver_metadata_catalog
 
 from nti.traversal.traversal import find_interface
 
@@ -319,6 +325,25 @@ def aggregate_course_inquiry(inquiry, course, *items):
 			continue
 		submission = item.Submission
 		aggregated = IQAggregatedInquiry(submission)
+		if result is None:
+			result = aggregated
+		else:
+			result += aggregated
+	return result
+
+def aggregate_page_inquiry(containerId, mimeType, *items):
+	catalog = dataserver_metadata_catalog()
+	intids = component.getUtility(IIntIds)
+	query = { IX_MIMETYPE: {'any_of':(mimeType,)},
+			  IX_CONTAINERID: {'any_of':(containerId,)} }
+	
+	result = None
+	uids =  catalog.apply(query) or ()
+	items = itertools.chain(ResultSet(uids, intids, True), items)
+	for item in items:
+		if not IQInquirySubmission.providedBy(item): # always check
+			continue
+		aggregated = IQAggregatedInquiry(item)
 		if result is None:
 			result = aggregated
 		else:

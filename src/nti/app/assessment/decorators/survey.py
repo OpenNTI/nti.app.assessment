@@ -139,7 +139,7 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 				if dates_date != asg_date:
 					result_map[k] = to_external_object(dates_date)
 	
-			policy = get_policy_for_assessment(course, context)
+			policy = get_policy_for_assessment(context, course)
 			if policy and 'disclosure' in policy:
 				result_map['disclosure'] = policy['disclosure']
 		

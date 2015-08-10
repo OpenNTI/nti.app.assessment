@@ -29,6 +29,7 @@ from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtils
 
 from nti.app.products.courseware.utils import is_course_instructor
 
+from nti.appserver.ugd_edit_views import UGDPostView
 from nti.appserver.ugd_edit_views import UGDDeleteView
 
 from nti.assessment.interfaces import IQPoll
@@ -46,9 +47,9 @@ from nti.dataserver import authorization as nauth
 from nti.externalization.oids import to_external_ntiid_oid
 from nti.externalization.externalization import to_external_object
 
-from ..common import aggregate_inquiry
 from ..common import can_disclose_inquiry
 from ..common import get_course_from_inquiry
+from ..common import aggregate_course_inquiry
 from ..common import get_available_for_submission_ending
 from ..common import get_available_for_submission_beginning
 
@@ -104,7 +105,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 			raise ex
 
 	def _check_submission_before(self, course):
-		beginning = get_available_for_submission_beginning(course, self.context)
+		beginning = get_available_for_submission_beginning(self.context, course)
 		if beginning is not None and datetime.utcnow() < beginning:
 			ex = ConstraintNotSatisfied("Submitting too early")
 			ex.field = IQSubmittable['available_for_submission_beginning']
@@ -112,7 +113,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 			raise ex
 		
 	def _check_submission_ending(self, course):
-		ending = get_available_for_submission_ending(course, self.context)
+		ending = get_available_for_submission_ending(self.context, course)
 		if ending is not None and datetime.utcnow() > ending:
 			ex = ConstraintNotSatisfied(_("Submitting too late."))
 			ex.field = IQSubmittable['available_for_submission_ending']
@@ -163,7 +164,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 		recorded = course_inquiry.recordSubmission(submission)
 		result = UsersCourseInquiryItemResponse(Submission=recorded)
 		if allow_to_disclose_inquiry(self.context, course, self.remoteUser):
-			result.Aggregated = aggregate_inquiry(self.context, course, recorded)
+			result.Aggregated = aggregate_course_inquiry(self.context, course, recorded)
 
 		result = to_external_object(result)
 		result['href'] = "/%s/Objects/%s" % (get_ds2(self.request), 
@@ -229,7 +230,7 @@ class InquiryCloseView(AbstractAuthenticatedView, InquiryViewMixin):
 		if not is_course_instructor(course, self.remoteUser):
 			raise hexc.HTTPForbidden(_("Cannot close inquiry."))
 		self.context.closed = True
-		result = aggregate_inquiry(self.context, course)
+		result = aggregate_course_inquiry(self.context, course)
 		container = ICourseAggregatedInquiries(course)
 		container[self.context.ntiid] = result
 		return result
@@ -270,5 +271,15 @@ class InquiryAggregatedGetView(AbstractAuthenticatedView, InquiryViewMixin):
 			container = ICourseAggregatedInquiries(course)
 			result = container[self.context.ntiid]
 		else:
-			result = aggregate_inquiry(self.context, course)
+			result = aggregate_course_inquiry(self.context, course)
+		return result
+
+@view_config(route_name="objects.generic.traversal",
+			 context=IQInquirySubmission,
+			 renderer='rest',
+			 permission=nauth.ACT_READ,
+			 request_method='POST')
+class InquirySubmisionPostView(UGDPostView):
+	def __call__(self):
+		result = super(InquirySubmisionPostView, self).__call__()
 		return result

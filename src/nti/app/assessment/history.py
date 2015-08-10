@@ -245,14 +245,14 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 			# Not enough information, bail
 			return False
 
-		policy = _get_policy_for_assignment(course, asg_id)
+		policy = _get_policy_for_assignment(asg_id, course)
 		if not policy.get('student_nuclear_reset_capable', False):
 			# Not allowed!
 			# TODO: could probably push this off to syncronization
 			# time...have that process apply marker interfaces
 			return False
 
-		due_date = get_available_for_submission_ending(course, assignment)
+		due_date = get_available_for_submission_ending(assignment, course)
 		if due_date and datetime.utcnow() >= due_date:
 			# past due
 			return False

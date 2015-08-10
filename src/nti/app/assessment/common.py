@@ -141,22 +141,28 @@ def get_course_assessment_items(context):
 			assessments.extend(iterable)
 	return assessments or ()
 
-def get_policy_for_assessment(context, asm_id):
+def get_policy_for_assessment(asm_id, context):
 	course = ICourseInstance(context)
 	policies = IQAssessmentPolicies(course)
 	policy = policies.getPolicyForAssessment(asm_id)
 	return policy
 
-def get_available_for_submission_beginning(context, assesment):
-	course = ICourseInstance(context)
-	dates = IQAssessmentDateContext(course)
-	result = dates.of(assesment).available_for_submission_beginning
+def get_available_for_submission_beginning(assesment, context=None):
+	course = ICourseInstance(context, None)
+	if course is not None:
+		dates = IQAssessmentDateContext(course)
+		result = dates.of(assesment).available_for_submission_beginning
+	else:
+		result = assesment.available_for_submission_beginning
 	return result
 
-def get_available_for_submission_ending(context, assesment):
-	course = ICourseInstance(context)
-	dates = IQAssessmentDateContext(course)
-	result = dates.of(assesment).available_for_submission_ending
+def get_available_for_submission_ending(assesment, context=None):
+	course = ICourseInstance(context, None)
+	if course is not None:
+		dates = IQAssessmentDateContext(course)
+		result = dates.of(assesment).available_for_submission_ending
+	else:
+		result = assesment.available_for_submission_ending
 	return result
 
 # assignment
@@ -278,10 +284,13 @@ def get_course_inquiries(context):
 	surveys = [proxy(x, catalog_entry=ntiid) for x in items if IQInquiry.providedBy(x)]
 	return surveys
 
-def can_disclose_inquiry(inquiry, context):
-	course = ICourseInstance(context)
-	policy = get_policy_for_assessment(course, inquiry.ntiid)
-	not_after = get_available_for_submission_ending(course, inquiry)
+def can_disclose_inquiry(inquiry, context=None):
+	course = ICourseInstance(context, None)
+	if course is not None:
+		policy = get_policy_for_assessment(inquiry.ntiid, course)
+	else:
+		policy = None
+	not_after = get_available_for_submission_ending(inquiry, course)
 	
 	# get disclosure policy
 	if policy and 'disclosure' in policy:
@@ -295,7 +304,7 @@ def can_disclose_inquiry(inquiry, context):
 		result = not_after and datetime.utcnow() >= not_after
 	return result
 
-def aggregate_inquiry(inquiry, course, *items):
+def aggregate_course_inquiry(inquiry, course, *items):
 	catalog = get_catalog()
 	entry = ICourseCatalogEntry(course)
 	intids = component.getUtility(IIntIds)

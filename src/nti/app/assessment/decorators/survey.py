@@ -24,7 +24,7 @@ from nti.common.property import Lazy
 
 from nti.contentlibrary.interfaces import IContentUnit
 
-from nti.contenttypes.courses.interfaces import ICourseCatalog,\
+from nti.contenttypes.courses.interfaces import ICourseCatalog, \
 	ICourseCatalogEntry
 
 from nti.dataserver.interfaces import IUser
@@ -74,12 +74,12 @@ class _InquiryContentRootURLAdder(AbstractAuthenticatedRequestAwareDecorator):
 @interface.implementer(IExternalMappingDecorator)
 class _InquiriesDecorator(_AbstractTraversableLinkDecorator):
 
-	def _do_decorate_external( self, context, result_map ):
-		links = result_map.setdefault( LINKS, [] )
+	def _do_decorate_external(self, context, result_map):
+		links = result_map.setdefault(LINKS, [])
 		user = IUser(context, self.remoteUser)
-		links.append( Link( context,
-							rel='InquiryHistory',
-							elements=('Inquiries', user.username)) )
+		links.append(Link(context,
+						  rel='InquiryHistory',
+						  elements=('Inquiries', user.username)))
 
 @interface.implementer(IExternalMappingDecorator)
 class _InquiryItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
@@ -90,12 +90,12 @@ class _InquiryItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
 				and creator is not None
 				and creator == self.remoteUser)
 
-	def _do_decorate_external(self, context, result_map ):
+	def _do_decorate_external(self, context, result_map):
 		try:
 			link = Link(context)
-			result_map['href'] = render_link( link )['href']
+			result_map['href'] = render_link(link)['href']
 		except (KeyError, ValueError, AssertionError):
-			pass # Nope
+			pass  # Nope
 
 @interface.implementer(IExternalMappingDecorator)
 class _InquiryDecorator(_AbstractTraversableLinkDecorator):
@@ -104,7 +104,7 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 	def _catalog(self):
 		result = component.getUtility(ICourseCatalog)
 		return result
-		
+
 	def _submissions(self, course, context):
 		catalog = get_catalog()
 		entry = ICourseCatalogEntry(course)
@@ -112,23 +112,25 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 				  IX_ASSESSMENT_ID : {'any_of':(context.ntiid,)}}
 		result = catalog.apply(query) or ()
 		return len(result)
-			
+
 	def _predicate(self, context, result):
 		context = IQInquiry(context, None)
 		if context is not None:
 			return super(_InquiryDecorator, self)._predicate(context, result)
 		return False
-		
-	def _do_decorate_external( self, context, result_map):
+
+	def _do_decorate_external(self, context, result_map):
 		source = context
 		context = IQInquiry(source, None)
 		if context is None:
 			return
 
+		result_map['isClosed'] = bool(context.closed)
+
 		user = self.remoteUser
-		links = result_map.setdefault( LINKS, [] )
+		links = result_map.setdefault(LINKS, [])
 		course = _get_course_from_assignment(context, user, self._catalog)
-		
+
 		# overrides
 		if course is not None:
 			dates = IQAssessmentDateContext(course).of(context)
@@ -138,39 +140,39 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 				dates_date = getattr(dates, k)
 				if dates_date != asg_date:
 					result_map[k] = to_external_object(dates_date)
-	
+
 			policy = get_policy_for_assessment(context, course)
 			if policy and 'disclosure' in policy:
 				result_map['disclosure'] = policy['disclosure']
-		
+
 			result_map['submissions'] = self._submissions(course, context)
-		
-		elements=('Inquiries', user.username, context.ntiid)
-		
-		course_inquiry = component.queryMultiAdapter((course, user), 
+
+		elements = ('Inquiries', user.username, context.ntiid)
+
+		course_inquiry = component.queryMultiAdapter((course, user),
 													 IUsersCourseInquiry)
 		# history
 		if course is not None and course_inquiry and context.ntiid in course_inquiry:
-			links.append( Link( course,
-								rel='History',
-								elements=elements + ('Submission',)) )
-			
+			links.append(Link(course,
+							  rel='History',
+							  elements=elements + ('Submission',)))
+
 		# aggregated
 		if 	course is not None and \
 			(is_course_instructor(course, user) or can_disclose_inquiry(context, course)):
-			links.append( Link( course,
-								rel='Aggregated',
-								elements=elements + ('Aggregated',)) )
-			
+			links.append(Link(course,
+							  rel='Aggregated',
+							  elements=elements + ('Aggregated',)))
+
 		# close/open
 		if course is not None and is_course_instructor(course, user):
 			if not context.closed:
-				links.append( Link( course,
-									rel='close',
-									method='POST',
-									elements=elements + ('close',)) )
+				links.append(Link(course,
+								  rel='close',
+								  method='POST',
+								  elements=elements + ('close',)))
 			else:
-				links.append( Link( course,
-									rel='open',
-									method='POST',
-									elements=elements + ('open',)) )
+				links.append(Link(course,
+								  rel='open',
+								  method='POST',
+								  elements=elements + ('open',)))

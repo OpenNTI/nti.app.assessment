@@ -13,10 +13,11 @@ import csv
 import six
 from io import BytesIO
 
-import zope.intid
 from zope import component
 
 from zope.catalog.interfaces import ICatalog
+
+from zope.intid import IIntIds
 
 from zope.security.interfaces import IPrincipal
 
@@ -273,7 +274,7 @@ class ReindexAssesmentItemsView(AbstractAuthenticatedView,
 
 		total = 0
 		errors = 0
-		intids = component.getUtility(zope.intid.IIntIds)
+		intids = component.getUtility(IIntIds)
 		metadata_catalog = component.getUtility(ICatalog, METADATA_CATALOG_NAME)
 		assesment_catalog = component.getUtility(ICatalog, ASSESMENT_CATALOG_NAME)
 
@@ -333,7 +334,7 @@ class ResetInquiryView(AbstractAuthenticatedView,
 
 		if entry is not None:
 			course = ICourseInstance(entry)
-			inquiries = component.queryMultiAdapter(course, IUsersCourseInquiries) or {}
+			inquiries = IUsersCourseInquiries(course, None) or {}
 			for inquiry in inquiries.values():
 				if ntiid in inquiry:
 					del inquiry[ntiid]

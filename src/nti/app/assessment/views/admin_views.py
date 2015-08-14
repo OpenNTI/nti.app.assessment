@@ -296,12 +296,12 @@ class ReindexAssesmentItemsView(AbstractAuthenticatedView,
 			 renderer='rest',
 			 permission=nauth.ACT_NTI_ADMIN,
 			 context=IDataserverFolder,
-			 name='ResetSurvey')
-class ResetSurveyView(AbstractAuthenticatedView,
-					  ModeledContentUploadRequestUtilsMixin):
+			 name='ResetInquiry')
+class ResetInquiryView(AbstractAuthenticatedView,
+					   ModeledContentUploadRequestUtilsMixin):
 
 	def readInput(self, value=None):
-		values = super(ResetSurveyView, self).readInput()
+		values = super(ResetInquiryView, self).readInput()
 		result = CaseInsensitiveDict(values)
 		return result
 
@@ -311,7 +311,7 @@ class ResetSurveyView(AbstractAuthenticatedView,
 
 		ntiid = values.get('ntiid') or values.get('inquiry')
 		if not ntiid:
-			raise hexc.HTTPUnprocessableEntity("Must provide a inquiry ntiid.")
+			raise hexc.HTTPUnprocessableEntity("Must provide an inquiry ntiid.")
 		inquiry = component.getUtility(IQInquiry, name=ntiid)
 		if inquiry is None:
 			raise hexc.HTTPUnprocessableEntity("Must provide a valid inquiry.")

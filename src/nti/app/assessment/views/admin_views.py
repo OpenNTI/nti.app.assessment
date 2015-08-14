@@ -29,6 +29,7 @@ from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtils
 
 from nti.app.products.courseware.interfaces import ICourseInstanceEnrollment
 
+from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssessmentItemContainer
@@ -60,10 +61,12 @@ from .._question_map import _add_assessment_items_from_new_content
 from .._question_map import _remove_assessment_items_from_oldcontent
 
 from ..common import get_course_assignments
+from ..common import get_course_from_inquiry
 from ..common import get_course_assessment_items
 
 from ..index import CATALOG_NAME as ASSESMENT_CATALOG_NAME
 
+from ..interfaces import IUsersCourseInquiry
 from ..interfaces import ICourseAssessmentItemCatalog
 from ..interfaces import IUsersCourseAssignmentHistory
 from ..interfaces import IUsersCourseAssignmentSavepoint
@@ -100,7 +103,7 @@ class AllTasksOutlineView(AbstractAuthenticatedView):
 			 context=IDataserverFolder,
 			 name='RemoveMatchedSavePoints')
 class RemovedMatchedSavePointsView(AbstractAuthenticatedView,
-							   		ModeledContentUploadRequestUtilsMixin):
+							   	   ModeledContentUploadRequestUtilsMixin):
 
 	"""
 	Remove savepoint for already submitted assignment(s)
@@ -256,9 +259,9 @@ class RegisterAssessmentItemsView(AbstractAuthenticatedView,
 @view_config(name="ReindexAssesmentItems")
 @view_config(name="reindex_assesment_items")
 @view_defaults(route_name='objects.generic.traversal',
-			 	renderer='rest',
-			 	permission=nauth.ACT_NTI_ADMIN,
-			 	context=IDataserverFolder)
+			   renderer='rest',
+			   permission=nauth.ACT_NTI_ADMIN,
+			   context=IDataserverFolder)
 class ReindexAssesmentItemsView(AbstractAuthenticatedView,
 						   		ModeledContentUploadRequestUtilsMixin):
 
@@ -286,6 +289,47 @@ class ReindexAssesmentItemsView(AbstractAuthenticatedView,
 		result['Total'] = total
 		result['Errors'] = errors
 		return result
+
+@view_config(route_name='objects.generic.traversal',
+			 renderer='rest',
+			 permission=nauth.ACT_NTI_ADMIN,
+			 context=IDataserverFolder,
+			 name='ResetSurvey')
+class ResetSurveyView(AbstractAuthenticatedView,
+					  ModeledContentUploadRequestUtilsMixin):
+
+	def readInput(self, value=None):
+		values = super(ResetSurveyView, self).readInput()
+		result = CaseInsensitiveDict(values)
+		return result
+
+	def _do_call(self):
+		values = self.readInput()
+		username = values.get('username') or values.get('user')
+		if not username:
+			raise hexc.HTTPUnprocessableEntity("Must provide a username.")
+		creator = User.get_user(username)
+		if creator is None or not IUser.providedBy(creator):
+			raise hexc.HTTPUnprocessableEntity("Must provide a valid user.")
+
+		ntiid = values.get('ntiid') or values.get('inquiry')
+		if not ntiid:
+			raise hexc.HTTPUnprocessableEntity("Must provide a inquiry ntiid.")
+		inquiry = component.getUtility(IQInquiry, name=ntiid)
+		if inquiry is None:
+			raise hexc.HTTPUnprocessableEntity("Must provide a valid inquiry.")
+
+		course = get_course_from_inquiry(inquiry, creator)
+		if course is None:
+			raise hexc.HTTPForbidden("Must be enrolled in a course.")
+
+		course_inquiry = component.queryMultiAdapter((course, creator),
+													 IUsersCourseInquiry)
+		if course_inquiry and ntiid in course_inquiry:
+			del course_inquiry[ntiid]
+			return hexc.HTTPNoContent()
+		else:
+			raise hexc.HTTPUnprocessableEntity("User has not taken inquiry.")
 
 # course views
 

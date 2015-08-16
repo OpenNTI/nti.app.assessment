@@ -24,6 +24,7 @@ from zope.schema.interfaces import ConstraintNotSatisfied
 
 from persistent.list import PersistentList
 
+from nti.appserver.interfaces import ForbiddenContextException
 from nti.appserver.interfaces import INewObjectTransformer
 from nti.appserver.interfaces import IJoinableContextProvider
 from nti.appserver.interfaces import IHierarchicalContextProvider
@@ -451,5 +452,8 @@ def _joinable_courses_from_obj(obj):
 	unit = _get_assessment_item_lineage_obj(obj)
 	results = ()
 	if unit is not None:
-		results = _get_top_level_contexts(unit)
+		try:
+			_get_top_level_contexts(unit)
+		except ForbiddenContextException as e:
+			results = e.joinable_contexts
 	return results

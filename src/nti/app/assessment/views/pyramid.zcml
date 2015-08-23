@@ -11,5 +11,6 @@
 	<pyramid:scan package=".metadata_views" />
 	<pyramid:scan package=".savepoint_views" />
 	<pyramid:scan package=".assessment_views" />
+	<pyramid:scan package=".course_admin_views" />
 
 </configure>

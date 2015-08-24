@@ -62,9 +62,9 @@ class ValidatingCatalogEntryID(object):
 	@classmethod
 	def _entry(cls, obj):
 		for iface in (IUsersCourseInquiryItem, IUsersCourseAssignmentHistoryItem):
-			assesment = iface(obj, None)
-			if assesment is not None:
-				course = ICourseInstance(assesment, None)  # course is lineage
+			item = iface(obj, None)
+			if item is not None:
+				course = ICourseInstance(item, None)  # course is lineage
 				entry = ICourseCatalogEntry(course, None)  # entry is an annotation
 				return entry
 		return None
@@ -88,7 +88,7 @@ class ValidatingAssesmentID(object):
 	def __init__(self, obj, default=None):
 		if  IUsersCourseAssignmentHistoryItem.providedBy(obj) or \
 			IUsersCourseInquiryItem.providedBy(obj):
-			self.assesmentId = obj.__name__
+			self.assesmentId = obj.__name__ # by definition
 
 	def __reduce__(self):
 		raise TypeError()

@@ -25,9 +25,6 @@ from zope.lifecycleevent.interfaces import IObjectAddedEvent
 from zope.lifecycleevent.interfaces import IObjectRemovedEvent
 from zope.lifecycleevent.interfaces import IObjectModifiedEvent
 
-from zope.site.interfaces import ILocalSiteManager
-
-from ZODB.loglevels import TRACE
 from ZODB.interfaces import IConnection
 
 from persistent.list import PersistentList
@@ -85,11 +82,6 @@ def ContentUnitAssessmentItems(unit):
 		result.__name__ = '_question_map_assessment_item_container'
 		# But leave last modified as zero
 		return result
-
-def _site_name(registry):
-	if ILocalSiteManager.providedBy(registry):
-		return registry.__parent__.__name__
-	return registry.__name__
 
 @NoPickle
 class QuestionMap(QuestionIndex):
@@ -437,7 +429,6 @@ def _remove_assessment_items_from_oldcontent(content_package):
 				catalog.unindex(item, intids=intids)
 				intids.unregister(item, event=False)
 			result[name] = provided
-			logger.log(TRACE, "%s unregistered from %s", item.ntiid, _site_name(sm))
 
 		del items[:]
 		items.lastModified = items.createdTime = -1
@@ -486,11 +477,3 @@ def update_assessment_items_when_modified(content_package, event):
 	assesment_items = get_content_packages_assessment_items(updated)
 	if len(assesment_items) < len(registered):
 		raise AssertionError("Items in content package are less that in the [site] registry")
-
-	items_added = list(registered.difference(removed))
-	if items_added:
-		logger.log(TRACE, "%s added from %s ", items_added, content_package)
-
-	items_removed = list(removed.difference(registered))
-	if items_removed:
-		logger.log(TRACE, "%s removed from %s ", items_removed, content_package)

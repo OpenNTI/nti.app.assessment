@@ -121,8 +121,6 @@ def prevent_note_on_assignment_part(note, event):
 		path = library.pathToNTIID(container_id) if library is not None else None
 		if path:
 			item = path[-1]
-# 			catalog = get_catalog()
-# 			items = catalog.search_objects( container_ntiids=item.ntiid )
 			items = IQAssessmentItemContainer(item, ())
 			items = [x for x in items if IQAssignment.providedBy(x)]
 

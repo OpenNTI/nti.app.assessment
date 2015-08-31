@@ -41,8 +41,8 @@ from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.interfaces import IContentPackage
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 
-from nti.contentlibrary.indexed_data import get_catalog
 from nti.contentlibrary.indexed_data import get_registry
+from nti.contentlibrary.indexed_data import get_library_catalog
 
 from nti.dataserver.interfaces import IZContained
 
@@ -54,6 +54,7 @@ from nti.externalization.internalization import update_from_external_object
 
 from nti.site.utils import registerUtility
 from nti.site.utils import unregisterUtility
+from nti.site.site import get_component_hierarchy_names
 
 from .common import get_content_packages_assessment_items
 
@@ -113,17 +114,18 @@ class QuestionMap(QuestionIndex):
 		registry = self._get_registry(registry)
 		QuestionIndex._register_and_canonicalize(self, things_to_register, registry)
 
-	def _index_object(self, assessment_item, content_package, 
+	def _index_object(self, assessment_item, content_package,
 					  hierarchy_ntiids, registry=None):
 		"""
 		Index the item in our catalog.
 		"""
 		result = False
 		if self._get_registry(registry) != component.getGlobalSiteManager():
-			catalog = get_catalog()
-			if catalog is not None: # Test mode
+			catalog = get_library_catalog()
+			if catalog is not None:  # Test mode
 				result = catalog.index(assessment_item, container_ntiids=hierarchy_ntiids,
-									   namespace=content_package.ntiid)
+									   namespace=content_package.ntiid,
+									   sites=get_component_hierarchy_names())
 		return result
 
 	def _connection(self, registry=None):
@@ -210,7 +212,7 @@ class QuestionMap(QuestionIndex):
 				# Index and register our object
 				parents_questions.append(thing_to_register)
 				self._intid_register(thing_to_register, registry=registry)
-				self._index_object(thing_to_register, 
+				self._index_object(thing_to_register,
 								   content_package,
 								   hierarchy_ntiids,
 								   registry=registry)
@@ -230,7 +232,7 @@ class QuestionMap(QuestionIndex):
 						  nearest_containing_ntiid=None,
 						  registry=None):
 		"""
-		Called with an entry for a file or (sub)section. May or may not have 
+		Called with an entry for a file or (sub)section. May or may not have
 		children of its own.
 
 		Returns a set of things to register and canonicalize.
@@ -313,9 +315,9 @@ class QuestionMap(QuestionIndex):
 
 		for child_ntiid, child_index in root_items[root_ntiid]['Items'].items():
 			__traceback_info__ = child_ntiid, child_index, content_package
-			# Each of these should have a filename. If they do not, they obviously 
-			# cannot contain  assessment items. The condition of a missing/bad filename 
-			# has been seen in jacked-up content that abuses the section hierarchy 
+			# Each of these should have a filename. If they do not, they obviously
+			# cannot contain  assessment items. The condition of a missing/bad filename
+			# has been seen in jacked-up content that abuses the section hierarchy
 			# (skips levels) and/or jacked-up themes/configurations  that split incorrectly.
 			if 'filename' not in child_index or not child_index['filename'] or \
 				child_index['filename'].startswith('index.html#'):
@@ -343,7 +345,7 @@ class QuestionMap(QuestionIndex):
 		registered = {x.ntiid for x in things_to_register}
 		return by_file, registered
 
-def _populate_question_map_from_text(question_map, asm_index_text, 
+def _populate_question_map_from_text(question_map, asm_index_text,
 									 content_package, registry=None):
 	result = None
 	index = _load_question_map_json(asm_index_text)
@@ -355,7 +357,7 @@ def _populate_question_map_from_text(question_map, asm_index_text,
 		except (interface.Invalid, ValueError):  # pragma: no cover
 			# Because the map is updated in place, depending on where the error
 			# was, we might have some data...that's not good, but it's not a show stopper
-			# either, since we shouldn't get content like this out of the rendering 
+			# either, since we shouldn't get content like this out of the rendering
 			# process
 			logger.exception(
 				"Failed to load assessment items, invalid assessment_index for %s",
@@ -414,7 +416,7 @@ def _remove_assessment_items_from_oldcontent(content_package):
 					sm, component.getSiteManager(content_package))
 
 	result = {}
-	catalog = get_catalog()
+	catalog = get_library_catalog()
 	intids = component.queryUtility(IIntIds)
 
 	# We may not have to be recursive anymore.

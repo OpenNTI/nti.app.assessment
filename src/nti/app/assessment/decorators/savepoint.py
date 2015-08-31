@@ -47,7 +47,7 @@ class _AssignmentSavepointDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	def _do_decorate_external(self, assignment, result):
 		user = self.remoteUser
 		course = _get_course_from_assignment(assignment, user)
-		if course is not None:
+		if course is not None and user != None:
 			links = result.setdefault(LINKS, [])
 			links.append( Link( course,
 								rel='Savepoint',

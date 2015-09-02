@@ -18,6 +18,7 @@ from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecora
 
 from nti.app.products.courseware.utils import is_enrolled
 from nti.app.products.courseware.utils import is_course_instructor
+from nti.app.products.courseware.interfaces import get_course_assessment_predicate_for_user
 
 from nti.appserver.interfaces import IContentUnitInfo
 
@@ -43,8 +44,6 @@ from .._utils import copy_questionbank
 
 from ..common import get_assessment_items_from_unit
 from ..common import AssessmentItemProxy as AssignmentProxy
-
-from ..interfaces import get_course_assignment_predicate_for_user
 
 @component.adapter(IContentUnitInfo)
 @interface.implementer(IExternalMappingDecorator)
@@ -94,7 +93,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 		if course is not None:
 			unit_ntiid = to_external_ntiid_oid(course) if not unit_ntiid else unit_ntiid
 			# Only things in context of a course should have assignments
-			assignment_predicate = get_course_assignment_predicate_for_user(user, course)
+			assignment_predicate = get_course_assessment_predicate_for_user(user, course)
 			entry_ntiid = getattr(ICourseCatalogEntry(course, None), 'ntiid', None)
 
 		new_result = {}

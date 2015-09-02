@@ -17,6 +17,7 @@ from zope import component
 from zope import interface
 
 from nti.app.products.courseware.utils import get_parent_course
+from nti.app.products.courseware.interfaces import ICourseAssessmentUserFilter
 
 from nti.assessment.interfaces import IQAssignmentPolicies
 
@@ -28,8 +29,6 @@ from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.contenttypes.courses.interfaces import is_instructed_by_name
 
 from nti.dataserver.interfaces import IUser
-
-from .interfaces import ICourseAssignmentUserFilter
 
 # ACLs
 # Notice that everything based on enrollment *could* be done
@@ -45,7 +44,7 @@ from .interfaces import ICourseAssignmentUserFilter
 # structure currently, and I'd like to avoid spreading that.
 # So for now, we're implementing the filters with brute force
 
-@interface.implementer(ICourseAssignmentUserFilter)
+@interface.implementer(ICourseAssessmentUserFilter)
 @component.adapter(IUser, ICourseInstance)
 class UserEnrolledForCreditInCourseOrInstructsFilter(object):
 	"""
@@ -82,7 +81,7 @@ class UserEnrolledForCreditInCourseOrInstructsFilter(object):
 		# anything except public is for-credit; default to public even if not enrolled
 		return False
 
-	def allow_assignment_for_user_in_course(self, asg, user, course):
+	def allow_assessment_for_user_in_course(self, asg, user, course):
 		if self.TEST_OVERRIDE:
 			return True
 
@@ -90,12 +89,12 @@ class UserEnrolledForCreditInCourseOrInstructsFilter(object):
 		if self.is_instructor or self.is_enrolled_for_credit:
 			# TODO: check if assignment is indeed in the enroll for credit courses
 			return True
-
 		return not asg.is_non_public
+	allow_assignment_for_user_in_course = allow_assessment_for_user_in_course  # BWC
 
 UserEnrolledForCreditInCourseFilter = UserEnrolledForCreditInCourseOrInstructsFilter  # BWC
 
-@interface.implementer(ICourseAssignmentUserFilter)
+@interface.implementer(ICourseAssessmentUserFilter)
 @component.adapter(IUser, ICourseInstance)
 class AssignmentPolicyExclusionFilter(object):
 	"""
@@ -109,6 +108,7 @@ class AssignmentPolicyExclusionFilter(object):
 	def __init__(self, user=None, course=None):
 		self.policies = IQAssignmentPolicies(course)
 
-	def allow_assignment_for_user_in_course(self, asg, user=None, course=None):
+	def allow_assessment_for_user_in_course(self, asg, user=None, course=None):
 		excluded = self.policies.getPolicyForAssignment(asg.ntiid).get('excluded', False)
 		return not excluded
+	allow_assignment_for_user_in_course = allow_assessment_for_user_in_course

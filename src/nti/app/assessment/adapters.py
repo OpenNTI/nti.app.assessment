@@ -25,10 +25,10 @@ from zope.schema.interfaces import ConstraintNotSatisfied
 from persistent.list import PersistentList
 
 from nti.appserver.context_providers import get_hierarchy_context
+from nti.appserver.context_providers import get_joinable_contexts
 from nti.appserver.context_providers import get_top_level_contexts
 from nti.appserver.context_providers import get_top_level_contexts_for_user
 
-from nti.appserver.interfaces import ForbiddenContextException
 from nti.appserver.interfaces import INewObjectTransformer
 from nti.appserver.interfaces import IJoinableContextProvider
 from nti.appserver.interfaces import IHierarchicalContextProvider
@@ -433,10 +433,4 @@ def _hierarchy_from_obj_and_user(obj, user):
 @component.adapter(IQAssessment)
 def _joinable_courses_from_obj(obj):
 	unit = _get_assessment_item_lineage_obj(obj)
-	results = ()
-	if unit is not None:
-		try:
-			get_top_level_contexts(unit)
-		except ForbiddenContextException as e:
-			results = e.joinable_contexts
-	return results
+	return get_joinable_contexts( unit )

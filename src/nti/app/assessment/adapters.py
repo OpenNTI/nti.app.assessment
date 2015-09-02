@@ -24,6 +24,10 @@ from zope.schema.interfaces import ConstraintNotSatisfied
 
 from persistent.list import PersistentList
 
+from nti.appserver.context_providers import get_hierarchy_context
+from nti.appserver.context_providers import get_top_level_contexts
+from nti.appserver.context_providers import get_top_level_contexts_for_user
+
 from nti.appserver.interfaces import ForbiddenContextException
 from nti.appserver.interfaces import INewObjectTransformer
 from nti.appserver.interfaces import IJoinableContextProvider
@@ -391,27 +395,6 @@ def _course_from_submittable_lineage(assesment, user):
 
 _course_from_assignment_lineage = _course_from_submittable_lineage  # BWC
 
-def _get_top_level_contexts_for_user(obj, user):
-	results = []
-	for top_level_contexts in component.subscribers((obj, user),
-													ITopLevelContainerContextProvider):
-		results.extend(top_level_contexts)
-	return results
-
-def _get_top_level_contexts(obj):
-	results = []
-	for top_level_contexts in component.subscribers((obj,),
-													ITopLevelContainerContextProvider):
-		results.extend(top_level_contexts)
-	return results
-
-def _get_hierarchy_context(obj, user):
-	results = []
-	for hiearchy_contexts in component.subscribers((obj, user),
-												   IHierarchicalContextProvider):
-		results.extend(hiearchy_contexts)
-	return results
-
 def _get_assessment_item_lineage_obj(obj):
 	return find_interface(obj, IContentUnit, strict=False)
 
@@ -422,7 +405,7 @@ def _courses_from_obj(obj):
 	unit = _get_assessment_item_lineage_obj(obj)
 	results = ()
 	if unit is not None:
-		results = _get_top_level_contexts(unit.__parent__)
+		results = get_top_level_contexts(unit.__parent__)
 	return results
 
 @interface.implementer(ITopLevelContainerContextProvider)
@@ -432,7 +415,7 @@ def _courses_from_obj_and_user(obj, user):
 	unit = _get_assessment_item_lineage_obj(obj)
 	results = ()
 	if unit is not None:
-		results = _get_top_level_contexts_for_user(unit, user)
+		results = get_top_level_contexts_for_user(unit, user)
 	return results
 
 @interface.implementer(IHierarchicalContextProvider)
@@ -442,7 +425,7 @@ def _hierarchy_from_obj_and_user(obj, user):
 	unit = _get_assessment_item_lineage_obj(obj)
 	results = ()
 	if unit is not None:
-		results = _get_hierarchy_context(unit, user)
+		results = get_hierarchy_context(unit, user)
 	return results
 
 @interface.implementer(IJoinableContextProvider)
@@ -453,7 +436,7 @@ def _joinable_courses_from_obj(obj):
 	results = ()
 	if unit is not None:
 		try:
-			_get_top_level_contexts(unit)
+			get_top_level_contexts(unit)
 		except ForbiddenContextException as e:
 			results = e.joinable_contexts
 	return results

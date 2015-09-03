@@ -27,8 +27,6 @@ from nti.app.renderers.interfaces import INoHrefInResponse
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
-from nti.app.products.courseware.utils import is_course_instructor
-
 from nti.appserver.ugd_edit_views import UGDPutView
 from nti.appserver.ugd_edit_views import UGDPostView
 from nti.appserver.ugd_edit_views import UGDDeleteView
@@ -42,6 +40,8 @@ from nti.assessment.interfaces import IQSurveySubmission
 from nti.assessment.interfaces import IQInquirySubmission
 
 from nti.common.property import Lazy
+
+from nti.contenttypes.courses.utils import is_course_instructor
 
 from nti.dataserver import authorization as nauth
 

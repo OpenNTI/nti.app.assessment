@@ -15,8 +15,6 @@ from zope import component
 
 from nti.app.authentication import get_remote_user
 
-from nti.app.products.courseware.utils import is_course_instructor
-
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
 from nti.assessment.common import grader_for_response
@@ -30,6 +28,8 @@ from nti.assessment.interfaces import IQPartSolutionsExternalizer
 from nti.assessment.randomized.interfaces import IQRandomizedPart
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+
+from nti.contenttypes.courses.utils import is_course_instructor
 
 from nti.externalization.singleton import SingletonDecorator
 from nti.externalization.interfaces import StandardExternalFields

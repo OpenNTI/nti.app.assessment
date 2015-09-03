@@ -16,8 +16,6 @@ from itertools import chain
 from zope import component
 from zope import interface
 
-from nti.app.products.courseware.utils import get_parent_course
-
 from nti.assessment.interfaces import IQAssignmentPolicies
 
 from nti.common.property import Lazy
@@ -27,6 +25,8 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.contenttypes.courses.interfaces import is_instructed_by_name
 from nti.contenttypes.courses.interfaces import ICourseAssessmentUserFilter
+
+from nti.contenttypes.courses.utils import get_parent_course
 
 from nti.dataserver.interfaces import IUser
 

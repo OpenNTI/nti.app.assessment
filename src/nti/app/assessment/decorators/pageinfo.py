@@ -16,9 +16,6 @@ from zope import interface
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
-from nti.app.products.courseware.utils import is_enrolled
-from nti.app.products.courseware.utils import is_course_instructor
-
 from nti.appserver.interfaces import IContentUnitInfo
 
 from nti.assessment.interfaces import IQSurvey
@@ -30,6 +27,9 @@ from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 from nti.contenttypes.courses.interfaces import get_course_assessment_predicate_for_user
+
+from nti.contenttypes.courses.utils import is_enrolled
+from nti.contenttypes.courses.utils import is_course_instructor
 
 from nti.externalization.oids import to_external_ntiid_oid
 from nti.externalization.externalization import to_external_object

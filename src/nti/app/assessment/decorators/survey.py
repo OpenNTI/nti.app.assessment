@@ -14,8 +14,6 @@ from zope import interface
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
-from nti.app.products.courseware.utils import is_course_instructor
-
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssessmentDateContext
@@ -24,8 +22,10 @@ from nti.common.property import Lazy
 
 from nti.contentlibrary.interfaces import IContentUnit
 
-from nti.contenttypes.courses.interfaces import ICourseCatalog, \
-	ICourseCatalogEntry
+from nti.contenttypes.courses.interfaces import ICourseCatalog
+from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
+
+from nti.contenttypes.courses.utils import is_course_instructor
 
 from nti.dataserver.interfaces import IUser
 

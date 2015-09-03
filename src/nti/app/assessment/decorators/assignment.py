@@ -14,8 +14,6 @@ from datetime import datetime
 from zope import component
 from zope import interface
 
-from nti.app.products.courseware.utils import is_course_instructor
-
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
 from nti.appserver.pyramid_authorization import has_permission
@@ -33,6 +31,8 @@ from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 from nti.contenttypes.courses.interfaces import ICourseInstanceVendorInfo
+
+from nti.contenttypes.courses.utils import is_course_instructor
 
 from nti.externalization.singleton import SingletonDecorator
 from nti.externalization.interfaces import StandardExternalFields

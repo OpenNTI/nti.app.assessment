@@ -14,6 +14,7 @@ logger = __import__('logging').getLogger(__name__)
 from urllib import unquote
 
 from zope import component
+
 from zope.location.interfaces import LocationError
 
 from numbers import Number

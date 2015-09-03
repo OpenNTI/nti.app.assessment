@@ -27,10 +27,11 @@ from nti.common.property import Lazy
 
 from nti.contentlibrary.interfaces import IContentUnit
 
+from nti.contenttypes.courses import get_course_vendor_info
+
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
-from nti.contenttypes.courses.interfaces import ICourseInstanceVendorInfo
 
 from nti.contenttypes.courses.utils import is_course_instructor
 
@@ -78,8 +79,8 @@ class _AssignmentsByOutlineNodeDecorator(_AbstractTraversableLinkDecorator):
 		Returns a true value if the course should show the links [Non] assignments
 		by outline node links
 		"""
-		## TODO: We will remove when a preference course/user? policy is in place.
-		vendor_info = ICourseInstanceVendorInfo(course, {})
+		# TODO: We will remove when a preference course/user? policy is in place.
+		vendor_info = get_course_vendor_info(course, False) or {}
 		try:
 			result = vendor_info['NTI']['show_assignments_by_outline']
 		except (TypeError, KeyError):
@@ -91,10 +92,10 @@ class _AssignmentsByOutlineNodeDecorator(_AbstractTraversableLinkDecorator):
 		if not self.show_links(course):
 			return
 
-		links = result_map.setdefault( LINKS, [] )
+		links = result_map.setdefault(LINKS, [])
 		for rel in ('AssignmentsByOutlineNode', 'NonAssignmentAssessmentItemsByOutlineNode'):
 			# Prefer to canonicalize these through to the course, if possible
-			link = Link( course,
+			link = Link(course,
 						 rel=rel,
 						 elements=(rel,),
 						 # We'd get the wrong type/ntiid values if we
@@ -110,22 +111,22 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
 
 	def _predicate(self, context, result):
 		if AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result):
-			return assignment_download_precondition(context, self.request, self.remoteUser) # XXX Hack
+			return assignment_download_precondition(context, self.request, self.remoteUser)  # XXX Hack
 
 	def _do_decorate_external(self, context, result):
 		# TODO It would be better to have the course context in our link,
 		# but for now, we'll just have a course param.
 		course = _get_course_from_assignment(context, self.remoteUser)
-		catalog_entry = ICourseCatalogEntry( course, None )
+		catalog_entry = ICourseCatalogEntry(course, None)
 		if catalog_entry is not None:
 			parameters = { 'course' : catalog_entry.ntiid }
 		else:
 			parameters = None
-		links = result.setdefault( LINKS, [] )
-		links.append( Link( context,
+		links = result.setdefault(LINKS, [])
+		links.append(Link(context,
 							rel='ExportFiles',
 							elements=('BulkFilePartDownload',),
-							params=parameters ) )
+							params=parameters))
 
 class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
@@ -233,15 +234,15 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 				due_date = context.available_for_submission_ending
 
 		if not due_date or due_date <= datetime.utcnow():
-			
+
 			if course is not None and is_course_instructor(course, remoteUser):
 				return False
-			
+
 			# if student check if there is a submission for the assignment
 			if course is not None and IQAssignment.providedBy(context):
 				history = component.queryMultiAdapter((course, remoteUser),
 											  		  IUsersCourseAssignmentHistory)
-				if history and context.ntiid in history: # there is a submission
+				if history and context.ntiid in history:  # there is a submission
 					return False
 
 			# Nothing done always strip

@@ -37,8 +37,8 @@ class _AssignmentSavepointDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		Do not decorate non-started timed assignments.
 		"""
 		result = True
-		if IQTimedAssignment.providedBy( context ):
-			course = _get_course_from_assignment( context, user=self.remoteUser )
+		if IQTimedAssignment.providedBy(context):
+			course = _get_course_from_assignment(context, user=self.remoteUser)
 			if course is not None:
 				item = get_assessment_metadata_item(course, self.remoteUser, context.ntiid)
 				result = bool(item is not None and item.StartTime)
@@ -49,20 +49,20 @@ class _AssignmentSavepointDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		course = _get_course_from_assignment(assignment, user)
 		if course is not None and user != None:
 			links = result.setdefault(LINKS, [])
-			links.append( Link( course,
-								rel='Savepoint',
-								elements=('AssignmentSavepoints', user.username, 
-										  assignment.ntiid, 'Savepoint')))
+			links.append(Link(course,
+							  rel='Savepoint',
+							  elements=('AssignmentSavepoints', user.username,
+										assignment.ntiid, 'Savepoint')))
 
 @interface.implementer(IExternalMappingDecorator)
 class _AssignmentSavepointsDecorator(_AbstractTraversableLinkDecorator):
 
-	def _do_decorate_external( self, context, result_map ):
-		links = result_map.setdefault( LINKS, [] )
+	def _do_decorate_external(self, context, result_map):
+		links = result_map.setdefault(LINKS, [])
 		user = IUser(context, self.remoteUser)
-		links.append( Link( context,
-							rel='AssignmentSavepoints',
-							elements=('AssignmentSavepoints', user.username)) )
+		links.append(Link(context,
+						  rel='AssignmentSavepoints',
+						  elements=('AssignmentSavepoints', user.username)))
 
 @interface.implementer(IExternalMappingDecorator)
 class _AssignmentSavepointItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
@@ -73,9 +73,9 @@ class _AssignmentSavepointItemDecorator(AbstractAuthenticatedRequestAwareDecorat
 				and creator is not None
 				and creator == self.remoteUser)
 
-	def _do_decorate_external(self, context, result_map ):
+	def _do_decorate_external(self, context, result_map):
 		try:
 			link = Link(context)
-			result_map['href'] = render_link( link )['href']
+			result_map['href'] = render_link(link)['href']
 		except (KeyError, ValueError, AssertionError):
-			pass # Nope
+			pass  # Nope

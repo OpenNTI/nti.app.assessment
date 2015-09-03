@@ -27,7 +27,7 @@ class _FeedbackItemAssignmentIdDecorator(object):
 
 	__metaclass__ = SingletonDecorator
 
-	def decorateExternalMapping( self, item, result_map ):
+	def decorateExternalMapping(self, item, result_map):
 		try:
 			feedback = item.__parent__
 			history_item = feedback.__parent__

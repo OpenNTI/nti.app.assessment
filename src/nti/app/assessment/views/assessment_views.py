@@ -29,7 +29,6 @@ from nti.app.contentlibrary.utils import PAGE_INFO_MT_JSON
 from nti.app.contentlibrary.utils import find_page_info_view_helper
 
 from nti.app.products.courseware.interfaces import ICourseInstanceEnrollment
-from nti.app.products.courseware.interfaces import get_course_assessment_predicate_for_user
 
 from nti.assessment.interfaces import IQSurvey, IQInquiry
 from nti.assessment.interfaces import IQuestion
@@ -38,6 +37,7 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssignmentSubmission
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import get_course_assessment_predicate_for_user
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver import authorization as nauth

@@ -10,7 +10,7 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
-				
+
 class _IPad110NoSubmitPartAdjuster(AbstractAuthenticatedRequestAwareDecorator):
 	"""
 	Here is a bit of background first. The CS1323 has a bunch of
@@ -51,9 +51,9 @@ class _IPad110NoSubmitPartAdjuster(AbstractAuthenticatedRequestAwareDecorator):
 	would do it from what I can tell.
 	"""
 
-	_BAD_UAS = ( "NTIFoundation DataLoader NextThought/1.0",
-				 "NTIFoundation DataLoader NextThought/1.1.0",
-				 "NTIFoundation DataLoader NextThought/1.1.1")
+	_BAD_UAS = ("NTIFoundation DataLoader NextThought/1.0",
+				"NTIFoundation DataLoader NextThought/1.1.0",
+				"NTIFoundation DataLoader NextThought/1.1.1")
 
 	def _predicate(self, context, result):
 		if not context.no_submit or context.parts:
@@ -69,4 +69,3 @@ class _IPad110NoSubmitPartAdjuster(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _do_decorate_external(self, context, result):
 		result['parts'] = [{'Class': 'AssignmentPart'}]
-					

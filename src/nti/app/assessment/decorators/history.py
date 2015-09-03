@@ -33,9 +33,11 @@ from nti.traversal.traversal import find_interface
 
 from ..common import get_assessment_metadata_item
 
+from ..interfaces import IUsersCourseAssignmentHistory
+
 from . import _get_course_from_assignment
 from . import _AbstractTraversableLinkDecorator
-					
+
 LINKS = StandardExternalFields.LINKS
 
 @interface.implementer(IExternalMappingDecorator)
@@ -49,14 +51,14 @@ class _CourseAssignmentHistoryDecorator(_AbstractTraversableLinkDecorator):
 	# Note: We do not specify what we adapt, there are too many
 	# things with no common ancestor.
 
-	def _do_decorate_external( self, context, result_map ):
-		links = result_map.setdefault( LINKS, [] )
+	def _do_decorate_external(self, context, result_map):
+		links = result_map.setdefault(LINKS, [])
 		# If the context provides a user, that's the one we want,
 		# otherwise we want the current user
 		user = IUser(context, self.remoteUser)
-		links.append( Link( context,
-							rel='AssignmentHistory',
-							elements=('AssignmentHistories', user.username)) )
+		links.append(Link(context,
+						  rel='AssignmentHistory',
+						  elements=('AssignmentHistories', user.username)))
 
 class _LastViewedAssignmentHistoryDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
@@ -70,11 +72,11 @@ class _LastViewedAssignmentHistoryDecorator(AbstractAuthenticatedRequestAwareDec
 				and context.owner == self.remoteUser)
 
 	def _do_decorate_external(self, context, result):
-		links = result.setdefault( LINKS, [] )
-		links.append( Link( context,
-							rel='lastViewed',
-							elements=('lastViewed',),
-							method='PUT' ) )
+		links = result.setdefault(LINKS, [])
+		links.append(Link(context,
+						  rel='lastViewed',
+						  elements=('lastViewed',),
+						  method='PUT'))
 
 @interface.implementer(IExternalMappingDecorator)
 class _AssignmentHistoryLinkDecorator(_AbstractTraversableLinkDecorator):
@@ -83,21 +85,23 @@ class _AssignmentHistoryLinkDecorator(_AbstractTraversableLinkDecorator):
 	def _catalog(self):
 		result = component.getUtility(ICourseCatalog)
 		return result
-		
-	def _do_decorate_external( self, context, result_map ):
+
+	def _do_decorate_external(self, context, result_map):
 		user = self.remoteUser
 		course = _get_course_from_assignment(context, user, self._catalog)
-		if course is not None:
-			links = result_map.setdefault( LINKS, [] )
-			links.append( Link( course,
-								rel='History',
-								elements=('AssignmentHistories', user.username,
-										   context.ntiid)) )
+		history = component.queryMultiAdapter((course, user),
+											  IUsersCourseAssignmentHistory)
+		if history and context.ntiid in history:
+			links = result_map.setdefault(LINKS, [])
+			links.append(Link(course,
+							  rel='History',
+							  elements=('AssignmentHistories', user.username,
+										context.ntiid)))
 
 @interface.implementer(IExternalMappingDecorator)
 class _AssignmentHistoryItemDecorator(_AbstractTraversableLinkDecorator):
-	
-	def _do_decorate_external( self, context, result_map ):
+
+	def _do_decorate_external(self, context, result_map):
 		creator = context.creator
 		remoteUser = self.remoteUser
 		course = find_interface(context, ICourseInstance, strict=False)

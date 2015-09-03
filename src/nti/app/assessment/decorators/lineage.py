@@ -20,7 +20,7 @@ class _ContextCatalogEntryDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _predicate(self, context, result):
 		return bool(self._is_authenticated)
-	
+
 	def _do_decorate_external(self, context, result):
 		try:
 			course = ICourseInstance(context, None)

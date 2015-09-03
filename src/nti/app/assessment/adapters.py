@@ -287,8 +287,8 @@ class _UsersCourseAssignmentHistoriesTraversable(ContainerAdapterTraversable):
 				return _history_for_user_in_course(self.context.__parent__, user)
 			raise
 
-from .interfaces import ICourseAssignmentCatalog
-from .interfaces import ICourseAssessmentItemCatalog
+from nti.contenttypes.courses.interfaces import ICourseAssignmentCatalog
+from nti.contenttypes.courses.interfaces import ICourseAssessmentItemCatalog
 
 from .common import get_course_assignments
 from .common import get_course_assessment_items
@@ -304,8 +304,8 @@ class _DefaultCourseAssessmentItemCatalog(object):
 		result = get_course_assessment_items(self.context)
 		return result
 
-@interface.implementer(ICourseAssignmentCatalog)
 @component.adapter(ICourseInstance)
+@interface.implementer(ICourseAssignmentCatalog)
 class _DefaultCourseAssignmentCatalog(object):
 
 	def __init__(self, context):

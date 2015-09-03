@@ -40,6 +40,7 @@ from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
+from nti.contenttypes.courses.interfaces import ICourseAssessmentItemCatalog
 
 from nti.dataserver.users import User
 from nti.dataserver.interfaces import IUser
@@ -63,7 +64,6 @@ from ..index import CATALOG_NAME as ASSESMENT_CATALOG_NAME
 
 from ..interfaces import IUsersCourseInquiry
 from ..interfaces import IUsersCourseInquiries
-from ..interfaces import ICourseAssessmentItemCatalog
 from ..interfaces import IUsersCourseAssignmentHistory
 from ..interfaces import IUsersCourseAssignmentSavepoint
 

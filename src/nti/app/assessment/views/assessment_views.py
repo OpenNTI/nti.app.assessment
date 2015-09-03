@@ -423,8 +423,8 @@ class AssignmentHistoryItemFeedbackDeleteView(UGDDeleteView):
 
 from nti.externalization.interfaces import LocatedExternalDict
 
-from ..interfaces import ICourseAssignmentCatalog
-from ..interfaces import ICourseAssessmentItemCatalog
+from nti.contenttypes.courses.interfaces import ICourseAssignmentCatalog
+from nti.contenttypes.courses.interfaces import ICourseAssessmentItemCatalog
 
 @view_config(context=ICourseInstance)
 @view_config(context=ICourseInstanceEnrollment)

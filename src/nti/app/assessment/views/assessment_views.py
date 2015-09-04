@@ -461,20 +461,23 @@ class AssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
 		_recur(instance.Outline)
 		return result
 
-	def __call__(self):
-		instance = ICourseInstance(self.request.context)
+	def _do_catalog(self, instance, result):
 		catalog = ICourseAssignmentCatalog(instance)
 		uber_filter = get_course_assessment_predicate_for_user(self.remoteUser, instance)
-
-		result = LocatedExternalDict()
-		result.__name__ = self.request.view_name
-		result.__parent__ = self.request.context
-
 		for asg in (x for x in catalog.iter_assignments() if uber_filter(x)):
 			# The assignment's __parent__ is always the 'home' content unit
 			unit = asg.__parent__
 			result.setdefault(unit.ntiid, []).append(asg)
-		#self._do_outline(instance, result)
+		return result
+
+	def __call__(self):
+		result = LocatedExternalDict()
+		result.__name__ = self.request.view_name
+		result.__parent__ = self.request.context
+
+		instance = ICourseInstance(self.request.context)
+		self._do_catalog(instance, result)
+		# self._do_outline(instance, result)
 		return result
 
 @view_config(context=ICourseInstance)
@@ -499,21 +502,15 @@ class NonAssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
 	to identify the corresponding level it wishes to display.
 	"""
 
-	def __call__(self):
-		instance = ICourseInstance(self.request.context)
-		catalog = ICourseAssessmentItemCatalog(instance)
-
+	def _do_catalog(self, instance, result):
 		# Not only must we filter out assignments, we must filter out
 		# the question sets that they refer to if they are not allowed
 		# by the filter; we assume such sets are only used by the
 		# assignment.
-
-		result = LocatedExternalDict()
-		result.__name__ = self.request.view_name
-		result.__parent__ = self.request.context
-
+		
 		qsids_to_strip = set()
-
+		catalog = ICourseAssessmentItemCatalog(instance)
+		
 		for item in catalog.iter_assessment_items():
 			if IQAssignment.providedBy(item):
 				for assignment_part in item.parts or ():
@@ -532,4 +529,13 @@ class NonAssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
 			for item in list(items):
 				if item.ntiid in qsids_to_strip:
 					items.remove(item)
+		return result
+
+	def __call__(self):
+		result = LocatedExternalDict()
+		result.__name__ = self.request.view_name
+		result.__parent__ = self.request.context
+
+		instance = ICourseInstance(self.request.context)
+		self._do_catalog(instance, result)
 		return result

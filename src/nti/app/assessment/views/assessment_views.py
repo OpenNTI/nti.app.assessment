@@ -11,14 +11,13 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+from numbers import Number
 from urllib import unquote
+from datetime import datetime
 
 from zope import component
 
 from zope.location.interfaces import LocationError
-
-from numbers import Number
-from datetime import datetime
 
 from pyramid.view import view_config
 from pyramid.view import view_defaults
@@ -31,13 +30,15 @@ from nti.app.contentlibrary.utils import find_page_info_view_helper
 
 from nti.app.products.courseware.interfaces import ICourseInstanceEnrollment
 
-from nti.assessment.interfaces import IQSurvey, IQInquiry
+from nti.assessment.interfaces import IQSurvey
+from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssignmentSubmission
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ICourseOutlineContentNode
 from nti.contenttypes.courses.interfaces import get_course_assessment_predicate_for_user
 
 from nti.dataserver.interfaces import IUser
@@ -55,12 +56,11 @@ from ..interfaces import IUsersCourseAssignmentHistory
 from ..interfaces import IUsersCourseAssignmentHistoryItemFeedback
 from ..interfaces import IUsersCourseAssignmentHistoryItemFeedbackContainer
 
-####
 # In pyramid 1.4, there is some minor wonkiness with the accept= request predicate.
 # Your view can get called even if no Accept header is present if all the defined
 # views include a non-matching accept predicate. Stil, this is much better than
 # the behaviour under 1.3.
-####
+
 _read_view_defaults = dict(route_name='objects.generic.traversal',
 							renderer='rest',
 							permission=nauth.ACT_READ,
@@ -449,6 +449,18 @@ class AssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
 	to identify the corresponding level it wishes to display.
 	"""
 
+	def _do_outline(self, instance, result):
+		outline = result['Outline'] = {}
+		def _recur(node):
+			if ICourseOutlineContentNode.providedBy(node) and node.ContentNTIID:
+				assgs = result.get(node.ContentNTIID)
+				if assgs:
+					outline[node.ContentNTIID] = assgs
+			for child in node.values():
+				_recur(child)
+		_recur(instance.Outline)
+		return result
+
 	def __call__(self):
 		instance = ICourseInstance(self.request.context)
 		catalog = ICourseAssignmentCatalog(instance)
@@ -462,6 +474,7 @@ class AssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
 			# The assignment's __parent__ is always the 'home' content unit
 			unit = asg.__parent__
 			result.setdefault(unit.ntiid, []).append(asg)
+		self._do_outline(instance, result)
 		return result
 
 @view_config(context=ICourseInstance)

@@ -474,7 +474,7 @@ class AssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
 			# The assignment's __parent__ is always the 'home' content unit
 			unit = asg.__parent__
 			result.setdefault(unit.ntiid, []).append(asg)
-		self._do_outline(instance, result)
+		#self._do_outline(instance, result)
 		return result
 
 @view_config(context=ICourseInstance)

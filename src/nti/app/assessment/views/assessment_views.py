@@ -37,12 +37,16 @@ from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssignmentSubmission
 
+from nti.common.property import Lazy
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseOutlineContentNode
 from nti.contenttypes.courses.interfaces import get_course_assessment_predicate_for_user
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver import authorization as nauth
+
+from nti.externalization.interfaces import StandardExternalFields
 
 from .._submission import get_source
 from .._submission import check_upload_files
@@ -55,6 +59,8 @@ from ..common import get_course_from_assignment
 from ..interfaces import IUsersCourseAssignmentHistory
 from ..interfaces import IUsersCourseAssignmentHistoryItemFeedback
 from ..interfaces import IUsersCourseAssignmentHistoryItemFeedbackContainer
+
+ITEMS = StandardExternalFields.ITEMS
 
 # In pyramid 1.4, there is some minor wonkiness with the accept= request predicate.
 # Your view can get called even if no Accept header is present if all the defined
@@ -322,6 +328,7 @@ from zope.container.traversal import ContainerTraversable
 
 @component.adapter(IUsersCourseAssignmentHistory, IRequest)
 class AssignmentHistoryRequestTraversable(ContainerTraversable):
+
 	def __init__(self, context, request):
 		ContainerTraversable.__init__(self, context)
 
@@ -427,6 +434,23 @@ from nti.externalization.interfaces import LocatedExternalDict
 from nti.contenttypes.courses.interfaces import ICourseAssignmentCatalog
 from nti.contenttypes.courses.interfaces import ICourseAssessmentItemCatalog
 
+class AssignmentsByOutlineNodeMixin(AbstractAuthenticatedView):
+	
+	_LEGACY_UAS = ("NTIFoundation DataLoader NextThought/1.0",
+				   "NTIFoundation DataLoader NextThought/1.1.0",
+				   "NTIFoundation DataLoader NextThought/1.1.1")
+
+	@Lazy
+	def is_ipad_legacy(self):
+		result = False
+		ua = self.request.environ.get('HTTP_USER_AGENT', '')
+		if ua:
+			for bua in self.LEGACY_UAS:
+				if ua.startswith(bua):
+					result = True
+					break
+		return result
+
 @view_config(context=ICourseInstance)
 @view_config(context=ICourseInstanceEnrollment)
 @view_defaults(route_name='objects.generic.traversal',
@@ -434,7 +458,7 @@ from nti.contenttypes.courses.interfaces import ICourseAssessmentItemCatalog
 			   permission=nauth.ACT_READ,
 			   request_method='GET',
 			   name='AssignmentsByOutlineNode')  # See decorators
-class AssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
+class AssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 	"""
 	For course instances (and things that can be adapted to them),
 	there is a view at ``/.../AssignmentsByOutlineNode``. For
@@ -455,7 +479,7 @@ class AssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
 			if ICourseOutlineContentNode.providedBy(node) and node.ContentNTIID:
 				assgs = result.get(node.ContentNTIID)
 				if assgs:
-					outline[node.ContentNTIID] = assgs
+					outline[node.ContentNTIID] = [x.ntiid for x in assgs]
 			for child in node.values():
 				_recur(child)
 		_recur(instance.Outline)
@@ -487,7 +511,7 @@ class AssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
 			   permission=nauth.ACT_READ,
 			   request_method='GET',
 			   name='NonAssignmentAssessmentItemsByOutlineNode')  # See decorators
-class NonAssignmentsByOutlineNodeDecorator(AbstractAuthenticatedView):
+class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 	"""
 	For course instances (and things that can be adapted to them),
 	there is a view at ``/.../NonAssignmentAssessmentItemsByOutlineNode``. For

@@ -438,7 +438,8 @@ class AssignmentsByOutlineNodeMixin(AbstractAuthenticatedView):
 	
 	_LEGACY_UAS = ("NTIFoundation DataLoader NextThought/1.0",
 				   "NTIFoundation DataLoader NextThought/1.1.0",
-				   "NTIFoundation DataLoader NextThought/1.1.1")
+				   "NTIFoundation DataLoader NextThought/1.1.1",
+				   "NTIFoundation DataLoader NextThought/1.4.0")
 
 	@Lazy
 	def is_ipad_legacy(self):

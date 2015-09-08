@@ -473,17 +473,16 @@ class AssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 	to identify the corresponding level it wishes to display.
 	"""
 
-	def _do_outline(self, instance, result):
-		outline = result['Outline'] = {}
+	def _do_outline(self, instance, items, outline):
 		def _recur(node):
 			if ICourseOutlineContentNode.providedBy(node) and node.ContentNTIID:
-				assgs = result.get(node.ContentNTIID)
+				assgs = items.get(node.ContentNTIID)
 				if assgs:
 					outline[node.ContentNTIID] = [x.ntiid for x in assgs]
 			for child in node.values():
 				_recur(child)
 		_recur(instance.Outline)
-		return result
+		return outline
 
 	def _do_catalog(self, instance, result):
 		catalog = ICourseAssignmentCatalog(instance)
@@ -500,8 +499,13 @@ class AssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 		result.__parent__ = self.request.context
 
 		instance = ICourseInstance(self.request.context)
-		self._do_catalog(instance, result)
-		# self._do_outline(instance, result)
+		if self.is_ipad_legacy():
+			self._do_catalog(instance, result)
+		else:
+			items = result[ITEMS] = {}
+			outline = result['Outline'] = {}
+			self._do_catalog(instance, items)
+			self._do_outline(instance, items, outline)
 		return result
 
 @view_config(context=ICourseInstance)
@@ -561,5 +565,9 @@ class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 		result.__parent__ = self.request.context
 
 		instance = ICourseInstance(self.request.context)
-		self._do_catalog(instance, result)
+		if self.is_ipad_legacy():
+			self._do_catalog(instance, result)
+		else:
+			items = result[ITEMS] = {}
+			self._do_catalog(instance, items)
 		return result

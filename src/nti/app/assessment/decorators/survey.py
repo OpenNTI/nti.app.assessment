@@ -47,7 +47,7 @@ from ..interfaces import IUsersCourseInquiry
 from ..index import IX_COURSE
 from ..index import IX_ASSESSMENT_ID
 
-from .. import get_catalog
+from .. import get_assesment_catalog
 
 from . import _root_url
 from . import _get_course_from_assignment
@@ -106,7 +106,7 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 		return result
 
 	def _submissions(self, course, context):
-		catalog = get_catalog()
+		catalog = get_assesment_catalog()
 		entry = ICourseCatalogEntry(course)
 		query = { IX_COURSE: {'any_of':(entry.ntiid,)},
 				  IX_ASSESSMENT_ID : {'any_of':(context.ntiid,)}}

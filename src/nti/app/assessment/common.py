@@ -55,7 +55,7 @@ from .interfaces import IUsersCourseAssignmentMetadata
 from .index import IX_COURSE
 from .index import IX_ASSESSMENT_ID
 
-from . import get_catalog
+from . import get_assesment_catalog
 
 # assessment
 
@@ -311,7 +311,7 @@ def can_disclose_inquiry(inquiry, context=None):
 	return result
 
 def aggregate_course_inquiry(inquiry, course, *items):
-	catalog = get_catalog()
+	catalog = get_assesment_catalog()
 	entry = ICourseCatalogEntry(course)
 	intids = component.getUtility(IIntIds)
 	query = { IX_COURSE: {'any_of':(entry.ntiid,)},

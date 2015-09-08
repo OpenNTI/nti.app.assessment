@@ -12,9 +12,9 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope import interface
 
-from zope.security.interfaces import IPrincipal
-
 from zope.intid import IIntIds
+
+from zope.security.interfaces import IPrincipal
 
 from nti.app.authentication import get_remote_user
 

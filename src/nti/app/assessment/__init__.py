@@ -18,5 +18,5 @@ from nti.dataserver.interfaces import IMetadataCatalog
 
 from .index import CATALOG_NAME
 
-def get_catalog():
+def get_assesment_catalog():
 	return component.queryUtility(IMetadataCatalog, name=CATALOG_NAME)

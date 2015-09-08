@@ -446,7 +446,7 @@ class AssignmentsByOutlineNodeMixin(AbstractAuthenticatedView):
 		result = False
 		ua = self.request.environ.get('HTTP_USER_AGENT', '')
 		if ua:
-			for bua in self.LEGACY_UAS:
+			for bua in self._LEGACY_UAS:
 				if ua.startswith(bua):
 					result = True
 					break

@@ -500,7 +500,7 @@ class AssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 		result.__parent__ = self.request.context
 
 		instance = ICourseInstance(self.request.context)
-		if self.is_ipad_legacy():
+		if self.is_ipad_legacy:
 			self._do_catalog(instance, result)
 		else:
 			items = result[ITEMS] = {}
@@ -566,7 +566,7 @@ class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 		result.__parent__ = self.request.context
 
 		instance = ICourseInstance(self.request.context)
-		if self.is_ipad_legacy():
+		if self.is_ipad_legacy:
 			self._do_catalog(instance, result)
 		else:
 			items = result[ITEMS] = {}

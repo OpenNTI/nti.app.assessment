@@ -394,11 +394,11 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		self.require_link_href_with_rel( res.json_body['CourseInstance'], 'AssignmentsByOutlineNode')
 
 		res = self.testapp.get(enrollment_assignments)
-		assert_that( res.json_body, has_entry(self.lesson_page_id,
+		assert_that(res.json_body['Items'], has_entry(self.lesson_page_id,
 											  contains( has_entries( 'Class', 'Assignment',
 																	 'NTIID', self.assignment_id ))))
 		# The due date strips these
-		assg = res.json_body[self.lesson_page_id][0]
+		assg = res.json_body['Items'][self.lesson_page_id][0]
 		for part in assg['parts']:
 			question_set = part['question_set']
 			for question in question_set['questions']:
@@ -409,7 +409,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		# (Except if we're the instructor)
 		instructor_environ = self._make_extra_environ(username='harp4162')
 		res = self.testapp.get(enrollment_assignments, extra_environ=instructor_environ)
-		assg = res.json_body[self.lesson_page_id][0]
+		assg = res.json_body['Items'][self.lesson_page_id][0]
 
 		for part in assg['parts']:
 			question_set = part['question_set']
@@ -476,7 +476,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 																		 'category_name', 'no_submit'))))
 
 			res = self.testapp.get(enrollment_assignments)
-			assert_that( res.json_body, has_entry(self.lesson_page_id,
+			assert_that( res.json_body['Items'], has_entry(self.lesson_page_id,
 												  contains( has_entries( 'Class', 'Assignment',
 																		 'NTIID', self.assignment_id,
 																		 'parts', is_empty(),
@@ -554,7 +554,7 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin, ApplicationLayerTest
 		def _missing():
 			res = self.testapp.get(enrollment_assignments)
 			assert_that( res.json_body,
-						 is_({u'href': course_href + 'AssignmentsByOutlineNode'}) )
+						 has_entry(u'href', course_href + 'AssignmentsByOutlineNode') )
 
 			res = self.fetch_by_ntiid( lesson_page_id,
 									   headers={b'Accept': str(page_info_mt) })
@@ -567,8 +567,9 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin, ApplicationLayerTest
 			# Nor are they in the non-assignment-items
 			res = self.testapp.get(enrollment_non_assignments)
 			assert_that( res.json_body,
-						 has_entries('href', course_href + 'NonAssignmentAssessmentItemsByOutlineNode',
-									 lesson_page_id, []))
+						 has_entries('href', course_href + 'NonAssignmentAssessmentItemsByOutlineNode'))
+			assert_that( res.json_body['Items'],
+						 has_entries(lesson_page_id, []))
 
 		_missing()
 
@@ -579,15 +580,16 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin, ApplicationLayerTest
 			record.Scope = 'ForCredit'
 
 		res = self.testapp.get(enrollment_assignments)
-		assert_that( res.json_body, has_entry(self.lesson_page_id,
+		assert_that(res.json_body['Items'], has_entry(self.lesson_page_id,
 											  contains( has_entries( 'Class', 'Assignment',
 																	 'NTIID', self.assignment_ntiid ))))
 
 		# the question sets are still not actually available because they are in the assignment
 		res = self.testapp.get(enrollment_non_assignments)
 		assert_that( res.json_body,
-					 has_entries('href', course_href + 'NonAssignmentAssessmentItemsByOutlineNode',
-								 lesson_page_id, []) )
+					 has_entries('href', course_href + 'NonAssignmentAssessmentItemsByOutlineNode'))
+		assert_that( res.json_body['Items'],
+					 has_entries(lesson_page_id, []) )
 
 		ntiid_set = set()
 		found_survey = False

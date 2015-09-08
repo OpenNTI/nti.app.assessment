@@ -14,7 +14,7 @@ from zope import interface
 
 from zope.security.interfaces import IPrincipal
 
-from zc.intid import IIntIds
+from zope.intid import IIntIds
 
 from nti.app.authentication import get_remote_user
 

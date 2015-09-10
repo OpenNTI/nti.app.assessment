@@ -43,6 +43,9 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseOutlineContentNode
 from nti.contenttypes.courses.interfaces import get_course_assessment_predicate_for_user
 
+from nti.contenttypes.presentation.interfaces import INTIAssignmentRef
+from nti.contenttypes.presentation.interfaces import INTILessonOverview
+
 from nti.dataserver.interfaces import IUser
 from nti.dataserver import authorization as nauth
 
@@ -477,9 +480,20 @@ class AssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 	def _do_outline(self, instance, items, outline):
 		def _recur(node):
 			if ICourseOutlineContentNode.providedBy(node) and node.ContentNTIID:
-				assgs = items.get(node.ContentNTIID)
+				key = node.ContentNTIID
+				assgs = items.get(key)
 				if assgs:
-					outline[node.ContentNTIID] = [x.ntiid for x in assgs]
+					outline[key] = [x.ntiid for x in assgs]
+				try:
+					name = node.LessonOverviewNTIID
+					lesson = component.queryUtility(INTILessonOverview, name=name or u'')
+					for group in lesson or ():
+						for item in group:
+							if INTIAssignmentRef.providedBy(item):
+								outline.setdefault(key, [])
+								outline[key].append(item.target or item.ntiid)
+				except AttributeError:
+					pass
 			for child in node.values():
 				_recur(child)
 		_recur(instance.Outline)

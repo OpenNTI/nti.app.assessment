@@ -44,6 +44,7 @@ from nti.contenttypes.courses.interfaces import ICourseOutlineContentNode
 from nti.contenttypes.courses.interfaces import get_course_assessment_predicate_for_user
 
 from nti.contenttypes.presentation.interfaces import INTIAssignmentRef
+from nti.contenttypes.presentation.interfaces import INTIQuestionSetRef
 from nti.contenttypes.presentation.interfaces import INTILessonOverview
 
 from nti.dataserver.interfaces import IUser
@@ -478,6 +479,15 @@ class AssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 	"""
 
 	def _do_outline(self, instance, items, outline):
+		# reverse question set map
+		# this is done in case question set refs
+		# appear in a lesson overview
+		reverse_qset = {}
+		for assgs in items.values():
+			for asg in assgs:
+				for part in asg.parts:
+					reverse_qset[part.question_set.ntiid] = asg.ntiid
+
 		def _recur(node):
 			if ICourseOutlineContentNode.providedBy(node) and node.ContentNTIID:
 				key = node.ContentNTIID
@@ -492,6 +502,11 @@ class AssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 							if INTIAssignmentRef.providedBy(item):
 								outline.setdefault(key, [])
 								outline[key].append(item.target or item.ntiid)
+							elif INTIQuestionSetRef.providedBy(item):
+								ntiid = reverse_qset.get(item.target)
+								if ntiid:
+									outline.setdefault(key, [])
+									outline[key].append(item.target or item.ntiid)
 				except AttributeError:
 					pass
 			for child in node.values():

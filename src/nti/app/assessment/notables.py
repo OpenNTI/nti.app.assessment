@@ -21,6 +21,8 @@ class AssignmentFeedbackNotableFilter(object):
 	Determines if assignment feedback is notable for the given user.
 	Feedback is notable if it is on our user's assignments and the feedback
 	is not created by our user.
+
+	Typically, students get feedback from another notable filter.
 	"""
 
 	def __init__(self, context):
@@ -29,7 +31,7 @@ class AssignmentFeedbackNotableFilter(object):
 	def is_notable(self, obj, user):
 		result = False
 		if IUsersCourseAssignmentHistoryItemFeedback.providedBy(obj):
-			history_item = obj.__parent__
+			history_item = obj.__parent__.__parent__
 			submission = history_item.Submission
 			if submission.creator == user and obj.creator != user:
 				result = True

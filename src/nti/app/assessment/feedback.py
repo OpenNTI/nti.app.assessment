@@ -40,6 +40,8 @@ from nti.dataserver.authorization import ACT_READ
 from nti.dataserver.authorization_acl import ace_allowing
 from nti.dataserver.authorization_acl import acl_from_aces
 
+from nti.dataserver.sharing import AbstractReadableSharedMixin
+
 from nti.schema.field import SchemaConfigured
 from nti.schema.fieldproperty import AdaptingFieldProperty
 
@@ -53,7 +55,8 @@ from .interfaces import IUsersCourseAssignmentHistoryItemFeedbackContainer
 					   IContentTypeAware)
 class UsersCourseAssignmentHistoryItemFeedback(PersistentCreatedModDateTrackingObject,
 											   SchemaConfigured,
-											   ContainedMixin):
+											   ContainedMixin,
+											   AbstractReadableSharedMixin):
 
 	parameters = {}
 	mime_type = mimeType = "application/vnd.nextthought.assessment.userscourseassignmenthistoryitemfeedback"
@@ -89,6 +92,27 @@ class UsersCourseAssignmentHistoryItemFeedback(PersistentCreatedModDateTrackingO
 		self._p_changed = True
 
 	@property
+	def sharingTargets(self):
+		"""
+		By design, the user cannot toggle feedback sharable properties.
+		However, we define sharing targets here to expose change
+		broadcasting.
+		"""
+		results = []
+		creator = self.creator
+		results.append( creator )
+		course = ICourseInstance(self, None)
+		if course is not None:
+			instructors = (IUser( i, None ) for i in course.instructors)
+			results.extend( (x for x in instructors if x) )
+
+		if self.__parent__ is not None:
+			container_owner = IUser(self.__parent__.__parent__, None)
+			if container_owner is not None:
+				results.append( container_owner )
+		return results
+
+	@property
 	def __acl__(self):
 		aces = []
 		# give all permissions to the owner
@@ -103,7 +127,7 @@ class UsersCourseAssignmentHistoryItemFeedback(PersistentCreatedModDateTrackingO
 			aces.extend(ace_allowing(i, ACT_READ, UsersCourseAssignmentHistoryItemFeedback)
 				 		for i in course.instructors)
 
-		# read access to the container feedback ownwer
+		# read access to the container feedback owner
 		if self.__parent__ is not None:
 			container_owner = IUser(self.__parent__.__parent__, None)
 			if container_owner is not None and container_owner != creator:

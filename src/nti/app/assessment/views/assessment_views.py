@@ -440,10 +440,16 @@ from nti.contenttypes.courses.interfaces import ICourseAssessmentItemCatalog
 
 class AssignmentsByOutlineNodeMixin(AbstractAuthenticatedView):
 	
-	_LEGACY_UAS = ("NTIFoundation DataLoader NextThought/1.0",
-				   "NTIFoundation DataLoader NextThought/1.1.0",
-				   "NTIFoundation DataLoader NextThought/1.1.1",
-				   "NTIFoundation DataLoader NextThought/1.4.0")
+	_LEGACY_UAS = \
+	(
+		"NTIFoundation DataLoader NextThought/1.0",
+		"NTIFoundation DataLoader NextThought/1.1.0",
+		"NTIFoundation DataLoader NextThought/1.1.1",
+		"NTIFoundation DataLoader NextThought/1.2.",
+		"NTIFoundation DataLoader NextThought/1.3.0",
+		"NTIFoundation DataLoader NextThought/1.3.1",
+		"NTIFoundation DataLoader NextThought/1.4.0"
+	)
 
 	@Lazy
 	def is_ipad_legacy(self):

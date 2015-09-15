@@ -22,7 +22,9 @@ class AssignmentFeedbackNotableFilter(object):
 	Feedback is notable if it is on our user's assignments and the feedback
 	is not created by our user.
 
-	Typically, students get feedback from another notable filter.
+	Typically, students get feedback objects from another notable filter.
+	This would be the place to allow instructors to view feedback notables
+	from students.
 	"""
 
 	def __init__(self, context):

@@ -334,9 +334,9 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
 		# At that point, it shows up as a notable item for the user...
 		notable_res = self.fetch_user_recursive_notable_ugd()
-		assert_that( notable_res.json_body, has_entry('TotalItemCount', 0))
-		# assert_that( notable_res.json_body, has_entry('Items',
-		#											    contains(has_entry('Creator', 'harp4162'))))
+		assert_that( notable_res.json_body, has_entry('TotalItemCount', 1))
+		assert_that( notable_res.json_body, has_entry('Items',
+													    contains(has_entry('Creator', 'harp4162'))))
 
 		# ... though not for the instructor...
 		notable_res2 = self.fetch_user_recursive_notable_ugd(username='harp4162', extra_environ=instructor_environ)

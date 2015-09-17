@@ -33,6 +33,7 @@ from nti.appserver.interfaces import INewObjectTransformer
 from nti.appserver.interfaces import IJoinableContextProvider
 from nti.appserver.interfaces import IHierarchicalContextProvider
 from nti.appserver.interfaces import ITopLevelContainerContextProvider
+from nti.appserver.interfaces import ITrustedTopLevelContainerContextProvider
 
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssessment
@@ -50,6 +51,7 @@ from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 from nti.contentlibrary.interfaces import IContentUnit
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.dataserver.interfaces import IUser
 
@@ -60,6 +62,7 @@ from .history import UsersCourseAssignmentHistory
 from .interfaces import IUsersCourseAssignmentHistory
 from .interfaces import IUsersCourseAssignmentHistories
 from .interfaces import IUsersCourseAssignmentHistoryItem
+from .interfaces import IUsersCourseAssignmentHistoryItemFeedback
 
 @component.adapter(IQuestionSubmission)
 @interface.implementer(INewObjectTransformer)
@@ -434,3 +437,13 @@ def _hierarchy_from_obj_and_user(obj, user):
 def _joinable_courses_from_obj(obj):
 	unit = _get_assessment_item_lineage_obj(obj)
 	return get_joinable_contexts( unit )
+
+@interface.implementer(ITrustedTopLevelContainerContextProvider)
+@component.adapter(IUsersCourseAssignmentHistoryItemFeedback)
+def _trusted_context_from_feedback(obj):
+	course = _course_from_context_lineage( obj )
+	results = ()
+	if course is not None:
+		catalog_entry = ICourseCatalogEntry( course, None )
+		results = (catalog_entry,) if catalog_entry is not None else ()
+	return results

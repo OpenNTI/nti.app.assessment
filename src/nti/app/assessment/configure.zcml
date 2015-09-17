@@ -211,6 +211,11 @@
 				provides="nti.contentsearch.interfaces.ISearchHitPredicate"
 				for=".interfaces.ICreated" />
 
+	<!-- Context providers -->
+	<subscriber factory=".adapters._trusted_context_from_feedback"
+				provides="nti.appserver.interfaces.ITrustedTopLevelContainerContextProvider"
+				for=".interfaces.IUsersCourseAssignmentHistoryItemFeedback"/>
+
 	<!-- Views -->
 	<include package=".views" />
 

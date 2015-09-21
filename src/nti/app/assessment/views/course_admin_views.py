@@ -143,12 +143,10 @@ class CourseAssessmentItemsView(AbstractAuthenticatedView):
 
 @view_config(context=IDataserverFolder)
 @view_config(context=CourseAdminPathAdapter)
-@view_config(name="MoveUserAssignments")
-@view_config(name="MoveUserAssignmentsView")
 @view_defaults(route_name='objects.generic.traversal',
-				renderer='rest',
-				permission=nauth.ACT_NTI_ADMIN,
-				name='MoveUserAssignmentsView')
+			   renderer='rest',
+			   permission=nauth.ACT_NTI_ADMIN,
+			   name='MoveUserAssignments')
 class MoveUserAssignmentsView(AbstractAuthenticatedView,
 							  ModeledContentUploadRequestUtilsMixin):
 

@@ -271,7 +271,6 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
 		# The user can send some feedback
 		feedback = UsersCourseAssignmentHistoryItemFeedback(body=['Some feedback'])
-		feedback.containerId = '' # Stream requires non-None container ids
 		ext_feedback = to_external_object(feedback)
 		__traceback_info__ = ext_feedback
 		res = self.testapp.post_json( history_feedback_container_href,
@@ -325,7 +324,6 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
 		# The instructor can add his own feedback
 		feedback = UsersCourseAssignmentHistoryItemFeedback(body=['A reply to your feedback'])
-		feedback.containerId = '' # Stream requires non-None container ids
 		ext_feedback = to_external_object(feedback)
 		inst_feedback_res = self.testapp.post_json( history_feedback_container_href,
 													ext_feedback,

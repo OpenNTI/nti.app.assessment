@@ -184,7 +184,8 @@ class MoveUserAssignmentsView(AbstractAuthenticatedView,
 			user = User.get_user(username)
 			if user is None or not IUser.providedBy(user):
 				logger.info("User %s does not exists", username)
+				continue
 			moved = move_user_assignment_from_course_to_course(user, source, target)
 			items[username] = sorted(moved)
-		result['Count'] = result['Total'] = len(items)
+		result['ItemCount'] = result['Total'] = len(items)
 		return result

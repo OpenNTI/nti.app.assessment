@@ -30,7 +30,7 @@ def _container_mover(old_container, new_container, verbose=True,
 			continue
 
 		result.append(k)
-		old_container[k] = item
+		new_container[k] = item
 
 		log("Moved %s for %s from %s to %s", k, user, source, target)
 

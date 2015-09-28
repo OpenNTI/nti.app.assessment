@@ -116,6 +116,7 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 			IConnection(self).add(item)
 		self._append(submission.assignmentId, item, event=event)
 		return item
+	append = recordSubmission
 
 	def removeSubmission(self, submission, event=False):
 		if submission.assignmentId not in self:

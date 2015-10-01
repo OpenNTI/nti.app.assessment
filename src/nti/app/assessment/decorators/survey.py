@@ -160,7 +160,7 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 							  elements=elements + ('Submission',)))
 
 		# aggregated
-		if 	course is not None and submissions \
+		if 	course is not None and submissions and \
 			(is_course_instructor(course, user) or can_disclose_inquiry(context, course)):
 			links.append(Link(course,
 							  rel='Aggregated',

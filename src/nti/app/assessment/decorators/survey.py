@@ -130,7 +130,9 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 		user = self.remoteUser
 		links = result_map.setdefault(LINKS, [])
 		course = _get_course_from_assignment(context, user, self._catalog)
-
+		
+		submissions = self._submissions(course, context) if course is not None else 0
+		
 		# overrides
 		if course is not None:
 			dates = IQAssessmentDateContext(course).of(context)
@@ -145,7 +147,7 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 			if policy and 'disclosure' in policy:
 				result_map['disclosure'] = policy['disclosure']
 
-			result_map['submissions'] = self._submissions(course, context)
+			result_map['submissions'] = submissions
 
 		elements = ('Inquiries', user.username, context.ntiid)
 
@@ -158,7 +160,7 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 							  elements=elements + ('Submission',)))
 
 		# aggregated
-		if 	course is not None and \
+		if 	course is not None and submissions \
 			(is_course_instructor(course, user) or can_disclose_inquiry(context, course)):
 			links.append(Link(course,
 							  rel='Aggregated',

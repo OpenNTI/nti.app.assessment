@@ -274,6 +274,8 @@ class InquiryAggregatedGetView(AbstractAuthenticatedView, InquiryViewMixin):
 			result = container[self.context.ntiid]
 		else:
 			result = aggregate_course_inquiry(self.context, course)
+		if result is None:
+			return hexc.HTTPNoContent()
 		return result
 
 @view_config(route_name="objects.generic.traversal",

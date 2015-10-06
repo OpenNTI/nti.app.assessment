@@ -46,6 +46,7 @@ from nti.contenttypes.courses.utils import is_course_instructor
 from nti.dataserver import authorization as nauth
 
 from nti.externalization.oids import to_external_ntiid_oid
+from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.externalization import to_external_object
 
 from ..common import can_disclose_inquiry
@@ -195,6 +196,26 @@ class InquirySubmissionGetView(AbstractAuthenticatedView, InquiryViewMixin):
 			return hexc.HTTPNotFound()
 
 @view_config(route_name="objects.generic.traversal",
+			 context=IQInquiry,
+			 renderer='rest',
+			 request_method='GET',
+			 permission=nauth.ACT_NTI_ADMIN,
+			 name="Submissions")
+class InquirySubmissionsView(AbstractAuthenticatedView, InquiryViewMixin):
+
+	def __call__(self):
+		course = self.course
+		if course is None:
+			raise hexc.HTTPUnprocessableEntity(_("Course not found."))
+		result = LocatedExternalDict()
+		inquiries = IUsersCourseInquiries(course)
+		for username, inquiry in list(inquiries.items()):
+			if self.context.ntiid not in inquiry:
+				continue
+			result[username] = inquiry.get(self.context.ntiid)
+		return result
+
+@view_config(route_name="objects.generic.traversal",
 			 renderer='rest',
 			 context=IUsersCourseInquiries,
 			 permission=nauth.ACT_READ,
@@ -248,7 +269,7 @@ class InquiryOpenView(AbstractAuthenticatedView, InquiryViewMixin):
 	def __call__(self):
 		course = self.course
 		if not is_course_instructor(course, self.remoteUser):
-			raise hexc.HTTPForbidden(_("Cannot close inquiry."))
+			raise hexc.HTTPForbidden(_("Cannot open inquiry."))
 		self.context.closed = False
 		try:
 			container = ICourseAggregatedInquiries(course)

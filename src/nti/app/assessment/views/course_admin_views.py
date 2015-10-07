@@ -115,7 +115,7 @@ class CourseAssignmentsView(AbstractAuthenticatedView):
 		for assignment in get_course_assignments(course=course,
 												 do_filtering=do_filtering):
 			items[assignment.ntiid] = assignment
-		result['Total'] = len(items)
+		result['ItemCount'] = result['Total'] = len(items)
 		return result
 
 @view_config(context=IDataserverFolder)
@@ -138,7 +138,7 @@ class CourseAssessmentItemsView(AbstractAuthenticatedView):
 		items = result[ITEMS] = {}
 		for item in get_course_assessment_items(course=course):
 			items[item.ntiid] = item
-		result['Count'] = result['Total'] = len(items)
+		result['ItemCount'] = result['Total'] = len(items)
 		return result
 
 @view_config(context=IDataserverFolder)

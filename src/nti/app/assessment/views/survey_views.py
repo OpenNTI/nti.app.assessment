@@ -47,6 +47,7 @@ from nti.dataserver import authorization as nauth
 
 from nti.externalization.oids import to_external_ntiid_oid
 from nti.externalization.interfaces import LocatedExternalDict
+from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.externalization import to_external_object
 
 from ..common import can_disclose_inquiry
@@ -64,6 +65,8 @@ from ..interfaces import ICourseAggregatedInquiries
 from ..survey import UsersCourseInquiryItemResponse
 
 from . import get_ds2
+
+ITEMS = StandardExternalFields.ITEMS
 
 def allow_to_disclose_inquiry(context, course, user):
 	if not is_course_instructor(course, user):
@@ -208,11 +211,13 @@ class InquirySubmissionsView(AbstractAuthenticatedView, InquiryViewMixin):
 		if course is None:
 			raise hexc.HTTPUnprocessableEntity(_("Course not found."))
 		result = LocatedExternalDict()
+		items = result[ITEMS] = {}
 		inquiries = IUsersCourseInquiries(course)
 		for username, inquiry in list(inquiries.items()):
 			if self.context.ntiid not in inquiry:
 				continue
-			result[username] = inquiry.get(self.context.ntiid)
+			items[username] = inquiry.get(self.context.ntiid)
+		result['Total'] = result['ItemCount'] = len(items)
 		return result
 
 @view_config(route_name="objects.generic.traversal",

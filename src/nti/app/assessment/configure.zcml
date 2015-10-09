@@ -192,6 +192,12 @@
 
 	<adapter factory=".adapters._UsersCourseAssignmentHistoriesTraversable" />
 
+	<!-- Assignment update -->
+	<adapter factory=".adapters._AssesmentExternalFieldTraverser"
+			 for="nti.assessment.interfaces.IQAssessment pyramid.interfaces.IRequest"
+			 provides="zope.traversing.interfaces.ITraversable"
+			 name="fields" />
+			 
 	<!-- Contentsearch -->
 	<utility factory=".content_search._assignmentfeedbackitem_metadata" name="assignmentfeedback" />
 

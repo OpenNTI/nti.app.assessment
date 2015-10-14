@@ -5,7 +5,6 @@
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
-from nti.app.assessment.interfaces import IUsersCourseInquiryItemResponse
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -67,6 +66,7 @@ from .interfaces import ICourseInquiryCatalog
 from .interfaces import IUsersCourseInquiries
 from .interfaces import IUsersCourseInquiryItem
 from .interfaces import ICourseAggregatedInquiries
+from .interfaces import IUsersCourseInquiryItemResponse
 
 LINKS = StandardExternalFields.LINKS
 

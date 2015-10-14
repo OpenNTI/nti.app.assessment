@@ -41,6 +41,8 @@ from nti.traversal.traversal import find_interface
 
 from ..common import can_disclose_inquiry
 from ..common import get_policy_for_assessment
+from ..common import get_available_for_submission_ending
+from ..common import get_available_for_submission_beginning
 
 from ..interfaces import IUsersCourseInquiry
 
@@ -136,10 +138,11 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 		# overrides
 		if course is not None:
 			dates = IQAssessmentDateContext(course).of(context)
-			for k in ('available_for_submission_ending',
-					  'available_for_submission_beginning'):
+			for k, func in ( 
+					('available_for_submission_ending', get_available_for_submission_ending,
+					 'available_for_submission_beginning', get_available_for_submission_beginning)):
+				dates_date = func(dates, k)
 				asg_date = getattr(context, k)
-				dates_date = getattr(dates, k)
 				if dates_date != asg_date:
 					result_map[k] = to_external_object(dates_date)
 

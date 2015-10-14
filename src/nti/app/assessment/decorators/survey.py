@@ -139,8 +139,8 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 		if course is not None:
 			dates = IQAssessmentDateContext(course).of(context)
 			for k, func in ( 
-					('available_for_submission_ending', get_available_for_submission_ending,
-					 'available_for_submission_beginning', get_available_for_submission_beginning)):
+					('available_for_submission_ending', get_available_for_submission_ending),
+					('available_for_submission_beginning', get_available_for_submission_beginning)):
 				dates_date = func(dates, k)
 				asg_date = getattr(context, k)
 				if dates_date != asg_date:

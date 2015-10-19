@@ -149,7 +149,7 @@ class UsersCourseAssignmentHistoryItemFeedbackContainer(PersistentCreatedModDate
 	choose our own keys; what you pass to the set method is ignored.
 	"""
 
-	# : We want to inherit the read access for the instructors
+	#: We want to inherit the read access for the instructors
 	__acl_deny_all__ = False
 
 	def __setitem__(self, key, value):

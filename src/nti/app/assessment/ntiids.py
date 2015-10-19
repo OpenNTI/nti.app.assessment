@@ -11,8 +11,8 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-from zope import interface
 from zope import component
+from zope import interface
 
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
@@ -32,7 +32,7 @@ class _AssessmentResolver(object):
 	"""
 
 	def resolve(self, key):
-		for iface in (IQuestion, IQuestionSet, IQAssignment, IQPoll, IQSurvey):
+		for iface in (IQAssignment, IQSurvey, IQuestionSet, IQuestion, IQPoll):
 			result = component.queryUtility(iface, name=key)
 			if result is not None:
 				break

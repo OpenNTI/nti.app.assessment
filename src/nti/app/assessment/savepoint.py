@@ -81,8 +81,8 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 
 	__external_can_create__ = False
 
-	# : An :class:`.IWeakRef` to the owning user, who is probably
-	# : not in our lineage.
+	#: An :class:`.IWeakRef` to the owning user, who is probably
+	#: not in our lineage.
 	_owner_ref = None
 
 	def _get_owner(self):
@@ -91,8 +91,8 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 		self._owner_ref = IWeakRef(owner)
 	owner = property(_get_owner, _set_owner)
 
-	# : A non-interface attribute for convenience (especially with early
-	# : acls, since we are ICreated we get that by default)
+	#: A non-interface attribute for convenience (especially with early
+	#: acls, since we are ICreated we get that by default)
 	creator = alias('owner')
 
 	@property

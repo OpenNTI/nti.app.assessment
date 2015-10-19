@@ -92,7 +92,7 @@ class UsersCourseAssignmentMetadata(CheckingLastModifiedBTreeContainer):
 		self._owner_ref = IWeakRef(owner)
 	owner = property(_get_owner, _set_owner)
 
-	# : A non-interface attribute for convenience (acls)
+	#: A non-interface attribute for convenience (acls)
 	creator = alias('owner')
 
 	@property

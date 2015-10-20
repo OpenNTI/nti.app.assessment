@@ -426,7 +426,7 @@ def _remove_assessment_items_from_oldcontent(content_package):
 		for item in tuple(items):
 			name = item.ntiid
 			provided = _iface_to_register(item)
-			unregisterUtility(sm, provided=provided, name=name)
+			unregisterUtility(sm, component=item, provided=provided, name=name)
 			if intids is not None and intids.queryId(item):
 				catalog.unindex(item, intids=intids)
 				intids.unregister(item, event=False)

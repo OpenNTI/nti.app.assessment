@@ -120,7 +120,9 @@ class QuestionMap(QuestionIndex):
 		Index the item in our catalog.
 		"""
 		result = False
-		if self._get_registry(registry) != component.getGlobalSiteManager():
+		if self._get_registry(registry) == component.getGlobalSiteManager():
+			return result
+		else:
 			catalog = get_library_catalog()
 			if catalog is not None:  # Test mode
 				result = catalog.index(assessment_item, container_ntiids=hierarchy_ntiids,
@@ -130,19 +132,17 @@ class QuestionMap(QuestionIndex):
 
 	def _connection(self, registry=None):
 		registry = self._get_registry(registry)
-		result = IConnection(registry, None)
-		return result
+		if registry == component.getGlobalSiteManager():
+			return None
+		else:
+			result = IConnection(registry, None)
+			return result
 
 	def _intid_register(self, item, registry=None, intids=None, connection=None):
-		# We always want to register and persist our assessment items, even
-		# from the global library.
+		# We always want to register and persist our assessment items, even from the global library.
 		registry = self._get_registry(registry)
 		intids = component.queryUtility(IIntIds) if intids is None else intids
 		connection = self._connection(registry) if connection is None else connection
-		# if connection is None:
-		# # Global
-		# ds = component.queryUtility( IDataserver )
-		# connection = IConnection( ds, None )
 		if connection is not None:  # Tests
 			connection.add(item)
 			intids.register(item, event=False)

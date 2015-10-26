@@ -383,8 +383,8 @@ def _needs_load_or_update(content_package):
 	main_container = IQAssessmentItemContainer(content_package)
 	if key.lastModified <= main_container.lastModified:
 		logger.info("No change to %s since %s, ignoring",
-						key,
-						key.modified)
+					key,
+					key.modified)
 		return
 	main_container.lastModified = key.lastModified
 	return key

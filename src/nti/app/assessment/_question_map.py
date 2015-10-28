@@ -37,6 +37,8 @@ from nti.assessment._question_index import _load_question_map_json
 
 from nti.assessment.common import iface_of_assessment as _iface_to_register
 
+from nti.coremetadata.interfaces import IRecordable
+
 from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.interfaces import IContentPackage
 from nti.contentlibrary.interfaces import IContentPackageLibrary
@@ -83,6 +85,13 @@ def ContentUnitAssessmentItems(unit):
 		result.__name__ = '_question_map_assessment_item_container'
 		# But leave last modified as zero
 		return result
+
+def _can_be_removed(registered, force=False):
+	result = registered is not None and \
+			 (	force or
+			 	(not IRecordable.providedBy(registered) or not registered.locked) )
+	return result
+can_be_removed = _can_be_removed
 
 @NoPickle
 class QuestionMap(QuestionIndex):
@@ -403,7 +412,7 @@ def add_assessment_items_from_new_content(content_package, event, key=None):
 		result = _add_assessment_items_from_new_content(content_package, key)
 	return result or set()
 
-def _remove_assessment_items_from_oldcontent(content_package):
+def _remove_assessment_items_from_oldcontent(content_package, force=False):
 	# Unregister the things from the component registry.
 	# We SHOULD be run in the registry where the library item was initially
 	# loaded. (We use the context argument to check)
@@ -417,21 +426,25 @@ def _remove_assessment_items_from_oldcontent(content_package):
 
 	result = {}
 	catalog = get_library_catalog()
-	intids = component.queryUtility(IIntIds)
+	intids = component.getUtility(IIntIds)
 
 	# We may not have to be recursive anymore.
 	def _unregister(unit):
 		items = IQAssessmentItemContainer(unit)
-		# TODO: Check the parent? If it's an IContentUnit, only unregister if it's us?
 		for item in tuple(items):
 			name = item.ntiid
 			provided = _iface_to_register(item)
-			unregisterUtility(sm, component=item, provided=provided, name=name)
-			if intids is not None and intids.queryId(item):
-				catalog.unindex(item, intids=intids)
-				intids.unregister(item, event=False)
-			result[name] = provided
+			if can_be_removed(provided, force):
+				unregisterUtility(sm, provided=provided, name=name)
+				if intids.queryId(item) is not None:
+					catalog.unindex(item, intids=intids)
+					intids.unregister(item, event=False)
+				result[name] = provided
+			else:
+				logger.warn("Object (%s,%s) is locked cannot be removed during sync",
+							provided.__name__, name)
 
+		# reset list
 		del items[:]
 		items.lastModified = items.createdTime = -1
 
@@ -445,7 +458,7 @@ def _remove_assessment_items_from_oldcontent(content_package):
 def remove_assessment_items_from_oldcontent(content_package, event):
 	logger.info("Removing assessment items from old content %s %s",
 				content_package, event)
-	result = _remove_assessment_items_from_oldcontent(content_package)
+	result = _remove_assessment_items_from_oldcontent(content_package, True)
 	return set(result.keys())
 
 @component.adapter(IContentPackage, IObjectModifiedEvent)

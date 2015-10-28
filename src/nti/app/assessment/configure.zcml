@@ -80,6 +80,9 @@
 				  permission="nti.actions.assessment.download_grades" />
 	</configure>
 
+	<!-- ACL providers -->
+	<adapter factory=".acl.AssessmentACLProvider" />
+		
 	<!-- Populating questions from content -->
 	<adapter factory="._question_map.ContentUnitAssessmentItems" />
 

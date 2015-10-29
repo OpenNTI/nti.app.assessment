@@ -17,6 +17,8 @@ import time
 from zope import component
 from zope import interface
 
+from zope.container.contained import Contained
+
 from zope.interface.common.sequence import IReadSequence
 
 from zope.intid.interfaces import IIntIds
@@ -28,6 +30,7 @@ from zope.lifecycleevent.interfaces import IObjectModifiedEvent
 from ZODB.interfaces import IConnection
 
 from persistent.list import PersistentList
+from persistent.mapping import PersistentMapping
 
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
@@ -46,8 +49,6 @@ from nti.contentlibrary.interfaces import IContentPackageLibrary
 from nti.contentlibrary.indexed_data import get_registry
 from nti.contentlibrary.indexed_data import get_library_catalog
 
-from nti.dataserver.interfaces import IZContained
-
 from nti.dublincore.time_mixins import PersistentCreatedAndModifiedTimeObject
 
 from nti.externalization.persistence import NoPickle
@@ -60,20 +61,26 @@ from nti.site.site import get_component_hierarchy_names
 
 from .common import get_content_packages_assessment_items
 
-@interface.implementer(IQAssessmentItemContainer, IZContained, IReadSequence)
 @component.adapter(IContentUnit)
+@interface.implementer(IQAssessmentItemContainer, IReadSequence)
 class _AssessmentItemContainer(PersistentList,
-							   PersistentCreatedAndModifiedTimeObject):
-	__name__ = None
-	__parent__ = None
+							   PersistentCreatedAndModifiedTimeObject,
+							   Contained):
 	_SET_CREATED_MODTIME_ON_INIT = False
 
+@component.adapter(IContentUnit)
+@interface.implementer(IQAssessmentItemContainer)
+class _AssessmentItemBucket(PersistentMapping,
+							PersistentCreatedAndModifiedTimeObject,
+							Contained):
+	_SET_CREATED_MODTIME_ON_INIT = False
+	
 # Instead of using annotations on the content objects, because we're
 # not entirely convinced that the annotation utility, which is ntiid
 # based, works correctly for our cases of having matching ntiids but
 # different objects, we directly store an attribute on the object.
-@interface.implementer(IQAssessmentItemContainer)
 @component.adapter(IContentUnit)
+@interface.implementer(IQAssessmentItemContainer)
 def ContentUnitAssessmentItems(unit):
 	try:
 		result = unit._question_map_assessment_item_container
@@ -88,8 +95,7 @@ def ContentUnitAssessmentItems(unit):
 
 def _can_be_removed(registered, force=False):
 	result = registered is not None and \
-			 (force or
-			 	(not IRecordable.providedBy(registered) or not registered.locked))
+			 (force or (not IRecordable.providedBy(registered) or not registered.locked))
 	return result
 can_be_removed = _can_be_removed
 

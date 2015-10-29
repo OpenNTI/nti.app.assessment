@@ -24,6 +24,9 @@ from hamcrest import has_property
 from hamcrest import contains_string
 does_not = is_not
 
+from nti.testing.matchers import is_empty
+from nti.testing.matchers import validly_provides
+
 import fudge
 import urlparse
 import datetime
@@ -57,9 +60,7 @@ from nti.app.assessment.tests import RegisterAssignmentsForEveryoneLayer
 from nti.app.testing.decorators import WithSharedApplicationMockDS
 from nti.app.testing.application_webtest import ApplicationLayerTest
 
-from nti.testing.matchers import is_empty
 from nti.dataserver.tests import mock_dataserver
-from nti.testing.matchers import validly_provides
 
 class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 

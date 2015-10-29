@@ -8,8 +8,9 @@ __docformat__ = "restructuredtext en"
 # pylint: disable=W0212,R0904
 
 import os
-import tempfile
 import shutil
+import tempfile
+import datetime
 
 from nti.testing.layers import find_test
 from nti.testing.layers import GCLayerMixin
@@ -54,13 +55,14 @@ import unittest
 class AssessmentLayerTest(unittest.TestCase):
 	layer = SharedConfiguringTestLayer
 
-from nti.app.products.courseware.tests import InstructedCourseApplicationTestLayer
-from nti.app.products.courseware.tests import publish_ou_course_entries
-from nti.app.testing.application_webtest import ApplicationTestLayer
+from nti.contentlibrary.indexed_data import get_library_catalog
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 
-from nti.contentlibrary.indexed_data import get_catalog
+from nti.app.products.courseware.tests import publish_ou_course_entries
+from nti.app.products.courseware.tests import InstructedCourseApplicationTestLayer
+
+from nti.app.testing.application_webtest import ApplicationTestLayer
 
 import ZODB
 from zope import component
@@ -79,11 +81,10 @@ from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 from nti.dataserver.tests.mock_dataserver import WithMockDS
 from nti.dataserver.tests.mock_dataserver import mock_db_trans
 
-import datetime
-
 class RegisterAssignmentLayer(InstructedCourseApplicationTestLayer):
 
-	set_up_packages = ('nti.dataserver', 'nti.assessment', 'nti.app.assessment', 'nti.contenttypes.courses', 'nti.app.products.courseware' )
+	set_up_packages = (	'nti.dataserver', 'nti.assessment', 'nti.app.assessment', 
+						'nti.contenttypes.courses', 'nti.app.products.courseware' )
 
 	@classmethod
 	def _register_assignment(cls):
@@ -123,7 +124,7 @@ class RegisterAssignmentLayer(InstructedCourseApplicationTestLayer):
 			asm_cont = IQAssessmentItemContainer(lesson)
 			asm_cont.append( assignment )
 			assignment.__parent__ = lesson
-			catalog = get_catalog()
+			catalog = get_library_catalog()
 			content_package_ntiid = 'tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.clc_3403_law_and_justice'
 			catalog.index( assignment, container_ntiids=(lesson.ntiid, content_package_ntiid) )
 

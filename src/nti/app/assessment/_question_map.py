@@ -444,7 +444,7 @@ def _remove_assessment_items_from_oldcontent(content_package, force=False):
 
 	result = {}
 	catalog = get_library_catalog()
-	intids = component.getUtility(IIntIds)
+	intids = component.queryUtility(IIntIds) # test mode
 
 	# We may not have to be recursive anymore.
 	def _unregister(unit):
@@ -454,7 +454,7 @@ def _remove_assessment_items_from_oldcontent(content_package, force=False):
 			provided = _iface_to_register(item)
 			if can_be_removed(provided, force):
 				unregisterUtility(sm, provided=provided, name=name)
-				if intids.queryId(item) is not None:
+				if intids is not None and intids.queryId(item) is not None:
 					catalog.unindex(item, intids=intids)
 					intids.unregister(item, event=False)
 				result[name] = item

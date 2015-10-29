@@ -34,13 +34,12 @@ from nti.assessment.interfaces import IQAssessmentItemContainer
 from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.indexed_data import get_catalog
 
-from nti.dataserver.authorization_acl import ACL
-
-from nti.app.assessment._question_map import QuestionMap as _QuestionMap
-from nti.app.assessment._question_map import _populate_question_map_from_text
-from nti.app.assessment._question_map import _get_last_mod_namespace
-from nti.app.assessment._question_map import _remove_assessment_items_from_oldcontent
 from nti.app.assessment._question_map import _AssessmentItemContainer
+from nti.app.assessment._question_map import QuestionMap as _QuestionMap
+
+from nti.app.assessment._question_map import _get_last_mod_namespace
+from nti.app.assessment._question_map import _populate_question_map_from_text
+from nti.app.assessment._question_map import _remove_assessment_items_from_oldcontent
 
 class QuestionMap(_QuestionMap, dict):
 	# For testing, we capture data, emulating
@@ -245,12 +244,8 @@ class TestQuestionMap( AssessmentLayerTest ):
 		assert_that( question_map[qset_question.ntiid], is_( question) )
 		assert_that( question_map[qset.ntiid], is_( qset ) )
 
-		# And it has an ACL
-		assert_that( ACL(qset_question), is_( () ) )
-
 		# Registered
-		question_set = component.getUtility( IQuestionSet,
-											 name=qset.ntiid )
+		question_set = component.getUtility( IQuestionSet, name=qset.ntiid )
 		for question in question_set.questions:
 			assert_that( question, is_( same_instance( component.getUtility( IQuestion,
 																			 name=question.ntiid ))))
@@ -341,7 +336,7 @@ class TestQuestionMap( AssessmentLayerTest ):
 		mock_registry.is_callable().returns(registry)
 
 		section_one = SECTION_ONE.copy()
-	#	del section_one['filename']
+
 		interloper = { 'NTIID': 'foo',
 					   'Items': { section_one['NTIID']: section_one } }
 

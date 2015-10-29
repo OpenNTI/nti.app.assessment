@@ -20,8 +20,6 @@ from persistent.list import PersistentList
 
 from nti.app.assessment._question_map import _AssessmentItemBucket
 
-from nti.assessment.interfaces import IQAssessmentItemContainer
-
 from nti.dataserver.interfaces import IDataserver
 from nti.dataserver.interfaces import IOIDResolver
 
@@ -41,12 +39,6 @@ class MockDataserver(object):
 		else:
 			return resolver.get_object_by_oid(oid, ignore_creator=ignore_creator)
 		return None
-
-def _drop_annotation(unit):
-	annote = IQAssessmentItemContainer(unit, None)
-	if hasattr(unit, '_question_map_assessment_item_container'):
-		delattr(unit, '_question_map_assessment_item_container')
-	return annote
 
 def update_unit(unit):
 	try:

@@ -88,8 +88,8 @@ def ContentUnitAssessmentItems(unit):
 
 def _can_be_removed(registered, force=False):
 	result = registered is not None and \
-			 (	force or
-			 	(not IRecordable.providedBy(registered) or not registered.locked) )
+			 (force or
+			 	(not IRecordable.providedBy(registered) or not registered.locked))
 	return result
 can_be_removed = _can_be_removed
 
@@ -121,7 +121,10 @@ class QuestionMap(QuestionIndex):
 
 	def _register_and_canonicalize(self, things_to_register, registry=None):
 		registry = self._get_registry(registry)
-		QuestionIndex._register_and_canonicalize(self, things_to_register, registry)
+		result = QuestionIndex._register_and_canonicalize(self,
+														  things_to_register,
+														  registry)
+		return result
 
 	def _index_object(self, assessment_item, content_package,
 					  hierarchy_ntiids, registry=None):
@@ -187,44 +190,53 @@ class QuestionMap(QuestionIndex):
 				hierarchy_ntiids.update((x.ntiid for x in containing_content_units))
 
 		result = set()
-		for k, v in assessment_item_dict.items():
-			__traceback_info__ = k, v
+		registry = self._get_registry(registry)
+		for ntiid, v in assessment_item_dict.items():
+			__traceback_info__ = ntiid, v
 
 			factory = find_factory_for(v)
 			assert factory is not None
 
 			obj = factory()
-			update_from_external_object(obj, v, require_updater=True,
-										notify=False,
-										object_hook=_ntiid_object_hook)
-			obj.ntiid = k
-			obj.signature = signatures_dict.get(k)
-			obj.__name__ = unicode(k).encode('utf8').decode('utf8')
-			self._store_object(k, obj)
+			provided = _iface_to_register(obj)
+			registered = registry.queryUtility(provided, name=ntiid)
+			if registered is None:
+				update_from_external_object(obj, v, require_updater=True,
+											notify=False,
+											object_hook=_ntiid_object_hook)
+				obj.ntiid = ntiid
+				obj.signature = signatures_dict.get(ntiid)
+				obj.__name__ = unicode(ntiid).encode('utf8').decode('utf8')
+				self._store_object(ntiid, obj)
 
-			# No matter if we got an assignment or question set first or the questions
-			# first, register the question objects exactly once. Replace
-			# any question children of a question set by the registered object.
-			things_to_register = self._explode_object_to_register(obj)
-			result.update(things_to_register)
-
-			for thing_to_register in things_to_register:
-
-				# TODO: We are only partially supporting having question/sets
-				# used multiple places. When we get to that point, we need to
-				# handle it by noting on each assessment object where it is registered;
-				# XXX: This is probably not a good reference to have, we really
-				# want to do these weakly?
-				if thing_to_register.__parent__ is None and parent is not None:
-					thing_to_register.__parent__ = parent
-
-				# Index and register our object
-				parents_questions.append(thing_to_register)
-				self._intid_register(thing_to_register, registry=registry)
-				self._index_object(thing_to_register,
-								   content_package,
-								   hierarchy_ntiids,
-								   registry=registry)
+				# No matter if we got an assignment or question set first or the questions
+				# first, register the question objects exactly once. Replace
+				# any question children of a question set by the registered object.
+				things_to_register = self._explode_object_to_register(obj)
+				result.update(things_to_register)
+		
+				for thing_to_register in things_to_register:
+					# TODO: We are only partially supporting having question/sets
+					# used multiple places. When we get to that point, we need to
+					# handle it by noting on each assessment object where it is registered;
+					# XXX: This is probably not a good reference to have, we really
+					# want to do these weakly?
+					if thing_to_register.__parent__ is None and parent is not None:
+						thing_to_register.__parent__ = parent
+	
+					# Index and register our object
+					parents_questions.append(thing_to_register)
+	
+					self._intid_register(thing_to_register, registry=registry)
+					self._index_object(thing_to_register,
+									   content_package,
+									   hierarchy_ntiids,
+									   registry=registry)
+			else:
+				obj = registered
+				things_to_register = self._explode_object_to_register(obj)
+				for thing_to_register in things_to_register:
+					parents_questions.append(thing_to_register)
 
 			if containing_hierarchy_key:
 				assert 	containing_hierarchy_key in by_file, \
@@ -272,24 +284,23 @@ class QuestionMap(QuestionIndex):
 
 		things_to_register = set()
 		level_ntiid = index.get('NTIID') or nearest_containing_ntiid
-		i = self._process_assessments(index.get("AssessmentItems", {}),
-									  key_for_this_level,
-									  content_package,
-									  by_file,
-									  level_ntiid,
-									  index.get("Signatures"),
-									  registry=registry)
-
-		things_to_register.update(i)
+		items = self._process_assessments(index.get("AssessmentItems", {}),
+									 	  key_for_this_level,
+									  	  content_package,
+									  	  by_file,
+									  	  level_ntiid,
+									 	  index.get("Signatures"),
+									 	  registry=registry)
+		things_to_register.update(items)
+		
 		for child_item in index.get('Items', {}).values():
-			i = self._from_index_entry(child_item,
-									   content_package,
-									   by_file,
-									   nearest_containing_key=key_for_this_level,
-									   nearest_containing_ntiid=level_ntiid,
-									   registry=registry)
-
-			things_to_register.update(i)
+			items = self._from_index_entry(child_item,
+									 	   content_package,
+									   	   by_file,
+									   	   nearest_containing_key=key_for_this_level,
+									   	   nearest_containing_ntiid=level_ntiid,
+									   	   registry=registry)
+			things_to_register.update(items)
 
 		return things_to_register
 
@@ -338,20 +349,21 @@ class QuestionMap(QuestionIndex):
 			assert 	child_index.get('filename'), \
 					'Child must contain valid filename to contain assessments'
 
-			i = self._from_index_entry(child_index, content_package,
-										by_file,
-										nearest_containing_ntiid=child_ntiid,
-										registry=registry)
-			things_to_register.update(i)
+			parsed = self._from_index_entry(child_index,
+									   		content_package,
+									   		by_file,
+									   		nearest_containing_ntiid=child_ntiid,
+									   		registry=registry)
+			things_to_register.update(parsed)
 
 		# register assessment items
-		self._register_and_canonicalize(things_to_register, registry)
+		registered = self._register_and_canonicalize(things_to_register, registry)
 
 		# For tests and such, sort
 		for questions in by_file.values():
 			questions.sort(key=lambda q: q.__name__)
 
-		registered = {x.ntiid for x in things_to_register}
+		registered = {x.ntiid for x in registered}
 		return by_file, registered
 
 def _populate_question_map_from_text(question_map, asm_index_text,
@@ -439,7 +451,7 @@ def _remove_assessment_items_from_oldcontent(content_package, force=False):
 				if intids.queryId(item) is not None:
 					catalog.unindex(item, intids=intids)
 					intids.unregister(item, event=False)
-				result[name] = provided
+				result[name] = item
 			else:
 				logger.warn("Object (%s,%s) is locked cannot be removed during sync",
 							provided.__name__, name)
@@ -456,8 +468,7 @@ def _remove_assessment_items_from_oldcontent(content_package, force=False):
 
 @component.adapter(IContentPackage, IObjectRemovedEvent)
 def remove_assessment_items_from_oldcontent(content_package, event):
-	logger.info("Removing assessment items from old content %s %s",
-				content_package, event)
+	logger.info("Removing assessment items from old content %s %s", content_package, event)
 	result = _remove_assessment_items_from_oldcontent(content_package, True)
 	return set(result.keys())
 

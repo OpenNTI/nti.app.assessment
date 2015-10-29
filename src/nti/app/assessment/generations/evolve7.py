@@ -9,12 +9,16 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-generation = 6
+generation = 7
 
 from zope import component
 from zope import interface
 
 from zope.component.hooks import site, setHooks
+
+from persistent.list import PersistentList
+
+from nti.app.assessment._question_map import _AssessmentItemBucket
 
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
@@ -44,12 +48,35 @@ def _drop_annotation(unit):
 		delattr(unit, '_question_map_assessment_item_container')
 	return annote
 
-def index_library():
+def update_unit(unit):
+	try:
+		container = unit._question_map_assessment_item_container
+		if isinstance(container, PersistentList):
+			delattr(unit, '_question_map_assessment_item_container') # remove
+			bucket = unit._question_map_assessment_item_container = _AssessmentItemBucket()
+			bucket.__parent__ = unit
+			bucket.__name__ = container.__name__
+			bucket.createdTime = container.createdTime
+			bucket.lastModified = container.lastModified
+			for item in container:
+				bucket[item.ntiid] = item
+			del container[:] # clean
+	except AttributeError:
+		pass
+
+def update_package(package):
+	def _update(unit):
+		update_unit(unit)
+		for child in unit.children or ():
+			_update(child)
+	_update(package)
+
+def update_library():
 	library = component.queryUtility(IContentPackageLibrary)
 	if library is not None:
 		logger.info('Migrating library (%s)', library)
 		for package in library.contentPackages:
-			_drop_annotation(package)
+			update_package(package)
 
 def do_evolve(context):
 	setHooks()
@@ -70,14 +97,12 @@ def do_evolve(context):
 		if library is not None:
 			library.syncContentPackages()
 
-		# Iterate through packages, dropping annotations
-		index_library()
-		run_job_in_all_host_sites(index_library)
+		run_job_in_all_host_sites(update_library)
 
 	logger.info('Finished app assessment evolve (%s)', generation)
 
 def evolve(context):
 	"""
-	Evolve to generation 6 dropping old assessment annotations.
+	Evolve to generation 7 by updating the assesment item container
 	"""
 	do_evolve(context)

@@ -43,11 +43,11 @@ class MockDataserver(object):
 			return resolver.get_object_by_oid(oid, ignore_creator=ignore_creator)
 		return None
 
-def _index_assessment( assessment_item, unit, hierarchy_ntiids ):
+def _index_assessment(assessment_item, unit, hierarchy_ntiids):
 	question_map = QuestionMap()
-	return question_map._index_object( assessment_item, unit, hierarchy_ntiids )
+	return question_map._index_object(assessment_item, unit, hierarchy_ntiids)
 
-def _index_assessment_items( unit, intids ):
+def _index_assessment_items(unit, intids):
 	"""
 	For our unit, index the assessment items, registering
 	as needed.
@@ -59,22 +59,22 @@ def _index_assessment_items( unit, intids ):
 		except TypeError:
 			qs = ()
 
-		hierarchy_ntiids = set( hierarchy_ntiids )
-		hierarchy_ntiids.add( unit.ntiid )
+		hierarchy_ntiids = set(hierarchy_ntiids)
+		hierarchy_ntiids.add(unit.ntiid)
 		if qs:
 			for assessment_item in qs:
-				if not intids.queryId( assessment_item ):
-					intids.register( assessment_item, event=False )
-				did_index = _index_assessment( assessment_item, unit, hierarchy_ntiids )
+				if not intids.queryId(assessment_item):
+					intids.register(assessment_item, event=False)
+				did_index = _index_assessment(assessment_item, unit, hierarchy_ntiids)
 				if did_index:
 					indexed_count += 1
 
 		for child in unit.children:
-			indexed_count += recur( child, hierarchy_ntiids )
+			indexed_count += recur(child, hierarchy_ntiids)
 		return indexed_count
 
 	hierarchy_ntiids = set()
-	indexed_count = recur( unit, hierarchy_ntiids )
+	indexed_count = recur(unit, hierarchy_ntiids)
 	return indexed_count
 
 def index_library(intids):
@@ -109,10 +109,10 @@ def do_evolve(context):
 
 		# Iterate through packages, dropping annotation
 		# and indexing.
-		index_library( intids )
-		run_job_in_all_host_sites( functools.partial( index_library, intids ))
+		index_library(intids)
+		run_job_in_all_host_sites(functools.partial(index_library, intids))
 
-	logger.info( 'Finished app assessment evolve (%s)', generation )
+	logger.info('Finished app assessment evolve (%s)', generation)
 
 def evolve(context):
 	"""

@@ -65,7 +65,7 @@ def fix_history_lineage():
 			histories.__parent__ = course
 		for history in histories.values():
 			if history.__parent__ != histories:
-				history.__parent__ = histories	
+				history.__parent__ = histories
 
 def do_evolve(context, generation=generation):
 	logger.info("Assessment evolution %s started", generation);
@@ -95,7 +95,7 @@ def do_evolve(context, generation=generation):
 
 		fix_history_lineage()
 		run_job_in_all_host_sites(fix_history_lineage)
-	
+
 		# index all history items
 		MIME_TYPES = ('application/vnd.nextthought.assessment.userscourseassignmenthistoryitem',
 					  'application/vnd.nextthought.assessment.userscourseinquiryitem')

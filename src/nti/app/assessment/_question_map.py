@@ -75,6 +75,13 @@ class _AssessmentItemBucket(PersistentMapping,
 							Contained):
 	_SET_CREATED_MODTIME_ON_INIT = False
 	
+	def append(self, item):
+		self.extend((item,))
+	
+	def extend(self, items):
+		for item in items or ():
+			self[item.ntiid] = item
+
 # Instead of using annotations on the content objects, because we're
 # not entirely convinced that the annotation utility, which is ntiid
 # based, works correctly for our cases of having matching ntiids but

@@ -1,0 +1,30 @@
+<!-- -*- mode: nxml -*- -->
+<configure xmlns="http://namespaces.zope.org/zope"
+		   xmlns:zcml="http://namespaces.zope.org/zcml"
+		   xmlns:i18n="http://namespaces.zope.org/i18n"
+		   xmlns:ext="http://nextthought.com/ntp/ext">
+
+	<include package="zope.component" file="meta.zcml" />
+	<include package="zope.security" file="meta.zcml" />
+	<include package="zope.component" />
+	<include package="zope.security" />
+
+	<utility factory=".model._assignmentfeedbackitem_metadata" name="assignmentfeedback" />
+
+	<adapter factory=".model._AssignmentFeedbackItemResolver"
+			 for="..interfaces.IUsersCourseAssignmentHistoryItemFeedback"
+			 provides=".model.IAssignmentFeedbackItemResolver" />
+
+	<adapter factory=".model.AssignmentFeedbackItemSearchHit"
+			 for="..interfaces.IUsersCourseAssignmentHistoryItemFeedback"
+			 provides=".model.IAssignmentFeedbackItemSearchHit" />
+
+	<subscriber factory="nti.contentsearch.decorators.SearchHitHighlightDecorator"
+				for=".model.IAssignmentFeedbackItemSearchHit"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator"/>
+
+	<subscriber factory=".predicates._AssignmentFeedbackItemSearchHitPredicate"
+				provides="nti.contentsearch.interfaces.ISearchHitPredicate"
+				for="nti.dataserver.interfaces.ICreated" />
+
+</configure>

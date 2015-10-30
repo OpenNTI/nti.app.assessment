@@ -16,6 +16,8 @@ from zope import interface
 
 from zope.component.hooks import site, setHooks
 
+from zope.location.location import locate
+
 from persistent.list import PersistentList
 
 from nti.app.assessment._question_map import _AssessmentItemBucket
@@ -50,9 +52,9 @@ def update_unit(unit):
 			bucket.__name__ = container.__name__
 			bucket.createdTime = container.createdTime
 			bucket.lastModified = container.lastModified
-			for item in container:
-				bucket[item.ntiid] = item
+			bucket.extend(container)
 			del container[:] # clean
+			locate(container, None, None)
 	except AttributeError:
 		pass
 

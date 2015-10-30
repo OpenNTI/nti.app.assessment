@@ -9,7 +9,6 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-from zope import component
 from zope import interface
 
 from zope.securitypolicy.interfaces import Allow
@@ -18,7 +17,6 @@ from zope.securitypolicy.interfaces import IPrincipalRoleMap
 from nti.contentsearch.interfaces import IACLResolver
 from nti.contentsearch.interfaces import ICreatorResolver
 from nti.contentsearch.interfaces import IUserDataSearchHit
-from nti.contentsearch.interfaces import ISearchHitPredicate
 from nti.contentsearch.interfaces import ISearchTypeMetaData
 from nti.contentsearch.interfaces import ContentMixinResolver
 
@@ -30,17 +28,14 @@ from nti.contentsearch.content_utils import resolve_content_parts
 from nti.contenttypes.courses.interfaces import RID_TA
 from nti.contenttypes.courses.interfaces import RID_INSTRUCTOR
 from nti.contenttypes.courses.interfaces import ICourseInstance
-from nti.contenttypes.courses.interfaces import ICourseEnrollments
 
-from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import IEntity
 
 from nti.externalization.oids import to_external_ntiid_oid
 
 from nti.traversal.traversal import find_interface
 
-from .interfaces import IUsersCourseAssignmentHistoryItem
-from .interfaces import IUsersCourseAssignmentHistoryItemFeedback
+from ..interfaces import IUsersCourseAssignmentHistoryItemFeedback
 
 assignmentfeedback_ = u'assignmentfeedback'
 ASSIGNMENT_FEEDBACK_ITEM = u'AssignmentFeedbackItem'
@@ -134,22 +129,3 @@ def _assignmentfeedbackitem_metadata():
 							  IsUGD=True,
 							  Order=99,
 							  Interface=IUsersCourseAssignmentHistoryItemFeedback)
-
-@interface.implementer(ISearchHitPredicate)
-@component.adapter(IUsersCourseAssignmentHistoryItemFeedback)
-class _AssignmentFeedbackItemSearchHitPredicate(object):
-
-	def __init__(self, *args):
-		pass
-
-	def allow(self, feedback, score, query=None):
-		result = True  # by default allow
-		course = find_interface(feedback, ICourseInstance, strict=False)
-		item = find_interface(feedback, IUsersCourseAssignmentHistoryItem, strict=False)
-		user = IUser(item, None)  # get the user enrolled
-		if course is not None and user is not None:
-			enrollments = ICourseEnrollments(course)
-			result = enrollments.get_enrollment_for_principal(user) is not None
-			if not result:
-				logger.debug("Item not allowed for search. %s", feedback)
-		return result

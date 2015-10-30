@@ -19,7 +19,7 @@ from zope import interface
 
 from zope.container.contained import Contained
 
-from zope.interface.common.sequence import IReadSequence
+from zope.deprecation import deprecated
 
 from zope.intid.interfaces import IIntIds
 
@@ -61,8 +61,7 @@ from nti.site.site import get_component_hierarchy_names
 
 from .common import get_content_packages_assessment_items
 
-@component.adapter(IContentUnit)
-@interface.implementer(IQAssessmentItemContainer, IReadSequence)
+deprecated('_AssessmentItemContainer', 'Replaced with a persistent mapping')
 class _AssessmentItemContainer(PersistentList,
 							   PersistentCreatedAndModifiedTimeObject,
 							   Contained):
@@ -82,6 +81,9 @@ class _AssessmentItemBucket(PersistentMapping,
 		for item in items or ():
 			self[item.ntiid] = item
 
+	def assessments(self):
+		return self.values()
+
 # Instead of using annotations on the content objects, because we're
 # not entirely convinced that the annotation utility, which is ntiid
 # based, works correctly for our cases of having matching ntiids but
@@ -93,7 +95,7 @@ def ContentUnitAssessmentItems(unit):
 		result = unit._question_map_assessment_item_container
 		return result
 	except AttributeError:
-		result = unit._question_map_assessment_item_container = _AssessmentItemContainer()
+		result = unit._question_map_assessment_item_container = _AssessmentItemBucket()
 		result.createdTime = time.time()
 		result.__parent__ = unit
 		result.__name__ = '_question_map_assessment_item_container'
@@ -247,9 +249,6 @@ class QuestionMap(QuestionIndex):
 									   registry=registry)
 			else:
 				obj = registered
-				things_to_register = self._explode_object_to_register(obj)
-				for thing_to_register in things_to_register:
-					parents_questions.append(thing_to_register)
 
 			if containing_hierarchy_key:
 				assert 	containing_hierarchy_key in by_file, \
@@ -456,21 +455,20 @@ def _remove_assessment_items_from_oldcontent(content_package, force=False):
 	# We may not have to be recursive anymore.
 	def _unregister(unit):
 		items = IQAssessmentItemContainer(unit)
-		for item in tuple(items):
-			name = item.ntiid
+		for name, item in list(items.items()): # mutating
 			provided = _iface_to_register(item)
 			if can_be_removed(provided, force):
 				unregisterUtility(sm, provided=provided, name=name)
 				if intids is not None and intids.queryId(item) is not None:
 					catalog.unindex(item, intids=intids)
 					intids.unregister(item, event=False)
+				items.pop(name, None)
 				result[name] = item
 			else:
 				logger.warn("Object (%s,%s) is locked cannot be removed during sync",
 							provided.__name__, name)
 
-		# reset list
-		del items[:]
+		# reset dates
 		items.lastModified = items.createdTime = -1
 
 		for child in unit.children or ():

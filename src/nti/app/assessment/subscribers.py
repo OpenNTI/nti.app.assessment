@@ -11,9 +11,10 @@ logger = __import__('logging').getLogger(__name__)
 
 from . import MessageFactory as _
 
-import simplejson
 from datetime import datetime
 from functools import partial
+
+import simplejson
 
 from zope import component
 
@@ -26,8 +27,6 @@ from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
-from nti.assessment.interfaces import IQAssignmentDateContext
-from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 
@@ -43,7 +42,9 @@ from nti.site.hostpolicy import run_job_in_all_host_sites
 
 from nti.traversal.traversal import find_interface
 
+from .common import get_unit_assessments
 from .common import get_course_from_assignment
+from .common import get_available_for_submission_ending
 
 from .interfaces import IUsersCourseInquiries
 from .interfaces import IUsersCourseAssignmentHistories
@@ -121,7 +122,7 @@ def prevent_note_on_assignment_part(note, event):
 		path = library.pathToNTIID(container_id) if library is not None else None
 		if path:
 			item = path[-1]
-			items = IQAssessmentItemContainer(item, ())
+			items = get_unit_assessments(item)
 			items = [x for x in items if IQAssignment.providedBy(x)]
 
 	if not items:
@@ -132,19 +133,15 @@ def prevent_note_on_assignment_part(note, event):
 	for asg in items:
 		if IQAssignment.providedBy(asg):
 			course = get_course_from_assignment(asg, remoteUser)
-			if course:
-				dates = IQAssignmentDateContext(course).of(asg)
-			else:
-				dates = asg
-
-			if 	dates.available_for_submission_ending and \
-				dates.available_for_submission_ending >= datetime.utcnow():
+			available_for_submission_ending = get_available_for_submission_ending(asg, course)
+			if 	available_for_submission_ending and \
+				available_for_submission_ending >= datetime.utcnow():
 				e = HTTPUnprocessableEntity()
 				e.text = simplejson.dumps(
 						{'message': _("You cannot make notes on an assignment before the due date."),
 						 'code': 'CannotNoteOnAssignmentBeforeDueDate',
 						 'available_for_submission_ending':
-						 		to_external_object(dates.available_for_submission_ending)},
+						 		to_external_object(available_for_submission_ending)},
 						ensure_ascii=False)
 				e.content_type = b'application/json'
 				raise e

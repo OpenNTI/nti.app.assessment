@@ -11,11 +11,11 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-generation = 5
-
-import zope.intid
+generation = 6
 
 from zope.generations.generations import SchemaManager
+
+from zope.intid import IIntIds
 
 from ..index import install_assesment_catalog
 
@@ -37,5 +37,5 @@ def install_catalog(context):
 	root = conn.root()
 	dataserver_folder = root['nti.dataserver']
 	lsm = dataserver_folder.getSiteManager()
-	intids = lsm.getUtility(zope.intid.IIntIds)
+	intids = lsm.getUtility(IIntIds)
 	install_assesment_catalog(dataserver_folder, intids)

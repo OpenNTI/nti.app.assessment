@@ -34,7 +34,7 @@ from nti.assessment.interfaces import IQAssessmentItemContainer
 from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.indexed_data import get_catalog
 
-from nti.app.assessment._question_map import _AssessmentItemContainer
+from nti.app.assessment._question_map import _AssessmentItemBucket
 from nti.app.assessment._question_map import QuestionMap as _QuestionMap
 
 from nti.app.assessment._question_map import _get_last_mod_namespace
@@ -177,7 +177,7 @@ import nti.dataserver.tests.mock_dataserver as mock_dataserver
 class MockEntry(object):
 
 	def __init__(self):
-		self._items = _AssessmentItemContainer()
+		self._items = _AssessmentItemBucket()
 		self.ntiid = 'tag:nextthought,2011-05:blehblehbleh'
 
 	children = ()

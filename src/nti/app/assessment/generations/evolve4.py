@@ -20,8 +20,9 @@ from zope.component.hooks import site, setHooks
 
 from zope.intid.interfaces import IIntIds
 
-from nti.assessment.interfaces import IQAssessmentItemContainer
 from nti.app.assessment._question_map import QuestionMap
+
+from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.dataserver.interfaces import IDataserver
 from nti.dataserver.interfaces import IOIDResolver
@@ -49,20 +50,19 @@ def _index_assessment(assessment_item, unit, hierarchy_ntiids):
 
 def _index_assessment_items(unit, intids):
 	"""
-	For our unit, index the assessment items, registering
-	as needed.
+	For our unit, index the assessment items, registering as needed.
 	"""
 	def recur(unit, hierarchy_ntiids):
 		indexed_count = 0
 		try:
-			qs = IQAssessmentItemContainer(unit, ())
+			qs = IQAssessmentItemContainer(unit).assessments()
 		except TypeError:
 			qs = ()
 
 		hierarchy_ntiids = set(hierarchy_ntiids)
 		hierarchy_ntiids.add(unit.ntiid)
 		if qs:
-			for assessment_item in qs:
+			for assessment_item in qs or ():
 				if not intids.queryId(assessment_item):
 					intids.register(assessment_item, event=False)
 				did_index = _index_assessment(assessment_item, unit, hierarchy_ntiids)

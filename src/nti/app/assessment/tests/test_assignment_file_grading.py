@@ -59,7 +59,7 @@ class _RegisterFileAssignmentLayer(InstructedCourseApplicationTestLayer):
 
 	@classmethod
 	def setUp(cls):
-		question_set_id  = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.set.qset:QUIZ1_aristotle"
+		question_set_id = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.set.qset:QUIZ1_aristotle"
 		assignment_ntiid = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.asg:QUIZ1_aristotle"
 		cls.question_set_id = question_set_id
 		cls.assignment_id = assignment_ntiid
@@ -73,26 +73,25 @@ class _RegisterFileAssignmentLayer(InstructedCourseApplicationTestLayer):
 		def install_questions():
 			lib = component.getUtility(IContentPackageLibrary)
 
-
 			part = parts.QFilePart()
 			part.allowed_mime_types = ('*/*',)
 			part.allowed_extensions = '*'
-			question = QQuestion( parts=[part] )
+			question = QQuestion(parts=[part])
 
-			component.getSiteManager().registerUtility( question, provided=IQuestion,  name="1")
+			component.getSiteManager().registerUtility(question, provided=IQuestion, name="1")
 
 			question_set = QQuestionSet(questions=(question,))
 			question_set.ntiid = cls.question_set_id
-			component.provideUtility( question_set, provides=IQuestionSet, name=cls.question_set_id)
+			component.provideUtility(question_set, provides=IQuestionSet, name=cls.question_set_id)
 
 			# Works with auto_grade true or false.
 			assignment_part = QAssignmentPart(question_set=question_set, auto_grade=False)
-			assignment = QAssignment( parts=(assignment_part,) )
+			assignment = QAssignment(parts=(assignment_part,))
 			assignment.__name__ = assignment.ntiid = cls.assignment_id
 
-			component.getSiteManager().registerUtility( assignment,
+			component.getSiteManager().registerUtility(assignment,
 														provided=asm_interfaces.IQAssignment,
-														name=cls.assignment_id )
+														name=cls.assignment_id)
 
 			# Also make sure this assignment is found in the assignment index
 			# at some container
@@ -102,7 +101,7 @@ class _RegisterFileAssignmentLayer(InstructedCourseApplicationTestLayer):
 			assignment.__parent__ = lesson
 			IQAssessmentItemContainer(lesson).append(assignment)
 
-		database = ZODB.DB( ApplicationTestLayer._storage_base,
+		database = ZODB.DB(ApplicationTestLayer._storage_base,
 							database_name='Users')
 
 		@mock_dataserver.WithMockDS(database=database)
@@ -125,7 +124,7 @@ class _RegisterFileAssignmentLayer(InstructedCourseApplicationTestLayer):
 		pass
 
 class TestAssignmentFileGrading(ApplicationLayerTest):
-	
+
 	layer = _RegisterFileAssignmentLayer
 
 	assignment_id = None
@@ -134,42 +133,41 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 	default_origin = b'http://janux.ou.edu'
 
 	def setUp(self):
-		super(TestAssignmentFileGrading,self).setUp()
+		super(TestAssignmentFileGrading, self).setUp()
 		self.assignment_id = _RegisterFileAssignmentLayer.assignment_id
 		self.lesson_page_id = _RegisterFileAssignmentLayer.lesson_page_id
 		self.question_set_id = _RegisterFileAssignmentLayer.question_set_id
 
-
 	def _check_submission(self, res, history=None):
-		assert_that( res.status_int, is_( 201 ))
-		assert_that( res.json_body, has_entry( StandardExternalFields.CREATED_TIME, is_( float ) ) )
-		assert_that( res.json_body, has_entry( StandardExternalFields.LAST_MODIFIED, is_( float ) ) )
-		assert_that( res.json_body, has_entry( StandardExternalFields.MIMETYPE,
-											  'application/vnd.nextthought.assessment.assignmentsubmissionpendingassessment' ) )
+		assert_that(res.status_int, is_(201))
+		assert_that(res.json_body, has_entry(StandardExternalFields.CREATED_TIME, is_(float)))
+		assert_that(res.json_body, has_entry(StandardExternalFields.LAST_MODIFIED, is_(float)))
+		assert_that(res.json_body, has_entry(StandardExternalFields.MIMETYPE,
+											 'application/vnd.nextthought.assessment.assignmentsubmissionpendingassessment'))
 
-		assert_that( res.json_body, has_entry( 'ContainerId', self.assignment_id ))
-		assert_that( res.json_body, has_key( 'NTIID' ) )
+		assert_that(res.json_body, has_entry('ContainerId', self.assignment_id))
+		assert_that(res.json_body, has_key('NTIID'))
 
-		assert_that( res, has_property( 'location', contains_string('Objects/')))
+		assert_that(res, has_property('location', contains_string('Objects/')))
 
 		# This object can be found in my history
 		if history:
 			__traceback_info__ = history
 			res = self.testapp.get(history)
-			assert_that( res.json_body, has_entry('href', contains_string(unquote(history)) ) )
-			assert_that( res.json_body, has_entry('Items', has_length(1)))
-			assert_that( res.json_body, has_entry('lastViewed', 0))
+			assert_that(res.json_body, has_entry('href', contains_string(unquote(history))))
+			assert_that(res.json_body, has_entry('Items', has_length(1)))
+			assert_that(res.json_body, has_entry('lastViewed', 0))
 		else:
 			# Because we're not enrolled...actually, we shouldn't
 			# have been able to submit...this is here to make sure something
 			# breaks when acls change
-			res = self._fetch_user_url( '/Courses/EnrolledCourses/CLC3403/AssignmentHistories/sjohnsen@nextthought.com', status=404 )
+			res = self._fetch_user_url('/Courses/EnrolledCourses/CLC3403/AssignmentHistories/sjohnsen@nextthought.com', status=404)
 		return res
 
 	def _create_and_enroll(self, course_id='CLC 3403'):
-		q_sub = submission.QuestionSubmission( questionId="1", parts=(response.QUploadedFile(data=b'1234',
-																							 contentType=b'image/gif',
-																							 filename='foo.gif'),) )
+		q_sub = submission.QuestionSubmission(questionId="1", parts=(response.QUploadedFile(data=b'1234',
+																							contentType=b'image/gif',
+																							filename='foo.gif'),))
 
 		qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id, questions=(q_sub,))
 		asg_submission = AssignmentSubmission(assignmentId=self.assignment_id, parts=(qs_submission,))
@@ -178,73 +176,74 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 		ext_obj = to_external_object(asg_submission)
 		ext_obj['parts'][0]['questions'][0]['parts'][0]['value'] = GIF_DATAURL
 
-		assert_that( internalization.find_factory_for( ext_obj ),
-				 is_( not_none() ) )
-		# Make sure we're enrolled
-		res = self.testapp.post_json( '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses',
-									  course_id,
-									  status=201 )
-		enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'AssignmentHistory')
-		self.require_link_href_with_rel( res.json_body['CourseInstance'], 'AssignmentHistory')
+		assert_that(internalization.find_factory_for(ext_obj),  is_(not_none()))
 
-		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id,
+		# Make sure we're enrolled
+		res = self.testapp.post_json('/dataserver2/users/' + self.default_username + '/Courses/EnrolledCourses',
+									  course_id,
+									  status=201)
+		enrollment_history_link = self.require_link_href_with_rel(res.json_body, 'AssignmentHistory')
+		self.require_link_href_with_rel(res.json_body['CourseInstance'], 'AssignmentHistory')
+
+		res = self.testapp.post_json('/dataserver2/Objects/' + self.assignment_id,
 									  ext_obj)
 		history_res = self._check_submission(res, enrollment_history_link)
 
 		return history_res
 
-	@WithSharedApplicationMockDS(users=True,testapp=True)
+	@WithSharedApplicationMockDS(users=True, testapp=True)
 	def test_posting_and_bulk_downloading_file(self):
 		history_res = self._create_and_enroll()
 
 		# Now we should be able to find and download our data
 		submission = history_res.json_body['Items'].values()[0]['Submission']
 		submitted_file_part = submission['parts'][0]['questions'][0]['parts'][0]
-		assert_that( submitted_file_part, has_key('url'))
-		assert_that( submitted_file_part, has_key('value'))
-		assert_that( submitted_file_part['url'], is_(submitted_file_part['value']) )
-		assert_that( submitted_file_part, has_key('download_url'))
+		assert_that(submitted_file_part, has_key('url'))
+		assert_that(submitted_file_part, has_key('value'))
+		assert_that(submitted_file_part['url'], is_(submitted_file_part['value']))
+		assert_that(submitted_file_part, has_key('download_url'))
 
 		# Once directly, as is consistent with the way that avatars, etc work
-		download_res = self.testapp.get( submitted_file_part['url'] )
-		assert_that( download_res, has_property('content_type', 'image/gif'))
-		assert_that( download_res, has_property('content_length', 61))
-		assert_that( download_res, has_property('content_disposition', none() ))
+		download_res = self.testapp.get(submitted_file_part['url'])
+		assert_that(download_res, has_property('content_type', 'image/gif'))
+		assert_that(download_res, has_property('content_length', 61))
+		assert_that(download_res, has_property('content_disposition', none()))
 
 		# Then for download, both directly and without the trailing /view
 		for path in (submitted_file_part['download_url'], submitted_file_part['url'][0:-5]):
-			download_res = self.testapp.get( path )
-			assert_that( download_res, has_property('content_type', 'image/gif'))
-			assert_that( download_res, has_property('content_length', 61))
-			assert_that( download_res, has_property('content_disposition', not_none() ))
+			download_res = self.testapp.get(path)
+			assert_that(download_res, has_property('content_type', 'image/gif'))
+			assert_that(download_res, has_property('content_length', 61))
+			assert_that(download_res, has_property('content_disposition', not_none()))
 
 		# Our default user happens to have admin perms to fetch the files
-		res = self.testapp.get('/dataserver2/Objects/' + self.assignment_id )
+		res = self.testapp.get('/dataserver2/Objects/' + self.assignment_id)
 		bulk_href = self.require_link_href_with_rel(res.json_body, 'ExportFiles')
 
 		res = self.testapp.get(bulk_href)
 
-		assert_that( res.content_disposition, is_( 'attachment; filename="assignment.zip"'))
+		assert_that(res.content_disposition, is_('attachment; filename="assignment.zip"'))
 
 		data = res.body
 		io = StringIO(data)
 		zipfile = ZipFile(io, 'r')
 
 		name = 'sjohnson@nextthought.com-0-0-0-foo.gif'
-		assert_that( zipfile.namelist(), contains( name ) )
+		assert_that(zipfile.namelist(), contains(name))
 		info = zipfile.getinfo(name)
 		# Rounding means the second data may not be accurate
-		assert_that( info.date_time[:5], is_( download_res.last_modified.timetuple()[:5] ) )
+		assert_that(info.date_time[:5], is_(download_res.last_modified.timetuple()[:5]))
 
-	@WithSharedApplicationMockDS(users=True,testapp=True)
+	@WithSharedApplicationMockDS(users=True, testapp=True)
 	@fudge.patch('nti.app.assessment.history._get_policy_for_assignment',
 				 'nti.app.assessment.history.get_available_for_submission_ending')
 	def test_student_nuclear_option(self, mock_gpa, mock_se):
 		mock_gpa.is_callable().with_args().returns({'student_nuclear_reset_capable':True})
 		mock_se.is_callable().with_args().returns(datetime.utcfromtimestamp(time.time() + 20000))
-		
+
 		# Enroll in section 1, which lets this happen for this object
-		history_res = self._create_and_enroll(course_id='tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice_SubInstances_01')
+		cid = 'tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice_SubInstances_01'
+		history_res = self._create_and_enroll(course_id=cid)
 
 		item = history_res.json_body['Items'][self.assignment_id]
 		item_href = item['href']
@@ -257,9 +256,9 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 		# If we put some feedback, that goes away
 		feedback = UsersCourseAssignmentHistoryItemFeedback(body=['Some feedback'])
 		ext_feedback = to_external_object(feedback)
-		feedback_res = self.testapp.post_json( history_feedback_container_href,
-									  ext_feedback,
-									  status=201 )
+		feedback_res = self.testapp.post_json(history_feedback_container_href,
+									  		  ext_feedback,
+									  		  status=201)
 
 		item_res = self.testapp.get(item_href)
 		item = item_res.json_body

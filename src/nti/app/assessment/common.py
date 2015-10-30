@@ -89,16 +89,18 @@ def same_content_unit_file(unit1, unit2):
 	except (AttributeError, IndexError):
 		return False
 
+def get_unit_assessments(unit):
+	try:
+		result = IQAssessmentItemContainer(unit).assessments()
+	except TypeError:
+		result = ()
+	return result
+
 def get_assessment_items_from_unit(contentUnit):
 	def recur(unit, accum):
 		if same_content_unit_file(unit, contentUnit):
-			try:
-				qs = IQAssessmentItemContainer(unit, ())
-			except TypeError:
-				qs = ()
-
-			accum.update({q.ntiid: q for q in qs})
-
+			qs = get_unit_assessments(contentUnit)
+			accum.update({q.ntiid: q for q in qs or ()})
 			for child in unit.children:
 				recur(child, accum)
 
@@ -125,7 +127,7 @@ def get_course_packages(context):
 def get_content_packages_assessment_items(package):
 	result = []
 	def _recur(unit):
-		items = IQAssessmentItemContainer(unit, ())
+		items = get_unit_assessments(unit)
 		for item in items:
 			item = proxy(item, content_unit=unit.ntiid)
 			result.append(item)

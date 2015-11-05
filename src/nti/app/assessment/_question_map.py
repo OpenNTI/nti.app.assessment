@@ -41,6 +41,7 @@ from nti.assessment._question_index import _load_question_map_json
 from nti.assessment.common import iface_of_assessment as _iface_to_register
 
 from nti.coremetadata.interfaces import IRecordable
+from nti.coremetadata.interfaces import IPublishable
 
 from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.interfaces import IContentPackage
@@ -147,6 +148,8 @@ class QuestionMap(QuestionIndex):
 		Index the item in our catalog.
 		"""
 		result = False
+		if IPublishable.providedBy(assessment_item):
+			assessment_item.publish() # by default
 		if self._get_registry(registry) == component.getGlobalSiteManager():
 			return result
 		else:

@@ -33,6 +33,9 @@ from nti.common.property import alias
 from nti.common.property import readproperty
 from nti.common.property import CachedProperty
 
+from nti.containers.containers import CheckingLastModifiedBTreeContainer
+from nti.containers.containers import CaseInsensitiveCheckingLastModifiedBTreeContainer
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver.authorization import ACT_READ
@@ -45,9 +48,6 @@ from nti.dataserver.interfaces import ALL_PERMISSIONS
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import IACLProvider
-
-from nti.dataserver.containers import CheckingLastModifiedBTreeContainer
-from nti.dataserver.containers import CaseInsensitiveCheckingLastModifiedBTreeContainer
 
 from nti.dublincore.datastructures import PersistentCreatedModDateTrackingObject
 

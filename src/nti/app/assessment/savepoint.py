@@ -32,6 +32,9 @@ from nti.assessment.interfaces import IQAssessment
 
 from nti.common.property import alias
 
+from nti.containers.containers import CheckingLastModifiedBTreeContainer
+from nti.containers.containers import CaseInsensitiveCheckingLastModifiedBTreeContainer
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver.interfaces import IUser
@@ -44,9 +47,6 @@ from nti.dataserver.interfaces import IACLProvider
 
 from nti.dataserver.authorization_acl import ace_allowing
 from nti.dataserver.authorization_acl import acl_from_aces
-
-from nti.dataserver.containers import CheckingLastModifiedBTreeContainer
-from nti.dataserver.containers import CaseInsensitiveCheckingLastModifiedBTreeContainer
 
 from nti.dublincore.datastructures import PersistentCreatedModDateTrackingObject
 

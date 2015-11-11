@@ -29,6 +29,9 @@ from nti.assessment.interfaces import IQAggregatedSurvey
 from nti.common.property import alias
 from nti.common.property import readproperty
 
+from nti.containers.containers import CheckingLastModifiedBTreeContainer
+from nti.containers.containers import CaseInsensitiveCheckingLastModifiedBTreeContainer
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver.users import User
@@ -36,9 +39,6 @@ from nti.dataserver.users import User
 from nti.dataserver.authorization import ACT_READ
 from nti.dataserver.authorization_acl import ace_allowing
 from nti.dataserver.authorization_acl import acl_from_aces
-
-from nti.dataserver.containers import CheckingLastModifiedBTreeContainer
-from nti.dataserver.containers import CaseInsensitiveCheckingLastModifiedBTreeContainer
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import IACLProvider

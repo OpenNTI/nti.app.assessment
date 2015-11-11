@@ -99,7 +99,7 @@ def get_unit_assessments(unit):
 def get_assessment_items_from_unit(contentUnit):
 	def recur(unit, accum):
 		if same_content_unit_file(unit, contentUnit):
-			qs = get_unit_assessments(contentUnit)
+			qs = get_unit_assessments(unit)
 			accum.update({q.ntiid: q for q in qs or ()})
 			for child in unit.children:
 				recur(child, accum)

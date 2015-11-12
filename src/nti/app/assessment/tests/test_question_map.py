@@ -275,26 +275,6 @@ class TestQuestionMap( AssessmentLayerTest ):
 
 		# Remove
 		_remove_assessment_items_from_oldcontent( mock_content_package )
-#
-# 		# Unregistered
-# 		assert_that( component.queryUtility( IQuestionSet, qset.ntiid ), is_( none() ) )
-#
-# 		# Catalog cleared
-# 		results = catalog.search_objects( container_ntiids=(mock_content_package.ntiid,) )
-# 		assert_that(results, has_length(0))
-#
-# 		# Namespace
-# 		results = catalog.search_objects(namespace=mock_content_package.ntiid)
-# 		assert_that(results, has_length(0))
-#
-# 		# Type
-# 		for provided, _ in (('IQPoll', 2),
-# 							('IQSurvey', 1),
-# 							('IQuestion', 2),
-# 							('IQuestionSet', 1),
-# 							('IQAssignment', 1)):
-# 			results = catalog.search_objects(provided=provided)
-# 			assert_that(results, has_length( 0 ))
 
 	@WithMockDSTrans
 	@fudge.patch('nti.app.contentlibrary.subscribers.get_registry')

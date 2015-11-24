@@ -299,13 +299,13 @@ def can_disclose_inquiry(inquiry, context=None):
 	else:
 		policy = None
 	not_after = get_available_for_submission_ending(inquiry, course)
-	
+
 	# get disclosure policy
 	if policy and 'disclosure' in policy:
 		disclosure = policy['disclosure'] or inquiry.disclosure
 	else:
 		disclosure = inquiry.disclosure
-	
+
 	# eval
 	result = disclosure == DISCLOSURE_ALWAYS
 	if not result and disclosure != DISCLOSURE_NEVER:
@@ -318,7 +318,7 @@ def aggregate_course_inquiry(inquiry, course, *items):
 	intids = component.getUtility(IIntIds)
 	query = { IX_COURSE: {'any_of':(entry.ntiid,)},
 			  IX_ASSESSMENT_ID: {'any_of':(inquiry.ntiid,)} }
-	
+
 	result = None
 	uids =  catalog.apply(query) or ()
 	items = itertools.chain(ResultSet(uids, intids, True), items)
@@ -338,7 +338,7 @@ def aggregate_page_inquiry(containerId, mimeType, *items):
 	intids = component.getUtility(IIntIds)
 	query = { IX_MIMETYPE: {'any_of':(mimeType,)},
 			  IX_CONTAINERID: {'any_of':(containerId,)} }
-	
+
 	result = None
 	uids =  catalog.apply(query) or ()
 	items = itertools.chain(ResultSet(uids, intids, True), items)

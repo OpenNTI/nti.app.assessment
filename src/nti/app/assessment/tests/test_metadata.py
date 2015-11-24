@@ -66,7 +66,7 @@ class TestMetadata(AssessmentLayerTest):
 		item = UsersCourseAssignmentMetadataItem()
 		item.StartTime = time.time()
 		metadata.append("foo", item)
-		
+
 		assert_that( item, has_property( 'StartTime', is_not(none() )))
 		assert_that( item, has_property( '__name__', is_( 'foo') ) )
 		assert_that( item.__parent__, is_( metadata ))
@@ -74,7 +74,7 @@ class TestMetadata(AssessmentLayerTest):
 
 		metadata.remove('foo')
 		assert_that(metadata, has_length(0))
-		
+
 	@WithMockDSTrans
 	def test_get_or_create(self):
 		connection = mock_dataserver.current_transaction
@@ -98,10 +98,12 @@ from nti.app.assessment.tests import RegisterAssignmentsForEveryoneLayer
 from nti.app.testing.decorators import WithSharedApplicationMockDS
 from nti.app.testing.application_webtest import ApplicationLayerTest
 
+COURSE_NTIID = 'tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice'
+
 class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
 	layer = RegisterAssignmentsForEveryoneLayer
-	
+
 	features = ('assignments_for_everyone',)
 
 	default_origin = str('http://janux.ou.edu')
@@ -109,12 +111,12 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
 	@WithSharedApplicationMockDS(users=('outest5',), testapp=True, default_authenticate=True)
 	def test_fetching_entire_assignment_metadata_collection(self):
-		
+
 		outest_environ = self._make_extra_environ(username='outest5')
 		outest_environ.update( {b'HTTP_ORIGIN': b'http://janux.ou.edu'} )
 
 		res = self.testapp.post_json( '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses',
-									  'CLC 3403',
+									 COURSE_NTIID,
 									  status=201 )
 
 		default_enrollment_metadata_link = self.require_link_href_with_rel(res.json_body, 'AssignmentMetadata')
@@ -125,7 +127,7 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 						self.default_username))
 
 		res = self.testapp.post_json('/dataserver2/users/outest5/Courses/EnrolledCourses',
-									 'CLC 3403',
+									 COURSE_NTIID,
 									 status=201,
 									 extra_environ=outest_environ )
 
@@ -145,7 +147,7 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		assert_that(res.status_int, is_(201))
 		assert_that(res.json_body, has_entry(StandardExternalFields.CREATED_TIME, is_(float)))
 		assert_that(res.json_body, has_entry(StandardExternalFields.LAST_MODIFIED, is_(float)))
-		assert_that(res.json_body, has_entry(StandardExternalFields.MIMETYPE, 
+		assert_that(res.json_body, has_entry(StandardExternalFields.MIMETYPE,
 											 'application/vnd.nextthought.assessment.userscourseassignmentmetadataitem' ) )
 
 		assert_that(res.json_body, has_entry('href', is_not(none())))
@@ -160,14 +162,14 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 			metadata_res = self.testapp.get(metadata_link)
 			assert_that(metadata_res.json_body, has_entry('href', contains_string(unquote(metadata_link)) ) )
 			assert_that(metadata_res.json_body, has_entry('Items', has_length(1)))
-		
+
 			items = list(metadata_res.json_body['Items'].values())
 			assert_that(items[0], has_key('href'))
 		else:
-			self._fetch_user_url('/Courses/EnrolledCourses/CLC3403/AssignmentMetadata' + 
+			self._fetch_user_url('/Courses/EnrolledCourses/CLC3403/AssignmentMetadata' +
 								self.default_username, status=404 )
 		return res.json_body
-	
+
 	@WithSharedApplicationMockDS(users=('outest5',),testapp=True,default_authenticate=True)
 	@fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
 	def test_metadata(self, fake_active):
@@ -175,25 +177,25 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
 		item = UsersCourseAssignmentMetadataItem(StartTime=time.time())
 		ext_obj = to_external_object( item )
-		assert_that( ext_obj, 
+		assert_that( ext_obj,
 					 has_entry('MimeType', 'application/vnd.nextthought.assessment.userscourseassignmentmetadataitem'))
-		
+
 		# Make sure we're enrolled
 		res = self.testapp.post_json( '/dataserver2/users/' + self.default_username + '/Courses/EnrolledCourses',
- 									  'CLC 3403',
+ 									  COURSE_NTIID,
  									  status=201 )
 
 		enrollment_metadata_link = self.require_link_href_with_rel(res.json_body, 'AssignmentMetadata')
 		course_metadata_link = self.require_link_href_with_rel( res.json_body['CourseInstance'], 'AssignmentMetadata')
-	
+
 		assert_that( enrollment_metadata_link,
-					 is_('/dataserver2/users/' + 
+					 is_('/dataserver2/users/' +
 						 self.default_username +
 						 '/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentMetadata/' +
 						 self.default_username))
 
 		assert_that( course_metadata_link,
- 					 is_('/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice/AssignmentMetadata/' + 
+ 					 is_('/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice/AssignmentMetadata/' +
  						 self.default_username) )
 
 		# Both links are equivalent and work; and both are empty before I submit
@@ -203,19 +205,19 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
 		href = '/dataserver2/Objects/' + self.assignment_id + '/Metadata'
 		self.testapp.get(href, status=404)
-		
+
 		res = self.testapp.post_json( href, ext_obj)
 		metadata_item_href = res.json_body['href']
 		assert_that(metadata_item_href, is_not(none()))
-		
+
 		meta_body = self._check_metadata(res, enrollment_metadata_link)
-	
+
 		res = self.testapp.get(metadata_item_href)
 		assert_that(res.json_body, has_entry('href', is_not(none())))
-	
+
 		res = self.testapp.get(href)
 		assert_that(res.json_body, has_entry('href', is_not(none())))
-		
+
 		# Both metadata links are equivalent and work
 		for link in course_metadata_link, enrollment_metadata_link:
 			metadata_res = self.testapp.get(link)
@@ -226,16 +228,16 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		href = metadata_res.json_body['href'] + '/' + self.assignment_id
 		res = self.testapp.get(href)
 		assert_that(res.json_body, has_entry('href', is_not(none())))
-			
+
 		# we cannnot delete
 		self.testapp.delete(metadata_item_href, status=403)
 		self.testapp.get(metadata_item_href, status=200)
-		
+
 		# we can put
 		ext_obj['StartTime'] = 0 #should be ignored
 		res = self.testapp.put_json(metadata_item_href, ext_obj, status=200)
 		assert_that(res.json_body, has_entry('StartTime', is_(meta_body['StartTime'])))
-		
+
 		# The instructor can delete our metadada
 		instructor_environ = self._make_extra_environ(username='harp4162')
 		self.testapp.delete(metadata_item_href, extra_environ=instructor_environ, status=204)
@@ -244,18 +246,18 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 	@fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
 	def test_metadata_commence(self, fake_active):
 		fake_active.is_callable().returns(True)
-		
+
 		# Make sure we're enrolled
 		self.testapp.post_json('/dataserver2/users/' + self.default_username + '/Courses/EnrolledCourses',
- 							   'CLC 3403',
+ 							   COURSE_NTIID,
  							   status=201 )
-		
+
 		href = '/dataserver2/Objects/' + self.assignment_id + '/Commence'
 		self.testapp.get(href, status=404)
-		
+
 		res = self.testapp.post_json(href)
 		assert_that(res.json_body, has_entry('Class', is_('Assignment')))
-		
+
 		href = '/dataserver2/Objects/' + self.assignment_id + '/StartTime'
 		res = self.testapp.get(href, status=200)
 		assert_that(res.json_body, has_entry('StartTime', is_not(none()) ))

@@ -62,6 +62,8 @@ from nti.app.testing.application_webtest import ApplicationLayerTest
 
 from nti.dataserver.tests import mock_dataserver
 
+COURSE_NTIID = 'tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice'
+
 class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
 	layer = RegisterAssignmentsForEveryoneLayer
@@ -172,7 +174,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		outest_environ.update( {b'HTTP_ORIGIN': b'http://janux.ou.edu'} )
 
 		res = self.testapp.post_json( '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses',
-									  'CLC 3403',
+									  COURSE_NTIID,
 									  status=201 )
 
 		default_enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'AssignmentHistory')
@@ -180,7 +182,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 					 is_('/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentHistories/' + self.default_username))
 
 		res = self.testapp.post_json( '/dataserver2/users/outest5/Courses/EnrolledCourses',
-								'CLC 3403',
+								COURSE_NTIID,
 								status=201,
 								extra_environ=outest_environ )
 
@@ -243,7 +245,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		assert_that( ext_obj, has_entry( 'MimeType', 'application/vnd.nextthought.assessment.assignmentsubmission'))
 		# Make sure we're enrolled
 		res = self.testapp.post_json( '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses',
-									  'CLC 3403',
+									  COURSE_NTIID,
 									  status=201 )
 
 		enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'AssignmentHistory')
@@ -311,7 +313,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		outest_environ = self._make_extra_environ(username='outest5')
 		outest_environ.update( {b'HTTP_ORIGIN': b'http://janux.ou.edu'} )
 		self.testapp.post_json( '/dataserver2/users/outest5/Courses/EnrolledCourses',
-								'CLC 3403',
+								COURSE_NTIID,
 								status=201,
 								extra_environ=outest_environ )
 
@@ -387,7 +389,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
 		# Make sure we're enrolled
 		res = self.testapp.post_json( '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses',
-									  'CLC 3403',
+									  COURSE_NTIID,
 									  status=201 )
 		enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'AssignmentHistory')
 
@@ -462,7 +464,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		try:
 			# Make sure we're enrolled
 			res = self.testapp.post_json( '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses',
-										  'CLC 3403',
+										  COURSE_NTIID,
 										  status=201 )
 
 			enrollment_assignments = self.require_link_href_with_rel( res.json_body, 'AssignmentsByOutlineNode')
@@ -513,7 +515,7 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin, ApplicationLayerTest
 
 		# Make sure we're enrolled
 		res = self.testapp.post_json( '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses',
-									  'CLC 3403',
+									  COURSE_NTIID,
 									  status=201 )
 
 		enrollment_oid = res.json_body['NTIID']

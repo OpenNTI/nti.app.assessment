@@ -164,7 +164,7 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 			res = self._fetch_user_url('/Courses/EnrolledCourses/CLC3403/AssignmentHistories/sjohnsen@nextthought.com', status=404)
 		return res
 
-	def _create_and_enroll(self, course_id='CLC 3403'):
+	def _create_and_enroll(self, course_id='tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice'):
 		q_sub = submission.QuestionSubmission(questionId="1", parts=(response.QUploadedFile(data=b'1234',
 																							contentType=b'image/gif',
 																							filename='foo.gif'),))

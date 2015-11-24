@@ -88,7 +88,7 @@ def do_evolve(context, generation=generation):
 		metadata_catalog = lsm.getUtility(ICatalog, METADATA_CATALOG_NAME)
 		assesment_catalog = install_assesment_catalog(ds_folder, intids)
 
-		# load libray
+		# load library
 		library = component.queryUtility(IContentPackageLibrary)
 		if library is not None:
 			library.syncContentPackages()

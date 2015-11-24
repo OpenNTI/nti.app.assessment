@@ -13,14 +13,13 @@ logger = __import__('logging').getLogger(__name__)
 
 generation = 7
 
-import functools
-
 import zope.intid
 
 from zope import component
 from zope import interface
 
-from zope.component.hooks import site, setHooks
+from zope.component.hooks import setHooks
+from zope.component.hooks import site as current_site
 
 from zope.catalog.interfaces import ICatalog
 
@@ -34,8 +33,6 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.dataserver.interfaces import IDataserver
 from nti.dataserver.interfaces import IOIDResolver
 from nti.dataserver.metadata_index import CATALOG_NAME as METADATA_CATALOG_NAME
-
-from nti.site.hostpolicy import run_job_in_all_host_sites
 
 from nti.traversal.traversal import find_interface
 
@@ -54,18 +51,17 @@ class MockDataserver(object):
 			return resolver.get_object_by_oid(oid, ignore_creator=ignore_creator)
 		return None
 
-removed_count = 0
-
-def _remove_from_course_activity( catalog, intids ):
-	global removed_count
+def _remove_from_course_activity(catalog, intids):
+	removed_count = 0
 	mime_types = (QPollSubmission.mime_type, QSurveySubmission.mime_type)
 	item_intids = catalog['mimeType'].apply({'any_of': mime_types})
-	results = ResultSet(item_intids, intids, True)
-	for _, submission in results.iter_pairs():
-		course = find_interface(submission, ICourseInstance)
-		activity = ICourseInstanceActivity(course)
-		activity.remove(submission)
-		removed_count += 1
+	for submission in ResultSet(item_intids, intids, True):
+		course = find_interface(submission, ICourseInstance, strict=False)
+		if course is not None:
+			activity = ICourseInstanceActivity(course)
+			activity.remove(submission)
+			removed_count += 1
+	return removed_count
 
 def do_evolve(context, generation=generation):
 	logger.info("Assessment evolution %s started", generation);
@@ -80,15 +76,12 @@ def do_evolve(context, generation=generation):
 	mock_ds.root = ds_folder
 	component.provideUtility(mock_ds, IDataserver)
 
-	global removed_count
-
-	with site(ds_folder):
+	with current_site(ds_folder):
 		assert 	component.getSiteManager() == ds_folder.getSiteManager(), \
 				"Hooks not installed?"
 
 		catalog = lsm.getUtility(ICatalog, METADATA_CATALOG_NAME)
-
-		run_job_in_all_host_sites( functools.partial( _remove_from_course_activity, catalog, intids ) )
+		removed_count = _remove_from_course_activity(catalog, intids)
 
 		logger.info('Assessment evolution %s done (removed=%s)', generation, removed_count)
 

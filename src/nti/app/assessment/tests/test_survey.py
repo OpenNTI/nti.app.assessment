@@ -14,7 +14,6 @@ from hamcrest import has_key
 from hamcrest import has_entry
 from hamcrest import has_length
 from hamcrest import assert_that
-from hamcrest import greater_than
 from hamcrest import has_property
 from hamcrest import contains_string
 
@@ -212,11 +211,6 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		# we cannnot delete
 		self.testapp.delete(survey_item_href, status=403)
 		self.testapp.get(survey_item_href, status=200)
-
-		instructor_environ = self._make_extra_environ(username='harp4162')
-		activity_link = course_instance_link + '/CourseActivity'
-		res = self.testapp.get(activity_link, extra_environ=instructor_environ)
-		assert_that( res.json_body, has_entry('TotalItemCount', greater_than(0) ))
 
 	@WithSharedApplicationMockDS(users=('outest5',),testapp=True,default_authenticate=True)
 	@fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')

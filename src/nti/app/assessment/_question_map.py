@@ -452,6 +452,7 @@ def _remove_assessment_items_from_oldcontent(content_package, force=False):
 					sm, component.getSiteManager(content_package))
 
 	result = {}
+	ignore = set()
 	catalog = get_library_catalog()
 	intids = component.queryUtility(IIntIds) # test mode
 
@@ -460,7 +461,7 @@ def _remove_assessment_items_from_oldcontent(content_package, force=False):
 		items = IQAssessmentItemContainer(unit)
 		for name, item in list(items.items()): # mutating
 			provided = _iface_to_register(item)
-			if can_be_removed(provided, force):
+			if can_be_removed(provided, force) and name not in ignore:
 				unregisterUtility(sm, provided=provided, name=name)
 				if intids is not None and intids.queryId(item) is not None:
 					catalog.unindex(item, intids=intids)
@@ -470,6 +471,8 @@ def _remove_assessment_items_from_oldcontent(content_package, force=False):
 			else:
 				logger.warn("Object (%s,%s) is locked cannot be removed during sync",
 							provided.__name__, name)
+				exploded = QuestionMap.explode_object_to_register(item)
+				ignore.update(x.ntiid for x in exploded or ())
 
 		# reset dates
 		items.lastModified = items.createdTime = -1

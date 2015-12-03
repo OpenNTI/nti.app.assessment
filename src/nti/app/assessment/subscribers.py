@@ -23,10 +23,10 @@ from pyramid.httpexceptions import HTTPUnprocessableEntity
 from nti.app.products.courseware.interfaces import ICourseInstanceActivity
 
 from nti.assessment.interfaces import IQPoll
-from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import ASSESSMENT_INTERFACES
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 
@@ -52,6 +52,8 @@ from .interfaces import IUsersCourseAssignmentSavepoints
 from .interfaces import IUsersCourseAssignmentSavepointItem
 from .interfaces import IUsersCourseAssignmentMetadataContainer
 
+# activity / submission
+
 def add_object_to_course_activity(submission, event):
 	"""
 	This can be registered for anything we want to submit to course activity
@@ -76,6 +78,8 @@ def remove_object_from_course_activity(submission, event):
 	activity = ICourseInstanceActivity(course)
 	activity.remove(submission)
 
+# UGD
+
 def prevent_note_on_assignment_part(note, event):
 	"""
 	When we try to create a note on something related to an
@@ -96,7 +100,7 @@ def prevent_note_on_assignment_part(note, event):
 
 	item = None
 	items = ()
-	for iface in (IQSurvey, IQPoll, IQAssignment, IQuestion, IQuestionSet):
+	for iface in ASSESSMENT_INTERFACES:
 		item = component.queryUtility(iface, name=container_id)
 		if item is not None:
 			items = (item,)
@@ -146,6 +150,8 @@ def prevent_note_on_assignment_part(note, event):
 				e.content_type = b'application/json'
 				raise e
 
+# users
+
 def delete_user_data(user):
 	username = user.username
 	for enrollments in component.subscribers((user,), IPrincipalEnrollments):
@@ -164,5 +170,4 @@ def delete_user_data(user):
 @component.adapter(IUser, IWillDeleteEntityEvent)
 def _on_user_will_be_removed(user, event):
 	logger.info("Removing assignment data for user %s", user)
-	func = partial(delete_user_data, user=user)
-	run_job_in_all_host_sites(func)
+	run_job_in_all_host_sites(partial(delete_user_data, user=user))

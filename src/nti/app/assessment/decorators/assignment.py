@@ -35,8 +35,6 @@ from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.contenttypes.courses.utils import is_course_instructor
 
-from nti.coremetadata.interfaces import IRecordable
-
 from nti.externalization.singleton import SingletonDecorator
 from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.externalization import to_external_object
@@ -48,6 +46,8 @@ from nti.links.links import Link
 from nti.traversal.traversal import find_interface
 
 from ..common import get_assessment_metadata_item
+from ..common import get_available_for_submission_ending
+from ..common import get_available_for_submission_beginning
 
 from .._utils import assignment_download_precondition
 
@@ -140,23 +140,16 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		result = component.getUtility(ICourseCatalog)
 		return result
 
-	def _is_locked(self, assignment):
-		return IRecordable.providedBy( assignment ) and assignment.locked
-
 	def _do_decorate_external(self, assignment, result):
 		course = _get_course_from_assignment(assignment, self.remoteUser, self._catalog)
 		if course is None:
 			return
 
 		# Do not override dates if locked.
-		if not self._is_locked( assignment ):
-			dates = IQAssignmentDateContext(course).of(assignment)
-			for k in ('available_for_submission_ending',
-					  'available_for_submission_beginning'):
-				asg_date = getattr(assignment, k)
-				dates_date = getattr(dates, k)
-				if dates_date != asg_date:
-					result[k] = to_external_object(dates_date)
+		start_date = get_available_for_submission_beginning( assignment, course )
+		end_date = get_available_for_submission_ending( assignment, course )
+		result['available_for_submission_ending'] = to_external_object( start_date )
+		result['available_for_submission_beginning'] = to_external_object( end_date )
 
 		if not IQTimedAssignment.providedBy(assignment):
 			result['IsTimedAssignment'] = False

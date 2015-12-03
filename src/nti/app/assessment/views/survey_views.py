@@ -329,3 +329,17 @@ class InquirySubmisionPutView(UGDPutView):
 
 	def __call__(self):
 		raise hexc.HTTPForbidden(_("Cannot put an inquiry"))
+
+@view_config(route_name='objects.generic.traversal',
+			 context=IQInquiry,
+			 request_method='PUT',
+			 permission=nauth.ACT_CONTENT_EDIT,
+			 renderer='rest')
+class InquiryFieldPutView(UGDPutView):
+
+	def readInput(self, value=None):
+		# TODO Validations?
+		result = UGDPutView.readInput(self, value=value)
+		result.pop('ntiid', None)
+		result.pop('NTIID', None)
+		return result

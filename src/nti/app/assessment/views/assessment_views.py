@@ -30,6 +30,8 @@ from nti.app.contentlibrary.utils import find_page_info_view_helper
 
 from nti.app.products.courseware.interfaces import ICourseInstanceEnrollment
 
+from nti.appserver.ugd_edit_views import UGDPutView
+
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQuestion
@@ -439,7 +441,7 @@ from nti.contenttypes.courses.interfaces import ICourseAssignmentCatalog
 from nti.contenttypes.courses.interfaces import ICourseAssessmentItemCatalog
 
 class AssignmentsByOutlineNodeMixin(AbstractAuthenticatedView):
-	
+
 	_LEGACY_UAS = (
 		"NTIFoundation DataLoader NextThought/1.0",
 		"NTIFoundation DataLoader NextThought/1.1.",
@@ -568,10 +570,10 @@ class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 		# the question sets that they refer to if they are not allowed
 		# by the filter; we assume such sets are only used by the
 		# assignment.
-		
+
 		qsids_to_strip = set()
 		catalog = ICourseAssessmentItemCatalog(instance)
-		
+
 		for item in catalog.iter_assessment_items():
 			if IQAssignment.providedBy(item):
 				for assignment_part in item.parts or ():
@@ -604,3 +606,20 @@ class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 			items = result[ITEMS] = {}
 			self._do_catalog(instance, items)
 		return result
+
+@view_config(route_name='objects.generic.traversal',
+			 context=IQAssignment,
+			 request_method='PUT',
+			 permission=nauth.ACT_CONTENT_EDIT,
+			 renderer='rest')
+class AssignmentFieldPutView(UGDPutView):
+
+	def readInput(self, value=None):
+		# TODO We need to check for overrides here and set
+		# in our assignment.
+		# TODO Check submissions before toggling question data.
+		result = UGDPutView.readInput(self, value=value)
+		result.pop('ntiid', None)
+		result.pop('NTIID', None)
+		return result
+

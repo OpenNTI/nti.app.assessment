@@ -37,6 +37,8 @@ from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
+from nti.coremetadata.interfaces import IRecordable
+
 from nti.dataserver.metadata_index import IX_MIMETYPE
 from nti.dataserver.metadata_index import IX_CONTAINERID
 
@@ -155,9 +157,13 @@ def get_policy_for_assessment(asm_id, context):
 	policy = policies.getPolicyForAssessment(asm_id)
 	return policy
 
+def _is_locked( assesment ):
+	return IRecordable.providedBy( assesment ) and assesment.locked
+
 def get_available_for_submission_beginning(assesment, context=None):
 	course = ICourseInstance(context, None)
-	if course is not None:
+	# Use our assignment policy if not locked.
+	if course is not None and not _is_locked( assesment ):
 		dates = IQAssessmentDateContext(course)
 		result = dates.of(assesment).available_for_submission_beginning
 	else:
@@ -166,7 +172,8 @@ def get_available_for_submission_beginning(assesment, context=None):
 
 def get_available_for_submission_ending(assesment, context=None):
 	course = ICourseInstance(context, None)
-	if course is not None:
+	# Use our assignment policy if not locked.
+	if course is not None and not _is_locked( assesment ):
 		dates = IQAssessmentDateContext(course)
 		result = dates.of(assesment).available_for_submission_ending
 	else:

@@ -617,6 +617,7 @@ class AssignmentFieldPutView(UGDPutView):
 	def readInput(self, value=None):
 		# TODO We need to check for overrides here and set
 		# in our assignment.
+		# TODO We need to do the same on field puts.
 		# TODO Check submissions before toggling question data.
 		result = UGDPutView.readInput(self, value=value)
 		result.pop('ntiid', None)

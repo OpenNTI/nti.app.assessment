@@ -51,7 +51,6 @@ from nti.assessment.interfaces import IQuestionSubmission
 from nti.assessment.interfaces import IQAssessedQuestionSet
 from nti.assessment.interfaces import IQAssignmentSubmission
 from nti.assessment.interfaces import IQuestionSetSubmission
-from nti.assessment.interfaces import IQAssignmentDateContext
 from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
 from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 
@@ -65,6 +64,8 @@ from nti.dataserver.interfaces import IUser
 from nti.schema.jsonschema import TAG_HIDDEN_IN_UI
 
 from nti.traversal.traversal import find_interface
+
+from .common import get_available_for_submission_beginning
 
 from .history import UsersCourseAssignmentHistory
 
@@ -128,12 +129,12 @@ def _assignment_submission_transformer(request, obj):
 	renderers.render_to_response('rest', pending, request)
 	raise result
 
-def _check_submission_before(dates, assignment):
+def _check_submission_before(course, assignment):
 	# We only need to check that the submission is not too early;
 	# if it is late, we still allow it at this level, leaving
 	# it to the instructor to handle it.
 	# Allow for the course to handle adjusting the dates
-	available_beginning = dates.of(assignment).available_for_submission_beginning
+	available_beginning = get_available_for_submission_beginning(assignment, course)
 	if available_beginning is not None:
 		if datetime.datetime.utcnow() < available_beginning:
 			ex = ConstraintNotSatisfied("Submitting too early")
@@ -177,7 +178,7 @@ def _begin_assessment_for_assignment_submission(submission):
 
 	course = get_course_from_assignment(assignment, submission.creator)
 
-	_check_submission_before(IQAssignmentDateContext(course), assignment)
+	_check_submission_before(course, assignment)
 
 	assignment_history = component.getMultiAdapter((course, submission.creator),
 													IUsersCourseAssignmentHistory)

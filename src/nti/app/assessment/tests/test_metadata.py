@@ -234,13 +234,9 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		self.testapp.get(metadata_item_href, status=200)
 
 		# Put
-		ext_obj['StartTime'] = 0
+		ext_obj['StartTime'] = 0 #Ignored
 		res = self.testapp.put_json(metadata_item_href, ext_obj, status=200)
-		assert_that(res.json_body, has_entry('StartTime', is_(0)))
-
-		ext_obj['StartTime'] = new_start = time.time()
-		res = self.testapp.put_json(metadata_item_href, ext_obj, status=200)
-		assert_that(res.json_body, has_entry('StartTime', is_(new_start)))
+		assert_that(res.json_body, has_entry('StartTime', is_(meta_body['StartTime'])))
 
 		# The instructor can delete our metadada
 		instructor_environ = self._make_extra_environ(username='harp4162')

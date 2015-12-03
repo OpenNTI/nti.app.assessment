@@ -205,8 +205,9 @@ class _UsersCourseAssignmentMetadataItemUpdater(object):
 
 	def updateFromExternalObject(self, parsed, *args, **kwargs):
 		start_time = parsed.get('StartTime', None)
-		if start_time is not None:
-			parsed['StartTime'] = float(start_time)
+		if self.item.StartTime is None:
+			if isinstance(start_time, six.string_types):
+				parsed['StartTime'] = float(start_time)
 		else:
 			parsed.pop( 'StartTime', None )
 

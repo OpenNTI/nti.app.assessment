@@ -46,7 +46,6 @@ def _get_course_from_assignment(assignment, user=None, catalog=None, registry=co
 									  catalog=catalog,
 									  registry=registry)
 
-
 def _root_url(ntiid):
 	library = component.queryUtility(IContentPackageLibrary)
 	if ntiid and library is not None:

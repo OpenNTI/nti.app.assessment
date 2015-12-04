@@ -73,7 +73,7 @@ class _AssignmentMetadataItemDecorator(AbstractAuthenticatedRequestAwareDecorato
 
 	def _predicate(self, context, result):
 		creator = context.creator
-		return (AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
+		return (	AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
 				and creator is not None
 				and creator == self.remoteUser)
 

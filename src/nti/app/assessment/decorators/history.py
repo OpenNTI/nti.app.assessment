@@ -53,7 +53,7 @@ class _CourseAssignmentHistoryDecorator(_AbstractTraversableLinkDecorator):
 
 	def _do_decorate_external(self, context, result_map):
 		links = result_map.setdefault(LINKS, [])
-		# If the context provides a user, that's the one we want,
+		# XXX If the context provides a user, that's the one we want,
 		# otherwise we want the current user
 		user = IUser(context, self.remoteUser)
 		links.append(Link(context,

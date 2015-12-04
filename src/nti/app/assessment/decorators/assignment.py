@@ -45,11 +45,11 @@ from nti.links.links import Link
 
 from nti.traversal.traversal import find_interface
 
+from .._utils import assignment_download_precondition
+
 from ..common import get_assessment_metadata_item
 from ..common import get_available_for_submission_ending
 from ..common import get_available_for_submission_beginning
-
-from .._utils import assignment_download_precondition
 
 from ..interfaces import ACT_VIEW_SOLUTIONS
 from ..interfaces import IUsersCourseAssignmentHistory
@@ -126,9 +126,9 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
 			parameters = None
 		links = result.setdefault(LINKS, [])
 		links.append(Link(context,
-							rel='ExportFiles',
-							elements=('BulkFilePartDownload',),
-							params=parameters))
+						  rel='ExportFiles',
+						  elements=('BulkFilePartDownload',),
+						  params=parameters))
 
 class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
@@ -184,9 +184,7 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			return
 		item = get_assessment_metadata_item(course, self.remoteUser, context.ntiid)
 		if item is not None:
-			result['Metadata'] = {'Duration': item.Duration,
-								  'StartTime': item.StartTime}
-
+			result['Metadata'] = {'Duration': item.Duration, 'StartTime': item.StartTime}
 
 class _AssignmentQuestionContentRootURLAdder(AbstractAuthenticatedRequestAwareDecorator):
 	"""

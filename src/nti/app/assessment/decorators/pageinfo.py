@@ -9,8 +9,6 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-from urllib import unquote
-
 from zope import component
 from zope import interface
 
@@ -35,12 +33,10 @@ from nti.externalization.oids import to_external_ntiid_oid
 from nti.externalization.externalization import to_external_object
 from nti.externalization.interfaces import IExternalMappingDecorator
 
-from nti.ntiids.ntiids import is_valid_ntiid_string
-from nti.ntiids.ntiids import find_object_with_ntiid
-
 from .._utils import check_assessment
 from .._utils import copy_questionset
 from .._utils import copy_questionbank
+from .._utils import get_course_from_request
 
 from ..common import get_assessment_items_from_unit
 from ..common import AssessmentItemProxy as AssignmentProxy
@@ -50,22 +46,16 @@ from ..common import AssessmentItemProxy as AssignmentProxy
 class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _predicate(self, context, result_map):
-		return (AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result_map)
+		return (	AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result_map)
 				and context.contentUnit is not None)
 
 	def _get_course(self, contentUnit, user):
-		result = None
-		params = self.request.params
-		course_id = params.get('course') or params.get('ntiid')
-		course_id = unquote(course_id) if course_id else None
-		if course_id and is_valid_ntiid_string(course_id):
-			result = find_object_with_ntiid(course_id)
-			result = ICourseInstance(result, None)
-			if result is not None:
-				# CS: make sure the user is either enrolled or is an instructor in the
-				# course passed as parameter
-				if not (is_enrolled(result, user) or is_course_instructor(result, user)):
-					result = None
+		result = get_course_from_request(self.request)
+		if result is not None:
+			# CS: make sure the user is either enrolled or is an instructor in the
+			# course passed as parameter
+			if not (is_enrolled(result, user) or is_course_instructor(result, user)):
+				result = None
 		if result is None:
 			result = component.queryMultiAdapter((contentUnit, user), ICourseInstance)
 		return result

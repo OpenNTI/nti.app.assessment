@@ -186,3 +186,23 @@ def replace_username(username):
 	if policy is not None:
 		return policy.replace(username) or username
 	return username
+
+from urllib import unquote
+
+from nti.contenttypes.courses.interfaces import ICourseInstance
+
+from nti.ntiids.ntiids import is_valid_ntiid_string
+from nti.ntiids.ntiids import find_object_with_ntiid
+
+def get_course_from_request(request=None, params=None):
+	try:
+		params = request.params if params is None else params
+		ntiid = params.get('course') or params.get('ntiid') or params.get('entry')
+		ntiid = unquote(ntiid) if ntiid else None
+		if ntiid and is_valid_ntiid_string(ntiid):
+			result = find_object_with_ntiid(ntiid)
+			result = ICourseInstance(result, None)
+			return result
+	except AttributeError:
+		pass
+	return None

@@ -19,14 +19,10 @@ from zope import lifecycleevent
 
 from zope.annotation.interfaces import IAnnotations
 
-from zope.interface.interfaces import IMethod
-
 from zope.schema.interfaces import NotUnique
 from zope.schema.interfaces import ConstraintNotSatisfied
 
 from persistent.list import PersistentList
-
-from nti.appserver._adapters import _AbstractExternalFieldTraverser
 
 from nti.appserver.context_providers import get_hierarchy_context
 from nti.appserver.context_providers import get_joinable_contexts
@@ -35,12 +31,9 @@ from nti.appserver.context_providers import get_top_level_contexts_for_user
 
 from nti.appserver.interfaces import INewObjectTransformer
 from nti.appserver.interfaces import IJoinableContextProvider
-from nti.appserver.interfaces import IExternalFieldTraversable
 from nti.appserver.interfaces import IHierarchicalContextProvider
 from nti.appserver.interfaces import ITopLevelContainerContextProvider
 from nti.appserver.interfaces import ITrustedTopLevelContainerContextProvider
-
-from nti.assessment.common import iface_of_assessment
 
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssessment
@@ -60,8 +53,6 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.dataserver.interfaces import IUser
-
-from nti.schema.jsonschema import TAG_HIDDEN_IN_UI
 
 from nti.traversal.traversal import find_interface
 
@@ -122,7 +113,7 @@ def _assignment_submission_transformer(request, obj):
 
 	result = request.response = HTTPCreated()
 	# TODO: Shouldn't this be the external NTIID? This is what ugd_edit_views does though
-	result.location = request.resource_url(	obj.creator,
+	result.location = request.resource_url(obj.creator,
 											'Objects',
 											to_external_oid(pending))
 	# TODO: Assuming things about the client and renderer.
@@ -446,32 +437,14 @@ def _hierarchy_from_obj_and_user(obj, user):
 @component.adapter(IQAssessment)
 def _joinable_courses_from_obj(obj):
 	unit = _get_assessment_item_lineage_obj(obj)
-	return get_joinable_contexts( unit )
+	return get_joinable_contexts(unit)
 
 @interface.implementer(ITrustedTopLevelContainerContextProvider)
 @component.adapter(IUsersCourseAssignmentHistoryItemFeedback)
 def _trusted_context_from_feedback(obj):
-	course = _course_from_context_lineage( obj )
+	course = _course_from_context_lineage(obj)
 	results = ()
 	if course is not None:
-		catalog_entry = ICourseCatalogEntry( course, None )
+		catalog_entry = ICourseCatalogEntry(course, None)
 		results = (catalog_entry,) if catalog_entry is not None else ()
 	return results
-
-@component.adapter(IQAssessment)
-@interface.implementer(IExternalFieldTraversable)
-class _AssesmentExternalFieldTraverser(_AbstractExternalFieldTraverser):
-
-	def __init__(self, context, request=None):
-		super(_AssesmentExternalFieldTraverser, self).__init__(context, request=request)
-		allowed_fields = set()
-		assest_iface = iface_of_assessment(context)
-		for k, v in assest_iface.namesAndDescriptions(all=True):
-			__traceback_info__ = k, v
-			if IMethod.providedBy(v):
-				continue
-			# v could be a schema field or an interface.Attribute
-			if v.queryTaggedValue(TAG_HIDDEN_IN_UI):
-				continue
-			allowed_fields.add(k)
-		self._allowed_fields = allowed_fields

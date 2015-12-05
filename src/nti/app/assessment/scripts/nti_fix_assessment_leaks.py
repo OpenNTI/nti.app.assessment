@@ -62,7 +62,9 @@ def _process_args(verbose=True, with_library=True):
 		provided = iface_of_assessment(context)
 		registered = _get_registered_component(provided, ntiid)
 		if registered is not None:
-			ruid = intids.getId(registered)
+			ruid = intids.queryId(registered)
+			if ruid is None:
+				ruid = intids.register(registered, event=False)
 			container = IQAssessmentItemContainer(registered.__parent__, None)
 			if container is not None:
 				container.append(registered)  # replace

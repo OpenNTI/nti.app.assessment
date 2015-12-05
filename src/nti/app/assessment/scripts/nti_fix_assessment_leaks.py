@@ -32,14 +32,11 @@ from nti.site.hostpolicy import get_all_host_sites
 
 def _get_registered_component(provided, name=None):
 	for site in get_all_host_sites():
-		try:
-			registry = site.getSiteManager()
-			registered = registry.queryUtility(provided, name=name)
-			if registered is not None:
-				return registry, registered
-		except KeyError:
-			pass
-	return None,None
+		registry = site.getSiteManager()
+		registered = registry.queryUtility(provided, name=name)
+		if registered is not None:
+			return registry, registered
+	return None, None
 
 def _get_item_counts():
 	count = defaultdict(list)
@@ -65,7 +62,7 @@ def _process_args(verbose=True, with_library=True):
 		registry, registered = _get_registered_component(provided, ntiid)
 		if registered is not None:
 			ruid = intids.queryId(registered)
-			if ruid is None: # invalid registration
+			if ruid is None:  # invalid registration
 				registered = None
 				unregisterUtility(registry, provided=provided, name=ntiid)
 				# look for a valid context to register
@@ -91,7 +88,7 @@ def _process_args(verbose=True, with_library=True):
 	logger.info('Done!!!, %s record(s) unregistered', result)
 
 def main():
-	arg_parser = argparse.ArgumentParser(description="Enrollment fixer")
+	arg_parser = argparse.ArgumentParser(description="Assessment leak fixer")
 	arg_parser.add_argument('-v', '--verbose', help="Be Verbose", action='store_true',
 							dest='verbose')
 

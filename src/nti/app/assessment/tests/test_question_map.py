@@ -87,7 +87,7 @@ ASSM_ITEMS = {
 	'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testpoll':
 	{'Class': 'Poll',
 	 'MimeType': 'application/vnd.nextthought.napoll',
-	 'NTIID': 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.napoll',
+	 'NTIID': 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testpoll',
 	 'content': '<a name="testquestion"></a> Arbitrary content goes here.',
 	 'parts': [{'Class': 'MultipleChoicePart',
 				'MimeType': 'application/vnd.nextthought.assessment.nongradablemultiplechoicepart',
@@ -101,10 +101,10 @@ ASSM_ITEMS = {
 	'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.survey.testsurvey':
 	{'Class': 'Survey',
 	 'MimeType': 'application/vnd.nextthought.nasurvey',
-	 'NTIID': 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.set.testset',
+	 'NTIID': 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.set.testsurvey',
 	 'questions': [{'Class': 'Poll',
 					'MimeType': 'application/vnd.nextthought.napoll',
-					'NTIID': 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.napoll',
+					'NTIID': 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testpoll',
 					'content': '<a name="testquestion">Arbitrary content goes here.',
 					'parts': [{'Class': 'MultipleChoicePart',
 							   'MimeType': 'application/vnd.nextthought.assessment.nongradablemultiplechoicepart',
@@ -256,16 +256,16 @@ class TestQuestionMap( AssessmentLayerTest ):
 		last_modified = catalog.get_last_modified( last_mod_namespace )
 		assert_that( last_modified, not_none() )
 		results = catalog.search_objects( container_ntiids=(mock_content_package.ntiid,) )
-		assert_that(results, has_length(6))
+		assert_that(results, has_length(4))
 
 		# Namespace
 		results = catalog.search_objects(namespace=mock_content_package.ntiid)
-		assert_that(results, has_length(6))
+		assert_that(results, has_length(4))
 
 		# Type
-		for provided, count in (('IQPoll', 2),
+		for provided, count in (('IQPoll', 1),
 								('IQSurvey', 1),
-								('IQuestion', 2),
+								('IQuestion', 1),
 								('IQuestionSet', 1)):
 			results = catalog.search_objects(provided=provided)
 			assert_that(results, has_length(count))

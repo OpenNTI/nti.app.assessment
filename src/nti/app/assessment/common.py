@@ -37,6 +37,8 @@ from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
+from nti.contenttypes.courses.utils import get_course_packages
+
 from nti.coremetadata.interfaces import IRecordable
 
 from nti.dataserver.metadata_index import IX_MIMETYPE
@@ -99,6 +101,7 @@ def get_unit_assessments(unit):
 	return result
 
 def get_assessment_items_from_unit(contentUnit):
+
 	def recur(unit, accum):
 		if same_content_unit_file(unit, contentUnit):
 			qs = get_unit_assessments(unit)
@@ -109,22 +112,6 @@ def get_assessment_items_from_unit(contentUnit):
 	result = dict()
 	recur(contentUnit, result)
 	return result
-
-def get_course_packages(context):
-	context = ICourseInstance(context)
-	# We have now a specific interface for courses that
-	# are tied to content: IContentCourseInstance; they have
-	# the ContentBundle attribute.
-	# However, we still have the LegacyCommunityBasedCourseInstances
-	# to deal with that have one content package; it's easiest
-	# to support both types in one single place.
-	packages = ()
-	try:
-		packages = context.ContentPackageBundle.ContentPackages
-	except AttributeError:
-		# Ok, the old legacy case
-		packages = (context.legacy_content_package,)
-	return packages
 
 def get_content_packages_assessment_items(package):
 	result = []
@@ -157,13 +144,13 @@ def get_policy_for_assessment(asm_id, context):
 	policy = policies.getPolicyForAssessment(asm_id)
 	return policy
 
-def _is_locked( assesment ):
-	return IRecordable.providedBy( assesment ) and assesment.locked
+def is_locked(assesment):
+	return IRecordable.providedBy(assesment) and assesment.locked
 
 def get_available_for_submission_beginning(assesment, context=None):
 	course = ICourseInstance(context, None)
 	# Use our assignment policy if not locked.
-	if course is not None and not _is_locked( assesment ):
+	if course is not None and not is_locked(assesment):
 		dates = IQAssessmentDateContext(course)
 		result = dates.of(assesment).available_for_submission_beginning
 	else:
@@ -173,7 +160,7 @@ def get_available_for_submission_beginning(assesment, context=None):
 def get_available_for_submission_ending(assesment, context=None):
 	course = ICourseInstance(context, None)
 	# Use our assignment policy if not locked.
-	if course is not None and not _is_locked( assesment ):
+	if course is not None and not is_locked(assesment):
 		dates = IQAssessmentDateContext(course)
 		result = dates.of(assesment).available_for_submission_ending
 	else:
@@ -276,7 +263,8 @@ def find_course_for_inquiry(inquiry, user, exc=True):
 		raise RequiredMissing("Course cannot be found")
 	return course
 
-def get_course_from_inquiry(inquiry, user=None, catalog=None, registry=component, exc=False):
+def get_course_from_inquiry(inquiry, user=None, catalog=None, 
+							registry=component, exc=False):
 	# check if we have the context catalog entry we can use
 	# as reference (.AssessmentItemProxy)
 	result = None
@@ -327,10 +315,10 @@ def aggregate_course_inquiry(inquiry, course, *items):
 			  IX_ASSESSMENT_ID: {'any_of':(inquiry.ntiid,)} }
 
 	result = None
-	uids =  catalog.apply(query) or ()
+	uids = catalog.apply(query) or ()
 	items = itertools.chain(ResultSet(uids, intids, True), items)
 	for item in items:
-		if not IUsersCourseInquiryItem.providedBy(item): # always check
+		if not IUsersCourseInquiryItem.providedBy(item):  # always check
 			continue
 		submission = item.Submission
 		aggregated = IQAggregatedInquiry(submission)
@@ -347,10 +335,10 @@ def aggregate_page_inquiry(containerId, mimeType, *items):
 			  IX_CONTAINERID: {'any_of':(containerId,)} }
 
 	result = None
-	uids =  catalog.apply(query) or ()
+	uids = catalog.apply(query) or ()
 	items = itertools.chain(ResultSet(uids, intids, True), items)
 	for item in items:
-		if not IQInquirySubmission.providedBy(item): # always check
+		if not IQInquirySubmission.providedBy(item):  # always check
 			continue
 		aggregated = IQAggregatedInquiry(item)
 		if result is None:

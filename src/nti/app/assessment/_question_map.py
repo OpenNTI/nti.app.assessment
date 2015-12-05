@@ -263,6 +263,11 @@ class QuestionMap(QuestionIndex):
 										   registry=registry)
 			else:
 				obj = registered
+				self._store_object(ntiid, obj)
+				self._index_object(obj,
+								   content_package,
+								   hierarchy_ntiids,
+								   registry=registry)
 
 			if containing_hierarchy_key:
 				assert 	containing_hierarchy_key in by_file, \

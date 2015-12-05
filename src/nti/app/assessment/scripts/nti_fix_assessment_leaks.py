@@ -72,11 +72,10 @@ def _process_args(verbose=True, with_library=True):
 				for context in data:
 					if context.__parent__ is not None:
 						registerUtility(registry, context, provided, name=ntiid)
-						ruid = intids.queryId(context)
+						ruid = intids.getId(context)
 						registered = context
 						break
 				if registered is not None:
-					ruid = intids.register(registered, event=True)
 					container = IQAssessmentItemContainer(registered.__parent__, None)
 					if container is not None:
 						container.append(registered)  # replace

@@ -64,7 +64,7 @@ def _process_args(verbose=True, with_library=True):
 		if registered is not None:
 			ruid = intids.queryId(registered)
 			if ruid is None:
-				ruid = intids.register(registered, event=False)
+				ruid = intids.register(registered, event=True)
 			container = IQAssessmentItemContainer(registered.__parent__, None)
 			if container is not None:
 				container.append(registered)  # replace
@@ -75,7 +75,7 @@ def _process_args(verbose=True, with_library=True):
 			if intids.getId(item) != ruid:
 				result += 1
 				item.__parent__ = None
-				intids.unregister(item, event=False)
+				intids.unregister(item, event=True)
 
 	logger.info('Done!!!, %s record(s) unregistered', result)
 

@@ -47,10 +47,10 @@ def _process_pacakge(site, library, package, intids, catalog):
 
 		items = IQAssessmentItemContainer(unit)
 		for name, item in list(items.items()):  # mutating
-			provided = iface_of_assessment(item)
 			uid = intids.queryId(item)
+			provided = iface_of_assessment(item)
+			registered = component.queryUtility(provided, name=name)
 			if uid is None:
-				registered = component.queryUtility(provided, name=name)
 				if registered is None:
 					results['removed'] = results['removed'] + 1
 					del items[name]
@@ -65,6 +65,14 @@ def _process_pacakge(site, library, package, intids, catalog):
 							  	  container_ntiids=hierarchy_ntiids,
 								  namespace=package.ntiid,
 								  sites=(site.__name__,))
+			elif registered is not None and id(registered) != id(item):
+				results['replaced'] = results['replaced'] + 1
+				items[name] = registered
+				# unregister from intid
+				intids.unregister(item, event=True)
+				catalog.unindex(item)
+				# replace
+				item = registered
 
 			if item.__parent__ is None:
 				results['reparented'] = results['reparented'] + 1

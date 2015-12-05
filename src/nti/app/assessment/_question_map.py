@@ -229,30 +229,38 @@ class QuestionMap(QuestionIndex):
 				obj.__name__ = unicode(ntiid).encode('utf8').decode('utf8')
 				self._store_object(ntiid, obj)
 
-				# XXX: since the item is not registered its sub items 
-				# should not be either. We can now safely register and
-				# index them 
 				things_to_register = self._explode_object_to_register(obj)
 				result.update(things_to_register)
 		
 				for item in things_to_register:
-					# get raw object
+					# get unproxied object
 					thing_to_register = removeAllProxies(item)
 					
-					# TODO: We are only partially supporting having question/sets
-					# used multiple places. When we get to that point, we need to
-					# handle it by noting on each assessment object where it is registered;
-					if thing_to_register.__parent__ is None and parent is not None:
-						thing_to_register.__parent__ = parent
-	
-					# Index and register our object
-					parents_questions.append(thing_to_register)
-	
-					self._intid_register(thing_to_register, registry=registry)
-					self._index_object(thing_to_register,
-									   content_package,
-									   hierarchy_ntiids,
-									   registry=registry)
+					# check registry
+					provided = _iface_to_register(thing_to_register)
+					ntiid = getattr(thing_to_register, 'ntiid', None) or u''
+					if ntiid and registry.queryUtility(provided, name=ntiid) is None:
+						# register assesment 
+						self._registry_utility(registry, 
+											   component=thing_to_register,
+											   provided=provided, 
+											   name=ntiid)
+						
+						# TODO: We are only partially supporting having question/sets
+						# used multiple places. When we get to that point, we need to
+						# handle it by noting on each assessment object where it is registered;
+						if thing_to_register.__parent__ is None and parent is not None:
+							thing_to_register.__parent__ = parent
+						
+						# add to container and get and intid
+						parents_questions.append(thing_to_register)
+						self._intid_register(thing_to_register, registry=registry)
+					
+						# index item
+						self._index_object(thing_to_register,
+										   content_package,
+										   hierarchy_ntiids,
+										   registry=registry)
 			else:
 				obj = registered
 
@@ -475,6 +483,7 @@ def _remove_assessment_items_from_oldcontent(content_package, force=False):
 				logger.warn("Object (%s,%s) is locked cannot be removed during sync",
 							provided.__name__, name)
 				# XXX: Make sure we add to the ignore list all items that were exploded
+				# so they are not processed
 				exploded = QuestionMap.explode_object_to_register(item)
 				ignore.update(x.ntiid for x in exploded or ())
 

@@ -26,6 +26,8 @@ from nti.assessment.interfaces import IQAssessmentItemContainer
 from nti.dataserver.utils import run_with_dataserver
 from nti.dataserver.utils.base_script import create_context
 
+from nti.site.utils import registerUtility
+from nti.site.utils import unregisterUtility
 from nti.site.hostpolicy import get_all_host_sites
 
 def _get_registered_component(provided, name=None):
@@ -34,10 +36,10 @@ def _get_registered_component(provided, name=None):
 			registry = site.getSiteManager()
 			registered = registry.queryUtility(provided, name=name)
 			if registered is not None:
-				return registered
+				return registry, registered
 		except KeyError:
 			pass
-	return None
+	return None,None
 
 def _get_item_counts():
 	count = defaultdict(list)
@@ -60,14 +62,24 @@ def _process_args(verbose=True, with_library=True):
 
 		context = data[0]  # pivot
 		provided = iface_of_assessment(context)
-		registered = _get_registered_component(provided, ntiid)
+		registry, registered = _get_registered_component(provided, ntiid)
 		if registered is not None:
 			ruid = intids.queryId(registered)
-			if ruid is None:
-				ruid = intids.register(registered, event=True)
-			container = IQAssessmentItemContainer(registered.__parent__, None)
-			if container is not None:
-				container.append(registered)  # replace
+			if ruid is None: # invalid registration
+				registered = None
+				unregisterUtility(registry, provided=provided, name=ntiid)
+				# look for a valid context to register
+				for context in data:
+					if context.__parent__ is not None:
+						registerUtility(registry, context, provided, name=ntiid)
+						ruid = intids.queryId(context)
+						registered = context
+						break
+				if registered is not None:
+					ruid = intids.register(registered, event=True)
+					container = IQAssessmentItemContainer(registered.__parent__, None)
+					if container is not None:
+						container.append(registered)  # replace
 		else:
 			ruid = None
 

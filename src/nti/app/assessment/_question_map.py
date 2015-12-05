@@ -227,9 +227,9 @@ class QuestionMap(QuestionIndex):
 				obj.__name__ = unicode(ntiid).encode('utf8').decode('utf8')
 				self._store_object(ntiid, obj)
 
-				# No matter if we got an assignment or question set first or the questions
-				# first, register the question objects exactly once. Replace
-				# any question children of a question set by the registered object.
+				# XXX: since the item is not registered its sub items 
+				# should not be either. We can now safely register and
+				# index them 
 				things_to_register = self._explode_object_to_register(obj)
 				result.update(things_to_register)
 		
@@ -237,8 +237,6 @@ class QuestionMap(QuestionIndex):
 					# TODO: We are only partially supporting having question/sets
 					# used multiple places. When we get to that point, we need to
 					# handle it by noting on each assessment object where it is registered;
-					# XXX: This is probably not a good reference to have, we really
-					# want to do these weakly?
 					if thing_to_register.__parent__ is None and parent is not None:
 						thing_to_register.__parent__ = parent
 	
@@ -471,6 +469,7 @@ def _remove_assessment_items_from_oldcontent(content_package, force=False):
 			else:
 				logger.warn("Object (%s,%s) is locked cannot be removed during sync",
 							provided.__name__, name)
+				# XXX: Make sure we add to the ignore list all items that were exploded
 				exploded = QuestionMap.explode_object_to_register(item)
 				ignore.update(x.ntiid for x in exploded or ())
 

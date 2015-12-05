@@ -72,6 +72,7 @@ def _process_args(verbose=True, with_library=True):
 		for item in data:
 			if intids.getId(item) != ruid:
 				result += 1
+				item.__parent__ = None
 				intids.unregister(item, event=False)
 
 	logger.info('Done!!!, %s record(s) unregistered', result)

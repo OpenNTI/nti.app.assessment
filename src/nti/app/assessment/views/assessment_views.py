@@ -585,7 +585,8 @@ class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 			else:
 				# The assessment's __parent__ is always the 'home' content unit
 				unit = item.__parent__
-				result.setdefault(unit.ntiid, []).append(item)
+				if unit is not None:
+					result.setdefault(unit.ntiid, []).append(item)
 
 		# Now remove the forbidden
 		for items in result.values():

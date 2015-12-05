@@ -30,8 +30,6 @@ from nti.app.contentlibrary.utils import find_page_info_view_helper
 
 from nti.app.products.courseware.interfaces import ICourseInstanceEnrollment
 
-from nti.appserver.ugd_edit_views import UGDPutView
-
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQuestion
@@ -65,6 +63,8 @@ from ..common import get_course_from_assignment
 from ..interfaces import IUsersCourseAssignmentHistory
 from ..interfaces import IUsersCourseAssignmentHistoryItemFeedback
 from ..interfaces import IUsersCourseAssignmentHistoryItemFeedbackContainer
+
+from .view_mixins import AssessmentPutView
 
 ITEMS = StandardExternalFields.ITEMS
 
@@ -612,15 +612,5 @@ class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 			 request_method='PUT',
 			 permission=nauth.ACT_CONTENT_EDIT,
 			 renderer='rest')
-class AssignmentFieldPutView(UGDPutView):
-
-	def readInput(self, value=None):
-		# TODO We need to check for overrides here and set
-		# in our assignment.
-		# TODO We need to do the same on field puts.
-		# TODO Check submissions before toggling question data.
-		result = UGDPutView.readInput(self, value=value)
-		result.pop('ntiid', None)
-		result.pop('NTIID', None)
-		return result
-
+class AssignmentFieldPutView(AssessmentPutView):
+	pass

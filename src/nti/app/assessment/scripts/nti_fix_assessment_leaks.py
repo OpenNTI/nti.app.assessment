@@ -23,6 +23,8 @@ from nti.assessment.common import iface_of_assessment
 from nti.assessment.interfaces import IQAssessment
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
+from nti.contentlibrary.indexed_data import get_library_catalog
+
 from nti.dataserver.utils import run_with_dataserver
 from nti.dataserver.utils.base_script import create_context
 
@@ -52,6 +54,7 @@ def _process_args(verbose=True, with_library=True):
 	logger.info('%s item(s) counted', len(count))
 
 	result = 0
+	catalog = get_library_catalog()
 	intids = component.getUtility(IIntIds)
 	for ntiid, data in count.items():
 		if len(data) <= 1:
@@ -75,7 +78,7 @@ def _process_args(verbose=True, with_library=True):
 				if registered is not None:
 					container = IQAssessmentItemContainer(registered.__parent__, None)
 					if container is not None:
-						container.append(registered)  # replace
+						container[ntiid] = registered  # replace
 		else:
 			ruid = None
 
@@ -83,6 +86,7 @@ def _process_args(verbose=True, with_library=True):
 			if intids.getId(item) != ruid:
 				result += 1
 				item.__parent__ = None
+				catalog.unindex(item)
 				intids.unregister(item, event=True)
 
 	logger.info('Done!!!, %s record(s) unregistered', result)

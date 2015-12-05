@@ -40,6 +40,8 @@ from nti.assessment._question_index import _load_question_map_json
 
 from nti.assessment.common import iface_of_assessment as _iface_to_register
 
+from nti.common.proxy import removeAllProxies
+
 from nti.coremetadata.interfaces import IRecordable
 from nti.coremetadata.interfaces import IPublishable
 
@@ -233,7 +235,10 @@ class QuestionMap(QuestionIndex):
 				things_to_register = self._explode_object_to_register(obj)
 				result.update(things_to_register)
 		
-				for thing_to_register in things_to_register:
+				for item in things_to_register:
+					# get raw object
+					thing_to_register = removeAllProxies(item)
+					
 					# TODO: We are only partially supporting having question/sets
 					# used multiple places. When we get to that point, we need to
 					# handle it by noting on each assessment object where it is registered;

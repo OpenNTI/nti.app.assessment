@@ -34,7 +34,6 @@ def get_courses_from_assesment(assesment):
 	if package is None:
 		return ()
 
-	# Nothing. OK, maybe we're an instructor?
 	catalog = component.queryUtility(ICourseCatalog)
 	if catalog is None:
 		return ()

@@ -309,9 +309,10 @@ def can_disclose_inquiry(inquiry, context=None):
 
 def aggregate_course_inquiry(inquiry, course, *items):
 	catalog = get_assesment_catalog()
-	entry = ICourseCatalogEntry(course)
+	course = ICourseInstance(course)
 	intids = component.getUtility(IIntIds)
-	query = { IX_COURSE: {'any_of':(entry.ntiid,)},
+	doc_id = intids.getId(course)
+	query = { IX_COURSE: {'any_of':(doc_id,)},
 			  IX_ASSESSMENT_ID: {'any_of':(inquiry.ntiid,)} }
 
 	result = None

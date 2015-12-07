@@ -613,5 +613,5 @@ class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 			 request_method='PUT',
 			 permission=nauth.ACT_CONTENT_EDIT,
 			 renderer='rest')
-class AssignmentFieldPutView(AssessmentPutView):
+class AssignmentPutView(AssessmentPutView):
 	pass

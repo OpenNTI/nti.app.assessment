@@ -337,5 +337,5 @@ class InquirySubmisionPutView(UGDPutView):
 			 request_method='PUT',
 			 permission=nauth.ACT_CONTENT_EDIT,
 			 renderer='rest')
-class InquiryFieldPutView(AssessmentPutView):
+class InquiryPutView(AssessmentPutView):
 	pass

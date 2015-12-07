@@ -48,14 +48,19 @@ def get_courses_from_assesment(assesment):
 class AssessmentPutView(UGDPutView):
 
 	def readInput(self, value=None):
-		# TODO Validations?
 		result = UGDPutView.readInput(self, value=value)
 		result.pop('ntiid', None)
 		result.pop('NTIID', None)
 		return result
 
+	def validate(self, contentObject, externalValue):
+		pass
+
 	def updateContentObject(self, contentObject, externalValue, set_id=False,
 							notify=True, pre_hook=None):
+		
+		self.validate(contentObject, externalValue)
+
 		context = get_course_from_request(self.request)
 		if context is not None:
 			# remove policy keys to avoid updating

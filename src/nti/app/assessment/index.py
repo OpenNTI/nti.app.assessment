@@ -9,13 +9,14 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+from zope import component
 from zope import interface
+
+from zope.deprecation import deprecated
 
 from zope.intid import IIntIds
 
 from zope.location import locate
-
-from zope.catalog.interfaces import ICatalogIndex
 
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
@@ -31,6 +32,7 @@ from nti.dataserver.interfaces import IMetadataCatalog
 
 from nti.zope_catalog.catalog import Catalog
 from nti.zope_catalog.index import NormalizationWrapper
+from nti.zope_catalog.index import IntegerAttributeIndex
 from nti.zope_catalog.index import ValueIndex as RawValueIndex
 from nti.zope_catalog.index import AttributeValueIndex as ValueIndex
 
@@ -41,10 +43,14 @@ from .interfaces import IUsersCourseAssignmentHistoryItem
 
 CATALOG_NAME = 'nti.dataserver.++etc++assesment-catalog'
 
-IX_ENTRY = IX_COURSE = 'course'
+IX_COURSE = 'course'
 IX_ASSESSMENT_ID = 'assesmentId'
 IX_ASSESSMENT_TYPE = 'assesmentType'
 IX_CREATOR = IX_STUDENT = IX_USERNAME = 'creator'
+
+deprecated('CatalogEntryIDIndex', 'No longer used')
+class CatalogEntryIDIndex(ValueIndex):
+	pass
 
 class CreatorRawIndex(RawValueIndex):
 	pass
@@ -76,10 +82,6 @@ class ValidatingCatalogEntryID(object):
 
 	def __reduce__(self):
 		raise TypeError()
-
-class CatalogEntryIDIndex(ValueIndex):
-	default_field_name = 'ntiid'
-	default_interface = ValidatingCatalogEntryID
 
 class ValidatingAssesmentID(object):
 
@@ -131,6 +133,32 @@ class AssesmentTypeIndex(ValueIndex):
 	default_field_name = 'type'
 	default_interface = ValidatingAssesmentType
 
+class ValidatingCourseIntID(object):
+
+	__slots__ = (b'intid',)
+
+	@classmethod
+	def _course(cls, obj):
+		for iface in (IUsersCourseInquiryItem, IUsersCourseAssignmentHistoryItem):
+			item = iface(obj, None)
+			if item is not None:
+				course = ICourseInstance(item, None)  # course is lineage
+				return course
+		return None
+
+	def __init__(self, obj, default=None):
+		source = self._course(obj)
+		if source is not None:
+			intids = component.queryUtility(IIntIds)  # test mode
+			self.intid = intids.queryId(source) if intids is not None else None
+
+	def __reduce__(self):
+		raise TypeError()
+
+class CourseIntIDIndex(IntegerAttributeIndex):
+	default_field_name = 'intid'
+	interface = default_interface = ValidatingCourseIntID
+
 @interface.implementer(IMetadataCatalog)
 class MetadataAssesmentCatalog(Catalog):
 
@@ -157,11 +185,10 @@ def install_assesment_catalog(site_manager_container, intids=None):
 	lsm.registerUtility(catalog, provided=IMetadataCatalog, name=CATALOG_NAME)
 
 	for name, clazz in ((IX_CREATOR, CreatorIndex),
-						(IX_COURSE, CatalogEntryIDIndex),
+						(IX_COURSE, CourseIntIDIndex),
 						(IX_ASSESSMENT_ID, AssesmentIdIndex),
 						(IX_ASSESSMENT_TYPE, AssesmentTypeIndex)):
 		index = clazz(family=intids.family)
-		assert ICatalogIndex.providedBy(index)
 		intids.register(index)
 		locate(index, catalog, name)
 		catalog[name] = index

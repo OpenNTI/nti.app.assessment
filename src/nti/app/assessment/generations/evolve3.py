@@ -13,14 +13,14 @@ logger = __import__('logging').getLogger(__name__)
 
 generation = 3
 
-import zope.intid
-
 from zope import component
 from zope import interface
 
 from zope.component.hooks import site, setHooks
 
 from zope.catalog.interfaces import ICatalog
+
+from zope.intid import IIntIds
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 
@@ -74,7 +74,7 @@ def do_evolve(context, generation=generation):
 	conn = context.connection
 	ds_folder = conn.root()['nti.dataserver']
 	lsm = ds_folder.getSiteManager()
-	intids = lsm.getUtility(zope.intid.IIntIds)
+	intids = lsm.getUtility(IIntIds)
 
 	mock_ds = MockDataserver()
 	mock_ds.root = ds_folder

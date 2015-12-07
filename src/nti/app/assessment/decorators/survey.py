@@ -12,6 +12,8 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope import interface
 
+from zope.intid import IIntIds
+
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
 from nti.assessment.interfaces import IQSurvey
@@ -23,7 +25,7 @@ from nti.common.property import Lazy
 from nti.contentlibrary.interfaces import IContentUnit
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
-from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
+from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.contenttypes.courses.utils import is_course_instructor
 
@@ -107,10 +109,16 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 		result = component.getUtility(ICourseCatalog)
 		return result
 
+	@Lazy
+	def _intids(self):
+		result = component.getUtility(IIntIds)
+		return result
+
 	def _submissions(self, course, context):
 		catalog = get_assesment_catalog()
-		entry = ICourseCatalogEntry(course)
-		query = { IX_COURSE: {'any_of':(entry.ntiid,)},
+		course = ICourseInstance(course)
+		doc_id = self._intids.getId(course)
+		query = { IX_COURSE: {'any_of':(doc_id,)},
 				  IX_ASSESSMENT_ID : {'any_of':(context.ntiid,)}}
 		result = catalog.apply(query) or ()
 		return len(result)

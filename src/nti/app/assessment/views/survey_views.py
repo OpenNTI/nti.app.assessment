@@ -333,9 +333,25 @@ class InquirySubmisionPutView(UGDPutView):
 		raise hexc.HTTPForbidden(_("Cannot put an inquiry submission"))
 
 @view_config(route_name='objects.generic.traversal',
-			 context=IQInquiry,
+			 context=IQPoll,
 			 request_method='PUT',
 			 permission=nauth.ACT_CONTENT_EDIT,
 			 renderer='rest')
-class InquiryPutView(AssessmentPutView):
-	pass
+class PollPutView(AssessmentPutView):
+	
+	def validate(self, contentObject, externalValue, courses=()):
+		parts = externalValue.get('parts')
+		if parts: # don't allow change on its parts
+			raise hexc.HTTPForbidden(_("Cannot change the definition of a poll"))
+		
+@view_config(route_name='objects.generic.traversal',
+			 context=IQSurvey,
+			 request_method='PUT',
+			 permission=nauth.ACT_CONTENT_EDIT,
+			 renderer='rest')
+class SurveyPutView(AssessmentPutView):
+	
+	def validate(self, contentObject, externalValue, courses=()):
+		questions = externalValue.get('questions')
+		if questions: # don't allow change on its questions
+			raise hexc.HTTPForbidden(_("Cannot change the definition of a survey"))

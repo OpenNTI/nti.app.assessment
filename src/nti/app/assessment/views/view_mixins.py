@@ -13,8 +13,12 @@ import copy
 
 from zope import component
 
+from zope.intid import IIntIds
+
 from nti.appserver.ugd_edit_views import UGDPutView
 
+from nti.assessment.interfaces import IQuestion
+from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssessmentDateContext
 
 from nti.contentlibrary.interfaces import IContentPackage
@@ -27,8 +31,29 @@ from nti.contenttypes.courses.utils import get_course_packages
 
 from nti.traversal.traversal import find_interface
 
+from nti.zope_catalog.catalog import ResultSet
+
 from .._utils import get_course_from_request
 
+from ..index import IX_COURSE
+from ..index import IX_ASSESSMENT_ID
+
+from ..interfaces import IUsersCourseInquiryItem
+from ..interfaces import IUsersCourseAssignmentHistoryItem
+
+from .. import get_assesment_catalog
+
+def canonicalize_question_set(self, obj, registry=component):
+	obj.questions = [registry.getUtility(IQuestion, name=x.ntiid)
+					 for x
+					 in obj.questions]
+
+def canonicalize_assignment(obj, registry=component):
+	for part in obj.parts:
+		ntiid = part.question_set.ntiid
+		part.question_set = registry.getUtility(IQuestionSet, name=ntiid)
+		canonicalize_question_set(part.question_set, registry)
+			
 def get_courses_from_assesment(assesment):
 	package = find_interface(assesment, IContentPackage, strict=False)
 	if package is None:
@@ -38,11 +63,11 @@ def get_courses_from_assesment(assesment):
 	if catalog is None:
 		return ()
 
-	result = []
+	result = set()
 	for entry in catalog.iterCatalogEntries():
 		packages = get_course_packages(entry)
 		if package in packages:
-			result.append(ICourseInstance(entry))
+			result.add(ICourseInstance(entry))
 	return result
 
 class AssessmentPutView(UGDPutView):
@@ -53,15 +78,37 @@ class AssessmentPutView(UGDPutView):
 		result.pop('NTIID', None)
 		return result
 
-	def validate(self, contentObject, externalValue):
+	def get_submissions(self, assesment, courses=()):
+		if not courses:
+			return ()
+		else:
+			catalog = get_assesment_catalog()
+			intids = component.getUtility(IIntIds)
+			uids = {intids.getId(x) for x in courses}
+			query = { IX_COURSE: {'any_of':uids},
+			 		  IX_ASSESSMENT_ID: {'any_of':(assesment.ntiid,)} }
+
+			result = []
+			uids = catalog.apply(query) or ()
+			for item in ResultSet(uids, intids, True):
+				if		IUsersCourseInquiryItem.providedBy(item) \
+					or	IUsersCourseAssignmentHistoryItem.providedBy(item):
+					result.append(item)
+			return result
+
+	def validate(self, contentObject, externalValue, courses=()):
 		pass
 
 	def updateContentObject(self, contentObject, externalValue, set_id=False,
 							notify=True, pre_hook=None):
-		
-		self.validate(contentObject, externalValue)
 
+		# find all courses if context is not provided
 		context = get_course_from_request(self.request)
+		if context is None:
+			courses = get_courses_from_assesment(contentObject)
+		else:
+			courses = (context,)
+
 		if context is not None:
 			# remove policy keys to avoid updating
 			# fields in the actual assessment object
@@ -79,11 +126,7 @@ class AssessmentPutView(UGDPutView):
 												externalValue=backupData,
 												contentObject=contentObject)
 
-		# find all courses if context is not provided
-		if context is None:
-			courses = get_courses_from_assesment(contentObject)
-		else:
-			courses = (context,)
+		self.validate(result, externalValue, courses)
 
 		# update course policies
 		ntiid = contentObject.ntiid

@@ -614,4 +614,8 @@ class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 			 permission=nauth.ACT_CONTENT_EDIT,
 			 renderer='rest')
 class AssignmentPutView(AssessmentPutView):
-	pass
+			
+	def validate(self, contentObject, externalValue, courses=()):
+		parts = externalValue.get('parts')
+		if parts: # don't allow change on its parts
+			raise hexc.HTTPForbidden(_("Cannot change the definition of an assignment"))

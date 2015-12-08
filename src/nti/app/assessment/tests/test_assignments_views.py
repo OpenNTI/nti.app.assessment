@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function, unicode_literals, absolute_import, division
+from hamcrest.library.object.hasproperty import has_property
 __docformat__ = "restructuredtext en"
 
 # disable: accessing protected members, too many methods
@@ -14,6 +15,7 @@ from hamcrest import has_length
 from hamcrest import assert_that
 does_not = is_not
 
+from urllib import quote
 from itertools import chain
 
 from nti.assessment.interfaces import IQAssessmentDateContext
@@ -45,20 +47,22 @@ class TestAssignmentViews(ApplicationLayerTest):
 	assignment_id = 'tag:nextthought.com,2011-10:OU-NAQ-CS1323_F_2015_Intro_to_Computer_Programming.naq.asg.assignment:Project_1'
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
-	def test_all_courses(self):
+	def test_no_context(self):
 		url = '/dataserver2/Objects/' + self.assignment_id
 		data =  {'available_for_submission_beginning':'2015-11-25T05:00:00Z',
 				 'available_for_submission_ending':'2015-11-30T05:00:00Z'}
 		self.testapp.put_json(url, data, status=200)
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
 			asg = find_object_with_ntiid(self.assignment_id)
-
-			history  = ITransactionRecordHistory(asg)
-			assert_that(history, has_length(1))
-			
 			ending = datetime_from_string('2015-11-30T05:00:00Z')
 			beginning = datetime_from_string('2015-11-25T05:00:00Z')
 			
+			assert_that(asg, has_property('available_for_submission_ending', is_(ending)))
+			assert_that(asg, has_property('available_for_submission_beginning',is_(beginning)))
+			
+			history  = ITransactionRecordHistory(asg)
+			assert_that(history, has_length(1))
+
 			entry = find_object_with_ntiid(self.course_ntiid)
 			course = ICourseInstance(entry)
 			subs = get_course_subinstances(course)
@@ -67,3 +71,29 @@ class TestAssignmentViews(ApplicationLayerTest):
 				data = dates.get(self.assignment_id)
 				assert_that(data, has_entry('available_for_submission_ending', is_(ending)))
 				assert_that(data, has_entry('available_for_submission_beginning',is_(beginning)))
+				
+	@WithSharedApplicationMockDS(testapp=True, users=True)
+	def test_with_context(self):
+		url = '/dataserver2/Objects/' + self.assignment_id + "?course=%s" % quote(self.course_ntiid)
+		data =  {'available_for_submission_beginning':'2015-11-25T05:00:00Z',
+				 'available_for_submission_ending':'2015-11-30T05:00:00Z',
+				 'title':'ProjectOne'}
+		self.testapp.put_json(url, data, status=200)
+		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+			asg = find_object_with_ntiid(self.assignment_id)
+			ending = datetime_from_string('2015-11-30T05:00:00Z')
+			beginning = datetime_from_string('2015-11-25T05:00:00Z')
+			
+			assert_that(asg, has_property('title', is_('ProjectOne')))
+			assert_that(asg, has_property('available_for_submission_ending', is_not(ending)))
+			assert_that(asg, has_property('available_for_submission_beginning',is_not(beginning)))
+				
+			history  = ITransactionRecordHistory(asg)
+			assert_that(history, has_length(1))
+
+			entry = find_object_with_ntiid(self.course_ntiid)
+			course = ICourseInstance(entry)
+			dates = IQAssessmentDateContext(course)
+			data = dates.get(self.assignment_id)
+			assert_that(data, has_entry('available_for_submission_ending', is_(ending)))
+			assert_that(data, has_entry('available_for_submission_beginning',is_(beginning)))

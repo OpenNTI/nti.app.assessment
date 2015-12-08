@@ -124,15 +124,17 @@ class AssessmentPutView(UGDPutView):
 		else:
 			backupData = externalValue
 
-		# update
-		result = UGDPutView.updateContentObject(self,
-												notify=notify,
-												set_id=set_id,
-												pre_hook=pre_hook,
-												externalValue=backupData,
-												contentObject=contentObject)
+		if externalValue:
+			result = UGDPutView.updateContentObject(self,
+													notify=notify,
+													set_id=set_id,
+													pre_hook=pre_hook,
+													externalValue=externalValue,
+													contentObject=contentObject)
 
-		self.validate(result, externalValue, courses)
+			self.validate(result, externalValue, courses)
+		else:
+			result = contentObject
 
 		# update course policies
 		ntiid = contentObject.ntiid

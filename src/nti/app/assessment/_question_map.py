@@ -175,11 +175,29 @@ class QuestionMap(QuestionIndex):
 		registry = self._get_registry(registry)
 		intids = component.queryUtility(IIntIds) if intids is None else intids
 		connection = self._connection(registry) if connection is None else connection
-		if connection is not None:  # Tests
+		if connection is not None:  # Tests/
 			connection.add(item)
 			intids.register(item, event=False)
 			return True
 		return False
+
+	def _lineage(self, resource):
+		while resource is not None:
+			yield resource
+			try:
+				resource = resource.__container__
+			except AttributeError:
+				resource = None
+
+	def _containers(self, resource):
+		result = set()
+		for x in self._lineage(resource):
+			try:
+				result.add(x.ntiid)
+			except AttributeError:
+				pass
+		result.discard(None)
+		return result
 
 	def _process_assessments(self,
 							 assessment_item_dict,
@@ -232,6 +250,9 @@ class QuestionMap(QuestionIndex):
 				things_to_register = self._explode_object_to_register(obj)
 
 				for item in things_to_register:
+					# get containment hierarchy
+					containers = self._containers(item)
+
 					# get unproxied object
 					thing_to_register = removeAllProxies(item)
 					result.add(thing_to_register)
@@ -240,6 +261,9 @@ class QuestionMap(QuestionIndex):
 					provided = _iface_to_register(thing_to_register)
 					ntiid = getattr(thing_to_register, 'ntiid', None) or u''
 					if ntiid and registry.queryUtility(provided, name=ntiid) is None:
+						containers.discard(ntiid)
+						containers.update(hierarchy_ntiids)
+
 						# register assesment 
 						self._registry_utility(registry, 
 											   component=thing_to_register,
@@ -259,7 +283,7 @@ class QuestionMap(QuestionIndex):
 						# index item
 						self._index_object(thing_to_register,
 										   content_package,
-										   hierarchy_ntiids,
+										   containers,
 										   registry=registry)
 			else:
 				obj = registered

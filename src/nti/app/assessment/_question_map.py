@@ -230,11 +230,11 @@ class QuestionMap(QuestionIndex):
 				self._store_object(ntiid, obj)
 
 				things_to_register = self._explode_object_to_register(obj)
-				result.update(things_to_register)
-		
+
 				for item in things_to_register:
 					# get unproxied object
 					thing_to_register = removeAllProxies(item)
+					result.add(thing_to_register)
 					
 					# check registry
 					provided = _iface_to_register(thing_to_register)

@@ -13,6 +13,8 @@ import copy
 
 from zope import component
 
+from zope.interface.common.idatetime import IDateTime
+
 from zope.intid import IIntIds
 
 from nti.appserver.ugd_edit_views import UGDPutView
@@ -53,7 +55,7 @@ def canonicalize_assignment(obj, registry=component):
 		ntiid = part.question_set.ntiid
 		part.question_set = registry.getUtility(IQuestionSet, name=ntiid)
 		canonicalize_question_set(part.question_set, registry)
-			
+
 def get_courses_from_assesment(assesment):
 	package = find_interface(assesment, IContentPackage, strict=False)
 	if package is None:
@@ -96,18 +98,22 @@ class AssessmentPutView(UGDPutView):
 					result.append(item)
 			return result
 
+	def preflight(self, contentObject, externalValue, courses=()):
+		pass
+
 	def validate(self, contentObject, externalValue, courses=()):
 		pass
 
 	def updateContentObject(self, contentObject, externalValue, set_id=False,
 							notify=True, pre_hook=None):
-
 		# find all courses if context is not provided
 		context = get_course_from_request(self.request)
 		if context is None:
 			courses = get_courses_from_assesment(contentObject)
 		else:
 			courses = (context,)
+
+		self.preflight(contentObject, externalValue, courses)
 
 		if context is not None:
 			# remove policy keys to avoid updating
@@ -133,7 +139,8 @@ class AssessmentPutView(UGDPutView):
 		for key in SUPPORTED_DATE_KEYS:
 			if key not in backupData:
 				continue
+			value = IDateTime(backupData[key])
 			for course in courses:
 				dates = IQAssessmentDateContext(course)
-				dates.set(ntiid, key, backupData[key])
+				dates.set(ntiid, key, value)
 		return result

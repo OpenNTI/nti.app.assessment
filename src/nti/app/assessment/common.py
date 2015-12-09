@@ -37,7 +37,8 @@ from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
-from nti.contenttypes.courses.utils import get_course_packages
+from nti.contenttypes.courses.utils import get_course_packages,\
+	get_course_hierarchy
 
 from nti.coremetadata.interfaces import IRecordable
 
@@ -307,17 +308,24 @@ def can_disclose_inquiry(inquiry, context=None):
 		result = not_after and datetime.utcnow() >= not_after
 	return result
 
-def aggregate_course_inquiry(inquiry, course, *items):
+def inquiry_submissions(context, course, subinstances=True):
 	catalog = get_assesment_catalog()
 	course = ICourseInstance(course)
+	if subinstances:
+		courses = get_course_hierarchy(course)
+	else:
+		courses = (course,)
 	intids = component.getUtility(IIntIds)
-	doc_id = intids.getId(course)
-	query = { IX_COURSE: {'any_of':(doc_id,)},
-			  IX_ASSESSMENT_ID: {'any_of':(inquiry.ntiid,)} }
-
+	doc_ids = {intids.getId(x) for x in courses}
+	query = { IX_COURSE: {'any_of':(doc_ids,)},
+			  IX_ASSESSMENT_ID : {'any_of':(context.ntiid,)}}
+	result = catalog.apply(query) or ()
+	return ResultSet(result, intids, True)
+	
+def aggregate_course_inquiry(inquiry, course, *items):
 	result = None
-	uids = catalog.apply(query) or ()
-	items = itertools.chain(ResultSet(uids, intids, True), items)
+	submissions = inquiry_submissions(inquiry, course)
+	items = itertools.chain(submissions, items)
 	for item in items:
 		if not IUsersCourseInquiryItem.providedBy(item):  # always check
 			continue

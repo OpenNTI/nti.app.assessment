@@ -317,7 +317,7 @@ def inquiry_submissions(context, course, subinstances=True):
 		courses = (course,)
 	intids = component.getUtility(IIntIds)
 	doc_ids = {intids.getId(x) for x in courses}
-	query = { IX_COURSE: {'any_of':(doc_ids,)},
+	query = { IX_COURSE: {'any_of':doc_ids},
 			  IX_ASSESSMENT_ID : {'any_of':(context.ntiid,)}}
 	result = catalog.apply(query) or ()
 	return ResultSet(result, intids, True)

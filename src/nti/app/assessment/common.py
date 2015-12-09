@@ -51,7 +51,7 @@ from nti.traversal.traversal import find_interface
 
 from nti.zope_catalog.catalog import ResultSet
 
-from .assignment_filters import AssignmentPolicyExclusionFilter
+from .assignment_filters import AssessmentPolicyExclusionFilter
 
 from .interfaces import IUsersCourseInquiryItem
 from .interfaces import IUsersCourseAssignmentHistory
@@ -244,13 +244,13 @@ def get_course_assignments(context, sort=True, reverse=False, do_filtering=True)
 	if do_filtering:
 		# Filter out excluded assignments so they don't show in the gradebook either
 		course = ICourseInstance(context)
-		_filter = AssignmentPolicyExclusionFilter(course=course)
+		_filter = AssessmentPolicyExclusionFilter(course=course)
 		assignments = [ proxy(x, catalog_entry=ntiid) for x in items
-			 	  		if IQAssignment.providedBy(x) and \
-			 	  	   	   _filter.allow_assignment_for_user_in_course(x, course=course)]
+			 	  		if 		IQAssignment.providedBy(x) \
+			 	  			and _filter.allow_assessment_for_user_in_course(x, course=course) ]
 	else:
 		assignments = [	proxy(x, catalog_entry=ntiid)
-						for x in items if IQAssignment.providedBy(x)]
+						for x in items if IQAssignment.providedBy(x) ]
 	if sort:
 		assignments = sorted(assignments, cmp=assignment_comparator, reverse=reverse)
 	return assignments
@@ -282,10 +282,18 @@ def get_course_from_inquiry(inquiry, user=None, catalog=None,
 		result = find_course_for_inquiry(inquiry, user, exc=exc)
 	return result
 
-def get_course_inquiries(context):
+def get_course_inquiries(context, do_filtering=True):
 	items = get_course_assessment_items(context)
-	ntiid = getattr(ICourseCatalogEntry(context, None), 'ntiid', None)
-	surveys = [proxy(x, catalog_entry=ntiid) for x in items if IQInquiry.providedBy(x)]
+	ntiid = ICourseCatalogEntry(context).ntiid
+	if do_filtering:
+		# Filter out excluded assignments so they don't show in the gradebook either
+		course = ICourseInstance(context)
+		_filter = AssessmentPolicyExclusionFilter(course=course)
+		surveys = [ proxy(x, catalog_entry=ntiid) for x in items
+			 	  	if 		IQInquiry.providedBy(x) \
+			 	  		and _filter.allow_assessment_for_user_in_course(x, course=course) ]
+	else:
+		surveys = [proxy(x, catalog_entry=ntiid) for x in items if IQInquiry.providedBy(x)]
 	return surveys
 
 def can_disclose_inquiry(inquiry, context=None):
@@ -315,11 +323,11 @@ def inquiry_submissions(context, course, subinstances=True):
 		courses = get_course_hierarchy(course)
 	else:
 		courses = (course,)
-	doc_ids = {ICourseCatalogEntry(x).ntiid for x in courses}
+	intids = component.getUtility(IIntIds)
+	doc_ids = {intids.getId(x) for x in courses}
 	query = { IX_COURSE: {'any_of':doc_ids},
 			  IX_ASSESSMENT_ID : {'any_of':(context.ntiid,)}}
 	result = catalog.apply(query) or ()
-	intids = component.getUtility(IIntIds)
 	return ResultSet(result, intids, True)
 	
 def aggregate_course_inquiry(inquiry, course, *items):

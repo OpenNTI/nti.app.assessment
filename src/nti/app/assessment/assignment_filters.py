@@ -16,7 +16,7 @@ from itertools import chain
 from zope import component
 from zope import interface
 
-from nti.assessment.interfaces import IQAssignmentPolicies
+from nti.assessment.interfaces import IQAssessmentPolicies
 
 from nti.common.property import Lazy
 
@@ -94,9 +94,9 @@ class UserEnrolledForCreditInCourseOrInstructsFilter(object):
 
 UserEnrolledForCreditInCourseFilter = UserEnrolledForCreditInCourseOrInstructsFilter  # BWC
 
-@interface.implementer(ICourseAssessmentUserFilter)
 @component.adapter(IUser, ICourseInstance)
-class AssignmentPolicyExclusionFilter(object):
+@interface.implementer(ICourseAssessmentUserFilter)
+class AssessmentPolicyExclusionFilter(object):
 	"""
 	If the assignment policies for the course instance exclude the
 	filter, we exclude it.
@@ -106,9 +106,10 @@ class AssignmentPolicyExclusionFilter(object):
 	"""
 
 	def __init__(self, user=None, course=None):
-		self.policies = IQAssignmentPolicies(course)
+		self.policies = IQAssessmentPolicies(course)
 
 	def allow_assessment_for_user_in_course(self, asg, user=None, course=None):
-		excluded = self.policies.getPolicyForAssignment(asg.ntiid).get('excluded', False)
+		excluded = self.policies.getPolicyForAssessment(asg.ntiid).get('excluded', False)
 		return not excluded
 	allow_assignment_for_user_in_course = allow_assessment_for_user_in_course
+AssignmentPolicyExclusionFilter = AssessmentPolicyExclusionFilter

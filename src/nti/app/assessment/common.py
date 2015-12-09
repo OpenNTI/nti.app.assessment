@@ -37,8 +37,8 @@ from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
-from nti.contenttypes.courses.utils import get_course_packages,\
-	get_course_hierarchy
+from nti.contenttypes.courses.utils import get_course_packages
+from nti.contenttypes.courses.utils import get_course_hierarchy
 
 from nti.coremetadata.interfaces import IRecordable
 
@@ -315,11 +315,11 @@ def inquiry_submissions(context, course, subinstances=True):
 		courses = get_course_hierarchy(course)
 	else:
 		courses = (course,)
-	intids = component.getUtility(IIntIds)
-	doc_ids = {intids.getId(x) for x in courses}
+	doc_ids = {ICourseCatalogEntry(x).ntiid for x in courses}
 	query = { IX_COURSE: {'any_of':doc_ids},
 			  IX_ASSESSMENT_ID : {'any_of':(context.ntiid,)}}
 	result = catalog.apply(query) or ()
+	intids = component.getUtility(IIntIds)
 	return ResultSet(result, intids, True)
 	
 def aggregate_course_inquiry(inquiry, course, *items):

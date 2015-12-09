@@ -18,6 +18,7 @@ does_not = is_not
 from urllib import quote
 from itertools import chain
 
+from nti.assessment.interfaces import IQAssessmentPolicies
 from nti.assessment.interfaces import IQAssessmentDateContext
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -67,6 +68,10 @@ class TestAssignmentViews(ApplicationLayerTest):
 			course = ICourseInstance(entry)
 			subs = get_course_subinstances(course)
 			for course in chain((course,), subs):
+				policies = IQAssessmentPolicies(course)
+				data = policies.get(self.assignment_id)
+				assert_that(data, has_entry('locked', is_(True)))
+				
 				dates = IQAssessmentDateContext(course)
 				data = dates.get(self.assignment_id)
 				assert_that(data, has_entry('available_for_submission_ending', is_(ending)))
@@ -93,6 +98,11 @@ class TestAssignmentViews(ApplicationLayerTest):
 
 			entry = find_object_with_ntiid(self.course_ntiid)
 			course = ICourseInstance(entry)
+			
+			policies = IQAssessmentPolicies(course)
+			data = policies.get(self.assignment_id)
+			assert_that(data, has_entry('locked', is_(True)))
+				
 			dates = IQAssessmentDateContext(course)
 			data = dates.get(self.assignment_id)
 			assert_that(data, has_entry('available_for_submission_ending', is_(ending)))

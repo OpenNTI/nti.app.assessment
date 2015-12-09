@@ -21,6 +21,7 @@ from nti.appserver.ugd_edit_views import UGDPutView
 
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
+from nti.assessment.interfaces import IQAssessmentPolicies
 from nti.assessment.interfaces import IQAssessmentDateContext
 
 from nti.contentlibrary.interfaces import IContentPackage
@@ -136,8 +137,15 @@ class AssessmentPutView(UGDPutView):
 		else:
 			result = contentObject
 
-		# update course policies
+		# update course policie
 		ntiid = contentObject.ntiid
+		
+		# by locking
+		for course in courses:
+			policies = IQAssessmentPolicies(course)
+			policies.set(ntiid, 'locked', True)
+			
+		# update dates
 		for key in SUPPORTED_DATE_KEYS:
 			if key not in backupData:
 				continue

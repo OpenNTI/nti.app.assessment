@@ -25,7 +25,6 @@ from nti.common.property import Lazy
 from nti.contentlibrary.interfaces import IContentUnit
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
-from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.contenttypes.courses.utils import is_course_instructor
 
@@ -41,17 +40,13 @@ from nti.links.externalization import render_link
 
 from nti.traversal.traversal import find_interface
 
+from ..common import inquiry_submissions
 from ..common import can_disclose_inquiry
 from ..common import get_policy_for_assessment
 from ..common import get_available_for_submission_ending
 from ..common import get_available_for_submission_beginning
 
 from ..interfaces import IUsersCourseInquiry
-
-from ..index import IX_COURSE
-from ..index import IX_ASSESSMENT_ID
-
-from .. import get_assesment_catalog
 
 from . import _root_url
 from . import _get_course_from_assignment
@@ -115,12 +110,7 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 		return result
 
 	def _submissions(self, course, context):
-		catalog = get_assesment_catalog()
-		course = ICourseInstance(course)
-		doc_id = self._intids.getId(course)
-		query = { IX_COURSE: {'any_of':(doc_id,)},
-				  IX_ASSESSMENT_ID : {'any_of':(context.ntiid,)}}
-		result = catalog.apply(query) or ()
+		result = inquiry_submissions(context, course)
 		return len(result)
 
 	def _predicate(self, context, result):

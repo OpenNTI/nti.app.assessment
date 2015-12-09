@@ -21,6 +21,8 @@ from nti.dataserver.interfaces import ALL_PERMISSIONS
 from nti.dataserver.interfaces import IACLProvider
 
 from nti.dataserver.authorization import ROLE_ADMIN
+from nti.dataserver.authorization import ROLE_CONTENT_EDITOR
+
 from nti.dataserver.authorization_acl import ace_allowing
 from nti.dataserver.authorization_acl import acl_from_aces
 
@@ -41,6 +43,7 @@ class AssessmentACLProvider(object):
 
 	@Lazy
 	def __acl__(self):
-		aces = [ ace_allowing(ROLE_ADMIN, ALL_PERMISSIONS, self) ]
+		aces = [ ace_allowing(ROLE_ADMIN, ALL_PERMISSIONS, self),
+				 ace_allowing(ROLE_CONTENT_EDITOR, ALL_PERMISSIONS, self)]
 		result = acl_from_aces(aces)
 		return result

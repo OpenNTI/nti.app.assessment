@@ -502,7 +502,7 @@ def _remove_assessment_items_from_oldcontent(content_package, force=False):
 		items = IQAssessmentItemContainer(unit)
 		for name, item in list(items.items()): # mutating
 			provided = _iface_to_register(item)
-			if can_be_removed(provided, force) and name not in ignore:
+			if can_be_removed(item, force) and name not in ignore:
 				unregisterUtility(sm, provided=provided, name=name)
 				if intids is not None and intids.queryId(item) is not None:
 					catalog.unindex(item, intids=intids)

@@ -13,6 +13,8 @@ import copy
 
 from zope import component
 
+from zope.event import notify as event_notify
+
 from zope.interface.common.idatetime import IDateTime
 
 from zope.intid import IIntIds
@@ -21,8 +23,8 @@ from nti.appserver.ugd_edit_views import UGDPutView
 
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
-from nti.assessment.interfaces import IQAssessmentPolicies
 from nti.assessment.interfaces import IQAssessmentDateContext
+from nti.assessment.interfaces import QAssessmentDateContextModified
 
 from nti.contentlibrary.interfaces import IContentPackage
 
@@ -139,13 +141,6 @@ class AssessmentPutView(UGDPutView):
 
 		# update course policie
 		ntiid = contentObject.ntiid
-		
-		# by locking
-		for course in courses:
-			policies = IQAssessmentPolicies(course)
-			policies.set(ntiid, 'locked', True)
-			
-		# update dates
 		for key in SUPPORTED_DATE_KEYS:
 			if key not in backupData:
 				continue
@@ -153,4 +148,5 @@ class AssessmentPutView(UGDPutView):
 			for course in courses:
 				dates = IQAssessmentDateContext(course)
 				dates.set(ntiid, key, value)
+				event_notify(QAssessmentDateContextModified(dates, ntiid, key))
 		return result

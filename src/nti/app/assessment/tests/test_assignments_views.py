@@ -69,11 +69,11 @@ class TestAssignmentViews(ApplicationLayerTest):
 			subs = get_course_subinstances(course)
 			for course in chain((course,), subs):
 				policies = IQAssessmentPolicies(course)
-				data = policies.get(self.assignment_id)
+				data = policies[self.assignment_id]
 				assert_that(data, has_entry('locked', is_(True)))
 				
 				dates = IQAssessmentDateContext(course)
-				data = dates.get(self.assignment_id)
+				data = dates[self.assignment_id]
 				assert_that(data, has_entry('available_for_submission_ending', is_(ending)))
 				assert_that(data, has_entry('available_for_submission_beginning',is_(beginning)))
 				
@@ -100,10 +100,10 @@ class TestAssignmentViews(ApplicationLayerTest):
 			course = ICourseInstance(entry)
 			
 			policies = IQAssessmentPolicies(course)
-			data = policies.get(self.assignment_id)
+			data = policies[self.assignment_id]
 			assert_that(data, has_entry('locked', is_(True)))
 				
 			dates = IQAssessmentDateContext(course)
-			data = dates.get(self.assignment_id)
+			data = dates[self.assignment_id]
 			assert_that(data, has_entry('available_for_submission_ending', is_(ending)))
 			assert_that(data, has_entry('available_for_submission_beginning',is_(beginning)))

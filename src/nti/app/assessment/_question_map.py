@@ -528,9 +528,9 @@ def _remove_assessment_items_from_oldcontent(content_package, force=False):
 	return result
 
 @component.adapter(IContentPackage, IObjectRemovedEvent)
-def remove_assessment_items_from_oldcontent(content_package, event):
+def remove_assessment_items_from_oldcontent(content_package, event, force=True):
 	logger.info("Removing assessment items from old content %s %s", content_package, event)
-	result = _remove_assessment_items_from_oldcontent(content_package, True)
+	result = _remove_assessment_items_from_oldcontent(content_package, force=force)
 	return set(result.keys())
 
 @component.adapter(IContentPackage, IObjectModifiedEvent)
@@ -552,7 +552,7 @@ def update_assessment_items_when_modified(content_package, event):
 	logger.info("Updating assessment items from modified content %s %s",
 				content_package, event)
 
-	removed = remove_assessment_items_from_oldcontent(original, event)
+	removed = remove_assessment_items_from_oldcontent(original, event, force=False)
 	logger.info("%s assessment item(s) have been removed from content %s",
 				len(removed), original)
 

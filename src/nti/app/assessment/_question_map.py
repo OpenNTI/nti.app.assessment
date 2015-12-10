@@ -8,6 +8,7 @@ functions to maintain it.
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
+from nti.recorder.record import remove_transaction_history
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -508,6 +509,7 @@ def _remove_assessment_items_from_oldcontent(content_package, force=False):
 					intids.unregister(item, event=False)
 				items.pop(name, None)
 				result[name] = item
+				remove_transaction_history(item)
 			else:
 				logger.warn("Object (%s,%s) is locked cannot be removed during sync",
 							provided.__name__, name)

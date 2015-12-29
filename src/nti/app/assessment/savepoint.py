@@ -152,14 +152,12 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 
 	@property
 	def __acl__(self):
-		aces = [ace_allowing(self.owner, ALL_PERMISSIONS,
-							 UsersCourseAssignmentSavepoint)]
+		aces = [ace_allowing(self.owner, ALL_PERMISSIONS, type(self))]
 		
 		course = ICourseInstance(self, None)
 		instructors = getattr(course, 'instructors', ())  # already principals
 		for instructor in instructors:
-			aces.append(ace_allowing(instructor, ACT_READ,
-									 UsersCourseAssignmentSavepoint))
+			aces.append(ace_allowing(instructor, ACT_READ, type(self)))
 		aces.append(ACE_DENY_ALL)
 		return acl_from_aces(aces)
 

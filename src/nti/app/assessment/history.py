@@ -61,8 +61,8 @@ from nti.zodb.minmax import NumericPropertyDefaultingToZero
 
 from ._submission import set_submission_lineage
 
+from .common import get_policy_for_assessment
 from .common import get_available_for_submission_ending
-from .common import get_policy_for_assessment as _get_policy_for_assignment
 
 from .feedback import UsersCourseAssignmentHistoryItemFeedbackContainer
 
@@ -245,7 +245,7 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 			# Not enough information, bail
 			return False
 
-		policy = _get_policy_for_assignment(asg_id, course)
+		policy = get_policy_for_assessment(asg_id, course)
 		if not policy.get('student_nuclear_reset_capable', False):
 			# Not allowed!
 			# TODO: could probably push this off to syncronization
@@ -364,7 +364,7 @@ class UsersCourseAssignmentHistoryItemSummary(Contained):
 	def __getattr__(self, name):
 		if name.startswith('_p_'):  # pragma: no cover
 			raise AttributeError(name)
-		if name == 'NTIID' or name == 'ntiid':  # pragma: no cover
+		if name in ('NTIID', 'ntiid'):  # pragma: no cover
 			raise AttributeError(name)
 		return getattr(self._history_item, name)
 

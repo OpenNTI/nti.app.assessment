@@ -18,6 +18,8 @@ import simplejson
 
 from zope import component
 
+from zope.lifecycleevent.interfaces import IObjectRemovedEvent
+
 from pyramid.httpexceptions import HTTPUnprocessableEntity
 
 from nti.app.products.courseware.interfaces import ICourseInstanceActivity
@@ -152,15 +154,17 @@ def prevent_note_on_assignment_part(note, event):
 
 # users
 
+CONTAINER_INTERFACES = (IUsersCourseInquiries,
+						IUsersCourseAssignmentHistories,
+						IUsersCourseAssignmentSavepoints,
+						IUsersCourseAssignmentMetadataContainer)
+
 def delete_user_data(user):
 	username = user.username
 	for enrollments in component.subscribers((user,), IPrincipalEnrollments):
 		for enrollment in enrollments.iter_enrollments():
 			course = ICourseInstance(enrollment)
-			for iface in (IUsersCourseInquiries,
-						  IUsersCourseAssignmentHistories,
-						  IUsersCourseAssignmentSavepoints,
-						  IUsersCourseAssignmentMetadataContainer):
+			for iface in CONTAINER_INTERFACES:
 				user_data = iface(course, None)
 				if user_data is not None and username in user_data:
 					container = user_data[username]
@@ -171,3 +175,12 @@ def delete_user_data(user):
 def _on_user_will_be_removed(user, event):
 	logger.info("Removing assignment data for user %s", user)
 	run_job_in_all_host_sites(partial(delete_user_data, user=user))
+
+# courses
+
+@component.adapter(ICourseInstance, IObjectRemovedEvent)
+def on_course_instance_removed(course, event):
+	for iface in CONTAINER_INTERFACES:
+		user_data = iface(course, None)
+		if user_data is not None:
+			user_data.clear()

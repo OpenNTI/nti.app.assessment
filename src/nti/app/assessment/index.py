@@ -25,7 +25,6 @@ from nti.assessment.interfaces import IQPollSubmission
 from nti.assessment.interfaces import IQSurveySubmission
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
-from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.dataserver.interfaces import ICreatedUsername
 from nti.dataserver.interfaces import IMetadataCatalog
@@ -52,6 +51,14 @@ deprecated('CatalogEntryIDIndex', 'No longer used')
 class CatalogEntryIDIndex(ValueIndex):
 	pass
 
+deprecated('ValidatingCatalogEntryID', 'No longer used')
+class ValidatingCatalogEntryID(object):
+
+	__slots__ = (b'ntiid',)
+
+	def __init__(self, obj, default=None):
+		pass
+
 class CreatorRawIndex(RawValueIndex):
 	pass
 
@@ -61,28 +68,6 @@ def CreatorIndex(family=None):
 								index=CreatorRawIndex(family=family),
 								normalizer=StringTokenNormalizer())
 
-class ValidatingCatalogEntryID(object):
-
-	__slots__ = (b'ntiid',)
-
-	@classmethod
-	def _entry(cls, obj):
-		for iface in (IUsersCourseInquiryItem, IUsersCourseAssignmentHistoryItem):
-			item = iface(obj, None)
-			if item is not None:
-				course = ICourseInstance(item, None)  # course is lineage
-				entry = ICourseCatalogEntry(course, None)  # entry is an annotation
-				return entry
-		return None
-
-	def __init__(self, obj, default=None):
-		entry = self._entry(obj)
-		if entry is not None:
-			self.ntiid = unicode(entry.ntiid)
-
-	def __reduce__(self):
-		raise TypeError()
-
 class ValidatingAssesmentID(object):
 
 	__slots__ = (b'assesmentId',)
@@ -90,7 +75,7 @@ class ValidatingAssesmentID(object):
 	def __init__(self, obj, default=None):
 		if  IUsersCourseAssignmentHistoryItem.providedBy(obj) or \
 			IUsersCourseInquiryItem.providedBy(obj):
-			self.assesmentId = obj.__name__ # by definition
+			self.assesmentId = obj.__name__  # by definition
 
 	def __reduce__(self):
 		raise TypeError()

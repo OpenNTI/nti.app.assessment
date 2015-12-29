@@ -75,11 +75,11 @@ class UsersCourseInquiries(CaseInsensitiveCheckingLastModifiedBTreeContainer):
 	"""
 	Implementation of the course inquirys for all users in a course.
 	"""
-UsersCourseSurveys = UsersCourseInquiries # BWC
+UsersCourseSurveys = UsersCourseInquiries  # BWC
 
 @interface.implementer(IUsersCourseInquiry)
 class UsersCourseInquiry(CheckingLastModifiedBTreeContainer):
-	
+
 	__external_can_create__ = False
 
 	#: An :class:`.IWeakRef` to the owning user
@@ -87,24 +87,24 @@ class UsersCourseInquiry(CheckingLastModifiedBTreeContainer):
 
 	def _get_owner(self):
 		return self._owner_ref() if self._owner_ref else None
-	def _set_owner(self,owner):
+	def _set_owner(self, owner):
 		self._owner_ref = IWeakRef(owner)
-	owner = property(_get_owner,_set_owner)
+	owner = property(_get_owner, _set_owner)
 
 	creator = alias('owner')
 
 	@property
 	def Items(self):
 		return dict(self)
-	
+
 	def recordSubmission(self, submission):
 		if submission.__parent__ is not None:
 			raise ValueError("Objects already parented")
-		
+
 		item = UsersCourseInquiryItem(Submission=submission)
 		submission.__parent__ = item
 		set_inquiry_submission_lineage(submission)
-		
+
 		self[submission.inquiryId] = item
 		return item
 
@@ -124,19 +124,19 @@ class UsersCourseInquiry(CheckingLastModifiedBTreeContainer):
 	@property
 	def __acl__(self):
 		course = ICourseInstance(self, None)
-		instructors = getattr(course, 'instructors', ()) # already principals
-		aces = [ace_allowing( self.owner, ACT_READ, UsersCourseInquiry )]
+		instructors = getattr(course, 'instructors', ())  # already principals
+		aces = [ace_allowing(self.owner, ACT_READ, UsersCourseInquiry)]
 		for instructor in instructors:
-			aces.append( ace_allowing(instructor, ALL_PERMISSIONS, UsersCourseInquiry) )
+			aces.append(ace_allowing(instructor, ALL_PERMISSIONS, UsersCourseInquiry))
 		aces.append(ACE_DENY_ALL)
-		return acl_from_aces( aces )
+		return acl_from_aces(aces)
 
 @interface.implementer(IUsersCourseInquiryItem,
 					   IACLProvider,
 					   ISublocations)
 class UsersCourseInquiryItem(PersistentCreatedModDateTrackingObject,
-				             Contained,
-						     SchemaConfigured):
+							 Contained,
+							 SchemaConfigured):
 	createDirectFieldProperties(IUsersCourseInquiryItem)
 
 	__external_can_create__ = False
@@ -168,12 +168,12 @@ class UsersCourseInquiryItem(PersistentCreatedModDateTrackingObject,
 	@property
 	def __acl__(self):
 		course = ICourseInstance(self, None)
-		instructors = getattr(course, 'instructors', ()) # already principals
-		aces = [ace_allowing( self.creator, ACT_READ, UsersCourseInquiryItem )]
+		instructors = getattr(course, 'instructors', ())  # already principals
+		aces = [ace_allowing(self.creator, ACT_READ, UsersCourseInquiryItem)]
 		for instructor in instructors:
-			aces.append( ace_allowing(instructor, ALL_PERMISSIONS, UsersCourseInquiryItem) )
+			aces.append(ace_allowing(instructor, ALL_PERMISSIONS, UsersCourseInquiryItem))
 		aces.append(ACE_DENY_ALL)
-		return acl_from_aces( aces )
+		return acl_from_aces(aces)
 
 	def sublocations(self):
 		if self.Submission is not None:
@@ -217,7 +217,7 @@ def _inquiries_for_course_path_adapter(course, request):
 	return _inquiries_for_course(course)
 
 def _inquiries_for_courseenrollment_path_adapter(enrollment, request):
-	return _inquiries_for_course( ICourseInstance(enrollment) )
+	return _inquiries_for_course(ICourseInstance(enrollment))
 
 from .adapters import _course_from_context_lineage
 
@@ -229,15 +229,15 @@ def _course_from_inquiryitem_lineage(item):
 @component.adapter(IUsersCourseInquiries, IRequest)
 class _UsersCourseInquiriesTraversable(ContainerAdapterTraversable):
 
-	def traverse( self, key, remaining_path ):
+	def traverse(self, key, remaining_path):
 		try:
 			return super(_UsersCourseInquiriesTraversable, self).traverse(key, remaining_path)
 		except LocationError:
 			user = User.get_user(key)
 			if user is not None:
-				return _inquiry_for_user_in_course( self.context.__parent__, user)			
-			raise		
-	
+				return _inquiry_for_user_in_course(self.context.__parent__, user)
+			raise
+
 @component.adapter(IUsersCourseInquiry, IRequest)
 class _UsersCourseInquiryTraversable(ContainerAdapterTraversable):
 
@@ -253,29 +253,29 @@ class _DefaultCourseInquiryCatalog(object):
 
 	def __init__(self, context):
 		self.context = context
-	
+
 	def iter_inquiries(self):
 		result = get_course_inquiries(self.context)
 		return result
 
 @interface.implementer(ICourseAggregatedInquiries)
 class CourseAggregatedSurveys(CheckingLastModifiedBTreeContainer):
-	
+
 	__external_can_create__ = False
-	
+
 	def __conform__(self, iface):
 		if ICourseInstance.isOrExtends(iface):
 			return self.__parent__
-		
+
 	@property
 	def __acl__(self):
 		course = ICourseInstance(self, None)
-		instructors = getattr(course, 'instructors', ()) # already principals
-		aces = [ace_allowing(i, ALL_PERMISSIONS, CourseAggregatedSurveys) 
+		instructors = getattr(course, 'instructors', ())  # already principals
+		aces = [ace_allowing(i, ALL_PERMISSIONS, CourseAggregatedSurveys)
 				for i in instructors]
 		aces.append(ace_allowing(EVERYONE_USER_NAME, ACT_READ))
-		return acl_from_aces( aces )
-	
+		return acl_from_aces(aces)
+
 @component.adapter(ICourseInstance)
 @interface.implementer(ICourseAggregatedInquiries)
 def _aggreated_inquiries_for_course(course):
@@ -294,7 +294,7 @@ def _aggreated_inquiries_for_course_path_adapter(course, request):
 	return _aggreated_inquiries_for_course(course)
 
 def _aggreated_inquiries_for_courseenrollment_path_adapter(enrollment, request):
-	return _aggreated_inquiries_for_course( ICourseInstance(enrollment) )
+	return _aggreated_inquiries_for_course(ICourseInstance(enrollment))
 
 @component.adapter(ICourseInstance, IObjectAddedEvent)
 def _on_course_added(course, event):

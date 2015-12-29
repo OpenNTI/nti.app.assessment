@@ -182,7 +182,8 @@ class UsersCourseAssignmentHistoryItemFeedbackContainer(PersistentCreatedModDate
 
 @component.adapter(IUsersCourseAssignmentHistoryItemFeedbackContainer,
 				   IContainerModifiedEvent)
-def when_feedback_container_modified_modify_history_item(container, event,
+def when_feedback_container_modified_modify_history_item(container, 
+														 event,
 														 update_mod=True):
 	"""
 	Because we directly surface the 'Feedback' container as an inline

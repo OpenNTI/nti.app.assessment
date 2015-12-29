@@ -111,7 +111,7 @@ class UsersCourseAssignmentMetadata(CheckingLastModifiedBTreeContainer):
 
 	def append(self, assignmentId, item):
 		if item.__parent__ is not None:
-			raise ValueError("Objects already parented")
+			raise ValueError("Object already parented")
 		self[assignmentId] = item
 		return item
 
@@ -209,7 +209,7 @@ class _UsersCourseAssignmentMetadataItemUpdater(object):
 			if isinstance(start_time, six.string_types):
 				parsed['StartTime'] = float(start_time)
 		else:
-			parsed.pop( 'StartTime', None )
+			parsed.pop('StartTime', None)
 
 		result = InterfaceObjectIO(
 					self.item,
@@ -289,7 +289,7 @@ def _on_assignment_history_item_added(item, event):
 	user = IUser(item, None)
 	course = find_interface(item, ICourseInstance, strict=False)
 	assignment_metadata = component.queryMultiAdapter((course, user),
-														IUsersCourseAssignmentMetadata)
+													  IUsersCourseAssignmentMetadata)
 	if assignment_metadata is not None:
 		meta_item = assignment_metadata.get_or_create(item.assignmentId, time.time())
 		meta_item.Duration = time.time() - meta_item.StartTime
@@ -300,7 +300,7 @@ def _on_assignment_history_item_deleted(item, event):
 	user = IUser(item, None)
 	course = find_interface(item, ICourseInstance, strict=False)
 	assignment_metadata = component.queryMultiAdapter((course, user),
-														IUsersCourseAssignmentMetadata)
+													  IUsersCourseAssignmentMetadata)
 	if assignment_metadata is not None:
 		assignment_metadata.remove(item.assignmentId)
 
@@ -310,7 +310,7 @@ def _assignment_history_item_2_metadata(item):
 	user = IUser(item, None)
 	course = find_interface(item, ICourseInstance, strict=False)
 	metadata = component.queryMultiAdapter((course, user),
-											IUsersCourseAssignmentMetadata) or {}
+										   IUsersCourseAssignmentMetadata) or {}
 	try:
 		result = metadata[item.assignmentId]
 	except KeyError:

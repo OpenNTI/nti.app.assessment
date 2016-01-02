@@ -8,7 +8,6 @@ functions to maintain it.
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
-from nti.recorder.record import remove_transaction_history
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -17,6 +16,7 @@ import time
 
 from zope import component
 from zope import interface
+from zope import lifecycleevent
 
 from zope.container.contained import Contained
 
@@ -58,6 +58,8 @@ from nti.dublincore.time_mixins import PersistentCreatedAndModifiedTimeObject
 from nti.externalization.persistence import NoPickle
 from nti.externalization.internalization import find_factory_for
 from nti.externalization.internalization import update_from_external_object
+
+from nti.recorder.record import remove_transaction_history
 
 from nti.site.utils import registerUtility
 from nti.site.utils import unregisterUtility
@@ -179,7 +181,7 @@ class QuestionMap(QuestionIndex):
 		connection = self._connection(registry) if connection is None else connection
 		if connection is not None:  # Tests/
 			connection.add(item)
-			intids.register(item, event=True)
+			lifecycleevent.added(item)
 			return True
 		return False
 
@@ -507,7 +509,7 @@ def _remove_assessment_items_from_oldcontent(content_package, force=False):
 				unregisterUtility(sm, provided=provided, name=name)
 				if intids is not None and intids.queryId(item) is not None:
 					catalog.unindex(item, intids=intids)
-					intids.unregister(item, event=True)
+					lifecycleevent.removed(item)
 				items.pop(name, None)
 				result[name] = item
 				remove_transaction_history(item)

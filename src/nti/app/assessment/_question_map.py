@@ -21,11 +21,7 @@ from zope.container.contained import Contained
 
 from zope.deprecation import deprecated
 
-from zope.event import notify
-
 from zope.intid.interfaces import IIntIds
-from zope.intid.interfaces import IntIdAddedEvent
-from zope.intid.interfaces import IntIdRemovedEvent
 
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
 from zope.lifecycleevent.interfaces import IObjectRemovedEvent
@@ -61,6 +57,9 @@ from nti.dublincore.time_mixins import PersistentCreatedAndModifiedTimeObject
 from nti.externalization.persistence import NoPickle
 from nti.externalization.internalization import find_factory_for
 from nti.externalization.internalization import update_from_external_object
+
+from nti.intid.common import addIntId
+from nti.intid.common import removeIntId
 
 from nti.recorder.record import remove_transaction_history
 
@@ -180,12 +179,10 @@ class QuestionMap(QuestionIndex):
 		# We always want to register and persist our assessment items,
 		# even from the global library.
 		registry = self._get_registry(registry)
-		intids = component.queryUtility(IIntIds) if intids is None else intids
 		connection = self._connection(registry) if connection is None else connection
 		if connection is not None:  # Tests/
 			connection.add(item)
-			intids.register(item, event=False)
-			notify(IntIdAddedEvent(item, None))
+			addIntId(item)
 			return True
 		return False
 
@@ -513,8 +510,7 @@ def _remove_assessment_items_from_oldcontent(content_package, force=False):
 				unregisterUtility(sm, provided=provided, name=name)
 				if intids is not None and intids.queryId(item) is not None:
 					catalog.unindex(item, intids=intids)
-					notify(IntIdRemovedEvent(item, None))
-					intids.unregister(item, event=False)
+					removeIntId(item)
 				items.pop(name, None)
 				result[name] = item
 				remove_transaction_history(item)

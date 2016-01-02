@@ -16,13 +16,16 @@ import time
 
 from zope import component
 from zope import interface
-from zope import lifecycleevent
 
 from zope.container.contained import Contained
 
 from zope.deprecation import deprecated
 
+from zope.event import notify
+
 from zope.intid.interfaces import IIntIds
+from zope.intid.interfaces import IntIdAddedEvent
+from zope.intid.interfaces import IntIdRemovedEvent
 
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
 from zope.lifecycleevent.interfaces import IObjectRemovedEvent
@@ -181,7 +184,8 @@ class QuestionMap(QuestionIndex):
 		connection = self._connection(registry) if connection is None else connection
 		if connection is not None:  # Tests/
 			connection.add(item)
-			lifecycleevent.added(item)
+			intids.register(item, event=False)
+			notify(IntIdAddedEvent(item, None))
 			return True
 		return False
 
@@ -509,7 +513,8 @@ def _remove_assessment_items_from_oldcontent(content_package, force=False):
 				unregisterUtility(sm, provided=provided, name=name)
 				if intids is not None and intids.queryId(item) is not None:
 					catalog.unindex(item, intids=intids)
-					lifecycleevent.removed(item)
+					notify(IntIdRemovedEvent(item, None))
+					intids.unregister(item, event=False)
 				items.pop(name, None)
 				result[name] = item
 				remove_transaction_history(item)

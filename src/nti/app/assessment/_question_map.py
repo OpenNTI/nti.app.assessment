@@ -172,13 +172,14 @@ class QuestionMap(QuestionIndex):
 			return result
 
 	def _intid_register(self, item, registry=None, intids=None, connection=None):
-		# We always want to register and persist our assessment items, even from the global library.
+		# We always want to register and persist our assessment items,
+		# even from the global library.
 		registry = self._get_registry(registry)
 		intids = component.queryUtility(IIntIds) if intids is None else intids
 		connection = self._connection(registry) if connection is None else connection
 		if connection is not None:  # Tests/
 			connection.add(item)
-			intids.register(item, event=False)
+			intids.register(item, event=True)
 			return True
 		return False
 

@@ -507,7 +507,7 @@ def _remove_assessment_items_from_oldcontent(content_package, force=False):
 				unregisterUtility(sm, provided=provided, name=name)
 				if intids is not None and intids.queryId(item) is not None:
 					catalog.unindex(item, intids=intids)
-					intids.unregister(item, event=False)
+					intids.unregister(item, event=True)
 				items.pop(name, None)
 				result[name] = item
 				remove_transaction_history(item)

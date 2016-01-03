@@ -114,10 +114,14 @@ def _assignment_submission_transformer(request, obj):
 	result = request.response = HTTPCreated()
 	# TODO: Shouldn't this be the external NTIID? This is what ugd_edit_views does though
 	result.location = request.resource_url(obj.creator,
-											'Objects',
-											to_external_oid(pending))
+										   'Objects',
+										   to_external_oid(pending))
 	# TODO: Assuming things about the client and renderer.
-	renderers.render_to_response('rest', pending, request)
+	try:
+		renderers.render_to_response('rest', pending, request, response=result)
+	except TypeError:
+		# Pyramid 1.5?
+		renderers.render_to_response('rest', pending, request)
 	raise result
 
 def _check_submission_before(course, assignment):
@@ -193,7 +197,7 @@ def _begin_assessment_for_assignment_submission(submission):
 			submission_part = IQAssessedQuestionSet(submission_part)
 		new_parts.append(submission_part)
 	pending_assessment = QAssignmentSubmissionPendingAssessment(assignmentId=submission.assignmentId,
-																 parts=new_parts)
+																parts=new_parts)
 	pending_assessment.containerId = submission.assignmentId
 	lifecycleevent.created(pending_assessment)
 

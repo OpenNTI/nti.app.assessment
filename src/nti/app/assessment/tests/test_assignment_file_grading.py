@@ -101,8 +101,7 @@ class _RegisterFileAssignmentLayer(InstructedCourseApplicationTestLayer):
 			assignment.__parent__ = lesson
 			IQAssessmentItemContainer(lesson).append(assignment)
 
-		database = ZODB.DB(ApplicationTestLayer._storage_base,
-							database_name='Users')
+		database = ZODB.DB(ApplicationTestLayer._storage_base, database_name='Users')
 
 		@mock_dataserver.WithMockDS(database=database)
 		def _sync():
@@ -194,7 +193,7 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 	@WithSharedApplicationMockDS(users=True, testapp=True)
 	def test_posting_and_bulk_downloading_file(self):
 		history_res = self._create_and_enroll()
-
+		
 		# Now we should be able to find and download our data
 		submission = history_res.json_body['Items'].values()[0]['Submission']
 		submitted_file_part = submission['parts'][0]['questions'][0]['parts'][0]
@@ -208,12 +207,18 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 		assert_that(download_res, has_property('content_type', 'image/gif'))
 		assert_that(download_res, has_property('content_length', 61))
 		assert_that(download_res, has_property('content_disposition', none()))
-
+		
 		# Then for download, both directly and without the trailing /view
-		for path in (submitted_file_part['download_url'], submitted_file_part['url'][0:-6]):
+		paths = [submitted_file_part['download_url']]
+		url = submitted_file_part['url']
+		idx = url.find('/@@view')
+		url = url[:idx] if idx != -1 else url
+		paths.append(url)
+		
+		for path in paths:
 			download_res = self.testapp.get(path)
-			assert_that(download_res, has_property('content_type', 'image/gif'))
 			assert_that(download_res, has_property('content_length', 61))
+			assert_that(download_res, has_property('content_type', 'image/gif'))
 			assert_that(download_res, has_property('content_disposition', not_none()))
 
 		# Our default user happens to have admin perms to fetch the files

@@ -19,8 +19,7 @@ import simplejson
 from zope import component
 
 from zope.intid.interfaces import IIntIds
-
-from zope.lifecycleevent.interfaces import IObjectRemovedEvent
+from zope.intid.interfaces import IIntIdRemovedEvent
 
 from pyramid.httpexceptions import HTTPUnprocessableEntity
 
@@ -207,7 +206,7 @@ def unindex_course_data(course):
 		for uid in catalog.apply(query) or ():
 			catalog.unindex_doc(uid)
 
-@component.adapter(ICourseInstance, IObjectRemovedEvent)
+@component.adapter(ICourseInstance, IIntIdRemovedEvent)
 def on_course_instance_removed(course, event):
 	delete_course_data(course)
 	unindex_course_data(course)

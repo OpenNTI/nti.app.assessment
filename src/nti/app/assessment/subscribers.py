@@ -18,6 +18,8 @@ import simplejson
 
 from zope import component
 
+from zope.intid.interfaces import IIntIds
+
 from zope.lifecycleevent.interfaces import IObjectRemovedEvent
 
 from pyramid.httpexceptions import HTTPUnprocessableEntity
@@ -48,11 +50,16 @@ from .common import get_unit_assessments
 from .common import get_course_from_assignment
 from .common import get_available_for_submission_ending
 
+from .index import IX_COURSE
+from .index import IX_CREATOR
+
 from .interfaces import IUsersCourseInquiries
 from .interfaces import IUsersCourseAssignmentHistories
 from .interfaces import IUsersCourseAssignmentSavepoints
 from .interfaces import IUsersCourseAssignmentSavepointItem
 from .interfaces import IUsersCourseAssignmentMetadataContainer
+
+from . import get_assesment_catalog
 
 # activity / submission
 
@@ -171,16 +178,36 @@ def delete_user_data(user):
 					container.clear()
 					del user_data[username]
 
+def unindex_user_data(user):
+	catalog = get_assesment_catalog()
+	query = { IX_CREATOR: {'any_of':(user.username,)} }
+	for uid in catalog.apply(query) or ():
+		catalog.unindex_doc(uid)
+
 @component.adapter(IUser, IWillDeleteEntityEvent)
 def _on_user_will_be_removed(user, event):
 	logger.info("Removing assignment data for user %s", user)
 	run_job_in_all_host_sites(partial(delete_user_data, user=user))
+	unindex_user_data(user)
 
 # courses
 
-@component.adapter(ICourseInstance, IObjectRemovedEvent)
-def on_course_instance_removed(course, event):
+def delete_course_data(course):
 	for iface in CONTAINER_INTERFACES:
 		user_data = iface(course, None)
 		if user_data is not None:
 			user_data.clear()
+
+def unindex_course_data(course):
+	intids = component.getUtility(IIntIds)
+	uid = intids.queryId(course)
+	if uid is not None:
+		catalog = get_assesment_catalog()
+		query = { IX_COURSE: {'any_of':(uid,)} }
+		for uid in catalog.apply(query) or ():
+			catalog.unindex_doc(uid)
+
+@component.adapter(ICourseInstance, IObjectRemovedEvent)
+def on_course_instance_removed(course, event):
+	delete_course_data(course)
+	unindex_course_data(course)

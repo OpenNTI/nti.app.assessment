@@ -14,7 +14,7 @@ from zope import interface
 
 from zope.deprecation import deprecated
 
-from zope.intid import IIntIds
+from zope.intid.interfaces import IIntIds
 
 from zope.location import locate
 

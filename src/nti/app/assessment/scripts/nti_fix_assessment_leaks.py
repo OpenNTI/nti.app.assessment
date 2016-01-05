@@ -12,6 +12,7 @@ logger = __import__('logging').getLogger(__name__)
 import os
 import sys
 import argparse
+from collections import Mapping
 from collections import defaultdict
 
 from zope import component
@@ -77,7 +78,7 @@ def _process_args(verbose=True, with_library=True):
 						break
 				if registered is not None:
 					container = IQAssessmentItemContainer(registered.__parent__, None)
-					if container is not None:
+					if container is not None and isinstance(container, Mapping):
 						container[ntiid] = registered  # replace
 		else:
 			ruid = None

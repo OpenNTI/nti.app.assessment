@@ -45,34 +45,38 @@ class MockDataserver(object):
 def update_unit(unit):
 	try:
 		container = unit._question_map_assessment_item_container
-		if isinstance(container, PersistentList):
-			delattr(unit, '_question_map_assessment_item_container') # remove
+		if 		isinstance(container, PersistentList) \
+			or	not isinstance(container, _AssessmentItemBucket):
+			logger.info('Updating content unit (%s)', unit.ntiid)
+			# remove attribute
+			delattr(unit, '_question_map_assessment_item_container')
+			# replace with new object
 			bucket = unit._question_map_assessment_item_container = _AssessmentItemBucket()
 			bucket.__parent__ = unit
 			bucket.__name__ = container.__name__
 			bucket.createdTime = container.createdTime
 			bucket.lastModified = container.lastModified
 			bucket.extend(container)
-			del container[:] # clean
+			# clean and ground
+			del container[:]
 			locate(container, None, None)
 	except AttributeError:
 		pass
 
 def update_package(package):
 	def _update(unit):
-		update_unit(unit)
 		for child in unit.children or ():
 			_update(child)
+		update_unit(unit)
 	_update(package)
 
 def update_library():
 	library = component.queryUtility(IContentPackageLibrary)
 	if library is not None:
-		logger.info('Migrating library (%s)', library)
 		for package in library.contentPackages:
 			update_package(package)
 
-def do_evolve(context):
+def do_evolve(context, generation):
 	setHooks()
 	conn = context.connection
 	root = conn.root()
@@ -91,6 +95,7 @@ def do_evolve(context):
 		if library is not None:
 			library.syncContentPackages()
 
+		# Rub in all hosts
 		run_job_in_all_host_sites(update_library)
 
 	logger.info('Finished app assessment evolve (%s)', generation)
@@ -99,4 +104,4 @@ def evolve(context):
 	"""
 	Evolve to generation 6 by updating the assesment item container
 	"""
-	do_evolve(context)
+	do_evolve(context, generation)

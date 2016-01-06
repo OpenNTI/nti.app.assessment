@@ -43,7 +43,7 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseOutlineContentNode
 from nti.contenttypes.courses.interfaces import get_course_assessment_predicate_for_user
 
-from nti.contenttypes.courses.utils import is_course_instructor_or_editor
+from nti.contenttypes.courses.utils import is_course_instructor
 
 from nti.contenttypes.presentation.interfaces import INTIAssignmentRef
 from nti.contenttypes.presentation.interfaces import INTIQuestionSetRef
@@ -487,8 +487,8 @@ class AssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 	"""
 
 	@Lazy
-	def is_course_instructor_or_editor(self):
-		return is_course_instructor_or_editor(self.context, self.remoteUser)
+	def is_course_instructor(self):
+		return is_course_instructor(self.context, self.remoteUser)
 
 	def _do_outline(self, instance, items, outline):
 		# reverse question set map
@@ -533,7 +533,7 @@ class AssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 			# The assignment's __parent__ is always the 'home' content unit
 			unit = asg.__parent__
 			if unit is not None:
-				if not self.is_ipad_legacy and self.is_course_instructor_or_editor:
+				if not self.is_ipad_legacy and self.is_course_instructor:
 					asg = copy_assignment(asg, True)
 				result.setdefault(unit.ntiid, []).append(asg)
 			else:
@@ -578,8 +578,8 @@ class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 	"""
 
 	@Lazy
-	def is_course_instructor_or_editor(self):
-		return is_course_instructor_or_editor(self.context, self.remoteUser)
+	def is_course_instructor(self):
+		return is_course_instructor(self.context, self.remoteUser)
 
 	def _do_catalog(self, instance, result):
 		# Not only must we filter out assignments, we must filter out

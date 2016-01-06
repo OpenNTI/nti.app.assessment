@@ -27,13 +27,13 @@ from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 from nti.contenttypes.courses.interfaces import get_course_assessment_predicate_for_user
 
 from nti.contenttypes.courses.utils import is_enrolled
-from nti.contenttypes.courses.utils import is_course_instructor
+from nti.contenttypes.courses.utils import is_course_instructor_or_editor
 
 from nti.externalization.oids import to_external_ntiid_oid
 from nti.externalization.externalization import to_external_object
 from nti.externalization.interfaces import IExternalMappingDecorator
 
-from .._utils import check_assessment
+from .._utils import check_assignment
 from .._utils import copy_questionset
 from .._utils import copy_questionbank
 from .._utils import get_course_from_request
@@ -54,7 +54,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 		if result is not None:
 			# CS: make sure the user is either enrolled or is an instructor in the
 			# course passed as parameter
-			if not (is_enrolled(result, user) or is_course_instructor(result, user)):
+			if not (is_enrolled(result, user) or is_course_instructor_or_editor(result, user)):
 				result = None
 		if result is None:
 			result = component.queryMultiAdapter((contentUnit, user), ICourseInstance)
@@ -87,7 +87,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 			entry_ntiid = getattr(ICourseCatalogEntry(course, None), 'ntiid', None)
 
 		new_result = {}
-		is_instructor = False if course is None else is_course_instructor(course, user)
+		is_instructor = False if course is None else is_course_instructor_or_editor(course, user)
 		for ntiid, x in result.iteritems():
 
 			# To keep size down, when we send back assignments or question sets,
@@ -110,9 +110,9 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 				self._set_triplet(x, oid, ntiid, containerId)
 				new_result[ntiid] = x
 			elif IQuestionSet.providedBy(x):
-				new_result[ntiid] = x
 				# CS:20150729 allow the questions to return along with question set
 				# this is for legacy iPad.
+				new_result[ntiid] = x
 			elif IQSurvey.providedBy(x):
 				new_result[ntiid] = x
 				qsids_to_strip.update([poll.ntiid for poll in x.questions])
@@ -122,7 +122,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 								"in %s; dropping", x, context.contentUnit)
 				elif assignment_predicate(x):
 					# Yay, keep the assignment
-					x = check_assessment(x, user, is_instructor)
+					x = check_assignment(x, user, is_instructor)
 					x = AssignmentProxy(x, entry_ntiid)
 					new_result[ntiid] = x
 
@@ -145,4 +145,4 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 		if result:
 			ext_items = to_external_object(result)
 			result_map['AssessmentItems'] = ext_items
-			result_map['ItemCount'] = len(result)
+			result_map['Total'] = result_map['ItemCount'] = len(result)

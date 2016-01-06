@@ -43,6 +43,8 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseOutlineContentNode
 from nti.contenttypes.courses.interfaces import get_course_assessment_predicate_for_user
 
+from nti.contenttypes.courses.utils import is_course_instructor_or_editor
+
 from nti.contenttypes.presentation.interfaces import INTIAssignmentRef
 from nti.contenttypes.presentation.interfaces import INTIQuestionSetRef
 from nti.contenttypes.presentation.interfaces import INTILessonOverview
@@ -56,6 +58,7 @@ from .._submission import get_source
 from .._submission import check_upload_files
 from .._submission import read_multipart_sources
 
+from .._utils import copy_assignment
 from .._utils import replace_username
 
 from ..common import get_course_from_assignment
@@ -483,6 +486,10 @@ class AssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 	to identify the corresponding level it wishes to display.
 	"""
 
+	@Lazy
+	def is_course_instructor_or_editor(self):
+		return is_course_instructor_or_editor(self.context, self.remoteUser)
+
 	def _do_outline(self, instance, items, outline):
 		# reverse question set map
 		# this is done in case question set refs
@@ -525,7 +532,12 @@ class AssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 		for asg in (x for x in catalog.iter_assignments() if uber_filter(x)):
 			# The assignment's __parent__ is always the 'home' content unit
 			unit = asg.__parent__
-			result.setdefault(unit.ntiid, []).append(asg)
+			if unit is not None:
+				if not self.is_ipad_legacy and self.is_course_instructor_or_editor:
+					asg = copy_assignment(asg, True)
+				result.setdefault(unit.ntiid, []).append(asg)
+			else:
+				logger.error("%s is an assignment without parent unit", asg.ntiid)
 		return result
 
 	def __call__(self):
@@ -565,6 +577,10 @@ class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 	to identify the corresponding level it wishes to display.
 	"""
 
+	@Lazy
+	def is_course_instructor_or_editor(self):
+		return is_course_instructor_or_editor(self.context, self.remoteUser)
+
 	def _do_catalog(self, instance, result):
 		# Not only must we filter out assignments, we must filter out
 		# the question sets that they refer to if they are not allowed
@@ -573,7 +589,6 @@ class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 
 		qsids_to_strip = set()
 		catalog = ICourseAssessmentItemCatalog(instance)
-
 		for item in catalog.iter_assessment_items():
 			if IQAssignment.providedBy(item):
 				for assignment_part in item.parts or ():
@@ -583,10 +598,12 @@ class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 			elif IQSurvey.providedBy(item):
 				qsids_to_strip.update([p.ntiid for p in item.questions or ()])
 			else:
-				# The assessment's __parent__ is always the 'home' content unit
+				# The item's __parent__ is always the 'home' content unit
 				unit = item.__parent__
 				if unit is not None:
 					result.setdefault(unit.ntiid, []).append(item)
+				else:
+					logger.error("%s is an item without parent unit", item.ntiid)
 
 		# Now remove the forbidden
 		for items in result.values():

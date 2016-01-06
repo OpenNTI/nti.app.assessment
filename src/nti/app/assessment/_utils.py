@@ -109,13 +109,13 @@ def copy_questionbank(bank, is_instructor=False, qsids_to_strip=None, user=None)
 	sublocations(result)
 	return result
 
-def copy_assessment(assessment, nonrandomized=False):
+def copy_assignment(assignment, nonrandomized=False):
 	new_parts = []
-	result = copy.copy(assessment)
-	for part in assessment.parts:
+	result = copy.copy(assignment)
+	for part in assignment.parts:
 		new_part = copy.copy(part)
-		new_part.question_set = copy_questionset(part.question_set, nonrandomized)
 		new_parts.append(new_part)
+		new_part.question_set = copy_questionset(part.question_set, nonrandomized)
 	result.parts = new_parts
 	sublocations(result)
 	return result
@@ -146,17 +146,17 @@ def copy_taken_assignment(assignment, user):
 	sublocations(result)
 	return result
 
-def check_assessment(assessment, user=None, is_instructor=False):
-	result = assessment
+def check_assignment(assignment, user=None, is_instructor=False):
+	result = assignment
 	if is_instructor:
-		result = copy_assessment(assessment, True)
+		result = copy_assignment(assignment, True)
 	elif user is not None:
-		ntiid = assessment.ntiid
+		ntiid = assignment.ntiid
 		username = user.username
 		# check r47694
 		hack_map = r47694()
 		if ntiid in hack_map and username in hack_map[ntiid]:
-			result = copy_assessment(assessment)
+			result = copy_assignment(assignment)
 			for part in result.parts:
 				make_sha224randomized(part.question_set)
 	return result

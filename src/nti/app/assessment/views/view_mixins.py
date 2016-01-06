@@ -17,7 +17,7 @@ from zope.event import notify as event_notify
 
 from zope.interface.common.idatetime import IDateTime
 
-from zope.intid import IIntIds
+from zope.intid.interfaces import IIntIds
 
 from nti.appserver.ugd_edit_views import UGDPutView
 

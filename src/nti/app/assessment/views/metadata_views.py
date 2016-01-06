@@ -62,7 +62,7 @@ class AssignmentSubmissionMetataPostView(AbstractAuthenticatedView,
 	def _validate(self):
 		creator = self.remoteUser
 		if not creator:
-			raise hexc.HTTPForbidden("Must be Authenticated")
+			raise hexc.HTTPForbidden("Must be Authenticated.")
 		try:
 			course = get_course_from_assignment(self.context, creator)
 			if course is None:
@@ -86,9 +86,9 @@ class AssignmentSubmissionMetataPostView(AbstractAuthenticatedView,
 											 IUsersCourseAssignmentMetadata)
 		item.containerId = assignmentId
 		result = recorded = metadata.append(assignmentId, item)
-		
+
 		result = to_external_object(result)
-		result['href'] = "/%s/Objects/%s" % (get_ds2(self.request), 
+		result['href'] = "/%s/Objects/%s" % (get_ds2(self.request),
 											 to_external_ntiid_oid(recorded))
 		interface.alsoProvides(result, INoHrefInResponse)
 
@@ -130,7 +130,7 @@ class AssignmentSubmissionMetadataGetView(AbstractAuthenticatedView):
 	def _do_call(self):
 		creator = self.remoteUser
 		if not creator:
-			raise hexc.HTTPForbidden("Must be Authenticated")
+			raise hexc.HTTPForbidden("Must be Authenticated.")
 		try:
 			course = get_course_from_assignment(self.context, creator)
 			if course is None:

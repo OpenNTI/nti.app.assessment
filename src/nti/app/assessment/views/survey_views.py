@@ -115,7 +115,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 	def _check_submission_before(self, course):
 		beginning = get_available_for_submission_beginning(self.context, course)
 		if beginning is not None and datetime.utcnow() < beginning:
-			ex = ConstraintNotSatisfied("Submitting too early")
+			ex = ConstraintNotSatisfied("Submitting too early.")
 			ex.field = IQSubmittable['available_for_submission_beginning']
 			ex.value = beginning
 			raise ex
@@ -162,7 +162,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 		submission.containerId = submission.inquiryId
 
 		if submission.inquiryId in course_inquiry:
-			ex = NotUnique(_("Inquiry already submitted"))
+			ex = NotUnique(_("Inquiry already submitted."))
 			ex.field = IQInquirySubmission['inquiryId']
 			ex.value = submission.inquiryId
 			raise ex
@@ -330,7 +330,7 @@ class InquirySubmisionPostView(UGDPostView):
 class InquirySubmisionPutView(UGDPutView):
 
 	def __call__(self):
-		raise hexc.HTTPForbidden(_("Cannot put an inquiry submission"))
+		raise hexc.HTTPForbidden(_("Cannot put an inquiry submission."))
 
 @view_config(route_name='objects.generic.traversal',
 			 context=IQPoll,
@@ -338,20 +338,20 @@ class InquirySubmisionPutView(UGDPutView):
 			 permission=nauth.ACT_CONTENT_EDIT,
 			 renderer='rest')
 class PollPutView(AssessmentPutView):
-	
+
 	def validate(self, contentObject, externalValue, courses=()):
 		parts = externalValue.get('parts')
-		if parts: # don't allow change on its parts
-			raise hexc.HTTPForbidden(_("Cannot change the definition of a poll"))
-		
+		if parts:  # don't allow change on its parts
+			raise hexc.HTTPForbidden(_("Cannot change the definition of a poll."))
+
 @view_config(route_name='objects.generic.traversal',
 			 context=IQSurvey,
 			 request_method='PUT',
 			 permission=nauth.ACT_CONTENT_EDIT,
 			 renderer='rest')
 class SurveyPutView(AssessmentPutView):
-	
+
 	def validate(self, contentObject, externalValue, courses=()):
 		questions = externalValue.get('questions')
-		if questions: # don't allow change on its questions
-			raise hexc.HTTPForbidden(_("Cannot change the definition of a survey"))
+		if questions:  # don't allow change on its questions
+			raise hexc.HTTPForbidden(_("Cannot change the definition of a survey."))

@@ -26,8 +26,8 @@ from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtils
 from nti.appserver.ugd_edit_views import UGDDeleteView
 
 from nti.assessment.interfaces import IQAssignment
-from nti.assessment.interfaces import IQAssignmentSubmission
 from nti.assessment.interfaces import IQTimedAssignment
+from nti.assessment.interfaces import IQAssignmentSubmission
 
 from nti.dataserver import authorization as nauth
 
@@ -78,8 +78,8 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 
 		# No savepoints unless the timed assignment has been started
 		if IQTimedAssignment.providedBy(self.context):
-			item = get_assessment_metadata_item(course, 
-												self.remoteUser, 
+			item = get_assessment_metadata_item(course,
+												self.remoteUser,
 												self.context.ntiid)
 			if item is None or not item.StartTime:
 				raise hexc.HTTPClientError("Cannot savepoint timed assignment unless started.")
@@ -90,7 +90,7 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 		else:
 			extValue = get_source(self.request, 'json', 'input', 'submission')
 			if not extValue:
-				raise hexc.HTTPUnprocessableEntity("No submission source was specified")
+				raise hexc.HTTPUnprocessableEntity("No submission source was specified.")
 			extValue = self.readInput(value=extValue.read())
 			submission = self.readCreateUpdateContentObject(creator,
 															externalValue=extValue)
@@ -109,7 +109,7 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 		self.request.response.status_int = 201
 		result = recorded = savepoint.recordSubmission(submission)
 		result = to_external_object(result)
-		result['href'] = "/%s/Objects/%s" % (get_ds2(self.request), 
+		result['href'] = "/%s/Objects/%s" % (get_ds2(self.request),
 											 to_external_ntiid_oid(recorded))
 		interface.alsoProvides(result, INoHrefInResponse)
 		return result
@@ -125,7 +125,7 @@ class AssignmentSubmissionSavepointGetView(AbstractAuthenticatedView):
 	def __call__(self):
 		creator = self.remoteUser
 		if not creator:
-			raise hexc.HTTPForbidden("Must be Authenticated")
+			raise hexc.HTTPForbidden("Must be Authenticated.")
 		try:
 			course = get_course_from_assignment(self.context, creator)
 			if course is None:

@@ -28,6 +28,8 @@ from nti.app.contentlibrary.utils import PAGE_INFO_MT
 from nti.app.contentlibrary.utils import PAGE_INFO_MT_JSON
 from nti.app.contentlibrary.utils import find_page_info_view_helper
 
+from nti.app.externalization.internalization import read_input_data
+
 from nti.app.products.courseware.interfaces import ICourseInstanceEnrollment
 
 from nti.assessment.interfaces import IQSurvey
@@ -200,7 +202,8 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 			extValue = get_source(self.request, 'json', 'input', 'submission')
 			if not extValue:
 				raise hexc.HTTPUnprocessableEntity("No submission source was specified")
-			extValue = self.readInput(value=extValue.read())
+			extValue = extValue.read()
+			extValue = read_input_data(extValue, self.request)
 			submission = self.readCreateUpdateContentObject(creator, externalValue=extValue)
 			submission = read_multipart_sources(submission, self.request)
 

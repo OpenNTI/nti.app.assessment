@@ -132,9 +132,12 @@ def _get_sync_results(content_package, event):
 		result = _new_sync_results(content_package)
 		if all_results is not None:
 			all_results.append(result)
-		return result
+	elif all_results[-1].ContentPackageNTIID != content_package.ntiid:
+		result = _new_sync_results(content_package)
+		all_results.append(result)
 	else:
-		return all_results[-1]
+		result = all_results[-1]
+	return result
 
 @NoPickle
 class QuestionMap(QuestionIndex):

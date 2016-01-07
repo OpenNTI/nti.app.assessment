@@ -21,6 +21,7 @@ from pyramid import httpexceptions as hexc
 
 from nti.app.renderers.interfaces import INoHrefInResponse
 from nti.app.base.abstract_views import AbstractAuthenticatedView
+from nti.app.externalization.internalization import read_input_data
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
 from nti.appserver.ugd_edit_views import UGDDeleteView
@@ -91,10 +92,8 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 			extValue = get_source(self.request, 'json', 'input', 'submission')
 			if not extValue:
 				raise hexc.HTTPUnprocessableEntity("No submission source was specified.")
-			# read and trace
 			extValue = extValue.read()
-			__traceback_info__ = extValue
-			extValue = self.readInput(value=extValue)
+			extValue = read_input_data(extValue)
 			submission = self.readCreateUpdateContentObject(creator,
 															externalValue=extValue)
 			submission = read_multipart_sources(submission, self.request)

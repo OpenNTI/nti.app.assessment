@@ -601,15 +601,17 @@ class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 				# The item's __parent__ is always the 'home' content unit
 				unit = item.__parent__
 				if unit is not None:
-					result.setdefault(unit.ntiid, []).append(item)
+					result.setdefault(unit.ntiid, {})[item.ntiid] = item
 				else:
 					logger.error("%s is an item without parent unit", item.ntiid)
 
 		# Now remove the forbidden
-		for items in result.values():
-			for item in list(items):
-				if item.ntiid in qsids_to_strip:
-					items.remove(item)
+		for unit_ntiid, items in list(result.items()): # mutating
+			for ntiid in list(items.keys()):  # mutating
+				if ntiid in qsids_to_strip:
+					del items[ntiid]
+			result[unit_ntiid] = list(items.values())
+
 		return result
 
 	def __call__(self):

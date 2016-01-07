@@ -17,6 +17,8 @@ import time
 from zope import component
 from zope import interface
 
+from zope.component.hooks import getSite
+
 from zope.container.contained import Contained
 
 from zope.deprecation import deprecated
@@ -48,9 +50,12 @@ from nti.coremetadata.interfaces import IPublishable
 from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.interfaces import IContentPackage
 from nti.contentlibrary.interfaces import IContentPackageLibrary
+from nti.contentlibrary.interfaces import IContentPackageSyncResults
 
 from nti.contentlibrary.indexed_data import get_registry
 from nti.contentlibrary.indexed_data import get_library_catalog
+
+from nti.contentlibrary.synchronize import ContentPackageSyncResults
 
 from nti.dublincore.time_mixins import PersistentCreatedAndModifiedTimeObject
 
@@ -116,6 +121,21 @@ def _can_be_removed(registered, force=False):
 	return result
 can_be_removed = _can_be_removed
 
+def _new_sync_results(content_package):
+	result = ContentPackageSyncResults(Site=getattr(getSite(), '__name__', None),
+									   ContentPackageNTIID=content_package.ntiid)
+	return result
+
+def _get_sync_results(content_package, event):
+	all_results = getattr(event, "results", None)
+	if not all_results or not IContentPackageSyncResults.providedBy(all_results[-1]):
+		result = _new_sync_results(content_package)
+		if all_results is not None:
+			all_results.append(result)
+		return result
+	else:
+		return all_results[-1]
+
 @NoPickle
 class QuestionMap(QuestionIndex):
 	"""
@@ -137,7 +157,11 @@ class QuestionMap(QuestionIndex):
 		pass
 
 	def _registry_utility(self, registry, component, provided, name, event=False):
-		registerUtility(registry, component, provided=provided, name=name, event=event)
+		registerUtility(registry, 
+						component, 
+						provided=provided,
+						name=name, 
+						event=event)
 
 	def _get_registry(self, registry=None):
 		return get_registry(registry)
@@ -211,7 +235,8 @@ class QuestionMap(QuestionIndex):
 							 by_file,
 							 level_ntiid=None,
 							 signatures_dict=None,
-							 registry=None):
+							 registry=None,
+							 sync_results=None):
 		"""
 		Returns a set of object that should be placed in the registry, and then
 		canonicalized.
@@ -290,6 +315,10 @@ class QuestionMap(QuestionIndex):
 										   content_package,
 										   containers,
 										   registry=registry)
+						
+						# register in sync results
+						if sync_results is not None:
+							sync_results.add_assessment(thing_to_register, False)
 			else:
 				obj = registered
 				self._store_object(ntiid, obj)
@@ -311,7 +340,8 @@ class QuestionMap(QuestionIndex):
 						  by_file,
 						  nearest_containing_key=None,
 						  nearest_containing_ntiid=None,
-						  registry=None):
+						  registry=None,
+						  sync_results=None):
 		"""
 		Called with an entry for a file or (sub)section. May or may not have
 		children of its own.
@@ -350,7 +380,8 @@ class QuestionMap(QuestionIndex):
 									  	  by_file,
 									  	  level_ntiid,
 									 	  index.get("Signatures"),
-									 	  registry=registry)
+									 	  registry=registry,
+									 	  sync_results=sync_results)
 		things_to_register.update(items)
 		
 		for child_item in index.get('Items', {}).values():
@@ -359,7 +390,8 @@ class QuestionMap(QuestionIndex):
 									   	   by_file,
 									   	   nearest_containing_key=key_for_this_level,
 									   	   nearest_containing_ntiid=level_ntiid,
-									   	   registry=registry)
+									   	   registry=registry,
+									   	   sync_results=sync_results)
 			things_to_register.update(items)
 
 		return things_to_register
@@ -367,7 +399,8 @@ class QuestionMap(QuestionIndex):
 	def _from_root_index(self,
 						 assessment_index_json,
 						 content_package,
-						 registry=None):
+						 registry=None,
+						 sync_results=None):
 		"""
 		The top-level is handled specially: ``index.html`` is never allowed to have
 		assessment items.
@@ -391,6 +424,9 @@ class QuestionMap(QuestionIndex):
 		assert 	'Items' in root_items[root_ntiid], \
 				"Root's 'Items' contains the actual section Items"
 
+		if sync_results is None:
+			sync_results = _new_sync_results(content_package)
+				
 		things_to_register = set()
 
 		for child_ntiid, child_index in root_items[root_ntiid]['Items'].items():
@@ -413,7 +449,8 @@ class QuestionMap(QuestionIndex):
 									   		content_package,
 									   		by_file,
 									   		nearest_containing_ntiid=child_ntiid,
-									   		registry=registry)
+									   		registry=registry,
+									   		sync_results=sync_results)
 			things_to_register.update(parsed)
 
 		# register assessment items
@@ -426,14 +463,22 @@ class QuestionMap(QuestionIndex):
 		registered = {x.ntiid for x in registered}
 		return by_file, registered
 
-def _populate_question_map_from_text(question_map, asm_index_text,
-									 content_package, registry=None):
+def _populate_question_map_from_text(question_map, 
+									 asm_index_text,
+									 content_package,
+									 registry=None,
+									 sync_results=None):
 	result = None
 	index = _load_question_map_json(asm_index_text)
 	if index:
 		try:
-			result = question_map._from_root_index(index, content_package,
-												   registry=registry)
+			if sync_results is None:
+				sync_results = _new_sync_results(content_package)
+
+			result = question_map._from_root_index(index, 
+												   content_package,
+												   registry=registry,
+												   sync_results=sync_results)
 			result = None if result is None else result[1]  # registered
 		except (interface.Invalid, ValueError):  # pragma: no cover
 			# Because the map is updated in place, depending on where the error
@@ -445,10 +490,17 @@ def _populate_question_map_from_text(question_map, asm_index_text,
 				 content_package)
 	return result or set()
 
-def _add_assessment_items_from_new_content(content_package, key):
+def _add_assessment_items_from_new_content(content_package, key, sync_results=None):
+	if sync_results is None:
+		sync_results = _new_sync_results(content_package)
+		
 	question_map = QuestionMap()
 	asm_index_text = key.readContentsAsText()
-	result = _populate_question_map_from_text(question_map, asm_index_text, content_package)
+	result = _populate_question_map_from_text(question_map,
+											  asm_index_text, 
+											  content_package,
+											  sync_results=sync_results)
+
 	logger.info("%s assessment item(s) read from %s %s",
 				len(result or ()), content_package, key)
 	return result
@@ -481,10 +533,18 @@ def add_assessment_items_from_new_content(content_package, event, key=None):
 	if key:
 		logger.info("Reading/Adding assessment items from new content %s %s %s",
 					content_package, key, event)
-		result = _add_assessment_items_from_new_content(content_package, key)
+		sync_results = _get_sync_results(content_package, event)
+		result = _add_assessment_items_from_new_content(content_package,
+														key,
+														sync_results=sync_results)
 	return result or set()
 
-def _remove_assessment_items_from_oldcontent(content_package, force=False):
+def _remove_assessment_items_from_oldcontent(content_package,
+											 force=False, 
+											 sync_results=None):
+	if sync_results is None:
+		sync_results = _new_sync_results(content_package)
+		
 	# Unregister the things from the component registry.
 	# We SHOULD be run in the registry where the library item was initially
 	# loaded. (We use the context argument to check)
@@ -529,12 +589,20 @@ def _remove_assessment_items_from_oldcontent(content_package, force=False):
 			_unregister(child)
 
 	_unregister(content_package)
+
+	# register locked	
+	for ntiid in ignore:
+		sync_results.add_assessment(ntiid, locked=True)
+
 	return result
 
 @component.adapter(IContentPackage, IObjectRemovedEvent)
 def remove_assessment_items_from_oldcontent(content_package, event, force=True):
+	sync_results = _get_sync_results(content_package, event)
 	logger.info("Removing assessment items from old content %s %s", content_package, event)
-	result = _remove_assessment_items_from_oldcontent(content_package, force=force)
+	result = _remove_assessment_items_from_oldcontent(content_package,
+													  force=force,
+													  sync_results=sync_results)
 	return set(result.keys())
 
 @component.adapter(IContentPackage, IObjectModifiedEvent)
@@ -552,7 +620,7 @@ def update_assessment_items_when_modified(content_package, event):
 	update_key = _needs_load_or_update(updated)
 	if not update_key:
 		return
-
+	
 	logger.info("Updating assessment items from modified content %s %s",
 				content_package, event)
 
@@ -561,7 +629,6 @@ def update_assessment_items_when_modified(content_package, event):
 				len(removed), original)
 
 	registered = add_assessment_items_from_new_content(updated, event, key=update_key)
-
 	logger.info("%s assessment item(s) have been registered for content %s",
 				len(registered), updated)
 

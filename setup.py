@@ -11,8 +11,7 @@ entry_points = {
 		"nti_fix_enrollements = nti.app.assessment.scripts.nti_fix_enrollements:main",
 		"nti_submission_report = nti.app.assessment.scripts.nti_submission_report:main",
 		"nti_savepoint_migrator = nti.app.assessment.scripts.nti_savepoint_migrator:main",
-		"nti_fix_assessment_leaks = nti.app.assessment.scripts.nti_fix_assessment_leaks:main",
-		"nti_fix_assessment_containers = nti.app.assessment.scripts.nti_fix_assessment_containers:main"
+		"nti_fix_assessment_leaks = nti.app.assessment.scripts.nti_fix_assessment_leaks:main"
 	],
 }
 

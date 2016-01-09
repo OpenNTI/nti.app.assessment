@@ -12,22 +12,31 @@ logger = __import__('logging').getLogger(__name__)
 import os
 import sys
 import argparse
-from collections import Mapping
 from collections import defaultdict
 
 from zope import component
 
+from zope.component.hooks import site as current_site
+
 from zope.intid.interfaces import IIntIds
+
+from nti.app.contentlibrary.utils import yield_sync_content_packages
 
 from nti.assessment.common import iface_of_assessment
 
+from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssessment
+from nti.assessment.interfaces import ALL_EVALUATION_MIME_TYPES
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.contentlibrary.indexed_data import get_library_catalog
 
 from nti.dataserver.utils import run_with_dataserver
 from nti.dataserver.utils.base_script import create_context
+
+from nti.intid.common import removeIntId
+
+from nti.metadata import dataserver_metadata_catalog
 
 from nti.site.utils import registerUtility
 from nti.site.utils import unregisterUtility
@@ -38,20 +47,42 @@ def _get_registered_component(provided, name=None):
 		registry = site.getSiteManager()
 		registered = registry.queryUtility(provided, name=name)
 		if registered is not None:
-			return registry, registered
+			return site, registered
 	return None, None
 
-def _get_item_counts():
+def _get_item_counts(intids):
 	count = defaultdict(list)
-	intids = component.getUtility(IIntIds)
-	for _, item in intids.items():
-		if IQAssessment.providedBy(item):
+	catalog = dataserver_metadata_catalog()
+	query = {
+		'mimeType': {'any_of': ALL_EVALUATION_MIME_TYPES}
+	}
+	for uid in catalog.apply(query) or ():
+		item = intids.queryObject(uid)
+		if IQAssessment.providedBy(item) or IQInquiry.providedBy(item):
 			count[item.ntiid].append(item)
 	return count
 
+def _find_containters(ntiid, site):
+
+	def recur(unit, result):
+		for child in unit.children or ():
+			recur(child, result)
+		container = IQAssessmentItemContainer(unit)
+		if ntiid in container:
+			result.append(container)
+		
+	with current_site(site):
+		for package in yield_sync_content_packages():
+			result = []
+			recur(package, result)
+			if result:
+				return result
+
+	return ()
+
 def _process_args(verbose=True, with_library=True):
-	logger.info('Getting item counts ...')
-	count = _get_item_counts()
+	intids = component.getUtility(IIntIds)
+	count = _get_item_counts(intids)
 	logger.info('%s item(s) counted', len(count))
 
 	result = 0
@@ -60,35 +91,38 @@ def _process_args(verbose=True, with_library=True):
 	for ntiid, data in count.items():
 		if len(data) <= 1:
 			continue
+		logger.warn("%s has %s duplicate(s)", ntiid, len(data)-1)
 
+		# find registry and registered objects
 		context = data[0]  # pivot
 		provided = iface_of_assessment(context)
-		registry, registered = _get_registered_component(provided, ntiid)
+		site, registered = _get_registered_component(provided, ntiid)
+
+		# if registered has been found.. check validity
 		if registered is not None:
 			ruid = intids.queryId(registered)
-			if ruid is None:  # invalid registration
-				registered = None
+			if ruid is None:
+				logger.warn("Invalid registration for %s", ntiid)
+				registry = site.getSiteManager()
 				unregisterUtility(registry, provided=provided, name=ntiid)
-				# look for a valid context to register
-				for context in data:
-					if context.__parent__ is not None:
-						registerUtility(registry, context, provided, name=ntiid)
-						ruid = intids.getId(context)
-						registered = context
-						break
-				if registered is not None:
-					container = IQAssessmentItemContainer(registered.__parent__, None)
-					if container is not None and isinstance(container, Mapping):
-						container[ntiid] = registered  # replace
-		else:
+				containers = _find_containters(ntiid, site)
+				if containers: 
+					registered = context
+					ruid = intids.getId(context)
+					registerUtility(registry, context, provided, name=ntiid)
+					for container in containers:
+						container[ntiid] = context
+					
+		else: # nothing
 			ruid = None
 
 		for item in data:
-			if intids.getId(item) != ruid:
+			doc_id = intids.getId(item)
+			if doc_id != ruid:
 				result += 1
 				item.__parent__ = None
-				catalog.unindex(item)
-				intids.unregister(item, event=True)
+				catalog.unindex(doc_id)
+				removeIntId(item)
 
 	logger.info('Done!!!, %s record(s) unregistered', result)
 

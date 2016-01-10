@@ -29,6 +29,7 @@ from nti.assessment.interfaces import IQAssessment
 from nti.assessment.interfaces import ALL_EVALUATION_MIME_TYPES
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
+from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.indexed_data import get_library_catalog
 
 from nti.dataserver.utils import run_with_dataserver
@@ -41,6 +42,8 @@ from nti.metadata import dataserver_metadata_catalog
 from nti.site.utils import registerUtility
 from nti.site.utils import unregisterUtility
 from nti.site.hostpolicy import get_all_host_sites
+
+from nti.traversal.traversal import find_interface
 
 def _get_registered_component(provided, name=None):
 	for site in get_all_host_sites():
@@ -70,7 +73,7 @@ def _find_containters(ntiid, site):
 		container = IQAssessmentItemContainer(unit)
 		if ntiid in container:
 			result.append(container)
-		
+
 	with current_site(site):
 		for package in yield_sync_content_packages():
 			result = []
@@ -91,10 +94,11 @@ def _process_args(verbose=True, with_library=True):
 	for ntiid, data in count.items():
 		if len(data) <= 1:
 			continue
-		logger.warn("%s has %s duplicate(s)", ntiid, len(data)-1)
+		logger.warn("%s has %s duplicate(s)", ntiid, len(data) - 1)
 
 		# find registry and registered objects
 		context = data[0]  # pivot
+		containers = None
 		provided = iface_of_assessment(context)
 		site, registered = _get_registered_component(provided, ntiid)
 
@@ -106,14 +110,12 @@ def _process_args(verbose=True, with_library=True):
 				registry = site.getSiteManager()
 				unregisterUtility(registry, provided=provided, name=ntiid)
 				containers = _find_containters(ntiid, site)
-				if containers: 
+				if containers:
 					registered = context
 					ruid = intids.getId(context)
 					registerUtility(registry, context, provided, name=ntiid)
-					for container in containers:
-						container[ntiid] = context
-					
-		else: # nothing
+
+		else:  # nothing
 			ruid = None
 
 		for item in data:
@@ -123,6 +125,22 @@ def _process_args(verbose=True, with_library=True):
 				item.__parent__ = None
 				catalog.unindex(doc_id)
 				removeIntId(item)
+
+		containers = _find_containters(ntiid, site) if not containers else containers
+		if registered is None: # clean containers
+			for container in containers or ():
+				container.pop(ntiid, None)
+			continue
+
+		# make sure containers have registered object
+		for container in containers or ():
+			container[ntiid] = registered
+
+		# fix lineage
+		if registered.__parent__ is None and containers:
+			unit = find_interface(containers[0], IContentUnit, strict=False)
+			if unit is not None:
+				registered.__parent__ = unit
 
 	logger.info('Done!!!, %s record(s) unregistered', result)
 

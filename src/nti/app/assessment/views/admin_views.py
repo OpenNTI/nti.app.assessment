@@ -76,6 +76,8 @@ from nti.zope_catalog.catalog import ResultSet
 from .._question_map import _add_assessment_items_from_new_content
 from .._question_map import _remove_assessment_items_from_oldcontent
 
+from ..common import get_course_inquiries
+from ..common import get_course_assignments
 from ..common import get_course_from_inquiry
 
 from ..index import CATALOG_NAME as ASSESMENT_CATALOG_NAME
@@ -109,6 +111,46 @@ class AllTasksOutlineView(AbstractAuthenticatedView):
 		for item in catalog.iter_assessment_items():
 			unit = item.__parent__
 			result.setdefault(unit.ntiid, []).append(item)
+		return result
+
+@view_config(context=ICourseInstance)
+@view_config(context=ICourseCatalogEntry)
+@view_defaults(route_name='objects.generic.traversal',
+			   renderer='rest',
+			   permission=nauth.ACT_NTI_ADMIN,
+			   request_method='GET',
+			   name='assignments')
+class CourseAssignmentsView(AbstractAuthenticatedView):
+
+	def __call__(self):
+		instance = ICourseInstance(self.request.context)
+		result = LocatedExternalDict()
+		items = result[ITEMS] = {}
+		result.__name__ = self.request.view_name
+		result.__parent__ = self.request.context
+		for item in get_course_assignments(instance, do_filtering=False):
+			items[item.ntiid] = item
+		result['Total'] = result['ItemCount'] = len(items)
+		return result
+
+@view_config(context=ICourseInstance)
+@view_config(context=ICourseCatalogEntry)
+@view_defaults(route_name='objects.generic.traversal',
+			   renderer='rest',
+			   permission=nauth.ACT_NTI_ADMIN,
+			   request_method='GET',
+			   name='inquiries')
+class CourseInquiriesView(AbstractAuthenticatedView):
+
+	def __call__(self):
+		instance = ICourseInstance(self.request.context)
+		result = LocatedExternalDict()
+		items = result[ITEMS] = {}
+		result.__name__ = self.request.view_name
+		result.__parent__ = self.request.context
+		for item in get_course_inquiries(instance, do_filtering=False):
+			items[item.ntiid] = item
+		result['Total'] = result['ItemCount'] = len(items)
 		return result
 
 @view_config(route_name='objects.generic.traversal',

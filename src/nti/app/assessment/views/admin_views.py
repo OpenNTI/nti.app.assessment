@@ -12,6 +12,7 @@ logger = __import__('logging').getLogger(__name__)
 import csv
 import time
 from io import BytesIO
+from functools import partial
 
 from zope import component
 
@@ -30,7 +31,6 @@ from pyramid.view import view_defaults
 from pyramid import httpexceptions as hexc
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
-from nti.app.products.courseware.interfaces import ICourseInstanceEnrollment
 from nti.app.externalization.internalization import read_body_as_external_object
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
@@ -41,6 +41,7 @@ from nti.assessment.interfaces import ASSESSMENT_INTERFACES
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
+from nti.common.string import TRUE_VALUES
 from nti.common.maps import CaseInsensitiveDict
 
 from nti.contentlibrary.indexed_data import get_registry
@@ -91,27 +92,43 @@ from . import parse_catalog_entry
 
 ITEMS = StandardExternalFields.ITEMS
 
+def is_true(value):
+	return value and str(value).lower() in TRUE_VALUES
+
+class CourseViewMixin(AbstractAuthenticatedView):
+
+	def _do_call(self, func):
+		count = 0
+		result = LocatedExternalDict()
+		items  = result[ITEMS] = {}
+		params = CaseInsensitiveDict(self.request.params)
+		outline = is_true(params.get('byOutline') or params.get('outline'))
+		result.__name__ = self.request.view_name
+		result.__parent__ = self.request.context
+		for item in func():
+			count += 1
+			if not outline:
+				items[item.ntiid] = item
+			else:
+				unit = item.__parent__
+				ntiid = unit.ntiid if unit is not None else 'unparented'
+				items.setdefault(ntiid, []).append(item)
+		result['Total'] = result['ItemCount'] = count
+		return result
+
 @view_config(context=ICourseInstance)
-@view_config(context=ICourseInstanceEnrollment)
+@view_config(context=ICourseCatalogEntry)
 @view_defaults(route_name='objects.generic.traversal',
 			   renderer='rest',
 			   permission=nauth.ACT_NTI_ADMIN,
 			   request_method='GET',
-			   name='AllTasksOutline')
-class AllTasksOutlineView(AbstractAuthenticatedView):
+			   name='Assessments')
+class CourseAssessmentCatalogView(CourseViewMixin):
 
 	def __call__(self):
 		instance = ICourseInstance(self.request.context)
 		catalog = ICourseAssessmentItemCatalog(instance)
-
-		result = LocatedExternalDict()
-		result.__name__ = self.request.view_name
-		result.__parent__ = self.request.context
-
-		for item in catalog.iter_assessment_items():
-			unit = item.__parent__
-			result.setdefault(unit.ntiid, []).append(item)
-		return result
+		return self._do_call(catalog.iter_assessment_items)
 
 @view_config(context=ICourseInstance)
 @view_config(context=ICourseCatalogEntry)
@@ -119,19 +136,13 @@ class AllTasksOutlineView(AbstractAuthenticatedView):
 			   renderer='rest',
 			   permission=nauth.ACT_NTI_ADMIN,
 			   request_method='GET',
-			   name='assignments')
-class CourseAssignmentsView(AbstractAuthenticatedView):
+			   name='Assignments')
+class CourseAssignmentsView(CourseViewMixin):
 
 	def __call__(self):
 		instance = ICourseInstance(self.request.context)
-		result = LocatedExternalDict()
-		items = result[ITEMS] = {}
-		result.__name__ = self.request.view_name
-		result.__parent__ = self.request.context
-		for item in get_course_assignments(instance, do_filtering=False):
-			items[item.ntiid] = item
-		result['Total'] = result['ItemCount'] = len(items)
-		return result
+		func = partial(get_course_assignments, instance, do_filtering=False)
+		return self._do_call(func)
 
 @view_config(context=ICourseInstance)
 @view_config(context=ICourseCatalogEntry)
@@ -139,19 +150,13 @@ class CourseAssignmentsView(AbstractAuthenticatedView):
 			   renderer='rest',
 			   permission=nauth.ACT_NTI_ADMIN,
 			   request_method='GET',
-			   name='inquiries')
-class CourseInquiriesView(AbstractAuthenticatedView):
+			   name='Inquiries')
+class CourseInquiriesView(CourseViewMixin):
 
 	def __call__(self):
 		instance = ICourseInstance(self.request.context)
-		result = LocatedExternalDict()
-		items = result[ITEMS] = {}
-		result.__name__ = self.request.view_name
-		result.__parent__ = self.request.context
-		for item in get_course_inquiries(instance, do_filtering=False):
-			items[item.ntiid] = item
-		result['Total'] = result['ItemCount'] = len(items)
-		return result
+		func = partial(get_course_inquiries, instance, do_filtering=False)
+		return self._do_call(func)
 
 @view_config(route_name='objects.generic.traversal',
 			 renderer='rest',

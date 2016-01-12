@@ -12,13 +12,12 @@ logger = __import__('logging').getLogger(__name__)
 import csv
 import time
 from io import BytesIO
-from functools import partial
 
 from zope import component
 
 from zope.catalog.interfaces import ICatalog
 
-from zope.intid import IIntIds
+from zope.intid.interfaces import IIntIds
 
 from zope.security.interfaces import IPrincipal
 from zope.security.management import endInteraction
@@ -30,7 +29,22 @@ from pyramid.view import view_config
 from pyramid.view import view_defaults
 from pyramid import httpexceptions as hexc
 
+from nti.app.assessment._question_map import _add_assessment_items_from_new_content
+from nti.app.assessment._question_map import _remove_assessment_items_from_oldcontent
+
+from nti.app.assessment.common import get_course_from_inquiry
+
+from nti.app.assessment.index import CATALOG_NAME as ASSESMENT_CATALOG_NAME
+
+from nti.app.assessment.interfaces import IUsersCourseInquiry
+from nti.app.assessment.interfaces import IUsersCourseInquiries
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
+from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
+
+from nti.app.assessment.views import parse_catalog_entry
+
 from nti.app.base.abstract_views import AbstractAuthenticatedView
+
 from nti.app.externalization.internalization import read_body_as_external_object
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
@@ -41,7 +55,6 @@ from nti.assessment.interfaces import ASSESSMENT_INTERFACES
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
-from nti.common.string import TRUE_VALUES
 from nti.common.maps import CaseInsensitiveDict
 
 from nti.contentlibrary.indexed_data import get_registry
@@ -53,7 +66,6 @@ from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
-from nti.contenttypes.courses.interfaces import ICourseAssessmentItemCatalog
 
 from nti.dataserver import authorization as nauth
 
@@ -74,89 +86,7 @@ from nti.site.site import get_component_hierarchy_names
 
 from nti.zope_catalog.catalog import ResultSet
 
-from .._question_map import _add_assessment_items_from_new_content
-from .._question_map import _remove_assessment_items_from_oldcontent
-
-from ..common import get_course_inquiries
-from ..common import get_course_assignments
-from ..common import get_course_from_inquiry
-
-from ..index import CATALOG_NAME as ASSESMENT_CATALOG_NAME
-
-from ..interfaces import IUsersCourseInquiry
-from ..interfaces import IUsersCourseInquiries
-from ..interfaces import IUsersCourseAssignmentHistory
-from ..interfaces import IUsersCourseAssignmentSavepoint
-
-from . import parse_catalog_entry
-
 ITEMS = StandardExternalFields.ITEMS
-
-def is_true(value):
-	return value and str(value).lower() in TRUE_VALUES
-
-class CourseViewMixin(AbstractAuthenticatedView):
-
-	def _do_call(self, func):
-		count = 0
-		result = LocatedExternalDict()
-		items  = result[ITEMS] = {}
-		params = CaseInsensitiveDict(self.request.params)
-		outline = is_true(params.get('byOutline') or params.get('outline'))
-		result.__name__ = self.request.view_name
-		result.__parent__ = self.request.context
-		for item in func():
-			count += 1
-			if not outline:
-				items[item.ntiid] = item
-			else:
-				unit = item.__parent__
-				ntiid = unit.ntiid if unit is not None else 'unparented'
-				items.setdefault(ntiid, []).append(item)
-		result['Total'] = result['ItemCount'] = count
-		return result
-
-@view_config(context=ICourseInstance)
-@view_config(context=ICourseCatalogEntry)
-@view_defaults(route_name='objects.generic.traversal',
-			   renderer='rest',
-			   permission=nauth.ACT_NTI_ADMIN,
-			   request_method='GET',
-			   name='Assessments')
-class CourseAssessmentCatalogView(CourseViewMixin):
-
-	def __call__(self):
-		instance = ICourseInstance(self.request.context)
-		catalog = ICourseAssessmentItemCatalog(instance)
-		return self._do_call(catalog.iter_assessment_items)
-
-@view_config(context=ICourseInstance)
-@view_config(context=ICourseCatalogEntry)
-@view_defaults(route_name='objects.generic.traversal',
-			   renderer='rest',
-			   permission=nauth.ACT_NTI_ADMIN,
-			   request_method='GET',
-			   name='Assignments')
-class CourseAssignmentsView(CourseViewMixin):
-
-	def __call__(self):
-		instance = ICourseInstance(self.request.context)
-		func = partial(get_course_assignments, instance, do_filtering=False)
-		return self._do_call(func)
-
-@view_config(context=ICourseInstance)
-@view_config(context=ICourseCatalogEntry)
-@view_defaults(route_name='objects.generic.traversal',
-			   renderer='rest',
-			   permission=nauth.ACT_NTI_ADMIN,
-			   request_method='GET',
-			   name='Inquiries')
-class CourseInquiriesView(CourseViewMixin):
-
-	def __call__(self):
-		instance = ICourseInstance(self.request.context)
-		func = partial(get_course_inquiries, instance, do_filtering=False)
-		return self._do_call(func)
 
 @view_config(route_name='objects.generic.traversal',
 			 renderer='rest',
@@ -332,8 +262,8 @@ class RemoveInaccessibleAssessmentView(AbstractAuthenticatedView,
 			try:
 				folder = hostsites[site_name]
 				registry = folder.getSiteManager()
-				result = unregisterUtility(registry, 
-										   provided=provided, 
+				result = unregisterUtility(registry,
+										   provided=provided,
 										   name=name) or result
 			except KeyError:
 				pass

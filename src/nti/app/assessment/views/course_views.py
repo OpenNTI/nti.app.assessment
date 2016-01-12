@@ -1,0 +1,100 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+"""
+.. $Id$
+"""
+
+from __future__ import print_function, unicode_literals, absolute_import, division
+__docformat__ = "restructuredtext en"
+
+logger = __import__('logging').getLogger(__name__)
+
+from functools import partial
+
+from pyramid.view import view_config
+from pyramid.view import view_defaults
+
+from nti.app.assessment.common import get_course_inquiries
+from nti.app.assessment.common import get_course_assignments
+
+from nti.app.base.abstract_views import AbstractAuthenticatedView
+
+from nti.common.string import TRUE_VALUES
+from nti.common.maps import CaseInsensitiveDict
+
+from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
+from nti.contenttypes.courses.interfaces import ICourseAssessmentItemCatalog
+
+from nti.dataserver import authorization as nauth
+
+from nti.externalization.interfaces import LocatedExternalDict
+from nti.externalization.interfaces import StandardExternalFields
+
+ITEMS = StandardExternalFields.ITEMS
+
+def is_true(value):
+	return value and str(value).lower() in TRUE_VALUES
+
+class CourseViewMixin(AbstractAuthenticatedView):
+
+	def _do_call(self, func):
+		count = 0
+		result = LocatedExternalDict()
+		items = result[ITEMS] = {}
+		params = CaseInsensitiveDict(self.request.params)
+		outline = is_true(params.get('byOutline') or params.get('outline'))
+		result.__name__ = self.request.view_name
+		result.__parent__ = self.request.context
+		for item in func():
+			count += 1
+			if not outline:
+				items[item.ntiid] = item
+			else:
+				unit = item.__parent__
+				ntiid = unit.ntiid if unit is not None else 'unparented'
+				items.setdefault(ntiid, []).append(item)
+		result['Total'] = result['ItemCount'] = count
+		return result
+
+@view_config(context=ICourseInstance)
+@view_config(context=ICourseCatalogEntry)
+@view_defaults(route_name='objects.generic.traversal',
+			   renderer='rest',
+			   permission=nauth.ACT_CONTENT_EDIT,
+			   request_method='GET',
+			   name='Assessments')
+class CourseAssessmentCatalogView(CourseViewMixin):
+
+	def __call__(self):
+		instance = ICourseInstance(self.request.context)
+		catalog = ICourseAssessmentItemCatalog(instance)
+		return self._do_call(catalog.iter_assessment_items)
+
+@view_config(context=ICourseInstance)
+@view_config(context=ICourseCatalogEntry)
+@view_defaults(route_name='objects.generic.traversal',
+			   renderer='rest',
+			   permission=nauth.ACT_CONTENT_EDIT,
+			   request_method='GET',
+			   name='Assignments')
+class CourseAssignmentsView(CourseViewMixin):
+
+	def __call__(self):
+		instance = ICourseInstance(self.request.context)
+		func = partial(get_course_assignments, instance, do_filtering=False)
+		return self._do_call(func)
+
+@view_config(context=ICourseInstance)
+@view_config(context=ICourseCatalogEntry)
+@view_defaults(route_name='objects.generic.traversal',
+			   renderer='rest',
+			   permission=nauth.ACT_CONTENT_EDIT,
+			   request_method='GET',
+			   name='Inquiries')
+class CourseInquiriesView(CourseViewMixin):
+
+	def __call__(self):
+		instance = ICourseInstance(self.request.context)
+		func = partial(get_course_inquiries, instance, do_filtering=False)
+		return self._do_call(func)

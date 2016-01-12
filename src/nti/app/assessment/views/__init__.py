@@ -17,14 +17,14 @@ from zope.component.interfaces import ComponentLookupError
 
 from pyramid.threadlocal import get_current_request
 
+from nti.app.assessment.common import can_disclose_inquiry
+
+from nti.app.assessment.utils import assignment_download_precondition
+
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.ntiids.ntiids import find_object_with_ntiid
-
-from .._utils import assignment_download_precondition
-
-from ..common import can_disclose_inquiry
 
 def parse_catalog_entry(params, names=('ntiid', 'entry', 'course')):
 	ntiid = None

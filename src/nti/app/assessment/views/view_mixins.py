@@ -19,6 +19,16 @@ from zope.interface.common.idatetime import IDateTime
 
 from zope.intid.interfaces import IIntIds
 
+from nti.app.assessment import get_assesment_catalog
+
+from nti.app.assessment.index import IX_COURSE
+from nti.app.assessment.index import IX_ASSESSMENT_ID
+
+from nti.app.assessment.interfaces import IUsersCourseInquiryItem
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
+
+from nti.app.assessment.utils import get_course_from_request
+
 from nti.appserver.ugd_edit_views import UGDPutView
 
 from nti.assessment.interfaces import IQuestion
@@ -37,16 +47,6 @@ from nti.contenttypes.courses.utils import get_course_packages
 from nti.traversal.traversal import find_interface
 
 from nti.zope_catalog.catalog import ResultSet
-
-from .._utils import get_course_from_request
-
-from ..index import IX_COURSE
-from ..index import IX_ASSESSMENT_ID
-
-from ..interfaces import IUsersCourseInquiryItem
-from ..interfaces import IUsersCourseAssignmentHistoryItem
-
-from .. import get_assesment_catalog
 
 def canonicalize_question_set(self, obj, registry=component):
 	obj.questions = [registry.getUtility(IQuestion, name=x.ntiid)

@@ -24,6 +24,21 @@ from pyramid.view import view_defaults
 from pyramid.interfaces import IRequest
 from pyramid import httpexceptions as hexc
 
+from nti.app.assessment._submission import get_source
+from nti.app.assessment._submission import check_upload_files
+from nti.app.assessment._submission import read_multipart_sources
+
+from nti.app.assessment.common import get_course_from_assignment
+
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedback
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedbackContainer
+
+from nti.app.assessment.utils import copy_assignment
+from nti.app.assessment.utils import replace_username
+
+from nti.app.assessment.views.view_mixins import AssessmentPutView
+
 from nti.app.contentlibrary.utils import PAGE_INFO_MT
 from nti.app.contentlibrary.utils import PAGE_INFO_MT_JSON
 from nti.app.contentlibrary.utils import find_page_info_view_helper
@@ -55,21 +70,6 @@ from nti.dataserver.interfaces import IUser
 from nti.dataserver import authorization as nauth
 
 from nti.externalization.interfaces import StandardExternalFields
-
-from .._submission import get_source
-from .._submission import check_upload_files
-from .._submission import read_multipart_sources
-
-from .._utils import copy_assignment
-from .._utils import replace_username
-
-from ..common import get_course_from_assignment
-
-from ..interfaces import IUsersCourseAssignmentHistory
-from ..interfaces import IUsersCourseAssignmentHistoryItemFeedback
-from ..interfaces import IUsersCourseAssignmentHistoryItemFeedbackContainer
-
-from .view_mixins import AssessmentPutView
 
 ITEMS = StandardExternalFields.ITEMS
 

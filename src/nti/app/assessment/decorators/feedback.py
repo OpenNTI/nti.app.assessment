@@ -12,10 +12,10 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope import interface
 
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedback
+
 from nti.externalization.singleton import SingletonDecorator
 from nti.externalization.interfaces import IExternalMappingDecorator
-
-from ..interfaces import IUsersCourseAssignmentHistoryItemFeedback
 
 @interface.implementer(IExternalMappingDecorator)
 @component.adapter(IUsersCourseAssignmentHistoryItemFeedback)

@@ -12,6 +12,14 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope import interface
 
+from nti.app.assessment.common import get_assessment_items_from_unit
+from nti.app.assessment.common import AssessmentItemProxy as AssignmentProxy
+
+from nti.app.assessment.utils import check_assignment
+from nti.app.assessment.utils import copy_questionset
+from nti.app.assessment.utils import copy_questionbank
+from nti.app.assessment.utils import get_course_from_request
+
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
 from nti.appserver.interfaces import IContentUnitInfo
@@ -33,20 +41,12 @@ from nti.externalization.oids import to_external_ntiid_oid
 from nti.externalization.externalization import to_external_object
 from nti.externalization.interfaces import IExternalMappingDecorator
 
-from .._utils import check_assignment
-from .._utils import copy_questionset
-from .._utils import copy_questionbank
-from .._utils import get_course_from_request
-
-from ..common import get_assessment_items_from_unit
-from ..common import AssessmentItemProxy as AssignmentProxy
-
 @component.adapter(IContentUnitInfo)
 @interface.implementer(IExternalMappingDecorator)
 class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _predicate(self, context, result_map):
-		return (	AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result_map)
+		return (AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result_map)
 				and context.contentUnit is not None)
 
 	def _get_course(self, contentUnit, user):

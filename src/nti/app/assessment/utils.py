@@ -12,21 +12,41 @@ logger = __import__('logging').getLogger(__name__)
 import os
 import copy
 import simplejson
+from urllib import unquote
 
 from zope import component
 from zope import interface
+
+from zope.intid.interfaces import IIntIds
+
+from zope.security.interfaces import IPrincipal
+
+from pyramid.threadlocal import get_current_request
+
+from nti.app.assessment.common import get_course_from_assignment
+
+from nti.app.assessment.interfaces import ACT_DOWNLOAD_GRADES
+
+from nti.app.authentication import get_remote_user
 
 from nti.appserver.pyramid_authorization import has_permission
 
 from nti.assessment.interfaces import IQFilePart
 from nti.assessment.interfaces import IQAssignment
 
-from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.randomized import questionbank_question_chooser
 
-from .interfaces import ACT_DOWNLOAD_GRADES
+from nti.assessment.randomized.interfaces import IQuestionBank
+from nti.assessment.randomized.interfaces import IPrincipalSeedSelector
 
-from .common import get_course_from_assignment
+from nti.contenttypes.courses.interfaces import ICourseInstance
+
+from nti.dataserver.users import User
+from nti.dataserver.interfaces import IUser
+from nti.dataserver.interfaces import IUsernameSubstitutionPolicy
+
+from nti.ntiids.ntiids import is_valid_ntiid_string
+from nti.ntiids.ntiids import find_object_with_ntiid
 
 _r47694_map = None
 def r47694():
@@ -161,7 +181,9 @@ def check_assignment(assignment, user=None, is_instructor=False):
 				make_sha224randomized(part.question_set)
 	return result
 
-def assignment_download_precondition(context, request, remoteUser):
+def assignment_download_precondition(context, request=None, remoteUser=None):
+	request = request if request is not None else get_current_request()
+	remoteUser = remoteUser if remoteUser is not None else get_remote_user(request)
 	username = request.authenticated_userid
 	if not username:
 		return False
@@ -179,20 +201,11 @@ def assignment_download_precondition(context, request, remoteUser):
 					return True
 	return False
 
-from nti.dataserver.interfaces import IUsernameSubstitutionPolicy
-
 def replace_username(username):
 	policy = component.queryUtility(IUsernameSubstitutionPolicy)
 	if policy is not None:
 		return policy.replace(username) or username
 	return username
-
-from urllib import unquote
-
-from nti.contenttypes.courses.interfaces import ICourseInstance
-
-from nti.ntiids.ntiids import is_valid_ntiid_string
-from nti.ntiids.ntiids import find_object_with_ntiid
 
 def get_course_from_request(request=None, params=None):
 	try:
@@ -206,3 +219,25 @@ def get_course_from_request(request=None, params=None):
 	except AttributeError:
 		pass
 	return None
+
+def get_user(user=None):
+	if user is None:
+		user = get_remote_user()
+	elif IPrincipal.providedBy(user):
+		user = user.id
+	if user is not None and not IUser.providedBy(user):
+		user = User.get_user(str(user))
+	return user
+
+def get_uid(context):
+	result = component.getUtility(IIntIds).getId(context)
+	return result
+
+@interface.implementer(IPrincipalSeedSelector)
+class PrincipalSeedSelector(object):
+
+	def __call__(self, principal=None):
+		user = get_user(principal)
+		if user is not None:
+			return get_uid(user)
+		return None

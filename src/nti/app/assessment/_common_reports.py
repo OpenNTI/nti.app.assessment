@@ -20,6 +20,8 @@ from zope import component
 
 from zope.security.interfaces import IPrincipal
 
+from nti.app.assessment.utils import replace_username
+
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 
@@ -31,8 +33,6 @@ from nti.dataserver.interfaces import IUser
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.externalization import to_external_object
-
-from ._utils import replace_username
 
 from .interfaces import IUsersCourseAssignmentHistory
 

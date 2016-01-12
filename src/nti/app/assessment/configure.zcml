@@ -309,7 +309,7 @@
 	<subscriber handler=".subscribers.on_course_instance_removed" />
 
 	<!-- Utilities -->
-	<utility factory=".utilities.PrincipalSeedSelector" />
+	<utility factory=".utils.PrincipalSeedSelector" />
 
 	<!-- Metadata -->
 	<configure zcml:condition="installed nti.metadata">

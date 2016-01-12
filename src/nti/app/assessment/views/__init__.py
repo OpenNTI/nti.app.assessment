@@ -50,4 +50,4 @@ def get_ds2(request=None):
 	try:
 		return request.path_info_peek() if request else None  # e.g. /dataserver2
 	except AttributeError:  # in unit test we may see this
-		return "dataserver2"
+		return u"dataserver2"

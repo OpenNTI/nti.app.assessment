@@ -9,6 +9,8 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+from . import MessageFactory as _
+
 import time
 
 from zope import component
@@ -19,10 +21,26 @@ from zope.schema.interfaces import RequiredMissing
 from pyramid.view import view_config
 from pyramid import httpexceptions as hexc
 
-from nti.app.renderers.interfaces import INoHrefInResponse
+from nti.app.assessment._submission import get_source
+from nti.app.assessment._submission import check_upload_files
+from nti.app.assessment._submission import read_multipart_sources
+
+from nti.app.assessment.common import get_course_from_assignment
+from nti.app.assessment.common import get_assessment_metadata_item
+
+from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
+from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
+from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
+from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepointItem
+
+from nti.app.assessment.views import get_ds2
+
 from nti.app.base.abstract_views import AbstractAuthenticatedView
+
 from nti.app.externalization.internalization import read_input_data
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
+
+from nti.app.renderers.interfaces import INoHrefInResponse
 
 from nti.appserver.ugd_edit_views import UGDDeleteView
 
@@ -34,20 +52,6 @@ from nti.dataserver import authorization as nauth
 
 from nti.externalization.oids import to_external_ntiid_oid
 from nti.externalization.externalization import to_external_object
-
-from .._submission import get_source
-from .._submission import check_upload_files
-from .._submission import read_multipart_sources
-
-from ..common import get_course_from_assignment
-from ..common import get_assessment_metadata_item
-
-from ..interfaces import IUsersCourseAssignmentMetadata
-from ..interfaces import IUsersCourseAssignmentSavepoint
-from ..interfaces import IUsersCourseAssignmentSavepoints
-from ..interfaces import IUsersCourseAssignmentSavepointItem
-
-from . import get_ds2
 
 @view_config(route_name="objects.generic.traversal",
 			 context=IQAssignment,
@@ -69,13 +73,13 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 	def _do_call(self):
 		creator = self.remoteUser
 		if not creator:
-			raise hexc.HTTPForbidden("Must be Authenticated")
+			raise hexc.HTTPForbidden(_("Must be Authenticated."))
 		try:
 			course = get_course_from_assignment(self.context, creator)
 			if course is None:
-				raise hexc.HTTPForbidden("Must be enrolled in a course.")
+				raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
 		except RequiredMissing:
-			raise hexc.HTTPForbidden("Must be enrolled in a course.")
+			raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
 
 		# No savepoints unless the timed assignment has been started
 		if IQTimedAssignment.providedBy(self.context):
@@ -83,7 +87,7 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 												self.remoteUser,
 												self.context.ntiid)
 			if item is None or not item.StartTime:
-				raise hexc.HTTPClientError("Cannot savepoint timed assignment unless started.")
+				raise hexc.HTTPClientError(_("Cannot savepoint timed assignment unless started."))
 
 		if not self.request.POST:
 			submission = self.readCreateUpdateContentObject(creator)
@@ -91,7 +95,7 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 		else:
 			extValue = get_source(self.request, 'json', 'input', 'submission')
 			if not extValue:
-				raise hexc.HTTPUnprocessableEntity("No submission source was specified.")
+				raise hexc.HTTPUnprocessableEntity(_("No submission source was specified."))
 			extValue = extValue.read()
 			extValue = read_input_data(extValue, self.request)
 			submission = self.readCreateUpdateContentObject(creator,
@@ -127,13 +131,13 @@ class AssignmentSubmissionSavepointGetView(AbstractAuthenticatedView):
 	def __call__(self):
 		creator = self.remoteUser
 		if not creator:
-			raise hexc.HTTPForbidden("Must be Authenticated.")
+			raise hexc.HTTPForbidden(_("Must be Authenticated."))
 		try:
 			course = get_course_from_assignment(self.context, creator)
 			if course is None:
-				raise hexc.HTTPForbidden("Must be enrolled in a course.")
+				raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
 		except RequiredMissing:
-			raise hexc.HTTPForbidden("Must be enrolled in a course.")
+			raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
 
 		savepoint = component.getMultiAdapter((course, creator),
 											  IUsersCourseAssignmentSavepoint)

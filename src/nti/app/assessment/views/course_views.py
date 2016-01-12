@@ -38,15 +38,32 @@ def is_true(value):
 
 class CourseViewMixin(AbstractAuthenticatedView):
 
+	def _get_mimeTypes(self):
+		params = CaseInsensitiveDict(self.request.params)
+		result = params.get('accept') or params.get('mimeType')
+		if result:
+			result = set(result.split(','))
+		return result or ()
+
+	def _byOutline(self):
+		params = CaseInsensitiveDict(self.request.params)
+		outline = is_true(params.get('byOutline') or params.get('outline'))
+		return outline
+
 	def _do_call(self, func):
 		count = 0
 		result = LocatedExternalDict()
 		items = result[ITEMS] = {}
-		params = CaseInsensitiveDict(self.request.params)
-		outline = is_true(params.get('byOutline') or params.get('outline'))
+		outline = self._byOutline()
+		mimeTypes = self._get_mimeTypes()
 		result.__name__ = self.request.view_name
 		result.__parent__ = self.request.context
 		for item in func():
+			if mimeTypes:  # filter by
+				mimeType = 	getattr(item, 'mimeType', None) \
+							or	getattr(item, 'mime_type', None)
+				if mimeType not in mimeTypes:
+					continue
 			count += 1
 			if not outline:
 				items[item.ntiid] = item

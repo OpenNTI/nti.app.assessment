@@ -17,10 +17,20 @@ from pyramid.view import view_config
 from pyramid.view import view_defaults
 from pyramid import httpexceptions as hexc
 
+from nti.app.assessment._assessment import move_user_assignment_from_course_to_course
+
+from nti.app.assessment._common_reports import course_submission_report
+
+from nti.app.assessment.common import get_course_assignments
+
+from nti.app.assessment.views import parse_catalog_entry
+
 from nti.app.base.abstract_views import AbstractAuthenticatedView
-from nti.app.products.courseware.views import CourseAdminPathAdapter
+
 from nti.app.externalization.internalization import read_body_as_external_object
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
+
+from nti.app.products.courseware.views import CourseAdminPathAdapter
 
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
@@ -37,15 +47,6 @@ from nti.dataserver.interfaces import IDataserverFolder
 
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
-
-from .._assessment import move_user_assignment_from_course_to_course
-
-from .._common_reports import course_submission_report
-
-from ..common import get_course_assignments
-from ..common import get_course_assessment_items
-
-from . import parse_catalog_entry
 
 ITEMS = StandardExternalFields.ITEMS
 
@@ -115,29 +116,6 @@ class CourseAssignmentsView(AbstractAuthenticatedView):
 		for assignment in get_course_assignments(course=course,
 												 do_filtering=do_filtering):
 			items[assignment.ntiid] = assignment
-		result['ItemCount'] = result['Total'] = len(items)
-		return result
-
-@view_config(context=IDataserverFolder)
-@view_config(context=CourseAdminPathAdapter)
-@view_defaults(route_name='objects.generic.traversal',
-				renderer='rest',
-				permission=nauth.ACT_NTI_ADMIN,
-				request_method='GET',
-				name='CourseAssessmentItems')
-class CourseAssessmentItemsView(AbstractAuthenticatedView):
-
-	def __call__(self):
-		params = CaseInsensitiveDict(self.request.params)
-		context = parse_catalog_entry(params)
-		if context is None:
-			raise hexc.HTTPUnprocessableEntity("Invalid course NTIID")
-		course = ICourseInstance(context)
-
-		result = LocatedExternalDict()
-		items = result[ITEMS] = {}
-		for item in get_course_assessment_items(course=course):
-			items[item.ntiid] = item
 		result['ItemCount'] = result['Total'] = len(items)
 		return result
 

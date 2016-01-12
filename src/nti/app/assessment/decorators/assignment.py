@@ -45,24 +45,25 @@ from nti.links.links import Link
 
 from nti.traversal.traversal import find_interface
 
-from .._utils import assignment_download_precondition
+from nti.app.assessment._utils import assignment_download_precondition
 
-from ..common import get_assessment_metadata_item
-from ..common import get_available_for_submission_ending
-from ..common import get_available_for_submission_beginning
+from nti.app.assessment.common import get_assessment_metadata_item
+from nti.app.assessment.common import get_available_for_submission_ending
+from nti.app.assessment.common import get_available_for_submission_beginning
 
-from ..interfaces import ACT_VIEW_SOLUTIONS
-from ..interfaces import IUsersCourseAssignmentHistory
+from nti.app.assessment.interfaces import ACT_VIEW_SOLUTIONS
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 
-from . import _root_url
-from . import _get_course_from_assignment
-from . import _AbstractTraversableLinkDecorator
+from nti.app.assessment.decorators import _root_url
+from nti.app.assessment.decorators import _get_course_from_assignment
+from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
+from nti.app.assessment.decorators import PreviewCourseAccessPredicate
 
 OID = StandardExternalFields.OID
 LINKS = StandardExternalFields.LINKS
 
 @interface.implementer(IExternalMappingDecorator)
-class _AssignmentsByOutlineNodeDecorator(_AbstractTraversableLinkDecorator):
+class _AssignmentsByOutlineNodeDecorator(PreviewCourseAccessPredicate, _AbstractTraversableLinkDecorator):
 	"""
 	For things that have a assignments, add this
 	as a link.

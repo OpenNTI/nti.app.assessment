@@ -23,10 +23,11 @@ from nti.externalization.interfaces import IExternalMappingDecorator
 from nti.links.links import Link
 from nti.links.externalization import render_link
 
-from . import _get_course_from_assignment
-from . import _AbstractTraversableLinkDecorator
+from nti.app.assessment.common import get_assessment_metadata_item
 
-from ..common import get_assessment_metadata_item
+from nti.app.assessment.decorators import _get_course_from_assignment
+from nti.app.assessment.decorators import PreviewCourseAccessPredicate
+from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
 
 LINKS = StandardExternalFields.LINKS
 
@@ -55,7 +56,7 @@ class _AssignmentSavepointDecorator(AbstractAuthenticatedRequestAwareDecorator):
 										assignment.ntiid, 'Savepoint')))
 
 @interface.implementer(IExternalMappingDecorator)
-class _AssignmentSavepointsDecorator(_AbstractTraversableLinkDecorator):
+class _AssignmentSavepointsDecorator(PreviewCourseAccessPredicate, _AbstractTraversableLinkDecorator):
 
 	def _do_decorate_external(self, context, result_map):
 		links = result_map.setdefault(LINKS, [])

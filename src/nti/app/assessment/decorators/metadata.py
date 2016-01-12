@@ -23,10 +23,11 @@ from nti.externalization.interfaces import IExternalMappingDecorator
 from nti.links.links import Link
 from nti.links.externalization import render_link
 
-from ..common import get_assessment_metadata_item
+from nti.app.assessment.common import get_assessment_metadata_item
 
-from . import _get_course_from_assignment
-from . import _AbstractTraversableLinkDecorator
+from nti.app.assessment.decorators import _get_course_from_assignment
+from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
+from nti.app.assessment.decorators import PreviewCourseAccessPredicate
 
 LINKS = StandardExternalFields.LINKS
 
@@ -59,7 +60,8 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 								  elements=elements + ('StartTime',)))
 
 @interface.implementer(IExternalMappingDecorator)
-class _AssignmentMetadataContainerDecorator(_AbstractTraversableLinkDecorator):
+class _AssignmentMetadataContainerDecorator(PreviewCourseAccessPredicate,
+											_AbstractTraversableLinkDecorator):
 
 	def _do_decorate_external(self, context, result_map):
 		links = result_map.setdefault(LINKS, [])

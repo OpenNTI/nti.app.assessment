@@ -13,6 +13,8 @@ from zope import component
 
 from zope.location.interfaces import ILocationInfo
 
+from nti.app.products.courseware.utils import PreviewCourseAccessPredicate
+
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
 from nti.contentlibrary.externalization import root_url_of_unit

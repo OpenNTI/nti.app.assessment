@@ -305,7 +305,7 @@
 	<!-- User Events -->
 	<subscriber handler=".subscribers._on_user_will_be_removed" />
 
-	<!-- Course Evnets -->	
+	<!-- Course Evnets -->
 	<subscriber handler=".subscribers.on_course_instance_removed" />
 
 	<!-- Utilities -->

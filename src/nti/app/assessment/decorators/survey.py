@@ -40,17 +40,18 @@ from nti.links.externalization import render_link
 
 from nti.traversal.traversal import find_interface
 
-from ..common import inquiry_submissions
-from ..common import can_disclose_inquiry
-from ..common import get_policy_for_assessment
-from ..common import get_available_for_submission_ending
-from ..common import get_available_for_submission_beginning
+from nti.app.assessment.common import inquiry_submissions
+from nti.app.assessment.common import can_disclose_inquiry
+from nti.app.assessment.common import get_policy_for_assessment
+from nti.app.assessment.common import get_available_for_submission_ending
+from nti.app.assessment.common import get_available_for_submission_beginning
 
-from ..interfaces import IUsersCourseInquiry
+from nti.app.assessment.interfaces import IUsersCourseInquiry
 
-from . import _root_url
-from . import _get_course_from_assignment
-from . import _AbstractTraversableLinkDecorator
+from nti.app.assessment.decorators import _root_url
+from nti.app.assessment.decorators import _get_course_from_assignment
+from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
+from nti.app.assessment.decorators import PreviewCourseAccessPredicate
 
 LINKS = StandardExternalFields.LINKS
 
@@ -71,7 +72,8 @@ class _InquiryContentRootURLAdder(AbstractAuthenticatedRequestAwareDecorator):
 			result['ContentRoot' ] = bucket_root
 
 @interface.implementer(IExternalMappingDecorator)
-class _InquiriesDecorator(_AbstractTraversableLinkDecorator):
+class _InquiriesDecorator(PreviewCourseAccessPredicate,
+						_AbstractTraversableLinkDecorator):
 
 	def _do_decorate_external(self, context, result_map):
 		links = result_map.setdefault(LINKS, [])
@@ -130,13 +132,13 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 		user = self.remoteUser
 		links = result_map.setdefault(LINKS, [])
 		course = _get_course_from_assignment(context, user, self._catalog)
-		
+
 		submissions = self._submissions(course, context) if course is not None else 0
-		
+
 		# overrides
 		if course is not None:
 			dates = IQAssessmentDateContext(course).of(context)
-			for k, func in ( 
+			for k, func in (
 					('available_for_submission_ending', get_available_for_submission_ending),
 					('available_for_submission_beginning', get_available_for_submission_beginning)):
 				dates_date = func(dates, k)

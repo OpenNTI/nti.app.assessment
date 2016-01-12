@@ -111,24 +111,6 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
 				assignment.available_for_submission_beginning = None
 
-		# Test editing dates
-		instructor_environ = self._make_extra_environ(username='harp4162')
-		new_start_date = "2015-09-10T05:00:00Z"
-		new_end_date = "2015-09-12T04:59:00Z"
-		start_field = 'available_for_submission_beginning'
-		end_field = 'available_for_submission_ending'
-		self.testapp.put_json( '/dataserver2/Objects/%s/++fields++%s' % ( self.assignment_id, start_field ) )
-		res = self.testapp.get( '/dataserver2/Objects/' + self.assignment_id, extra_environ=instructor_environ )
-		res = res.json_body
-		assert_that( res.get( start_field ), is_( new_start_date ))
-
-		self.testapp.put_json( '/dataserver2/Objects/%s/++fields++%s' % ( self.assignment_id, end_field ),
-							new_end_date, extra_environ=instructor_environ )
-		res = self.testapp.get( '/dataserver2/Objects/' + self.assignment_id, extra_environ=instructor_environ )
-		res = res.json_body
-		assert_that( res.get( end_field ), is_( new_end_date ))
-
-
 	@WithSharedApplicationMockDS(users=True)
 	def test_pending(self):
 		qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id)

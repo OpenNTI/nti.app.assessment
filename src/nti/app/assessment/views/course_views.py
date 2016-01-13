@@ -51,22 +51,22 @@ class CourseViewMixin(AbstractAuthenticatedView):
 		return outline
 
 	def _do_call(self, func):
-		count = 0
 		result = LocatedExternalDict()
-		items = result[ITEMS] = {}
-		outline = self._byOutline()
-		mimeTypes = self._get_mimeTypes()
 		result.__name__ = self.request.view_name
 		result.__parent__ = self.request.context
+
+		count = 0
+		outline = self._byOutline()
+		mimeTypes = self._get_mimeTypes()
+		items = result[ITEMS] = {} if outline else list()
 		for item in func():
-			if mimeTypes:  # filter by
-				mimeType = 	getattr(item, 'mimeType', None) \
-							or	getattr(item, 'mime_type', None)
-				if mimeType not in mimeTypes:
+			if mimeTypes: # filter by
+				mt = getattr(item, 'mimeType', None) or	getattr(item, 'mime_type', None)
+				if mt not in mimeTypes:
 					continue
 			count += 1
 			if not outline:
-				items[item.ntiid] = item
+				items.append(item)
 			else:
 				unit = item.__parent__
 				ntiid = unit.ntiid if unit is not None else 'unparented'

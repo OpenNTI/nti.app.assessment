@@ -181,7 +181,7 @@ def find_course_for_assignment(assignment, user, exc=True):
 		course = ICourseInstance(find_interface(assignment, IContentPackage, strict=False),
 								  None)
 		if course is not None:
-			logger.warning("No enrollment found, assuming generic course. Tests only?")
+			logger.debug("No enrollment found, assuming generic course. Tests only?")
 
 	# If one does not exist, we cannot grade because we have nowhere
 	# to dispatch to.

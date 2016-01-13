@@ -14,11 +14,22 @@ from datetime import datetime
 
 from zope import component
 
-from zope.intid import IIntIds
+from zope.intid.interfaces import IIntIds
 
 from zope.proxy import ProxyBase
 
 from zope.schema.interfaces import RequiredMissing
+
+from nti.app.assessment.assignment_filters import AssessmentPolicyExclusionFilter
+
+from nti.app.assessment import get_assesment_catalog
+
+from nti.app.assessment.index import IX_COURSE
+from nti.app.assessment.index import IX_ASSESSMENT_ID
+
+from nti.app.assessment.interfaces import IUsersCourseInquiryItem
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
+from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssignment
@@ -50,17 +61,6 @@ from nti.metadata import dataserver_metadata_catalog
 from nti.traversal.traversal import find_interface
 
 from nti.zope_catalog.catalog import ResultSet
-
-from .assignment_filters import AssessmentPolicyExclusionFilter
-
-from .interfaces import IUsersCourseInquiryItem
-from .interfaces import IUsersCourseAssignmentHistory
-from .interfaces import IUsersCourseAssignmentMetadata
-
-from .index import IX_COURSE
-from .index import IX_ASSESSMENT_ID
-
-from . import get_assesment_catalog
 
 # assessment
 

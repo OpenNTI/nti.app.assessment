@@ -12,6 +12,14 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope import interface
 
+from nti.app.assessment.common import get_assessment_metadata_item
+
+from nti.app.assessment.decorators import _get_course_from_assignment
+from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
+from nti.app.assessment.decorators import PreviewCourseAccessPredicateDecorator
+
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
+
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
 from nti.common.property import Lazy
@@ -23,26 +31,19 @@ from nti.contenttypes.courses.utils import is_course_instructor
 
 from nti.dataserver.interfaces import IUser
 
-from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.externalization import to_external_object
+
+from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import IExternalMappingDecorator
 
 from nti.links.links import Link
 
 from nti.traversal.traversal import find_interface
 
-from nti.app.assessment.common import get_assessment_metadata_item
-
-from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
-
-from nti.app.assessment.decorators import _get_course_from_assignment
-from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
-from nti.app.assessment.decorators import PreviewCourseAccessPredicate
-
 LINKS = StandardExternalFields.LINKS
 
 @interface.implementer(IExternalMappingDecorator)
-class _CourseAssignmentHistoryDecorator(PreviewCourseAccessPredicate,
+class _CourseAssignmentHistoryDecorator(PreviewCourseAccessPredicateDecorator,
 										_AbstractTraversableLinkDecorator):
 	"""
 	For things that have an assignment history, add this

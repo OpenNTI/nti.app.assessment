@@ -20,9 +20,21 @@ from zope.schema.interfaces import RequiredMissing
 from pyramid.view import view_config
 from pyramid import httpexceptions as hexc
 
-from nti.app.renderers.interfaces import INoHrefInResponse
+from nti.app.assessment.views import get_ds2
+
+from nti.app.assessment.common import get_course_from_assignment
+
+from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
+from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataItem
+from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataContainer
+
+from nti.app.assessment.metadata import UsersCourseAssignmentMetadataItem
+
 from nti.app.base.abstract_views import AbstractAuthenticatedView
+
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
+
+from nti.app.renderers.interfaces import INoHrefInResponse
 
 from nti.appserver.ugd_edit_views import UGDPutView
 from nti.appserver.ugd_edit_views import UGDDeleteView
@@ -34,16 +46,6 @@ from nti.dataserver import authorization as nauth
 from nti.externalization.oids import to_external_ntiid_oid
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.externalization import to_external_object
-
-from ..common import get_course_from_assignment
-
-from ..metadata import UsersCourseAssignmentMetadataItem
-
-from ..interfaces import IUsersCourseAssignmentMetadata
-from ..interfaces import IUsersCourseAssignmentMetadataItem
-from ..interfaces import IUsersCourseAssignmentMetadataContainer
-
-from . import get_ds2
 
 @view_config(route_name="objects.generic.traversal",
 			 context=IQAssignment,

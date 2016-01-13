@@ -21,6 +21,8 @@ from zope.schema.interfaces import RequiredMissing
 from pyramid.view import view_config
 from pyramid import httpexceptions as hexc
 
+from nti.app.assessment.views import get_ds2
+
 from nti.app.assessment._submission import get_source
 from nti.app.assessment._submission import check_upload_files
 from nti.app.assessment._submission import read_multipart_sources
@@ -32,8 +34,6 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepointItem
-
-from nti.app.assessment.views import get_ds2
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 

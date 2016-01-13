@@ -23,9 +23,29 @@ from zope.schema.interfaces import ConstraintNotSatisfied
 from pyramid.view import view_config
 from pyramid import httpexceptions as hexc
 
-from nti.app.renderers.interfaces import INoHrefInResponse
+from nti.app.assessment.views import get_ds2
+
+from nti.app.assessment.common import can_disclose_inquiry
+from nti.app.assessment.common import aggregate_page_inquiry
+from nti.app.assessment.common import get_course_from_inquiry
+from nti.app.assessment.common import aggregate_course_inquiry
+from nti.app.assessment.common import get_available_for_submission_ending
+from nti.app.assessment.common import get_available_for_submission_beginning
+
+from nti.app.assessment.interfaces import IUsersCourseInquiry
+from nti.app.assessment.interfaces import IUsersCourseInquiries
+from nti.app.assessment.interfaces import IUsersCourseInquiryItem
+from nti.app.assessment.interfaces import ICourseAggregatedInquiries
+
+from nti.app.assessment.survey import UsersCourseInquiryItemResponse
+
+from nti.app.assessment.views.view_mixins import AssessmentPutView
+
 from nti.app.base.abstract_views import AbstractAuthenticatedView
+
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
+
+from nti.app.renderers.interfaces import INoHrefInResponse
 
 from nti.appserver.ugd_edit_views import UGDPutView
 from nti.appserver.ugd_edit_views import UGDPostView
@@ -49,24 +69,6 @@ from nti.externalization.oids import to_external_ntiid_oid
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.externalization import to_external_object
-
-from ..common import can_disclose_inquiry
-from ..common import aggregate_page_inquiry
-from ..common import get_course_from_inquiry
-from ..common import aggregate_course_inquiry
-from ..common import get_available_for_submission_ending
-from ..common import get_available_for_submission_beginning
-
-from ..interfaces import IUsersCourseInquiry
-from ..interfaces import IUsersCourseInquiries
-from ..interfaces import IUsersCourseInquiryItem
-from ..interfaces import ICourseAggregatedInquiries
-
-from ..survey import UsersCourseInquiryItemResponse
-
-from .view_mixins import AssessmentPutView
-
-from . import get_ds2
 
 ITEMS = StandardExternalFields.ITEMS
 
@@ -331,6 +333,8 @@ class InquirySubmisionPutView(UGDPutView):
 
 	def __call__(self):
 		raise hexc.HTTPForbidden(_("Cannot put an inquiry submission."))
+
+# PUT views
 
 @view_config(route_name='objects.generic.traversal',
 			 context=IQPoll,

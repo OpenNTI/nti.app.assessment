@@ -54,7 +54,6 @@ class CourseViewMixin(AbstractAuthenticatedView):
 		result = LocatedExternalDict()
 		result.__name__ = self.request.view_name
 		result.__parent__ = self.request.context
-		self.request.acl_decoration = False
 
 		count = 0
 		outline = self._byOutline()

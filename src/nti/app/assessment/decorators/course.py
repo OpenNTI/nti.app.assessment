@@ -43,6 +43,6 @@ class _CourseEditorLinksDecorator(PreviewCourseAccessPredicateDecorator,
 
 	def _do_decorate_external(self, context, result_map):
 		links = result_map.setdefault(LINKS, [])
-		links.append(Link(context, rel='Inquiries', elements=('@@Inquiries')))
-		links.append(Link(context, rel='Assessments', elements=('@@Assessments')))
-		links.append(Link(context, rel='Assignments', elements=('@@Assignments')))
+		links.append(Link(context, rel='Inquiries', elements=('@@Inquiries',)))
+		links.append(Link(context, rel='Assessments', elements=('@@Assessments',)))
+		links.append(Link(context, rel='Assignments', elements=('@@Assignments',)))

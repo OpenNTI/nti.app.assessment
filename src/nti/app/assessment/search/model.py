@@ -14,6 +14,8 @@ from zope import interface
 from zope.securitypolicy.interfaces import Allow
 from zope.securitypolicy.interfaces import IPrincipalRoleMap
 
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedback
+
 from nti.contentsearch.interfaces import IACLResolver
 from nti.contentsearch.interfaces import ICreatorResolver
 from nti.contentsearch.interfaces import IUserDataSearchHit
@@ -35,10 +37,13 @@ from nti.externalization.oids import to_external_ntiid_oid
 
 from nti.traversal.traversal import find_interface
 
-from ..interfaces import IUsersCourseAssignmentHistoryItemFeedback
-
+#: assignment feedback search type
 assignmentfeedback_ = u'assignmentfeedback'
+
+#: assignment feedback hit type
 ASSIGNMENT_FEEDBACK_ITEM = u'AssignmentFeedbackItem'
+
+#: assignment feedback mimetype
 ASSIGNMENT_FEEDBACK_ITEM_MIMETYPE = u'application/vnd.nextthought.assessment.userscourseassignmenthistoryitemfeedback'
 
 class IAssignmentFeedbackItemResolver(ContentMixinResolver,
@@ -105,7 +110,7 @@ class _AssignmentFeedbackItemResolver(object):
 	def acl(self):
 		result = set()
 		creator = self.creator
-		if creator:  # check just in case
+		if creator: # check just in case
 			result.add(self.creator.lower())
 		course = find_interface(self.obj, ICourseInstance, strict=False)
 		result.update(self.get_course_principals(course))

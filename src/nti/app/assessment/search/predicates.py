@@ -12,6 +12,9 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope import interface
 
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedback
+
 from nti.contentsearch.interfaces import ISearchHitPredicate
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -20,9 +23,6 @@ from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.dataserver.interfaces import IUser
 
 from nti.traversal.traversal import find_interface
-
-from ..interfaces import IUsersCourseAssignmentHistoryItem
-from ..interfaces import IUsersCourseAssignmentHistoryItemFeedback
 
 @interface.implementer(ISearchHitPredicate)
 @component.adapter(IUsersCourseAssignmentHistoryItemFeedback)
@@ -39,6 +39,4 @@ class _AssignmentFeedbackItemSearchHitPredicate(object):
 		if course is not None and user is not None:
 			enrollments = ICourseEnrollments(course)
 			result = enrollments.get_enrollment_for_principal(user) is not None
-			if not result:
-				logger.debug("Item not allowed for search. %s", feedback)
 		return result

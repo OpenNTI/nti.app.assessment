@@ -111,11 +111,10 @@ def _process_args(verbose=True, with_library=True):
 			if ruid is None:
 				logger.warn("Invalid registration for %s", ntiid)		
 				unregisterUtility(registry, provided=provided, name=ntiid)
-				containers = _find_containters(ntiid, site)
-				if containers:
-					registered = context
-					ruid = intids.getId(context)
-					registerUtility(registry, context, provided, name=ntiid)
+				# register a valid object
+				registered = context
+				ruid = intids.getId(context)
+				registerUtility(registry, context, provided, name=ntiid)
 
 		else:  # nothing
 			ruid = None
@@ -128,7 +127,7 @@ def _process_args(verbose=True, with_library=True):
 				catalog.unindex(doc_id)
 				removeIntId(item)
 
-		containers = _find_containters(ntiid, site) if not containers else containers
+		containers = _find_containters(ntiid, site)
 		if registered is None: # clean containers
 			for container in containers or ():
 				container.pop(ntiid, None)

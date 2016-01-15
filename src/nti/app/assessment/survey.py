@@ -23,6 +23,17 @@ from zope.location.interfaces import ISublocations
 
 from pyramid.interfaces import IRequest
 
+from nti.app.assessment._submission import set_inquiry_submission_lineage
+
+from nti.app.assessment.common import get_course_inquiries
+
+from nti.app.assessment.interfaces import IUsersCourseInquiry
+from nti.app.assessment.interfaces import ICourseInquiryCatalog
+from nti.app.assessment.interfaces import IUsersCourseInquiries
+from nti.app.assessment.interfaces import IUsersCourseInquiryItem
+from nti.app.assessment.interfaces import ICourseAggregatedInquiries
+from nti.app.assessment.interfaces import IUsersCourseInquiryItemResponse
+
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAggregatedSurvey
 
@@ -57,17 +68,6 @@ from nti.traversal.traversal import ContainerAdapterTraversable
 
 from nti.wref.interfaces import IWeakRef
 
-from ._submission import set_inquiry_submission_lineage
-
-from .common import get_course_inquiries
-
-from .interfaces import IUsersCourseInquiry
-from .interfaces import ICourseInquiryCatalog
-from .interfaces import IUsersCourseInquiries
-from .interfaces import IUsersCourseInquiryItem
-from .interfaces import ICourseAggregatedInquiries
-from .interfaces import IUsersCourseInquiryItemResponse
-
 LINKS = StandardExternalFields.LINKS
 
 @interface.implementer(IUsersCourseInquiries)
@@ -82,7 +82,7 @@ class UsersCourseInquiry(CheckingLastModifiedBTreeContainer):
 
 	__external_can_create__ = False
 
-	#: An :class:`.IWeakRef` to the owning user
+	# : An :class:`.IWeakRef` to the owning user
 	_owner_ref = None
 
 	def _get_owner(self):

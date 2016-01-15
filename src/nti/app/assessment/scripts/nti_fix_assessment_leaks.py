@@ -22,6 +22,8 @@ from zope.intid.interfaces import IIntIds
 
 from nti.app.contentlibrary.utils import yield_sync_content_packages
 
+from nti.assessment._question_index import QuestionIndex
+
 from nti.assessment.common import iface_of_assessment
 
 from nti.assessment.interfaces import IQInquiry
@@ -101,13 +103,13 @@ def _process_args(verbose=True, with_library=True):
 		containers = None
 		provided = iface_of_assessment(context)
 		site, registered = _get_registered_component(provided, ntiid)
-
+		registry = site.getSiteManager()
+		
 		# if registered has been found.. check validity
 		if registered is not None:
 			ruid = intids.queryId(registered)
 			if ruid is None:
-				logger.warn("Invalid registration for %s", ntiid)
-				registry = site.getSiteManager()
+				logger.warn("Invalid registration for %s", ntiid)		
 				unregisterUtility(registry, provided=provided, name=ntiid)
 				containers = _find_containters(ntiid, site)
 				if containers:
@@ -141,6 +143,9 @@ def _process_args(verbose=True, with_library=True):
 			unit = find_interface(containers[0], IContentUnit, strict=False)
 			if unit is not None:
 				registered.__parent__ = unit
+
+		# canonicalize
+		QuestionIndex.canonicalize_object(registered, registry)
 
 	logger.info('Done!!!, %s record(s) unregistered', result)
 

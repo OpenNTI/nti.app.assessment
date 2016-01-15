@@ -11,9 +11,9 @@ logger = __import__('logging').getLogger(__name__)
 
 from zope import interface
 
-from nti.dataserver.interfaces import INotableFilter
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedback
 
-from .interfaces import IUsersCourseAssignmentHistoryItemFeedback
+from nti.dataserver.interfaces import INotableFilter
 
 @interface.implementer(INotableFilter)
 class AssignmentFeedbackNotableFilter(object):

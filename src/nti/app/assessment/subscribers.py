@@ -23,6 +23,21 @@ from zope.intid.interfaces import IIntIdRemovedEvent
 
 from pyramid.httpexceptions import HTTPUnprocessableEntity
 
+from nti.app.assessment import get_assesment_catalog
+
+from nti.app.assessment.common import get_unit_assessments
+from nti.app.assessment.common import get_course_from_assignment
+from nti.app.assessment.common import get_available_for_submission_ending
+
+from nti.app.assessment.index import IX_COURSE
+from nti.app.assessment.index import IX_CREATOR
+
+from nti.app.assessment.interfaces import IUsersCourseInquiries
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
+from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
+from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepointItem
+from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataContainer
+
 from nti.app.products.courseware.interfaces import ICourseInstanceActivity
 
 from nti.assessment.interfaces import IQPoll
@@ -44,21 +59,6 @@ from nti.externalization.externalization import to_external_object
 from nti.site.hostpolicy import run_job_in_all_host_sites
 
 from nti.traversal.traversal import find_interface
-
-from .common import get_unit_assessments
-from .common import get_course_from_assignment
-from .common import get_available_for_submission_ending
-
-from .index import IX_COURSE
-from .index import IX_CREATOR
-
-from .interfaces import IUsersCourseInquiries
-from .interfaces import IUsersCourseAssignmentHistories
-from .interfaces import IUsersCourseAssignmentSavepoints
-from .interfaces import IUsersCourseAssignmentSavepointItem
-from .interfaces import IUsersCourseAssignmentMetadataContainer
-
-from . import get_assesment_catalog
 
 # activity / submission
 

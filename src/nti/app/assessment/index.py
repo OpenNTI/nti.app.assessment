@@ -18,6 +18,9 @@ from zope.intid.interfaces import IIntIds
 
 from zope.location import locate
 
+from nti.app.assessment.interfaces import IUsersCourseInquiryItem
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
+
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQAssignment
@@ -36,9 +39,6 @@ from nti.zope_catalog.index import ValueIndex as RawValueIndex
 from nti.zope_catalog.index import AttributeValueIndex as ValueIndex
 
 from nti.zope_catalog.string import StringTokenNormalizer
-
-from .interfaces import IUsersCourseInquiryItem
-from .interfaces import IUsersCourseAssignmentHistoryItem
 
 CATALOG_NAME = 'nti.dataserver.++etc++assesment-catalog'
 

@@ -23,7 +23,7 @@ class _AssessmentResolver(object):
 	"""
 	A resolver for the :const:`nti.assessment.interfaces.NTIID_TYPE`
 	value. This one single type of ntiid is used for questions,
-	question sets, and assignments. We expect to be able to
+	question sets, assignments, surveys and polls. We expect to be able to
 	resolve these using the current component registry.
 	"""
 

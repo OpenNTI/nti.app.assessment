@@ -318,6 +318,9 @@
 
 		<subscriber	factory=".predicates._InquiryPrincipalObjects"
 					provides="nti.dataserver.interfaces.IPrincipalMetadataObjects" />
+		
+		<subscriber	factory=".predicates._AssesmentsObjects"
+					provides="nti.dataserver.interfaces.IPrincipalMetadataObjects" />
 	</configure>
 
 	<!-- Hierarchy/Joinable/TopLevelContext -->

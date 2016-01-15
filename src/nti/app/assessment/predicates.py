@@ -13,23 +13,27 @@ from functools import partial
 
 from zope import component
 
-from nti.dataserver.interfaces import IUser
+from nti.app.assessment.interfaces import IUsersCourseInquiry
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
+from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 
 from nti.app.products.courseware.interfaces import IPrincipalAdministrativeRoleCatalog
+
+from nti.assessment.interfaces import IQInquiry
+from nti.assessment.interfaces import IQAssessment 
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.contenttypes.courses.interfaces import IPrincipalEnrollments
+
+from nti.dataserver.interfaces import IUser
+from nti.dataserver.interfaces import ISystemUserPrincipal
 
 from nti.metadata.predicates import BasePrincipalObjects
 
 from nti.site.hostpolicy import run_job_in_all_host_sites
 
 from nti.zodb import isBroken
-
-from .interfaces import IUsersCourseInquiry
-from .interfaces import IUsersCourseAssignmentHistory
-from .interfaces import IUsersCourseAssignmentMetadata
 
 def _get_courses_from_enrollments(user, provided=IPrincipalEnrollments,
 								  method='iter_enrollments'):
@@ -127,4 +131,20 @@ class _InquiryPrincipalObjects(BasePrincipalObjects):
 	def iter_objects(self):
 		result = []
 		run_job_in_all_host_sites(partial(self._item_collector, result))
+		return result
+
+@component.adapter(ISystemUserPrincipal)
+class _AssesmentsObjects(BasePrincipalObjects):
+
+	def iter_items(self, result, seen):
+		for iface in (IQAssessment, IQInquiry):
+			for _, item in list(component.getUtilitiesFor(iface)):
+				if item.ntiid not in seen:
+					seen.add(item.ntiid)
+					result.append(item)
+
+	def iter_objects(self):
+		result = []
+		seen = set()
+		run_job_in_all_host_sites(partial(self.iter_items, result, seen))
 		return result

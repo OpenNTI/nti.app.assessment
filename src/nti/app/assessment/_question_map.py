@@ -35,7 +35,7 @@ from ZODB.interfaces import IConnection
 from persistent.list import PersistentList
 from persistent.mapping import PersistentMapping
 
-from nti.assessment.interfaces import IQAssessmentItemContainer
+from nti.app.assessment.common import get_content_packages_assessment_items
 
 from nti.assessment._question_index import QuestionIndex
 from nti.assessment._question_index import _ntiid_object_hook
@@ -43,18 +43,20 @@ from nti.assessment._question_index import _load_question_map_json
 
 from nti.assessment.common import iface_of_assessment as _iface_to_register
 
+from nti.assessment.interfaces import IQAssessmentItemContainer
+
 from nti.common.proxy import removeAllProxies
 
 from nti.coremetadata.interfaces import IRecordable
 from nti.coremetadata.interfaces import IPublishable
 
+from nti.contentlibrary.indexed_data import get_registry
+from nti.contentlibrary.indexed_data import get_library_catalog
+
 from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.interfaces import IContentPackage
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 from nti.contentlibrary.interfaces import IContentPackageSyncResults
-
-from nti.contentlibrary.indexed_data import get_registry
-from nti.contentlibrary.indexed_data import get_library_catalog
 
 from nti.contentlibrary.synchronize import ContentPackageSyncResults
 
@@ -69,11 +71,10 @@ from nti.intid.common import removeIntId
 
 from nti.recorder.record import remove_transaction_history
 
-from nti.site.utils import registerUtility
-from nti.site.utils import unregisterUtility
 from nti.site.site import get_component_hierarchy_names
 
-from .common import get_content_packages_assessment_items
+from nti.site.utils import registerUtility
+from nti.site.utils import unregisterUtility
 
 deprecated('_AssessmentItemContainer', 'Replaced with a persistent mapping')
 class _AssessmentItemContainer(PersistentList,
@@ -96,7 +97,7 @@ class _AssessmentItemBucket(PersistentMapping,
 			self[item.ntiid] = item
 
 	def assessments(self):
-		return self.values()
+		return list(self.values())
 
 # Instead of using annotations on the content objects, because we're
 # not entirely convinced that the annotation utility, which is ntiid

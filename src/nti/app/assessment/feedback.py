@@ -24,31 +24,31 @@ from zope.lifecycleevent.interfaces import IObjectModifiedEvent
 
 from zope.mimetype.interfaces import IContentTypeAware
 
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedback
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedbackContainer
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
-
-from nti.dataserver.interfaces import IUser
-from nti.dataserver.interfaces import ACE_DENY_ALL
-from nti.dataserver.interfaces import ALL_PERMISSIONS
-
-from nti.dataserver.contenttypes.note import BodyFieldProperty
-
-from nti.dataserver_core.mixins import ContainedMixin
-
-from nti.dublincore.datastructures import PersistentCreatedModDateTrackingObject
 
 from nti.dataserver.authorization import ACT_READ
 from nti.dataserver.authorization_acl import ace_allowing
 from nti.dataserver.authorization_acl import acl_from_aces
 
+from nti.dataserver.contenttypes.note import BodyFieldProperty
+
+from nti.dataserver.interfaces import IUser
+from nti.dataserver.interfaces import ACE_DENY_ALL
+from nti.dataserver.interfaces import ALL_PERMISSIONS
+
 from nti.dataserver.sharing import AbstractReadableSharedMixin
+
+from nti.dataserver_core.mixins import ContainedMixin
+
+from nti.dublincore.datastructures import PersistentCreatedModDateTrackingObject
 
 from nti.schema.field import SchemaConfigured
 from nti.schema.fieldproperty import AdaptingFieldProperty
 
 from nti.wref.interfaces import IWeakRef
-
-from .interfaces import IUsersCourseAssignmentHistoryItemFeedback
-from .interfaces import IUsersCourseAssignmentHistoryItemFeedbackContainer
 
 @interface.implementer(IUsersCourseAssignmentHistoryItemFeedback,
 					   IAttributeAnnotatable,
@@ -58,9 +58,10 @@ class UsersCourseAssignmentHistoryItemFeedback(PersistentCreatedModDateTrackingO
 											   ContainedMixin,
 											   AbstractReadableSharedMixin):
 
-	parameters = {}
-	mime_type = mimeType = "application/vnd.nextthought.assessment.userscourseassignmenthistoryitemfeedback"
 	__external_can_create = True
+
+	parameters = {}  # IContentTypeAware
+	mime_type = mimeType = "application/vnd.nextthought.assessment.userscourseassignmenthistoryitemfeedback"
 
 	body = BodyFieldProperty(IUsersCourseAssignmentHistoryItemFeedback['body'])
 	title = AdaptingFieldProperty(IUsersCourseAssignmentHistoryItemFeedback['title'])
@@ -100,16 +101,16 @@ class UsersCourseAssignmentHistoryItemFeedback(PersistentCreatedModDateTrackingO
 		"""
 		results = []
 		creator = self.creator
-		results.append( creator )
+		results.append(creator)
 		course = ICourseInstance(self, None)
 		if course is not None:
-			instructors = (IUser( i, None ) for i in course.instructors)
-			results.extend( (x for x in instructors if x) )
+			instructors = (IUser(i, None) for i in course.instructors)
+			results.extend((x for x in instructors if x))
 
 		if self.__parent__ is not None:
 			container_owner = IUser(self.__parent__.__parent__, None)
 			if container_owner is not None:
-				results.append( container_owner )
+				results.append(container_owner)
 		return results
 
 	@property
@@ -149,7 +150,7 @@ class UsersCourseAssignmentHistoryItemFeedbackContainer(PersistentCreatedModDate
 	choose our own keys; what you pass to the set method is ignored.
 	"""
 
-	#: We want to inherit the read access for the instructors
+	# : We want to inherit the read access for the instructors
 	__acl_deny_all__ = False
 
 	def __setitem__(self, key, value):
@@ -182,7 +183,7 @@ class UsersCourseAssignmentHistoryItemFeedbackContainer(PersistentCreatedModDate
 
 @component.adapter(IUsersCourseAssignmentHistoryItemFeedbackContainer,
 				   IContainerModifiedEvent)
-def when_feedback_container_modified_modify_history_item(container, 
+def when_feedback_container_modified_modify_history_item(container,
 														 event,
 														 update_mod=True):
 	"""

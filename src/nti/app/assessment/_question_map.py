@@ -13,6 +13,7 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 import time
+from collections import defaultdict
 
 from zope import component
 from zope import interface
@@ -559,25 +560,19 @@ def _remove_assessment_items_from_oldcontent(content_package,
 		logger.warn("Removing assessment items from wrong site %s should be %s; may not work",
 					sm, component.getSiteManager(content_package))
 
-	result = {}
 	ignore = set()
+	result = defaultdict(list)
 	catalog = get_library_catalog()
 	intids = component.queryUtility(IIntIds) # test mode
 
-	# We may not have to be recursive anymore.
 	def _unregister(unit):
 		items = IQAssessmentItemContainer(unit)
-		for name, item in list(items.items()): # mutating
-			provided = _iface_to_register(item)
-			if can_be_removed(item, force) and name not in ignore:
-				unregisterUtility(sm, provided=provided, name=name)
-				if intids is not None and intids.queryId(item) is not None:
-					catalog.unindex(item, intids=intids)
-					removeIntId(item)
-				items.pop(name, None)
-				result[name] = item
-				remove_transaction_history(item)
+		for name, item in items.items():
+			if can_be_removed(item, force):
+				# keep location of item was found
+				result[name].append(items)
 			else:
+				provided = _iface_to_register(item)
 				logger.warn("Object (%s,%s) is locked cannot be removed during sync",
 							provided.__name__, name)
 				# XXX: Make sure we add to the ignore list all items that were exploded
@@ -592,6 +587,27 @@ def _remove_assessment_items_from_oldcontent(content_package,
 			_unregister(child)
 
 	_unregister(content_package)
+
+	data = {}
+	for name, containers in result.items():
+		if name in ignore:
+			continue
+		for items in containers:
+			item = items[name]
+			provided = _iface_to_register(item)
+			if not unregisterUtility(sm, provided=provided, name=name):
+				logger.warn("Could not unregister %s from %s", name, sm)
+			if intids is not None and intids.queryId(item) is not None:
+				catalog.unindex(item, intids=intids)
+				removeIntId(item)
+			if name not in data:
+				data[name] = item
+			items.pop(name, None)
+			remove_transaction_history(item)
+
+	# free and reset
+	result.clear()
+	result = data
 
 	# register locked	
 	for ntiid in ignore:

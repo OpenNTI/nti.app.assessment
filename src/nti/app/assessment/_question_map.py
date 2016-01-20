@@ -626,7 +626,7 @@ def remove_assessment_items_from_oldcontent(content_package, event, force=True):
 	return set(result.keys())
 
 @component.adapter(IContentPackage, IObjectModifiedEvent)
-def update_assessment_items_when_modified(content_package, event):
+def update_assessment_items_when_modified(content_package, event=None):
 	# The event may be an IContentPackageReplacedEvent, a subtype of the
 	# modification event. In that case, because we are directly storing
 	# some information on the instance object, we need to remove

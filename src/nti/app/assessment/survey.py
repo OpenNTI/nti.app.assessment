@@ -82,7 +82,7 @@ class UsersCourseInquiry(CheckingLastModifiedBTreeContainer):
 
 	__external_can_create__ = False
 
-	# : An :class:`.IWeakRef` to the owning user
+	#: An :class:`.IWeakRef` to the owning user
 	_owner_ref = None
 
 	def _get_owner(self):
@@ -203,14 +203,14 @@ def _inquiries_for_course(course, create=True):
 @interface.implementer(IUsersCourseInquiry)
 def _inquiry_for_user_in_course(course, user, create=True):
 	result = None
-	inquirys = _inquiries_for_course(course)
+	inquiries = _inquiries_for_course(course)
 	try:
-		result = inquirys[user.username]
+		result = inquiries[user.username]
 	except KeyError:
 		if create:
 			result = UsersCourseInquiry()
 			result.owner = user
-			inquirys[user.username] = result
+			inquiries[user.username] = result
 	return result
 
 def _inquiries_for_course_path_adapter(course, request):

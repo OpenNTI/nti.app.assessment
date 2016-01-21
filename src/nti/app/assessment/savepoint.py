@@ -28,6 +28,14 @@ from ZODB.interfaces import IConnection
 
 from pyramid.interfaces import IRequest
 
+from nti.app.assessment._submission import set_submission_lineage
+from nti.app.assessment._submission import transfer_upload_ownership
+
+from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
+from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
+from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepointItem
+
 from nti.assessment.interfaces import IQAssessment
 
 from nti.common.property import alias
@@ -59,14 +67,6 @@ from nti.traversal.traversal import find_interface
 from nti.traversal.traversal import ContainerAdapterTraversable
 
 from nti.wref.interfaces import IWeakRef
-
-from ._submission import set_submission_lineage
-from ._submission import transfer_upload_ownership
-
-from .interfaces import IUsersCourseAssignmentSavepoint
-from .interfaces import IUsersCourseAssignmentSavepoints
-from .interfaces import IUsersCourseAssignmentHistoryItem
-from .interfaces import IUsersCourseAssignmentSavepointItem
 
 LINKS = StandardExternalFields.LINKS
 
@@ -153,10 +153,8 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 	@property
 	def __acl__(self):
 		aces = [ace_allowing(self.owner, ALL_PERMISSIONS, type(self))]
-		
 		course = ICourseInstance(self, None)
-		instructors = getattr(course, 'instructors', ())  # already principals
-		for instructor in instructors:
+		for instructor in getattr(course, 'instructors', ()):  # already principals
 			aces.append(ace_allowing(instructor, ACT_READ, type(self)))
 		aces.append(ACE_DENY_ALL)
 		return acl_from_aces(aces)

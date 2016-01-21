@@ -9,20 +9,20 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-from . import MessageFactory as _
-
 from datetime import datetime
-from functools import partial
 
 import simplejson
 
 from zope import component
+
+from zope.container.interfaces import IContainer
 
 from zope.intid.interfaces import IIntIds
 from zope.intid.interfaces import IIntIdRemovedEvent
 
 from pyramid.httpexceptions import HTTPUnprocessableEntity
 
+from nti.app.assessment import MessageFactory as _
 from nti.app.assessment import get_assesment_catalog
 
 from nti.app.assessment.common import get_unit_assessments
@@ -48,15 +48,16 @@ from nti.assessment.interfaces import ASSESSMENT_INTERFACES
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 
+from nti.contenttypes.courses import get_enrollment_catalog
+
+from nti.contenttypes.courses.index import IX_USERNAME
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
-from nti.contenttypes.courses.interfaces import IPrincipalEnrollments
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.users.interfaces import IWillDeleteEntityEvent
 
 from nti.externalization.externalization import to_external_object
-
-from nti.site.hostpolicy import run_job_in_all_host_sites
 
 from nti.traversal.traversal import find_interface
 
@@ -167,15 +168,21 @@ CONTAINER_INTERFACES = (IUsersCourseInquiries,
 
 def delete_user_data(user):
 	username = user.username
-	for enrollments in component.subscribers((user,), IPrincipalEnrollments):
-		for enrollment in enrollments.iter_enrollments():
-			course = ICourseInstance(enrollment)
-			for iface in CONTAINER_INTERFACES:
-				user_data = iface(course, None)
-				if user_data is not None and username in user_data:
-					container = user_data[username]
+	catalog = get_enrollment_catalog()
+	intids = component.getUtility(IIntIds)
+	query = { IX_USERNAME: {'any_of':(username,)} }
+	for uid in catalog.apply(query) or ():
+		context = intids.queryObject(uid)
+		course = ICourseInstance(context, None)
+		if course is None:
+			continue
+		for iface in CONTAINER_INTERFACES:
+			user_data = iface(course, None)
+			if user_data is not None and username in user_data:
+				container = user_data[username]
+				if IContainer.providedBy(container):
 					container.clear()
-					del user_data[username]
+				del user_data[username]
 
 def unindex_user_data(user):
 	catalog = get_assesment_catalog()
@@ -186,7 +193,7 @@ def unindex_user_data(user):
 @component.adapter(IUser, IWillDeleteEntityEvent)
 def _on_user_will_be_removed(user, event):
 	logger.info("Removing assignment data for user %s", user)
-	run_job_in_all_host_sites(partial(delete_user_data, user=user))
+	delete_user_data(user)
 	unindex_user_data(user)
 
 # courses

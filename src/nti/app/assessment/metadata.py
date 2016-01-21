@@ -27,6 +27,13 @@ from zope.lifecycleevent.interfaces import IObjectRemovedEvent
 
 from pyramid.interfaces import IRequest
 
+from nti.app.assessment.adapters import _course_from_context_lineage
+
+from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
+from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataItem
+from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataContainer
+
 from nti.assessment.interfaces import IQAssessment
 
 from nti.common.property import alias
@@ -45,11 +52,12 @@ from nti.dataserver.authorization import ROLE_ADMIN
 from nti.dataserver.authorization import ACT_CREATE
 from nti.dataserver.authorization import ACT_UPDATE
 
-from nti.dataserver.users import User
 from nti.dataserver.interfaces import IACLProvider
 
 from nti.dataserver.authorization_acl import ace_allowing
 from nti.dataserver.authorization_acl import acl_from_aces
+
+from nti.dataserver.users import User
 
 from nti.dublincore.datastructures import PersistentCreatedModDateTrackingObject
 
@@ -65,11 +73,6 @@ from nti.traversal.traversal import find_interface
 from nti.traversal.traversal import ContainerAdapterTraversable
 
 from nti.wref.interfaces import IWeakRef
-
-from .interfaces import IUsersCourseAssignmentMetadata
-from .interfaces import IUsersCourseAssignmentHistoryItem
-from .interfaces import IUsersCourseAssignmentMetadataItem
-from .interfaces import IUsersCourseAssignmentMetadataContainer
 
 LINKS = StandardExternalFields.LINKS
 
@@ -177,18 +180,16 @@ class UsersCourseAssignmentMetadataItem(PersistentCreatedModDateTrackingObject,
 	@property
 	def __acl__(self):
 		creator = self.creator
-		aces = [ace_allowing(creator, ACT_READ, UsersCourseAssignmentMetadataItem),
-				ace_allowing(creator, ACT_CREATE, UsersCourseAssignmentMetadataItem),
-				ace_allowing(creator, ACT_UPDATE, UsersCourseAssignmentMetadataItem)]
+		aces = [
+			ace_allowing(ROLE_ADMIN, ALL_PERMISSIONS, UsersCourseAssignmentMetadataItem),
+			ace_allowing(creator, ACT_READ, UsersCourseAssignmentMetadataItem),
+			ace_allowing(creator, ACT_CREATE, UsersCourseAssignmentMetadataItem),
+			ace_allowing(creator, ACT_UPDATE, UsersCourseAssignmentMetadataItem) ]
 
 		course = ICourseInstance(self, None)
-		instructors = getattr(course, 'instructors', ())  # already principals
-		for instructor in instructors:
+		for instructor in getattr(course, 'instructors', ()): # already principals
 			aces.append(ace_allowing(instructor, ALL_PERMISSIONS,
 									 UsersCourseAssignmentMetadataItem))
-
-		aces.append(ace_allowing(ROLE_ADMIN, ALL_PERMISSIONS,
-								 UsersCourseAssignmentMetadataItem))
 
 		aces.append(ACE_DENY_ALL)
 		result = acl_from_aces(aces)
@@ -251,8 +252,6 @@ def _metadatacontainer_for_course_path_adapter(course, request):
 
 def _metadatacontainer_for_courseenrollment_path_adapter(enrollment, request):
 	return _metadatacontainer_for_course(ICourseInstance(enrollment))
-
-from .adapters import _course_from_context_lineage
 
 @interface.implementer(ICourseInstance)
 @component.adapter(IUsersCourseAssignmentMetadataItem)

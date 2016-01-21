@@ -11,13 +11,13 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-generation = 9
+generation = 10
 
 from zope.generations.generations import SchemaManager
 
-from zope.intid import IIntIds
+from zope.intid.interfaces import IIntIds
 
-from ..index import install_assesment_catalog
+from nti.app.assessment.index import install_assesment_catalog
 
 class _AssessmentSchemaManager(SchemaManager):
 	"""

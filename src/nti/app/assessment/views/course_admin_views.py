@@ -13,9 +13,10 @@ import six
 
 from zope import component
 
+from pyramid import httpexceptions as hexc
+
 from pyramid.view import view_config
 from pyramid.view import view_defaults
-from pyramid import httpexceptions as hexc
 
 from nti.app.assessment._assessment import move_user_assignment_from_course_to_course
 
@@ -42,10 +43,12 @@ from nti.common.string import TRUE_VALUES
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 
-from nti.dataserver.users import User
-from nti.dataserver.interfaces import IUser
 from nti.dataserver import authorization as nauth
+
+from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import IDataserverFolder
+
+from nti.dataserver.users import User
 
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields

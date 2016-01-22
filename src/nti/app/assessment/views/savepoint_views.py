@@ -18,8 +18,9 @@ from zope import interface
 
 from zope.schema.interfaces import RequiredMissing
 
-from pyramid.view import view_config
 from pyramid import httpexceptions as hexc
+
+from pyramid.view import view_config
 
 from nti.app.assessment.views import get_ds2
 

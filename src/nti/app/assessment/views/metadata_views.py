@@ -20,9 +20,9 @@ from zope.schema.interfaces import RequiredMissing
 from pyramid.view import view_config
 from pyramid import httpexceptions as hexc
 
-from nti.app.assessment.views import get_ds2
-
 from nti.app.assessment.common import get_course_from_assignment
+
+from nti.app.assessment.views import get_ds2
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataItem
@@ -43,9 +43,11 @@ from nti.assessment.interfaces import IQAssignment
 
 from nti.dataserver import authorization as nauth
 
-from nti.externalization.oids import to_external_ntiid_oid
-from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.externalization import to_external_object
+
+from nti.externalization.interfaces import LocatedExternalDict
+
+from nti.externalization.oids import to_external_ntiid_oid
 
 @view_config(route_name="objects.generic.traversal",
 			 context=IQAssignment,

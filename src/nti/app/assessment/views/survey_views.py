@@ -23,8 +23,6 @@ from zope.schema.interfaces import ConstraintNotSatisfied
 from pyramid.view import view_config
 from pyramid import httpexceptions as hexc
 
-from nti.app.assessment.views import get_ds2
-
 from nti.app.assessment.common import can_disclose_inquiry
 from nti.app.assessment.common import aggregate_page_inquiry
 from nti.app.assessment.common import get_course_from_inquiry
@@ -38,6 +36,8 @@ from nti.app.assessment.interfaces import IUsersCourseInquiryItem
 from nti.app.assessment.interfaces import ICourseAggregatedInquiries
 
 from nti.app.assessment.survey import UsersCourseInquiryItemResponse
+
+from nti.app.assessment.views import get_ds2
 
 from nti.app.assessment.views.view_mixins import AssessmentPutView
 
@@ -117,7 +117,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 	def _check_submission_before(self, course):
 		beginning = get_available_for_submission_beginning(self.context, course)
 		if beginning is not None and datetime.utcnow() < beginning:
-			ex = ConstraintNotSatisfied("Submitting too early.")
+			ex = ConstraintNotSatisfied(_("Submitting too early."))
 			ex.field = IQSubmittable['available_for_submission_beginning']
 			ex.value = beginning
 			raise ex

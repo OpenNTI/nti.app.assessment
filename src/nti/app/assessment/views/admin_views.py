@@ -20,9 +20,10 @@ from zope.intid.interfaces import IIntIds
 
 from zope.security.interfaces import IPrincipal
 
+from pyramid import httpexceptions as hexc
+
 from pyramid.view import view_config
 from pyramid.view import view_defaults
-from pyramid import httpexceptions as hexc
 
 from nti.app.assessment._question_map import _add_assessment_items_from_new_content
 from nti.app.assessment._question_map import _remove_assessment_items_from_oldcontent
@@ -233,7 +234,6 @@ class RegisterAssessmentItemsView(AbstractAuthenticatedView,
 		return result
 
 @view_config(name="ReindexAssesmentItems")
-@view_config(name="reindex_assesment_items")
 @view_defaults(route_name='objects.generic.traversal',
 			   renderer='rest',
 			   permission=nauth.ACT_NTI_ADMIN,

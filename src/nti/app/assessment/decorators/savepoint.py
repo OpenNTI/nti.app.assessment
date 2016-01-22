@@ -11,6 +11,12 @@ logger = __import__('logging').getLogger(__name__)
 
 from zope import interface
 
+from nti.app.assessment.common import get_assessment_metadata_item
+
+from nti.app.assessment.decorators import _get_course_from_assignment
+from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
+from nti.app.assessment.decorators import PreviewCourseAccessPredicateDecorator
+
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
 from nti.assessment.interfaces import IQTimedAssignment
@@ -20,14 +26,9 @@ from nti.dataserver.interfaces import IUser
 from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import IExternalMappingDecorator
 
-from nti.links.links import Link
 from nti.links.externalization import render_link
 
-from nti.app.assessment.common import get_assessment_metadata_item
-
-from nti.app.assessment.decorators import _get_course_from_assignment
-from nti.app.assessment.decorators import PreviewCourseAccessPredicate
-from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
+from nti.links.links import Link
 
 LINKS = StandardExternalFields.LINKS
 
@@ -56,7 +57,8 @@ class _AssignmentSavepointDecorator(AbstractAuthenticatedRequestAwareDecorator):
 										assignment.ntiid, 'Savepoint')))
 
 @interface.implementer(IExternalMappingDecorator)
-class _AssignmentSavepointsDecorator(PreviewCourseAccessPredicate, _AbstractTraversableLinkDecorator):
+class _AssignmentSavepointsDecorator(PreviewCourseAccessPredicateDecorator,
+									_AbstractTraversableLinkDecorator):
 
 	def _do_decorate_external(self, context, result_map):
 		links = result_map.setdefault(LINKS, [])

@@ -12,7 +12,20 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope import interface
 
-from zope.intid import IIntIds
+from zope.intid.interfaces import IIntIds
+
+from nti.app.assessment.common import inquiry_submissions
+from nti.app.assessment.common import can_disclose_inquiry
+from nti.app.assessment.common import get_policy_for_assessment
+from nti.app.assessment.common import get_available_for_submission_ending
+from nti.app.assessment.common import get_available_for_submission_beginning
+
+from nti.app.assessment.decorators import _root_url
+from nti.app.assessment.decorators import _get_course_from_assignment
+from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
+from nti.app.assessment.decorators import PreviewCourseAccessPredicateDecorator
+
+from nti.app.assessment.interfaces import IUsersCourseInquiry
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
@@ -35,23 +48,11 @@ from nti.externalization.externalization import to_external_object
 from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import IExternalMappingDecorator
 
-from nti.links.links import Link
 from nti.links.externalization import render_link
 
+from nti.links.links import Link
+
 from nti.traversal.traversal import find_interface
-
-from nti.app.assessment.common import inquiry_submissions
-from nti.app.assessment.common import can_disclose_inquiry
-from nti.app.assessment.common import get_policy_for_assessment
-from nti.app.assessment.common import get_available_for_submission_ending
-from nti.app.assessment.common import get_available_for_submission_beginning
-
-from nti.app.assessment.interfaces import IUsersCourseInquiry
-
-from nti.app.assessment.decorators import _root_url
-from nti.app.assessment.decorators import _get_course_from_assignment
-from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
-from nti.app.assessment.decorators import PreviewCourseAccessPredicate
 
 LINKS = StandardExternalFields.LINKS
 
@@ -72,7 +73,7 @@ class _InquiryContentRootURLAdder(AbstractAuthenticatedRequestAwareDecorator):
 			result['ContentRoot' ] = bucket_root
 
 @interface.implementer(IExternalMappingDecorator)
-class _InquiriesDecorator(PreviewCourseAccessPredicate,
+class _InquiriesDecorator(PreviewCourseAccessPredicateDecorator,
 						_AbstractTraversableLinkDecorator):
 
 	def _do_decorate_external(self, context, result_map):

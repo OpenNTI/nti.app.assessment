@@ -37,9 +37,11 @@ from nti.contenttypes.courses.interfaces import get_course_assessment_predicate_
 from nti.contenttypes.courses.utils import is_enrolled
 from nti.contenttypes.courses.utils import is_course_instructor_or_editor
 
-from nti.externalization.oids import to_external_ntiid_oid
 from nti.externalization.externalization import to_external_object
+
 from nti.externalization.interfaces import IExternalMappingDecorator
+
+from nti.externalization.oids import to_external_ntiid_oid
 
 @component.adapter(IContentUnitInfo)
 @interface.implementer(IExternalMappingDecorator)

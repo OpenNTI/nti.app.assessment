@@ -58,6 +58,8 @@ from nti.dataserver.metadata_index import IX_CONTAINERID
 
 from nti.metadata import dataserver_metadata_catalog
 
+from nti.ntiids.ntiids import find_object_with_ntiid
+
 from nti.traversal.traversal import find_interface
 
 from nti.zope_catalog.catalog import ResultSet
@@ -190,16 +192,18 @@ def find_course_for_assignment(assignment, user, exc=True):
 
 	return course
 
-def get_course_from_assignment(assignment, user=None, catalog=None, registry=component,
-							   exc=False):
+def get_course_from_assignment(assignment, user=None, catalog=None, 
+							   registry=component, exc=False):
 	# check if we have the context catalog entry we can use
 	# as reference (.AssessmentItemProxy) this way
 	# instructor can find the correct course when they are looking at a section.
 	result = None
 	try:
-		ntiid = assignment.CatalogEntryNTIID
-		catalog = catalog if catalog is not None else registry.getUtility(ICourseCatalog)
-		entry = catalog.getCatalogEntry(ntiid) if ntiid else None
+		ntiid = assignment.CatalogEntryNTIID or u''
+		entry = find_object_with_ntiid(ntiid)
+		if entry is None:
+			catalog = catalog if catalog is not None else registry.getUtility(ICourseCatalog)
+			entry = catalog.getCatalogEntry(ntiid)
 		result = ICourseInstance(entry, None)
 	except (KeyError, AttributeError):
 		pass

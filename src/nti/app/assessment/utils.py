@@ -19,10 +19,14 @@ from zope import interface
 
 from zope.intid.interfaces import IIntIds
 
+from zope.proxy import isProxy
+
 from zope.security.interfaces import IPrincipal
 
 from pyramid.threadlocal import get_current_request
 
+from nti.app.assessment.common import proxy
+from nti.app.assessment.common import AssessmentItemProxy
 from nti.app.assessment.common import get_course_from_assignment
 
 from nti.app.assessment.interfaces import ACT_DOWNLOAD_GRADES
@@ -39,11 +43,14 @@ from nti.assessment.randomized import questionbank_question_chooser
 from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.randomized.interfaces import IPrincipalSeedSelector
 
+from nti.common.proxy import removeAllProxies
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
-from nti.dataserver.users import User
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import IUsernameSubstitutionPolicy
+
+from nti.dataserver.users import User
 
 from nti.ntiids.ntiids import is_valid_ntiid_string
 from nti.ntiids.ntiids import find_object_with_ntiid
@@ -91,8 +98,16 @@ def has_question_bank(a):
 				return True
 	return False
 
+def do_copy(source):
+	if isProxy(source, AssessmentItemProxy):
+		result = copy.copy(removeAllProxies(source))
+		result = proxy(result, source.ContentUnitNTIID, source.CatalogEntryNTIID)
+	else:
+		result = copy.copy(source)
+	return result
+	
 def copy_part(part, nonrandomized=False, sha224randomized=False):
-	result = copy.copy(part)
+	result = do_copy(part)
 	if nonrandomized:
 		make_nonrandomized(result)
 	elif sha224randomized:
@@ -100,7 +115,7 @@ def copy_part(part, nonrandomized=False, sha224randomized=False):
 	return result
 
 def copy_question(q, nonrandomized=False):
-	result = copy.copy(q)
+	result = do_copy(q)
 	result.parts = [copy_part(p, nonrandomized) for p in q.parts]
 	if nonrandomized:
 		make_nonrandomized(result)
@@ -108,7 +123,7 @@ def copy_question(q, nonrandomized=False):
 	return result
 
 def copy_questionset(qs, nonrandomized=False):
-	result = copy.copy(qs)
+	result = do_copy(qs)
 	result.questions = [copy_question(q, nonrandomized) for q in qs.questions]
 	if nonrandomized:
 		make_nonrandomized(result)
@@ -131,9 +146,9 @@ def copy_questionbank(bank, is_instructor=False, qsids_to_strip=None, user=None)
 
 def copy_assignment(assignment, nonrandomized=False):
 	new_parts = []
-	result = copy.copy(assignment)
+	result = do_copy(assignment)
 	for part in assignment.parts:
-		new_part = copy.copy(part)
+		new_part = do_copy(part)
 		new_parts.append(new_part)
 		new_part.question_set = copy_questionset(part.question_set, nonrandomized)
 	result.parts = new_parts
@@ -142,9 +157,9 @@ def copy_assignment(assignment, nonrandomized=False):
 
 def copy_taken_assignment(assignment, user):
 	new_parts = []
-	result = copy.copy(assignment)
+	result = do_copy(assignment)
 	for part in assignment.parts:
-		new_part = copy.copy(part)
+		new_part = do_copy(part)
 		new_parts.append(new_part)
 		question_set = part.question_set
 		if IQuestionBank.providedBy(question_set):
@@ -153,7 +168,7 @@ def copy_taken_assignment(assignment, user):
 			# make a copy of the questions. Don't mark them as non-randomized
 			questions = [copy_question(x, nonrandomized=False) for x in questions]
 			# create a new bank with copy so we get all properties
-			new_bank = copy.copy(question_set)
+			new_bank = do_copy(question_set)
 			# copy question bank with new questions
 			question_set = question_set.copyTo(new_bank, questions=questions)
 			# mark as non randomzied so no drawing will be made

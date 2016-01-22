@@ -16,6 +16,7 @@ from zope import component
 
 from zope.intid.interfaces import IIntIds
 
+from zope.proxy import isProxy
 from zope.proxy import ProxyBase
 
 from zope.schema.interfaces import RequiredMissing
@@ -85,7 +86,7 @@ class AssessmentItemProxy(ProxyBase):
 		self.CatalogEntryNTIID = catalog_entry
 
 def proxy(item, content_unit=None, catalog_entry=None):
-	item = item if type(item) == AssessmentItemProxy else AssessmentItemProxy(item)
+	item = item if isProxy(item, AssessmentItemProxy) else AssessmentItemProxy(item)
 	item.ContentUnitNTIID = content_unit or item.ContentUnitNTIID
 	item.CatalogEntryNTIID = catalog_entry or item.CatalogEntryNTIID
 	return item

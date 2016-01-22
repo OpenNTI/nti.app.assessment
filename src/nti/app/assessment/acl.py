@@ -17,15 +17,15 @@ from nti.assessment.interfaces import IQAssessment
 
 from nti.common.property import Lazy
 
-from nti.dataserver.interfaces import ALL_PERMISSIONS
-
-from nti.dataserver.interfaces import IACLProvider
-
 from nti.dataserver.authorization import ROLE_ADMIN
 from nti.dataserver.authorization import ROLE_CONTENT_ADMIN
 
 from nti.dataserver.authorization_acl import ace_allowing
 from nti.dataserver.authorization_acl import acl_from_aces
+
+from nti.dataserver.interfaces import ALL_PERMISSIONS
+
+from nti.dataserver.interfaces import IACLProvider
 
 @interface.implementer(IACLProvider)
 class EvaluationACLProvider(object):
@@ -39,7 +39,7 @@ class EvaluationACLProvider(object):
 
 	@Lazy
 	def __acl__(self):
-		aces = [ ace_allowing(ROLE_ADMIN, ALL_PERMISSIONS, type(self)),
+		aces = [ace_allowing(ROLE_ADMIN, ALL_PERMISSIONS, type(self)),
 				ace_allowing(ROLE_CONTENT_ADMIN, ALL_PERMISSIONS, type(self))]
 		result = acl_from_aces(aces)
 		return result

@@ -37,6 +37,8 @@ from nti.assessment.interfaces import IQAssignment
 
 from nti.common.maps import CaseInsensitiveDict
 
+from nti.common.string import TRUE_VALUES
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 
@@ -95,10 +97,10 @@ class CourseSubmissionReportView(AbstractAuthenticatedView):
 @view_config(context=IDataserverFolder)
 @view_config(context=CourseAdminPathAdapter)
 @view_defaults(route_name='objects.generic.traversal',
-			 	renderer='rest',
-			 	permission=nauth.ACT_NTI_ADMIN,
-			 	request_method='GET',
-			 	name='CourseAssignments')
+			   renderer='rest',
+			   permission=nauth.ACT_NTI_ADMIN,
+			   request_method='GET',
+			   name='CourseAssignments')
 class CourseAssignmentsView(AbstractAuthenticatedView):
 
 	def __call__(self):
@@ -108,8 +110,8 @@ class CourseAssignmentsView(AbstractAuthenticatedView):
 			raise hexc.HTTPUnprocessableEntity("Invalid course NTIID")
 		course = ICourseInstance(context)
 
-		do_filtering = params.get('filter') or 'true'
-		do_filtering = do_filtering.lower() in ('true', 'T', '1')
+		do_filtering = params.get('filter') or TRUE_VALUES[0]
+		do_filtering = do_filtering.lower() in TRUE_VALUES
 
 		result = LocatedExternalDict()
 		items = result[ITEMS] = {}

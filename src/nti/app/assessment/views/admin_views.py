@@ -10,7 +10,6 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 import csv
-import time
 from io import BytesIO
 
 from zope import component
@@ -20,10 +19,6 @@ from zope.catalog.interfaces import ICatalog
 from zope.intid.interfaces import IIntIds
 
 from zope.security.interfaces import IPrincipal
-from zope.security.management import endInteraction
-from zope.security.management import restoreInteraction
-
-from zope.traversing.interfaces import IEtcNamespace
 
 from pyramid.view import view_config
 from pyramid.view import view_defaults
@@ -48,17 +43,10 @@ from nti.app.base.abstract_views import AbstractAuthenticatedView
 from nti.app.externalization.internalization import read_body_as_external_object
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
-from nti.assessment.common import iface_of_assessment
-
-from nti.assessment.interfaces import ASSESSMENT_INTERFACES
-
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.common.maps import CaseInsensitiveDict
-
-from nti.contentlibrary.indexed_data import get_registry
-from nti.contentlibrary.indexed_data import get_library_catalog
 
 from nti.contentlibrary.interfaces import IContentPackage
 
@@ -80,9 +68,6 @@ from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.ntiids.ntiids import find_object_with_ntiid
-
-from nti.site.utils import unregisterUtility
-from nti.site.site import get_component_hierarchy_names
 
 from nti.zope_catalog.catalog import ResultSet
 
@@ -245,72 +230,6 @@ class RegisterAssessmentItemsView(AbstractAuthenticatedView,
 			result.lastModified = key.lastModified
 		result[ITEMS] = sorted(items)
 		result['Count'] = result['Total'] = len(items)
-		return result
-
-@view_config(context=IDataserverFolder)
-@view_defaults(route_name='objects.generic.traversal',
-			   renderer='rest',
-			   permission=nauth.ACT_NTI_ADMIN,
-			   name='RemoveInaccessibleAssessment')
-class RemoveInaccessibleAssessmentView(AbstractAuthenticatedView,
-							  	   	   ModeledContentUploadRequestUtilsMixin):
-
-	def _unregister(self, sites_names, provided, name):
-		result = False
-		hostsites = component.getUtility(IEtcNamespace, name='hostsites')
-		for site_name in list(sites_names).reverse():
-			try:
-				folder = hostsites[site_name]
-				registry = folder.getSiteManager()
-				result = unregisterUtility(registry,
-										   provided=provided,
-										   name=name) or result
-			except KeyError:
-				pass
-		return result
-
-	def _assessments(self, registry):
-		for iface in ASSESSMENT_INTERFACES:
-			for ntiid, assg in list(registry.getUtilitiesFor(iface)):
-				yield ntiid, assg
-
-	def _do_call(self, result):
-		registry = get_registry()
-		catalog = get_library_catalog()
-		sites = get_component_hierarchy_names()
-		intids = component.getUtility(IIntIds)
-
-		registered = 0
-		items = result[ITEMS] = []
-		references = catalog.get_references(sites=sites,
-										 	provided=ASSESSMENT_INTERFACES)
-
-		for ntiid, assg in self._assessments(registry):
-			uid = intids.queryId(assg)
-			provided = iface_of_assessment(assg)
-			if uid is None:
-				items.append(repr((provided.__name__, ntiid)))
-				self._unregister(sites, provided=provided, name=ntiid)
-			elif uid not in references:
-				items.append(repr((provided.__name__, ntiid, uid)))
-				self._unregister(sites, provided=provided, name=ntiid)
-				intids.unregister(assg)
-			registered += 1
-
-		result['TotalRemoved'] = len(items)
-		result['TotalRegisteredAssessment'] = registered
-		result['TotalCatalogedAssessment'] = len(references)
-		return result
-
-	def __call__(self):
-		now = time.time()
-		result = LocatedExternalDict()
-		endInteraction()
-		try:
-			self._do_call(result)
-		finally:
-			restoreInteraction()
-			result['TimeElapsed'] = time.time() - now
 		return result
 
 @view_config(name="ReindexAssesmentItems")

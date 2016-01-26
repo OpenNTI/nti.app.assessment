@@ -9,6 +9,8 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+from datetime import datetime
+
 from zope import component
 from zope import interface
 
@@ -138,14 +140,24 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 
 		# overrides
 		if course is not None:
+			available = []
+			now = datetime.utcnow()
 			dates = IQAssessmentDateContext(course).of(context)
 			for k, func in (
-					('available_for_submission_ending', get_available_for_submission_ending),
-					('available_for_submission_beginning', get_available_for_submission_beginning)):
+					('available_for_submission_beginning', get_available_for_submission_beginning),
+					('available_for_submission_ending', get_available_for_submission_ending)):
 				dates_date = func(dates, k)
 				asg_date = getattr(context, k)
 				if dates_date != asg_date:
 					result_map[k] = to_external_object(dates_date)
+					available.append(dates_date)
+				else:
+					available.append(asg_date)
+					
+			if available[0] is not None and now < available[0]:
+				result_map['isClosed'] = False
+			elif available[1] is not None and now > available[1]:
+				result_map['isClosed'] = False
 
 			policy = get_policy_for_assessment(context, course)
 			if policy and 'disclosure' in policy:

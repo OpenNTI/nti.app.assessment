@@ -63,7 +63,7 @@ OID = StandardExternalFields.OID
 LINKS = StandardExternalFields.LINKS
 
 @interface.implementer(IExternalMappingDecorator)
-class _AssignmentsByOutlineNodeDecorator(PreviewCourseAccessPredicateDecorator, 
+class _AssignmentsByOutlineNodeDecorator(PreviewCourseAccessPredicateDecorator,
 										_AbstractTraversableLinkDecorator):
 	"""
 	For things that have a assignments, add this

@@ -59,6 +59,7 @@ from nti.assessment.interfaces import IQAssignmentSubmission
 from nti.common.property import Lazy
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 from nti.contenttypes.courses.interfaces import ICourseOutlineContentNode
 from nti.contenttypes.courses.interfaces import get_course_assessment_predicate_for_user
 
@@ -271,6 +272,33 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 			result = get_course_from_assignment(context, self.remoteUser, exc=True)
 		return result
 
+	def _string(self, val, sub=''):
+		if val:
+			val = val.replace( ' ', sub )
+		return val
+
+	def _get_course_name(self, course):
+		entry = ICourseCatalogEntry( course, None )
+		if entry is not None:
+			base_name = entry.ProviderUniqueID
+			base_name = self._string( base_name )
+		if not base_name:
+			base_name = course.__name__
+		return base_name
+
+	def _get_assignment_name(self):
+		context = self.context
+		result = getattr( context, 'title', context.__name__ )
+		result = self._string( result, '_' )
+		return result
+
+	def _get_filename(self, course):
+		base_name = self._get_course_name( course )
+		assignment_name = self._get_assignment_name()
+		suffix = '.zip'
+		result = '%s_%s%s' % (base_name, assignment_name, suffix)
+		return result
+
 	@classmethod
 	def _precondition(cls, context, request, remoteUser):
 		return assignment_download_precondition(context, request, remoteUser)
@@ -320,7 +348,8 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 		buf.reset()
 
 		self.request.response.body = buf.getvalue()
-		self.request.response.content_disposition = b'attachment; filename="assignment.zip"'
+		filename = self._get_filename( course )
+		self.request.response.content_disposition = 'attachment; filename="%s"' % filename
 
 		return self.request.response
 
@@ -638,7 +667,7 @@ class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 			 permission=nauth.ACT_CONTENT_EDIT,
 			 renderer='rest')
 class AssignmentPutView(AssessmentPutView):
-			
+
 	def validate(self, contentObject, externalValue, courses=()):
 		parts = externalValue.get('parts')
 		if parts: # don't allow change on its parts

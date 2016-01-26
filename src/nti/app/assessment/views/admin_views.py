@@ -20,6 +20,8 @@ from pyramid import httpexceptions as hexc
 
 from pyramid.view import view_config
 
+from nti.app.assessment import MessageFactory as _
+
 from nti.app.assessment._question_map import _add_assessment_items_from_new_content
 from nti.app.assessment._question_map import _remove_assessment_items_from_oldcontent
 
@@ -41,6 +43,8 @@ from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.common.maps import CaseInsensitiveDict
+
+from nti.common.string import TRUE_VALUES
 
 from nti.contentlibrary.interfaces import IContentPackage
 
@@ -170,14 +174,16 @@ class UnregisterAssessmentItemsView(AbstractAuthenticatedView,
 		values = self.readInput()
 		ntiid = values.get('ntiid') or values.get('pacakge')
 		if not ntiid:
-			raise hexc.HTTPUnprocessableEntity("Invalid content package NTIID")
-
+			raise hexc.HTTPUnprocessableEntity(_("Invalid content package NTIID."))
+		force =  values.get('force') or u''
+		force = force.lower() in TRUE_VALUES
+		
 		package = find_object_with_ntiid(ntiid)
 		package = IContentPackage(package, None)
 		if package is None:
-			raise hexc.HTTPUnprocessableEntity("Invalid content package")
+			raise hexc.HTTPUnprocessableEntity(_("Invalid content package."))
 
-		items = _remove_assessment_items_from_oldcontent(package)
+		items = _remove_assessment_items_from_oldcontent(package, force=force)
 		result = LocatedExternalDict()
 		result[ITEMS] = sorted(items.keys())
 		result['Count'] = result['Total'] = len(items)
@@ -203,12 +209,12 @@ class RegisterAssessmentItemsView(AbstractAuthenticatedView,
 		values = self.readInput()
 		ntiid = values.get('ntiid') or values.get('pacakge')
 		if not ntiid:
-			raise hexc.HTTPUnprocessableEntity("Invalid content package NTIID")
+			raise hexc.HTTPUnprocessableEntity(_("Invalid content package NTIID."))
 
 		package = find_object_with_ntiid(ntiid)
 		package = IContentPackage(package, None)
 		if package is None:
-			raise hexc.HTTPUnprocessableEntity("Invalid content package")
+			raise hexc.HTTPUnprocessableEntity(_("Invalid content package."))
 
 		items = ()
 		result = LocatedExternalDict()
@@ -241,25 +247,25 @@ class ResetInquiryView(AbstractAuthenticatedView,
 
 		ntiid = values.get('ntiid') or values.get('inquiry')
 		if not ntiid:
-			raise hexc.HTTPUnprocessableEntity("Must provide an inquiry ntiid.")
+			raise hexc.HTTPUnprocessableEntity(_("Must provide an inquiry ntiid."))
 		inquiry = component.getUtility(IQInquiry, name=ntiid)
 		if inquiry is None:
-			raise hexc.HTTPUnprocessableEntity("Must provide a valid inquiry.")
+			raise hexc.HTTPUnprocessableEntity(_("Must provide a valid inquiry."))
 
 		entry = values.get('entry') or values.get('course')
 		if entry:
 			entry = find_object_with_ntiid(entry)
 			entry = ICourseCatalogEntry(entry, None)
 			if entry is None:
-				raise hexc.HTTPUnprocessableEntity("Must provide a valid couse/entry ntiid.")
+				raise hexc.HTTPUnprocessableEntity(_("Must provide a valid couse/entry ntiid."))
 
 		if entry is None:
 			username = values.get('username') or values.get('user')
 			if not username:
-				raise hexc.HTTPUnprocessableEntity("Must provide a username.")
+				raise hexc.HTTPUnprocessableEntity(_("Must provide a username."))
 			creator = User.get_user(username)
 			if creator is None or not IUser.providedBy(creator):
-				raise hexc.HTTPUnprocessableEntity("Must provide a valid user.")
+				raise hexc.HTTPUnprocessableEntity(_("Must provide a valid user."))
 
 		if entry is not None:
 			course = ICourseInstance(entry)
@@ -272,7 +278,7 @@ class ResetInquiryView(AbstractAuthenticatedView,
 		if creator is not None:
 			course = get_course_from_inquiry(inquiry, creator)
 			if course is None:
-				raise hexc.HTTPForbidden("Must be enrolled in a course.")
+				raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
 
 			course_inquiry = component.queryMultiAdapter((course, creator),
 														 IUsersCourseInquiry)
@@ -280,4 +286,4 @@ class ResetInquiryView(AbstractAuthenticatedView,
 				del course_inquiry[ntiid]
 				return hexc.HTTPNoContent()
 			else:
-				raise hexc.HTTPUnprocessableEntity("User has not taken inquiry.")
+				raise hexc.HTTPUnprocessableEntity(_("User has not taken inquiry."))

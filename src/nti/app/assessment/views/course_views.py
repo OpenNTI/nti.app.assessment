@@ -19,8 +19,9 @@ from nti.app.assessment.common import get_course_assignments
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
-from nti.common.string import TRUE_VALUES
 from nti.common.maps import CaseInsensitiveDict
+
+from nti.common.string import TRUE_VALUES
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry

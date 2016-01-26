@@ -17,8 +17,9 @@ from zope import lifecycleevent
 
 from zope.schema.interfaces import RequiredMissing
 
-from pyramid.view import view_config
 from pyramid import httpexceptions as hexc
+
+from pyramid.view import view_config
 
 from nti.app.assessment.common import get_course_from_assignment
 

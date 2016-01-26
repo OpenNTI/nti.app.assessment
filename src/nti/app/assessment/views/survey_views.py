@@ -9,8 +9,6 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-from . import MessageFactory as _
-
 from datetime import datetime
 
 from zope import component
@@ -22,6 +20,8 @@ from zope.schema.interfaces import ConstraintNotSatisfied
 
 from pyramid.view import view_config
 from pyramid import httpexceptions as hexc
+
+from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment.common import can_disclose_inquiry
 from nti.app.assessment.common import aggregate_page_inquiry

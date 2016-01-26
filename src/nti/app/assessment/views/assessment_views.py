@@ -19,10 +19,12 @@ from zope import component
 
 from zope.location.interfaces import LocationError
 
+from pyramid import httpexceptions as hexc
+
+from pyramid.interfaces import IRequest
+
 from pyramid.view import view_config
 from pyramid.view import view_defaults
-from pyramid.interfaces import IRequest
-from pyramid import httpexceptions as hexc
 
 from nti.app.assessment._submission import get_source
 from nti.app.assessment._submission import check_upload_files

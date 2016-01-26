@@ -13,6 +13,9 @@ import numbers
 
 from zope import component
 
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
+
 from nti.app.authentication import get_remote_user
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
@@ -37,9 +40,6 @@ from nti.externalization.externalization import to_external_object
 from nti.links.links import Link
 
 from nti.traversal.traversal import find_interface
-
-from ..interfaces import IUsersCourseAssignmentHistory
-from ..interfaces import IUsersCourseAssignmentHistoryItem
 
 LINKS = StandardExternalFields.LINKS
 

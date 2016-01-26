@@ -193,7 +193,7 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 	@WithSharedApplicationMockDS(users=True, testapp=True)
 	def test_posting_and_bulk_downloading_file(self):
 		history_res = self._create_and_enroll()
-		
+
 		# Now we should be able to find and download our data
 		submission = history_res.json_body['Items'].values()[0]['Submission']
 		submitted_file_part = submission['parts'][0]['questions'][0]['parts'][0]
@@ -207,14 +207,14 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 		assert_that(download_res, has_property('content_type', 'image/gif'))
 		assert_that(download_res, has_property('content_length', 61))
 		assert_that(download_res, has_property('content_disposition', none()))
-		
+
 		# Then for download, both directly and without the trailing /view
 		paths = [submitted_file_part['download_url']]
 		url = submitted_file_part['url']
 		idx = url.find('/@@view')
 		url = url[:idx] if idx != -1 else url
 		paths.append(url)
-		
+
 		for path in paths:
 			download_res = self.testapp.get(path)
 			assert_that(download_res, has_property('content_length', 61))
@@ -227,7 +227,7 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 
 		res = self.testapp.get(bulk_href)
 
-		assert_that(res.content_disposition, is_('attachment; filename="assignment.zip"'))
+		assert_that(res.content_disposition, is_('attachment; filename="CLC3403_assignment.zip"'))
 
 		data = res.body
 		io = StringIO(data)

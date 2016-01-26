@@ -290,7 +290,7 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 		context = self.context
 		result = getattr( context, 'title', context.__name__ )
 		result = self._string( result, '_' )
-		return result
+		return result or 'assignment'
 
 	def _get_filename(self, course):
 		base_name = self._get_course_name( course )

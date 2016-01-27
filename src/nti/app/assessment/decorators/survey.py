@@ -156,9 +156,9 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 					available.append(asg_date)
 					
 			if available[0] is not None and now < available[0]:
-				isClosed = result_map['isClosed'] = False
+				isClosed = result_map['isClosed'] = True
 			elif available[1] is not None and now > available[1]:
-				isClosed = result_map['isClosed'] = False
+				isClosed = result_map['isClosed'] = True
 
 			policy = get_policy_for_assessment(context, course)
 			if policy and 'disclosure' in policy:

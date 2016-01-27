@@ -130,7 +130,8 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 		if context is None:
 			return
 
-		result_map['isClosed'] = bool(context.closed)
+		isClosed = bool(context.closed)
+		result_map['isClosed'] = isClosed
 
 		user = self.remoteUser
 		links = result_map.setdefault(LINKS, [])
@@ -155,9 +156,9 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 					available.append(asg_date)
 					
 			if available[0] is not None and now < available[0]:
-				result_map['isClosed'] = False
+				isClosed = result_map['isClosed'] = False
 			elif available[1] is not None and now > available[1]:
-				result_map['isClosed'] = False
+				isClosed = result_map['isClosed'] = False
 
 			policy = get_policy_for_assessment(context, course)
 			if policy and 'disclosure' in policy:

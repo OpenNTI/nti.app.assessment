@@ -37,9 +37,9 @@ class _CourseEditorLinksDecorator(PreviewCourseAccessPredicateDecorator,
 		return result
 
 	def _predicate(self, context, result):
-		return 		self._acl_decoration \
-				and self._is_authenticated \
-				and has_permission(ACT_CONTENT_EDIT, context, self.request)
+		return (	self._acl_decoration
+				and self._is_authenticated
+				and has_permission(ACT_CONTENT_EDIT, context, self.request))
 
 	def _do_decorate_external(self, context, result_map):
 		links = result_map.setdefault(LINKS, [])

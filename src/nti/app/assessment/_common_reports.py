@@ -20,6 +20,8 @@ from zope import component
 
 from zope.security.interfaces import IPrincipal
 
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
+
 from nti.app.assessment.utils import replace_username
 
 from nti.assessment.interfaces import IQuestion
@@ -32,9 +34,8 @@ from nti.dataserver.interfaces import IUser
 
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
-from nti.externalization.externalization import to_external_object
 
-from .interfaces import IUsersCourseAssignmentHistory
+from nti.externalization.externalization import to_external_object
 
 ITEMS = StandardExternalFields
 
@@ -79,6 +80,7 @@ def course_submission_report(context, usernames=(), assignment=None,
 			continue
 
 		for key, item in history.items():
+
 			# filter assignment
 			if assignment_id and assignment_id != key:
 				continue
@@ -86,8 +88,10 @@ def course_submission_report(context, usernames=(), assignment=None,
 			submission = item.Submission
 			createdTime = datetime.fromtimestamp(item.createdTime)
 			for qs_part in submission.parts:
+
 				# all question submissions
 				for question in qs_part.questions:
+
 					# filter question
 					if question_id and question.questionId != question_id:
 						continue

@@ -49,11 +49,13 @@ from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.contenttypes.courses.utils import is_course_instructor
 
-from nti.externalization.singleton import SingletonDecorator
-from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.externalization import to_external_object
+
+from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import IExternalObjectDecorator
 from nti.externalization.interfaces import IExternalMappingDecorator
+
+from nti.externalization.singleton import SingletonDecorator
 
 from nti.links.links import Link
 

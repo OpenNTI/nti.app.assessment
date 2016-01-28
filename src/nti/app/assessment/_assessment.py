@@ -9,10 +9,13 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-from nti.dataserver.users import User
+from nti.app.assessment.adapters import _histories_for_course
+from nti.app.assessment.adapters import _history_for_user_in_course
 
-from .adapters import _histories_for_course
-from .adapters import _history_for_user_in_course
+from nti.app.assessment.metadata import _metadata_for_user_in_course
+from nti.app.assessment.metadata import _metadatacontainer_for_course
+
+from nti.dataserver.users import User
 
 def _container_mover(old_container, new_container, verbose=True,
 					 user=None, source=None, target=None):
@@ -55,9 +58,6 @@ def move_assignment_histories_from_course_to_course(source, target, verbose=True
 															   verbose=verbose)
 			result[username] = moves
 	return result
-
-from .metadata import _metadata_for_user_in_course
-from .metadata import _metadatacontainer_for_course
 
 def move_user_metadata_from_course_to_course(user, source, target, verbose=True):
 	new_metadata = _metadata_for_user_in_course(target, user, create=True)

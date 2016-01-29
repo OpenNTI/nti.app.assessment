@@ -21,6 +21,7 @@ from nti.assessment.interfaces import IQAssessmentPolicies
 from nti.common.property import Lazy
 
 from nti.contenttypes.courses.interfaces import ES_PUBLIC
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.contenttypes.courses.interfaces import is_instructed_by_name

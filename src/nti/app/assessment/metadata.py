@@ -15,12 +15,13 @@ import time
 from zope import component
 from zope import interface
 
+from zope.annotation.interfaces import IAnnotations
+
 from zope.container.contained import Contained
 
-from zope.location.location import locate
 from zope.location.interfaces import LocationError
 
-from zope.annotation.interfaces import IAnnotations
+from zope.location.location import locate
 
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
 from zope.lifecycleevent.interfaces import IObjectRemovedEvent
@@ -62,9 +63,11 @@ from nti.dataserver.users import User
 from nti.dublincore.datastructures import PersistentCreatedModDateTrackingObject
 
 from nti.externalization.datastructures import InterfaceObjectIO
+
+from nti.externalization.externalization import to_external_ntiid_oid
+
 from nti.externalization.interfaces import IInternalObjectUpdater
 from nti.externalization.interfaces import StandardExternalFields
-from nti.externalization.externalization import to_external_ntiid_oid
 
 from nti.schema.field import SchemaConfigured
 from nti.schema.fieldproperty import createDirectFieldProperties

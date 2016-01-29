@@ -27,6 +27,18 @@ from zope.container.contained import Contained
 
 from zope.location.interfaces import ISublocations
 
+from nti.app.assessment._submission import set_submission_lineage
+
+from nti.app.assessment.common import get_policy_for_assessment
+from nti.app.assessment.common import get_available_for_submission_ending
+
+from nti.app.assessment.feedback import UsersCourseAssignmentHistoryItemFeedbackContainer
+
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemSummary
+
 from nti.assessment.interfaces import IQAssignment
 
 from nti.common.property import alias
@@ -58,18 +70,6 @@ from nti.wref.interfaces import IWeakRef
 
 from nti.zodb.minmax import NumericMaximum
 from nti.zodb.minmax import NumericPropertyDefaultingToZero
-
-from ._submission import set_submission_lineage
-
-from .common import get_policy_for_assessment
-from .common import get_available_for_submission_ending
-
-from .feedback import UsersCourseAssignmentHistoryItemFeedbackContainer
-
-from .interfaces import IUsersCourseAssignmentHistory
-from .interfaces import IUsersCourseAssignmentHistories
-from .interfaces import IUsersCourseAssignmentHistoryItem
-from .interfaces import IUsersCourseAssignmentHistoryItemSummary
 
 @interface.implementer(IUsersCourseAssignmentHistories)
 class UsersCourseAssignmentHistories(CaseInsensitiveCheckingLastModifiedBTreeContainer):
@@ -218,7 +218,7 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 			# has autograding disabled, but in the future we'd need to be
 			# sure to reliably distinguish them if we only want to take into
 			# account instructor grades (which I think just means lastModified > createdTime)
-			return grade is not None and (grade.value is not None
+			return grade is not None and (   grade.value is not None
 										  or grade.AutoGrade is not None)
 		except (LookupError, TypeError):
 			return False

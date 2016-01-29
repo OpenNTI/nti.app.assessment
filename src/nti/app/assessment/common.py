@@ -21,9 +21,9 @@ from zope.proxy import ProxyBase
 
 from zope.schema.interfaces import RequiredMissing
 
-from nti.app.assessment.assignment_filters import AssessmentPolicyExclusionFilter
-
 from nti.app.assessment import get_assesment_catalog
+
+from nti.app.assessment.assignment_filters import AssessmentPolicyExclusionFilter
 
 from nti.app.assessment.index import IX_COURSE
 from nti.app.assessment.index import IX_ASSESSMENT_ID
@@ -32,6 +32,9 @@ from nti.app.assessment.interfaces import IUsersCourseInquiryItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 
+from nti.assessment.interfaces import DISCLOSURE_NEVER
+from nti.assessment.interfaces import DISCLOSURE_ALWAYS
+
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAggregatedInquiry
@@ -39,9 +42,6 @@ from nti.assessment.interfaces import IQInquirySubmission
 from nti.assessment.interfaces import IQAssessmentPolicies
 from nti.assessment.interfaces import IQAssessmentDateContext
 from nti.assessment.interfaces import IQAssessmentItemContainer
-
-from nti.assessment.interfaces import DISCLOSURE_NEVER
-from nti.assessment.interfaces import DISCLOSURE_ALWAYS
 
 from nti.contentlibrary.interfaces import IContentPackage
 

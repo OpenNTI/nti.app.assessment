@@ -17,7 +17,9 @@ from zope import interface
 from zope.annotation.interfaces import IAttributeAnnotatable
 
 from zope.container.constraints import checkObject
+
 from zope.container.ordered import OrderedContainer
+
 from zope.container.interfaces import IContainerModifiedEvent
 
 from zope.lifecycleevent.interfaces import IObjectModifiedEvent

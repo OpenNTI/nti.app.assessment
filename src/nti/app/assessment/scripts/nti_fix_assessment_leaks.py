@@ -39,7 +39,6 @@ from nti.dataserver.utils.base_script import create_context
 
 from nti.intid.common import removeIntId
 
-from nti.metadata import metadata_queue
 from nti.metadata import dataserver_metadata_catalog
 				
 from nti.site.utils import registerUtility
@@ -106,11 +105,10 @@ def _process_args(verbose=True, with_library=True):
 		site, registered = _get_registered_component(provided, ntiid)
 		if site is None or registered is None:
 			logger.warn("No registration found for %s", ntiid)	
-			queue = metadata_queue()
 			for item in data:
 				iid = intids.queryId(item)
-				if queue is not None and iid is not None:
-					queue.remove(iid)
+				if iid is not None:
+					removeIntId(iid)
 			continue
 
 		registry = site.getSiteManager()

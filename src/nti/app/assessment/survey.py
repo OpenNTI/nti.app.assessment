@@ -18,8 +18,8 @@ from zope.container.contained import Contained
 
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
 
-from zope.location.interfaces import LocationError
 from zope.location.interfaces import ISublocations
+from zope.location.interfaces import LocationError
 
 from pyramid.interfaces import IRequest
 
@@ -48,6 +48,7 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.dataserver.users import User
 
 from nti.dataserver.authorization import ACT_READ
+
 from nti.dataserver.authorization_acl import ace_allowing
 from nti.dataserver.authorization_acl import acl_from_aces
 

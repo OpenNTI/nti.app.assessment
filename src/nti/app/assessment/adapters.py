@@ -24,6 +24,15 @@ from zope.schema.interfaces import ConstraintNotSatisfied
 
 from persistent.list import PersistentList
 
+from nti.app.assessment.common import get_available_for_submission_beginning
+
+from nti.app.assessment.history import UsersCourseAssignmentHistory
+
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedback
+
 from nti.appserver.context_providers import get_hierarchy_context
 from nti.appserver.context_providers import get_joinable_contexts
 from nti.appserver.context_providers import get_top_level_contexts
@@ -56,15 +65,6 @@ from nti.dataserver.interfaces import IUser
 
 from nti.traversal.traversal import find_interface
 
-from .common import get_available_for_submission_beginning
-
-from .history import UsersCourseAssignmentHistory
-
-from .interfaces import IUsersCourseAssignmentHistory
-from .interfaces import IUsersCourseAssignmentHistories
-from .interfaces import IUsersCourseAssignmentHistoryItem
-from .interfaces import IUsersCourseAssignmentHistoryItemFeedback
-
 @component.adapter(IQuestionSubmission)
 @interface.implementer(INewObjectTransformer)
 def _question_submission_transformer(obj):
@@ -84,8 +84,10 @@ def _question_set_submission_transformer(obj):
 from functools import partial
 
 from pyramid import renderers
-from pyramid.interfaces import IRequest
+
 from pyramid.httpexceptions import HTTPCreated
+
+from pyramid.interfaces import IRequest
 from pyramid.interfaces import IExceptionResponse
 
 from nti.externalization.oids import to_external_oid
@@ -137,9 +139,9 @@ def _check_submission_before(course, assignment):
 			ex.value = available_beginning
 			raise ex
 
-from .common import get_course_from_assignment
+from nti.app.assessment._submission import set_submission_lineage
 
-from ._submission import set_submission_lineage
+from nti.app.assessment.common import get_course_from_assignment
 
 @component.adapter(IQAssignmentSubmission)
 @interface.implementer(IQAssignmentSubmissionPendingAssessment)
@@ -210,13 +212,13 @@ def _begin_assessment_for_assignment_submission(submission):
 
 from zope.security.interfaces import IPrincipal
 
+from nti.app.assessment.history import UsersCourseAssignmentHistories
+
 from nti.contentlibrary.interfaces import IContentPackage
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.contenttypes.courses.interfaces import IPrincipalEnrollments
-
-from .history import UsersCourseAssignmentHistories
 
 @component.adapter(ICourseInstance)
 @interface.implementer(IUsersCourseAssignmentHistories)
@@ -295,11 +297,11 @@ class _UsersCourseAssignmentHistoriesTraversable(ContainerAdapterTraversable):
 				return _history_for_user_in_course(self.context.__parent__, user)
 			raise
 
+from nti.app.assessment.common import get_course_assignments
+from nti.app.assessment.common import get_course_assessment_items
+
 from nti.contenttypes.courses.interfaces import ICourseAssignmentCatalog
 from nti.contenttypes.courses.interfaces import ICourseAssessmentItemCatalog
-
-from .common import get_course_assignments
-from .common import get_course_assessment_items
 
 @component.adapter(ICourseInstance)
 @interface.implementer(ICourseAssessmentItemCatalog)
@@ -410,8 +412,8 @@ def _get_assessment_item_lineage_obj(obj):
 @component.adapter(IQInquiry)
 @component.adapter(IQAssessment)
 def _courses_from_obj(obj):
-	unit = _get_assessment_item_lineage_obj(obj)
 	results = ()
+	unit = _get_assessment_item_lineage_obj(obj)
 	if unit is not None:
 		results = get_top_level_contexts(unit.__parent__)
 	return results
@@ -420,8 +422,8 @@ def _courses_from_obj(obj):
 @component.adapter(IQInquiry, IUser)
 @component.adapter(IQAssessment, IUser)
 def _courses_from_obj_and_user(obj, user):
-	unit = _get_assessment_item_lineage_obj(obj)
 	results = ()
+	unit = _get_assessment_item_lineage_obj(obj)
 	if unit is not None:
 		results = get_top_level_contexts_for_user(unit, user)
 	return results
@@ -430,8 +432,8 @@ def _courses_from_obj_and_user(obj, user):
 @component.adapter(IQInquiry, IUser)
 @component.adapter(IQAssessment, IUser)
 def _hierarchy_from_obj_and_user(obj, user):
-	unit = _get_assessment_item_lineage_obj(obj)
 	results = ()
+	unit = _get_assessment_item_lineage_obj(obj)
 	if unit is not None:
 		results = get_hierarchy_context(unit, user)
 	return results
@@ -446,8 +448,8 @@ def _joinable_courses_from_obj(obj):
 @interface.implementer(ITrustedTopLevelContainerContextProvider)
 @component.adapter(IUsersCourseAssignmentHistoryItemFeedback)
 def _trusted_context_from_feedback(obj):
-	course = _course_from_context_lineage(obj)
 	results = ()
+	course = _course_from_context_lineage(obj)
 	if course is not None:
 		catalog_entry = ICourseCatalogEntry(course, None)
 		results = (catalog_entry,) if catalog_entry is not None else ()

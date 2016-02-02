@@ -42,7 +42,6 @@ def do_evolve(context, generation=generation):
 		assert 	component.getSiteManager() == ds_folder.getSiteManager(), \
 				"Hooks not installed?"
 
-		from IPython.core.debugger import Tracer; Tracer()()
 		assesment_catalog = install_assesment_catalog(ds_folder, intids)
 		
 		if IX_SITE not in assesment_catalog:

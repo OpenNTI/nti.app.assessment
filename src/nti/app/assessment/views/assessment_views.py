@@ -11,9 +11,13 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+from cStringIO import StringIO
+from datetime import datetime
 from numbers import Number
 from urllib import unquote
-from datetime import datetime
+
+from zipfile import ZipInfo
+from zipfile import ZipFile
 
 from zope import component
 
@@ -22,24 +26,31 @@ from zope.location.interfaces import LocationError
 from pyramid import httpexceptions as hexc
 
 from pyramid.interfaces import IRequest
+from pyramid.interfaces import IExceptionResponse
 
 from pyramid.view import view_config
 from pyramid.view import view_defaults
+from zope.container.traversal import ContainerTraversable
+
+from nti.app.assessment.common import get_course_from_assignment
+
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedback
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedbackContainer
 
 from nti.app.assessment._submission import get_source
 from nti.app.assessment._submission import check_upload_files
 from nti.app.assessment._submission import read_multipart_sources
 
-from nti.app.assessment.common import get_course_from_assignment
-
-from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
-from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedback
-from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedbackContainer
-
 from nti.app.assessment.utils import copy_assignment
 from nti.app.assessment.utils import replace_username
 
+from nti.app.assessment.views import assignment_download_precondition
+
 from nti.app.assessment.views.view_mixins import AssessmentPutView
+
+from nti.app.base.abstract_views import AbstractAuthenticatedView
 
 from nti.app.contentlibrary.utils import PAGE_INFO_MT
 from nti.app.contentlibrary.utils import PAGE_INFO_MT_JSON
@@ -47,20 +58,29 @@ from nti.app.contentlibrary.utils import find_page_info_view_helper
 
 from nti.app.externalization.internalization import read_input_data
 
+from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
+
 from nti.app.products.courseware.interfaces import ICourseInstanceEnrollment
+
+from nti.appserver.ugd_edit_views import UGDDeleteView
 
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQuestion
+from nti.assessment.interfaces import IQResponse
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQUploadedFile
 from nti.assessment.interfaces import IQAssignmentSubmission
 
 from nti.common.property import Lazy
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
+from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.contenttypes.courses.interfaces import ICourseOutlineContentNode
+from nti.contenttypes.courses.interfaces import ICourseAssignmentCatalog
+from nti.contenttypes.courses.interfaces import ICourseAssessmentItemCatalog
 from nti.contenttypes.courses.interfaces import get_course_assessment_predicate_for_user
 
 from nti.contenttypes.courses.utils import is_course_instructor
@@ -72,13 +92,22 @@ from nti.contenttypes.presentation.interfaces import INTILessonOverview
 from nti.dataserver.interfaces import IUser
 from nti.dataserver import authorization as nauth
 
+from nti.dataserver.users.interfaces import IUserProfile
+
+from nti.dataserver.users import User
+
+from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
+
+from nti.externalization.oids import to_external_oid
+
+from nti.ntiids.ntiids import find_object_with_ntiid
 
 ITEMS = StandardExternalFields.ITEMS
 
 # In pyramid 1.4, there is some minor wonkiness with the accept= request predicate.
 # Your view can get called even if no Accept header is present if all the defined
-# views include a non-matching accept predicate. Stil, this is much better than
+# views include a non-matching accept predicate. Still, this is much better than
 # the behaviour under 1.3.
 
 _read_view_defaults = dict(route_name='objects.generic.traversal',
@@ -152,11 +181,6 @@ del _question_view
 del _assignment_view
 del _read_view_defaults
 
-from pyramid.interfaces import IExceptionResponse
-
-from nti.app.base.abstract_views import AbstractAuthenticatedView
-from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
-
 @view_config(route_name="objects.generic.traversal",
 			 context=IQAssignment,
 			 renderer='rest',
@@ -213,19 +237,6 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 		# Re-use the same code for putting to a user
 		result = component.getMultiAdapter((self.request, submission), IExceptionResponse)
 		return result
-
-from zipfile import ZipInfo
-from zipfile import ZipFile
-from cStringIO import StringIO
-
-from nti.assessment.interfaces import IQResponse
-from nti.assessment.interfaces import IQUploadedFile
-
-from nti.contenttypes.courses.interfaces import ICourseEnrollments
-
-from nti.ntiids.ntiids import find_object_with_ntiid
-
-from . import assignment_download_precondition
 
 @view_config(route_name="objects.generic.traversal",
 			 context=IQAssignment,
@@ -303,6 +314,17 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 	def _precondition(cls, context, request, remoteUser):
 		return assignment_download_precondition(context, request, remoteUser)
 
+	def _get_username_filename_part(self, principal):
+		user = User.get_entity( principal.id )
+		profile = IUserProfile( user )
+		realname = profile.realname or ''
+		realname = realname.replace( ' ', '_' )
+		username = replace_username( user.username )
+		result = username
+		if realname:
+			result = '%s-%s' % (username, realname)
+		return result
+
 	def __call__(self):
 		context = self.request.context
 		request = self.request
@@ -336,8 +358,9 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 							qp_part = qp_part.value
 
 						if IQUploadedFile.providedBy(qp_part):
-							prin_id = replace_username(principal.id)
-							full_filename = "%s-%s-%s-%s-%s" % (prin_id, sub_num, q_num,
+
+							user_filename_part = self._get_username_filename_part( principal )
+							full_filename = "%s-%s-%s-%s-%s" % (user_filename_part, sub_num, q_num,
 																qp_num, qp_part.filename)
 
 							date_time = datetime.utcfromtimestamp(qp_part.lastModified)
@@ -366,8 +389,6 @@ class AssignmentHistoryGetView(AbstractAuthenticatedView):
 	def __call__(self):
 		history = self.request.context
 		return history
-
-from zope.container.traversal import ContainerTraversable
 
 @component.adapter(IUsersCourseAssignmentHistory, IRequest)
 class AssignmentHistoryRequestTraversable(ContainerTraversable):
@@ -411,8 +432,6 @@ class AssignmentHistoryLastViewedPutView(AbstractAuthenticatedView,
 		self.request.context.lastViewed = ext_input
 		return history
 
-from nti.externalization.oids import to_external_oid
-
 @view_config(route_name="objects.generic.traversal",
 			 context=IUsersCourseAssignmentHistoryItemFeedbackContainer,
 			 renderer='rest',
@@ -446,10 +465,6 @@ class AsssignmentHistoryItemFeedbackPostView(AbstractAuthenticatedView,
 										  to_external_oid(feedback))
 		return feedback
 
-from nti.appserver.ugd_edit_views import UGDDeleteView
-
-from ..interfaces import IUsersCourseAssignmentHistoryItem
-
 @view_config(route_name="objects.generic.traversal",
 			 context=IUsersCourseAssignmentHistoryItem,
 			 renderer='rest',
@@ -471,11 +486,6 @@ class AssignmentHistoryItemFeedbackDeleteView(UGDDeleteView):
 	def _do_delete_object(self, theObject):
 		del theObject.__parent__[theObject.__name__]
 		return theObject
-
-from nti.externalization.interfaces import LocatedExternalDict
-
-from nti.contenttypes.courses.interfaces import ICourseAssignmentCatalog
-from nti.contenttypes.courses.interfaces import ICourseAssessmentItemCatalog
 
 class AssignmentsByOutlineNodeMixin(AbstractAuthenticatedView):
 

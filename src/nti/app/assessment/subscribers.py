@@ -15,6 +15,8 @@ import simplejson
 
 from zope import component
 
+from zope.component.hooks import getSite
+
 from zope.container.interfaces import IContainer
 
 from zope.intid.interfaces import IIntIds
@@ -29,6 +31,7 @@ from nti.app.assessment.common import get_unit_assessments
 from nti.app.assessment.common import get_course_from_assignment
 from nti.app.assessment.common import get_available_for_submission_ending
 
+from nti.app.assessment.index import IX_SITE
 from nti.app.assessment.index import IX_COURSE
 from nti.app.assessment.index import IX_CREATOR
 
@@ -53,6 +56,7 @@ from nti.contenttypes.courses import get_enrollment_catalog
 from nti.contenttypes.courses.index import IX_USERNAME
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.users.interfaces import IWillDeleteEntityEvent
@@ -205,11 +209,11 @@ def delete_course_data(course):
 			user_data.clear()
 
 def unindex_course_data(course):
-	intids = component.getUtility(IIntIds)
-	uid = intids.queryId(course)
-	if uid is not None:
+	entry = ICourseCatalogEntry(course, None)
+	if entry is not None:
 		catalog = get_assesment_catalog()
-		query = { IX_COURSE: {'any_of':(uid,)} }
+		query = { IX_COURSE: {'any_of':(entry.ntiid,)},
+				  IX_SITE: {'any_of':(getSite().__name__,) } }
 		for uid in catalog.apply(query) or ():
 			catalog.unindex_doc(uid)
 

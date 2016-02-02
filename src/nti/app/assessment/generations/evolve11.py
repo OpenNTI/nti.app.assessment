@@ -12,6 +12,7 @@ logger = __import__('logging').getLogger(__name__)
 generation = 11
 
 from zope import component
+from zope import interface
 
 from zope.component.hooks import site
 from zope.component.hooks import setHooks
@@ -29,6 +30,24 @@ from nti.app.assessment.index import install_assesment_catalog
 from nti.app.assessment.interfaces import IUsersCourseInquiryItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 
+from nti.contentlibrary.interfaces import IContentPackageLibrary
+
+from nti.dataserver.interfaces import IDataserver
+from nti.dataserver.interfaces import IOIDResolver
+
+@interface.implementer(IDataserver)
+class MockDataserver(object):
+
+	root = None
+
+	def get_by_oid(self, oid, ignore_creator=False):
+		resolver = component.queryUtility(IOIDResolver)
+		if resolver is None:
+			logger.warn("Using dataserver without a proper ISiteManager configuration.")
+		else:
+			return resolver.get_object_by_oid(oid, ignore_creator=ignore_creator)
+		return None
+
 def do_evolve(context, generation=generation):
 	logger.info("Assessment evolution %s started", generation);
 
@@ -38,12 +57,21 @@ def do_evolve(context, generation=generation):
 	lsm = ds_folder.getSiteManager()
 	intids = lsm.getUtility(IIntIds)
 
+	mock_ds = MockDataserver()
+	mock_ds.root = ds_folder
+	component.provideUtility(mock_ds, IDataserver)
+
 	with site(ds_folder):
 		assert 	component.getSiteManager() == ds_folder.getSiteManager(), \
 				"Hooks not installed?"
 
+		# load library
+		library = component.queryUtility(IContentPackageLibrary)
+		if library is not None:
+			library.syncContentPackages()
+
 		assesment_catalog = install_assesment_catalog(ds_folder, intids)
-		
+
 		if IX_SITE not in assesment_catalog:
 			site_index = SiteIndex(family=intids.family)
 			intids.register(site_index)
@@ -51,7 +79,7 @@ def do_evolve(context, generation=generation):
 			assesment_catalog[IX_SITE] = site_index
 		else:
 			site_index = assesment_catalog[IX_SITE]
-	
+
 		# replace catlog entry index
 		old_index = assesment_catalog[IX_COURSE]
 		if not isinstance(old_index, CatalogEntryIDIndex):
@@ -66,7 +94,7 @@ def do_evolve(context, generation=generation):
 
 			for doc_id in old_index.ids():
 				obj = intids.queryObject(doc_id)
-				if 	(	IUsersCourseInquiryItem.providedBy(obj)
+				if 	(IUsersCourseInquiryItem.providedBy(obj)
 					 or	IUsersCourseAssignmentHistoryItem.providedBy(obj)):
 					new_index.index_doc(doc_id, obj)
 					site_index.index_doc(doc_id, obj)

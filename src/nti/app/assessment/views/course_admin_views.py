@@ -22,8 +22,6 @@ from nti.app.assessment._assessment import move_user_assignment_from_course_to_c
 
 from nti.app.assessment._common_reports import course_submission_report
 
-from nti.app.assessment.common import get_course_assignments
-
 from nti.app.assessment.views import parse_catalog_entry
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
@@ -37,8 +35,6 @@ from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 
 from nti.common.maps import CaseInsensitiveDict
-
-from nti.common.string import TRUE_VALUES
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
@@ -96,33 +92,6 @@ class CourseSubmissionReportView(AbstractAuthenticatedView):
 		stream.seek(0)
 		response.body_file = stream
 		return response
-
-@view_config(context=IDataserverFolder)
-@view_config(context=CourseAdminPathAdapter)
-@view_defaults(route_name='objects.generic.traversal',
-			   renderer='rest',
-			   permission=nauth.ACT_NTI_ADMIN,
-			   request_method='GET',
-			   name='CourseAssignments')
-class CourseAssignmentsView(AbstractAuthenticatedView):
-
-	def __call__(self):
-		params = CaseInsensitiveDict(self.request.params)
-		context = parse_catalog_entry(params)
-		if context is None:
-			raise hexc.HTTPUnprocessableEntity("Invalid course NTIID")
-		course = ICourseInstance(context)
-
-		do_filtering = params.get('filter') or TRUE_VALUES[0]
-		do_filtering = do_filtering.lower() in TRUE_VALUES
-
-		result = LocatedExternalDict()
-		items = result[ITEMS] = {}
-		for assignment in get_course_assignments(course=course,
-												 do_filtering=do_filtering):
-			items[assignment.ntiid] = assignment
-		result['ItemCount'] = result['Total'] = len(items)
-		return result
 
 @view_config(context=IDataserverFolder)
 @view_config(context=CourseAdminPathAdapter)

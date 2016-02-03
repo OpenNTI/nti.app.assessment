@@ -39,6 +39,7 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepointItem
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
 from nti.app.externalization.internalization import read_input_data
+
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
 from nti.app.renderers.interfaces import INoHrefInResponse
@@ -51,8 +52,9 @@ from nti.assessment.interfaces import IQAssignmentSubmission
 
 from nti.dataserver import authorization as nauth
 
-from nti.externalization.oids import to_external_ntiid_oid
 from nti.externalization.externalization import to_external_object
+
+from nti.externalization.oids import to_external_ntiid_oid
 
 @view_config(route_name="objects.generic.traversal",
 			 context=IQAssignment,

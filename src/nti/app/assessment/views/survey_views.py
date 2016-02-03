@@ -18,8 +18,9 @@ from zope.schema.interfaces import NotUnique
 from zope.schema.interfaces import RequiredMissing
 from zope.schema.interfaces import ConstraintNotSatisfied
 
-from pyramid.view import view_config
 from pyramid import httpexceptions as hexc
+
+from pyramid.view import view_config
 
 from nti.app.assessment import MessageFactory as _
 
@@ -65,10 +66,12 @@ from nti.contenttypes.courses.utils import is_course_instructor
 
 from nti.dataserver import authorization as nauth
 
-from nti.externalization.oids import to_external_ntiid_oid
+from nti.externalization.externalization import to_external_object
+
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
-from nti.externalization.externalization import to_external_object
+
+from nti.externalization.oids import to_external_ntiid_oid
 
 ITEMS = StandardExternalFields.ITEMS
 

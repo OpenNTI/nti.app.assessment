@@ -10,6 +10,7 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 import copy
+from datetime import datetime
 
 from zope import component
 
@@ -21,6 +22,7 @@ from zope.intid.interfaces import IIntIds
 
 from nti.app.assessment import get_assesment_catalog
 
+from nti.app.assessment.index import IX_SITE
 from nti.app.assessment.index import IX_COURSE
 from nti.app.assessment.index import IX_ASSESSMENT_ID
 
@@ -38,13 +40,17 @@ from nti.assessment.interfaces import QAssessmentDateContextModified
 
 from nti.contentlibrary.interfaces import IContentPackage
 
+from nti.contenttypes.courses.interfaces import SUPPORTED_DATE_KEYS
+
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
-from nti.contenttypes.courses.interfaces import SUPPORTED_DATE_KEYS
+from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.contenttypes.courses.utils import get_course_packages
 
 from nti.traversal.traversal import find_interface
+
+from nti.site.site import get_component_hierarchy_names
 
 from nti.zope_catalog.catalog import ResultSet
 
@@ -89,9 +95,10 @@ class AssessmentPutView(UGDPutView):
 		else:
 			catalog = get_assesment_catalog()
 			intids = component.getUtility(IIntIds)
-			uids = {intids.getId(x) for x in courses}
-			query = { IX_COURSE: {'any_of':uids},
-			 		  IX_ASSESSMENT_ID: {'any_of':(assesment.ntiid,)} }
+			ntiids = {ICourseCatalogEntry(x).ntiid for x in courses}
+			query = { IX_COURSE: {'any_of':ntiids},
+			 		  IX_ASSESSMENT_ID: {'any_of':(assesment.ntiid,)}, 
+			 		  IX_SITE: {'any_of':get_component_hierarchy_names()} }
 
 			result = []
 			uids = catalog.apply(query) or ()
@@ -106,6 +113,18 @@ class AssessmentPutView(UGDPutView):
 
 	def validate(self, contentObject, externalValue, courses=()):
 		pass
+
+	@property
+	def policy_keys(self):
+		return SUPPORTED_DATE_KEYS
+	
+	def update_policy(self, courses, ntiid, key, value):
+		if key in SUPPORTED_DATE_KEYS:
+			value = IDateTime(value) if not isinstance(value, datetime) else value
+			for course in courses:
+				dates = IQAssessmentDateContext(course)
+				dates.set(ntiid, key, value)
+				event_notify(QAssessmentDateContextModified(dates, ntiid, key))
 
 	def updateContentObject(self, contentObject, externalValue, set_id=False,
 							notify=True, pre_hook=None):
@@ -122,7 +141,7 @@ class AssessmentPutView(UGDPutView):
 			# remove policy keys to avoid updating
 			# fields in the actual assessment object
 			backupData = copy.copy(externalValue)
-			for key in SUPPORTED_DATE_KEYS:
+			for key in self.policy_keys:
 				externalValue.pop(key, None)
 		else:
 			backupData = externalValue
@@ -134,19 +153,13 @@ class AssessmentPutView(UGDPutView):
 													pre_hook=pre_hook,
 													externalValue=externalValue,
 													contentObject=contentObject)
-
 			self.validate(result, externalValue, courses)
 		else:
 			result = contentObject
 
 		# update course policie
 		ntiid = contentObject.ntiid
-		for key in SUPPORTED_DATE_KEYS:
-			if key not in backupData:
-				continue
-			value = IDateTime(backupData[key])
-			for course in courses:
-				dates = IQAssessmentDateContext(course)
-				dates.set(ntiid, key, value)
-				event_notify(QAssessmentDateContextModified(dates, ntiid, key))
+		for key in self.policy_keys:
+			if key in backupData:
+				self.update_policy(courses, ntiid, key, backupData[key])
 		return result

@@ -11,8 +11,6 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-from itertools import chain
-
 from zope import component
 from zope import interface
 
@@ -21,13 +19,11 @@ from nti.assessment.interfaces import IQAssessmentPolicies
 from nti.common.property import Lazy
 
 from nti.contenttypes.courses.interfaces import ES_PUBLIC
-
 from nti.contenttypes.courses.interfaces import ICourseInstance
-from nti.contenttypes.courses.interfaces import ICourseEnrollments
-from nti.contenttypes.courses.interfaces import is_instructed_by_name
 from nti.contenttypes.courses.interfaces import ICourseAssessmentUserFilter
 
-from nti.contenttypes.courses.utils import get_parent_course
+from nti.contenttypes.courses.utils import get_enrollment_in_hierarchy
+from nti.contenttypes.courses.utils import is_instructed_or_edited_by_name
 
 from nti.dataserver.interfaces import IUser
 
@@ -62,25 +58,13 @@ class UserEnrolledForCreditInCourseOrInstructsFilter(object):
 
 	@Lazy
 	def is_instructor(self):
-		# TODO: Can/should this be role based?
-		if is_instructed_by_name(self.course, self.user.username):
-			return True
+		return is_instructed_or_edited_by_name(self.course, self.user.username)
 
 	@Lazy
 	def is_enrolled_for_credit(self):
-		# CS: check all course sections to see if the user
-		# is enroll for credit. This is done b/c when getting the pageinfo
-		# there is no guarantee that the Course instance derived from a
-		# content unit is the course/section we are enrolled in.
-		# this further assume that sections are sharing assigments.
-		ref_course = get_parent_course(self.course)
-		for course in chain((ref_course,), ref_course.SubInstances.values()):
-			record = ICourseEnrollments(course).get_enrollment_for_principal(self.user)
-			if record is not None and record.Scope != ES_PUBLIC:
-				return True
-
-		# anything except public is for-credit; default to public even if not enrolled
-		return False
+		record = get_enrollment_in_hierarchy(self.course, self.user)
+		result = record is not None and record.Scope != ES_PUBLIC
+		return result
 
 	def allow_assessment_for_user_in_course(self, asg, user, course):
 		if self.TEST_OVERRIDE:

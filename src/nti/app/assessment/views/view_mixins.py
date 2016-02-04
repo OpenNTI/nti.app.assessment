@@ -48,9 +48,9 @@ from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.contenttypes.courses.utils import get_course_packages
 
-from nti.traversal.traversal import find_interface
+from nti.site.interfaces import IHostPolicyFolder
 
-from nti.site.site import get_component_hierarchy_names
+from nti.traversal.traversal import find_interface
 
 from nti.zope_catalog.catalog import ResultSet
 
@@ -89,16 +89,23 @@ class AssessmentPutView(UGDPutView):
 		result.pop('NTIID', None)
 		return result
 
+	def get_site_name(self, course):
+		folder = find_interface(course, IHostPolicyFolder, strict=False)
+		return folder.__name__ if folder is not None else u''
+
 	def get_submissions(self, assesment, courses=()):
 		if not courses:
 			return ()
 		else:
 			catalog = get_assesment_catalog()
 			intids = component.getUtility(IIntIds)
+			sites = {self.get_site_name(x) for x in courses}
 			ntiids = {ICourseCatalogEntry(x).ntiid for x in courses}
-			query = { IX_COURSE: {'any_of':ntiids},
-			 		  IX_ASSESSMENT_ID: {'any_of':(assesment.ntiid,)}, 
-			 		  IX_SITE: {'any_of':get_component_hierarchy_names()} }
+			query = { 
+			 	IX_SITE: {'any_of':sites},
+				IX_COURSE: {'any_of':ntiids},
+			 	IX_ASSESSMENT_ID: {'any_of':(assesment.ntiid,)}
+			 }
 
 			result = []
 			uids = catalog.apply(query) or ()

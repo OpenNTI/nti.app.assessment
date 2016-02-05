@@ -81,6 +81,7 @@ class RemovedMatchedSavePointsView(AbstractAuthenticatedView,
 
 	def _do_call(self):
 		result = LocatedExternalDict()
+		items = result[ITEMS] = {}
 		catalog = component.getUtility(ICourseCatalog)
 		for entry in catalog.iterCatalogEntries():
 			course = ICourseInstance(entry)
@@ -96,8 +97,8 @@ class RemovedMatchedSavePointsView(AbstractAuthenticatedView,
 				for assignmentId in history.keys():
 					if assignmentId in savepoint:
 						savepoint._delitemf(assignmentId, event=False)
-						items = result.setdefault(principal.username, [])
-						items.append(assignmentId)
+						assignments = items.setdefault(principal.username, [])
+						assignments.append(assignmentId)
 		return result
 
 @view_config(route_name='objects.generic.traversal',

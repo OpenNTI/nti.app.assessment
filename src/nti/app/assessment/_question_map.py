@@ -90,10 +90,10 @@ class _AssessmentItemBucket(PersistentMapping,
 							Contained):
 
 	_SET_CREATED_MODTIME_ON_INIT = False
-	
+
 	def append(self, item):
 		self[item.ntiid] = item
-	
+
 	def extend(self, items):
 		for item in items or ():
 			self[item.ntiid] = item
@@ -164,10 +164,10 @@ class QuestionMap(QuestionIndex):
 		pass
 
 	def _registry_utility(self, registry, component, provided, name, event=False):
-		registerUtility(registry, 
-						component, 
+		registerUtility(registry,
+						component,
 						provided=provided,
-						name=name, 
+						name=name,
 						event=event)
 
 	def _get_registry(self, registry=None):
@@ -293,7 +293,7 @@ class QuestionMap(QuestionIndex):
 					# get unproxied object
 					thing_to_register = removeAllProxies(item)
 					result.add(thing_to_register)
-					
+
 					# check registry
 					provided = _iface_to_register(thing_to_register)
 					ntiid = getattr(thing_to_register, 'ntiid', None) or u''
@@ -301,28 +301,28 @@ class QuestionMap(QuestionIndex):
 						containers.discard(ntiid)
 						containers.update(hierarchy_ntiids)
 
-						# register assesment 
-						self._registry_utility(registry, 
+						# register assesment
+						self._registry_utility(registry,
 											   component=thing_to_register,
-											   provided=provided, 
+											   provided=provided,
 											   name=ntiid)
-						
+
 						# TODO: We are only partially supporting having question/sets
 						# used multiple places. When we get to that point, we need to
 						# handle it by noting on each assessment object where it is registered;
 						if thing_to_register.__parent__ is None and parent is not None:
 							thing_to_register.__parent__ = parent
-						
+
 						# add to container and get and intid
 						parents_questions.append(thing_to_register)
 						self._intid_register(thing_to_register, registry=registry)
-					
+
 						# index item
 						self._index_object(thing_to_register,
 										   content_package,
 										   containers,
 										   registry=registry)
-						
+
 						# register in sync results
 						if sync_results is not None:
 							sync_results.add_assessment(thing_to_register, False)
@@ -390,7 +390,7 @@ class QuestionMap(QuestionIndex):
 									 	  registry=registry,
 									 	  sync_results=sync_results)
 		things_to_register.update(items)
-		
+
 		for child_item in index.get('Items', {}).values():
 			items = self._from_index_entry(child_item,
 									 	   content_package,
@@ -433,7 +433,7 @@ class QuestionMap(QuestionIndex):
 
 		if sync_results is None:
 			sync_results = _new_sync_results(content_package)
-				
+
 		things_to_register = set()
 
 		for child_ntiid, child_index in root_items[root_ntiid]['Items'].items():
@@ -470,7 +470,7 @@ class QuestionMap(QuestionIndex):
 		registered = {x.ntiid for x in registered}
 		return by_file, registered
 
-def _populate_question_map_from_text(question_map, 
+def _populate_question_map_from_text(question_map,
 									 asm_index_text,
 									 content_package,
 									 registry=None,
@@ -482,7 +482,7 @@ def _populate_question_map_from_text(question_map,
 			if sync_results is None:
 				sync_results = _new_sync_results(content_package)
 
-			result = question_map._from_root_index(index, 
+			result = question_map._from_root_index(index,
 												   content_package,
 												   registry=registry,
 												   sync_results=sync_results)
@@ -500,11 +500,11 @@ def _populate_question_map_from_text(question_map,
 def _add_assessment_items_from_new_content(content_package, key, sync_results=None):
 	if sync_results is None:
 		sync_results = _new_sync_results(content_package)
-		
+
 	question_map = QuestionMap()
 	asm_index_text = key.readContentsAsText()
 	result = _populate_question_map_from_text(question_map,
-											  asm_index_text, 
+											  asm_index_text,
 											  content_package,
 											  sync_results=sync_results)
 
@@ -547,11 +547,11 @@ def add_assessment_items_from_new_content(content_package, event, key=None):
 	return result or set()
 
 def _remove_assessment_items_from_oldcontent(content_package,
-											 force=False, 
+											 force=False,
 											 sync_results=None):
 	if sync_results is None:
 		sync_results = _new_sync_results(content_package)
-		
+
 	# Unregister the things from the component registry.
 	# We SHOULD be run in the registry where the library item was initially
 	# loaded. (We use the context argument to check)
@@ -612,7 +612,7 @@ def _remove_assessment_items_from_oldcontent(content_package,
 	result.clear()
 	result = data
 
-	# register locked	
+	# register locked
 	for ntiid in ignore:
 		sync_results.add_assessment(ntiid, locked=True)
 
@@ -642,7 +642,7 @@ def update_assessment_items_when_modified(content_package, event=None):
 	update_key = _needs_load_or_update(updated)
 	if not update_key:
 		return
-	
+
 	logger.info("Updating assessment items from modified content %s %s",
 				content_package, event)
 
@@ -656,5 +656,5 @@ def update_assessment_items_when_modified(content_package, event=None):
 
 	assesment_items = get_content_packages_assessment_items(updated)
 	if len(assesment_items) < len(registered):
-		raise AssertionError("Item(s) in content package %s are less that in the registry %s",
-							 len(assesment_items), len(registered))
+		raise AssertionError("[%s] Item(s) in content package %s are less that in the registry %s" %
+							(content_package.ntiid, len(assesment_items), len(registered)))

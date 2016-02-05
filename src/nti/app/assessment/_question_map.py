@@ -80,6 +80,7 @@ deprecated('_AssessmentItemContainer', 'Replaced with a persistent mapping')
 class _AssessmentItemContainer(PersistentList,
 							   PersistentCreatedAndModifiedTimeObject,
 							   Contained):
+
 	_SET_CREATED_MODTIME_ON_INIT = False
 
 @component.adapter(IContentUnit)
@@ -87,10 +88,11 @@ class _AssessmentItemContainer(PersistentList,
 class _AssessmentItemBucket(PersistentMapping,
 							PersistentCreatedAndModifiedTimeObject,
 							Contained):
+
 	_SET_CREATED_MODTIME_ON_INIT = False
 	
 	def append(self, item):
-		self.extend((item,))
+		self[item.ntiid] = item
 	
 	def extend(self, items):
 		for item in items or ():

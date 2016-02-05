@@ -654,4 +654,5 @@ def update_assessment_items_when_modified(content_package, event=None):
 
 	assesment_items = get_content_packages_assessment_items(updated)
 	if len(assesment_items) < len(registered):
-		raise AssertionError("Items in content package are less that in the [site] registry")
+		raise AssertionError("Item(s) in content package %s are less that in the registry %s",
+							 len(assesment_items), len(registered))

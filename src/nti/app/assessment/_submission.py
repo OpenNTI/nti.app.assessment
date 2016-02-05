@@ -18,9 +18,9 @@ from zope.file.upload import nameFinder
 
 from zope.schema.interfaces import ConstraintNotSatisfied
 
-from pyramid import httpexceptions as hexc
-
 from ZODB.POSException import POSError
+
+from pyramid import httpexceptions as hexc
 
 from nti.app.base.abstract_views import get_source
 
@@ -144,8 +144,9 @@ def transfer_upload_ownership(submission, old_submission, force=False):
 		if force:
 			return True
 		else:
-			return 	IInternalUploadedFileRef.providedBy(source) or \
-					not source.filename and source.size == 0
+			result =	IInternalUploadedFileRef.providedBy(source) \
+					or	(not source.filename and source.size == 0)
+			return result
 
 	# extra check
 	if old_submission is None or submission is None:
@@ -163,6 +164,7 @@ def transfer_upload_ownership(submission, old_submission, force=False):
 				if old_question is None:
 					continue
 				for idx, part in enumerate(question.parts):
+					from IPython.core.debugger import Tracer; Tracer()()
 					part = value_part(part)
 					# check there is a part
 					try:

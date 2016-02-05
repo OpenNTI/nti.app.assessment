@@ -250,9 +250,9 @@ class QuestionMap(QuestionIndex):
 		"""
 
 		parent = None
-		parents_questions = []
 		signatures_dict = signatures_dict or {}
 		library = component.queryUtility(IContentPackageLibrary)
+		parents_questions = IQAssessmentItemContainer(content_package)
 
 		hierarchy_ntiids = set()
 		hierarchy_ntiids.add(content_package.ntiid)

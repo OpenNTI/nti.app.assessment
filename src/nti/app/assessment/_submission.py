@@ -164,7 +164,6 @@ def transfer_upload_ownership(submission, old_submission, force=False):
 				if old_question is None:
 					continue
 				for idx, part in enumerate(question.parts):
-					from IPython.core.debugger import Tracer; Tracer()()
 					part = value_part(part)
 					# check there is a part
 					try:

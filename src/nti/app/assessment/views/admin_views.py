@@ -186,7 +186,7 @@ class UnregisterAssessmentItemsView(AbstractAuthenticatedView,
 		items = _remove_assessment_items_from_oldcontent(package, force=force)
 		result = LocatedExternalDict()
 		result[ITEMS] = sorted(items.keys())
-		result['Count'] = result['Total'] = len(items)
+		result['ItemCount'] = result['Total'] = len(items)
 		return result
 
 @view_config(route_name='objects.generic.traversal',
@@ -225,7 +225,7 @@ class RegisterAssessmentItemsView(AbstractAuthenticatedView,
 			main_container.lastModified = key.lastModified
 			result.lastModified = key.lastModified
 		result[ITEMS] = sorted(items)
-		result['Count'] = result['Total'] = len(items)
+		result['ItemCount'] = result['Total'] = len(items)
 		return result
 
 @view_config(route_name='objects.generic.traversal',

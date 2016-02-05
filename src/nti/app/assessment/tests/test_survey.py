@@ -49,24 +49,24 @@ class TestSurvey(AssessmentLayerTest):
 		item = UsersCourseInquiryItem()
 		item.creator = 'foo'
 		item.__parent__ = survey
-		assert_that( item, validly_provides(IUsersCourseInquiryItem))
+		assert_that(item, validly_provides(IUsersCourseInquiryItem))
 
-		assert_that( survey, validly_provides(IUsersCourseInquiry))
-		assert_that( IUser(item), is_(survey.owner))
-		assert_that( IUser(survey), is_(survey.owner))
+		assert_that(survey, validly_provides(IUsersCourseInquiry))
+		assert_that(IUser(item), is_(survey.owner))
+		assert_that(IUser(survey), is_(survey.owner))
 
 	def test_record(self):
 		course_survey = UsersCourseInquiry()
 		submission = QSurveySubmission(surveyId='b', questions=())
-		assert_that( submission, validly_provides(IQSurveySubmission))
+		assert_that(submission, validly_provides(IQSurveySubmission))
 
-		item = course_survey.recordSubmission( submission )
-		assert_that( item, has_property( 'Submission', is_( submission )))
-		assert_that( item, has_property( '__name__', is_( submission.surveyId)) )
-		assert_that( item.__parent__, is_( course_survey ))
+		item = course_survey.recordSubmission(submission)
+		assert_that(item, has_property('Submission', is_(submission)))
+		assert_that(item, has_property('__name__', is_(submission.surveyId)))
+		assert_that(item.__parent__, is_(course_survey))
 		assert_that(course_survey, has_length(1))
 
-		course_survey.removeSubmission(submission )
+		course_survey.removeSubmission(submission)
 		assert_that(course_survey, has_length(0))
 
 import fudge
@@ -92,29 +92,29 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 	default_origin = str('http://janux.ou.edu')
 	default_username = 'outest75'
 
-	@WithSharedApplicationMockDS(users=('outest5',),testapp=True,default_authenticate=True)
+	@WithSharedApplicationMockDS(users=('outest5',), testapp=True, default_authenticate=True)
 	def test_fetching_entire_survey_collection(self):
 
 		outest_environ = self._make_extra_environ(username='outest5')
-		outest_environ.update( {b'HTTP_ORIGIN': b'http://janux.ou.edu'} )
+		outest_environ.update({b'HTTP_ORIGIN': b'http://janux.ou.edu'})
 
-		res = self.testapp.post_json( '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses',
+		res = self.testapp.post_json('/dataserver2/users/' + self.default_username + '/Courses/EnrolledCourses',
 									  COURSE_NTIID,
-									  status=201 )
+									  status=201)
 
 		default_enrollment_savepoints_link = self.require_link_href_with_rel(res.json_body, 'InquiryHistory')
-		assert_that( default_enrollment_savepoints_link,
+		assert_that(default_enrollment_savepoints_link,
 					 is_('/dataserver2/users/' +
-						self.default_username  +
+						self.default_username +
 						'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/Inquiries/' +
 						self.default_username))
 
-		res = self.testapp.post_json( '/dataserver2/users/outest5/Courses/EnrolledCourses',
+		res = self.testapp.post_json('/dataserver2/users/outest5/Courses/EnrolledCourses',
 								COURSE_NTIID,
 								status=201,
-								extra_environ=outest_environ )
+								extra_environ=outest_environ)
 
-		user2_enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'InquiryHistory')
+		user2_enrollment_history_link = self.require_link_href_with_rel(res.json_body, 'InquiryHistory')
 
 		# each can fetch his own
 		self.testapp.get(default_enrollment_savepoints_link)
@@ -135,47 +135,46 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		assert_that(submission, has_entry(StandardExternalFields.CREATED_TIME, is_(float)))
 		assert_that(submission, has_entry(StandardExternalFields.LAST_MODIFIED, is_(float)))
 		assert_that(submission, has_entry(StandardExternalFields.MIMETYPE,
-										 'application/vnd.nextthought.assessment.userscourseinquiryitem' ) )
+										 'application/vnd.nextthought.assessment.userscourseinquiryitem'))
 
 		assert_that(submission, has_key('Submission'))
 		submission = submission['Submission']
 		if containerId:
-			assert_that(submission, has_entry('ContainerId', containerId ))
-		assert_that(submission, has_entry( StandardExternalFields.CREATED_TIME, is_( float ) ) )
-		assert_that(submission, has_entry( StandardExternalFields.LAST_MODIFIED, is_( float ) ) )
+			assert_that(submission, has_entry('ContainerId', containerId))
+		assert_that(submission, has_entry(StandardExternalFields.CREATED_TIME, is_(float)))
+		assert_that(submission, has_entry(StandardExternalFields.LAST_MODIFIED, is_(float)))
 
 		if inquiry:
 			__traceback_info__ = inquiry
 			inquiry_res = self.testapp.get(inquiry)
-			assert_that(inquiry_res.json_body, has_entry('href', contains_string(unquote(inquiry)) ) )
+			assert_that(inquiry_res.json_body, has_entry('href', contains_string(unquote(inquiry))))
 			assert_that(inquiry_res.json_body, has_entry('Items', has_length(1)))
 
 			items = list(inquiry_res.json_body['Items'].values())
 			assert_that(items[0], has_key('href'))
 		else:
 			self._fetch_user_url('/Courses/EnrolledCourses/CLC3403/Inquiries/' +
-								self.default_username, status=404 )
+								self.default_username, status=404)
 
 	def _test_submission(self, item_id, ext_obj):
-
 		# Make sure we're enrolled
-		res = self.testapp.post_json( '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses',
+		res = self.testapp.post_json('/dataserver2/users/' + self.default_username + '/Courses/EnrolledCourses',
 									  COURSE_NTIID,
-									  status=201 )
+									  status=201)
 
 		enrollment_inquiries_link = self.require_link_href_with_rel(res.json_body, 'InquiryHistory')
-		course_inquiries_link = self.require_link_href_with_rel( res.json_body['CourseInstance'], 'InquiryHistory')
-		course_instance_link = res.json_body['CourseInstance']['href']
+		course_inquiries_link = self.require_link_href_with_rel(res.json_body['CourseInstance'], 'InquiryHistory')
+		_ = res.json_body['CourseInstance']['href']
 
-		assert_that( enrollment_inquiries_link,
+		assert_that(enrollment_inquiries_link,
 					 is_('/dataserver2/users/' +
 						 self.default_username +
 						 '/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/Inquiries/' +
 						 self.default_username))
 
-		assert_that( course_inquiries_link,
+		assert_that(course_inquiries_link,
 					 is_('/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice/Inquiries/' +
-						 self.default_username) )
+						 self.default_username))
 
 		# Both survey links are equivalent and work; and both are empty before I submit
 		for link in course_inquiries_link, enrollment_inquiries_link:
@@ -183,20 +182,21 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 			assert_that(survey_res.json_body, has_entry('Items', has_length(0)))
 
 		href = '/dataserver2/Objects/' + item_id
-		self.testapp.get(href +'/Submission', status=404)
+		self.testapp.get(href + '/Submission', status=404)
 
-		res = self.testapp.post_json( href, ext_obj)
+		res = self.testapp.post_json(href, ext_obj)
 		survey_item_href = res.json_body['href']
 		assert_that(survey_item_href, is_not(none()))
 
 		self._check_submission(res, enrollment_inquiries_link, item_id)
-
+		
 		res = self.testapp.get(survey_item_href)
 		assert_that(res.json_body, has_entry('href', is_not(none())))
 
 		res = self.testapp.get(href)
 		assert_that(res.json_body, has_entry('href', is_not(none())))
-
+		assert_that(res.json_body, has_entry('submissions', is_(1)))
+		
 		# Both survey links are equivalent and work
 		for link in course_inquiries_link, enrollment_inquiries_link:
 			surveys_res = self.testapp.get(link)
@@ -212,30 +212,30 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		self.testapp.delete(survey_item_href, status=403)
 		self.testapp.get(survey_item_href, status=200)
 
-	@WithSharedApplicationMockDS(users=('outest5',),testapp=True,default_authenticate=True)
+	@WithSharedApplicationMockDS(users=('outest5',), testapp=True, default_authenticate=True)
 	@fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
 	def test_survey(self, fake_active):
 		fake_active.is_callable().returns(True)
 
 		poll_sub = QPollSubmission(pollId=self.poll_id, parts=[0])
-		submission = QSurveySubmission(	surveyId=self.survey_id,
+		submission = QSurveySubmission(surveyId=self.survey_id,
 										questions=[poll_sub])
 
-		ext_obj = to_external_object( submission )
+		ext_obj = to_external_object(submission)
 		del ext_obj['Class']
-		assert_that( ext_obj, has_entry('MimeType', 'application/vnd.nextthought.assessment.surveysubmission'))
+		assert_that(ext_obj, has_entry('MimeType', 'application/vnd.nextthought.assessment.surveysubmission'))
 
 		self._test_submission(self.survey_id, ext_obj)
 
-	@WithSharedApplicationMockDS(users=('outest5',),testapp=True,default_authenticate=True)
+	@WithSharedApplicationMockDS(users=('outest5',), testapp=True, default_authenticate=True)
 	@fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
 	def test_poll(self, fake_active):
 		fake_active.is_callable().returns(True)
 
 		submission = QPollSubmission(pollId=self.poll_id, parts=[0])
 
-		ext_obj = to_external_object( submission )
+		ext_obj = to_external_object(submission)
 		del ext_obj['Class']
-		assert_that( ext_obj, has_entry('MimeType', 'application/vnd.nextthought.assessment.pollsubmission'))
+		assert_that(ext_obj, has_entry('MimeType', 'application/vnd.nextthought.assessment.pollsubmission'))
 
 		self._test_submission(self.poll_id, ext_obj)

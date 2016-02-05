@@ -25,7 +25,8 @@ from nti.app.assessment import get_assesment_catalog
 
 from nti.app.assessment.assignment_filters import AssessmentPolicyExclusionFilter
 
-from nti.app.assessment.index import IX_COURSE
+from nti.app.assessment.index import IX_SITE
+from nti.app.assessment.index import IX_COURSE 
 from nti.app.assessment.index import IX_ASSESSMENT_ID
 
 from nti.app.assessment.interfaces import IUsersCourseInquiryItem
@@ -60,6 +61,10 @@ from nti.dataserver.metadata_index import IX_CONTAINERID
 from nti.metadata import dataserver_metadata_catalog
 
 from nti.ntiids.ntiids import find_object_with_ntiid
+
+from nti.site.interfaces import IHostPolicyFolder
+
+from nti.site.site import get_component_hierarchy_names
 
 from nti.traversal.traversal import find_interface
 
@@ -329,8 +334,11 @@ def inquiry_submissions(context, course, subinstances=True):
 	else:
 		courses = (course,)
 	intids = component.getUtility(IIntIds)
-	doc_ids = {intids.getId(x) for x in courses}
-	query = { IX_COURSE: {'any_of':doc_ids},
+	folder = find_interface(course, IHostPolicyFolder, strict=False)
+	sites = (folder.__name__,) if folder is not None else get_component_hierarchy_names()
+	ntiids = {ICourseCatalogEntry(x).ntiid for x in courses}
+	query = { IX_SITE: {'any_of':sites},
+			  IX_COURSE: {'any_of':ntiids},
 			  IX_ASSESSMENT_ID : {'any_of':(context.ntiid,)}}
 	result = catalog.apply(query) or ()
 	return ResultSet(result, intids, True)

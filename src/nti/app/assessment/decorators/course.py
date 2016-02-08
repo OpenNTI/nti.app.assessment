@@ -18,6 +18,8 @@ from nti.appserver.pyramid_authorization import has_permission
 
 from nti.common.property import Lazy
 
+from nti.contenttypes.courses.utils import is_course_editor
+
 from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
 from nti.externalization.interfaces import StandardExternalFields
@@ -39,7 +41,8 @@ class _CourseEditorLinksDecorator(PreviewCourseAccessPredicateDecorator,
 	def _predicate(self, context, result):
 		return (	self._acl_decoration
 				and self._is_authenticated
-				and has_permission(ACT_CONTENT_EDIT, context, self.request))
+				and (	is_course_editor(context, self.remoteUser)
+					 or has_permission(ACT_CONTENT_EDIT, context, self.request)))
 
 	def _do_decorate_external(self, context, result_map):
 		links = result_map.setdefault(LINKS, [])

@@ -51,7 +51,6 @@ from nti.contentlibrary.interfaces import IContentPackage
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
-from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.dataserver import authorization as nauth
 
@@ -238,7 +237,7 @@ class ResetInquiryView(AbstractAuthenticatedView,
 					   ModeledContentUploadRequestUtilsMixin):
 
 	def readInput(self, value=None):
-		values = super(ResetInquiryView, self).readInput()
+		values = super(ResetInquiryView, self).readInput(value=value)
 		result = CaseInsensitiveDict(values)
 		return result
 
@@ -253,38 +252,38 @@ class ResetInquiryView(AbstractAuthenticatedView,
 		if inquiry is None:
 			raise hexc.HTTPUnprocessableEntity(_("Must provide a valid inquiry."))
 
-		entry = values.get('entry') or values.get('course')
-		if entry:
-			entry = find_object_with_ntiid(entry)
-			entry = ICourseCatalogEntry(entry, None)
-			if entry is None:
-				raise hexc.HTTPUnprocessableEntity(_("Must provide a valid couse/entry ntiid."))
+		course = values.get('entry') or values.get('course')
+		if course:
+			course = find_object_with_ntiid(course)
+			course = ICourseInstance(course, None)
+			if course is None:
+				raise hexc.HTTPUnprocessableEntity(_("Must provide a valid course ntiid."))
 
-		if entry is None:
-			username = values.get('username') or values.get('user')
-			if not username:
-				raise hexc.HTTPUnprocessableEntity(_("Must provide a username."))
-			creator = User.get_user(username)
-			if creator is None or not IUser.providedBy(creator):
-				raise hexc.HTTPUnprocessableEntity(_("Must provide a valid user."))
-
-		if entry is not None:
-			course = ICourseInstance(entry)
-			inquiries = IUsersCourseInquiries(course, None) or {}
+		# check for a user (inquiry taker)
+		username = values.get('username') or values.get('user') or values.get('taker')
+		
+		# if a course was provided, but no taker, delete all entries
+		if course is not None and not username:
+			inquiries = IUsersCourseInquiries(course)
 			for inquiry in inquiries.values():
 				if ntiid in inquiry:
 					del inquiry[ntiid]
 			return hexc.HTTPNoContent()
+		
+		if not username:
+			raise hexc.HTTPUnprocessableEntity(_("Must provide a username."))
+			creator = User.get_user(username)
+		if creator is None or not IUser.providedBy(creator):
+			raise hexc.HTTPUnprocessableEntity(_("Must provide a valid user."))
 
-		if creator is not None:
-			course = get_course_from_inquiry(inquiry, creator)
-			if course is None:
-				raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
+		course = get_course_from_inquiry(inquiry, creator) if course is None else course
+		if course is None:
+			raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
 
-			course_inquiry = component.queryMultiAdapter((course, creator),
-														 IUsersCourseInquiry)
-			if course_inquiry and ntiid in course_inquiry:
-				del course_inquiry[ntiid]
-				return hexc.HTTPNoContent()
-			else:
-				raise hexc.HTTPUnprocessableEntity(_("User has not taken inquiry."))
+		course_inquiry = component.queryMultiAdapter((course, creator),
+													 IUsersCourseInquiry)
+		if course_inquiry and ntiid in course_inquiry:
+			del course_inquiry[ntiid]
+			return hexc.HTTPNoContent()
+		else:
+			raise hexc.HTTPUnprocessableEntity(_("User has not taken inquiry."))

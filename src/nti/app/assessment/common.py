@@ -186,8 +186,8 @@ def find_course_for_assignment(assignment, user, exc=True):
 		# one based on the content package of the assignment, not
 		# checking enrollment.
 		# TODO: Drop this
-		course = ICourseInstance(find_interface(assignment, IContentPackage, strict=False),
-								  None)
+		package = find_interface(assignment, IContentPackage, strict=False)
+		course = ICourseInstance(package, None)
 		if course is not None:
 			logger.debug("No enrollment found, assuming generic course. Tests only?")
 
@@ -274,16 +274,14 @@ def find_course_for_inquiry(inquiry, user, exc=True):
 		raise RequiredMissing("Course cannot be found")
 	return course
 
-def get_course_from_inquiry(inquiry, user=None, catalog=None, 
-							registry=component, exc=False):
+def get_course_from_inquiry(inquiry, user=None, registry=component, exc=False):
 	# check if we have the context catalog entry we can use
 	# as reference (.AssessmentItemProxy)
 	result = None
 	try:
 		ntiid = inquiry.CatalogEntryNTIID
-		catalog = catalog if catalog is not None else registry.getUtility(ICourseCatalog)
-		entry = catalog.getCatalogEntry(ntiid) if ntiid else None
-		result = ICourseInstance(entry, None)
+		context = find_object_with_ntiid(ntiid or u'')
+		result = ICourseInstance(context, None)
 	except (KeyError, AttributeError):
 		pass
 

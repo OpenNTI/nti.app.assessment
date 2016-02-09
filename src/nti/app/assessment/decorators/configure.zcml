@@ -45,11 +45,6 @@
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.assessment.interfaces.IQAssignment
 					 pyramid.interfaces.IRequest" />
-
-	<subscriber factory=".assignment._AssignmentQuestionContentRootURLAdder"
-				provides="nti.externalization.interfaces.IExternalObjectDecorator"
-				for="nti.assessment.interfaces.IQuestion
-					 pyramid.interfaces.IRequest" />
 					 
 	<subscriber factory=".assignment._AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
@@ -221,32 +216,6 @@
 				for="nti.contenttypes.courses.interfaces.ICourseCatalogEntry
 					 pyramid.interfaces.IRequest" />
 
-	<!-- lineage -->
-	<subscriber factory=".lineage._ContextCatalogEntryDecorator"
-				provides="nti.externalization.interfaces.IExternalMappingDecorator"
-				for="..interfaces.IUsersCourseAssignmentHistoryItemFeedbackContainer
-					 pyramid.interfaces.IRequest" />
-					 
-	<subscriber factory=".lineage._ContextCatalogEntryDecorator"
-				provides="nti.externalization.interfaces.IExternalMappingDecorator"
-				for="..interfaces.IUsersCourseAssignmentHistoryItemFeedback
-					 pyramid.interfaces.IRequest" />
-
-	<subscriber factory=".lineage._ContextCatalogEntryDecorator"
-				provides="nti.externalization.interfaces.IExternalMappingDecorator"
-				for="..interfaces.IUsersCourseAssignmentHistoryItem
-					 pyramid.interfaces.IRequest" />
-					 
-	<subscriber factory=".lineage._ContextCatalogEntryDecorator"
-				provides="nti.externalization.interfaces.IExternalMappingDecorator"
-				for="..interfaces.IUsersCourseAssignmentMetadataItem
-					 pyramid.interfaces.IRequest" />
-				
-	<subscriber factory=".lineage._ContextCatalogEntryDecorator"
-				provides="nti.externalization.interfaces.IExternalMappingDecorator"
-				for="..interfaces.IUsersCourseInquiryItem
-					 pyramid.interfaces.IRequest" />
-	 
 	<!-- hrefs -->
 	<!-- NOTE: This is the general implementation; could be better -->
 	<!-- NOTE 2: We must produce OID hrefs for these, not traversal,

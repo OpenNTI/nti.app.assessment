@@ -101,7 +101,7 @@ class CourseAssignmentsView(CourseViewMixin):
 	def __call__(self):
 		instance = ICourseInstance(self.request.context)
 		params = CaseInsensitiveDict(self.request.params)
-		do_filtering = params.get('filter')
+		do_filtering = params.get('filter') or u''
 		do_filtering = do_filtering.lower() in TRUE_VALUES
 		func = partial(get_course_assignments, instance, do_filtering=do_filtering)
 		return self._do_call(func)

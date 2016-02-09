@@ -26,7 +26,7 @@ from nti.app.assessment import get_assesment_catalog
 from nti.app.assessment.assignment_filters import AssessmentPolicyExclusionFilter
 
 from nti.app.assessment.index import IX_SITE
-from nti.app.assessment.index import IX_COURSE 
+from nti.app.assessment.index import IX_COURSE
 from nti.app.assessment.index import IX_ASSESSMENT_ID
 
 from nti.app.assessment.interfaces import IUsersCourseInquiryItem
@@ -198,7 +198,7 @@ def find_course_for_assignment(assignment, user, exc=True):
 
 	return course
 
-def get_course_from_assignment(assignment, user=None, catalog=None, 
+def get_course_from_assignment(assignment, user=None, catalog=None,
 							   registry=component, exc=False):
 	# check if we have the context catalog entry we can use
 	# as reference (.AssessmentItemProxy) this way
@@ -334,13 +334,16 @@ def inquiry_submissions(context, course, subinstances=True):
 	intids = component.getUtility(IIntIds)
 	folder = find_interface(course, IHostPolicyFolder, strict=False)
 	sites = (folder.__name__,) if folder is not None else get_component_hierarchy_names()
-	ntiids = {ICourseCatalogEntry(x).ntiid for x in courses}
+	# safety during course adaptation (seen in alpha)
+	ntiids = {getattr(ICourseCatalogEntry(x, None), 'ntiid', None) for x in courses}
+	ntiids.discard(None)
+	# prepare query
 	query = { IX_SITE: {'any_of':sites},
 			  IX_COURSE: {'any_of':ntiids},
 			  IX_ASSESSMENT_ID : {'any_of':(context.ntiid,)}}
 	result = catalog.apply(query) or ()
 	return ResultSet(result, intids, True)
-	
+
 def aggregate_course_inquiry(inquiry, course, *items):
 	result = None
 	submissions = inquiry_submissions(inquiry, course)

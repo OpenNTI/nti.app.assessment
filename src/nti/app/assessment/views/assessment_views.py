@@ -7,14 +7,16 @@ Views related to assessment.
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
+from nti.common.proxy import removeAllProxies
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-from cStringIO import StringIO
-from datetime import datetime
 from numbers import Number
 from urllib import unquote
+from datetime import datetime
+from cStringIO import StringIO
+from collections import defaultdict
 
 from zipfile import ZipInfo
 from zipfile import ZipFile
@@ -634,29 +636,28 @@ class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 		# assignment.
 
 		qsids_to_strip = set()
+		data = defaultdict(dict)
 		catalog = ICourseAssessmentItemCatalog(instance)
 		for item in catalog.iter_assessment_items():
 			if IQAssignment.providedBy(item):
 				for assignment_part in item.parts or ():
 					question_set = assignment_part.question_set
 					qsids_to_strip.add(question_set.ntiid)
-					qsids_to_strip.update([q.ntiid for q in question_set.questions])
+					qsids_to_strip.update(q.ntiid for q in question_set.questions)
 			elif IQSurvey.providedBy(item):
-				qsids_to_strip.update([p.ntiid for p in item.questions or ()])
+				qsids_to_strip.update(p.ntiid for p in item.questions or ())
 			else:
 				# The item's __parent__ is always the 'home' content unit
 				unit = item.__parent__
 				if unit is not None:
-					result.setdefault(unit.ntiid, {})[item.ntiid] = item
+					item = removeAllProxies(item)
+					data[unit.ntiid][item.ntiid] = item
 				else:
 					logger.error("%s is an item without parent unit", item.ntiid)
 
 		# Now remove the forbidden
-		for unit_ntiid, items in list(result.items()): # mutating
-			for ntiid in list(items.keys()):  # mutating
-				if ntiid in qsids_to_strip:
-					del items[ntiid]
-			result[unit_ntiid] = list(items.values())
+		for ntiid, items in data.items():
+			result[ntiid] = [items[x] for x in items.keys() if x not in qsids_to_strip]
 
 		return result
 
@@ -664,7 +665,7 @@ class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 		result = LocatedExternalDict()
 		result.__name__ = self.request.view_name
 		result.__parent__ = self.request.context
-
+		
 		instance = ICourseInstance(self.request.context)
 		if self.is_ipad_legacy:
 			self._do_catalog(instance, result)

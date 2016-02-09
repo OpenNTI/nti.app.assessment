@@ -37,6 +37,7 @@ from nti.appserver.pyramid_authorization import has_permission
 
 from nti.assessment.interfaces import IQFilePart
 from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQAssessmentContainerIdGetter
 
 from nti.assessment.randomized import questionbank_question_chooser
 
@@ -45,7 +46,10 @@ from nti.assessment.randomized.interfaces import IPrincipalSeedSelector
 
 from nti.common.proxy import removeAllProxies
 
+from nti.contentlibrary.interfaces import IContentUnit
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import IUsernameSubstitutionPolicy
@@ -255,4 +259,18 @@ class PrincipalSeedSelector(object):
 		user = get_user(principal)
 		if user is not None:
 			return get_uid(user)
+		return None
+
+@interface.implementer(IQAssessmentContainerIdGetter)
+class AssessmentContainerIdGetter(object):
+
+	def __call__(self, item):
+		parent = item.__parent__
+		if IContentUnit.providedBy(parent):
+			return parent.ntiid
+		elif ICourseInstance.providedBy(parent):
+			entry = ICourseCatalogEntry(parent) # annotation
+			return entry.ntiid
+		elif ICourseCatalogEntry.providedBy(parent):
+			return entry.ntiid
 		return None

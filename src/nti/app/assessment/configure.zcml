@@ -311,6 +311,7 @@
 
 	<!-- Utilities -->
 	<utility factory=".utils.PrincipalSeedSelector" />
+	<utility factory=".utils.AssessmentContainerIdGetter" />
 
 	<!-- Metadata -->
 	<configure zcml:condition="installed nti.metadata">

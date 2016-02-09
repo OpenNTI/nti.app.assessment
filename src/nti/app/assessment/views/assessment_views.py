@@ -650,6 +650,8 @@ class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 				# The item's __parent__ is always the 'home' content unit
 				unit = item.__parent__
 				if unit is not None:
+					# CS: We can remove proxies since the items are neither assignments
+					# nor survey, so no course lookup is necesary
 					item = removeAllProxies(item)
 					data[unit.ntiid][item.ntiid] = item
 				else:

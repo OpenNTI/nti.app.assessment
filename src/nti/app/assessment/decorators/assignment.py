@@ -207,7 +207,7 @@ class _AssignmentQuestionContentRootURLAdder(AbstractAuthenticatedRequestAwareDe
 
 		bucket_root = _root_url(ntiid) if ntiid else None
 		if bucket_root:
-			result['ContentRoot' ] = bucket_root
+			result['ContentRoot'] = bucket_root
 
 class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAwareDecorator):
 	"""

@@ -15,7 +15,7 @@ from zope.location.interfaces import ILocationInfo
 
 from nti.app.assessment.common import get_course_from_assignment
 
-from nti.app.products.courseware.utils import PreviewCourseAccessPredicate
+from nti.app.products.courseware.utils import PreviewCourseAccessPredicateDecorator
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
@@ -24,8 +24,6 @@ from nti.contentlibrary.interfaces import IContentPackageLibrary
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
-
-PreviewCourseAccessPredicateDecorator = PreviewCourseAccessPredicate  # re-export
 
 class _AbstractTraversableLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 

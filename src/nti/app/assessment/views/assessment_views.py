@@ -64,6 +64,8 @@ from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtils
 
 from nti.app.products.courseware.interfaces import ICourseInstanceEnrollment
 
+from nti.appserver.pyramid_authorization import has_permission
+
 from nti.appserver.ugd_edit_views import UGDDeleteView
 
 from nti.assessment.interfaces import IQSurvey
@@ -534,7 +536,13 @@ class AssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 
 	@Lazy
 	def is_course_instructor(self):
-		return is_course_instructor_or_editor(self.context, self.remoteUser)
+		instance = ICourseInstance(self.context)
+		return is_course_instructor_or_editor(instance, self.remoteUser)
+
+	@Lazy
+	def _is_editor(self):
+		instance = ICourseInstance(self.context)
+		return has_permission( nauth.ACT_CONTENT_EDIT, instance )
 
 	def _do_outline(self, instance, items, outline):
 		# reverse question set map
@@ -575,11 +583,12 @@ class AssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 	def _do_catalog(self, instance, result):
 		catalog = ICourseAssignmentCatalog(instance)
 		uber_filter = get_course_assessment_predicate_for_user(self.remoteUser, instance)
-		for asg in (x for x in catalog.iter_assignments() if uber_filter(x)):
+		for asg in (x for x in catalog.iter_assignments() if uber_filter(x) or self._is_editor):
 			# The assignment's __parent__ is always the 'home' content unit
 			parent = asg.__parent__
 			if parent is not None:
-				if not self.is_ipad_legacy and self.is_course_instructor:
+				if 		not self.is_ipad_legacy \
+					and (self.is_course_instructor or self._is_editor):
 					asg = copy_assignment(asg, True)
 				if ICourseInstance.providedBy(parent):
 					parent = ICourseCatalogEntry(parent)
@@ -667,7 +676,7 @@ class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 		result = LocatedExternalDict()
 		result.__name__ = self.request.view_name
 		result.__parent__ = self.request.context
-		
+
 		instance = ICourseInstance(self.request.context)
 		if self.is_ipad_legacy:
 			self._do_catalog(instance, result)

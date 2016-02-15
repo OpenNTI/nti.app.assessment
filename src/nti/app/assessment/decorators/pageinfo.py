@@ -24,6 +24,8 @@ from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecora
 
 from nti.appserver.interfaces import IContentUnitInfo
 
+from nti.appserver.pyramid_authorization import has_permission
+
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
@@ -36,6 +38,8 @@ from nti.contenttypes.courses.interfaces import get_course_assessment_predicate_
 
 from nti.contenttypes.courses.utils import is_enrolled
 from nti.contenttypes.courses.utils import is_course_instructor_or_editor
+
+from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
 from nti.externalization.externalization import to_external_object
 
@@ -68,6 +72,13 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 		x.containerId = containerId
 		return x
 
+	def _is_instructor_or_editor(self, course, user):
+		result = False
+		if course is not None:
+			result = 	is_course_instructor_or_editor(course, user) \
+					or 	has_permission( ACT_CONTENT_EDIT, course )
+		return result
+
 	def _do_decorate_external(self, context, result_map):
 		entry_ntiid = None
 		qsids_to_strip = set()
@@ -89,7 +100,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 			entry_ntiid = getattr(ICourseCatalogEntry(course, None), 'ntiid', None)
 
 		new_result = {}
-		is_instructor = False if course is None else is_course_instructor_or_editor(course, user)
+		is_instructor = self._is_instructor_or_editor(course, user)
 		for ntiid, x in result.iteritems():
 
 			# To keep size down, when we send back assignments or question sets,

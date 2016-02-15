@@ -120,7 +120,7 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
 			return assignment_download_precondition(context, self.request, self.remoteUser)  # XXX Hack
 
 	def _do_decorate_external(self, context, result):
-		# TODO It would be better to have the course context in our link,
+		# TODO: It would be better to have the course context in our link,
 		# but for now, we'll just have a course param.
 		course = _get_course_from_assignment(context, self.remoteUser)
 		catalog_entry = ICourseCatalogEntry(course, None)
@@ -136,7 +136,7 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
 
 class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
-	When an assignment is externalized, check for overrides
+	When an assignment is externalized, check for overrides.
 	"""
 
 	@Lazy

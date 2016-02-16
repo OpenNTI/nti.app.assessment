@@ -133,7 +133,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 				if assignment_predicate is None:
 					logger.warn("Found assignment (%s) outside of course context "
 								"in %s; dropping", x, context.contentUnit)
-				elif assignment_predicate(x):
+				elif assignment_predicate(x) or is_instructor:
 					# Yay, keep the assignment
 					x = check_assignment(x, user, is_instructor)
 					x = AssignmentProxy(x, entry_ntiid)

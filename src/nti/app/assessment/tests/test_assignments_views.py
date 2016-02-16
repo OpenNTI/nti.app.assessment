@@ -55,13 +55,21 @@ class TestAssignmentViews(ApplicationLayerTest):
 		start_field = 'available_for_submission_beginning'
 		end_field = 'available_for_submission_ending'
 		public_field = 'is_non_public'
+
+		# Base cases
 		res = self.testapp.get( '/dataserver2/Objects/' + self.assignment_id,
 							extra_environ=editor_environ )
+
 		res = res.json_body
 		orig_start_date = res.get( start_field )
 		orig_end_date = res.get( end_field )
 		orig_non_public = res.get( public_field )
 		assert_that( orig_non_public, is_( True ))
+
+		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+			asg = find_object_with_ntiid(self.assignment_id)
+			history = ITransactionRecordHistory( asg )
+			assert_that( history, has_length( 0 ))
 
 		# Test editing dates
 		data = { start_field: new_start_date }
@@ -73,6 +81,11 @@ class TestAssignmentViews(ApplicationLayerTest):
 		assert_that( res.get( start_field ), is_( new_start_date ))
 		assert_that( res.get( start_field ), is_not( orig_start_date ))
 
+		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+			asg = find_object_with_ntiid(self.assignment_id)
+			history = ITransactionRecordHistory( asg )
+			assert_that( history, has_length( 1 ))
+
 		data = { end_field: new_end_date }
 		self.testapp.put_json( '/dataserver2/Objects/%s' % self.assignment_id,
 							data, extra_environ=editor_environ )
@@ -81,6 +94,11 @@ class TestAssignmentViews(ApplicationLayerTest):
 		res = res.json_body
 		assert_that( res.get( end_field ), is_( new_end_date ))
 		assert_that( res.get( end_field ), is_not( orig_end_date ))
+
+		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+			asg = find_object_with_ntiid(self.assignment_id)
+			history = ITransactionRecordHistory( asg )
+			assert_that( history, has_length( 2 ))
 
 		# Edit is_non_public
 		data = { public_field: 'False' }
@@ -91,6 +109,11 @@ class TestAssignmentViews(ApplicationLayerTest):
 		res = res.json_body
 		assert_that( res.get( public_field ), is_( False ))
 		assert_that( res.get( public_field ), is_not( True ))
+
+		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+			asg = find_object_with_ntiid(self.assignment_id)
+			history = ITransactionRecordHistory( asg )
+			assert_that( history, has_length( 3 ))
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_no_context(self):

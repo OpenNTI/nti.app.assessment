@@ -60,7 +60,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 		if result is not None:
 			# CS: make sure the user is either enrolled or is an instructor in the
 			# course passed as parameter
-			if not (is_enrolled(result, user) or is_course_instructor_or_editor(result, user)):
+			if not (is_enrolled(result, user) or self._is_instructor_or_editor(result, user)):
 				result = None
 		if result is None:
 			result = component.queryMultiAdapter((contentUnit, user), ICourseInstance)

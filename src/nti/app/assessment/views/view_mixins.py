@@ -101,7 +101,7 @@ class AssessmentPutView(UGDPutView):
 			intids = component.getUtility(IIntIds)
 			sites = {self.get_site_name(x) for x in courses}
 			ntiids = {ICourseCatalogEntry(x).ntiid for x in courses}
-			query = { 
+			query = {
 			 	IX_SITE: {'any_of':sites},
 				IX_COURSE: {'any_of':ntiids},
 			 	IX_ASSESSMENT_ID: {'any_of':(assesment.ntiid,)}
@@ -124,7 +124,7 @@ class AssessmentPutView(UGDPutView):
 	@property
 	def policy_keys(self):
 		return SUPPORTED_DATE_KEYS
-	
+
 	def update_policy(self, courses, ntiid, key, value):
 		if key in SUPPORTED_DATE_KEYS:
 			value = IDateTime(value) if not isinstance(value, datetime) else value

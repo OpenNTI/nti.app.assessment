@@ -47,24 +47,50 @@ class TestAssignmentViews(ApplicationLayerTest):
 	course_url = '/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2015/CS%201323'
 	assignment_id = 'tag:nextthought.com,2011-10:OU-NAQ-CS1323_F_2015_Intro_to_Computer_Programming.naq.asg.assignment:Project_1'
 
-# 	@WithSharedApplicationMockDS(users=True,testapp=True)
-#  	def test_date_editing(self):
-# 		# Test editing dates
-# 		editor_environ = self._make_extra_environ(username="steve.johnson@nextthought.com")
-# 		new_start_date = "2015-09-10T05:00:00Z"
-# 		new_end_date = "2015-09-12T04:59:00Z"
-# 		start_field = 'available_for_submission_beginning'
-# 		end_field = 'available_for_submission_ending'
-# 		self.testapp.put_json( '/dataserver2/Objects/%s/++fields++%s' % ( self.assignment_id, start_field ) )
-# 		res = self.testapp.get( '/dataserver2/Objects/' + self.assignment_id, extra_environ=editor_environ )
-# 		res = res.json_body
-# 		assert_that( res.get( start_field ), is_( new_start_date ))
-#
-# 		self.testapp.put_json( '/dataserver2/Objects/%s/++fields++%s' % ( self.assignment_id, end_field ),
-# 							new_end_date, extra_environ=editor_environ )
-# 		res = self.testapp.get( '/dataserver2/Objects/' + self.assignment_id, extra_environ=editor_environ )
-# 		res = res.json_body
-# 		assert_that( res.get( end_field ), is_( new_end_date ))
+	@WithSharedApplicationMockDS(users=True,testapp=True)
+	def test_assignment_editing(self):
+		editor_environ = self._make_extra_environ(username="sjohnson@nextthought.com")
+		new_start_date = "2015-09-10T05:00:00Z"
+		new_end_date = "2015-09-12T04:59:00Z"
+		start_field = 'available_for_submission_beginning'
+		end_field = 'available_for_submission_ending'
+		public_field = 'is_non_public'
+		res = self.testapp.get( '/dataserver2/Objects/' + self.assignment_id,
+							extra_environ=editor_environ )
+		res = res.json_body
+		orig_start_date = res.get( start_field )
+		orig_end_date = res.get( end_field )
+		orig_non_public = res.get( public_field )
+		assert_that( orig_non_public, is_( True ))
+
+		# Test editing dates
+		data = { start_field: new_start_date }
+		self.testapp.put_json( '/dataserver2/Objects/%s' % self.assignment_id,
+								data, extra_environ=editor_environ )
+		res = self.testapp.get( '/dataserver2/Objects/' + self.assignment_id,
+							extra_environ=editor_environ )
+		res = res.json_body
+		assert_that( res.get( start_field ), is_( new_start_date ))
+		assert_that( res.get( start_field ), is_not( orig_start_date ))
+
+		data = { end_field: new_end_date }
+		self.testapp.put_json( '/dataserver2/Objects/%s' % self.assignment_id,
+							data, extra_environ=editor_environ )
+		res = self.testapp.get( '/dataserver2/Objects/' + self.assignment_id,
+							extra_environ=editor_environ )
+		res = res.json_body
+		assert_that( res.get( end_field ), is_( new_end_date ))
+		assert_that( res.get( end_field ), is_not( orig_end_date ))
+
+		# Edit is_non_public
+		data = { public_field: 'False' }
+		self.testapp.put_json( '/dataserver2/Objects/%s' % self.assignment_id,
+							data, extra_environ=editor_environ )
+		res = self.testapp.get( '/dataserver2/Objects/' + self.assignment_id,
+							extra_environ=editor_environ )
+		res = res.json_body
+		assert_that( res.get( public_field ), is_( False ))
+		assert_that( res.get( public_field ), is_not( True ))
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_no_context(self):

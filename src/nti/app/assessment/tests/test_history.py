@@ -28,6 +28,8 @@ from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
 from nti.dataserver.users import User
 from nti.dataserver.interfaces import IUser
 
+from nti.externalization.externalization import to_external_object
+
 from nti.externalization.tests import externalizes
 
 from nti.testing.matchers import is_false
@@ -62,8 +64,8 @@ class TestHistory(AssessmentLayerTest):
 					 validly_provides(IUsersCourseAssignmentHistoryItemSummary))
 
 		assert_that(item, externalizes( has_entries( 'Class', 'UsersCourseAssignmentHistoryItem',
-													 'MimeType', 'application/vnd.nextthought.assessment.userscourseassignmenthistoryitem' ) ) )
-		
+													 'MimeType', 'application/vnd.nextthought.assessment.userscourseassignmenthistoryitem' )))
+
 	def test_record(self):
 		history = UsersCourseAssignmentHistory()
 		submission = AssignmentSubmission(assignmentId='b')

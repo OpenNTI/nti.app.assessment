@@ -26,6 +26,8 @@ from nti.common.property import Lazy
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ICourseAssignmentCatalog
+from nti.contenttypes.courses.interfaces import get_course_assessment_predicate_for_user
 
 from nti.contenttypes.courses.utils import is_course_instructor
 
@@ -43,6 +45,23 @@ from nti.traversal.traversal import find_interface
 LINKS = StandardExternalFields.LINKS
 
 @interface.implementer(IExternalMappingDecorator)
+class _AssignmentsAvailableAssignmentHistoryDecorator( AbstractAuthenticatedRequestAwareDecorator ):
+	"""
+	For a user's assignment history, expose available assignments.
+	"""
+
+	def _do_decorate_external(self, context, result_map):
+		user = context.owner
+		course = find_interface(context, ICourseInstance, strict=False)
+		if course is not None:
+			result_map['AvailableAssignmentNTIIDs'] = result = []
+			assignment_catalog = ICourseAssignmentCatalog( course )
+			user_predicate = get_course_assessment_predicate_for_user( user, course )
+			for asg in assignment_catalog.iter_assignments():
+				if user_predicate( asg ):
+					result.append( asg.ntiid )
+
+@interface.implementer(IExternalMappingDecorator)
 class _CourseAssignmentHistoryDecorator(PreviewCourseAccessPredicateDecorator,
 										_AbstractTraversableLinkDecorator):
 	"""
@@ -56,7 +75,7 @@ class _CourseAssignmentHistoryDecorator(PreviewCourseAccessPredicateDecorator,
 
 	def _do_decorate_external(self, context, result_map):
 		links = result_map.setdefault(LINKS, [])
-		# XXX If the context provides a user, that's the one we want,
+		# XXX: If the context provides a user, that's the one we want,
 		# otherwise we want the current user
 		user = IUser(context, self.remoteUser)
 		links.append(Link(context,

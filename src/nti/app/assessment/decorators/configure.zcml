@@ -9,17 +9,17 @@
 	<include package="zope.security" file="meta.zcml" />
 	<include package="zope.component" />
 	<include package="zope.security" />
-					 		 
+
 	<subscriber factory=".pageinfo._ContentUnitAssessmentItemDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.appserver.interfaces.IContentUnitInfo
 					 pyramid.interfaces.IRequest" />
 
-	<!-- upload file -->	 
+	<!-- upload file -->
 	<subscriber factory="nti.app.contentfile.decorators._ContentFileDecorator"
 				for="nti.assessment.interfaces.IQUploadedFile"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"/>
-				
+
 	<!-- assignment -->
 	<subscriber factory=".assignment._AssignmentsByOutlineNodeDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
@@ -45,7 +45,7 @@
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.assessment.interfaces.IQAssignment
 					 pyramid.interfaces.IRequest" />
-					 
+
 	<subscriber factory=".assignment._AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.assessment.interfaces.IQAssignmentSubmissionPendingAssessment
@@ -60,16 +60,16 @@
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.assessment.interfaces.IQTimedAssignment
 					 pyramid.interfaces.IRequest" />
-	
+
 	<subscriber factory=".assignment._QuestionSetDecorator"
 				for="nti.assessment.randomized.interfaces.IQuestionBank"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"/>
-		
+
 	<subscriber factory=".assignment._QuestionSetDecorator"
 				for="nti.assessment.randomized.interfaces.IRandomizedQuestionSet"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"/>
-		
-	<!-- assessed -->	
+
+	<!-- assessed -->
 	<subscriber factory=".assessed._QAssessedPartDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.assessment.interfaces.IQAssessedPart
@@ -83,13 +83,18 @@
 	<subscriber factory=".assessed._QAssessedQuestionExplanationSolutionAdder"
 				for="nti.assessment.interfaces.IQAssessedQuestion"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator" />
-				
+
 	<subscriber factory=".assessed._QAssignmentSubmissionPendingAssessmentDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.assessment.interfaces.IQAssignmentSubmissionPendingAssessment
 					 pyramid.interfaces.IRequest" />
-					
-	<!-- history -->			
+
+	<!-- history -->
+	<subscriber factory=".history._AssignmentsAvailableAssignmentHistoryDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="..interfaces.IUsersCourseAssignmentHistory
+					 pyramid.interfaces.IRequest" />
+
 	<subscriber factory=".history._CourseAssignmentHistoryDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.contenttypes.courses.interfaces.ICourseInstance
@@ -104,23 +109,23 @@
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="..interfaces.IUsersCourseAssignmentHistory
 					 pyramid.interfaces.IRequest" />
-					 
+
 	<subscriber factory=".history._AssignmentHistoryLinkDecorator"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.assessment.interfaces.IQAssignment
 					 pyramid.interfaces.IRequest" />
-					 
+
 	<subscriber factory=".history._AssignmentHistoryItemDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="..interfaces.IUsersCourseAssignmentHistoryItem
 					 pyramid.interfaces.IRequest" />
-				
+
 	<subscriber factory=".history._AssignmentHistoryItemDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="..interfaces.IUsersCourseAssignmentHistoryItemSummary
 					 pyramid.interfaces.IRequest" />
-					 
-	<!-- feedback -->	 
+
+	<!-- feedback -->
 	<subscriber factory=".feedback._FeedbackItemAssignmentIdDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"/>
 
@@ -129,7 +134,7 @@
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.assessment.interfaces.IQAssignment
 					 pyramid.interfaces.IRequest" />
-		
+
 	<!-- savepoint -->
 	<subscriber factory=".savepoint._AssignmentSavepointDecorator"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
@@ -150,7 +155,7 @@
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="..interfaces.IUsersCourseAssignmentSavepointItem
 					 pyramid.interfaces.IRequest" />
-	
+
 	<!-- metadata -->
 	<subscriber factory=".metadata._AssignmentMetadataDecorator"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
@@ -177,7 +182,7 @@
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.assessment.interfaces.IQInquiry
 					 pyramid.interfaces.IRequest" />
-					 
+
 	<subscriber factory=".survey._InquiriesDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.contenttypes.courses.interfaces.ICourseInstance
@@ -187,7 +192,7 @@
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.app.products.courseware.interfaces.ICourseInstanceEnrollment
 					 pyramid.interfaces.IRequest" />
-					 
+
 	<subscriber factory=".survey._InquiryItemDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="..interfaces.IUsersCourseInquiryItem
@@ -204,7 +209,7 @@
 					for="nti.contenttypes.presentation.interfaces.INTISurveyRef
 						 pyramid.interfaces.IRequest" />
 	</configure>
-	
+
 	<!-- editor -->
 	<subscriber factory=".course._CourseEditorLinksDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
@@ -235,5 +240,5 @@
 	<subscriber factory="nti.appserver.pyramid_renderers_edit_link_decorator.OIDEditLinkDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="..interfaces.IUsersCourseAssignmentHistoryItemFeedbackContainer pyramid.interfaces.IRequest" />
-	
+
 </configure>

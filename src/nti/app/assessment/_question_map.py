@@ -170,6 +170,7 @@ class QuestionMap(QuestionIndex):
 						provided=provided,
 						name=name,
 						event=event)
+		logger.debug("(%s,%s) has been registered", provided.__name__, name)
 
 	def _get_registry(self, registry=None):
 		return get_registry(registry)
@@ -601,6 +602,8 @@ def _remove_assessment_items_from_oldcontent(content_package,
 			provided = _iface_to_register(item)
 			if not unregisterUtility(sm, provided=provided, name=name):
 				logger.warn("Could not unregister %s from %s", name, sm)
+			else:
+				logger.debug("(%s,%s) has been unregistered", provided.__name__, name)
 			if intids is not None and intids.queryId(item) is not None:
 				catalog.unindex(item, intids=intids)
 				removeIntId(item)

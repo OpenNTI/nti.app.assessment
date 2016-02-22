@@ -37,7 +37,7 @@ from nti.externalization.interfaces import StandardExternalFields
 
 from nti.externalization.externalization import to_external_object
 
-ITEMS = StandardExternalFields
+ITEMS = StandardExternalFields.ITEMS
 
 def _tx_string(s):
 	if s and isinstance(s, unicode):

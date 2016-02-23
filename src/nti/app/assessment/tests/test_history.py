@@ -28,8 +28,6 @@ from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
 from nti.dataserver.users import User
 from nti.dataserver.interfaces import IUser
 
-from nti.externalization.externalization import to_external_object
-
 from nti.externalization.tests import externalizes
 
 from nti.testing.matchers import is_false

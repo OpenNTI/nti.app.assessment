@@ -14,6 +14,7 @@ logger = __import__('logging').getLogger(__name__)
 
 import time
 from collections import defaultdict
+from collections import OrderedDict
 
 from zope import component
 from zope import interface
@@ -44,6 +45,10 @@ from nti.assessment._question_index import _load_question_map_json
 from nti.assessment.common import iface_of_assessment as _iface_to_register
 
 from nti.assessment.interfaces import IQAssessmentItemContainer
+
+from nti.assessment.interfaces import SURVEY_MIME_TYPE
+from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
+from nti.assessment.interfaces import QUESTION_SET_MIME_TYPE
 
 from nti.common.proxy import removeAllProxies
 
@@ -237,6 +242,25 @@ class QuestionMap(QuestionIndex):
 		result.discard(None)
 		return result
 
+	def _get_assess_item_dict(self, base):
+		"""
+		Make sure we iterate through our assessment dict in a
+		deterministic order. This ensures everything is registered
+		the same way (including the correct containers) every time.
+		"""
+		result = OrderedDict()
+		for mime_type in (	ASSIGNMENT_MIME_TYPE,
+							SURVEY_MIME_TYPE,
+							QUESTION_SET_MIME_TYPE,
+							None ):
+			for key, assess_dict in base.items():
+				if mime_type == None:
+					# Everything else
+					result[key] = assess_dict
+				elif assess_dict.get( 'MimeType' ) == mime_type:
+					result[key] = assess_dict
+		return result
+
 	def _process_assessments(self,
 							 assessment_item_dict,
 							 containing_hierarchy_key,
@@ -268,7 +292,9 @@ class QuestionMap(QuestionIndex):
 
 		result = set()
 		registry = self._get_registry(registry)
-		for ntiid, v in assessment_item_dict.items():
+
+		assess_dict = self._get_assess_item_dict( assessment_item_dict )
+		for ntiid, v in assess_dict.items():
 			__traceback_info__ = ntiid, v
 
 			factory = find_factory_for(v)

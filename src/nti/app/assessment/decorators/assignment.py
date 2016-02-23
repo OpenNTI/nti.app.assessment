@@ -14,6 +14,8 @@ from datetime import datetime
 from zope import component
 from zope import interface
 
+from zope.location.interfaces import ILocation
+
 from nti.app.assessment.common import get_assessment_metadata_item
 from nti.app.assessment.common import get_available_for_submission_ending
 from nti.app.assessment.common import get_available_for_submission_beginning
@@ -48,6 +50,8 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.contenttypes.courses.utils import is_course_instructor
+
+from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
 from nti.externalization.externalization import to_external_object
 
@@ -309,3 +313,25 @@ class _QuestionSetDecorator(object):
 		oid = getattr(original, 'oid', None)
 		if oid and OID not in external:
 			external[OID] = oid
+
+@interface.implementer(IExternalMappingDecorator)
+class _AssessmentEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
+
+	def _has_edit_link(self, result):
+		for lnk in result.get(LINKS) or ():
+			if getattr(lnk, 'rel', None) == 'edit':
+				return True
+		return False
+
+	def _predicate(self, context, result):
+		return 		self._is_authenticated \
+				and	not self._has_edit_link(result) \
+				and has_permission(ACT_CONTENT_EDIT, context, self.request)
+
+	def _do_decorate_external(self, context, result):
+		_links = result.setdefault(LINKS, [])
+		link = Link(context, rel='edit')
+		interface.alsoProvides(link, ILocation)
+		link.__name__ = ''
+		link.__parent__ = context
+		_links.append(link)

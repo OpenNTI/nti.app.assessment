@@ -72,9 +72,12 @@ LINKS = StandardExternalFields.LINKS
 class _AssignmentsByOutlineNodeDecorator(PreviewCourseAccessPredicateDecorator,
 										_AbstractTraversableLinkDecorator):
 	"""
-	For things that have a assignments, add this
-	as a link.
+	For things that have a assignments, add this as a link.
 	"""
+
+	def _predicate(self, context, result):
+		return 	super(_AssignmentsByOutlineNodeDecorator,self)._predicate( context, result ) \
+			and self._is_authenticated
 
 	# Note: This overlaps with the registrations in assessment_views
 	# Note: We do not specify what we adapt, there are too many

@@ -78,6 +78,10 @@ class _InquiryContentRootURLAdder(AbstractAuthenticatedRequestAwareDecorator):
 class _InquiriesDecorator(PreviewCourseAccessPredicateDecorator,
 						_AbstractTraversableLinkDecorator):
 
+	def _predicate(self, context, result):
+		return 	super(_InquiriesDecorator,self)._predicate( context, result ) \
+			and self._is_authenticated
+
 	def _do_decorate_external(self, context, result_map):
 		links = result_map.setdefault(LINKS, [])
 		user = IUser(context, self.remoteUser)
@@ -154,7 +158,7 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 					available.append(dates_date)
 				else:
 					available.append(asg_date)
-					
+
 			if available[0] is not None and now < available[0]:
 				isClosed = result_map['isClosed'] = True
 			elif available[1] is not None and now > available[1]:
@@ -179,7 +183,7 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 		# aggregated
 		if 		course is not None \
 			and submissions \
-			and (	is_course_instructor(course, user) 
+			and (	is_course_instructor(course, user)
 				 or can_disclose_inquiry(context, course)):
 			links.append(Link(course,
 							  rel='Aggregated',

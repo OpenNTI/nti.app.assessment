@@ -12,7 +12,6 @@ logger = __import__('logging').getLogger(__name__)
 from zope import interface
 
 from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
-from nti.app.assessment.decorators import PreviewCourseAccessPredicateDecorator
 
 from nti.appserver.pyramid_authorization import has_permission
 
@@ -30,8 +29,7 @@ from nti.links.links import Link
 LINKS = StandardExternalFields.LINKS
 
 @interface.implementer(IExternalMappingDecorator)
-class _CourseEditorLinksDecorator(PreviewCourseAccessPredicateDecorator,
-								  _AbstractTraversableLinkDecorator):
+class _CourseEditorLinksDecorator(_AbstractTraversableLinkDecorator):
 
 	@Lazy
 	def _acl_decoration(self):
@@ -39,8 +37,8 @@ class _CourseEditorLinksDecorator(PreviewCourseAccessPredicateDecorator,
 		return result
 
 	def _predicate(self, context, result):
-		return (	self._acl_decoration
-				and self._is_authenticated
+		return (	super(_CourseEditorLinksDecorator,self)._predicate(context, result)
+				and self._acl_decoration
 				and (	is_course_editor(context, self.remoteUser)
 					 or has_permission(ACT_CONTENT_EDIT, context, self.request)))
 

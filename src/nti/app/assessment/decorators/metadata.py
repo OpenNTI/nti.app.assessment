@@ -64,6 +64,10 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 class _AssignmentMetadataContainerDecorator(PreviewCourseAccessPredicateDecorator,
 											_AbstractTraversableLinkDecorator):
 
+	def _predicate(self, context, result):
+		return 	super(_AssignmentMetadataContainerDecorator,self)._predicate( context, result ) \
+			and self._is_authenticated
+
 	def _do_decorate_external(self, context, result_map):
 		links = result_map.setdefault(LINKS, [])
 		user = IUser(context, self.remoteUser)

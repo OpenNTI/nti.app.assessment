@@ -71,7 +71,7 @@ class _CourseAssignmentHistoryDecorator(PreviewCourseAccessPredicateDecorator,
 
 	def _predicate(self, context, result):
 		return 	super(_CourseAssignmentHistoryDecorator, self)._predicate(context, result) \
-			and AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
+			and self._is_authenticated
 
 	# Note: This overlaps with the registrations in assessment_views
 	# Note: We do not specify what we adapt, there are too many

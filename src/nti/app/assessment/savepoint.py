@@ -20,9 +20,10 @@ from zope.container.contained import Contained
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
 from zope.lifecycleevent.interfaces import IObjectRemovedEvent
 
-from zope.location.location import locate
 from zope.location.interfaces import LocationError
 from zope.location.interfaces import ISublocations
+
+from zope.location.location import locate
 
 from ZODB.interfaces import IConnection
 

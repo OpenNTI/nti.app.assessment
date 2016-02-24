@@ -32,10 +32,10 @@ from nti.contenttypes.courses.interfaces import ICourseEnrollments
 
 from nti.dataserver.interfaces import IUser
 
+from nti.externalization.externalization import to_external_object
+
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
-
-from nti.externalization.externalization import to_external_object
 
 ITEMS = StandardExternalFields.ITEMS
 

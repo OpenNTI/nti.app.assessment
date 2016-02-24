@@ -7,7 +7,6 @@ Views related to assessment.
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
-from nti.common.proxy import removeAllProxies
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -23,6 +22,8 @@ from zipfile import ZipFile
 
 from zope import component
 
+from zope.container.traversal import ContainerTraversable
+
 from zope.location.interfaces import LocationError
 
 from pyramid import httpexceptions as hexc
@@ -32,7 +33,6 @@ from pyramid.interfaces import IExceptionResponse
 
 from pyramid.view import view_config
 from pyramid.view import view_defaults
-from zope.container.traversal import ContainerTraversable
 
 from nti.app.assessment.common import get_course_from_assignment
 
@@ -78,6 +78,7 @@ from nti.assessment.interfaces import IQUploadedFile
 from nti.assessment.interfaces import IQAssignmentSubmission
 
 from nti.common.property import Lazy
+from nti.common.proxy import removeAllProxies
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
@@ -93,8 +94,9 @@ from nti.contenttypes.presentation.interfaces import INTIAssignmentRef
 from nti.contenttypes.presentation.interfaces import INTIQuestionSetRef
 from nti.contenttypes.presentation.interfaces import INTILessonOverview
 
-from nti.dataserver.interfaces import IUser
 from nti.dataserver import authorization as nauth
+
+from nti.dataserver.interfaces import IUser
 
 from nti.dataserver.users.interfaces import IUserProfile
 

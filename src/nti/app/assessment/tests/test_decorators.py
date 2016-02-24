@@ -137,3 +137,49 @@ class TestCoursePreviewExternalization(ApplicationLayerTest):
 
 		# Preview mode w/instructor
 		self._test_course_ext( instructor_env, is_visible=True )
+
+class TestAssessmentDecorators(ApplicationLayerTest):
+
+	layer = PersistentInstructedCourseApplicationTestLayer
+
+	default_origin = str('http://platform.ou.edu')
+
+	course_href = '/dataserver2/Objects/tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice'
+	course_ntiid = None
+
+	enrolled_courses_href = '/dataserver2/users/test_student/Courses/EnrolledCourses'
+	enrollment_ntiid = 'tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice'
+
+	def _do_enroll(self, environ):
+		self.testapp.post_json(self.enrolled_courses_href,
+							  {'ntiid': self.enrollment_ntiid},
+							   status=201,
+							   extra_environ=environ)
+
+	def _get_assess_ext(self, environ):
+		if not self.course_ntiid:
+			entry = self.testapp.get( self.course_href, extra_environ=environ )
+			entry = entry.json_body
+			self.course_ntiid = entry.get( 'CourseNTIID' )
+		result = self.testapp.get( '/dataserver2/Objects/%s/AssignmentsByOutlineNode' % self.course_ntiid,
+								extra_environ=environ )
+		return result.json_body.get( 'Items' )
+
+	def _test_course_ext( self, environ, is_editor ):
+		edit_check = self.require_link_href_with_rel if is_editor else self.forbid_link_with_rel
+
+		assess_items = self._get_assess_ext( environ )
+
+		for item in assess_items:
+			edit_check( item, 'edit' )
+
+	@WithSharedApplicationMockDS(users=('test_student',), testapp=True)
+	def test_assess_edit_links(self):
+		student_env = self._make_extra_environ('test_student')
+		instructor_env = self._make_extra_environ('jmadden')
+		editor_env = self._make_extra_environ('harp4162')
+		self._do_enroll( student_env )
+
+		self._test_course_ext( student_env, is_editor=False )
+		self._test_course_ext( instructor_env, is_editor=False )
+		self._test_course_ext( editor_env, is_editor=True )

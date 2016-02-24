@@ -69,6 +69,10 @@ class _CourseAssignmentHistoryDecorator(PreviewCourseAccessPredicateDecorator,
 	as a link.
 	"""
 
+	def _predicate(self, context, result):
+		return 	super(_CourseAssignmentHistoryDecorator, self)._predicate(context, result) \
+			and AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
+
 	# Note: This overlaps with the registrations in assessment_views
 	# Note: We do not specify what we adapt, there are too many
 	# things with no common ancestor.

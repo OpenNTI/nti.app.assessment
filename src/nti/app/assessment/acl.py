@@ -27,6 +27,7 @@ from nti.dataserver.authorization import ROLE_CONTENT_ADMIN
 from nti.dataserver.authorization_acl import ace_allowing
 from nti.dataserver.authorization_acl import acl_from_aces
 
+from nti.dataserver.interfaces import ACE_DENY_ALL
 from nti.dataserver.interfaces import ALL_PERMISSIONS
 
 from nti.dataserver.interfaces import IACLProvider
@@ -60,6 +61,7 @@ class EvaluationACLProvider(object):
 		courses = _get_courses(self.context)
 		for course in courses or ():
 			result.extend(IACLProvider(course).__acl__)
+		result.append(ACE_DENY_ALL)
 		return result
 
 @component.adapter(IQAssessment)

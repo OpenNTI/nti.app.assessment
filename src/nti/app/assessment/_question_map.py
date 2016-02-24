@@ -254,7 +254,9 @@ class QuestionMap(QuestionIndex):
 							QUESTION_SET_MIME_TYPE,
 							None ):
 			for key, assess_dict in base.items():
-				if mime_type == None:
+				if key in result:
+					continue
+				elif mime_type == None:
 					# Everything else
 					result[key] = assess_dict
 				elif assess_dict.get( 'MimeType' ) == mime_type:

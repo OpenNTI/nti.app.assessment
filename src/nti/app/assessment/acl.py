@@ -12,14 +12,14 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope import interface
 
-from nti.app.products.courseware.adapters import content_unit_to_courses
-
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssessment
 
 from nti.common.property import Lazy
 
 from nti.contentlibrary.interfaces import IContentPackage
+
+from nti.contenttypes.courses.utils import content_unit_to_courses
 
 from nti.dataserver.authorization import ROLE_ADMIN
 from nti.dataserver.authorization import ROLE_CONTENT_ADMIN
@@ -33,11 +33,11 @@ from nti.dataserver.interfaces import IACLProvider
 
 from nti.traversal.traversal import find_interface
 
-def _get_courses( context ):
+def _get_courses(context):
 	package = find_interface(context, IContentPackage, strict=False)
 	result = None
 	if package is not None:
-		result = content_unit_to_courses( package )
+		result = content_unit_to_courses(package)
 	return result
 
 @interface.implementer(IACLProvider)
@@ -57,7 +57,7 @@ class EvaluationACLProvider(object):
 		result = acl_from_aces(aces)
 
 		# Extend with any course acls.
-		courses = _get_courses( self.context )
+		courses = _get_courses(self.context)
 		for course in courses or ():
 			result.extend(IACLProvider(course).__acl__)
 		return result

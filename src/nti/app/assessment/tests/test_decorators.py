@@ -171,7 +171,8 @@ class TestAssessmentDecorators(ApplicationLayerTest):
 		assess_items = self._get_assess_ext( environ )
 
 		for item in assess_items:
-			edit_check( item, 'edit' )
+			for rel in ('edit', 'audit_log'):
+				edit_check( item, rel )
 
 	@WithSharedApplicationMockDS(users=('test_student',), testapp=True)
 	def test_assess_edit_links(self):

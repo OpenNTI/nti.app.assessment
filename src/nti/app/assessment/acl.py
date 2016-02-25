@@ -55,13 +55,10 @@ class EvaluationACLProvider(object):
 		aces = [ace_allowing(ROLE_ADMIN, ALL_PERMISSIONS, type(self)),
 				ace_allowing(ROLE_CONTENT_ADMIN, ALL_PERMISSIONS, type(self))]
 		result = acl_from_aces(aces)
-
 		# Extend with any course acls.
 		courses = _get_courses(self.context)
 		for course in courses or ():
 			result.extend(IACLProvider(course).__acl__)
-		# Disable for now; this breaks tests (test_application_assessment).
-		#result.append(ACE_DENY_ALL)
 		return result
 
 @component.adapter(IQAssessment)

@@ -47,7 +47,6 @@ class TestApplicationAssessment( ApplicationLayerTest ):
 		unauth_testapp = TestApp( self.app )
 		# These inherit the same ACLs as the content they came with
 		# So, no authentication requires auth
-		#self.question_ntiid = self.question_id
 		self.fetch_by_ntiid( self.question_ntiid, unauth_testapp, status=401 )
 
 		# provide auth, we can get it.

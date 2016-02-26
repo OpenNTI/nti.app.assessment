@@ -40,13 +40,13 @@ from nti.assessment.interfaces import QAssessmentDateContextModified
 
 from nti.contentlibrary.interfaces import IContentPackage
 
+from nti.contenttypes.courses.common import get_course_packages
+
 from nti.contenttypes.courses.interfaces import SUPPORTED_DATE_KEYS
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
-
-from nti.contenttypes.courses.utils import get_course_packages
 
 from nti.site.interfaces import IHostPolicyFolder
 

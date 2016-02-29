@@ -83,7 +83,7 @@ from nti.dataserver.tests.mock_dataserver import mock_db_trans
 
 class RegisterAssignmentLayer(InstructedCourseApplicationTestLayer):
 
-	set_up_packages = (	'nti.dataserver', 'nti.assessment', 'nti.app.assessment', 
+	set_up_packages = (	'nti.dataserver', 'nti.assessment', 'nti.app.assessment',
 						'nti.contenttypes.courses', 'nti.app.products.courseware' )
 
 	@classmethod
@@ -103,7 +103,7 @@ class RegisterAssignmentLayer(InstructedCourseApplicationTestLayer):
 
 			## add a assignment with a future date
 			due_date = datetime.datetime.today()
-			due_date = due_date.replace(year=due_date.year + 1)
+			due_date = due_date + datetime.timedelta(days=365)
 
 			assignment_part = QAssignmentPart(question_set=question_set,
 											  auto_grade=True)

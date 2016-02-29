@@ -25,7 +25,7 @@ from nti.app.assessment.common import get_available_for_submission_beginning
 from nti.app.assessment.decorators import _root_url
 from nti.app.assessment.decorators import _get_course_from_assignment
 from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
-from nti.app.assessment.decorators import PreviewCourseAccessPredicateDecorator
+from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
 
 from nti.app.assessment.interfaces import IUsersCourseInquiry
 
@@ -75,12 +75,7 @@ class _InquiryContentRootURLAdder(AbstractAuthenticatedRequestAwareDecorator):
 			result['ContentRoot' ] = bucket_root
 
 @interface.implementer(IExternalMappingDecorator)
-class _InquiriesDecorator(PreviewCourseAccessPredicateDecorator,
-						_AbstractTraversableLinkDecorator):
-
-	def _predicate(self, context, result):
-		return 	super(_InquiriesDecorator,self)._predicate( context, result ) \
-			and self._is_authenticated
+class _InquiriesDecorator(AbstractAssessmentDecoratorPredicate):
 
 	def _do_decorate_external(self, context, result_map):
 		links = result_map.setdefault(LINKS, [])

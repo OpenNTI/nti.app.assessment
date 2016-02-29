@@ -16,7 +16,7 @@ from nti.app.assessment.common import get_assessment_metadata_item
 
 from nti.app.assessment.decorators import _get_course_from_assignment
 from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
-from nti.app.assessment.decorators import PreviewCourseAccessPredicateDecorator
+from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 
@@ -62,16 +62,10 @@ class _AssignmentsAvailableAssignmentHistoryDecorator( AbstractAuthenticatedRequ
 					result.append( asg.ntiid )
 
 @interface.implementer(IExternalMappingDecorator)
-class _CourseAssignmentHistoryDecorator(PreviewCourseAccessPredicateDecorator,
-										_AbstractTraversableLinkDecorator):
+class _CourseAssignmentHistoryDecorator(AbstractAssessmentDecoratorPredicate):
 	"""
-	For things that have an assignment history, add this
-	as a link.
+	For things that have an assignment history, add this as a link.
 	"""
-
-	def _predicate(self, context, result):
-		return 	super(_CourseAssignmentHistoryDecorator, self)._predicate(context, result) \
-			and self._is_authenticated
 
 	# Note: This overlaps with the registrations in assessment_views
 	# Note: We do not specify what we adapt, there are too many
@@ -93,7 +87,7 @@ class _LastViewedAssignmentHistoryDecorator(AbstractAuthenticatedRequestAwareDec
 	"""
 
 	def _predicate(self, context, result):
-		return (AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
+		return (	self._is_authenticated
 				and context.owner is not None
 				and context.owner == self.remoteUser)
 

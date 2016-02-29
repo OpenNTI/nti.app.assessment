@@ -31,7 +31,7 @@ class _AbstractTraversableLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
 		# We only do this if we can create the traversal path to this object;
 		# many times the CourseInstanceEnrollments aren't fully traversable
 		# (specifically, for the course roster)
-		if AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result):
+		if self._is_authenticated:
 			if context.__parent__ is None:
 				return False  # Short circuit
 			try:
@@ -41,6 +41,18 @@ class _AbstractTraversableLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
 				return False
 			else:
 				return True
+
+	_is_traversable = _predicate
+
+class AbstractAssessmentDecoratorPredicate(PreviewCourseAccessPredicateDecorator,
+										   _AbstractTraversableLinkDecorator):
+	"""
+	Only decorate assessment items if we are preview-safe, traversable and authenticated.
+	"""
+
+	def _predicate(self, context, result):
+		return 	super(AbstractAssessmentDecoratorPredicate,self)._predicate( context, result ) \
+			and self._is_traversable( context, result )
 
 def _get_course_from_assignment(assignment, user=None, catalog=None, registry=component):
 	return get_course_from_assignment(assignment=assignment,

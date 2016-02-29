@@ -22,8 +22,7 @@ from nti.app.assessment.common import get_available_for_submission_beginning
 
 from nti.app.assessment.decorators import _root_url
 from nti.app.assessment.decorators import _get_course_from_assignment
-from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
-from nti.app.assessment.decorators import PreviewCourseAccessPredicateDecorator
+from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
 
 from nti.app.assessment.interfaces import ACT_VIEW_SOLUTIONS
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
@@ -69,15 +68,10 @@ OID = StandardExternalFields.OID
 LINKS = StandardExternalFields.LINKS
 
 @interface.implementer(IExternalMappingDecorator)
-class _AssignmentsByOutlineNodeDecorator(PreviewCourseAccessPredicateDecorator,
-										_AbstractTraversableLinkDecorator):
+class _AssignmentsByOutlineNodeDecorator(AbstractAssessmentDecoratorPredicate):
 	"""
 	For things that have a assignments, add this as a link.
 	"""
-
-	def _predicate(self, context, result):
-		return 	super(_AssignmentsByOutlineNodeDecorator,self)._predicate( context, result ) \
-			and self._is_authenticated
 
 	# Note: This overlaps with the registrations in assessment_views
 	# Note: We do not specify what we adapt, there are too many

@@ -20,7 +20,11 @@ from zope.component.hooks import site, setHooks
 
 from zope.catalog.interfaces import ICatalog
 
-from zope.intid import IIntIds
+from zope.intid.interfaces import IIntIds
+
+from nti.app.assessment.index import install_assesment_catalog
+
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 
@@ -29,15 +33,12 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver.interfaces import IDataserver
 from nti.dataserver.interfaces import IOIDResolver
+
 from nti.dataserver.metadata_index import CATALOG_NAME as METADATA_CATALOG_NAME
 
 from nti.site.hostpolicy import run_job_in_all_host_sites
 
 from nti.zope_catalog.catalog import ResultSet
-
-from ..index import install_assesment_catalog
-
-from ..interfaces import IUsersCourseAssignmentHistories
 
 @interface.implementer(IDataserver)
 class MockDataserver(object):
@@ -54,7 +55,7 @@ class MockDataserver(object):
 
 def fix_history_lineage():
 	catalog = component.queryUtility(ICourseCatalog)
-	if catalog is None:
+	if catalog is None or catalog.isEmpty():
 		return
 	# In Janux we saw some some UsersCourseAssignmentHistoryItem objects
 	# with incorrect __parent__ attribute.

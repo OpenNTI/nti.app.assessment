@@ -24,12 +24,12 @@ from nti.app.assessment._question_map import QuestionMap
 
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
+from nti.contentlibrary.interfaces import IContentPackageLibrary
+
 from nti.dataserver.interfaces import IDataserver
 from nti.dataserver.interfaces import IOIDResolver
 
 from nti.site.hostpolicy import run_job_in_all_host_sites
-
-from nti.contentlibrary.interfaces import IContentPackageLibrary
 
 @interface.implementer(IDataserver)
 class MockDataserver(object):
@@ -56,14 +56,14 @@ def _index_assessment_items(unit, intids):
 		indexed_count = 0
 		try:
 			qs = IQAssessmentItemContainer(unit).assessments()
-		except TypeError:
+		except (AttributeError, TypeError):
 			qs = ()
 
 		hierarchy_ntiids = set(hierarchy_ntiids)
 		hierarchy_ntiids.add(unit.ntiid)
 		if qs:
 			for assessment_item in qs or ():
-				if not intids.queryId(assessment_item):
+				if intids.queryId(assessment_item) is None:
 					intids.register(assessment_item, event=False)
 				did_index = _index_assessment(assessment_item, unit, hierarchy_ntiids)
 				if did_index:
@@ -108,8 +108,6 @@ def do_evolve(context):
 			library.syncContentPackages()
 
 		# Iterate through packages, dropping annotation
-		# and indexing.
-		index_library(intids)
 		run_job_in_all_host_sites(functools.partial(index_library, intids))
 
 	component.getGlobalSiteManager().unregisterUtility(mock_ds, IDataserver)

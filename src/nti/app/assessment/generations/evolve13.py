@@ -13,11 +13,12 @@ generation = 13
 
 from zope import component
 from zope import interface
-from zope import lifecycleevent
 
 from zope.component.hooks import site
 from zope.component.hooks import setHooks
 from zope.component.hooks import site as current_site
+
+from zope.intid.interfaces import IIntIds
 
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssessment
@@ -27,14 +28,22 @@ from nti.coremetadata.interfaces import IPublishable
 from nti.dataserver.interfaces import IDataserver
 from nti.dataserver.interfaces import IOIDResolver
 
+from nti.metadata import metadata_queue
+
 from nti.site.hostpolicy import get_all_host_sites
 
-def _process_items(registry):
+def _process_items(registry, intids):
+	queue = metadata_queue()
 	for provided in (IQAssessment, IQInquiry):
 		for _, item in list(registry.getUtilitiesFor(provided)):
 			if IPublishable.providedBy(item) and not item.is_published():
 				item.publish()
-				lifecycleevent.modified(item)
+				doc_id = intids.queryId(item)
+				if doc_id is not None:
+					try:
+						queue.add(doc_id)
+					except TypeError:
+						pass
 
 @interface.implementer(IDataserver)
 class MockDataserver(object):
@@ -55,7 +64,9 @@ def do_evolve(context, generation=generation):
 	setHooks()
 	conn = context.connection
 	ds_folder = conn.root()['nti.dataserver']
-
+	lsm = ds_folder.getSiteManager()
+	intids = lsm.getUtility(IIntIds)
+	
 	mock_ds = MockDataserver()
 	mock_ds.root = ds_folder
 	component.provideUtility(mock_ds, IDataserver)
@@ -67,7 +78,7 @@ def do_evolve(context, generation=generation):
 		for site in get_all_host_sites():
 			with current_site(site):
 				registry = component.getSiteManager()
-				_process_items(registry)
+				_process_items(registry, intids)
 
 	component.getGlobalSiteManager().unregisterUtility(mock_ds, IDataserver)
 	logger.info('Assessment evolution %s done', generation)

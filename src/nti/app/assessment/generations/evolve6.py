@@ -98,6 +98,7 @@ def do_evolve(context, generation):
 		# Rub in all hosts
 		run_job_in_all_host_sites(update_library)
 
+	component.getGlobalSiteManager().unregisterUtility(mock_ds, IDataserver)
 	logger.info('Finished app assessment evolve (%s)', generation)
 
 def evolve(context):

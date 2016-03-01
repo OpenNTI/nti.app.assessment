@@ -83,7 +83,8 @@ def do_evolve(context, generation=generation):
 		catalog = lsm.getUtility(ICatalog, METADATA_CATALOG_NAME)
 		removed_count = _remove_from_course_activity(catalog, intids)
 
-		logger.info('Assessment evolution %s done (removed=%s)', generation, removed_count)
+	component.getGlobalSiteManager().unregisterUtility(mock_ds, IDataserver)
+	logger.info('Assessment evolution %s done (removed=%s)', generation, removed_count)
 
 def evolve(context):
 	"""

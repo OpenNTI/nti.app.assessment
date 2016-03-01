@@ -108,8 +108,8 @@ def do_evolve(context, generation=generation):
 			except Exception:
 				logger.debug("Cannot index object with id %s", uid)
 
-		logger.info('Assessment evolution %s done; %s items(s) indexed',
-					generation, total)
+	component.getGlobalSiteManager().unregisterUtility(mock_ds, IDataserver)
+	logger.info('Assessment evolution %s done; %s items(s) indexed', generation, total)
 
 def evolve(context):
 	"""

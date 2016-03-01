@@ -112,6 +112,7 @@ def do_evolve(context):
 		index_library(intids)
 		run_job_in_all_host_sites(functools.partial(index_library, intids))
 
+	component.getGlobalSiteManager().unregisterUtility(mock_ds, IDataserver)
 	logger.info('Finished app assessment evolve (%s)', generation)
 
 def evolve(context):

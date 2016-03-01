@@ -102,6 +102,7 @@ def do_evolve(context, generation=generation):
 			# clear old
 			old_index.clear()
 
+		component.getGlobalSiteManager().unregisterUtility(mock_ds, IDataserver)
 		logger.info('Assessment evolution %s done', generation)
 
 def evolve(context):

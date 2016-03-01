@@ -80,7 +80,8 @@ def do_evolve(context, generation=generation):
 		assert	component.getSiteManager() == ds_folder.getSiteManager(), \
 				"Hooks not installed?"
 		clean_sites()
-							
+	
+	component.getGlobalSiteManager().unregisterUtility(mock_ds, IDataserver)
 	logger.info('contenttypes.courses evolution %s done.', generation)
 	
 def evolve(context):

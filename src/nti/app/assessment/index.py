@@ -135,18 +135,18 @@ def get_assesment_type(obj):
 	result = None
 	try:
 		if IUsersCourseAssignmentHistoryItem.providedBy(obj):
-			result = 'Assignment'
+			result = u'Assignment'
 		elif IUsersCourseInquiryItem.providedBy(obj):
 			if IQSurveySubmission.providedBy(obj.Submission):
-				result = 'Survey'
+				result = u'Survey'
 			elif IQPollSubmission.providedBy(obj.Submission):
-				result = 'Poll'
+				result = u'Poll'
 		elif IQAssignment.providedBy(obj):
-			result = 'Assignment'
+			result = u'Assignment'
 		elif IQPoll.providedBy(obj):
-			result = 'Poll'
+			result = u'Poll'
 		elif IQSurvey.providedBy(obj):
-			result = 'Survey'
+			result = u'Survey'
 	except (AttributeError, TypeError):
 		pass
 	return result

@@ -183,16 +183,14 @@ class UsersCourseAssignmentMetadataItem(PersistentCreatedModDateTrackingObject,
 	@property
 	def __acl__(self):
 		creator = self.creator
-		aces = [
-			ace_allowing(ROLE_ADMIN, ALL_PERMISSIONS, UsersCourseAssignmentMetadataItem),
-			ace_allowing(creator, ACT_READ, UsersCourseAssignmentMetadataItem),
-			ace_allowing(creator, ACT_CREATE, UsersCourseAssignmentMetadataItem),
-			ace_allowing(creator, ACT_UPDATE, UsersCourseAssignmentMetadataItem) ]
+		aces = [ace_allowing(ROLE_ADMIN, ALL_PERMISSIONS, type(self)),
+				ace_allowing(creator, ACT_READ, type(self)),
+				ace_allowing(creator, ACT_CREATE, type(self)),
+				ace_allowing(creator, ACT_UPDATE, type(self)) ]
 
 		course = ICourseInstance(self, None)
 		for instructor in getattr(course, 'instructors', ()): # already principals
-			aces.append(ace_allowing(instructor, ALL_PERMISSIONS,
-									 UsersCourseAssignmentMetadataItem))
+			aces.append(ace_allowing(instructor, ALL_PERMISSIONS, type(self)))
 
 		aces.append(ACE_DENY_ALL)
 		result = acl_from_aces(aces)

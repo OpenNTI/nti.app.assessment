@@ -63,6 +63,10 @@ from nti.dataserver.interfaces import IACLProvider
 
 from nti.dublincore.datastructures import PersistentCreatedModDateTrackingObject
 
+from nti.externalization.oids import to_external_ntiid_oid
+
+from nti.links.links import Link
+
 from nti.schema.field import SchemaConfigured
 from nti.schema.fieldproperty import createDirectFieldProperties
 
@@ -90,7 +94,9 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 
 	__external_can_create__ = False
 
-	lastViewed = NumericPropertyDefaultingToZero(str('lastViewed'), NumericMaximum, as_number=True)
+	lastViewed = NumericPropertyDefaultingToZero(str('lastViewed'), 
+                                                 NumericMaximum, 
+                                                 as_number=True)
 
 	#: An :class:`.IWeakRef` to the owning user, who is probably
 	#: not in our lineage.
@@ -299,10 +305,6 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 
 		if 'Feedback' in self.__dict__:
 			yield self.Feedback
-
-from nti.externalization.oids import to_external_ntiid_oid
-
-from nti.links.links import Link
 
 @interface.implementer(IUsersCourseAssignmentHistoryItemSummary,
 					   IACLProvider)

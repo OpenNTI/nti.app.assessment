@@ -25,6 +25,8 @@ from pyramid.interfaces import IRequest
 
 from nti.app.assessment._submission import set_inquiry_submission_lineage
 
+from nti.app.assessment.adapters import _course_from_context_lineage
+
 from nti.app.assessment.common import get_course_inquiries
 
 from nti.app.assessment.interfaces import IUsersCourseInquiry
@@ -126,9 +128,9 @@ class UsersCourseInquiry(CheckingLastModifiedBTreeContainer):
 	def __acl__(self):
 		course = ICourseInstance(self, None)
 		instructors = getattr(course, 'instructors', ())  # already principals
-		aces = [ace_allowing(self.owner, ACT_READ, UsersCourseInquiry)]
+		aces = [ace_allowing(self.owner, ACT_READ, type(self))]
 		for instructor in instructors:
-			aces.append(ace_allowing(instructor, ALL_PERMISSIONS, UsersCourseInquiry))
+			aces.append(ace_allowing(instructor, ALL_PERMISSIONS, type(self)))
 		aces.append(ACE_DENY_ALL)
 		return acl_from_aces(aces)
 
@@ -170,9 +172,9 @@ class UsersCourseInquiryItem(PersistentCreatedModDateTrackingObject,
 	def __acl__(self):
 		course = ICourseInstance(self, None)
 		instructors = getattr(course, 'instructors', ())  # already principals
-		aces = [ace_allowing(self.creator, ACT_READ, UsersCourseInquiryItem)]
+		aces = [ace_allowing(self.creator, ACT_READ, type(self))]
 		for instructor in instructors:
-			aces.append(ace_allowing(instructor, ALL_PERMISSIONS, UsersCourseInquiryItem))
+			aces.append(ace_allowing(instructor, ALL_PERMISSIONS, type(self)))
 		aces.append(ACE_DENY_ALL)
 		return acl_from_aces(aces)
 
@@ -219,8 +221,6 @@ def _inquiries_for_course_path_adapter(course, request):
 
 def _inquiries_for_courseenrollment_path_adapter(enrollment, request):
 	return _inquiries_for_course(ICourseInstance(enrollment))
-
-from .adapters import _course_from_context_lineage
 
 @interface.implementer(ICourseInstance)
 @component.adapter(IUsersCourseInquiryItem)

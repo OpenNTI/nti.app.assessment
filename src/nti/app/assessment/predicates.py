@@ -17,15 +17,13 @@ from nti.app.assessment.interfaces import IUsersCourseInquiry
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 
-# TODO: Break this dep
-from nti.app.products.courseware.interfaces import IPrincipalAdministrativeRoleCatalog
-
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssessment 
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.contenttypes.courses.interfaces import IPrincipalEnrollments
+from nti.contenttypes.courses.interfaces import IPrincipalAdministrativeRoleCatalog
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import ISystemUserPrincipal

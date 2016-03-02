@@ -326,21 +326,23 @@ class _DefaultCourseAssignmentCatalog(object):
 		return result
 
 @interface.implementer(ICourseInstance)
-def _course_from_context_lineage(context, validate=False):
+def course_from_context_lineage(context, validate=False):
 	course = find_interface(context, ICourseInstance, strict=False)
 	if validate and course is None:
 		__traceback_info__ = context
 		raise component.ComponentLookupError("Unable to find course")
 	return course
+_course_from_context_lineage = course_from_context_lineage # BWC
 
 @interface.implementer(ICourseInstance)
 @component.adapter(IUsersCourseAssignmentHistoryItem)
-def _course_from_history_item_lineage(item):
-	return _course_from_context_lineage(item)
+def course_from_history_item_lineage(item):
+	return course_from_context_lineage(item)
+_course_from_history_item_lineage = course_from_history_item_lineage # BWC
 
 @interface.implementer(ICourseInstance)
 @component.adapter(IQSubmittable, IUser)
-def _course_from_submittable_lineage(assesment, user):
+def course_from_submittable_lineage(assesment, user):
 	"""
 	Given a generic assesment and a user, we
 	attempt to associate the assesment with the most
@@ -403,7 +405,7 @@ def _course_from_submittable_lineage(assesment, user):
 			if ICourseEnrollments(course).get_enrollment_for_principal(user) is not None:
 				return course
 
-_course_from_assignment_lineage = _course_from_submittable_lineage  # BWC
+_course_from_assignment_lineage = _course_from_submittable_lineage = course_from_submittable_lineage # BWC
 
 def _get_assessment_item_lineage_obj(obj):
 	return find_interface(obj, IContentUnit, strict=False)

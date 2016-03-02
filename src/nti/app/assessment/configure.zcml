@@ -162,16 +162,16 @@
 	<adapter factory=".adapters._histories_for_course" />
 	<adapter factory=".adapters._history_for_user_in_course" />
 
-	<adapter factory=".adapters._course_from_history_item_lineage" />
+	<adapter factory=".adapters.course_from_history_item_lineage" />
 
-	<adapter factory=".adapters._course_from_submittable_lineage" />
+	<adapter factory=".adapters.course_from_submittable_lineage" />
 
 	<!-- Common course lineage adapters -->
-	<adapter factory=".adapters._course_from_context_lineage"
+	<adapter factory=".adapters.course_from_context_lineage"
 			 for=".interfaces.IUsersCourseAssignmentHistoryItemFeedback"
 			 provides="nti.contenttypes.courses.interfaces.ICourseInstance" />
 
-	<adapter factory=".adapters._course_from_context_lineage"
+	<adapter factory=".adapters.course_from_context_lineage"
 			 for=".interfaces.IUsersCourseAssignmentHistoryItemFeedbackContainer"
 			 provides="nti.contenttypes.courses.interfaces.ICourseInstance" />
 

@@ -32,7 +32,7 @@ from pyramid.interfaces import IRequest
 from nti.app.assessment._submission import set_submission_lineage
 from nti.app.assessment._submission import transfer_upload_ownership
 
-from nti.app.assessment.adapters import _course_from_context_lineage
+from nti.app.assessment.adapters import course_from_context_lineage
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
@@ -244,7 +244,7 @@ def _savepoints_for_courseenrollment_path_adapter(enrollment, request):
 @interface.implementer(ICourseInstance)
 @component.adapter(IUsersCourseAssignmentSavepointItem)
 def _course_from_savepointitem_lineage(item):
-	return _course_from_context_lineage(item, validate=True)
+	return course_from_context_lineage(item, validate=True)
 
 @component.adapter(IUsersCourseAssignmentSavepoints, IRequest)
 class _UsersCourseAssignmentSavepointsTraversable(ContainerAdapterTraversable):

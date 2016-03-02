@@ -17,6 +17,7 @@ from nti.app.assessment.interfaces import IUsersCourseInquiry
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 
+# TODO: Break this dep
 from nti.app.products.courseware.interfaces import IPrincipalAdministrativeRoleCatalog
 
 from nti.assessment.interfaces import IQInquiry

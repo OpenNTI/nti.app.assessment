@@ -25,7 +25,7 @@ from pyramid.interfaces import IRequest
 
 from nti.app.assessment._submission import set_inquiry_submission_lineage
 
-from nti.app.assessment.adapters import _course_from_context_lineage
+from nti.app.assessment.adapters import course_from_context_lineage
 
 from nti.app.assessment.common import get_course_inquiries
 
@@ -225,7 +225,7 @@ def _inquiries_for_courseenrollment_path_adapter(enrollment, request):
 @interface.implementer(ICourseInstance)
 @component.adapter(IUsersCourseInquiryItem)
 def _course_from_inquiryitem_lineage(item):
-	return _course_from_context_lineage(item)
+	return course_from_context_lineage(item)
 
 @component.adapter(IUsersCourseInquiries, IRequest)
 class _UsersCourseInquiriesTraversable(ContainerAdapterTraversable):

@@ -28,7 +28,7 @@ from zope.lifecycleevent.interfaces import IObjectRemovedEvent
 
 from pyramid.interfaces import IRequest
 
-from nti.app.assessment.adapters import _course_from_context_lineage
+from nti.app.assessment.adapters import course_from_context_lineage
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
@@ -257,7 +257,7 @@ def _metadatacontainer_for_courseenrollment_path_adapter(enrollment, request):
 @interface.implementer(ICourseInstance)
 @component.adapter(IUsersCourseAssignmentMetadataItem)
 def _course_from_metadataitem_lineage(item):
-	return _course_from_context_lineage(item, validate=True)
+	return course_from_context_lineage(item, validate=True)
 
 @component.adapter(IUsersCourseAssignmentMetadataContainer, IRequest)
 class _UsersCourseMetadataContainerTraversable(ContainerAdapterTraversable):

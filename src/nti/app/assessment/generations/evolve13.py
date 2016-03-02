@@ -20,8 +20,7 @@ from zope.component.hooks import site as current_site
 
 from zope.intid.interfaces import IIntIds
 
-from nti.assessment.interfaces import IQInquiry
-from nti.assessment.interfaces import IQAssessment
+from nti.assessment.interfaces import IQSubmittable
 
 from nti.coremetadata.interfaces import IPublishable
 
@@ -32,18 +31,20 @@ from nti.metadata import metadata_queue
 
 from nti.site.hostpolicy import get_all_host_sites
 
-def _process_items(registry, intids):
+def _process_items(registry, intids, seen):
 	queue = metadata_queue()
-	for provided in (IQAssessment, IQInquiry):
-		for _, item in list(registry.getUtilitiesFor(provided)):
-			if IPublishable.providedBy(item) and not item.is_published():
-				item.publish()
-				doc_id = intids.queryId(item)
-				if doc_id is not None:
-					try:
-						queue.add(doc_id)
-					except TypeError:
-						pass
+	for ntiid, item in list(registry.getUtilitiesFor(IQSubmittable)):
+		if ntiid in seen:
+			continue
+		seen.add(ntiid)
+		if IPublishable.providedBy(item) and not item.is_published():
+			item.publish()
+			doc_id = intids.queryId(item)
+			if doc_id is not None:
+				try:
+					queue.add(doc_id)
+				except TypeError:
+					pass
 
 @interface.implementer(IDataserver)
 class MockDataserver(object):
@@ -75,10 +76,11 @@ def do_evolve(context, generation=generation):
 		assert 	component.getSiteManager() == ds_folder.getSiteManager(), \
 				"Hooks not installed?"
 
+		seen = set()
 		for site in get_all_host_sites():
 			with current_site(site):
 				registry = component.getSiteManager()
-				_process_items(registry, intids)
+				_process_items(registry, intids, seen)
 
 	component.getGlobalSiteManager().unregisterUtility(mock_ds, IDataserver)
 	logger.info('Assessment evolution %s done', generation)

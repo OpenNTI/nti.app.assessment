@@ -93,14 +93,19 @@ class AssessmentPutView(UGDPutView):
 		folder = find_interface(course, IHostPolicyFolder, strict=False)
 		return folder.__name__ if folder is not None else u''
 
+	def get_ntiids(self, courses):
+		ntiids = {getattr(ICourseCatalogEntry(x, None), 'ntiid', None) for x in courses}
+		ntiids.discard(None)
+		return ntiids
+
 	def get_submissions(self, assesment, courses=()):
 		if not courses:
 			return ()
 		else:
 			catalog = get_assesment_catalog()
+			ntiids = self.get_ntiids(courses)
 			intids = component.getUtility(IIntIds)
 			sites = {self.get_site_name(x) for x in courses}
-			ntiids = {ICourseCatalogEntry(x).ntiid for x in courses}
 			query = {
 			 	IX_SITE: {'any_of':sites},
 				IX_COURSE: {'any_of':ntiids},

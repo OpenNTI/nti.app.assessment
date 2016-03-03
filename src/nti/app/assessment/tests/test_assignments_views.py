@@ -126,6 +126,13 @@ class TestAssignmentViews(ApplicationLayerTest):
 		assignment_url = '/dataserver2/Objects/%s' % self.assignment_id
 		confirm_rel = 'confirm'
 		conflict_class = 'DestructiveChallenge'
+		conflict_mime = 'application/vnd.nextthought.destructivechallenge'
+
+		def _validate_conflict( conflict_res ):
+			conflict_res = conflict_res.json_body
+			assert_that( conflict_res, has_entry( 'Class', conflict_class ))
+			assert_that( conflict_res, has_entry( 'MimeType', conflict_mime ))
+			return self.require_link_href_with_rel(conflict_res, confirm_rel)
 
 		def _get_date_fields():
 			res = self.testapp.get( assignment_url, extra_environ=editor_environ )
@@ -146,9 +153,7 @@ class TestAssignmentViews(ApplicationLayerTest):
 		res = self.testapp.put_json( assignment_url,
 									 data, extra_environ=editor_environ,
 									 status=409 )
-		res = res.json_body
-		assert_that( res, has_entry( 'Class', conflict_class ))
-		force_url = self.require_link_href_with_rel(res, confirm_rel)
+		force_url = _validate_conflict( res )
 		# Now force it.
 		self.testapp.put_json( force_url, data, extra_environ=editor_environ )
 		new_start_field, new_end_field = _get_date_fields()
@@ -160,9 +165,7 @@ class TestAssignmentViews(ApplicationLayerTest):
 		res = self.testapp.put_json( assignment_url,
 									 data, extra_environ=editor_environ,
 									 status=409 )
-		res = res.json_body
-		assert_that( res, has_entry( 'Class', conflict_class ))
-		force_url = self.require_link_href_with_rel(res, confirm_rel)
+		force_url = _validate_conflict( res )
 		# Now force it.
 		self.testapp.put_json( force_url, data, extra_environ=editor_environ )
 		new_start_field, new_end_field = _get_date_fields()
@@ -174,9 +177,7 @@ class TestAssignmentViews(ApplicationLayerTest):
 		res = self.testapp.put_json( assignment_url,
 									 data, extra_environ=editor_environ,
 									 status=409 )
-		res = res.json_body
-		assert_that( res, has_entry( 'Class', conflict_class ))
-		force_url = self.require_link_href_with_rel(res, confirm_rel)
+		force_url = _validate_conflict( res )
 		# Now force it.
 		self.testapp.put_json( force_url, data, extra_environ=editor_environ )
 		new_start_field, new_end_field = _get_date_fields()
@@ -188,9 +189,7 @@ class TestAssignmentViews(ApplicationLayerTest):
 		res = self.testapp.put_json( assignment_url,
 									 data, extra_environ=editor_environ,
 									 status=409 )
-		res = res.json_body
-		assert_that( res, has_entry( 'Class', conflict_class ))
-		force_url = self.require_link_href_with_rel(res, confirm_rel)
+		force_url = _validate_conflict( res )
 		# Now force it.
 		self.testapp.put_json( force_url, data, extra_environ=editor_environ )
 		new_start_field, new_end_field = _get_date_fields()
@@ -210,9 +209,7 @@ class TestAssignmentViews(ApplicationLayerTest):
 		res = self.testapp.put_json( assignment_url,
 									 data, extra_environ=editor_environ,
 									 status=409 )
-		res = res.json_body
-		assert_that( res, has_entry( 'Class', conflict_class ))
-		force_url = self.require_link_href_with_rel(res, confirm_rel)
+		force_url = _validate_conflict( res )
 		# Now force it.
 		self.testapp.put_json( force_url, data, extra_environ=editor_environ )
 		new_start_field, new_end_field = _get_date_fields()
@@ -224,9 +221,7 @@ class TestAssignmentViews(ApplicationLayerTest):
 		res = self.testapp.put_json( assignment_url,
 									 data, extra_environ=editor_environ,
 									 status=409 )
-		res = res.json_body
-		assert_that( res, has_entry( 'Class', conflict_class ))
-		force_url = self.require_link_href_with_rel(res, confirm_rel)
+		force_url = _validate_conflict( res )
 		# Now force it.
 		self.testapp.put_json( force_url, data, extra_environ=editor_environ )
 		new_start_field, new_end_field = _get_date_fields()
@@ -238,9 +233,7 @@ class TestAssignmentViews(ApplicationLayerTest):
 		res = self.testapp.put_json( assignment_url,
 									 data, extra_environ=editor_environ,
 									 status=409 )
-		res = res.json_body
-		assert_that( res, has_entry( 'Class', conflict_class ))
-		force_url = self.require_link_href_with_rel(res, confirm_rel)
+		force_url = _validate_conflict( res )
 		# Now force it.
 		self.testapp.put_json( force_url, data, extra_environ=editor_environ )
 		new_start_field, new_end_field = _get_date_fields()

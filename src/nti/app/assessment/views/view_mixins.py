@@ -71,6 +71,7 @@ from nti.zope_catalog.catalog import ResultSet
 
 CLASS = StandardExternalFields.CLASS
 LINKS = StandardExternalFields.LINKS
+MIME_TYPE = StandardExternalFields.MIMETYPE
 
 def canonicalize_question_set(self, obj, registry=component):
 	obj.questions = [registry.getUtility(IQuestion, name=x.ntiid)
@@ -156,7 +157,8 @@ class AssessmentPutView(UGDPutView):
 						 	CLASS: 'DestructiveChallenge',
 							u'message': message,
 							u'code': code,
-							LINKS: to_external_object( links )
+							LINKS: to_external_object( links ),
+							MIME_TYPE: 'application/vnd.nextthought.destructivechallenge'
 						 },
 						 None)
 

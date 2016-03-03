@@ -188,12 +188,12 @@ class AssessmentPutView(UGDPutView):
 			for course in courses:
 				old_start_date = get_available_for_submission_beginning( contentObject, course )
 				old_end_date = get_available_for_submission_ending( contentObject, course )
-				# Use current dates if they do not change with input.
-				new_start_date = old_start_date if new_start_date is _marker else new_start_date
-				new_end_date = old_end_date if new_end_date is _marker else new_end_date
+				# Use old dates if the dates are not being edited.
+				start_date_to_check = old_start_date if new_start_date is _marker else new_start_date
+				end_date_to_check = old_end_date if new_end_date is _marker else new_end_date
 
 				old_available = self._is_date_in_range( old_start_date, old_end_date, now )
-				new_available = self._is_date_in_range( new_start_date, new_end_date, now )
+				new_available = self._is_date_in_range( start_date_to_check, end_date_to_check, now )
 
 				# Note: we allow state to move from closed in past to
 				# closed, but will reopen in the future unchecked (edge case).

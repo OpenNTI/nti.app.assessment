@@ -9,6 +9,7 @@ __docformat__ = "restructuredtext en"
 # pylint: disable=W0212,R0904
 
 from hamcrest import is_
+from hamcrest import none
 from hamcrest import is_not
 from hamcrest import has_entry
 from hamcrest import has_length
@@ -114,6 +115,137 @@ class TestAssignmentViews(ApplicationLayerTest):
 			asg = find_object_with_ntiid(self.assignment_id)
 			history = ITransactionRecordHistory( asg )
 			assert_that( history, has_length( 3 ))
+
+	@WithSharedApplicationMockDS(users=True,testapp=True)
+	def test_assignment_editing_force(self):
+		editor_environ = self._make_extra_environ(username="sjohnson@nextthought.com")
+		past_date_str = "2015-09-10T05:00:00Z"
+		future_date_str = "2215-09-10T05:00:00Z"
+		start_field = 'available_for_submission_beginning'
+		end_field = 'available_for_submission_ending'
+		assignment_url = '/dataserver2/Objects/%s' % self.assignment_id
+		confirm_rel = 'confirm'
+		conflict_class = 'DestructiveChallenge'
+
+		def _get_date_fields():
+			res = self.testapp.get( assignment_url, extra_environ=editor_environ )
+			res = res.json_body
+			return res.get( start_field ), res.get( end_field )
+
+		# Base: 8.25.2015, 9.1.2015
+		# Note: we allow state to move from closed in past to
+		# closed, but will reopen in the future unchecked (edge case).
+		# Move our end date to make us currently open.
+		self.testapp.put_json( assignment_url + '?force=True',
+							   {end_field: future_date_str},
+							   extra_environ=editor_environ )
+
+		# Test toggling assessment availability
+		# 1. Currently open to start date in future
+		data = { start_field: future_date_str }
+		res = self.testapp.put_json( assignment_url,
+									 data, extra_environ=editor_environ,
+									 status=409 )
+		res = res.json_body
+		assert_that( res, has_entry( 'Class', conflict_class ))
+		force_url = self.require_link_href_with_rel(res, confirm_rel)
+		# Now force it.
+		self.testapp.put_json( force_url, data, extra_environ=editor_environ )
+		new_start_field, new_end_field = _get_date_fields()
+		assert_that( new_start_field, is_( future_date_str ))
+		assert_that( new_end_field, is_( future_date_str ))
+
+		# 2. Currently closed to start date in past
+		data = { start_field: past_date_str }
+		res = self.testapp.put_json( assignment_url,
+									 data, extra_environ=editor_environ,
+									 status=409 )
+		res = res.json_body
+		assert_that( res, has_entry( 'Class', conflict_class ))
+		force_url = self.require_link_href_with_rel(res, confirm_rel)
+		# Now force it.
+		self.testapp.put_json( force_url, data, extra_environ=editor_environ )
+		new_start_field, new_end_field = _get_date_fields()
+		assert_that( new_start_field, is_( past_date_str ))
+		assert_that( new_end_field, is_( future_date_str ))
+
+		# 3. Currently open to end date in past
+		data = { end_field: past_date_str }
+		res = self.testapp.put_json( assignment_url,
+									 data, extra_environ=editor_environ,
+									 status=409 )
+		res = res.json_body
+		assert_that( res, has_entry( 'Class', conflict_class ))
+		force_url = self.require_link_href_with_rel(res, confirm_rel)
+		# Now force it.
+		self.testapp.put_json( force_url, data, extra_environ=editor_environ )
+		new_start_field, new_end_field = _get_date_fields()
+		assert_that( new_start_field, is_( past_date_str ))
+		assert_that( new_end_field, is_( past_date_str ))
+
+		# 4. Currently closed to end date in future
+		data = { end_field: future_date_str }
+		res = self.testapp.put_json( assignment_url,
+									 data, extra_environ=editor_environ,
+									 status=409 )
+		res = res.json_body
+		assert_that( res, has_entry( 'Class', conflict_class ))
+		force_url = self.require_link_href_with_rel(res, confirm_rel)
+		# Now force it.
+		self.testapp.put_json( force_url, data, extra_environ=editor_environ )
+		new_start_field, new_end_field = _get_date_fields()
+		assert_that( new_start_field, is_( past_date_str ))
+		assert_that( new_end_field, is_( future_date_str ))
+
+		# 5. Currently open to empty start/end dates just works.
+		data = { end_field: None, start_field: None }
+		res = self.testapp.put_json( assignment_url,
+									 data, extra_environ=editor_environ )
+		new_start_field, new_end_field = _get_date_fields()
+		assert_that( new_start_field, none() )
+		assert_that( new_end_field, none() )
+
+		# 6. No dates set (open) to end_date in past.
+		data = { end_field: past_date_str }
+		res = self.testapp.put_json( assignment_url,
+									 data, extra_environ=editor_environ,
+									 status=409 )
+		res = res.json_body
+		assert_that( res, has_entry( 'Class', conflict_class ))
+		force_url = self.require_link_href_with_rel(res, confirm_rel)
+		# Now force it.
+		self.testapp.put_json( force_url, data, extra_environ=editor_environ )
+		new_start_field, new_end_field = _get_date_fields()
+		assert_that( new_start_field, none() )
+		assert_that( new_end_field, is_( past_date_str ))
+
+		# 7. Current closed with no open date to empty end date.
+		data = { end_field: None }
+		res = self.testapp.put_json( assignment_url,
+									 data, extra_environ=editor_environ,
+									 status=409 )
+		res = res.json_body
+		assert_that( res, has_entry( 'Class', conflict_class ))
+		force_url = self.require_link_href_with_rel(res, confirm_rel)
+		# Now force it.
+		self.testapp.put_json( force_url, data, extra_environ=editor_environ )
+		new_start_field, new_end_field = _get_date_fields()
+		assert_that( new_start_field, none() )
+		assert_that( new_end_field, none() )
+
+		# 8. No dates set (open) to start_date in future.
+		data = { start_field: future_date_str }
+		res = self.testapp.put_json( assignment_url,
+									 data, extra_environ=editor_environ,
+									 status=409 )
+		res = res.json_body
+		assert_that( res, has_entry( 'Class', conflict_class ))
+		force_url = self.require_link_href_with_rel(res, confirm_rel)
+		# Now force it.
+		self.testapp.put_json( force_url, data, extra_environ=editor_environ )
+		new_start_field, new_end_field = _get_date_fields()
+		assert_that( new_start_field, is_( future_date_str ) )
+		assert_that( new_end_field, none() )
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_no_context(self):

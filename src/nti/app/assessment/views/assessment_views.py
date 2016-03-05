@@ -48,6 +48,7 @@ from nti.app.assessment._submission import read_multipart_sources
 from nti.app.assessment.utils import copy_assignment
 from nti.app.assessment.utils import replace_username
 
+from nti.app.assessment.views import MessageFactory as _
 from nti.app.assessment.views import assignment_download_precondition
 
 from nti.app.assessment.views.view_mixins import AssessmentPutView
@@ -693,6 +694,9 @@ class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 			 permission=nauth.ACT_CONTENT_EDIT,
 			 renderer='rest')
 class AssignmentPutView(AssessmentPutView):
+
+	TO_AVAILABLE_MSG = _('Assignment will become available. Please confirm.')
+	TO_UNAVAILABLE_MSG = _('Assignment will become unavailable. Please confirm.')
 
 	def validate(self, contentObject, externalValue, courses=()):
 		parts = externalValue.get('parts')

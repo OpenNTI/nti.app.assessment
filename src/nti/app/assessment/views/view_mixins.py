@@ -37,8 +37,6 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 
 from nti.app.assessment.utils import get_course_from_request
 
-from nti.app.assessment.views import MessageFactory as _
-
 from nti.app.externalization.error import raise_json_error
 
 from nti.appserver.ugd_edit_views import UGDPutView
@@ -105,6 +103,12 @@ def get_courses_from_assesment(assesment):
 	return tuple(result)
 
 class AssessmentPutView(UGDPutView):
+
+	TO_AVAILABLE_CODE = 'UnAvailableToAvailable'
+	TO_UNAVAILABLE_CODE ='AvailableToUnavailable'
+
+	TO_AVAILABLE_MSG = None
+	TO_UNAVAILABLE_MSG = None
 
 	def readInput(self, value=None):
 		result = UGDPutView.readInput(self, value=value)
@@ -203,13 +207,11 @@ class AssessmentPutView(UGDPutView):
 				# Note: we allow state to move from closed in past to
 				# closed, but will reopen in the future unchecked (edge case).
 				if old_available and not new_available:
-					self._raise_conflict_error(	
-									'AvailableToUnavailable',
-									_('Editing object will make it unavailable. Please confirm.'))
+					self._raise_conflict_error( self.TO_UNAVAILABLE_CODE,
+												self.TO_UNAVAILABLE_MSG )
 				elif not old_available and new_available:
-					self._raise_conflict_error(
-									'UnAvailableToAvailable',
-									_('Editing object will make it available. Please confirm.'))
+					self._raise_conflict_error( self.TO_AVAILABLE_CODE,
+												self.TO_AVAILABLE_MSG )
 
 	def preflight(self, contentObject, externalValue, courses=()):
 		# We could validate edits based on the unused submission/savepoint

@@ -22,8 +22,6 @@ from pyramid import httpexceptions as hexc
 
 from pyramid.view import view_config
 
-from nti.app.assessment import MessageFactory as _
-
 from nti.app.assessment.common import can_disclose_inquiry
 from nti.app.assessment.common import aggregate_page_inquiry
 from nti.app.assessment.common import get_course_from_inquiry
@@ -39,6 +37,7 @@ from nti.app.assessment.interfaces import ICourseAggregatedInquiries
 from nti.app.assessment.survey import UsersCourseInquiryItemResponse
 
 from nti.app.assessment.views import get_ds2
+from nti.app.assessment.views import MessageFactory as _
 
 from nti.app.assessment.views.view_mixins import AssessmentPutView
 
@@ -346,6 +345,9 @@ class InquirySubmisionPutView(UGDPutView):
 			 renderer='rest')
 class PollPutView(AssessmentPutView):
 
+	TO_AVAILABLE_MSG = _('Poll will become available. Please confirm.')
+	TO_UNAVAILABLE_MSG = _('Poll will become unavailable. Please confirm.')
+
 	def validate(self, contentObject, externalValue, courses=()):
 		parts = externalValue.get('parts')
 		if parts:  # don't allow change on its parts
@@ -357,6 +359,9 @@ class PollPutView(AssessmentPutView):
 			 permission=nauth.ACT_CONTENT_EDIT,
 			 renderer='rest')
 class SurveyPutView(AssessmentPutView):
+
+	TO_AVAILABLE_MSG = _('Survey will become available. Please confirm.')
+	TO_UNAVAILABLE_MSG = _('Survey will become unavailable. Please confirm.')
 
 	def validate(self, contentObject, externalValue, courses=()):
 		questions = externalValue.get('questions')

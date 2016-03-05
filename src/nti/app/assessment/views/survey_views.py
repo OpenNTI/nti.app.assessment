@@ -349,6 +349,7 @@ class PollPutView(AssessmentPutView):
 	TO_UNAVAILABLE_MSG = _('Poll will become unavailable. Please confirm.')
 
 	def validate(self, contentObject, externalValue, courses=()):
+		super( PollPutView, self ).validate( contentObject, externalValue, courses )
 		parts = externalValue.get('parts')
 		if parts:  # don't allow change on its parts
 			raise hexc.HTTPForbidden(_("Cannot change the definition of a poll."))
@@ -364,6 +365,7 @@ class SurveyPutView(AssessmentPutView):
 	TO_UNAVAILABLE_MSG = _('Survey will become unavailable. Please confirm.')
 
 	def validate(self, contentObject, externalValue, courses=()):
+		super( SurveyPutView, self ).validate( contentObject, externalValue, courses )
 		questions = externalValue.get('questions')
 		if questions:  # don't allow change on its questions
 			raise hexc.HTTPForbidden(_("Cannot change the definition of a survey."))

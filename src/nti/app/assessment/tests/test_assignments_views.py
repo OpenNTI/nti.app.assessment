@@ -51,8 +51,8 @@ class TestAssignmentViews(ApplicationLayerTest):
 	@WithSharedApplicationMockDS(users=True,testapp=True)
 	def test_assignment_editing(self):
 		editor_environ = self._make_extra_environ(username="sjohnson@nextthought.com")
-		new_start_date = "2015-09-10T05:00:00Z"
-		new_end_date = "2015-09-12T04:59:00Z"
+		new_start_date = "2014-09-10T05:00:00Z"
+		new_end_date = "2015-11-12T04:59:00Z"
 		start_field = 'available_for_submission_beginning'
 		end_field = 'available_for_submission_ending'
 		public_field = 'is_non_public'
@@ -117,7 +117,7 @@ class TestAssignmentViews(ApplicationLayerTest):
 			assert_that( history, has_length( 3 ))
 
 	@WithSharedApplicationMockDS(users=True,testapp=True)
-	def test_assignment_editing_force(self):
+	def test_assignment_editing_invalid(self):
 		editor_environ = self._make_extra_environ(username="sjohnson@nextthought.com")
 		past_date_str = "2015-09-10T05:00:00Z"
 		future_date_str = "2215-09-10T05:00:00Z"
@@ -239,6 +239,18 @@ class TestAssignmentViews(ApplicationLayerTest):
 		new_start_field, new_end_field = _get_date_fields()
 		assert_that( new_start_field, is_( future_date_str ) )
 		assert_that( new_end_field, none() )
+
+		# 9. Start date after end date
+		data = { start_field: future_date_str, end_field : past_date_str }
+		self.testapp.put_json( assignment_url,
+							   data, extra_environ=editor_environ,
+							   status=422 )
+
+		# 10. Derp
+		data = { start_field: 'derp' }
+		self.testapp.put_json( assignment_url,
+							   data, extra_environ=editor_environ,
+							   status=422 )
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_no_context(self):

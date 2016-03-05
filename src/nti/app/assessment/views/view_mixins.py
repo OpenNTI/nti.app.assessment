@@ -37,6 +37,8 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 
 from nti.app.assessment.utils import get_course_from_request
 
+from nti.app.assessment.views import MessageFactory as _
+
 from nti.app.externalization.error import raise_json_error
 
 from nti.appserver.ugd_edit_views import UGDPutView
@@ -62,6 +64,8 @@ from nti.externalization.externalization import to_external_object
 from nti.externalization.externalization import StandardExternalFields
 
 from nti.links.links import Link
+
+from nti.schema.interfaces import InvalidValue
 
 from nti.site.interfaces import IHostPolicyFolder
 from nti.site.site import get_component_hierarchy_names
@@ -156,7 +160,12 @@ class AssessmentPutView(UGDPutView):
 						return True
 		return False
 
-	def _raise_conflict_error(self, code, message):
+	def _raise_conflict_error(self, code, message, course, ntiid):
+		entry = ICourseCatalogEntry( course )
+		logger.info( 'Attempting to change assignment availability (%s) (%s) (%s)',
+					 code,
+					 ntiid,
+					 entry.ntiid )
 		links = (Link(self.request.path, rel='confirm',
 					  params={'force':True}, method='PUT'),)
 		raise_json_error(self.request,
@@ -178,7 +187,7 @@ class AssessmentPutView(UGDPutView):
 				and (not end_date or now < end_date)
 		return result
 
-	def validate_dates(self, contentObject, externalValue, courses=()):
+	def validate_date_boundaries(self, contentObject, externalValue, courses=()):
 		"""
 		Validates that the assessment does not change availability states. If
 		so, we throw a 409 with an available `confirm` link for user overrides.
@@ -188,10 +197,16 @@ class AssessmentPutView(UGDPutView):
 		new_end_date = externalValue.get('available_for_submission_ending', _marker)
 		if 	new_start_date is not _marker or new_end_date is not _marker:
 			now = datetime.utcnow()
-			if new_start_date and new_start_date is not _marker:
-				new_start_date = IDateTime(new_start_date)
-			if new_end_date and new_end_date is not _marker:
-				new_end_date = IDateTime(new_end_date)
+
+			try:
+				if new_start_date and new_start_date is not _marker:
+					new_start_date = IDateTime(new_start_date)
+				if new_end_date and new_end_date is not _marker:
+					new_end_date = IDateTime(new_end_date)
+			except (ValueError, InvalidValue):
+				# Ok, they gave us something invalid. Let our schema
+				# validation handle it.
+				return
 
 			for course in courses:
 				old_start_date = get_available_for_submission_beginning(contentObject, course)
@@ -208,19 +223,29 @@ class AssessmentPutView(UGDPutView):
 				# closed, but will reopen in the future unchecked (edge case).
 				if old_available and not new_available:
 					self._raise_conflict_error( self.TO_UNAVAILABLE_CODE,
-												self.TO_UNAVAILABLE_MSG )
+												self.TO_UNAVAILABLE_MSG,
+												course,
+												contentObject.ntiid )
 				elif not old_available and new_available:
 					self._raise_conflict_error( self.TO_AVAILABLE_CODE,
-												self.TO_AVAILABLE_MSG )
+												self.TO_AVAILABLE_MSG,
+												course,
+												contentObject.ntiid )
 
 	def preflight(self, contentObject, externalValue, courses=()):
-		# We could validate edits based on the unused submission/savepoint
-		# code above, based on the input keys being changed.
 		if not self.request.params.get('force', False):
-			self.validate_dates(contentObject, externalValue, courses)
+			# We do this during pre-flight because we want to compare our old
+			# state versus the new.
+			self.validate_date_boundaries(contentObject, externalValue, courses)
 
 	def validate(self, contentObject, externalValue, courses=()):
-		pass
+		# We could validate edits based on the unused submission/savepoint
+		# code above, based on the input keys being changed.
+		for course in courses:
+			start_date = get_available_for_submission_beginning(contentObject, course)
+			end_date = get_available_for_submission_ending(contentObject, course)
+			if start_date and end_date and end_date < start_date:
+				raise hexc.HTTPUnprocessableEntity( _('Due date cannot come before start date.') )
 
 	@property
 	def policy_keys(self):
@@ -262,8 +287,6 @@ class AssessmentPutView(UGDPutView):
 													pre_hook=pre_hook,
 													externalValue=externalValue,
 													contentObject=contentObject)
-
-			self.validate(result, externalValue, courses)
 		else:
 			result = contentObject
 
@@ -272,4 +295,7 @@ class AssessmentPutView(UGDPutView):
 		for key in self.policy_keys:
 			if key in backupData:
 				self.update_policy(courses, ntiid, key, backupData[key])
+
+		# Validate once we have policy updated.
+		self.validate(result, externalValue, courses)
 		return result

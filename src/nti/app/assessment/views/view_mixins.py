@@ -141,7 +141,7 @@ class AssessmentPutView(UGDPutView):
 			 	IX_SITE: {'any_of':sites},
 				IX_COURSE: {'any_of':ntiids},
 			 	IX_ASSESSMENT_ID: {'any_of':(assessment.ntiid,)}
-			 }
+			}
 
 			uids = catalog.apply(query) or ()
 			for item in ResultSet(uids, intids, True):
@@ -154,10 +154,8 @@ class AssessmentPutView(UGDPutView):
 		assessment_id = assessment.ntiid
 		for course in courses:
 			savepoints = IUsersCourseAssignmentSavepoints(course, None)
-			if savepoints:
-				for history in savepoints.values():
-					if history.get(assessment_id):
-						return True
+			if savepoints is not None and savepoints.has_assignment(assessment_id):
+				return True
 		return False
 
 	def _raise_conflict_error(self, code, message, course, ntiid):

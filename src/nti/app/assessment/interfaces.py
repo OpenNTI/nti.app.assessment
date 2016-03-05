@@ -57,6 +57,11 @@ class IUsersCourseAssignmentSavepoints(IContainer,
 	"""
 	contains(str('.IUsersCourseAssignmentSavepoint'))
 
+	def has_assignment(assignment_id):
+		"""
+		returns true if there is savepoint for the specified assigment
+		"""
+
 class IUsersCourseAssignmentSavepoint(IContainer,
 									  IContained,
 									  IShouldHaveTraversablePath):

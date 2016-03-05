@@ -79,6 +79,12 @@ class UsersCourseAssignmentSavepoints(CaseInsensitiveCheckingLastModifiedBTreeCo
 	Implementation of the course assignment save points for all users in a course.
 	"""
 
+	def has_assignment(self, assignment_id):
+		for savepoint in list(self.values()):
+			if assignment_id in savepoint:
+				return True
+		return False
+
 @interface.implementer(IUsersCourseAssignmentSavepoint)
 class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 

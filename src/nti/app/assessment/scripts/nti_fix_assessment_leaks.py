@@ -50,15 +50,37 @@ from nti.site.utils import unregisterUtility
 
 from nti.traversal.traversal import find_interface
 
-def _get_registered_component(provided, name=None):
+def _master_data_collector():
+	seen = set()
+	registered = {}
+	containers = defaultdict(list)
+		
+	def recur(unit):
+		for child in unit.children or ():
+			recur(child)
+		container = IQAssessmentItemContainer(unit)
+		for item in container.assessments():
+			containers[item.ntiid].append(container)
+	
 	for site in get_all_host_sites():
 		registry = site.getSiteManager()
-		registered = registry.queryUtility(provided, name=name)
-		if registered is not None:
-			return site, registered
-	return None, None
+		for ntiid, item in list(registry.getUtilitiesFor(IQAssessment)):
+			if ntiid not in registered:
+				registered[ntiid] = (site, item)
+				
+		for ntiid, item in list(registry.getUtilitiesFor(IQInquiry)):
+			if ntiid not in registered:
+				registered[ntiid] = (site, item)
+				
+		with current_site(site):
+			for package in yield_sync_content_packages():
+				if package.ntiid not in seen:
+					seen.add(package.ntiid)
+					recur(package)
 
-def _get_item_counts(intids):
+	return registered, containers
+
+def _get_data_item_counts(intids):
 	count = defaultdict(list)
 	catalog = dataserver_metadata_catalog()
 	query = {
@@ -70,32 +92,15 @@ def _get_item_counts(intids):
 			count[item.ntiid].append(item)
 	return count
 
-def _find_containters(ntiid, site):
-
-	def recur(unit, result):
-		for child in unit.children or ():
-			recur(child, result)
-		container = IQAssessmentItemContainer(unit)
-		if ntiid in container:
-			result.append(container)
-
-	with current_site(site):
-		for package in yield_sync_content_packages():
-			result = []
-			recur(package, result)
-			if result:
-				return result
-
-	return ()
-
 def _process_args(verbose=True, with_library=True):
 	intids = component.getUtility(IIntIds)
-	count = _get_item_counts(intids)
+	count = _get_data_item_counts(intids)
 	logger.info('%s item(s) counted', len(count))
+	
+	registered, all_containers = _master_data_collector()
 
 	result = 0
 	catalog = get_library_catalog()
-	intids = component.getUtility(IIntIds)
 	for ntiid, data in count.items():
 		if len(data) <= 1:
 			continue
@@ -104,8 +109,8 @@ def _process_args(verbose=True, with_library=True):
 		# find registry and registered objects
 		context = data[0]  # pivot
 		provided = iface_of_assessment(context)
-		site, registered = _get_registered_component(provided, ntiid)
-		if site is None or registered is None:
+		things = registered.get(ntiid)
+		if not things:
 			logger.warn("No registration found for %s", ntiid)	
 			for item in data:
 				iid = intids.queryId(item)
@@ -113,6 +118,7 @@ def _process_args(verbose=True, with_library=True):
 					removeIntId(item)
 			continue
 
+		site, registered = things
 		registry = site.getSiteManager()
 		
 		# if registered has been found.. check validity
@@ -134,8 +140,8 @@ def _process_args(verbose=True, with_library=True):
 				removeIntId(item)
 
 		# make sure containers have registered object
-		containers = _find_containters(ntiid, site)
-		for container in containers:
+		containers = all_containers.get(ntiid)
+		for container in containers or ():
 			container[ntiid] = registered
 
 		# fix lineage

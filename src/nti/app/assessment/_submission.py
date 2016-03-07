@@ -92,7 +92,7 @@ def read_multipart_sources(submission, request):
 					msg = 'Could not find data for file %s' % sub_part.name
 					raise hexc.HTTPUnprocessableEntity(msg)
 
-				# # copy data
+				# copy data
 				sub_part.data = source.read()
 				check_max_size(sub_part, max_size)
 				if not sub_part.contentType and source.contentType:
@@ -132,10 +132,13 @@ def set_inquiry_submission_lineage(submission):
 		set_survey_submission_lineage(submission)
 	return submission
 
-def transfer_upload_ownership(submission, old_submission, force=False):
+def transfer_submission_file_data(source, target,  force=False):
 	"""
 	Search for previously uploaded files and make them part of the
 	new submission if nothing has changed.
+	
+	:param sorce Source submission
+	:param target Target submission
 	"""
 
 	def _is_internal(source):
@@ -149,13 +152,13 @@ def transfer_upload_ownership(submission, old_submission, force=False):
 			return result
 
 	# extra check
-	if old_submission is None or submission is None:
-		return submission
+	if source is None or target is None:
+		return target
 
-	for question_set in submission.parts:
+	for question_set in target.parts:
 		try:
 			# make sure we have a question set
-			old_question_set = old_submission.get(question_set.questionSetId)
+			old_question_set = source.get(question_set.questionSetId)
 			if old_question_set is None:
 				continue
 			for question in question_set.questions:
@@ -183,4 +186,4 @@ def transfer_upload_ownership(submission, old_submission, force=False):
 		except POSError:
 			logger.exception("Failed to transfer data from savepoints")
 			break
-	return submission
+	return target

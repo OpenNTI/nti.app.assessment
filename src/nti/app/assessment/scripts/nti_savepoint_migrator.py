@@ -15,33 +15,34 @@ import argparse
 
 from zope import component
 
+from nti.app.assessment._submission import transfer_submission_file_data
+
+from nti.app.assessment.common import get_course_from_assignment
+
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
+from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
+
 from nti.assessment.interfaces import IQAssignment
 
 from nti.dataserver.users import User
+
 from nti.dataserver.utils import run_with_dataserver
 from nti.dataserver.utils.base_script import set_site
 from nti.dataserver.utils.base_script import create_context
-
-from ..common import get_course_from_assignment
-
-from .._submission import transfer_upload_ownership
-
-from ..interfaces import IUsersCourseAssignmentHistory
-from ..interfaces import IUsersCourseAssignmentSavepoint
 
 def _migrator(creator, assignmentId, delete=False):
 	assignment = component.getUtility(IQAssignment, assignmentId)
 	course = get_course_from_assignment(assignment, creator)
 	if course is None:
 		logger.error("User not enrolled in course (invalid  assignment/creator pair?)")
-		return 
+		return
 
-	assignment_history = component.getMultiAdapter( (course, creator),
-													IUsersCourseAssignmentHistory )
-		
+	assignment_history = component.getMultiAdapter((course, creator),
+													IUsersCourseAssignmentHistory)
+
 	assignment_savepoint = component.getMultiAdapter((course, creator),
-													 IUsersCourseAssignmentSavepoint )
-	
+													 IUsersCourseAssignmentSavepoint)
+
 	if assignmentId not in assignment_savepoint:
 		logger.warn("Assignment not found in save point")
 		return
@@ -49,17 +50,17 @@ def _migrator(creator, assignmentId, delete=False):
 	if assignmentId not in assignment_history:
 		logger.warn("Assignment not found in history")
 		return
-		
+
 	# get submission from assignment history
 	submission = assignment_history[assignmentId].Submission
 	# get submission from save point
 	savepoint = assignment_savepoint[assignmentId].Submission
 	# transfer files
-	transfer_upload_ownership(submission, savepoint)
+	transfer_submission_file_data(source=savepoint, target=submission)
 	# delete save point
 	if delete:
 		del assignment_savepoint[assignmentId]
-		
+
 def _process_args(args):
 	set_site(args.site)
 
@@ -67,14 +68,14 @@ def _process_args(args):
 	creator = User.get_entity(username or u'')
 	if not creator:
 		raise ValueError("Invalid user")
-	
+
 	assignmentId = args.assignment
 	assignment = component.queryUtility(IQAssignment, name=assignmentId)
 	if assignment is None:
 		raise ValueError("Invalid Assignment")
 
-	_migrator(creator,  assignmentId, args.delete)
-	
+	_migrator(creator, assignmentId, args.delete)
+
 def main():
 	arg_parser = argparse.ArgumentParser(description="Savepoint migrator")
 	arg_parser.add_argument('-v', '--verbose', help="Be Verbose", action='store_true',
@@ -88,7 +89,7 @@ def main():
 	arg_parser.add_argument('--site',
 							dest='site',
 							help="Application SITE.")
-	
+
 	args = arg_parser.parse_args()
 	env_dir = os.getenv('DATASERVER_DIR')
 	if not env_dir or not os.path.exists(env_dir) and not os.path.isdir(env_dir):
@@ -96,10 +97,10 @@ def main():
 
 	if not args.username:
 		raise IOError("Must specify a username")
-	
+
 	if not args.assignment:
 		raise IOError("Must specify an assignment")
-	
+
 	context = create_context(env_dir)
 	conf_packages = ('nti.appserver',)
 	run_with_dataserver(environment_dir=env_dir,

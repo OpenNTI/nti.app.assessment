@@ -30,7 +30,7 @@ from ZODB.interfaces import IConnection
 from pyramid.interfaces import IRequest
 
 from nti.app.assessment._submission import set_submission_lineage
-from nti.app.assessment._submission import transfer_upload_ownership
+from nti.app.assessment._submission import transfer_submission_file_data
 
 from nti.app.assessment.adapters import course_from_context_lineage
 
@@ -131,7 +131,7 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 		if submission.assignmentId not in self:
 			return
 		item = self[submission.assignmentId]
-		transfer_upload_ownership(submission, item.Submission)
+		transfer_submission_file_data(source=item.Submission, target=submission)
 		if event:
 			del self[submission.assignmentId]
 		else:

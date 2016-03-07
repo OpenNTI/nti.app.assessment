@@ -26,9 +26,10 @@ from nti.assessment._question_index import QuestionIndex
 
 from nti.assessment.common import iface_of_assessment
 
+from nti.assessment.interfaces import ALL_EVALUATION_MIME_TYPES
+
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssessment
-from nti.assessment.interfaces import ALL_EVALUATION_MIME_TYPES
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.contentlibrary.interfaces import IContentUnit
@@ -41,9 +42,10 @@ from nti.intid.common import removeIntId
 
 from nti.metadata import dataserver_metadata_catalog
 				
+from nti.site.hostpolicy import get_all_host_sites
+
 from nti.site.utils import registerUtility
 from nti.site.utils import unregisterUtility
-from nti.site.hostpolicy import get_all_host_sites
 
 from nti.traversal.traversal import find_interface
 
@@ -100,7 +102,6 @@ def _process_args(verbose=True, with_library=True):
 
 		# find registry and registered objects
 		context = data[0]  # pivot
-		containers = None
 		provided = iface_of_assessment(context)
 		site, registered = _get_registered_component(provided, ntiid)
 		if site is None or registered is None:
@@ -108,24 +109,20 @@ def _process_args(verbose=True, with_library=True):
 			for item in data:
 				iid = intids.queryId(item)
 				if iid is not None:
-					removeIntId(iid)
+					removeIntId(item)
 			continue
 
 		registry = site.getSiteManager()
 		
 		# if registered has been found.. check validity
-		if registered is not None:
-			ruid = intids.queryId(registered)
-			if ruid is None:
-				logger.warn("Invalid registration for %s", ntiid)		
-				unregisterUtility(registry, provided=provided, name=ntiid)
-				# register a valid object
-				registered = context
-				ruid = intids.getId(context)
-				registerUtility(registry, context, provided, name=ntiid)
-
-		else:  # nothing
-			ruid = None
+		ruid = intids.queryId(registered)
+		if ruid is None:
+			logger.warn("Invalid registration for %s", ntiid)		
+			unregisterUtility(registry, provided=provided, name=ntiid)
+			# register a valid object
+			registered = context
+			ruid = intids.getId(context)
+			registerUtility(registry, context, provided, name=ntiid)
 
 		for item in data:
 			doc_id = intids.getId(item)
@@ -135,14 +132,9 @@ def _process_args(verbose=True, with_library=True):
 				catalog.unindex(doc_id)
 				removeIntId(item)
 
-		containers = _find_containters(ntiid, site)
-		if registered is None: # clean containers
-			for container in containers or ():
-				container.pop(ntiid, None)
-			continue
-
 		# make sure containers have registered object
-		for container in containers or ():
+		containers = _find_containters(ntiid, site)
+		for container in containers:
 			container[ntiid] = registered
 
 		# fix lineage

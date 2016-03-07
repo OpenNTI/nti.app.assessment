@@ -243,7 +243,13 @@ class AssessmentPutView(UGDPutView):
 			start_date = get_available_for_submission_beginning(contentObject, course)
 			end_date = get_available_for_submission_ending(contentObject, course)
 			if start_date and end_date and end_date < start_date:
-				raise hexc.HTTPUnprocessableEntity( _('Due date cannot come before start date.') )
+				raise_json_error(self.request,
+								 hexc.HTTPUnprocessableEntity,
+								 {
+									u'message': _('Due date cannot come before start date.') ,
+									u'code': 'AssessmentDueDateBeforeStartDate',
+								 },
+								 None)
 
 	@property
 	def policy_keys(self):

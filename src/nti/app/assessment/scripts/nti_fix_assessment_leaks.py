@@ -32,8 +32,9 @@ from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssessment
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
-from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.indexed_data import get_library_catalog
+
+from nti.contentlibrary.interfaces import IContentUnit
 
 from nti.dataserver.utils import run_with_dataserver
 from nti.dataserver.utils.base_script import create_context

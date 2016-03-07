@@ -16,19 +16,21 @@ import argparse
 
 from zope import component
 
+from nti.app.assessment._assessment import move_user_assignment_from_course_to_course
+
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
+
 from nti.contenttypes.courses.sharing import on_enroll_record_scope_membership
 
 from nti.dataserver.users import User
+
 from nti.dataserver.utils import run_with_dataserver
 from nti.dataserver.utils.base_script import set_site
 from nti.dataserver.utils.base_script import create_context
-
-from .._assessment import move_user_assignment_from_course_to_course
 
 def fix_enrollment_perms(verbose=True):
 	cat = component.getUtility(ICourseCatalog)

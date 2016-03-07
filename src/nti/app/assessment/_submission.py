@@ -177,8 +177,9 @@ def transfer_submission_file_data(source, target,  force=False):
 					# check if the uploaded file has been internalized empty
 					# this is tightly coupled w/ the way IQUploadedFile are updated.
 					if IQUploadedFile.providedBy(old_part) and _is_internal(part):
-						logger.info("Copy from previously uploaded file '%s(%s)'",
-									old_part.filename, to_external_ntiid_oid(old_part))
+						logger.debug("Copy from previously uploaded file '%s(%s)'",
+								 	 old_part.filename, 
+									 to_external_ntiid_oid(old_part))
 						part.data = old_part.data
 						part.filename = old_part.filename
 						part.contentType = old_part.contentType

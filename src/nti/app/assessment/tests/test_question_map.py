@@ -277,7 +277,7 @@ class TestQuestionMap( AssessmentLayerTest ):
 		_remove_assessment_items_from_oldcontent( mock_content_package )
 
 	@WithMockDSTrans
-	@fudge.patch('nti.app.contentlibrary.subscribers.get_registry')
+	@fudge.patch('nti.app.contentlibrary.subscribers.get_site_registry')
 	def test_create_question_map_captures_set_ntiids(self, mock_registry):
 		registry = PersistentComponents()
 		mock_dataserver.current_transaction.add(registry)
@@ -285,7 +285,7 @@ class TestQuestionMap( AssessmentLayerTest ):
 		self._do_test_create_question_map_captures_set_ntiids()
 
 	@WithMockDSTrans
-	@fudge.patch('nti.app.contentlibrary.subscribers.get_registry')
+	@fudge.patch('nti.app.contentlibrary.subscribers.get_site_registry')
 	def test_create_question_map_nested_level_with_no_filename(self, mock_registry):
 		registry = PersistentComponents()
 		mock_dataserver.current_transaction.add(registry)
@@ -309,7 +309,7 @@ class TestQuestionMap( AssessmentLayerTest ):
 		self._do_test_create_question_map_captures_set_ntiids( assm_string )
 
 	@WithMockDSTrans
-	@fudge.patch('nti.app.contentlibrary.subscribers.get_registry')
+	@fudge.patch('nti.app.contentlibrary.subscribers.get_site_registry')
 	def test_create_question_map_nested_two_level_with_no_filename(self, mock_registry):
 		registry = PersistentComponents()
 		mock_dataserver.current_transaction.add(registry)

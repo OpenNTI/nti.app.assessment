@@ -9,18 +9,12 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-import six
-
-from zope import component
-
 from pyramid import httpexceptions as hexc
 
 from pyramid.view import view_config
 from pyramid.view import view_defaults
 
 from nti.app.assessment._assessment import move_user_assignment_from_course_to_course
-
-from nti.app.assessment._common_reports import course_submission_report
 
 from nti.app.assessment.views import parse_catalog_entry
 
@@ -30,9 +24,6 @@ from nti.app.externalization.internalization import read_body_as_external_object
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
 from nti.app.products.courseware.views import CourseAdminPathAdapter
-
-from nti.assessment.interfaces import IQuestion
-from nti.assessment.interfaces import IQAssignment
 
 from nti.common.maps import CaseInsensitiveDict
 
@@ -50,48 +41,6 @@ from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
 ITEMS = StandardExternalFields.ITEMS
-
-@view_config(context=IDataserverFolder)
-@view_config(context=CourseAdminPathAdapter)
-@view_config(name='CourseSubmissionReport')
-@view_defaults(route_name='objects.generic.traversal',
-				renderer='rest',
-				permission=nauth.ACT_NTI_ADMIN,
-				request_method='GET')
-class CourseSubmissionReportView(AbstractAuthenticatedView):
-
-	def __call__(self):
-		params = CaseInsensitiveDict(self.request.params)
-		context = parse_catalog_entry(params)
-		if context is None:
-			raise hexc.HTTPUnprocessableEntity("Invalid course NTIID")
-
-		usernames = params.get('usernames') or params.get('username')
-		if isinstance(usernames, six.string_types):
-			usernames = usernames.split(',')
-		usernames = {x.lower() for x in usernames or ()}
-
-		assignment = params.get('assignmentId') or params.get('assignment')
-		if assignment and component.queryUtility(IQAssignment, name=assignment) is None:
-			raise hexc.HTTPUnprocessableEntity("Invalid assignment")
-
-		question = params.get('questionId') or params.get('question')
-		if question and component.queryUtility(IQuestion, name=question) is None:
-			raise hexc.HTTPUnprocessableEntity("Invalid question")
-
-		response = self.request.response
-		response.content_encoding = str('identity')
-		response.content_type = str('text/csv; charset=UTF-8')
-		response.content_disposition = str('attachment; filename="report.csv"')
-
-		stream, _ = course_submission_report(context=context,
-							 	 		  	 question=question,
-							 	 		 	 usernames=usernames,
-								 		 	 assignment=assignment)
-		stream.flush()
-		stream.seek(0)
-		response.body_file = stream
-		return response
 
 @view_config(context=IDataserverFolder)
 @view_config(context=CourseAdminPathAdapter)

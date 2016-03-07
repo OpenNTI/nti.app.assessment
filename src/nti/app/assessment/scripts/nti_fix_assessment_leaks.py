@@ -35,6 +35,7 @@ from nti.assessment.interfaces import IQAssessmentItemContainer
 from nti.contentlibrary.indexed_data import get_library_catalog
 
 from nti.contentlibrary.interfaces import IContentUnit
+from nti.contentlibrary.interfaces import IContentPackageLibrary
 
 from nti.dataserver.utils import run_with_dataserver
 from nti.dataserver.utils.base_script import create_context
@@ -93,6 +94,9 @@ def _get_data_item_counts(intids):
 	return count
 
 def _process_args(verbose=True, with_library=True):
+	library = component.getUtility(IContentPackageLibrary)
+	library.syncContentPackages()
+	
 	intids = component.getUtility(IIntIds)
 	count = _get_data_item_counts(intids)
 	logger.info('%s item(s) counted', len(count))

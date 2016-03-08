@@ -33,7 +33,8 @@ from zope.lifecycleevent.interfaces import IObjectModifiedEvent
 
 from ZODB.interfaces import IConnection
 
-from persistent.list import PersistentList
+from persistent import Persistent
+
 from persistent.mapping import PersistentMapping
 
 from nti.app.assessment.common import get_content_packages_assessment_items
@@ -83,11 +84,8 @@ from nti.site.utils import registerUtility
 from nti.site.utils import unregisterUtility
 
 deprecated('_AssessmentItemContainer', 'Replaced with a persistent mapping')
-class _AssessmentItemContainer(PersistentList,
-							   PersistentCreatedAndModifiedTimeObject,
-							   Contained):
-
-	_SET_CREATED_MODTIME_ON_INIT = False
+class _AssessmentItemContainer(Persistent):
+	pass
 
 @component.adapter(IContentUnit)
 @interface.implementer(IQAssessmentItemContainer)

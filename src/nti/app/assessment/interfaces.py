@@ -34,9 +34,9 @@ from nti.dataserver.interfaces import ILastViewed
 from nti.dataserver.interfaces import ILastModified
 from nti.dataserver.interfaces import ITitledContent
 from nti.dataserver.interfaces import IModeledContent
-from nti.dataserver.interfaces import CompoundModeledContentBody
 from nti.dataserver.interfaces import INeverStoredInSharedStream
 from nti.dataserver.interfaces import IShouldHaveTraversablePath
+from nti.dataserver.interfaces import ExtendedCompoundModeledContentBody
 
 from nti.schema.field import Int
 from nti.schema.field import Dict
@@ -255,7 +255,7 @@ class IUsersCourseAssignmentHistoryItemFeedback(IContained,
 	containers(IUsersCourseAssignmentHistoryItemFeedbackContainer)  # Adds __parent__ as required
 	__parent__.required = False
 
-	body = CompoundModeledContentBody()
+	body = ExtendedCompoundModeledContentBody()
 
 class IUsersCourseAssignmentMetadataContainer(IContainer,
 										  	  IContained,

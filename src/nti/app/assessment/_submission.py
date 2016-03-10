@@ -14,8 +14,6 @@ import sys
 from zope import component
 from zope import interface
 
-from zope.file.upload import nameFinder
-
 from zope.schema.interfaces import ConstraintNotSatisfied
 
 from ZODB.POSException import POSError
@@ -24,24 +22,26 @@ from pyramid import httpexceptions as hexc
 
 from nti.app.base.abstract_views import get_source
 
+from nti.app.contentfile import transfer
+
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQFilePart
 from nti.assessment.interfaces import IQResponse
-from nti.assessment.interfaces import IQUploadedFile
 from nti.assessment.interfaces import IQPollSubmission
 from nti.assessment.interfaces import IQSurveySubmission
 from nti.assessment.interfaces import IInternalUploadedFileRef
 
-from nti.externalization.externalization import to_external_ntiid_oid
+from nti.namedfile.interfaces import INamedFile
 
 def _set_parent_(child, parent):
 	if hasattr(child, '__parent__') and child.__parent__ is None:
 		child.__parent__ = parent
 
-def value_part(part):
+def get_part_value(part):
 	if IQResponse.providedBy(part):
 		part = part.value
 	return part
+value_part = get_part_value
 
 def check_max_size(part, max_file_size=None):
 	size = part.size
@@ -55,8 +55,8 @@ def check_upload_files(submission):
 		for sub_question in question_set.questions:
 			question = component.getUtility(IQuestion, sub_question.questionId)
 			for part, sub_part in zip(question.parts, sub_question.parts):
-				sub_part = value_part(sub_part)
-				if not IQUploadedFile.providedBy(sub_part):
+				part_value = get_part_value(sub_part)
+				if not INamedFile.providedBy(part_value):
 					continue
 
 				if not IQFilePart.providedBy(part):
@@ -64,7 +64,7 @@ def check_upload_files(submission):
 					raise hexc.HTTPUnprocessableEntity(msg)
 
 				max_size = part.max_file_size
-				check_max_size(sub_part, max_size)
+				check_max_size(part_value, max_size)
 	return submission
 
 def read_multipart_sources(submission, request):
@@ -72,8 +72,8 @@ def read_multipart_sources(submission, request):
 		for sub_question in question_set.questions:
 			question = component.getUtility(IQuestion, sub_question.questionId)
 			for part, sub_part in zip(question.parts, sub_question.parts):
-				sub_part = value_part(sub_part)
-				if not IQUploadedFile.providedBy(sub_part):
+				part_value = get_part_value(sub_part)
+				if not INamedFile.providedBy(part_value):
 					continue
 
 				if not IQFilePart.providedBy(part):
@@ -81,26 +81,27 @@ def read_multipart_sources(submission, request):
 					raise hexc.HTTPUnprocessableEntity(msg)
 
 				max_size = part.max_file_size
-				if sub_part.size > 0:
-					check_max_size(sub_part, max_size)
+				if part_value.size > 0:
+					check_max_size(part_value, max_size)
 
-				if not sub_part.name:
+				if not part_value.name:
 					msg = 'No name was given to uploded file'
 					raise hexc.HTTPUnprocessableEntity(msg)
-				source = get_source(request, sub_part.name)
+
+				source = get_source(request, part_value.name)
 				if source is None:
-					msg = 'Could not find data for file %s' % sub_part.name
+					msg = 'Could not find data for file %s' % part_value.name
 					raise hexc.HTTPUnprocessableEntity(msg)
 
 				# copy data
-				sub_part.data = source.read()
-				check_max_size(sub_part, max_size)
-				if not sub_part.contentType and source.contentType:
-					sub_part.contentType = source.contentType
-				if not sub_part.filename and source.filename:
-					sub_part.filename = nameFinder(source)
+				transfer(source, part_value)
 	return submission
 
+def _set_part_value_lineage(part):
+	part_value = get_part_value(part)
+	if part_value is not part and INamedFile.providedBy(part_value):
+		_set_parent_(part_value, part)
+				
 def set_submission_lineage(submission):
 	# The constituent parts of these things need parents as well.
 	# It would be nice if externalization took care of this,
@@ -112,6 +113,7 @@ def set_submission_lineage(submission):
 			_set_parent_(submitted_question, submission_set)
 			for submitted_question_part in submitted_question.parts:
 				_set_parent_(submitted_question_part, submitted_question)
+				_set_part_value_lineage(submitted_question_part)
 	return submission
 
 def set_poll_submission_lineage(submission):
@@ -142,7 +144,7 @@ def transfer_submission_file_data(source, target,  force=False):
 	"""
 
 	def _is_internal(source):
-		if not IQUploadedFile.providedBy(source):
+		if not INamedFile.providedBy(source):
 			return False
 		if force:
 			return True
@@ -167,23 +169,20 @@ def transfer_submission_file_data(source, target,  force=False):
 				if old_question is None:
 					continue
 				for idx, part in enumerate(question.parts):
-					part = value_part(part)
+					part_value = get_part_value(part)
 					# check there is a part
 					try:
 						old_part = old_question[idx]
-						old_part = value_part(old_part)
+						old_part_value = get_part_value(old_part)
 					except IndexError:
 						break
 					# check if the uploaded file has been internalized empty
 					# this is tightly coupled w/ the way IQUploadedFile are updated.
-					if IQUploadedFile.providedBy(old_part) and _is_internal(part):
-						logger.debug("Copy from previously uploaded file '%s(%s)'",
-								 	 old_part.filename, 
-									 to_external_ntiid_oid(old_part))
-						part.data = old_part.data
-						part.filename = old_part.filename
-						part.contentType = old_part.contentType
-						interface.noLongerProvides(part, IInternalUploadedFileRef)
+					if INamedFile.providedBy(old_part_value) and _is_internal(part_value):
+						part_value.data = old_part_value.data
+						part_value.filename = old_part_value.filename
+						part_value.contentType = old_part_value.contentType
+						interface.noLongerProvides(part_value, IInternalUploadedFileRef)
 		except POSError:
 			logger.exception("Failed to transfer data from savepoints")
 			break

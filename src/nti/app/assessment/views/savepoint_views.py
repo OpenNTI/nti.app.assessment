@@ -98,7 +98,7 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 			check_upload_files(submission)
 		else:
 			# try legacy submssion.
-			extValue = get_source(self.request, 'json', 'input', 'submission')
+			extValue = get_source(self.request, 'json')
 			if extValue:
 				extValue = extValue.read()
 				extValue = read_input_data(extValue, self.request)

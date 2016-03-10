@@ -83,6 +83,8 @@ from nti.site.site import get_component_hierarchy_names
 from nti.site.utils import registerUtility
 from nti.site.utils import unregisterUtility
 
+from nti.wref.interfaces import IWeakRef
+
 deprecated('_AssessmentItemContainer', 'Replaced with a persistent mapping')
 class _AssessmentItemContainer(Persistent):
 	pass
@@ -170,12 +172,13 @@ class QuestionMap(QuestionIndex):
 		pass
 
 	def _registry_utility(self, registry, component, provided, name, event=False):
-		registerUtility(registry,
-						component,
-						provided=provided,
-						name=name,
-						event=event)
-		logger.debug("(%s,%s) has been registered", provided.__name__, name)
+		if not IWeakRef.providedBy(component): # no weak refs
+			registerUtility(registry,
+							component,
+							provided=provided,
+							name=name,
+							event=event)
+			logger.debug("(%s,%s) has been registered", provided.__name__, name)
 
 	def _get_registry(self, registry=None):
 		return get_registry(registry)

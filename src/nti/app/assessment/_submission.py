@@ -41,7 +41,6 @@ def get_part_value(part):
 	if IQResponse.providedBy(part):
 		part = part.value
 	return part
-value_part = get_part_value
 
 def check_max_size(part, max_file_size=None):
 	size = part.size

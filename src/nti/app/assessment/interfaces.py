@@ -38,6 +38,8 @@ from nti.dataserver.interfaces import INeverStoredInSharedStream
 from nti.dataserver.interfaces import IShouldHaveTraversablePath
 from nti.dataserver.interfaces import ExtendedCompoundModeledContentBody
 
+from nti.namedfile.interfaces import IFileConstraints
+
 from nti.schema.field import Int
 from nti.schema.field import Dict
 from nti.schema.field import List
@@ -256,6 +258,9 @@ class IUsersCourseAssignmentHistoryItemFeedback(IContained,
 	__parent__.required = False
 
 	body = ExtendedCompoundModeledContentBody()
+
+class IUsersCourseAssignmentHistoryItemFeedbackFileConstraints(IFileConstraints):
+	max_files = Int(title="max attachments files", required=True, default=5)
 
 class IUsersCourseAssignmentMetadataContainer(IContainer,
 										  	  IContained,

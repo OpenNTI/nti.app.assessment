@@ -9,8 +9,6 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-from . import MessageFactory as _
-
 import time
 
 from zope import component
@@ -22,7 +20,7 @@ from pyramid import httpexceptions as hexc
 
 from pyramid.view import view_config
 
-from nti.app.assessment.views import get_ds2
+from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment._submission import get_source
 from nti.app.assessment._submission import check_upload_files
@@ -36,9 +34,12 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepointItem
 
+from nti.app.assessment.views import get_ds2
+
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
 from nti.app.externalization.internalization import read_input_data
+from nti.app.externalization.internalization import read_body_as_external_object
 
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
@@ -96,11 +97,15 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 			submission = self.readCreateUpdateContentObject(creator)
 			check_upload_files(submission)
 		else:
+			# try legacy submssion.
 			extValue = get_source(self.request, 'json', 'input', 'submission')
+			if extValue:
+				extValue = extValue.read()
+				extValue = read_input_data(extValue, self.request)
+			else:
+				extValue = read_body_as_external_object(self.request)
 			if not extValue:
 				raise hexc.HTTPUnprocessableEntity(_("No submission source was specified."))
-			extValue = extValue.read()
-			extValue = read_input_data(extValue, self.request)
 			submission = self.readCreateUpdateContentObject(creator,
 															externalValue=extValue)
 			submission = read_multipart_sources(submission, self.request)

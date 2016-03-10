@@ -22,7 +22,7 @@ from pyramid import httpexceptions as hexc
 
 from nti.app.base.abstract_views import get_source
 
-from nti.app.contentfile import transfer
+from nti.app.contentfile import transfer_data
 
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQFilePart
@@ -93,7 +93,7 @@ def read_multipart_sources(submission, request):
 					raise hexc.HTTPUnprocessableEntity(msg)
 
 				# copy data
-				transfer(source, part_value)
+				transfer_data(source, part_value)
 	return submission
 
 def _set_part_value_lineage(part):

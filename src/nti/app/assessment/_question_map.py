@@ -567,7 +567,6 @@ def _needs_load_or_update(content_package):
 					key,
 					key.modified)
 		return
-	main_container.lastModified = key.lastModified
 	return key
 
 @component.adapter(IContentPackage, IObjectAddedEvent)
@@ -578,13 +577,16 @@ def add_assessment_items_from_new_content(content_package, event, key=None):
 	"""
 	result = None
 	key = key or _needs_load_or_update(content_package)  # let other callers give us the key
-	if key:
+	if key is not None:
 		logger.info("Reading/Adding assessment items from new content %s %s %s",
 					content_package, key, event)
 		sync_results = _get_sync_results(content_package, event)
 		result = _add_assessment_items_from_new_content(content_package,
 														key,
 														sync_results=sync_results)
+		# mark last modified
+		IQAssessmentItemContainer(content_package).lastModified = key.lastModified
+
 	return result or set()
 
 def _remove_assessment_items_from_oldcontent(content_package,

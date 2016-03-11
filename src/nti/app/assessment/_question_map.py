@@ -19,6 +19,8 @@ from collections import OrderedDict
 from zope import component
 from zope import interface
 
+from zope.annotation.interfaces import IAnnotations
+
 from zope.component.hooks import getSite
 
 from zope.container.contained import Contained
@@ -53,6 +55,8 @@ from nti.assessment.interfaces import QUESTION_SET_MIME_TYPE
 
 from nti.common.proxy import removeAllProxies
 
+from nti.containers.containers import NOOwnershipLastModifiedBTreeContainer
+
 from nti.coremetadata.interfaces import IRecordable
 from nti.coremetadata.interfaces import IPublishable
 
@@ -73,9 +77,6 @@ from nti.externalization.internalization import update_from_external_object
 
 from nti.externalization.persistence import NoPickle
 
-from nti.intid.common import addIntId
-from nti.intid.common import removeIntId
-
 from nti.recorder.record import remove_transaction_history
 
 from nti.site.site import get_component_hierarchy_names
@@ -89,11 +90,22 @@ deprecated('_AssessmentItemContainer', 'Replaced with a persistent mapping')
 class _AssessmentItemContainer(Persistent):
 	pass
 
+deprecated('_AssessmentItemBucket', 'Replaced with a container')
+class _AssessmentItemBucket(PersistentMapping):
+	pass
+
+def has_jar(value):
+	try:
+		result = value._p_jar is not None  # faster than getattr
+	except AttributeError:
+		result = False
+	return result
+
 @component.adapter(IContentUnit)
 @interface.implementer(IQAssessmentItemContainer)
-class _AssessmentItemBucket(PersistentMapping,
-							PersistentCreatedAndModifiedTimeObject,
-							Contained):
+class _AssessmentItemStore(NOOwnershipLastModifiedBTreeContainer,
+						   PersistentCreatedAndModifiedTimeObject,
+						   Contained):
 
 	_SET_CREATED_MODTIME_ON_INIT = False
 
@@ -102,28 +114,37 @@ class _AssessmentItemBucket(PersistentMapping,
 
 	def extend(self, items):
 		for item in items or ():
-			self[item.ntiid] = item
+			self.append(item)
 
 	def assessments(self):
 		return list(self.values())
+	
+	def __setitem__(self, key, value):
+		if has_jar(self): 
+			# add to jar for unit tests
+			if not has_jar(value): 
+				self._p_jar.add(value)
+			NOOwnershipLastModifiedBTreeContainer.__setitem__(self, key, value)
+		else: # global library
+			self._setitemf(key, value)
+		
+	def __delitem__(self, key):
+		if has_jar(self):
+			NOOwnershipLastModifiedBTreeContainer.__delitem__(self, key)
+		else: # global library
+			self._delitemf(key, event=False)
 
-# Instead of using annotations on the content objects, because we're
-# not entirely convinced that the annotation utility, which is ntiid
-# based, works correctly for our cases of having matching ntiids but
-# different objects, we directly store an attribute on the object.
 @component.adapter(IContentUnit)
 @interface.implementer(IQAssessmentItemContainer)
 def ContentUnitAssessmentItems(unit):
+	annotations = IAnnotations(unit)
 	try:
-		result = unit._question_map_assessment_item_container
-		return result
-	except AttributeError:
-		result = unit._question_map_assessment_item_container = _AssessmentItemBucket()
+		result = annotations['_question_map_assessment_item_container']
+	except KeyError:
+		result = _AssessmentItemStore()
+		annotations['_question_map_assessment_item_container'] = result
 		result.createdTime = time.time()
-		result.__parent__ = unit
-		result.__name__ = '_question_map_assessment_item_container'
-		# But leave last modified as zero
-		return result
+	return result
 
 def _is_obj_locked(context):
 	return IRecordable.providedBy(context) and context.isLocked()
@@ -215,17 +236,6 @@ class QuestionMap(QuestionIndex):
 		else:
 			result = IConnection(registry, None)
 			return result
-
-	def _intid_register(self, item, registry=None, intids=None, connection=None):
-		# We always want to register and persist our assessment items,
-		# even from the global library.
-		registry = self._get_registry(registry)
-		connection = self._connection(registry) if connection is None else connection
-		if connection is not None:  # Tests/
-			connection.add(item)
-			addIntId(item)
-			return True
-		return False
 
 	def _lineage(self, resource):
 		while resource is not None:
@@ -348,7 +358,6 @@ class QuestionMap(QuestionIndex):
 
 						# add to container and get and intid
 						parents_questions.append(thing_to_register)
-						self._intid_register(thing_to_register, registry=registry)
 
 						# index item
 						self._index_object(thing_to_register,
@@ -637,7 +646,6 @@ def _remove_assessment_items_from_oldcontent(content_package,
 				logger.debug("(%s,%s) has been unregistered", provided.__name__, name)
 			if intids is not None and intids.queryId(item) is not None:
 				catalog.unindex(item, intids=intids)
-				removeIntId(item)
 			if name not in data:
 				data[name] = item
 			items.pop(name, None)

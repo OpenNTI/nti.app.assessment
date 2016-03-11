@@ -11,6 +11,7 @@ import os
 import shutil
 import tempfile
 import datetime
+import unittest
 
 from nti.testing.layers import find_test
 from nti.testing.layers import GCLayerMixin
@@ -25,7 +26,7 @@ class SharedConfiguringTestLayer(ZopeComponentLayer,
 								 GCLayerMixin,
 								 ConfiguringLayerMixin,
 								 DSInjectorMixin):
-	set_up_packages = ( 'nti.dataserver', 'nti.appserver', 'nti.app.assessment' )
+	set_up_packages = ('nti.dataserver', 'nti.appserver', 'nti.app.assessment')
 
 	@classmethod
 	def setUp(cls):
@@ -50,23 +51,17 @@ class SharedConfiguringTestLayer(ZopeComponentLayer,
 	def testTearDown(cls):
 		pass
 
-import unittest
-
 class AssessmentLayerTest(unittest.TestCase):
 	layer = SharedConfiguringTestLayer
 
-from nti.contentlibrary.indexed_data import get_library_catalog
+from zope import component
 
-from nti.contentlibrary.interfaces import IContentPackageLibrary
+from zope.intid.interfaces import IIntIds
+
+import ZODB
 
 from nti.app.products.courseware.tests import publish_ou_course_entries
 from nti.app.products.courseware.tests import InstructedCourseApplicationTestLayer
-
-from nti.app.testing.application_webtest import ApplicationTestLayer
-
-import ZODB
-from zope import component
-from zope.intid.interfaces import IIntIds
 
 from nti.assessment.assignment import QAssignment
 from nti.assessment.assignment import QAssignmentPart
@@ -78,13 +73,19 @@ from nti.assessment import interfaces as asm_interfaces
 from nti.assessment.interfaces import IQAssessmentItemContainer
 from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 
+from nti.contentlibrary.indexed_data import get_library_catalog
+
+from nti.contentlibrary.interfaces import IContentPackageLibrary
+
+from nti.app.testing.application_webtest import ApplicationTestLayer
+
 from nti.dataserver.tests.mock_dataserver import WithMockDS
 from nti.dataserver.tests.mock_dataserver import mock_db_trans
 
 class RegisterAssignmentLayer(InstructedCourseApplicationTestLayer):
 
-	set_up_packages = (	'nti.dataserver', 'nti.assessment', 'nti.app.assessment',
-						'nti.contenttypes.courses', 'nti.app.products.courseware' )
+	set_up_packages = ('nti.dataserver', 'nti.assessment', 'nti.app.assessment',
+						'nti.contenttypes.courses', 'nti.app.products.courseware')
 
 	@classmethod
 	def _register_assignment(cls):
@@ -96,37 +97,38 @@ class RegisterAssignmentLayer(InstructedCourseApplicationTestLayer):
 			survey_ntiid = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.set.survey:KNOWING_aristotle"
 
 			assignment_ntiid = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.asg:QUIZ1_aristotle"
-			question_set_id  = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.set.qset:QUIZ1_aristotle"
+			question_set_id = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.set.qset:QUIZ1_aristotle"
 
 			question_set = component.getUtility(asm_interfaces.IQuestionSet,
 												name=question_set_id)
 
-			## add a assignment with a future date
+			# add a assignment with a future date
 			due_date = datetime.datetime.today()
 			due_date = due_date + datetime.timedelta(days=365)
 
 			assignment_part = QAssignmentPart(question_set=question_set,
 											  auto_grade=True)
 
-			assignment = QAssignment( parts=(assignment_part,),
-									  available_for_submission_ending=due_date )
+			assignment = QAssignment(parts=(assignment_part,),
+									 available_for_submission_ending=due_date)
 			assignment.__name__ = assignment.ntiid = assignment_ntiid
 
-			intids = component.getUtility( IIntIds )
-			intids.register( assignment, event=False )
-			component.getSiteManager().registerUtility( assignment,
-														provided=asm_interfaces.IQAssignment,
-														name=assignment_ntiid )
+			intids = component.getUtility(IIntIds)
+			intids.register(assignment, event=False)
+			component.getSiteManager().registerUtility(assignment,
+													   provided=asm_interfaces.IQAssignment,
+													   name=assignment_ntiid)
 
 			# Make sure our assignment is indexed to our page and course content package.
 			lesson_page_id = "tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:QUIZ_01.01"
 			lesson = lib.pathToNTIID(lesson_page_id)[-1]
 			asm_cont = IQAssessmentItemContainer(lesson)
-			asm_cont.append( assignment )
+			asm_cont.append(assignment)
 			assignment.__parent__ = lesson
 			catalog = get_library_catalog()
+
 			content_package_ntiid = 'tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.clc_3403_law_and_justice'
-			catalog.index( assignment, container_ntiids=(lesson.ntiid, content_package_ntiid) )
+			catalog.index(assignment, container_ntiids=(lesson.ntiid, content_package_ntiid))
 
 			cls.poll_id = poll_ntiid
 			cls.survey_id = survey_ntiid
@@ -146,7 +148,7 @@ class RegisterAssignmentLayer(InstructedCourseApplicationTestLayer):
 		def _sync():
 			with mock_db_trans(site_name='platform.ou.edu'):
 				install_questions()
-				catalog = component.getUtility( ICourseCatalog )
+				catalog = component.getUtility(ICourseCatalog)
 				try:
 					from nti.app.products.courseware.interfaces import ICourseInstance
 					from nti.app.products.gradebook.assignments import synchronize_gradebook
@@ -175,7 +177,7 @@ class RegisterAssignmentLayer(InstructedCourseApplicationTestLayer):
 
 class RegisterAssignmentsForEveryoneLayer(RegisterAssignmentLayer):
 
-	set_up_packages = ( 'nti.dataserver', 'nti.appserver', 'nti.app.assessment' )
+	set_up_packages = ('nti.dataserver', 'nti.appserver', 'nti.app.assessment')
 
 	@classmethod
 	def setUp(cls):
@@ -185,7 +187,6 @@ class RegisterAssignmentsForEveryoneLayer(RegisterAssignmentLayer):
 	@classmethod
 	def tearDown(cls):
 		# Must implement!
-
 		from ..assignment_filters import UserEnrolledForCreditInCourseOrInstructsFilter
 		UserEnrolledForCreditInCourseOrInstructsFilter.TEST_OVERRIDE = False
 
@@ -210,7 +211,7 @@ class RegisterAssignmentLayerMixin(object):
 	lesson_page_id = None
 
 	def setUp(self):
-		super(RegisterAssignmentLayerMixin,self).setUp()
+		super(RegisterAssignmentLayerMixin, self).setUp()
 
 		self.poll_id = RegisterAssignmentLayer.poll_id
 		self.survey_id = RegisterAssignmentLayer.survey_id

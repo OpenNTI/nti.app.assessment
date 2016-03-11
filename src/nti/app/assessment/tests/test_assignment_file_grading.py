@@ -34,6 +34,7 @@ import ZODB
 from nti.assessment import response
 from nti.assessment import submission
 from nti.assessment import interfaces as asm_interfaces
+
 from nti.assessment.submission import AssignmentSubmission
 from nti.assessment.submission import QuestionSetSubmission
 from nti.assessment.interfaces import IQAssessmentItemContainer
@@ -42,16 +43,19 @@ from nti.assessment.assignment import QAssignmentPart, QAssignment
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 
 from nti.externalization import internalization
-from nti.externalization.interfaces import StandardExternalFields
+
 from nti.externalization.externalization import to_external_object
+
+from nti.externalization.interfaces import StandardExternalFields
 
 from nti.app.assessment.feedback import UsersCourseAssignmentHistoryItemFeedback
 
-from nti.app.products.courseware.tests import InstructedCourseApplicationTestLayer
-
-from nti.app.testing.decorators import WithSharedApplicationMockDS
 from nti.app.testing.application_webtest import ApplicationTestLayer
 from nti.app.testing.application_webtest import ApplicationLayerTest
+
+from nti.app.testing.decorators import WithSharedApplicationMockDS
+
+from nti.app.products.courseware.tests import InstructedCourseApplicationTestLayer
 
 from nti.dataserver.tests import mock_dataserver
 
@@ -90,8 +94,8 @@ class _RegisterFileAssignmentLayer(InstructedCourseApplicationTestLayer):
 			assignment.__name__ = assignment.ntiid = cls.assignment_id
 
 			component.getSiteManager().registerUtility(assignment,
-														provided=asm_interfaces.IQAssignment,
-														name=cls.assignment_id)
+													   provided=asm_interfaces.IQAssignment,
+													   name=cls.assignment_id)
 
 			# Also make sure this assignment is found in the assignment index
 			# at some container

@@ -24,22 +24,30 @@ from persistent import Persistent
 
 from zope import component
 from zope import interface
+
 from zope.annotation.interfaces import IAttributeAnnotatable
+
+from nti.app.assessment._question_map import _AssessmentItemStore
+from nti.app.assessment._question_map import QuestionMap as _QuestionMap
+
+from nti.app.assessment._question_map import _get_last_mod_namespace
+from nti.app.assessment._question_map import _populate_question_map_from_text
+from nti.app.assessment._question_map import _remove_assessment_items_from_oldcontent
 
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
-from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.indexed_data import get_catalog
 
-from nti.app.assessment._question_map import _AssessmentItemBucket
-from nti.app.assessment._question_map import QuestionMap as _QuestionMap
+from nti.contentlibrary.interfaces import IContentUnit
 
-from nti.app.assessment._question_map import _get_last_mod_namespace
-from nti.app.assessment._question_map import _populate_question_map_from_text
-from nti.app.assessment._question_map import _remove_assessment_items_from_oldcontent
+from nti.app.assessment.tests import AssessmentLayerTest
+
+import nti.dataserver.tests.mock_dataserver as mock_dataserver
+
+from nti.dataserver.tests.mock_dataserver import WithMockDSTrans
 
 class QuestionMap(_QuestionMap, dict):
 	# For testing, we capture data, emulating
@@ -169,15 +177,11 @@ ASSESSMENT_STRING_QUESTIONS_IN_FIRST_FILE = """
 }
 """
 
-from nti.app.assessment.tests import AssessmentLayerTest
-from nti.dataserver.tests.mock_dataserver import WithMockDSTrans
-import nti.dataserver.tests.mock_dataserver as mock_dataserver
-
-@interface.implementer(IContentUnit,IAttributeAnnotatable)
+@interface.implementer(IContentUnit, IAttributeAnnotatable)
 class MockEntry(object):
 
 	def __init__(self):
-		self._items = _AssessmentItemBucket()
+		self._items = _AssessmentItemStore()
 		self.ntiid = 'tag:nextthought,2011-05:blehblehbleh'
 
 	children = ()
@@ -213,6 +217,7 @@ class TestQuestionMap( AssessmentLayerTest ):
 		question_map = QuestionMap()
 
 		mock_content_package = MockEntry()
+
 		# Specify our registry, so we can force index
 		_populate_question_map_from_text( question_map, index_string, mock_content_package)
 
@@ -255,23 +260,6 @@ class TestQuestionMap( AssessmentLayerTest ):
 		last_mod_namespace = _get_last_mod_namespace( mock_content_package )
 		last_modified = catalog.get_last_modified( last_mod_namespace )
 		assert_that( last_modified, not_none() )
-		results = catalog.search_objects( container_ntiids=(mock_content_package.ntiid,) )
-		assert_that(results, has_length(4))
-
-		# Namespace
-		results = catalog.search_objects(namespace=mock_content_package.ntiid)
-		assert_that(results, has_length(4))
-
-		# Type
-		for provided, count in (('IQPoll', 1),
-								('IQSurvey', 1),
-								('IQuestion', 1),
-								('IQuestionSet', 1)):
-			results = catalog.search_objects(provided=provided)
-			assert_that(results, has_length(count))
-
-		results = catalog.search_objects(provided='IQAssignment')
-		assert_that(results, has_length(0))
 
 		# Remove
 		_remove_assessment_items_from_oldcontent( mock_content_package )

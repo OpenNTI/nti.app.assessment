@@ -13,7 +13,6 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 import time
-from collections import defaultdict
 from collections import OrderedDict
 
 from zope import component
@@ -606,21 +605,37 @@ def _remove_assessment_items_from_oldcontent(content_package,
 					sm, component.getSiteManager(content_package))
 
 	ignore = set()
-	result = defaultdict(list)
+	result = dict()
 	catalog = get_library_catalog()
 	intids = component.queryUtility(IIntIds) # test mode
 
+	def _remove(container, name, item):
+		if name not in result:
+			result[name] = item
+			provided = _iface_to_register(item)
+			# unregister
+			if not unregisterUtility(sm, provided=provided, name=name):
+				logger.warn("Could not unregister %s from %s", name, sm)
+			else:
+				logger.debug("(%s,%s) has been unregistered", provided.__name__, name)
+			# remove from index
+			if intids is not None and intids.queryId(item) is not None:
+				catalog.unindex(item, intids=intids)
+			# remove transactions
+			remove_transaction_history(item)
+		# always remove from container
+		container.pop(name, None)
+			
 	def _unregister(unit):
 		items = IQAssessmentItemContainer(unit)
-		for name, item in items.items():
+		for name, item in list(items.items()): # mutating
 			if can_be_removed(item, force):
-				# keep location of item was found
-				result[name].append(items)
+				_remove(items, name, item)
 			else:
 				provided = _iface_to_register(item)
 				logger.warn("Object (%s,%s) is locked cannot be removed during sync",
 							provided.__name__, name)
-				# XXX: Make sure we add to the ignore list all items that were exploded
+				# XXX: Make sure we add to the ignore list all items that are exploded
 				# so they are not processed
 				exploded = QuestionMap.explode_object_to_register(item)
 				ignore.update(x.ntiid for x in exploded or ())
@@ -632,28 +647,6 @@ def _remove_assessment_items_from_oldcontent(content_package,
 			_unregister(child)
 
 	_unregister(content_package)
-
-	data = {}
-	for name, containers in result.items():
-		if name in ignore:
-			continue
-		for items in containers:
-			item = items[name]
-			provided = _iface_to_register(item)
-			if not unregisterUtility(sm, provided=provided, name=name):
-				logger.warn("Could not unregister %s from %s", name, sm)
-			else:
-				logger.debug("(%s,%s) has been unregistered", provided.__name__, name)
-			if intids is not None and intids.queryId(item) is not None:
-				catalog.unindex(item, intids=intids)
-			if name not in data:
-				data[name] = item
-			items.pop(name, None)
-			remove_transaction_history(item)
-
-	# free and reset
-	result.clear()
-	result = data
 
 	# register locked
 	for ntiid in ignore:

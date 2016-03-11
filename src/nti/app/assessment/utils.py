@@ -128,7 +128,7 @@ def copy_question(q, nonrandomized=False):
 
 def copy_questionset(qs, nonrandomized=False):
 	result = do_copy(qs)
-	result.questions = [copy_question(q, nonrandomized) for q in qs.questions]
+	result.questions = [copy_question(q, nonrandomized) for q in qs.Items]
 	if nonrandomized:
 		make_nonrandomized(result)
 	sublocations(result)
@@ -214,7 +214,7 @@ def assignment_download_precondition(context, request=None, remoteUser=None):
 	# Does it have a file part?
 	for assignment_part in context.parts:
 		question_set = assignment_part.question_set
-		for question in question_set.questions:
+		for question in question_set.Items:
 			for question_part in question.parts:
 				if IQFilePart.providedBy(question_part):
 					return True

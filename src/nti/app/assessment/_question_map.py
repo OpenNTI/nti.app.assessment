@@ -18,8 +18,6 @@ from collections import OrderedDict
 from zope import component
 from zope import interface
 
-from zope.annotation.interfaces import IAnnotations
-
 from zope.component.hooks import getSite
 
 from zope.container.contained import Contained
@@ -59,7 +57,7 @@ from nti.containers.containers import NOOwnershipLastModifiedBTreeContainer
 from nti.coremetadata.interfaces import IRecordable
 from nti.coremetadata.interfaces import IPublishable
 
-from nti.contentlibrary.indexed_data import get_registry
+from nti.contentlibrary.indexed_data import get_site_registry
 from nti.contentlibrary.indexed_data import get_library_catalog
 
 from nti.contentlibrary.interfaces import IContentUnit
@@ -76,6 +74,9 @@ from nti.externalization.internalization import update_from_external_object
 
 from nti.externalization.persistence import NoPickle
 
+from nti.intid.common import addIntId
+from nti.intid.common import removeIntId
+
 from nti.recorder.record import remove_transaction_history
 
 from nti.site.site import get_component_hierarchy_names
@@ -89,24 +90,21 @@ deprecated('_AssessmentItemContainer', 'Replaced with a persistent mapping')
 class _AssessmentItemContainer(Persistent):
 	pass
 
-deprecated('_AssessmentItemBucket', 'Replaced with a container')
-class _AssessmentItemBucket(PersistentMapping):
+deprecated('_AssessmentItemStore', 'Deprecated Storage Mode')
+class _AssessmentItemStore(NOOwnershipLastModifiedBTreeContainer):
 	pass
-
-def add_to_connection(context, obj):
-	connection = IConnection(context, None)
-	if connection is not None and not IConnection(obj, None):
-		connection.add(obj)
-		return True
-	return False
 
 @component.adapter(IContentUnit)
 @interface.implementer(IQAssessmentItemContainer)
-class _AssessmentItemStore(NOOwnershipLastModifiedBTreeContainer,
-						   PersistentCreatedAndModifiedTimeObject,
-						   Contained):
+class _AssessmentItemBucket(PersistentMapping,
+							PersistentCreatedAndModifiedTimeObject,
+							Contained):
 
 	_SET_CREATED_MODTIME_ON_INIT = False
+
+	@property
+	def connection(self):
+		return IConnection(get_site_registry(), None)
 
 	def append(self, item):
 		self[item.ntiid] = item
@@ -117,33 +115,30 @@ class _AssessmentItemStore(NOOwnershipLastModifiedBTreeContainer,
 
 	def assessments(self):
 		return list(self.values())
-	
+
 	def __setitem__(self, key, value):
-		if IConnection(self, None) is not None: 
-			# XXX: add to connection for unit tests
-			add_to_connection(self, value)
-			NOOwnershipLastModifiedBTreeContainer.__setitem__(self, key, value)
-		else: # global library
-			self._setitemf(key, value)
-		
+		connection = self.connection
+		if connection is not None:
+			connection.add(value)
+			addIntId(value)
+		PersistentMapping.__setitem__(self, key, value)
+
 	def __delitem__(self, key):
-		if IConnection(self, None) is not None: 
-			NOOwnershipLastModifiedBTreeContainer.__delitem__(self, key)
-		else: # global library
-			self._delitemf(key, event=False)
+		connection = self.connection
+		if connection is not None:
+			value = self[key]
+			removeIntId(value)
+		PersistentMapping.__delitem__(self, key)
 
 @component.adapter(IContentUnit)
 @interface.implementer(IQAssessmentItemContainer)
 def ContentUnitAssessmentItems(unit):
-	annotations = IAnnotations(unit)
 	try:
-		result = annotations['_question_map_assessment_item_container']
-	except KeyError:
-		result = _AssessmentItemStore()
-		annotations['_question_map_assessment_item_container'] = result
+		result = unit._question_map_assessment_item_container
+	except AttributeError:
+		result = unit._question_map_assessment_item_container = _AssessmentItemBucket()
 		result.createdTime = time.time()
 		result.lastModified = -1
-	add_to_connection(unit, result)
 	return result
 
 def _is_obj_locked(context):
@@ -193,7 +188,7 @@ class QuestionMap(QuestionIndex):
 		pass
 
 	def _registry_utility(self, registry, component, provided, name, event=False):
-		if not IWeakRef.providedBy(component): # no weak refs
+		if not IWeakRef.providedBy(component):  # no weak refs
 			registerUtility(registry,
 							component,
 							provided=provided,
@@ -202,7 +197,7 @@ class QuestionMap(QuestionIndex):
 			logger.debug("(%s,%s) has been registered", provided.__name__, name)
 
 	def _get_registry(self, registry=None):
-		return get_registry(registry)
+		return get_site_registry(registry)
 
 	def _register_and_canonicalize(self, things_to_register, registry=None):
 		registry = self._get_registry(registry)
@@ -218,7 +213,7 @@ class QuestionMap(QuestionIndex):
 		"""
 		result = False
 		if IPublishable.providedBy(assessment_item):
-			assessment_item.publish() # by default
+			assessment_item.publish()  # by default
 		if self._get_registry(registry) == component.getGlobalSiteManager():
 			return result
 		else:
@@ -262,17 +257,17 @@ class QuestionMap(QuestionIndex):
 		the same way (including the correct containers) every time.
 		"""
 		result = OrderedDict()
-		for mime_type in (	ASSIGNMENT_MIME_TYPE,
+		for mime_type in (ASSIGNMENT_MIME_TYPE,
 							SURVEY_MIME_TYPE,
 							QUESTION_SET_MIME_TYPE,
-							None ):
+							None):
 			for key, assess_dict in base.items():
 				if key in result:
 					continue
 				elif mime_type == None:
 					# Everything else
 					result[key] = assess_dict
-				elif assess_dict.get( 'MimeType' ) == mime_type:
+				elif assess_dict.get('MimeType') == mime_type:
 					result[key] = assess_dict
 		return result
 
@@ -308,7 +303,7 @@ class QuestionMap(QuestionIndex):
 		result = set()
 		registry = self._get_registry(registry)
 
-		assess_dict = self._get_assess_item_dict( assessment_item_dict )
+		assess_dict = self._get_assess_item_dict(assessment_item_dict)
 		for ntiid, v in assess_dict.items():
 			__traceback_info__ = ntiid, v
 
@@ -610,7 +605,7 @@ def _remove_assessment_items_from_oldcontent(content_package,
 	ignore = set()
 	result = dict()
 	catalog = get_library_catalog()
-	intids = component.queryUtility(IIntIds) # test mode
+	intids = component.queryUtility(IIntIds)  # test mode
 
 	def _remove(container, name, item):
 		if name not in result:
@@ -628,10 +623,10 @@ def _remove_assessment_items_from_oldcontent(content_package,
 			remove_transaction_history(item)
 		# always remove from container
 		container.pop(name, None)
-			
+
 	def _unregister(unit):
 		items = IQAssessmentItemContainer(unit)
-		for name, item in list(items.items()): # mutating
+		for name, item in list(items.items()):  # mutating
 			if can_be_removed(item, force):
 				_remove(items, name, item)
 			else:

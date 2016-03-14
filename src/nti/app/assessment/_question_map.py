@@ -93,13 +93,13 @@ deprecated('_AssessmentItemBucket', 'Replaced with a container')
 class _AssessmentItemBucket(PersistentMapping):
 	pass
 
-def has_jar(value):
-	try:
-		result = value._p_jar is not None  # faster than getattr
-	except AttributeError:
-		result = False
-	return result
-	
+def add_to_connection(context, obj):
+	connection = IConnection(context, None)
+	if connection is not None and not IConnection(obj, None):
+		connection.add(obj)
+		return True
+	return False
+
 @component.adapter(IContentUnit)
 @interface.implementer(IQAssessmentItemContainer)
 class _AssessmentItemStore(NOOwnershipLastModifiedBTreeContainer,
@@ -119,16 +119,15 @@ class _AssessmentItemStore(NOOwnershipLastModifiedBTreeContainer,
 		return list(self.values())
 	
 	def __setitem__(self, key, value):
-		if has_jar(self): 
-			# XXX: add to jar for unit tests
-			if not has_jar(value): 
-				self._p_jar.add(value)
+		if IConnection(self, None) is not None: 
+			# XXX: add to connection for unit tests
+			add_to_connection(self, value)
 			NOOwnershipLastModifiedBTreeContainer.__setitem__(self, key, value)
 		else: # global library
 			self._setitemf(key, value)
 		
 	def __delitem__(self, key):
-		if has_jar(self):
+		if IConnection(self, None) is not None: 
 			NOOwnershipLastModifiedBTreeContainer.__delitem__(self, key)
 		else: # global library
 			self._delitemf(key, event=False)
@@ -144,8 +143,7 @@ def ContentUnitAssessmentItems(unit):
 		annotations['_question_map_assessment_item_container'] = result
 		result.createdTime = time.time()
 		result.lastModified = -1
-	if has_jar(unit) and not has_jar(result):
-		unit._p_jar.add(result) # XXX make sure we get a connection
+	add_to_connection(unit, result)
 	return result
 
 def _is_obj_locked(context):

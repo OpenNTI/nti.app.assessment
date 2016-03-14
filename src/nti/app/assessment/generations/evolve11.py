@@ -25,7 +25,7 @@ from nti.app.assessment.index import IX_SITE
 from nti.app.assessment.index import IX_COURSE
 from nti.app.assessment.index import SiteIndex
 from nti.app.assessment.index import CatalogEntryIDIndex
-from nti.app.assessment.index import install_assesment_catalog
+from nti.app.assessment.index import install_submission_catalog
 
 from nti.app.assessment.interfaces import IUsersCourseInquiryItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
@@ -70,27 +70,27 @@ def do_evolve(context, generation=generation):
 		if library is not None:
 			library.syncContentPackages()
 
-		assesment_catalog = install_assesment_catalog(ds_folder, intids)
+		submission_catalog = install_submission_catalog(ds_folder, intids)
 
-		if IX_SITE not in assesment_catalog:
+		if IX_SITE not in submission_catalog:
 			site_index = SiteIndex(family=intids.family)
 			intids.register(site_index)
-			locate(site_index, assesment_catalog, IX_SITE)
-			assesment_catalog[IX_SITE] = site_index
+			locate(site_index, submission_catalog, IX_SITE)
+			submission_catalog[IX_SITE] = site_index
 		else:
-			site_index = assesment_catalog[IX_SITE]
+			site_index = submission_catalog[IX_SITE]
 
 		# replace catlog entry index
-		old_index = assesment_catalog[IX_COURSE]
+		old_index = submission_catalog[IX_COURSE]
 		if not isinstance(old_index, CatalogEntryIDIndex):
 			intids.unregister(old_index)
-			del assesment_catalog[IX_COURSE]
+			del submission_catalog[IX_COURSE]
 			locate(old_index, None, None)
 
 			new_index = CatalogEntryIDIndex(family=intids.family)
 			intids.register(new_index)
-			locate(new_index, assesment_catalog, IX_COURSE)
-			assesment_catalog[IX_COURSE] = new_index
+			locate(new_index, submission_catalog, IX_COURSE)
+			submission_catalog[IX_COURSE] = new_index
 
 			for doc_id in old_index.ids():
 				obj = intids.queryObject(doc_id)

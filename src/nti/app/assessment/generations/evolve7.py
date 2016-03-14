@@ -32,6 +32,7 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver.interfaces import IDataserver
 from nti.dataserver.interfaces import IOIDResolver
+
 from nti.dataserver.metadata_index import CATALOG_NAME as METADATA_CATALOG_NAME
 
 from nti.traversal.traversal import find_interface

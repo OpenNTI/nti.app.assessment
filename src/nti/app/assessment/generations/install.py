@@ -17,7 +17,7 @@ from zope.generations.generations import SchemaManager
 
 from zope.intid.interfaces import IIntIds
 
-from nti.app.assessment.index import install_assesment_catalog
+from nti.app.assessment.index import install_submission_catalog
 
 class _AssessmentSchemaManager(SchemaManager):
 	"""
@@ -38,4 +38,4 @@ def install_catalog(context):
 	dataserver_folder = root['nti.dataserver']
 	lsm = dataserver_folder.getSiteManager()
 	intids = lsm.getUtility(IIntIds)
-	install_assesment_catalog(dataserver_folder, intids)
+	install_submission_catalog(dataserver_folder, intids)

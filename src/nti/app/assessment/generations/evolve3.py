@@ -22,7 +22,7 @@ from zope.catalog.interfaces import ICatalog
 
 from zope.intid.interfaces import IIntIds
 
-from nti.app.assessment.index import install_assesment_catalog
+from nti.app.assessment.index import install_submission_catalog
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
 
@@ -87,7 +87,7 @@ def do_evolve(context, generation=generation):
 
 		total = 0
 		metadata_catalog = lsm.getUtility(ICatalog, METADATA_CATALOG_NAME)
-		assesment_catalog = install_assesment_catalog(ds_folder, intids)
+		submission_catalog = install_submission_catalog(ds_folder, intids)
 
 		# load library
 		library = component.queryUtility(IContentPackageLibrary)
@@ -104,7 +104,7 @@ def do_evolve(context, generation=generation):
 		results = ResultSet(item_intids, intids, True)
 		for uid, obj in results.iter_pairs():
 			try:
-				assesment_catalog.force_index_doc(uid, obj)
+				submission_catalog.force_index_doc(uid, obj)
 				total += 1
 			except Exception:
 				logger.debug("Cannot index object with id %s", uid)

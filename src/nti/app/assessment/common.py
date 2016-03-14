@@ -21,7 +21,7 @@ from zope.proxy import ProxyBase
 
 from zope.schema.interfaces import RequiredMissing
 
-from nti.app.assessment import get_assesment_catalog
+from nti.app.assessment import get_submission_catalog
 
 from nti.app.assessment.assignment_filters import AssessmentPolicyExclusionFilter
 
@@ -325,7 +325,7 @@ def can_disclose_inquiry(inquiry, context=None):
 	return result
 
 def inquiry_submissions(context, course, subinstances=True):
-	catalog = get_assesment_catalog()
+	catalog = get_submission_catalog()
 	course = ICourseInstance(course)
 	if subinstances:
 		courses = get_course_hierarchy(course)

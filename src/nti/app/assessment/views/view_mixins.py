@@ -22,7 +22,7 @@ from zope.interface.common.idatetime import IDateTime
 
 from zope.intid.interfaces import IIntIds
 
-from nti.app.assessment import get_assesment_catalog
+from nti.app.assessment import get_submission_catalog
 
 from nti.app.assessment.common import get_available_for_submission_ending
 from nti.app.assessment.common import get_available_for_submission_beginning
@@ -133,7 +133,7 @@ class AssessmentPutView(UGDPutView):
 		if not courses:
 			return False
 		else:
-			catalog = get_assesment_catalog()
+			catalog = get_submission_catalog()
 			ntiids = self.get_ntiids(courses)
 			intids = component.getUtility(IIntIds)
 			sites = {self.get_site_name(x) for x in courses}

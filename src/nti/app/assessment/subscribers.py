@@ -25,7 +25,7 @@ from zope.intid.interfaces import IIntIdRemovedEvent
 from pyramid.httpexceptions import HTTPUnprocessableEntity
 
 from nti.app.assessment import MessageFactory as _
-from nti.app.assessment import get_assesment_catalog
+from nti.app.assessment import get_submission_catalog
 
 from nti.app.assessment.common import get_unit_assessments
 from nti.app.assessment.common import get_course_from_assignment
@@ -189,7 +189,7 @@ def delete_user_data(user):
 				del user_data[username]
 
 def unindex_user_data(user):
-	catalog = get_assesment_catalog()
+	catalog = get_submission_catalog()
 	query = { IX_CREATOR: {'any_of':(user.username,)} }
 	for uid in catalog.apply(query) or ():
 		catalog.unindex_doc(uid)
@@ -211,7 +211,7 @@ def delete_course_data(course):
 def unindex_course_data(course):
 	entry = ICourseCatalogEntry(course, None)
 	if entry is not None:
-		catalog = get_assesment_catalog()
+		catalog = get_submission_catalog()
 		query = { IX_COURSE: {'any_of':(entry.ntiid,)},
 				  IX_SITE: {'any_of':(getSite().__name__,) } }
 		for uid in catalog.apply(query) or ():

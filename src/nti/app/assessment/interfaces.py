@@ -34,6 +34,7 @@ from nti.dataserver.interfaces import ILastViewed
 from nti.dataserver.interfaces import ILastModified
 from nti.dataserver.interfaces import ITitledContent
 from nti.dataserver.interfaces import IModeledContent
+from nti.dataserver.interfaces import IModeledContentBody
 from nti.dataserver.interfaces import INeverStoredInSharedStream
 from nti.dataserver.interfaces import IShouldHaveTraversablePath
 from nti.dataserver.interfaces import ExtendedCompoundModeledContentBody
@@ -246,7 +247,8 @@ class IUsersCourseAssignmentHistoryItemFeedback(IContained,
 												IModeledContent,
 												ITitledContent,
 												INeverStoredInSharedStream,
-												IShouldHaveTraversablePath):
+												IShouldHaveTraversablePath,
+												IModeledContentBody):
 	"""
 	A feedback item on a history item.
 

@@ -139,6 +139,11 @@ def ContentUnitAssessmentItems(unit):
 		result = unit._question_map_assessment_item_container = _AssessmentItemBucket()
 		result.createdTime = time.time()
 		result.lastModified = -1
+	
+	# make sure there is lineage
+	if result.__parent__ is None:
+		result.__parent__ = unit
+		result.__name__ = '_question_map_assessment_item_container'
 	return result
 
 def _is_obj_locked(context):

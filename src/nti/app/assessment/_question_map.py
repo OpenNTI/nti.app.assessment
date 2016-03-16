@@ -133,13 +133,15 @@ class _AssessmentItemBucket(PersistentMapping,
 @component.adapter(IContentUnit)
 @interface.implementer(IQAssessmentItemContainer)
 def ContentUnitAssessmentItems(unit):
+	# Instead of using annotations on the content objects, we
+	# use an atttibute since we are seing connection problems
+	# during unit tests
 	try:
 		result = unit._question_map_assessment_item_container
 	except AttributeError:
 		result = unit._question_map_assessment_item_container = _AssessmentItemBucket()
 		result.createdTime = time.time()
 		result.lastModified = -1
-	
 	# make sure there is lineage
 	if result.__parent__ is None:
 		result.__parent__ = unit

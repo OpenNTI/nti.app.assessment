@@ -78,13 +78,12 @@ def _lookup_all_assessments(site_registry):
 	return result
 
 def _remove_invalid_assessment(site, provided, ntiid, containers):
-	from IPython.core.debugger import Tracer; Tracer()()
 	# remove from current site registry
 	registry = site.getSiteManager()
 	unregisterUtility(registry, provided=provided, name=ntiid)
 	# check containers
 	with current_site(site):
-		registered = component.getUtility(provided, name=ntiid)
+		registered = component.queryUtility(provided, name=ntiid)
 		for container in containers.get(ntiid) or ():
 			if registered is None:
 				container.pop(ntiid, None)
@@ -147,6 +146,7 @@ def remove_all_invalid_assessment(containers):
 def _process_args(args):
 	library = component.getUtility(IContentPackageLibrary)
 	library.syncContentPackages()
+	logger.info("Loading assesments containers")
 	containers = _assessment_containers()
 	remove_all_invalid_assessment(containers=containers)
 

@@ -222,17 +222,33 @@ def install_submission_catalog(site_manager_container, intids=None):
 
 ASSESMENT_CATALOG_NAME = 'nti.dataserver.++etc++evaluation-catalog'
 
+IX_NTIID = 'ntiid'
 IX_CONTAINERS = 'containers'
+IX_CONTAINMENT = 'containment'
 
 from zope.catalog.interfaces import ICatalog
 
 from zc.catalog.index import SetIndex as ZC_SetIndex
 
+from pyramid.location import lineage
+
 from nti.common._compat import integer_types
 
 from nti.common.proxy import removeAllProxies
 
+from nti.contentlibrary.interfaces import IContentUnit
+from nti.contentlibrary.interfaces import IContentPackage
+
+from nti.contenttypes.courses.utils import get_courses_for_packages
+
 from nti.zope_catalog.index import AttributeSetIndex
+
+def to_iterable(value):
+	if isinstance(value, (list, tuple, set)):
+		result = value
+	else:
+		result = (value,) if value is not None else ()
+	return result
 
 def get_uid(item, intids=None):
 	if not isinstance(item, integer_types):
@@ -243,47 +259,12 @@ def get_uid(item, intids=None):
 		result = item
 	return result
 
-def to_iterable(value):
-	if isinstance(value, (list, tuple, set)):
-		result = value
-	else:
-		result = (value,) if value is not None else ()
-	return result
+class ExtenedAttributeSetIndex(AttributeSetIndex):
 	
-class RetainSetIndex(AttributeSetIndex):
-	"""
-	A set index that retains the old values.
-	"""
-
-	def do_index_doc(self, doc_id, value):
-		# only index if there is a difference between new and stored values
-		value = {v for v in to_iterable(value) if v is not None}
-		old = self.documents_to_values.get(doc_id) or set()
-		if value.difference(old):
-			value.update(old or ())
-			# call zc.catalog.index.SetIndex which does the actual
-			# value indexation
-			result = ZC_SetIndex.index_doc(self, doc_id, value)
-			return result
-	index_containers = do_index_doc
-	
-	def index_doc(self, doc_id, value):
-		if self.interface is not None:
-			value = self.interface(value, None)
-			if value is None:
-				return None
-	
-		value = getattr(value, self.field_name, None)
-		if value is not None and self.field_callable:
-			# do not eat the exception raised below
-			value = value()
-
-		# Do not unindex if value is None in order to
-		# retain indexed values
-		if value is not None:
-			return self.do_index_doc(doc_id, value)
-
 	def remove(self, doc_id, containers):
+		"""
+		remove the specified containers from the doc_id
+		"""
 		old = set(self.documents_to_values.get(doc_id) or ())
 		if not old:
 			return
@@ -294,7 +275,7 @@ class RetainSetIndex(AttributeSetIndex):
 			# value indexation
 			ZC_SetIndex.index_doc(self, doc_id, old)
 		else:
-			super(RetainSetIndex, self).unindex_doc(doc_id)
+			super(ExtenedAttributeSetIndex, self).unindex_doc(doc_id)
 
 class ValidatingAssessmentSite(object):
 
@@ -313,9 +294,24 @@ class AssessmentSiteIndex(ValueIndex):
 	default_field_name = 'site'
 	default_interface = ValidatingAssessmentSite
 
-class ValidatingAssessmentContainers(object):
+class ValidatingAssessmentNTIID(object):
 
-	__slots__ = (b'containers',)
+	__slots__ = (b'ntiid',)
+
+	def __init__(self, obj, default=None):
+		if IQAssessment.providedBy(obj) or IQInquiry.providedBy(obj):
+			self.ntiid = obj.ntiid
+
+	def __reduce__(self):
+		raise TypeError()
+
+class AssessmentNTIIDIndex(ValueIndex):
+	default_field_name = 'ntiid'
+	default_interface = ValidatingAssessmentNTIID
+
+class ValidatingAssessmentContainment(object):
+
+	__slots__ = (b'containment',)
 
 	def _do_survey_question_set(self, obj):
 		result = {q.ntiid for q in obj.questions}
@@ -331,14 +327,53 @@ class ValidatingAssessmentContainers(object):
 
 	def __init__(self, obj, default=None):
 		if IQSurvey.providedBy(obj) or IQuestionSet:
-			self.containers = self._do_survey_question_set(obj)
+			self.containment = self._do_survey_question_set(obj)
 		elif IQAssignment.providedBy(obj):
-			self.containers = self._do_assigment_question_set(obj)
+			self.containment = self._do_assigment_question_set(obj)
 
 	def __reduce__(self):
 		raise TypeError()
 
-class ContainersIndex(RetainSetIndex):
+class AssessmentContainmentIndex(ExtenedAttributeSetIndex):
+	default_field_name = 'containment'
+	default_interface = ValidatingAssessmentContainment
+
+class ValidatingAssessmentContainers(object):
+
+	__slots__ = (b'containers',)
+
+	def _ntiid_lineage(self, context, test_iface, upper_iface):
+		result = set()
+		for location in lineage(context):
+			if test_iface.providedBy(location):
+				result.add(location.ntiid)
+			if upper_iface.providedBy(location):
+				break
+		result.discard(None)
+		return result
+			
+	def _get_containers(self, obj):
+		folder = find_interface(obj, IHostPolicyFolder, strict=False)
+		result = self._ntiid_lineage(obj, IContentUnit, IContentPackage)
+		course = find_interface(obj, ICourseInstance, strict=False)
+		if course is not None:
+			result.add(ICourseCatalogEntry(course).ntiid)
+		elif folder is not None:
+			courses = get_courses_for_packages(folder.__name__, result)
+			for course in courses:
+				entry = ICourseCatalogEntry(course)
+				result.add(entry.ntiid)
+		result.discard(None)
+		return result
+
+	def __init__(self, obj, default=None):
+		if IQAssessment.providedBy(obj) or IQInquiry.providedBy(obj):
+			self.containers = self._get_containers(obj)
+
+	def __reduce__(self):
+		raise TypeError()
+
+class AssessmentContainerIndex(ExtenedAttributeSetIndex):
 	default_field_name = 'containers'
 	default_interface = ValidatingAssessmentContainers
 
@@ -355,42 +390,21 @@ class AssesmentCatalog(Catalog):
 	# containers
 	
 	@property
-	def container_index(self):
-		return self[IX_CONTAINERS]
+	def containment_index(self):
+		return self[IX_CONTAINMENT]
 
-	def get_containers(self, item, intids=None):
+	def get_containment(self, item, intids=None):
 		doc_id = get_uid(item, intids)
 		if doc_id is not None:
-			result = self.container_index.documents_to_values.get(doc_id)
+			result = self.containment_index.documents_to_values.get(doc_id)
 			return set(result or ())
 		return set()
 
-	def update_containers(self, item, containers=(), intids=None):
-		doc_id = get_uid(item, intids)
-		if doc_id is not None and containers:
-			containers = to_iterable(containers)
-			result = self.container_index.do_index_doc(doc_id, containers)
-			return result
-		return None
-
-	def remove_containers(self, item, containers, intids=None):
-		doc_id = get_uid(item, intids)
-		if doc_id is not None:
-			self.container_index.remove(doc_id, containers)
-			return True
-		return False
-
-	def remove_all_containers(self, item, intids=None):
-		doc_id = get_uid(item, intids)
-		if doc_id is not None:
-			self.container_index.unindex_doc(doc_id)
-			return True
-		return False
-
 def create_assesment_catalog(catalog=None, family=None):
 	catalog = AssesmentCatalog() if catalog is None else catalog	
-	for name, clazz in ( (IX_SITE, SiteIndex),
-						 (IX_CONTAINERS, ContainersIndex),):
+	for name, clazz in ( (IX_SITE, AssessmentSiteIndex),
+						 (IX_NTIID, AssessmentNTIIDIndex),
+						 (IX_CONTAINMENT, AssessmentContainmentIndex),):
 		index = clazz(family=family)
 		locate(index, catalog, name)
 		catalog[name] = index

@@ -12,7 +12,8 @@ entry_points = {
 		"nti_submission_report = nti.app.assessment.scripts.nti_submission_report:main",
 		"nti_savepoint_migrator = nti.app.assessment.scripts.nti_savepoint_migrator:main",
 		"nti_fix_assessment_leaks = nti.app.assessment.scripts.nti_fix_assessment_leaks:main",
-		"nti_sync_library_assessments = nti.app.assessment.scripts.nti_sync_library_assessments:main"
+		"nti_sync_library_assessments = nti.app.assessment.scripts.nti_sync_library_assessments:main",
+		"nti_remove_invalid_assessments = nti.app.assessment.scripts.nti_remove_invalid_assessments:main"
 	],
 }
 

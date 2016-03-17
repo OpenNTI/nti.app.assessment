@@ -40,6 +40,7 @@ from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAggregatedInquiry
 from nti.assessment.interfaces import IQInquirySubmission
+from nti.assessment.interfaces import IQAssignmentPolicies
 from nti.assessment.interfaces import IQAssessmentPolicies
 from nti.assessment.interfaces import IQAssessmentDateContext
 from nti.assessment.interfaces import IQAssessmentItemContainer
@@ -377,3 +378,16 @@ def aggregate_page_inquiry(containerId, mimeType, *items):
 		else:
 			result += aggregated
 	return result
+
+def get_max_time_allowed( assignment, course ):
+	"""
+	For a given IQTimedAssignment and course, return the maximum time allowed to
+	take the assignment, definied by the assignment policies.
+	"""
+	max_time_allowed = assignment.maximum_time_allowed
+	policy = IQAssignmentPolicies(course).getPolicyForAssignment(assignment.ntiid)
+	if 		policy \
+		and 'maximum_time_allowed' in policy \
+		and policy['maximum_time_allowed'] != max_time_allowed:
+		max_time_allowed = policy['maximum_time_allowed']
+	return max_time_allowed

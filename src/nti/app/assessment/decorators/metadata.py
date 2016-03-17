@@ -54,10 +54,11 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 								  rel='Commence',
 								  elements=elements + ('Commence',)))
 			else:
-				links.append(Link(course,
-								  method='GET',
-								  rel='StartTime',
-								  elements=elements + ('StartTime',)))
+				for rel in ('StartTime', 'TimeRemaining'):
+					links.append(Link(course,
+								  	  method='GET',
+								  	  rel=rel,
+								  	  elements=elements + (rel,)))
 
 @interface.implementer(IExternalMappingDecorator)
 class _AssignmentMetadataContainerDecorator(AbstractAssessmentDecoratorPredicate):

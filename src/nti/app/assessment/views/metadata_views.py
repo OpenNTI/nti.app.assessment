@@ -21,6 +21,7 @@ from pyramid import httpexceptions as hexc
 
 from pyramid.view import view_config
 
+from nti.app.assessment.common import get_max_time_allowed
 from nti.app.assessment.common import get_course_from_assignment
 
 from nti.app.assessment.views import get_ds2
@@ -41,6 +42,7 @@ from nti.appserver.ugd_edit_views import UGDPutView
 from nti.appserver.ugd_edit_views import UGDDeleteView
 
 from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQTimedAssignment
 
 from nti.dataserver import authorization as nauth
 
@@ -132,18 +134,24 @@ class AssignmentSubmissionStartPostView(AssignmentSubmissionMetataPostView):
 			 name="Metadata")
 class AssignmentSubmissionMetadataGetView(AbstractAuthenticatedView):
 
+	@property
+	def course(self):
+		course = None
+		try:
+			course = get_course_from_assignment(self.context, self.remoteUser)
+		except RequiredMissing:
+			pass
+		return course
+
 	def _do_call(self):
 		creator = self.remoteUser
 		if not creator:
 			raise hexc.HTTPForbidden("Must be Authenticated.")
-		try:
-			course = get_course_from_assignment(self.context, creator)
-			if course is None:
-				raise hexc.HTTPForbidden("Must be enrolled in a course.")
-		except RequiredMissing:
+
+		if self.course is None:
 			raise hexc.HTTPForbidden("Must be enrolled in a course.")
 
-		container = component.getMultiAdapter((course, creator),
+		container = component.getMultiAdapter((self.course, creator),
 											  IUsersCourseAssignmentMetadata)
 
 		result = container[self.context.ntiid]
@@ -168,6 +176,40 @@ class AssignmentSubmissionStartGetView(AssignmentSubmissionMetadataGetView):
 		try:
 			item = self._do_call()
 			result = LocatedExternalDict({'StartTime': item.StartTime})
+			return result
+		except KeyError:
+			return hexc.HTTPNotFound()
+
+@view_config(route_name="objects.generic.traversal",
+			 context=IQTimedAssignment,
+			 renderer='rest',
+			 request_method='GET',
+			 permission=nauth.ACT_READ,
+			 name="TimeRemaining")
+class AssignmentTimeRemainingGetView(AssignmentSubmissionMetadataGetView):
+	"""
+	Return the time remaining in milliseconds until this IQTimedAssignment is
+	due.
+	"""
+
+	def _get_time_remaining(self, metadata):
+		# We return None if the assignment is not yet started.
+		result = None
+		if metadata.StartTime:
+			max_time_allowed = get_max_time_allowed( self.context, self.course )
+			if max_time_allowed:
+				now = time.time()
+				# max_time_allowed in seconds
+				end_point = metadata.StartTime + max_time_allowed * 1000
+				result = end_point - now
+				result = max( 0, result )
+		return result
+
+	def __call__(self):
+		try:
+			item = self._do_call()
+			time_remaining = self._get_time_remaining( item )
+			result = LocatedExternalDict({'TimeRemaining': time_remaining})
 			return result
 		except KeyError:
 			return hexc.HTTPNotFound()

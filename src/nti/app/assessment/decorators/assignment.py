@@ -16,6 +16,7 @@ from zope import interface
 
 from zope.location.interfaces import ILocation
 
+from nti.app.assessment.common import get_max_time_allowed
 from nti.app.assessment.common import get_assessment_metadata_item
 from nti.app.assessment.common import get_available_for_submission_ending
 from nti.app.assessment.common import get_available_for_submission_beginning
@@ -35,7 +36,6 @@ from nti.appserver.pyramid_authorization import has_permission
 
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQTimedAssignment
-from nti.assessment.interfaces import IQAssignmentPolicies
 from nti.assessment.interfaces import IQAssignmentDateContext
 
 from nti.common.property import Lazy
@@ -160,12 +160,7 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			result['IsTimedAssignment'] = False
 			return
 
-		max_time_allowed = assignment.maximum_time_allowed
-		policy = IQAssignmentPolicies(course).getPolicyForAssignment(assignment.ntiid)
-		if 	policy and 'maximum_time_allowed' in policy and \
-			policy['maximum_time_allowed'] != max_time_allowed:
-			max_time_allowed = policy['maximum_time_allowed']
-
+		max_time_allowed = get_max_time_allowed( assignment, course )
 		result['IsTimedAssignment'] = True
 		result['MaximumTimeAllowed'] = result['maximum_time_allowed' ] = max_time_allowed
 
@@ -189,7 +184,9 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			return
 		item = get_assessment_metadata_item(course, self.remoteUser, context.ntiid)
 		if item is not None:
-			result['Metadata'] = {'Duration': item.Duration, 'StartTime': item.StartTime}
+			metadata = {'Duration': item.Duration,
+						'StartTime': item.StartTime}
+			result['Metadata'] = metadata
 
 class _AssignmentQuestionContentRootURLAdder(AbstractAuthenticatedRequestAwareDecorator):
 	"""

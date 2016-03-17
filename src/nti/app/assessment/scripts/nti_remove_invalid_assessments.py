@@ -86,10 +86,12 @@ def _remove_invalid_assessment(site, provided, ntiid, containers):
 	with current_site(site):
 		registered = component.queryUtility(provided, name=ntiid)
 		for container in containers.get(ntiid) or ():
-			if registered is None:
-				container.pop(ntiid, None)
+			if not IQAssessmentItemContainer.providedBy(container):
+				continue
+			if registered is not None:
+				container[ntiid] = registered
 			else:
-				containers[ntiid] = registered
+				container.pop(ntiid, None)
 
 def remove_site_invalid_assessments(current, containers, intids=None,
 									catalog=None, seen=None):
@@ -130,8 +132,9 @@ def remove_site_invalid_assessments(current, containers, intids=None,
 
 		if item.__parent__ is None:
 			for container in containers.get(ntiid) or ():
-				item.__parent__ = container  # pick first
-				break
+				if IQAssessmentItemContainer.providedBy(container):
+					item.__parent__ = container.__parent__  # pick first
+					break
 
 		seen.add(ntiid)
 	return removed

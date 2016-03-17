@@ -124,6 +124,7 @@ def remove_site_invalid_assessments(current, containers, intids=None,
 			logger.warn("Unregistering (%s,%s) from site %s",
 						provided.__name__, ntiid, site_name)
 			removeIntId(item)
+			catalog.unindex(doc_id)
 			_remove_invalid_assessment(current, provided, ntiid, containers)
 			continue
 

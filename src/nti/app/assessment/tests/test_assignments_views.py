@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function, unicode_literals, absolute_import, division
-from hamcrest.library.object.hasproperty import has_property
 __docformat__ = "restructuredtext en"
 
 # disable: accessing protected members, too many methods
@@ -13,6 +12,7 @@ from hamcrest import none
 from hamcrest import is_not
 from hamcrest import has_entry
 from hamcrest import has_length
+from hamcrest import has_property
 from hamcrest import assert_that
 does_not = is_not
 

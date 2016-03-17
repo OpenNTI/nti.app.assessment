@@ -5,6 +5,7 @@
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
+from nti.intid.common import removeIntId
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -76,14 +77,24 @@ def _lookup_all_assessments(site_registry):
 		break  # break on first
 	return result
 
-def _remove_invalid_assessment(registry, provided, ntiid, containers):
+def _remove_invalid_assessment(site, provided, ntiid, containers):
+	from IPython.core.debugger import Tracer; Tracer()()
+	# remove from current site registry
+	registry = site.getSiteManager()
 	unregisterUtility(registry, provided=provided, name=ntiid)
-	for container in containers.get(ntiid) or ():
-		container.pop(ntiid, None)
+	# check containers
+	with current_site(site):
+		registered = component.getUtility(provided, name=ntiid)
+		for container in containers.get(ntiid) or ():
+			if registered is None:
+				container.pop(ntiid, None)
+			else:
+				containers[ntiid] = registered
 
 def remove_site_invalid_assessments(current, containers, intids=None, 
 									catalog=None, seen=None):
 	removed = set()
+	empty_map = dict()
 	site_name = current.__name__
 	registry = current.getSiteManager()
 
@@ -105,7 +116,7 @@ def remove_site_invalid_assessments(current, containers, intids=None,
 			logger.warn("Removing invalid registration (%s,%s) from site %s", 
 						provided.__name__, ntiid, site_name)
 			removed.add(ntiid)
-			_remove_invalid_assessment(registry, provided, ntiid, containers)
+			_remove_invalid_assessment(current, provided, ntiid, containers)
 			continue
 
 		# registration not in base site
@@ -113,7 +124,8 @@ def remove_site_invalid_assessments(current, containers, intids=None,
 			removed.add(ntiid)
 			logger.warn("Unregistering (%s,%s) from site %s", 
 						provided.__name__, ntiid, site_name)
-			_remove_invalid_assessment(registry, provided, ntiid, containers)
+			removeIntId(item)
+			_remove_invalid_assessment(current, provided, ntiid, empty_map)
 
 		seen.add(ntiid)
 	return removed

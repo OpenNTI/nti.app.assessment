@@ -5,7 +5,6 @@
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
-from nti.intid.common import removeIntId
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -21,7 +20,7 @@ from zope import component
 
 from zope.component.hooks import site as current_site
 
-from zope.interface.adapter import _lookupAll as zopeLookupAll # Private func
+from zope.interface.adapter import _lookupAll as zopeLookupAll  # Private func
 
 from zope.intid.interfaces import IIntIds
 
@@ -39,6 +38,8 @@ from nti.contentlibrary.indexed_data import get_library_catalog
 from nti.dataserver.utils import run_with_dataserver
 from nti.dataserver.utils.base_script import create_context
 
+from nti.intid.common import removeIntId
+
 from nti.site.hostpolicy import get_all_host_sites
 
 from nti.site.utils import unregisterUtility
@@ -46,15 +47,15 @@ from nti.site.utils import unregisterUtility
 def _assessment_containers():
 	seen = set()
 	containers = defaultdict(list)
-		
+
 	def recur(unit):
 		for child in unit.children or ():
 			recur(child)
 		container = IQAssessmentItemContainer(unit)
 		for item in container.assessments():
 			containers[item.ntiid].append(container)
-	
-	for site in get_all_host_sites():				
+
+	for site in get_all_host_sites():
 		with current_site(site):
 			for package in yield_sync_content_packages():
 				if package.ntiid not in seen:
@@ -90,10 +91,9 @@ def _remove_invalid_assessment(site, provided, ntiid, containers):
 			else:
 				containers[ntiid] = registered
 
-def remove_site_invalid_assessments(current, containers, intids=None, 
+def remove_site_invalid_assessments(current, containers, intids=None,
 									catalog=None, seen=None):
 	removed = set()
-	empty_map = dict()
 	site_name = current.__name__
 	registry = current.getSiteManager()
 
@@ -112,7 +112,7 @@ def remove_site_invalid_assessments(current, containers, intids=None,
 
 		# registration for a removed assessment
 		if doc_id is None:
-			logger.warn("Removing invalid registration (%s,%s) from site %s", 
+			logger.warn("Removing invalid registration (%s,%s) from site %s",
 						provided.__name__, ntiid, site_name)
 			removed.add(ntiid)
 			_remove_invalid_assessment(current, provided, ntiid, containers)
@@ -121,10 +121,16 @@ def remove_site_invalid_assessments(current, containers, intids=None,
 		# registration not in base site
 		if ntiid in seen:
 			removed.add(ntiid)
-			logger.warn("Unregistering (%s,%s) from site %s", 
+			logger.warn("Unregistering (%s,%s) from site %s",
 						provided.__name__, ntiid, site_name)
 			removeIntId(item)
-			_remove_invalid_assessment(current, provided, ntiid, empty_map)
+			_remove_invalid_assessment(current, provided, ntiid, containers)
+			continue
+
+		if item.__parent__ is None:
+			for container in containers.get(ntiid) or ():
+				item.__parent__ = container  # pick first
+				break
 
 		seen.add(ntiid)
 	return removed

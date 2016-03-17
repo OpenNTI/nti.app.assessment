@@ -102,10 +102,6 @@ class _AssessmentItemBucket(PersistentMapping,
 
 	_SET_CREATED_MODTIME_ON_INIT = False
 
-	@property
-	def connection(self):
-		return IConnection(get_site_registry(), None)
-
 	def append(self, item):
 		self[item.ntiid] = item
 
@@ -115,20 +111,6 @@ class _AssessmentItemBucket(PersistentMapping,
 
 	def assessments(self):
 		return list(self.values())
-
-	def __setitem__(self, key, value):
-		connection = self.connection
-		if connection is not None:
-			connection.add(value)
-			addIntId(value)
-		PersistentMapping.__setitem__(self, key, value)
-
-	def __delitem__(self, key):
-		connection = self.connection
-		if connection is not None:
-			value = self[key]
-			removeIntId(value)
-		PersistentMapping.__delitem__(self, key)
 
 @component.adapter(IContentUnit)
 @interface.implementer(IQAssessmentItemContainer)
@@ -238,6 +220,17 @@ class QuestionMap(QuestionIndex):
 		else:
 			result = IConnection(registry, None)
 			return result
+
+	def _intid_register(self, item, registry=None, intids=None, connection=None):
+		# We always want to register and persist our assessment items,
+		# even from the global library.
+		registry = self._get_registry(registry)
+		connection = self._connection(registry) if connection is None else connection
+		if connection is not None:  # Tests/
+			connection.add(item)
+			addIntId(item)
+			return True
+		return False
 
 	def _lineage(self, resource):
 		while resource is not None:
@@ -360,6 +353,7 @@ class QuestionMap(QuestionIndex):
 
 						# add to container and get and intid
 						parents_questions.append(thing_to_register)
+						self._intid_register(thing_to_register, registry=registry)
 
 						# index item
 						self._index_object(thing_to_register,
@@ -626,6 +620,7 @@ def _remove_assessment_items_from_oldcontent(content_package,
 			# remove from index
 			if intids is not None and intids.queryId(item) is not None:
 				catalog.unindex(item, intids=intids)
+				removeIntId(item)
 			# remove transactions
 			remove_transaction_history(item)
 		# always remove from container

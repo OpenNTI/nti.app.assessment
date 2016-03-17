@@ -53,7 +53,7 @@ from nti.zope_catalog.string import StringTokenNormalizer
 
 # submission / assesed catalog
 
-SUBMISSION_CATALOG_NAME = 'nti.dataserver.++etc++assesment-catalog' # Not a very good name
+SUBMISSION_CATALOG_NAME = 'nti.dataserver.++etc++assesment-catalog'  # Not a very good name
 
 IX_SITE = 'site'
 IX_ENTRY = IX_COURSE = 'course'
@@ -79,12 +79,12 @@ class ValidatingSite(object):
 			item = iface(obj, None)
 			if item is not None:
 				course = ICourseInstance(item, None)  # course is lineage
-				folder = find_interface(course, 
-										IHostPolicyFolder, 
+				folder = find_interface(course,
+										IHostPolicyFolder,
 										strict=False) if course is not None else None
 				return folder
 		return None
-	
+
 	def __init__(self, obj, default=None):
 		folder = self._folder(obj)
 		if folder is not None:
@@ -184,7 +184,7 @@ class AssesmentTypeIndex(ValueIndex):
 
 @interface.implementer(IMetadataCatalog)
 class MetadataAssesmentCatalog(Catalog):
-	
+
 	family = BTrees.family64
 
 	super_index_doc = Catalog.index_doc
@@ -260,7 +260,7 @@ def get_uid(item, intids=None):
 	return result
 
 class ExtenedAttributeSetIndex(AttributeSetIndex):
-	
+
 	def remove(self, doc_id, containers):
 		"""
 		remove the specified containers from the doc_id
@@ -316,7 +316,7 @@ class ValidatingAssessmentContainment(object):
 	def _do_survey_question_set(self, obj):
 		result = {q.ntiid for q in obj.questions}
 		return result
-			
+
 	def _do_assigment_question_set(self, obj):
 		result = set()
 		for p in obj.parts:
@@ -351,7 +351,7 @@ class ValidatingAssessmentContainers(object):
 				break
 		result.discard(None)
 		return result
-			
+
 	def _get_containers(self, obj):
 		folder = find_interface(obj, IHostPolicyFolder, strict=False)
 		result = self._ntiid_lineage(obj, IContentUnit, IContentPackage)
@@ -380,15 +380,7 @@ class AssessmentContainerIndex(ExtenedAttributeSetIndex):
 class AssesmentCatalog(Catalog):
 
 	family = BTrees.family64
-	
-	def index_doc(self, docid, texts):
-		Catalog.index_doc(self, docid, texts)
-		
-	def unindex_doc(self, docid):
-		Catalog.unindex_doc(self, docid)
 
-	# containers
-	
 	@property
 	def containment_index(self):
 		return self[IX_CONTAINMENT]
@@ -400,11 +392,23 @@ class AssesmentCatalog(Catalog):
 			return set(result or ())
 		return set()
 
+	@property
+	def containers_index(self):
+		return self[IX_CONTAINERS]
+
+	def get_containers(self, item, intids=None):
+		doc_id = get_uid(item, intids)
+		if doc_id is not None:
+			result = self.containers_index.documents_to_values.get(doc_id)
+			return set(result or ())
+		return set()
+
 def create_assesment_catalog(catalog=None, family=None):
-	catalog = AssesmentCatalog() if catalog is None else catalog	
-	for name, clazz in ( (IX_SITE, AssessmentSiteIndex),
-						 (IX_NTIID, AssessmentNTIIDIndex),
-						 (IX_CONTAINMENT, AssessmentContainmentIndex),):
+	catalog = AssesmentCatalog() if catalog is None else catalog
+	for name, clazz in ((IX_SITE, AssessmentSiteIndex),
+						(IX_NTIID, AssessmentNTIIDIndex),
+						(IX_CONTAINERS, AssessmentContainerIndex),
+						(IX_CONTAINMENT, AssessmentContainmentIndex),):
 		index = clazz(family=family)
 		locate(index, catalog, name)
 		catalog[name] = index
@@ -421,7 +425,7 @@ def install_assesment_catalog(site_manager_container, intids=None):
 	locate(catalog, site_manager_container, ASSESMENT_CATALOG_NAME)
 	intids.register(catalog)
 	lsm.registerUtility(catalog, provided=ICatalog, name=ASSESMENT_CATALOG_NAME)
-	
+
 	catalog = create_assesment_catalog(catalog=catalog, family=intids.family)
 	for index in catalog.values():
 		intids.register(index)

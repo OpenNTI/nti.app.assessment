@@ -15,8 +15,6 @@ import simplejson
 
 from zope import component
 
-from zope.component.hooks import getSite
-
 from zope.container.interfaces import IContainer
 
 from zope.intid.interfaces import IIntIds
@@ -62,6 +60,8 @@ from nti.dataserver.interfaces import IUser
 from nti.dataserver.users.interfaces import IWillDeleteEntityEvent
 
 from nti.externalization.externalization import to_external_object
+
+from nti.site.interfaces import IHostPolicyFolder
 
 from nti.traversal.traversal import find_interface
 
@@ -210,10 +210,11 @@ def delete_course_data(course):
 
 def unindex_course_data(course):
 	entry = ICourseCatalogEntry(course, None)
-	if entry is not None:
+	folder = find_interface(course, IHostPolicyFolder, strict=False)
+	if entry is not None and folder is not None:
 		catalog = get_submission_catalog()
 		query = { IX_COURSE: {'any_of':(entry.ntiid,)},
-				  IX_SITE: {'any_of':(getSite().__name__,) } }
+				  IX_SITE: {'any_of':(folder.__name__,) } }
 		for uid in catalog.apply(query) or ():
 			catalog.unindex_doc(uid)
 

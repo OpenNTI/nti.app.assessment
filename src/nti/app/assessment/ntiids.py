@@ -14,7 +14,7 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope import interface
 
-from nti.assessment.interfaces import ASSESSMENT_INTERFACES
+from nti.assessment import ASSESSMENT_INTERFACES
 
 from nti.ntiids.interfaces import INTIIDResolver
 

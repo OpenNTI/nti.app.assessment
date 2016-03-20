@@ -28,7 +28,7 @@ from nti.app.contentlibrary.utils import yield_sync_content_packages
 
 from nti.assessment.common import iface_of_assessment
 
-from nti.assessment.interfaces import ASSESSMENT_INTERFACES
+from nti.assessment import ASSESSMENT_INTERFACES
 
 from nti.assessment.interfaces import IQAssessmentItemContainer
 

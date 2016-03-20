@@ -41,11 +41,12 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataContaine
 
 from nti.app.products.courseware.interfaces import ICourseInstanceActivity
 
+from nti.assessment import ASSESSMENT_INTERFACES
+
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
-from nti.assessment.interfaces import ASSESSMENT_INTERFACES
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 

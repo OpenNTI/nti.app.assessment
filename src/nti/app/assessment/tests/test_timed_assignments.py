@@ -87,8 +87,7 @@ class TestTimedAssignments(ApplicationLayerTest):
 											  	IUsersCourseAssignmentMetadata)
 
 			metadata = container[self.assignment_id]
-			# timestamp
-			metadata.StartTime = metadata.StartTime - 30000
+			metadata.StartTime = metadata.StartTime - 30
 
 		# Start time has changed
 		start_res = self.testapp.get( start_href )

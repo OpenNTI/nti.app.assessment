@@ -198,11 +198,10 @@ class AssignmentTimeRemainingGetView(AssignmentSubmissionMetadataGetView):
 		if metadata.StartTime:
 			max_time_allowed = get_max_time_allowed( self.context, self.course )
 			if max_time_allowed:
-				now = time.time() * 1000
-				# StartTime in seconds; max_time_allowed is in seconds
-				end_point = metadata.StartTime + max_time_allowed * 1000
+				now = time.time()
+				# Both in seconds
+				end_point = metadata.StartTime + max_time_allowed
 				result = end_point - now
-				result = result / 1000
 		return result
 
 	def __call__(self):

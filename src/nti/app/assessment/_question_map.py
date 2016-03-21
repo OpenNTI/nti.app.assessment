@@ -330,12 +330,13 @@ class QuestionMap(QuestionIndex):
 
 					# get unproxied object
 					thing_to_register = removeAllProxies(item)
-					result.add(thing_to_register)
 
 					# check registry
+					ntiid = thing_to_register.ntiid
 					provided = _iface_to_register(thing_to_register)
-					ntiid = getattr(thing_to_register, 'ntiid', None) or u''
 					if ntiid and registry.queryUtility(provided, name=ntiid) is None:
+						result.add(thing_to_register)
+						
 						containers.discard(ntiid)
 						containers.update(hierarchy_ntiids)
 

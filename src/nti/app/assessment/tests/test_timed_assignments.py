@@ -95,10 +95,10 @@ class TestTimedAssignments(ApplicationLayerTest):
 		start_time = start_res.json_body.get( 'StartTime' )
 		assert_that( start_time, is_not( original_start_time ))
 
-		# Remaining time is now zero
+		# Remaining time is now negative
 		remaining_res = self.testapp.get( remaining_href )
 		remaining_time = remaining_res.json_body.get( 'TimeRemaining' )
-		assert_that( remaining_time, is_( 0 ) )
+		assert_that( remaining_time, less_than( 0 ) )
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_timed(self):

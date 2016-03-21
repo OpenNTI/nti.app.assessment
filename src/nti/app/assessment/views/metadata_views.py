@@ -188,8 +188,8 @@ class AssignmentSubmissionStartGetView(AssignmentSubmissionMetadataGetView):
 			 name="TimeRemaining")
 class AssignmentTimeRemainingGetView(AssignmentSubmissionMetadataGetView):
 	"""
-	Return the time remaining in milliseconds until this IQTimedAssignment is
-	due.
+	Return the time remaining in seconds until this `IQTimedAssignment` is
+	due. We may return negative numbers to indicate past due status.
 	"""
 
 	def _get_time_remaining(self, metadata):
@@ -198,11 +198,11 @@ class AssignmentTimeRemainingGetView(AssignmentSubmissionMetadataGetView):
 		if metadata.StartTime:
 			max_time_allowed = get_max_time_allowed( self.context, self.course )
 			if max_time_allowed:
-				now = time.time()
-				# max_time_allowed in seconds
+				now = time.time() * 1000
+				# StartTime in seconds; max_time_allowed is in seconds
 				end_point = metadata.StartTime + max_time_allowed * 1000
 				result = end_point - now
-				result = max( 0, result )
+				result = result / 1000
 		return result
 
 	def __call__(self):

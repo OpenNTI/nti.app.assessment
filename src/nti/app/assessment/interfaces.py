@@ -20,13 +20,17 @@ from zope.container.interfaces import IContainerNamesContainer
 
 from zope.security.permission import Permission
 
-from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQAssignment 
+from nti.assessment.interfaces import IQEvaluation 
 from nti.assessment.interfaces import IQAssignmentSubmission
 from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQInquirySubmission
 from nti.assessment.interfaces import IQAggregatedInquiry
+
+from nti.coremetadata.interfaces import IRecordable 
+from nti.coremetadata.interfaces import IPublishable 
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import ICreated
@@ -411,3 +415,34 @@ class ICourseAggregatedInquiries(IContainer,
 	A container for all the aggreated survey and polls key by their ntiids
 	"""
 	contains(IQAggregatedInquiry)
+	
+
+class ICourseEvaluationEditionRecords(IContainer,
+						  		  	  IContained,
+						  		   	  IShouldHaveTraversablePath):
+	"""
+	A container for all the evaluation objects edition records
+	"""
+	contains(str('.ICourseEvaluationEditionRecord'))
+	
+class ICourseEvaluationEditionRecord(IContained,
+							 	  	 ILastModified,
+							 	  	 ICreated,
+							 	  	 IRecordable,
+							 	  	 IPublishable,
+							  	     IShouldHaveTraversablePath):
+	"""
+	A record of a object being edited
+	"""
+	containers(ICourseEvaluationEditionRecords)
+	__parent__.required = False
+
+	model = Object(IQEvaluation, required=False, title="Object being edited")
+
+	metadata = Dict(key_type=ValidTextLine(title="key"),
+	  			  	value_type=ValidTextLine(title="vale", required=True),
+				  	min_length=0,
+				  	required=False)
+	
+	evaluationId = ValidTextLine(title="Evaluation object id", required=False)
+	evaluationId.setTaggedValue('_ext_excluded_out', True)

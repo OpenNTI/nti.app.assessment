@@ -25,6 +25,8 @@ from nti.app.assessment.adapters import course_from_context_lineage
 from nti.app.assessment.interfaces import ICourseEvaluationEditionRecord
 from nti.app.assessment.interfaces import ICourseEvaluationEditionRecords
 
+from nti.common.property import alias
+
 from nti.containers.containers import CaseInsensitiveCheckingLastModifiedBTreeContainer
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -109,6 +111,8 @@ class CourseEvaluationEditionRecord(PersistentCreatedModDateTrackingObject,
 									SchemaConfigured,
 									Contained):
 	createDirectFieldProperties(ICourseEvaluationEditionRecord)
+
+	assessment = alias('model')
 
 	@property
 	def assessmentId(self):

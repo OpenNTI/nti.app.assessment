@@ -224,7 +224,7 @@ class AssesmentSubmittedType(object):
 				result.update(q.questionId for q in part.questions or ())
 		elif IQSurveySubmission.providedBy(submission):
 			submission.add(submission.surveyId)
-			result.update(p.pollId, for p in submission.questions or ())
+			result.update(p.pollId for p in submission.questions or ())
 		elif IQPollSubmission.providedBy(submission):
 			result.add(submission.pollId)
 		result.discard(None)

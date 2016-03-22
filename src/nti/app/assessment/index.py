@@ -25,12 +25,14 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
+from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssessment
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQPollSubmission
 from nti.assessment.interfaces import IQSurveySubmission
+from nti.assessment.interfaces import IQAssignmentSubmission
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
@@ -44,6 +46,7 @@ from nti.traversal.traversal import find_interface
 
 from nti.zope_catalog.catalog import Catalog
 
+from nti.zope_catalog.index import AttributeSetIndex
 from nti.zope_catalog.index import NormalizationWrapper
 from nti.zope_catalog.index import IntegerAttributeIndex
 from nti.zope_catalog.index import ValueIndex as RawValueIndex
@@ -51,12 +54,32 @@ from nti.zope_catalog.index import AttributeValueIndex as ValueIndex
 
 from nti.zope_catalog.string import StringTokenNormalizer
 
+class ExtenedAttributeSetIndex(AttributeSetIndex):
+
+	def remove(self, doc_id, containers):
+		"""
+		remove the specified containers from the doc_id
+		"""
+		old = set(self.documents_to_values.get(doc_id) or ())
+		if not old:
+			return
+		for v in to_iterable(containers):
+			old.discard(v)
+		if old:
+			# call zc.catalog.index.SetIndex which does the actual
+			# value indexation
+			ZC_SetIndex.index_doc(self, doc_id, old)
+		else:
+			super(ExtenedAttributeSetIndex, self).unindex_doc(doc_id)
+
 # submission / assesed catalog
 
 SUBMISSION_CATALOG_NAME = 'nti.dataserver.++etc++assesment-catalog'  # Not a very good name
 
 IX_SITE = 'site'
-IX_ENTRY = IX_COURSE = 'course'
+IX_COURSE = 'course'
+IX_ENTRY = IX_COURSE
+IX_SUBMITTED = 'submitted'
 IX_ASSESSMENT_ID = 'assesmentId'
 IX_ASSESSMENT_TYPE = 'assesmentType'
 IX_CREATOR = IX_STUDENT = IX_USERNAME = 'creator'
@@ -137,8 +160,8 @@ class ValidatingAssesmentID(object):
 	__slots__ = (b'assesmentId',)
 
 	def __init__(self, obj, default=None):
-		if  IUsersCourseAssignmentHistoryItem.providedBy(obj) or \
-			IUsersCourseInquiryItem.providedBy(obj):
+		if  	IUsersCourseAssignmentHistoryItem.providedBy(obj) \
+			or	IUsersCourseInquiryItem.providedBy(obj):
 			self.assesmentId = obj.__name__  # by definition
 
 	def __reduce__(self):
@@ -164,6 +187,10 @@ def get_assesment_type(obj):
 			result = u'Poll'
 		elif IQSurvey.providedBy(obj):
 			result = u'Survey'
+		elif IQuestionSet.providedBy(obj):
+			result = u'QuestionSet'
+		elif IQuestion.providedBy(obj):
+			result = u'Question'
 	except (AttributeError, TypeError):
 		pass
 	return result
@@ -180,6 +207,39 @@ class ValidatingAssesmentType(object):
 
 class AssesmentTypeIndex(ValueIndex):
 	default_field_name = 'type'
+	default_interface = ValidatingAssesmentType
+
+class AssesmentSubmittedType(object):
+
+	__slots__ = (b'submitted',)
+
+	@classmethod
+	def get_submitted(cls, item):
+		result = set()
+		submission = item.Submission
+		if IQAssignmentSubmission.providedBy(submission):
+			submission.add(submission.assignmentId)
+			for part in submission.parts or ():
+				result.add(part.questionSetId)
+				result.update(q.questionId for q in part.questions or ())
+		elif IQSurveySubmission.providedBy(submission):
+			submission.add(submission.surveyId)
+			result.update(p.pollId, for p in submission.questions or ())
+		elif IQPollSubmission.providedBy(submission):
+			result.add(submission.pollId)
+		result.discard(None)
+		return result
+
+	def __init__(self, obj, default=None):
+		if  	IUsersCourseAssignmentHistoryItem.providedBy(obj) \
+			or	IUsersCourseInquiryItem.providedBy(obj):
+			self.submitted = None
+
+	def __reduce__(self):
+		raise TypeError()
+
+class AssesmentSubmittedIndex(ExtenedAttributeSetIndex):
+	default_field_name = 'submitted'
 	default_interface = ValidatingAssesmentType
 
 @interface.implementer(IMetadataCatalog)
@@ -211,6 +271,7 @@ def install_submission_catalog(site_manager_container, intids=None):
 						(IX_CREATOR, CreatorIndex),
 						(IX_COURSE, CatalogEntryIDIndex),
 						(IX_ASSESSMENT_ID, AssesmentIdIndex),
+						(IX_SUBMITTED, AssesmentSubmittedIndex)
 						(IX_ASSESSMENT_TYPE, AssesmentTypeIndex)):
 		index = clazz(family=intids.family)
 		intids.register(index)
@@ -241,8 +302,6 @@ from nti.contentlibrary.interfaces import IContentPackage
 
 from nti.contenttypes.courses.utils import get_courses_for_packages
 
-from nti.zope_catalog.index import AttributeSetIndex
-
 def to_iterable(value):
 	if isinstance(value, (list, tuple, set)):
 		result = value
@@ -258,24 +317,6 @@ def get_uid(item, intids=None):
 	else:
 		result = item
 	return result
-
-class ExtenedAttributeSetIndex(AttributeSetIndex):
-
-	def remove(self, doc_id, containers):
-		"""
-		remove the specified containers from the doc_id
-		"""
-		old = set(self.documents_to_values.get(doc_id) or ())
-		if not old:
-			return
-		for v in to_iterable(containers):
-			old.discard(v)
-		if old:
-			# call zc.catalog.index.SetIndex which does the actual
-			# value indexation
-			ZC_SetIndex.index_doc(self, doc_id, old)
-		else:
-			super(ExtenedAttributeSetIndex, self).unindex_doc(doc_id)
 
 class ValidatingAssessmentSite(object):
 

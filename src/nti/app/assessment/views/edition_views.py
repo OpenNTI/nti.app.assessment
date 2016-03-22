@@ -9,6 +9,8 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+import copy
+
 from zope import lifecycleevent
 
 from pyramid.view import view_config
@@ -29,6 +31,8 @@ from nti.appserver.ugd_edit_views import UGDPostView
 from nti.assessment.common import iface_of_assessment
 
 from nti.dataserver import authorization as nauth
+
+from nti.externalization.internalization import notifyModified
 
 # def _get_filename(context, name):
 # 	result = getattr(context, 'filename', None) or getattr(context, 'name', None) or name
@@ -94,14 +98,16 @@ class CourseEvaluationEditionsPostView(UGDPostView):
 class CourseEvaluationEditionPutView(UGDPutView):
 
 	def updateContentObject(self, contentObject, externalValue, set_id=False, notify=True):
+		originalSource = copy.copy(externalValue)
 		result = UGDPutView.updateContentObject(self,
 												contentObject,
 												externalValue,
 												set_id=set_id,
-												notify=notify)
+												notify=False)
 
 		sources = get_all_sources(self.request)
 		if sources:
-			validate_sources(self.remoteUser, result, sources)
+			validate_sources(self.remoteUser, result.model, sources)
 			# _handle_multipart(self.context, self.remoteUser, self.context, sources)
+		notifyModified(contentObject, originalSource)
 		return result

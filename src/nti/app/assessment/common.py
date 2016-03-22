@@ -27,6 +27,7 @@ from nti.app.assessment.assignment_filters import AssessmentPolicyExclusionFilte
 
 from nti.app.assessment.index import IX_SITE
 from nti.app.assessment.index import IX_COURSE
+from nti.app.assessment.index import IX_SUBMITTED
 from nti.app.assessment.index import IX_ASSESSMENT_ID
 
 from nti.app.assessment.interfaces import IUsersCourseInquiryItem
@@ -325,19 +326,41 @@ def can_disclose_inquiry(inquiry, context=None):
 		result = not_after and datetime.utcnow() >= not_after
 	return result
 
-def inquiry_submissions(context, course, subinstances=True):
-	catalog = get_submission_catalog()
-	course = ICourseInstance(course)
+def get_courses(context, subinstances=True):
+	course = ICourseInstance(context)
 	if subinstances:
 		courses = get_course_hierarchy(course)
 	else:
 		courses = (course,)
+	return courses
+
+def get_entry_ntiids(courses=()):
+	# safety during course adaptation (seen in alpha)
+	ntiids = {getattr(ICourseCatalogEntry(x, None), 'ntiid', None) for x in courses or ()}
+	ntiids.discard(None)
+	return ntiids
+
+def evaluation_submissions(context, course, subinstances=True):
+	catalog = get_submission_catalog()
+	course = ICourseInstance(course)
 	intids = component.getUtility(IIntIds)
+	ntiids = get_entry_ntiids(get_courses(course))
 	folder = find_interface(course, IHostPolicyFolder, strict=False)
 	sites = (folder.__name__,) if folder is not None else get_component_hierarchy_names()
-	# safety during course adaptation (seen in alpha)
-	ntiids = {getattr(ICourseCatalogEntry(x, None), 'ntiid', None) for x in courses}
-	ntiids.discard(None)
+	# prepare query
+	query = { IX_SITE: {'any_of':sites},
+			  IX_COURSE: {'any_of':ntiids},
+			  IX_SUBMITTED : {'any_of':(context.ntiid,)}}
+	result = catalog.apply(query) or ()
+	return ResultSet(result, intids, True)
+
+def inquiry_submissions(context, course, subinstances=True):
+	catalog = get_submission_catalog()
+	course = ICourseInstance(course)
+	intids = component.getUtility(IIntIds)
+	ntiids = get_entry_ntiids(get_courses(course))
+	folder = find_interface(course, IHostPolicyFolder, strict=False)
+	sites = (folder.__name__,) if folder is not None else get_component_hierarchy_names()
 	# prepare query
 	query = { IX_SITE: {'any_of':sites},
 			  IX_COURSE: {'any_of':ntiids},

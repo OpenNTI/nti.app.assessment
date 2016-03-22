@@ -348,7 +348,8 @@ class QuestionMap(QuestionIndex):
 
 						# TODO: We are only partially supporting having question/sets
 						# used multiple places. When we get to that point, we need to
-						# handle it by noting on each assessment object where it is registered;
+						# handle it by noting on each assessment object where it is 
+						# registered
 						if thing_to_register.__parent__ is None and parent is not None:
 							thing_to_register.__parent__ = parent
 
@@ -365,13 +366,19 @@ class QuestionMap(QuestionIndex):
 						# register in sync results
 						if sync_results is not None:
 							sync_results.add_assessment(thing_to_register, False)
+					elif ntiid and ntiid not in parents_questions:
+						# XXX: Seen in alpha 
+						# registered object is not in unit container 
+						parents_questions.append(thing_to_register)
 			else:
 				obj = registered
 				self._store_object(ntiid, obj)
-				self._index_object(obj,
-								   content_package,
-								   hierarchy_ntiids,
-								   registry=registry)
+				self._index_object(obj, content_package, 
+								   hierarchy_ntiids, registry=registry)
+				if ntiid not in parents_questions:
+					# XXX: Seen in alpha 
+					# registered object is not in unit container 
+					parents_questions.append(thing_to_register)
 
 			if containing_hierarchy_key:
 				assert 	containing_hierarchy_key in by_file, \

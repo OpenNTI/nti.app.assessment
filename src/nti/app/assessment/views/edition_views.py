@@ -76,8 +76,9 @@ class CourseEvaluationEditionsPostView(UGDPostView):
 		ntiid = make_evaluation_ntiid(provided, self.remoteUser)
 
 		lifecycleevent.created(record)
-		self.context[ntiid] = record
-		
+		record.model.ntiid = ntiid
+		self.context[ntiid] = record # save
+
 		# handle multi-part data
 		if sources:  
 			validate_sources(self.remoteUser, record.model, sources)

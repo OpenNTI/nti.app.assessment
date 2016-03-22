@@ -33,6 +33,7 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.contenttypes.courses.utils import get_course_editors
 
+from nti.dataserver.interfaces import ACE_DENY_ALL
 from nti.dataserver.interfaces import ALL_PERMISSIONS
 
 from nti.dataserver.authorization import ROLE_ADMIN
@@ -74,6 +75,7 @@ class CourseEvaluationEditions(CaseInsensitiveCheckingLastModifiedBTreeContainer
 						for i in course.instructors)
 			aces.extend(ace_allowing(i, ALL_PERMISSIONS, type(self))
 						for i in get_course_editors(course))
+		aces.append(ACE_DENY_ALL)
 		result = acl_from_aces(aces)
 		return result
 

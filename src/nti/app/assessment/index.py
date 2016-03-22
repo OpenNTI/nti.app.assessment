@@ -271,7 +271,7 @@ def install_submission_catalog(site_manager_container, intids=None):
 						(IX_CREATOR, CreatorIndex),
 						(IX_COURSE, CatalogEntryIDIndex),
 						(IX_ASSESSMENT_ID, AssesmentIdIndex),
-						(IX_SUBMITTED, AssesmentSubmittedIndex)
+						(IX_SUBMITTED, AssesmentSubmittedIndex),
 						(IX_ASSESSMENT_TYPE, AssesmentTypeIndex)):
 		index = clazz(family=intids.family)
 		intids.register(index)

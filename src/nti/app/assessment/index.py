@@ -209,7 +209,7 @@ class AssesmentTypeIndex(ValueIndex):
 	default_field_name = 'type'
 	default_interface = ValidatingAssesmentType
 
-class AssesmentSubmittedType(object):
+class ValidatingAssesmentSubmittedType(object):
 
 	__slots__ = (b'submitted',)
 
@@ -218,12 +218,12 @@ class AssesmentSubmittedType(object):
 		result = set()
 		submission = item.Submission
 		if IQAssignmentSubmission.providedBy(submission):
-			submission.add(submission.assignmentId)
+			result.add(submission.assignmentId)
 			for part in submission.parts or ():
 				result.add(part.questionSetId)
 				result.update(q.questionId for q in part.questions or ())
 		elif IQSurveySubmission.providedBy(submission):
-			submission.add(submission.surveyId)
+			result.add(submission.surveyId)
 			result.update(p.pollId for p in submission.questions or ())
 		elif IQPollSubmission.providedBy(submission):
 			result.add(submission.pollId)
@@ -233,14 +233,14 @@ class AssesmentSubmittedType(object):
 	def __init__(self, obj, default=None):
 		if  	IUsersCourseAssignmentHistoryItem.providedBy(obj) \
 			or	IUsersCourseInquiryItem.providedBy(obj):
-			self.submitted = None
+			self.submitted = self.get_submitted(obj)
 
 	def __reduce__(self):
 		raise TypeError()
 
 class AssesmentSubmittedIndex(ExtenedAttributeSetIndex):
 	default_field_name = 'submitted'
-	default_interface = ValidatingAssesmentType
+	default_interface = ValidatingAssesmentSubmittedType
 
 @interface.implementer(IMetadataCatalog)
 class MetadataAssesmentCatalog(Catalog):

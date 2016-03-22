@@ -34,10 +34,6 @@ from nti.dataserver import authorization as nauth
 
 from nti.externalization.internalization import notifyModified
 
-# def _get_filename(context, name):
-# 	result = getattr(context, 'filename', None) or getattr(context, 'name', None) or name
-# 	result = safe_filename(name_finder(result))
-# 	return result
 # 
 # def _handle_multipart(context, user, model, sources):
 # 	provided = ICourseDiscussion
@@ -49,7 +45,7 @@ from nti.externalization.internalization import notifyModified
 # 			if location:
 # 				filer.remove(location)
 # 			# save a in a new file
-# 			key = _get_filename(source, name)
+# 			key = get_safe_source_filename(source, name)
 # 			location = filer.save(source, key, overwrite=False,
 # 								  bucket=ASSETS_FOLDER, context=discussion)
 # 			setattr(discussion, name, location)

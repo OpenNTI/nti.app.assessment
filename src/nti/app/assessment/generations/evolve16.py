@@ -71,16 +71,19 @@ def do_evolve(context, generation=generation):
 		locate(index, submission_catalog, IX_SUBMITTED)
 		submission_catalog[IX_SUBMITTED] = index
 
-		# replace catlog entry index
+		count = 0
 		source = submission_catalog[IX_ASSESSMENT_ID]
 		for doc_id in source.ids():
 			obj = intids.queryObject(doc_id)
 			if 		IUsersCourseInquiryItem.providedBy(obj) \
 				or	IUsersCourseAssignmentHistoryItem.providedBy(obj):
 					index.index_doc(doc_id, obj)
+					count += 1
 
 		component.getGlobalSiteManager().unregisterUtility(mock_ds, IDataserver)
-		logger.info('Assessment evolution %s done', generation)
+		logger.info('Assessment evolution %s done. %s record(s) indexed',
+					generation, count)
+
 def evolve(context):
 	"""
 	Evolve to generation 16 by updating the submission catalog

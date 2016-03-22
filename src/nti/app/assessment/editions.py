@@ -22,8 +22,8 @@ from pyramid.interfaces import IRequest
 
 from nti.app.assessment.adapters import course_from_context_lineage
 
-from nti.app.assessment.interfaces import ICourseEvaluationEditionRecord
-from nti.app.assessment.interfaces import ICourseEvaluationEditionRecords
+from nti.app.assessment.interfaces import ICourseEvaluationEdition
+from nti.app.assessment.interfaces import ICourseEvaluationEditions
 
 from nti.common.property import alias
 
@@ -48,8 +48,8 @@ from nti.schema.fieldproperty import createDirectFieldProperties
 
 from nti.traversal.traversal import find_interface
 
-@interface.implementer(ICourseEvaluationEditionRecords)
-class CourseEvaluationEditionRecords(CaseInsensitiveCheckingLastModifiedBTreeContainer):
+@interface.implementer(ICourseEvaluationEditions)
+class CourseEvaluationEditions(CaseInsensitiveCheckingLastModifiedBTreeContainer):
 	"""
 	Implementation of the course evaluation edition records in a course.
 	"""
@@ -78,7 +78,7 @@ class CourseEvaluationEditionRecords(CaseInsensitiveCheckingLastModifiedBTreeCon
 		return result
 
 @component.adapter(ICourseInstance)
-@interface.implementer(ICourseEvaluationEditionRecords)
+@interface.implementer(ICourseEvaluationEditions)
 def _evaluation_editions_for_course(course, create=True):
 	result = None
 	annotations = IAnnotations(course)
@@ -87,7 +87,7 @@ def _evaluation_editions_for_course(course, create=True):
 		result = annotations[KEY]
 	except KeyError:
 		if create:
-			result = CourseEvaluationEditionRecords()
+			result = CourseEvaluationEditions()
 			annotations[KEY] = result
 			result.__name__ = KEY
 			result.__parent__ = course
@@ -98,7 +98,7 @@ def _evaluation_editions_for_course_path_adapter(course, request):
 	return _evaluation_editions_for_course(course)
 
 @interface.implementer(ICourseInstance)
-@component.adapter(ICourseEvaluationEditionRecords)
+@component.adapter(ICourseEvaluationEditions)
 def _course_from_item_lineage(item):
 	return course_from_context_lineage(item, validate=True)
 
@@ -106,14 +106,14 @@ def _course_from_item_lineage(item):
 def _on_course_added(course, event):
 	_evaluation_editions_for_course(course)
 
-@interface.implementer(ICourseEvaluationEditionRecord)
-class CourseEvaluationEditionRecord(PersistentCreatedModDateTrackingObject,
-									SchemaConfigured,
-									Contained):
-	createDirectFieldProperties(ICourseEvaluationEditionRecord)
+@interface.implementer(ICourseEvaluationEdition)
+class CourseEvaluationEdition(PersistentCreatedModDateTrackingObject,
+							  SchemaConfigured,
+							  Contained):
+	createDirectFieldProperties(ICourseEvaluationEdition)
 
 	assessment = alias('model')
-
+		
 	@property
 	def assessmentId(self):
 		return self.__name__

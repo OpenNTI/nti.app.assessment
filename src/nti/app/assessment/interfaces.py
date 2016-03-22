@@ -417,24 +417,24 @@ class ICourseAggregatedInquiries(IContainer,
 	contains(IQAggregatedInquiry)
 	
 
-class ICourseEvaluationEditionRecords(IContainer,
-						  		  	  IContained,
-						  		   	  IShouldHaveTraversablePath):
+class ICourseEvaluationEditions(IContainer,
+						  		IContained,
+						  		IShouldHaveTraversablePath):
 	"""
 	A container for all the evaluation objects edition records
 	"""
-	contains(str('.ICourseEvaluationEditionRecord'))
-	
-class ICourseEvaluationEditionRecord(IContained,
-							 	  	 ILastModified,
-							 	  	 ICreated,
-							 	  	 IRecordable,
-							 	  	 IPublishable,
-							  	     IShouldHaveTraversablePath):
+	contains(str('.ICourseEvaluationEdition'))
+
+class ICourseEvaluationEdition(IContained,
+							   ILastModified,
+							   ICreated,
+							   IRecordable,
+							   IPublishable,
+							   IShouldHaveTraversablePath):
 	"""
 	A record of a object being edited
 	"""
-	containers(ICourseEvaluationEditionRecords)
+	containers(ICourseEvaluationEditions)
 	__parent__.required = False
 
 	model = Object(IQEvaluation, required=False, title="Object being edited")

@@ -239,7 +239,7 @@
 	<subscriber handler=".editions._on_course_added" />
 
 	<ext:registerAutoPackageIO
-		root_interfaces=".interfaces.ICourseEvaluationEditionRecord"
+		root_interfaces=".interfaces.ICourseEvaluationEdition"
 		modules=".editions" />
 
 	<!-- Metatada -->

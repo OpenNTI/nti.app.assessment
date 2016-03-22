@@ -9,6 +9,7 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+import time
 import itertools
 from datetime import datetime
 
@@ -34,17 +35,22 @@ from nti.app.assessment.interfaces import IUsersCourseInquiryItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 
+from nti.assessment.interfaces import NTIID_TYPE, IQPoll, IQSurvey
 from nti.assessment.interfaces import DISCLOSURE_NEVER
 from nti.assessment.interfaces import DISCLOSURE_ALWAYS
 
 from nti.assessment.interfaces import IQInquiry
+from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAggregatedInquiry
 from nti.assessment.interfaces import IQInquirySubmission
 from nti.assessment.interfaces import IQAssignmentPolicies
 from nti.assessment.interfaces import IQAssessmentPolicies
 from nti.assessment.interfaces import IQAssessmentDateContext
 from nti.assessment.interfaces import IQAssessmentItemContainer
+
+from nti.common.time import time_to_64bit_int
 
 from nti.contentlibrary.interfaces import IContentPackage
 
@@ -56,12 +62,17 @@ from nti.contenttypes.courses.common import get_course_packages
 from nti.contenttypes.courses.utils import get_course_hierarchy
 
 from nti.coremetadata.interfaces import IRecordable
+from nti.coremetadata.interfaces import SYSTEM_USER_ID
 
 from nti.dataserver.metadata_index import IX_MIMETYPE
 from nti.dataserver.metadata_index import IX_CONTAINERID
 
 from nti.metadata import dataserver_metadata_catalog
 
+from nti.ntiids.ntiids import make_ntiid
+from nti.ntiids.ntiids import get_provider
+from nti.ntiids.ntiids import get_specific
+from nti.ntiids.ntiids import make_specific_safe
 from nti.ntiids.ntiids import find_object_with_ntiid
 
 from nti.site.interfaces import IHostPolicyFolder
@@ -71,6 +82,8 @@ from nti.site.site import get_component_hierarchy_names
 from nti.traversal.traversal import find_interface
 
 from nti.zope_catalog.catalog import ResultSet
+
+NAQ = NTIID_TYPE
 
 # assessment
 
@@ -414,3 +427,37 @@ def get_max_time_allowed( assignment, course ):
 		and policy['maximum_time_allowed'] != max_time_allowed:
 		max_time_allowed = policy['maximum_time_allowed']
 	return max_time_allowed
+
+def make_evaluation_ntiid(kind, creator=SYSTEM_USER_ID, base=None, extra=None):
+	if IQAssignment.isOrExtends(kind):
+		kind = u'assignment'
+	elif IQuestionSet.isOrExtends(kind):
+		kind = u'questionset'
+	elif IQuestion.isOrExtends(kind):
+		kind = u'question'
+	elif IQPoll.isOrExtends(kind):
+		kind = u'poll'
+	elif IQSurvey.isOrExtends(kind):
+		kind = u'survey'
+	else:
+		kind = str(kind)
+
+	current_time = time_to_64bit_int(time.time())
+	creator = getattr(creator, 'username', creator)
+	provider = get_provider(base) or 'NTI' if base else 'NTI'
+
+	specific_base = get_specific(base) if base else None
+	if specific_base:
+		specific_base += '.%s.%s.%s' % (kind, creator, current_time)
+	else:
+		specific_base = '%s.%s.%s' % (kind, creator, current_time)
+
+	if extra:
+		specific_base = specific_base + ".%s" % extra
+	specific = make_specific_safe(specific_base)
+
+	ntiid = make_ntiid(nttype=NAQ,
+					   base=base,
+					   provider=provider,
+					   specific=specific)
+	return ntiid

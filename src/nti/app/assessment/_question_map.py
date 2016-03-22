@@ -378,7 +378,7 @@ class QuestionMap(QuestionIndex):
 				if ntiid not in parents_questions:
 					# XXX: Seen in alpha 
 					# registered object is not in unit container 
-					parents_questions.append(thing_to_register)
+					parents_questions.append(registered)
 
 			if containing_hierarchy_key:
 				assert 	containing_hierarchy_key in by_file, \

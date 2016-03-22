@@ -19,6 +19,8 @@ from nti.common.property import Lazy
 
 from nti.contentlibrary.interfaces import IContentPackage
 
+from nti.contenttypes.courses.interfaces import ICourseInstance
+
 from nti.contenttypes.courses.utils import content_unit_to_courses
 
 from nti.dataserver.authorization import ROLE_ADMIN
@@ -33,11 +35,13 @@ from nti.dataserver.interfaces import IACLProvider
 
 from nti.traversal.traversal import find_interface
 
-def _get_courses(context):
-	package = find_interface(context, IContentPackage, strict=False)
-	result = None
-	if package is not None:
-		result = content_unit_to_courses(package)
+def get_evaluation_courses(context):
+	course = find_interface(context, ICourseInstance, strict=False)
+	if course is not None:
+		result = (course,)
+	else:
+		package = find_interface(context, IContentPackage, strict=False)
+		result = content_unit_to_courses(package) if package is not None else ()
 	return result
 
 @interface.implementer(IACLProvider)
@@ -56,7 +60,7 @@ class EvaluationACLProvider(object):
 				ace_allowing(ROLE_CONTENT_ADMIN, ALL_PERMISSIONS, type(self))]
 		result = acl_from_aces(aces)
 		# Extend with any course acls.
-		courses = _get_courses(self.context)
+		courses = get_evaluation_courses(self.context)
 		for course in courses or ():
 			result.extend(IACLProvider(course).__acl__)
 		return result

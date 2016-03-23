@@ -394,16 +394,22 @@ class ValidatingAssessmentContainers(object):
 		return result
 
 	def _get_containers(self, obj):
-		folder = find_interface(obj, IHostPolicyFolder, strict=False)
+		# content units
 		result = self._ntiid_lineage(obj, IContentUnit, IContentPackage)
+		# find courses
+		folder = find_interface(obj, IHostPolicyFolder, strict=False)
 		course = find_interface(obj, ICourseInstance, strict=False)
 		if course is not None:
-			result.add(ICourseCatalogEntry(course).ntiid)
+			entry = ICourseCatalogEntry(course, None)
+			result.add(getattr(entry, 'ntiid', None))
 		elif folder is not None:
 			courses = get_courses_for_packages(folder.__name__, result)
 			for course in courses:
-				entry = ICourseCatalogEntry(course)
-				result.add(entry.ntiid)
+				entry = ICourseCatalogEntry(course, None)
+				result.add(getattr(entry, 'ntiid', None))
+		# home
+		result.add(getattr(obj.__home__, 'ntiid', None))
+		# discard invalid
 		result.discard(None)
 		return result
 

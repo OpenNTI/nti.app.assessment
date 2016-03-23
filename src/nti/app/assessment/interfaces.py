@@ -29,9 +29,6 @@ from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQInquirySubmission
 from nti.assessment.interfaces import IQAggregatedInquiry
 
-from nti.coremetadata.interfaces import IRecordable 
-from nti.coremetadata.interfaces import IPublishable 
-
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import ICreated
 from nti.dataserver.interfaces import ILastViewed
@@ -417,32 +414,10 @@ class ICourseAggregatedInquiries(IContainer,
 	contains(IQAggregatedInquiry)
 	
 
-class ICourseEvaluationEditions(IContainer,
-						  		IContained,
-						  		IShouldHaveTraversablePath):
+class ICourseEvaluations(IContainer,
+						 IContained,
+						 IShouldHaveTraversablePath):
 	"""
-	A container for all the evaluation objects edition records
+	A container for all the evaluation objects in a course
 	"""
-	contains(str('.ICourseEvaluationEdition'))
-
-class ICourseEvaluationEdition(IContained,
-							   ILastModified,
-							   ICreated,
-							   IRecordable,
-							   IPublishable,
-							   IShouldHaveTraversablePath):
-	"""
-	A record of a object being edited
-	"""
-	containers(ICourseEvaluationEditions)
-	__parent__.required = False
-
-	model = Object(IQEvaluation, required=False, title="Object being edited")
-
-	metadata = Dict(key_type=ValidTextLine(title="key"),
-	  			  	value_type=ValidTextLine(title="vale", required=True),
-				  	min_length=0,
-				  	required=False)
-	
-	evaluationId = ValidTextLine(title="Evaluation object id", required=False)
-	evaluationId.setTaggedValue('_ext_excluded_out', True)
+	contains(str(IQEvaluation))

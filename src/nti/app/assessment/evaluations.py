@@ -14,18 +14,13 @@ from zope import interface
 
 from zope.annotation.interfaces import IAnnotations
 
-from zope.container.contained import Contained
-
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
 
 from pyramid.interfaces import IRequest
 
 from nti.app.assessment.adapters import course_from_context_lineage
 
-from nti.app.assessment.interfaces import ICourseEvaluationEdition
-from nti.app.assessment.interfaces import ICourseEvaluationEditions
-
-from nti.common.property import alias
+from nti.app.assessment.interfaces import ICourseEvaluations
 
 from nti.containers.containers import CaseInsensitiveCheckingLastModifiedBTreeContainer
 
@@ -42,17 +37,12 @@ from nti.dataserver.authorization import ROLE_CONTENT_ADMIN
 from nti.dataserver.authorization_acl import ace_allowing
 from nti.dataserver.authorization_acl import acl_from_aces
 
-from nti.dublincore.datastructures import PersistentCreatedModDateTrackingObject
-
-from nti.schema.field import SchemaConfigured
-from nti.schema.fieldproperty import createDirectFieldProperties
-
 from nti.traversal.traversal import find_interface
 
-@interface.implementer(ICourseEvaluationEditions)
-class CourseEvaluationEditions(CaseInsensitiveCheckingLastModifiedBTreeContainer):
+@interface.implementer(ICourseEvaluations)
+class CourseEvaluations(CaseInsensitiveCheckingLastModifiedBTreeContainer):
 	"""
-	Implementation of the course evaluation edition records in a course.
+	Implementation of the course evaluations.
 	"""
 
 	__external_can_create__ = False
@@ -60,10 +50,6 @@ class CourseEvaluationEditions(CaseInsensitiveCheckingLastModifiedBTreeContainer
 	@property
 	def Items(self):
 		return dict(self)
-
-	def __conform__(self, iface):
-		if ICourseInstance.isOrExtends(iface):
-			return self.__parent__
 
 	@property
 	def __acl__(self):
@@ -80,43 +66,30 @@ class CourseEvaluationEditions(CaseInsensitiveCheckingLastModifiedBTreeContainer
 		return result
 
 @component.adapter(ICourseInstance)
-@interface.implementer(ICourseEvaluationEditions)
-def _evaluation_editions_for_course(course, create=True):
+@interface.implementer(ICourseEvaluations)
+def _evaluations_for_course(course, create=True):
 	result = None
 	annotations = IAnnotations(course)
 	try:
-		KEY = 'CourseEvaluationEditions'
+		KEY = 'CourseEvaluations'
 		result = annotations[KEY]
 	except KeyError:
 		if create:
-			result = CourseEvaluationEditions()
+			result = CourseEvaluations()
 			annotations[KEY] = result
 			result.__name__ = KEY
 			result.__parent__ = course
 	return result
 
 @component.adapter(ICourseInstance, IRequest)
-def _evaluation_editions_for_course_path_adapter(course, request):
-	return _evaluation_editions_for_course(course)
+def _evaluations_for_course_path_adapter(course, request):
+	return _evaluations_for_course(course)
 
 @interface.implementer(ICourseInstance)
-@component.adapter(ICourseEvaluationEditions)
+@component.adapter(ICourseEvaluations)
 def _course_from_item_lineage(item):
 	return course_from_context_lineage(item, validate=True)
 
 @component.adapter(ICourseInstance, IObjectAddedEvent)
 def _on_course_added(course, event):
-	_evaluation_editions_for_course(course)
-
-@interface.implementer(ICourseEvaluationEdition)
-class CourseEvaluationEdition(PersistentCreatedModDateTrackingObject,
-							  SchemaConfigured,
-							  Contained):
-	createDirectFieldProperties(ICourseEvaluationEdition)
-
-	assessment = alias('model')
-		
-	@property
-	def assessmentId(self):
-		return self.__name__
-	evaluationId = assessmentId
+	_evaluations_for_course(course)

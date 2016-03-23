@@ -227,18 +227,14 @@
 						 .interfaces.IUsersCourseAssignmentSavepointItem"
 		modules=".savepoint" />
 
-	<!-- Editions -->
-	<adapter factory=".editions._evaluation_editions_for_course_path_adapter"
+	<!-- Evaluations -->
+	<adapter factory=".evaluations._evaluations_for_course_path_adapter"
 			 for="nti.contenttypes.courses.interfaces.ICourseInstance pyramid.interfaces.IRequest"
 			 provides="zope.traversing.interfaces.IPathAdapter"
-			 name="CourseEvaluationEditions" />
+			 name="CourseEvaluations" />
 
-	<adapter factory=".editions._course_from_item_lineage" />
-	<adapter factory=".editions._evaluation_editions_for_course" />
-
-	<ext:registerAutoPackageIO
-		root_interfaces=".interfaces.ICourseEvaluationEdition"
-		modules=".editions" />
+	<adapter factory=".evaluations._evaluations_for_course" />
+	<adapter factory=".evaluations._course_from_item_lineage" />
 
 	<!-- Metatada -->
 	<adapter factory=".metadata._metadatacontainer_for_course_path_adapter"

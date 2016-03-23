@@ -22,10 +22,6 @@ from pyramid.view import view_defaults
 
 from nti.app.assessment.utils import copy_assignment
 
-from nti.app.assessment.views import MessageFactory as _
-
-from nti.app.assessment.views.view_mixins import AssessmentPutView
-
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
 from nti.app.contentlibrary.utils import PAGE_INFO_MT
@@ -334,19 +330,3 @@ class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 			items = result[ITEMS] = {}
 			self._do_catalog(instance, items)
 		return result
-
-@view_config(route_name='objects.generic.traversal',
-			 context=IQAssignment,
-			 request_method='PUT',
-			 permission=nauth.ACT_CONTENT_EDIT,
-			 renderer='rest')
-class AssignmentPutView(AssessmentPutView):
-
-	TO_AVAILABLE_MSG = _('Assignment will become available. Please confirm.')
-	TO_UNAVAILABLE_MSG = _('Assignment will become unavailable. Please confirm.')
-
-	def validate(self, contentObject, externalValue, courses=()):
-		super( AssignmentPutView, self ).validate( contentObject, externalValue, courses )
-		parts = externalValue.get('parts')
-		if parts: # don't allow change on its parts
-			raise hexc.HTTPForbidden(_("Cannot change the definition of an assignment"))

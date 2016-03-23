@@ -101,12 +101,14 @@ class AssessmentPutView(UGDPutView):
 		result.pop('NTIID', None)
 		return result
 
-	def has_submissions(self, assessment, courses=()):
+	@classmethod
+	def has_submissions(cls, assessment, courses=()):
 		for _ in get_submissions(assessment, courses):
 			return True
 		return False
 
-	def has_savepoints(self, assessment, courses=()):
+	@classmethod
+	def has_savepoints(cls, assessment, courses=()):
 		assessment_id = assessment.ntiid
 		for course in courses:
 			savepoints = IUsersCourseAssignmentSavepoints(course, None)
@@ -114,15 +116,18 @@ class AssessmentPutView(UGDPutView):
 				return True
 		return False
 
-	def _raise_conflict_error(self, code, message, course, ntiid):
+	@classmethod
+	def _raise_conflict_error(cls, request, code, message, course, ntiid):
 		entry = ICourseCatalogEntry(course)
 		logger.info('Attempting to change assignment availability (%s) (%s) (%s)',
 					code,
 					ntiid,
 					entry.ntiid)
-		links = (Link(self.request.path, rel='confirm',
-					  params={'force':True}, method='PUT'),)
-		raise_json_error(self.request,
+		links = (
+			Link(request.path, rel='confirm',
+				 params={'force':True}, method='PUT'),
+		)
+		raise_json_error(request,
 						 hexc.HTTPConflict,
 						 {
 						 	CLASS: 'DestructiveChallenge',
@@ -133,7 +138,8 @@ class AssessmentPutView(UGDPutView):
 						 },
 						 None)
 
-	def _is_date_in_range(self, start_date, end_date, now):
+	@classmethod
+	def _is_date_in_range(cls, start_date, end_date, now):
 		"""
 		Returns if we are currently within a possibly open-ended date range.
 		"""
@@ -141,7 +147,8 @@ class AssessmentPutView(UGDPutView):
 				and (not end_date or now < end_date)
 		return result
 
-	def validate_date_boundaries(self, contentObject, externalValue, courses=()):
+	@classmethod
+	def validate_date_boundaries(cls, request, contentObject, externalValue, courses=()):
 		"""
 		Validates that the assessment does not change availability states. If
 		so, we throw a 409 with an available `confirm` link for user overrides.
@@ -163,34 +170,52 @@ class AssessmentPutView(UGDPutView):
 				return
 
 			for course in courses:
-				old_end_date = get_available_for_submission_ending(contentObject, course)
-				old_start_date = get_available_for_submission_beginning(contentObject, course)
+				old_end_date = get_available_for_submission_ending(contentObject,
+																   course)
+
+				old_start_date = get_available_for_submission_beginning(contentObject,
+																	    course)
 
 				# Use old dates if the dates are not being edited.
-				start_date_to_check = old_start_date if new_start_date is _marker else new_start_date
-				end_date_to_check = old_end_date if new_end_date is _marker else new_end_date
+				if new_start_date is _marker:
+					start_date_to_check = old_start_date 
+				else:
+					start_date_to_check = new_start_date
 
-				old_available = self._is_date_in_range(old_start_date, old_end_date, now)
-				new_available = self._is_date_in_range(start_date_to_check, end_date_to_check, now)
+				if new_end_date is _marker:
+					end_date_to_check = old_end_date
+				else:
+					end_date_to_check = new_end_date
+
+				old_available = cls._is_date_in_range(old_start_date, 
+													  old_end_date, now)
+
+				new_available = cls._is_date_in_range(start_date_to_check, 
+													  end_date_to_check, now)
 
 				# Note: we allow state to move from closed in past to
 				# closed, but will reopen in the future unchecked (edge case).
 				if old_available and not new_available:
-					self._raise_conflict_error(self.TO_UNAVAILABLE_CODE,
-											   self.TO_UNAVAILABLE_MSG,
-											   course,
-											   contentObject.ntiid)
+					cls._raise_conflict_error(request,
+											  cls.TO_UNAVAILABLE_CODE,
+											  cls.TO_UNAVAILABLE_MSG,
+											  course,
+											  contentObject.ntiid)
 				elif not old_available and new_available:
-					self._raise_conflict_error(self.TO_AVAILABLE_CODE,
-											   self.TO_AVAILABLE_MSG,
-											   course,
-											   contentObject.ntiid)
+					cls._raise_conflict_error(request,
+											  cls.TO_AVAILABLE_CODE,
+											  cls.TO_AVAILABLE_MSG,
+											  course,
+											  contentObject.ntiid)
 
 	def preflight(self, contentObject, externalValue, courses=()):
 		if not self.request.params.get('force', False):
 			# We do this during pre-flight because we want to compare our old
 			# state versus the new.
-			self.validate_date_boundaries(contentObject, externalValue, courses)
+			self.validate_date_boundaries(self.request,
+										  contentObject,
+										  externalValue,
+										  courses=courses)
 
 	def validate(self, contentObject, externalValue, courses=()):
 		# We could validate edits based on the unused submission/savepoint

@@ -265,12 +265,13 @@ class PrincipalSeedSelector(object):
 class AssessmentContainerIdGetter(object):
 
 	def __call__(self, item):
-		parent = item.__parent__
-		if IContentUnit.providedBy(parent):
-			return parent.ntiid
-		elif ICourseInstance.providedBy(parent):
-			entry = ICourseCatalogEntry(parent) # annotation
-			return entry.ntiid
-		elif ICourseCatalogEntry.providedBy(parent):
-			return entry.ntiid
+		for name in ('home', '__parent__'):
+			parent = getattr(item, name, None)
+			if IContentUnit.providedBy(parent):
+				return parent.ntiid
+			elif ICourseInstance.providedBy(parent):
+				entry = ICourseCatalogEntry(parent) # annotation
+				return entry.ntiid
+			elif ICourseCatalogEntry.providedBy(parent):
+				return entry.ntiid
 		return None

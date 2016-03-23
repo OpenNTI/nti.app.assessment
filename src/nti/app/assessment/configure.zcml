@@ -236,8 +236,6 @@
 	<adapter factory=".editions._course_from_item_lineage" />
 	<adapter factory=".editions._evaluation_editions_for_course" />
 
-	<subscriber handler=".editions._on_course_added" />
-
 	<ext:registerAutoPackageIO
 		root_interfaces=".interfaces.ICourseEvaluationEdition"
 		modules=".editions" />

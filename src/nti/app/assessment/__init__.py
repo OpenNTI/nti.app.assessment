@@ -16,7 +16,7 @@ from zope import component
 
 from zope.catalog.interfaces import ICatalog
 
-from nti.app.assessment.index import ASSESMENT_CATALOG_NAME
+from nti.app.assessment.index import EVALUATION_CATALOG_NAME
 from nti.app.assessment.index import SUBMISSION_CATALOG_NAME
 
 from nti.dataserver.interfaces import IMetadataCatalog
@@ -24,5 +24,5 @@ from nti.dataserver.interfaces import IMetadataCatalog
 def get_submission_catalog():
 	return component.queryUtility(IMetadataCatalog, name=SUBMISSION_CATALOG_NAME)
 
-def get_assesment_catalog():
-	return component.queryUtility(ICatalog, name=ASSESMENT_CATALOG_NAME)
+def get_evaluation_catalog():
+	return component.queryUtility(ICatalog, name=EVALUATION_CATALOG_NAME)

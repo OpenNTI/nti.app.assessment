@@ -28,6 +28,9 @@ from nti.app.assessment.views import MessageFactory as _
 from nti.app.assessment.views.view_mixins import AssessmentPutView
 
 from nti.app.base.abstract_views import get_all_sources
+from nti.app.base.abstract_views import AbstractAuthenticatedView
+
+from nti.app.externalization.view_mixins import BatchingUtilsMixin
 
 from nti.app.contentfile import validate_sources
 
@@ -42,9 +45,16 @@ from nti.assessment.interfaces import IQEditable
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQEvaluation
 
+from nti.common.maps import CaseInsensitiveDict
+
 from nti.dataserver import authorization as nauth
 
+from nti.externalization.interfaces import LocatedExternalDict
+from nti.externalization.interfaces import StandardExternalFields
+
 from nti.externalization.internalization import notifyModified
+
+ITEMS = StandardExternalFields.ITEMS
 
 #
 # def _handle_multipart(context, user, model, sources):
@@ -61,6 +71,40 @@ from nti.externalization.internalization import notifyModified
 # 			location = filer.save(source, key, overwrite=False,
 # 								  bucket=ASSETS_FOLDER, context=discussion)
 # 			setattr(discussion, name, location)
+
+@view_config(context=ICourseEvaluations)
+@view_defaults(route_name='objects.generic.traversal',
+			   renderer='rest',
+			   request_method='GET',
+			   permission=nauth.ACT_CONTENT_EDIT)
+class CourseEvaluationsGetView(AbstractAuthenticatedView, BatchingUtilsMixin):
+
+	_DEFAULT_BATCH_SIZE = 50
+	_DEFAULT_BATCH_START = 0
+
+	def _get_mimeTypes(self):
+		params = CaseInsensitiveDict(self.request.params)
+		result = params.get('accept') or params.get('mimeType')
+		if result:
+			result = set(result.split(','))
+		return result or ()
+
+	def __call__(self):
+		result = LocatedExternalDict()
+		result.__name__ = self.request.view_name
+		result.__parent__ = self.request.context
+		result.lastModified = self.context.lastModified
+		mimeTypes = self._get_mimeTypes()
+		items = result[ITEMS] = []
+		if mimeTypes:
+			items.extend(x for x in self.context.values() if x.mimeType in mimeTypes)
+		else:
+			items.extend(self.context.values())
+
+		result['TotalItemCount'] = len(items)
+		self._batch_items_iterable(result, items)
+		result['ItemCount'] = len(result[ITEMS])
+		return result
 
 @view_config(context=ICourseEvaluations)
 @view_defaults(route_name='objects.generic.traversal',
@@ -125,7 +169,7 @@ class EvaluationPutView(UGDPutView):
 			# _handle_multipart(self.context, self.remoteUser, self.context, sources)
 		notifyModified(contentObject, originalSource)
 		return result
-	
+
 @view_config(route_name='objects.generic.traversal',
 			 context=IQPoll,
 			 request_method='PUT',

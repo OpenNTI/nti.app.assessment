@@ -33,6 +33,10 @@ from pyramid.interfaces import IExceptionResponse
 from pyramid.view import view_config
 from pyramid.view import view_defaults
 
+from nti.app.assessment._submission import get_source
+from nti.app.assessment._submission import check_upload_files
+from nti.app.assessment._submission import read_multipart_sources
+
 from nti.app.assessment.common import get_course_from_assignment
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
@@ -40,13 +44,8 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedback
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedbackContainer
 
-from nti.app.assessment._submission import get_source
-from nti.app.assessment._submission import check_upload_files
-from nti.app.assessment._submission import read_multipart_sources
-
 from nti.app.assessment.utils import replace_username
-
-from nti.app.assessment.views import assignment_download_precondition
+from nti.app.assessment.utils import assignment_download_precondition
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 

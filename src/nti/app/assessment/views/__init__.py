@@ -15,10 +15,6 @@ from pyramid.threadlocal import get_current_request
 
 from nti.app.assessment import MessageFactory
 
-from nti.app.assessment.common import can_disclose_inquiry
-
-from nti.app.assessment.utils import assignment_download_precondition
-
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.ntiids.ntiids import find_object_with_ntiid
@@ -39,7 +35,8 @@ def parse_catalog_entry(params, names=('ntiid', 'entry', 'course')):
 def get_ds2(request=None):
 	request = request if request else get_current_request()
 	try:
-		return request.path_info_peek() if request else None  # e.g. /dataserver2
+		result = request.path_info_peek() if request else None  # e.g. /dataserver2
 	except AttributeError:  # in unit test we may see this
-		return u"dataserver2"
+		result = None
+	return result or u"dataserver2"
 get_path_info = get_ds2

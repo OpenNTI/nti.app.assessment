@@ -36,7 +36,6 @@ from nti.appserver.pyramid_authorization import has_permission
 
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQTimedAssignment
-from nti.assessment.interfaces import IQAssignmentDateContext
 
 from nti.common.property import Lazy
 
@@ -227,11 +226,7 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 			course = None
 
 		if context is not None:
-			if course is not None:
-				dates = IQAssignmentDateContext(course)
-				due_date = dates.of(context).available_for_submission_ending
-			else:
-				due_date = context.available_for_submission_ending
+			due_date = get_available_for_submission_ending(context, course)
 
 		if not due_date or due_date <= datetime.utcnow():
 

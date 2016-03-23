@@ -265,7 +265,7 @@ class PrincipalSeedSelector(object):
 class AssessmentContainerIdGetter(object):
 
 	def __call__(self, item):
-		for name in ('home', '__parent__'):
+		for name in ('__home__', '__parent__'):
 			parent = getattr(item, name, None)
 			if IContentUnit.providedBy(parent):
 				return parent.ntiid

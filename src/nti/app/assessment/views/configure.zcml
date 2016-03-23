@@ -9,8 +9,9 @@
 	<include package="zope.security" />
 
 	<!-- Traversal-ish stuff -->
-	<adapter factory=".assessment_views.AssignmentHistoryRequestTraversable" />
+	<adapter factory=".history_views.AssignmentHistoryRequestTraversable" />
 
+	<!-- Feedback constraints -->
 	<adapter factory=".feedback_views._AssignmentHistoryItemFeedbackFileConstraints"
 			 for="..interfaces.IUsersCourseAssignmentHistoryItemFeedback"
 			 provides="..interfaces.IUsersCourseAssignmentHistoryItemFeedbackFileConstraints" />

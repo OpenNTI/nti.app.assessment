@@ -36,6 +36,7 @@ from nti.app.contentfile import validate_sources
 
 from nti.appserver.ugd_edit_views import UGDPutView
 from nti.appserver.ugd_edit_views import UGDPostView
+from nti.appserver.ugd_edit_views import UGDDeleteView
 
 from nti.assessment.common import iface_of_assessment
 
@@ -217,3 +218,16 @@ class AssignmentPutView(AssessmentPutView):
 		parts = externalValue.get('parts')
 		if not IQEditable.providedBy(contentObject) and parts:
 			raise hexc.HTTPForbidden(_("Cannot change the definition of an assignment."))
+
+@view_config(route_name="objects.generic.traversal",
+			 context=IQEvaluation,
+			 renderer='rest',
+			 permission=nauth.ACT_DELETE,
+			 request_method='DELETE')
+class EvaluationDeleteView(UGDDeleteView):
+
+	def _do_delete_object(self, theObject):
+		if not IQEditable.providedBy(theObject):
+			raise hexc.HTTPForbidden(_("Cannot delete legacy object."))
+		del theObject.__parent__[theObject.__name__]
+		return theObject

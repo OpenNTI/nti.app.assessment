@@ -77,8 +77,6 @@ from nti.ntiids.ntiids import find_object_with_ntiid
 
 from nti.site.interfaces import IHostPolicyFolder
 
-from nti.site.site import get_component_hierarchy_names
-
 from nti.traversal.traversal import find_interface
 
 from nti.zope_catalog.catalog import ResultSet
@@ -347,39 +345,49 @@ def get_courses(context, subinstances=True):
 		courses = (course,)
 	return courses
 
+def get_course_site(course):
+	folder = find_interface(course, IHostPolicyFolder, strict=False)
+	return folder.__name__
+
 def get_entry_ntiids(courses=()):
+	if ICourseInstance.providedBy(courses):
+		courses = (courses,)
+	courses = courses or ()
 	# safety during course adaptation (seen in alpha)
-	ntiids = {getattr(ICourseCatalogEntry(x, None), 'ntiid', None) for x in courses or ()}
+	ntiids = {getattr(ICourseCatalogEntry(x, None), 'ntiid', None) for x in courses}
 	ntiids.discard(None)
 	return ntiids
 
+def get_submissions(context, courses=(), index_name=IX_ASSESSMENT_ID):
+	if not courses:
+		return ()
+	else:
+		catalog = get_submission_catalog()
+		intids = component.getUtility(IIntIds)
+		entry_ntiids = get_entry_ntiids(courses)
+		sites = {get_course_site(x) for x in courses}
+		context_ntiid = getattr(context, 'ntiid', context)
+		query = {
+		 	IX_SITE: {'any_of':sites},
+			IX_COURSE: {'any_of':entry_ntiids},
+		 	index_name: {'any_of':(context_ntiid,)}
+		}
+		uids = catalog.apply(query) or ()
+		return ResultSet(uids, intids, True)
+
 def evaluation_submissions(context, course, subinstances=True):
-	catalog = get_submission_catalog()
 	course = ICourseInstance(course)
-	intids = component.getUtility(IIntIds)
-	ntiids = get_entry_ntiids(get_courses(course))
-	folder = find_interface(course, IHostPolicyFolder, strict=False)
-	sites = (folder.__name__,) if folder is not None else get_component_hierarchy_names()
-	# prepare query
-	query = { IX_SITE: {'any_of':sites},
-			  IX_COURSE: {'any_of':ntiids},
-			  IX_SUBMITTED : {'any_of':(context.ntiid,)}}
-	result = catalog.apply(query) or ()
-	return ResultSet(result, intids, True)
+	result = get_submissions(context, 
+							 index_name=IX_SUBMITTED,
+							 courses=get_courses(course, subinstances=subinstances))
+	return result
 
 def inquiry_submissions(context, course, subinstances=True):
-	catalog = get_submission_catalog()
 	course = ICourseInstance(course)
-	intids = component.getUtility(IIntIds)
-	ntiids = get_entry_ntiids(get_courses(course))
-	folder = find_interface(course, IHostPolicyFolder, strict=False)
-	sites = (folder.__name__,) if folder is not None else get_component_hierarchy_names()
-	# prepare query
-	query = { IX_SITE: {'any_of':sites},
-			  IX_COURSE: {'any_of':ntiids},
-			  IX_ASSESSMENT_ID : {'any_of':(context.ntiid,)}}
-	result = catalog.apply(query) or ()
-	return ResultSet(result, intids, True)
+	result = get_submissions(context, 
+							 index_name=IX_ASSESSMENT_ID,
+							 courses=get_courses(course, subinstances=subinstances))
+	return result
 
 def aggregate_course_inquiry(inquiry, course, *items):
 	result = None

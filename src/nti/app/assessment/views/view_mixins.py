@@ -20,20 +20,11 @@ from zope.event import notify as event_notify
 
 from zope.interface.common.idatetime import IDateTime
 
-from zope.intid.interfaces import IIntIds
-
-from nti.app.assessment import get_submission_catalog
-
+from nti.app.assessment.common import get_submissions
 from nti.app.assessment.common import get_available_for_submission_ending
 from nti.app.assessment.common import get_available_for_submission_beginning
 
-from nti.app.assessment.index import IX_SITE
-from nti.app.assessment.index import IX_COURSE
-from nti.app.assessment.index import IX_ASSESSMENT_ID
-
-from nti.app.assessment.interfaces import IUsersCourseInquiryItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
-from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 
 from nti.app.assessment.utils import get_course_from_request
 
@@ -55,10 +46,7 @@ from nti.contenttypes.courses.interfaces import SUPPORTED_DATE_KEYS
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
-from nti.contenttypes.courses.index import IX_PACKAGES
-from nti.contenttypes.courses.index import IX_SITE as IX_COURSES_SITE
-
-from nti.contenttypes.courses.utils import get_courses_catalog
+from nti.contenttypes.courses.utils import get_courses_for_packages
 
 from nti.externalization.externalization import to_external_object
 from nti.externalization.externalization import StandardExternalFields
@@ -67,12 +55,9 @@ from nti.links.links import Link
 
 from nti.schema.interfaces import InvalidValue
 
-from nti.site.interfaces import IHostPolicyFolder
 from nti.site.site import get_component_hierarchy_names
 
 from nti.traversal.traversal import find_interface
-
-from nti.zope_catalog.catalog import ResultSet
 
 CLASS = StandardExternalFields.CLASS
 LINKS = StandardExternalFields.LINKS
@@ -81,7 +66,7 @@ MIME_TYPE = StandardExternalFields.MIMETYPE
 def canonicalize_question_set(self, obj, registry=component):
 	obj.questions = [registry.getUtility(IQuestion, name=x.ntiid)
 					 for x
-					 in obj.questions]
+					 in obj.Items]
 
 def canonicalize_assignment(obj, registry=component):
 	for part in obj.parts:
@@ -90,26 +75,22 @@ def canonicalize_assignment(obj, registry=component):
 		canonicalize_question_set(part.question_set, registry)
 
 def get_courses_from_assesment(assesment):
-	package = find_interface(assesment, IContentPackage, strict=False)
-	if package is None:
-		return ()
-
-	result = list()
-	catalog = get_courses_catalog()
-	intids = component.getUtility(IIntIds)
-	sites = get_component_hierarchy_names()
-	query = { IX_COURSES_SITE: {'any_of':sites},
-			  IX_PACKAGES: {'any_of':(package.ntiid,) }}
-	for uid in catalog.apply(query) or ():
-		course = intids.queryObject(uid)
-		if ICourseInstance.providedBy(course):
-			result.append(course)
-	return tuple(result)
+	course = find_interface(assesment, ICourseInstance, strict=False)
+	if course is not None:
+		result = (course,)
+	else:
+		package = find_interface(assesment, IContentPackage, strict=False)
+		if package is None:
+			result = ()
+		else:
+			sites = get_component_hierarchy_names()
+			result = get_courses_for_packages(sites, package.ntiid)
+	return result
 
 class AssessmentPutView(UGDPutView):
 
 	TO_AVAILABLE_CODE = 'UnAvailableToAvailable'
-	TO_UNAVAILABLE_CODE ='AvailableToUnavailable'
+	TO_UNAVAILABLE_CODE = 'AvailableToUnavailable'
 
 	TO_AVAILABLE_MSG = None
 	TO_UNAVAILABLE_MSG = None
@@ -120,35 +101,10 @@ class AssessmentPutView(UGDPutView):
 		result.pop('NTIID', None)
 		return result
 
-	def get_site_name(self, course):
-		folder = find_interface(course, IHostPolicyFolder, strict=False)
-		return folder.__name__ if folder is not None else u''
-
-	def get_ntiids(self, courses):
-		ntiids = {getattr(ICourseCatalogEntry(x, None), 'ntiid', None) for x in courses}
-		ntiids.discard(None)
-		return ntiids
-
 	def has_submissions(self, assessment, courses=()):
-		if not courses:
-			return False
-		else:
-			catalog = get_submission_catalog()
-			ntiids = self.get_ntiids(courses)
-			intids = component.getUtility(IIntIds)
-			sites = {self.get_site_name(x) for x in courses}
-			query = {
-			 	IX_SITE: {'any_of':sites},
-				IX_COURSE: {'any_of':ntiids},
-			 	IX_ASSESSMENT_ID: {'any_of':(assessment.ntiid,)}
-			}
-
-			uids = catalog.apply(query) or ()
-			for item in ResultSet(uids, intids, True):
-				if		IUsersCourseInquiryItem.providedBy(item) \
-					or	IUsersCourseAssignmentHistoryItem.providedBy(item):
-					return True
-			return False
+		for _ in get_submissions(assessment, courses):
+			return True
+		return False
 
 	def has_savepoints(self, assessment, courses=()):
 		assessment_id = assessment.ntiid
@@ -159,11 +115,11 @@ class AssessmentPutView(UGDPutView):
 		return False
 
 	def _raise_conflict_error(self, code, message, course, ntiid):
-		entry = ICourseCatalogEntry( course )
-		logger.info( 'Attempting to change assignment availability (%s) (%s) (%s)',
-					 code,
-					 ntiid,
-					 entry.ntiid )
+		entry = ICourseCatalogEntry(course)
+		logger.info('Attempting to change assignment availability (%s) (%s) (%s)',
+					code,
+					ntiid,
+					entry.ntiid)
 		links = (Link(self.request.path, rel='confirm',
 					  params={'force':True}, method='PUT'),)
 		raise_json_error(self.request,
@@ -191,8 +147,8 @@ class AssessmentPutView(UGDPutView):
 		so, we throw a 409 with an available `confirm` link for user overrides.
 		"""
 		_marker = object()
-		new_start_date = externalValue.get('available_for_submission_beginning', _marker)
 		new_end_date = externalValue.get('available_for_submission_ending', _marker)
+		new_start_date = externalValue.get('available_for_submission_beginning', _marker)
 		if 	new_start_date is not _marker or new_end_date is not _marker:
 			now = datetime.utcnow()
 
@@ -207,8 +163,8 @@ class AssessmentPutView(UGDPutView):
 				return
 
 			for course in courses:
-				old_start_date = get_available_for_submission_beginning(contentObject, course)
 				old_end_date = get_available_for_submission_ending(contentObject, course)
+				old_start_date = get_available_for_submission_beginning(contentObject, course)
 
 				# Use old dates if the dates are not being edited.
 				start_date_to_check = old_start_date if new_start_date is _marker else new_start_date
@@ -220,15 +176,15 @@ class AssessmentPutView(UGDPutView):
 				# Note: we allow state to move from closed in past to
 				# closed, but will reopen in the future unchecked (edge case).
 				if old_available and not new_available:
-					self._raise_conflict_error( self.TO_UNAVAILABLE_CODE,
-												self.TO_UNAVAILABLE_MSG,
-												course,
-												contentObject.ntiid )
+					self._raise_conflict_error(self.TO_UNAVAILABLE_CODE,
+											   self.TO_UNAVAILABLE_MSG,
+											   course,
+											   contentObject.ntiid)
 				elif not old_available and new_available:
-					self._raise_conflict_error( self.TO_AVAILABLE_CODE,
-												self.TO_AVAILABLE_MSG,
-												course,
-												contentObject.ntiid )
+					self._raise_conflict_error(self.TO_AVAILABLE_CODE,
+											   self.TO_AVAILABLE_MSG,
+											   course,
+											   contentObject.ntiid)
 
 	def preflight(self, contentObject, externalValue, courses=()):
 		if not self.request.params.get('force', False):
@@ -240,14 +196,14 @@ class AssessmentPutView(UGDPutView):
 		# We could validate edits based on the unused submission/savepoint
 		# code above, based on the input keys being changed.
 		for course in courses:
-			start_date = get_available_for_submission_beginning(contentObject, course)
 			end_date = get_available_for_submission_ending(contentObject, course)
+			start_date = get_available_for_submission_beginning(contentObject, course)
 			if start_date and end_date and end_date < start_date:
 				raise_json_error(self.request,
 								 hexc.HTTPUnprocessableEntity,
 								 {
-									u'message': _('Due date cannot come before start date.') ,
 									u'code': 'AssessmentDueDateBeforeStartDate',
+									u'message': _('Due date cannot come before start date.'),
 								 },
 								 None)
 

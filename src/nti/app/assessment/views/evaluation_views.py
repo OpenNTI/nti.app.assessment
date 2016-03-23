@@ -36,8 +36,10 @@ from nti.appserver.ugd_edit_views import UGDPostView
 
 from nti.assessment.common import iface_of_assessment
 
+from nti.assessment.interfaces import IQPoll
+from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQEditable
-from nti.assessment.interfaces import IQAssignment 
+from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQEvaluation
 
 from nti.dataserver import authorization as nauth
@@ -104,6 +106,11 @@ class CourseEvaluationsPostView(UGDPostView):
 			   permission=nauth.ACT_CONTENT_EDIT)
 class EvaluationPutView(UGDPutView):
 
+	def _check_object_constraints(self, obj):
+		UGDPutView._check_object_constraints(self, obj)
+		if not IQEditable.providedBy(obj):
+			raise hexc.HTTPPreconditionFailed(_("Cannot change object definition definition."))
+
 	def updateContentObject(self, contentObject, externalValue, set_id=False, notify=True):
 		originalSource = copy.copy(externalValue)
 		result = UGDPutView.updateContentObject(self,
@@ -118,6 +125,38 @@ class EvaluationPutView(UGDPutView):
 			# _handle_multipart(self.context, self.remoteUser, self.context, sources)
 		notifyModified(contentObject, originalSource)
 		return result
+	
+@view_config(route_name='objects.generic.traversal',
+			 context=IQPoll,
+			 request_method='PUT',
+			 permission=nauth.ACT_CONTENT_EDIT,
+			 renderer='rest')
+class PollPutView(AssessmentPutView):
+
+	TO_AVAILABLE_MSG = _('Poll will become available. Please confirm.')
+	TO_UNAVAILABLE_MSG = _('Poll will become unavailable. Please confirm.')
+
+	def validate(self, contentObject, externalValue, courses=()):
+		super(PollPutView, self).validate(contentObject, externalValue, courses)
+		parts = externalValue.get('parts')
+		if not IQEditable.providedBy(contentObject) and parts:
+			raise hexc.HTTPForbidden(_("Cannot change the definition of a poll."))
+
+@view_config(route_name='objects.generic.traversal',
+			 context=IQSurvey,
+			 request_method='PUT',
+			 permission=nauth.ACT_CONTENT_EDIT,
+			 renderer='rest')
+class SurveyPutView(AssessmentPutView):
+
+	TO_AVAILABLE_MSG = _('Survey will become available. Please confirm.')
+	TO_UNAVAILABLE_MSG = _('Survey will become unavailable. Please confirm.')
+
+	def validate(self, contentObject, externalValue, courses=()):
+		super(SurveyPutView, self).validate(contentObject, externalValue, courses)
+		questions = externalValue.get('questions')
+		if not IQEditable.providedBy(contentObject) and questions:
+			raise hexc.HTTPForbidden(_("Cannot change the definition of a survey."))
 
 @view_config(route_name='objects.generic.traversal',
 			 context=IQAssignment,
@@ -132,5 +171,5 @@ class AssignmentPutView(AssessmentPutView):
 	def validate(self, contentObject, externalValue, courses=()):
 		super(AssignmentPutView, self).validate(contentObject, externalValue, courses)
 		parts = externalValue.get('parts')
-		if parts:  # don't allow change on its parts
-			raise hexc.HTTPForbidden(_("Cannot change the definition of an assignment"))
+		if not IQEditable.providedBy(contentObject) and parts:
+			raise hexc.HTTPForbidden(_("Cannot change the definition of an assignment."))

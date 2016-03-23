@@ -39,8 +39,6 @@ from nti.app.assessment.survey import UsersCourseInquiryItemResponse
 from nti.app.assessment.views import get_ds2
 from nti.app.assessment.views import MessageFactory as _
 
-from nti.app.assessment.views.view_mixins import AssessmentPutView
-
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
@@ -335,37 +333,3 @@ class InquirySubmisionPutView(UGDPutView):
 
 	def __call__(self):
 		raise hexc.HTTPForbidden(_("Cannot put an inquiry submission."))
-
-# PUT views
-
-@view_config(route_name='objects.generic.traversal',
-			 context=IQPoll,
-			 request_method='PUT',
-			 permission=nauth.ACT_CONTENT_EDIT,
-			 renderer='rest')
-class PollPutView(AssessmentPutView):
-
-	TO_AVAILABLE_MSG = _('Poll will become available. Please confirm.')
-	TO_UNAVAILABLE_MSG = _('Poll will become unavailable. Please confirm.')
-
-	def validate(self, contentObject, externalValue, courses=()):
-		super( PollPutView, self ).validate( contentObject, externalValue, courses )
-		parts = externalValue.get('parts')
-		if parts:  # don't allow change on its parts
-			raise hexc.HTTPForbidden(_("Cannot change the definition of a poll."))
-
-@view_config(route_name='objects.generic.traversal',
-			 context=IQSurvey,
-			 request_method='PUT',
-			 permission=nauth.ACT_CONTENT_EDIT,
-			 renderer='rest')
-class SurveyPutView(AssessmentPutView):
-
-	TO_AVAILABLE_MSG = _('Survey will become available. Please confirm.')
-	TO_UNAVAILABLE_MSG = _('Survey will become unavailable. Please confirm.')
-
-	def validate(self, contentObject, externalValue, courses=()):
-		super( SurveyPutView, self ).validate( contentObject, externalValue, courses )
-		questions = externalValue.get('questions')
-		if questions:  # don't allow change on its questions
-			raise hexc.HTTPForbidden(_("Cannot change the definition of a survey."))

@@ -281,7 +281,7 @@ def install_submission_catalog(site_manager_container, intids=None):
 
 # containment catalog
 
-ASSESMENT_CATALOG_NAME = 'nti.dataserver.++etc++evaluation-catalog'
+EVALUATION_CATALOG_NAME = 'nti.dataserver.++etc++evaluation-catalog'
 
 IX_NTIID = 'ntiid'
 IX_CONTAINERS = 'containers'
@@ -318,7 +318,7 @@ def get_uid(item, intids=None):
 		result = item
 	return result
 
-class ValidatingAssessmentSite(object):
+class ValidatingEvaluationSite(object):
 
 	__slots__ = (b'site',)
 
@@ -331,11 +331,11 @@ class ValidatingAssessmentSite(object):
 	def __reduce__(self):
 		raise TypeError()
 
-class AssessmentSiteIndex(ValueIndex):
+class EvaluationSiteIndex(ValueIndex):
 	default_field_name = 'site'
-	default_interface = ValidatingAssessmentSite
+	default_interface = ValidatingEvaluationSite
 
-class ValidatingAssessmentNTIID(object):
+class ValidatingEvaluationNTIID(object):
 
 	__slots__ = (b'ntiid',)
 
@@ -346,11 +346,11 @@ class ValidatingAssessmentNTIID(object):
 	def __reduce__(self):
 		raise TypeError()
 
-class AssessmentNTIIDIndex(ValueIndex):
+class EvaluationNTIIDIndex(ValueIndex):
 	default_field_name = 'ntiid'
-	default_interface = ValidatingAssessmentNTIID
+	default_interface = ValidatingEvaluationNTIID
 
-class ValidatingAssessmentContainment(object):
+class ValidatingEvaluationContainment(object):
 
 	__slots__ = (b'containment',)
 
@@ -375,11 +375,11 @@ class ValidatingAssessmentContainment(object):
 	def __reduce__(self):
 		raise TypeError()
 
-class AssessmentContainmentIndex(ExtenedAttributeSetIndex):
+class EvaluationContainmentIndex(ExtenedAttributeSetIndex):
 	default_field_name = 'containment'
-	default_interface = ValidatingAssessmentContainment
+	default_interface = ValidatingEvaluationContainment
 
-class ValidatingAssessmentContainers(object):
+class ValidatingEvaluationContainers(object):
 
 	__slots__ = (b'containers',)
 
@@ -420,11 +420,11 @@ class ValidatingAssessmentContainers(object):
 	def __reduce__(self):
 		raise TypeError()
 
-class AssessmentContainerIndex(ExtenedAttributeSetIndex):
+class EvaluationContainerIndex(ExtenedAttributeSetIndex):
 	default_field_name = 'containers'
-	default_interface = ValidatingAssessmentContainers
+	default_interface = ValidatingEvaluationContainers
 
-class AssesmentCatalog(Catalog):
+class EvaluationCatalog(Catalog):
 
 	family = BTrees.family64
 
@@ -450,30 +450,30 @@ class AssesmentCatalog(Catalog):
 			return set(result or ())
 		return set()
 
-def create_assesment_catalog(catalog=None, family=None):
-	catalog = AssesmentCatalog() if catalog is None else catalog
-	for name, clazz in ((IX_SITE, AssessmentSiteIndex),
-						(IX_NTIID, AssessmentNTIIDIndex),
-						(IX_CONTAINERS, AssessmentContainerIndex),
-						(IX_CONTAINMENT, AssessmentContainmentIndex),):
+def create_evaluation_catalog(catalog=None, family=None):
+	catalog = EvaluationCatalog() if catalog is None else catalog
+	for name, clazz in ((IX_SITE, EvaluationSiteIndex),
+						(IX_NTIID, EvaluationNTIIDIndex),
+						(IX_CONTAINERS, EvaluationContainerIndex),
+						(IX_CONTAINMENT, EvaluationContainmentIndex),):
 		index = clazz(family=family)
 		locate(index, catalog, name)
 		catalog[name] = index
 	return catalog
 
-def install_assesment_catalog(site_manager_container, intids=None):
+def install_evaluation_catalog(site_manager_container, intids=None):
 	lsm = site_manager_container.getSiteManager()
 	intids = lsm.getUtility(IIntIds) if intids is None else intids
-	catalog = lsm.queryUtility(ICatalog, name=ASSESMENT_CATALOG_NAME)
+	catalog = lsm.queryUtility(ICatalog, name=EVALUATION_CATALOG_NAME)
 	if catalog is not None:
 		return catalog
 
-	catalog = AssesmentCatalog()
-	locate(catalog, site_manager_container, ASSESMENT_CATALOG_NAME)
+	catalog = EvaluationCatalog()
+	locate(catalog, site_manager_container, EVALUATION_CATALOG_NAME)
 	intids.register(catalog)
-	lsm.registerUtility(catalog, provided=ICatalog, name=ASSESMENT_CATALOG_NAME)
+	lsm.registerUtility(catalog, provided=ICatalog, name=EVALUATION_CATALOG_NAME)
 
-	catalog = create_assesment_catalog(catalog=catalog, family=intids.family)
+	catalog = create_evaluation_catalog(catalog=catalog, family=intids.family)
 	for index in catalog.values():
 		intids.register(index)
 	return catalog

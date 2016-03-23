@@ -109,7 +109,7 @@ class EvaluationPutView(UGDPutView):
 	def _check_object_constraints(self, obj):
 		UGDPutView._check_object_constraints(self, obj)
 		if not IQEditable.providedBy(obj):
-			raise hexc.HTTPPreconditionFailed(_("Cannot change object definition definition."))
+			raise hexc.HTTPPreconditionFailed(_("Cannot change object definition."))
 
 	def updateContentObject(self, contentObject, externalValue, set_id=False, notify=True):
 		originalSource = copy.copy(externalValue)

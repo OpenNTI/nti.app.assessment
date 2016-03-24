@@ -228,7 +228,7 @@ class AssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 		uber_filter = get_course_assessment_predicate_for_user(self.remoteUser, instance)
 		for asg in (x for x in catalog.iter_assignments() if uber_filter(x) or self._is_editor):
 			# The assignment's __parent__ is always the 'home' content unit
-			parent = asg.__parent__
+			parent = asg.__parent__ # TODO: use home var
 			if parent is not None:
 				if 		not self.is_ipad_legacy \
 					and (self.is_course_instructor or self._is_editor):

@@ -34,6 +34,7 @@ from nti.app.assessment.index import IX_ASSESSMENT_ID
 from nti.app.assessment.interfaces import IUsersCourseInquiryItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
+from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
 
 from nti.assessment.interfaces import NTIID_TYPE, IQPoll, IQSurvey
 from nti.assessment.interfaces import DISCLOSURE_NEVER
@@ -49,6 +50,8 @@ from nti.assessment.interfaces import IQAssignmentPolicies
 from nti.assessment.interfaces import IQAssessmentPolicies
 from nti.assessment.interfaces import IQAssessmentDateContext
 from nti.assessment.interfaces import IQAssessmentItemContainer
+
+from nti.common.iterables import to_list
 
 from nti.common.time import time_to_64bit_int
 
@@ -350,15 +353,21 @@ def get_course_site(course):
 	return folder.__name__
 
 def get_entry_ntiids(courses=()):
-	if ICourseInstance.providedBy(courses):
-		courses = (courses,)
-	courses = courses or ()
-	# safety during course adaptation (seen in alpha)
+	courses = to_list(courses) or ()
 	ntiids = {getattr(ICourseCatalogEntry(x, None), 'ntiid', None) for x in courses}
 	ntiids.discard(None)
 	return ntiids
 
+def has_savepoints(context, courses=()):
+	context_ntiid = getattr(context, 'ntiid', context)
+	for course in to_list(courses) or ():
+		savepoints = IUsersCourseAssignmentSavepoints(course, None)
+		if savepoints is not None and savepoints.has_assignment(context_ntiid):
+			return True
+	return False
+	
 def get_submissions(context, courses=(), index_name=IX_ASSESSMENT_ID):
+	courses = to_list(courses)
 	if not courses:
 		return ()
 	else:
@@ -374,6 +383,11 @@ def get_submissions(context, courses=(), index_name=IX_ASSESSMENT_ID):
 		}
 		uids = catalog.apply(query) or ()
 		return ResultSet(uids, intids, True)
+
+def has_submissions(context, courses=()):
+	for _ in get_submissions(context, courses):
+		return True
+	return False
 
 def evaluation_submissions(context, course, subinstances=True):
 	course = ICourseInstance(course)

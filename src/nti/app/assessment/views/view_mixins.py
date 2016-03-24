@@ -20,11 +20,10 @@ from zope.event import notify as event_notify
 
 from zope.interface.common.idatetime import IDateTime
 
-from nti.app.assessment.common import get_submissions
+from nti.app.assessment.common import has_savepoints
+from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import get_available_for_submission_ending
 from nti.app.assessment.common import get_available_for_submission_beginning
-
-from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
 
 from nti.app.assessment.utils import get_course_from_request
 
@@ -105,31 +104,23 @@ class AssessmentPutView(UGDPutView):
 
 	@classmethod
 	def has_submissions(cls, assessment, courses=()):
-		for _ in get_submissions(assessment, courses):
-			return True
-		return False
+		return has_submissions(assessment, courses)
 
 	@classmethod
 	def has_savepoints(cls, assessment, courses=()):
-		assessment_id = assessment.ntiid
-		for course in courses:
-			savepoints = IUsersCourseAssignmentSavepoints(course, None)
-			if savepoints is not None and savepoints.has_assignment(assessment_id):
-				return True
-		return False
+		return has_savepoints(assessment, courses)
 
-	@classmethod
-	def _raise_conflict_error(cls, request, code, message, course, ntiid):
+	def _raise_conflict_error(self, code, message, course, ntiid):
 		entry = ICourseCatalogEntry(course)
 		logger.info('Attempting to change assignment availability (%s) (%s) (%s)',
 					code,
 					ntiid,
 					entry.ntiid)
 		links = (
-			Link(request.path, rel='confirm',
+			Link(self.request.path, rel='confirm',
 				 params={'force':True}, method='PUT'),
 		)
-		raise_json_error(request,
+		raise_json_error(self.request,
 						 hexc.HTTPConflict,
 						 {
 						 	CLASS: 'DestructiveChallenge',
@@ -162,8 +153,7 @@ class AssessmentPutView(UGDPutView):
 					or 	(	old_start_date \
 						and cls._is_date_in_range( new_start_date, old_start_date, now)))
 
-	@classmethod
-	def validate_date_boundaries(cls, request, contentObject, externalValue, courses=()):
+	def validate_date_boundaries(self, contentObject, externalValue, courses=()):
 		"""
 		Validates that the assessment does not change availability states. If
 		so, we throw a 409 with an available `confirm` link for user overrides.
@@ -202,46 +192,42 @@ class AssessmentPutView(UGDPutView):
 				else:
 					end_date_to_check = new_end_date
 
-				start_date_available_change = cls._start_date_available_change( old_start_date,
+				start_date_available_change = self._start_date_available_change(old_start_date,
 																				start_date_to_check, now)
 
-				old_available = cls._is_date_in_range(old_start_date,
-													  old_end_date, now)
+				old_available = self._is_date_in_range(old_start_date,
+													   old_end_date, now)
 
-				new_available = cls._is_date_in_range(start_date_to_check,
-													  end_date_to_check, now)
+				new_available = self._is_date_in_range(start_date_to_check,
+													   end_date_to_check, now)
 
 				# Note: we allow state to move from closed in past to
 				# closed but will reopen in the future unchecked (edge case).
 				if old_available and not new_available and start_date_available_change:
 					# Start date made unavailable
-					cls._raise_conflict_error(request,
-											  cls.TO_UNAVAILABLE_CODE,
-											  cls.TO_UNAVAILABLE_MSG,
-											  course,
-											  contentObject.ntiid)
+					self._raise_conflict_error(self.TO_UNAVAILABLE_CODE,
+											   self.TO_UNAVAILABLE_MSG,
+											   course,
+											   contentObject.ntiid)
 				elif not old_available and new_available and start_date_available_change:
 					# Start date made available
-					cls._raise_conflict_error(request,
-											  cls.TO_AVAILABLE_CODE,
-											  cls.TO_AVAILABLE_MSG,
-											  course,
-											  contentObject.ntiid)
+					self._raise_conflict_error(self.TO_AVAILABLE_CODE,
+											   self.TO_AVAILABLE_MSG,
+											   course,
+											   contentObject.ntiid)
 				elif old_available != new_available:
 					# State change but not due to the start date. Give a
 					# general confirmation message.
-					cls._raise_conflict_error(request,
-											  cls.CONFIRM_CODE,
-											  cls.DUE_DATE_CONFIRM_MSG,
-											  course,
-											  contentObject.ntiid)
+					self._raise_conflict_error(self.CONFIRM_CODE,
+											   self.DUE_DATE_CONFIRM_MSG,
+											   course,
+											   contentObject.ntiid)
 
 	def preflight(self, contentObject, externalValue, courses=()):
 		if not self.request.params.get('force', False):
 			# We do this during pre-flight because we want to compare our old
 			# state versus the new.
-			self.validate_date_boundaries(self.request,
-										  contentObject,
+			self.validate_date_boundaries(contentObject,
 										  externalValue,
 										  courses=courses)
 

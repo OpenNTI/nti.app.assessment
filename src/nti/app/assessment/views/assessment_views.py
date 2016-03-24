@@ -206,21 +206,18 @@ class AssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 				assgs = items.get(key)
 				if assgs:
 					outline[key] = [x.ntiid for x in assgs]
-				try:
-					name = node.LessonOverviewNTIID
-					lesson = component.queryUtility(INTILessonOverview, name=name or u'')
-					for group in lesson or ():
-						for item in group:
-							if INTIAssignmentRef.providedBy(item):
+				name = node.LessonOverviewNTIID
+				lesson = component.queryUtility(INTILessonOverview, name=name or u'')
+				for group in lesson or ():
+					for item in group:
+						if INTIAssignmentRef.providedBy(item):
+							outline.setdefault(key, [])
+							outline[key].append(item.target or item.ntiid)
+						elif INTIQuestionSetRef.providedBy(item):
+							ntiid = reverse_qset.get(item.target)
+							if ntiid:
 								outline.setdefault(key, [])
 								outline[key].append(item.target or item.ntiid)
-							elif INTIQuestionSetRef.providedBy(item):
-								ntiid = reverse_qset.get(item.target)
-								if ntiid:
-									outline.setdefault(key, [])
-									outline[key].append(item.target or item.ntiid)
-				except AttributeError:
-					pass
 			for child in node.values():
 				_recur(child)
 		_recur(instance.Outline)

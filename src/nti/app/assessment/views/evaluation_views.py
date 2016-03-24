@@ -5,6 +5,7 @@
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
+from nti.coremetadata.interfaces import IPublishable
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -187,7 +188,8 @@ class PollPutView(AssessmentPutView):
 	TO_UNAVAILABLE_MSG = _('Poll will become unavailable. Please confirm.')
 
 	def validate(self, contentObject, externalValue, courses=()):
-		super(PollPutView, self).validate(contentObject, externalValue, courses)
+		if not IPublishable.providedBy(contentObject) or contentObject.is_published():
+			super(PollPutView, self).validate(contentObject, externalValue, courses)
 		parts = externalValue.get('parts')
 		if not IQEditable.providedBy(contentObject) and parts:
 			raise hexc.HTTPForbidden(_("Cannot change the definition of a poll."))
@@ -203,7 +205,8 @@ class SurveyPutView(AssessmentPutView):
 	TO_UNAVAILABLE_MSG = _('Survey will become unavailable. Please confirm.')
 
 	def validate(self, contentObject, externalValue, courses=()):
-		super(SurveyPutView, self).validate(contentObject, externalValue, courses)
+		if not IPublishable.providedBy(contentObject) or contentObject.is_published():
+			super(SurveyPutView, self).validate(contentObject, externalValue, courses)
 		questions = externalValue.get('questions')
 		if not IQEditable.providedBy(contentObject) and questions:
 			raise hexc.HTTPForbidden(_("Cannot change the definition of a survey."))
@@ -219,7 +222,8 @@ class AssignmentPutView(AssessmentPutView):
 	TO_UNAVAILABLE_MSG = _('Assignment will become unavailable. Please confirm.')
 
 	def validate(self, contentObject, externalValue, courses=()):
-		super(AssignmentPutView, self).validate(contentObject, externalValue, courses)
+		if not IPublishable.providedBy(contentObject) or contentObject.is_published():
+			super(AssignmentPutView, self).validate(contentObject, externalValue, courses)
 		parts = externalValue.get('parts')
 		if not IQEditable.providedBy(contentObject) and parts:
 			raise hexc.HTTPForbidden(_("Cannot change the definition of an assignment."))

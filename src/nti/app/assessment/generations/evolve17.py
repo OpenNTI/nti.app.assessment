@@ -14,7 +14,6 @@ generation = 17
 from zope import component
 from zope import interface
 
-from zope.component.hooks import site
 from zope.component.hooks import setHooks
 from zope.component.hooks import site as current_site
 
@@ -68,7 +67,7 @@ def do_evolve(context, generation=generation):
 	component.provideUtility(mock_ds, IDataserver)
 
 	seen = set()
-	with site(ds_folder):
+	with current_site(ds_folder):
 		assert 	component.getSiteManager() == ds_folder.getSiteManager(), \
 				"Hooks not installed?"
 

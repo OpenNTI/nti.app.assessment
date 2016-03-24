@@ -27,24 +27,19 @@ from nti.coremetadata.interfaces import IPublishable
 from nti.dataserver.interfaces import IDataserver
 from nti.dataserver.interfaces import IOIDResolver
 
-from nti.metadata import metadata_queue
+from nti.recorder import get_recorder_catalog
 
 from nti.site.hostpolicy import get_all_host_sites
 
 def _process_items(registry, intids, seen):
-	queue = metadata_queue()
-	for ntiid, item in list(registry.getUtilitiesFor(IQSubmittable)):
-		if ntiid in seen:
-			continue
-		seen.add(ntiid)
-		if IPublishable.providedBy(item) and not item.is_published():
-			item.publish()
-			doc_id = intids.queryId(item)
-			if doc_id is not None:
-				try:
-					queue.add(doc_id)
-				except TypeError:
-					pass
+	catalog = get_recorder_catalog()
+	for _, item in list(registry.getUtilitiesFor(IQSubmittable)):
+		doc_id = intids.queryId(item)
+		if doc_id is not None and doc_id not in seen:
+			seen.add(doc_id)
+			if IPublishable.providedBy(item) and not item.is_published():
+				item.publish()
+				catalog.index_doc(doc_id, item)
 
 @interface.implementer(IDataserver)
 class MockDataserver(object):
@@ -83,7 +78,7 @@ def do_evolve(context, generation=generation):
 				_process_items(registry, intids, seen)
 
 	component.getGlobalSiteManager().unregisterUtility(mock_ds, IDataserver)
-	logger.info('Assessment evolution %s done', generation)
+	logger.info('Assessment evolution %s done.', generation)
 
 def evolve(context):
 	"""

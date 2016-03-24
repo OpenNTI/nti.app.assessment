@@ -325,8 +325,7 @@ class ValidatingEvaluationSite(object):
 	def __init__(self, obj, default=None):
 		if IQEvaluation.providedBy(obj):
 			folder = find_interface(obj, IHostPolicyFolder, strict=False)
-		if folder is not None:
-			self.site = unicode(folder.__name__)
+			self.site = unicode(folder.__name__) if folder is not None else None
 
 	def __reduce__(self):
 		raise TypeError()
@@ -382,7 +381,7 @@ class ValidatingEvaluationContainment(object):
 		return result
 
 	def __init__(self, obj, default=None):
-		if IQSurvey.providedBy(obj) or IQuestionSet:
+		if IQSurvey.providedBy(obj) or IQuestionSet.providedBy(obj):
 			self.containment = self._do_survey_question_set(obj)
 		elif IQAssignment.providedBy(obj):
 			self.containment = self._do_assigment_question_set(obj)

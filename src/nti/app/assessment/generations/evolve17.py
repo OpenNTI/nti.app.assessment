@@ -9,7 +9,7 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-generation = 12
+generation = 17
 
 from zope import component
 from zope import interface
@@ -20,24 +20,18 @@ from zope.component.hooks import site as current_site
 
 from zope.intid.interfaces import IIntIds
 
+from nti.app.assessment.index import install_evaluation_catalog
+
 from nti.assessment.interfaces import IQEvaluation
+
+from nti.contentlibrary.indexed_data import get_library_catalog
+
+from nti.contentlibrary.interfaces import IContentPackageLibrary
 
 from nti.dataserver.interfaces import IDataserver
 from nti.dataserver.interfaces import IOIDResolver
 
-from nti.metadata import metadata_queue
-
 from nti.site.hostpolicy import get_all_host_sites
-
-def _process_items(registry, intids):
-	queue = metadata_queue()
-	for _, item in list(registry.getUtilitiesFor(IQEvaluation)):
-		doc_id = intids.queryId(item)
-		if doc_id is not None:
-			try:
-				queue.add(doc_id)
-			except TypeError:
-				pass
 
 @interface.implementer(IDataserver)
 class MockDataserver(object):
@@ -52,6 +46,14 @@ class MockDataserver(object):
 			return resolver.get_object_by_oid(oid, ignore_creator=ignore_creator)
 		return None
 
+def _process_items(registry, eval_catalog, lib_catalog, intids, seen):
+	for _, item in list(registry.getUtilitiesFor(IQEvaluation)):
+		doc_id = intids.queryId(item)
+		if doc_id is not None and doc_id not in seen:
+			seen.add(doc_id)
+			lib_catalog.unindex_doc(doc_id)
+			eval_catalog.index_doc(doc_id, item)
+
 def do_evolve(context, generation=generation):
 	logger.info("Assessment evolution %s started", generation);
 
@@ -65,20 +67,34 @@ def do_evolve(context, generation=generation):
 	mock_ds.root = ds_folder
 	component.provideUtility(mock_ds, IDataserver)
 
-	with current_site(ds_folder):
+	seen = set()
+	with site(ds_folder):
 		assert 	component.getSiteManager() == ds_folder.getSiteManager(), \
 				"Hooks not installed?"
+
+		eval_catalog = install_evaluation_catalog(ds_folder, intids)
+		lib_catalog = get_library_catalog()
+		
+		# Load library
+		library = component.queryUtility(IContentPackageLibrary)
+		if library is not None:
+			library.syncContentPackages()
 
 		for site in get_all_host_sites():
 			with current_site(site):
 				registry = component.getSiteManager()
-				_process_items(registry, intids)
+				_process_items(registry,
+							   eval_catalog, 
+							   lib_catalog,
+							   intids,
+							   seen)
 
-	component.getGlobalSiteManager().unregisterUtility(mock_ds, IDataserver)
-	logger.info('Assessment evolution %s done', generation)
+		component.getGlobalSiteManager().unregisterUtility(mock_ds, IDataserver)
+		logger.info('Assessment evolution %s done. %s items indexed', 
+					generation, len(seen))
 
 def evolve(context):
 	"""
-	Evolve to generation 12 by adding assesments to the metadata queue
+	Evolve to generation 17 by registering the evaluation catalog
 	"""
-	do_evolve(context)
+	do_evolve(context, generation)

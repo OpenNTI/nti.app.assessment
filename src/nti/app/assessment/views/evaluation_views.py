@@ -19,7 +19,8 @@ from pyramid import httpexceptions as hexc
 from pyramid.view import view_config
 from pyramid.view import view_defaults
 
-from nti.app.assessment.common import make_evaluation_ntiid
+from nti.app.assessment.common import has_submissions 
+from nti.app.assessment.common import make_evaluation_ntiid 
 
 from nti.app.assessment.interfaces import ICourseEvaluations
 
@@ -48,12 +49,16 @@ from nti.assessment.interfaces import IQEvaluation
 
 from nti.common.maps import CaseInsensitiveDict
 
+from nti.contenttypes.courses.interfaces import ICourseInstance
+
 from nti.dataserver import authorization as nauth
 
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.externalization.internalization import notifyModified
+
+from nti.traversal.traversal import find_interface
 
 ITEMS = StandardExternalFields.ITEMS
 
@@ -229,5 +234,8 @@ class EvaluationDeleteView(UGDDeleteView):
 	def _do_delete_object(self, theObject):
 		if not IQEditable.providedBy(theObject):
 			raise hexc.HTTPForbidden(_("Cannot delete legacy object."))
+		course = find_interface(theObject, ICourseInstance, strict=False)
+		if has_submissions(theObject, course):
+			raise hexc.HTTPForbidden(_("Cannot delete object with submissions."))
 		del theObject.__parent__[theObject.__name__]
 		return theObject

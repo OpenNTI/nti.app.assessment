@@ -19,6 +19,8 @@ does_not = is_not
 from urllib import quote
 from itertools import chain
 
+from nti.app.assessment.views.view_mixins import AssessmentPutView
+
 from nti.assessment.interfaces import IQAssessmentPolicies
 from nti.assessment.interfaces import IQAssessmentDateContext
 
@@ -133,10 +135,13 @@ class TestAssignmentViews(ApplicationLayerTest):
 		conflict_class = 'DestructiveChallenge'
 		conflict_mime = 'application/vnd.nextthought.destructivechallenge'
 
-		def _validate_conflict(conflict_res):
+		def _validate_conflict(conflict_res, confirm_code=False):
 			conflict_res = conflict_res.json_body
+			confirm_checker = is_ if confirm_code else is_not
 			assert_that(conflict_res, has_entry('Class', conflict_class))
 			assert_that(conflict_res, has_entry('MimeType', conflict_mime))
+			assert_that(conflict_res, has_entry('code',
+												confirm_checker(AssessmentPutView.CONFIRM_CODE)))
 			return self.require_link_href_with_rel(conflict_res, confirm_rel)
 
 		def _get_date_fields():
@@ -182,7 +187,7 @@ class TestAssignmentViews(ApplicationLayerTest):
 		res = self.testapp.put_json(assignment_url,
 									data, extra_environ=editor_environ,
 									status=409)
-		force_url = _validate_conflict(res)
+		force_url = _validate_conflict(res, confirm_code=True)
 		# Now force it.
 		self.testapp.put_json(force_url, data, extra_environ=editor_environ)
 		new_start_field, new_end_field = _get_date_fields()
@@ -194,7 +199,7 @@ class TestAssignmentViews(ApplicationLayerTest):
 		res = self.testapp.put_json(assignment_url,
 									data, extra_environ=editor_environ,
 									status=409)
-		force_url = _validate_conflict(res)
+		force_url = _validate_conflict(res, confirm_code=True)
 		# Now force it.
 		self.testapp.put_json(force_url, data, extra_environ=editor_environ)
 		new_start_field, new_end_field = _get_date_fields()
@@ -214,19 +219,19 @@ class TestAssignmentViews(ApplicationLayerTest):
 		res = self.testapp.put_json(assignment_url,
 									data, extra_environ=editor_environ,
 									status=409)
-		force_url = _validate_conflict(res)
+		force_url = _validate_conflict(res, confirm_code=True)
 		# Now force it.
 		self.testapp.put_json(force_url, data, extra_environ=editor_environ)
 		new_start_field, new_end_field = _get_date_fields()
 		assert_that(new_start_field, none())
 		assert_that(new_end_field, is_(past_date_str))
 
-		# 7. Current closed with no open date to empty end date.
+		# 7. Currently closed with no open date to empty end date.
 		data = { end_field: None }
 		res = self.testapp.put_json(assignment_url,
 									data, extra_environ=editor_environ,
 									status=409)
-		force_url = _validate_conflict(res)
+		force_url = _validate_conflict(res, confirm_code=True)
 		# Now force it.
 		self.testapp.put_json(force_url, data, extra_environ=editor_environ)
 		new_start_field, new_end_field = _get_date_fields()

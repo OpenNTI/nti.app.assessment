@@ -91,9 +91,11 @@ class AssessmentPutView(UGDPutView):
 
 	TO_AVAILABLE_CODE = 'UnAvailableToAvailable'
 	TO_UNAVAILABLE_CODE = 'AvailableToUnavailable'
+	CONFIRM_CODE = 'AssessmentDateConfirm'
 
 	TO_AVAILABLE_MSG = None
 	TO_UNAVAILABLE_MSG = None
+	DUE_DATE_CONFIRM_MSG = _('Are you sure you want to change the due date?')
 
 	def readInput(self, value=None):
 		result = UGDPutView.readInput(self, value=value)
@@ -148,6 +150,19 @@ class AssessmentPutView(UGDPutView):
 		return result
 
 	@classmethod
+	def _start_date_available_change(cls, old_start_date, new_start_date, now):
+		"""
+		Returns if the start date changes availability.
+		"""
+		# 1. Move start date in future (old start date non-None)
+		# 2. Move start date in past (new start date non-None)
+		return 		old_start_date != new_start_date \
+				and 	((	new_start_date \
+						and cls._is_date_in_range( old_start_date, new_start_date, now))
+					or 	(	old_start_date \
+						and cls._is_date_in_range( new_start_date, old_start_date, now)))
+
+	@classmethod
 	def validate_date_boundaries(cls, request, contentObject, externalValue, courses=()):
 		"""
 		Validates that the assessment does not change availability states. If
@@ -156,7 +171,7 @@ class AssessmentPutView(UGDPutView):
 		_marker = object()
 		new_end_date = externalValue.get('available_for_submission_ending', _marker)
 		new_start_date = externalValue.get('available_for_submission_beginning', _marker)
-		if 	new_start_date is not _marker or new_end_date is not _marker:
+		if new_start_date is not _marker or new_end_date is not _marker:
 			now = datetime.utcnow()
 
 			try:
@@ -178,7 +193,7 @@ class AssessmentPutView(UGDPutView):
 
 				# Use old dates if the dates are not being edited.
 				if new_start_date is _marker:
-					start_date_to_check = old_start_date 
+					start_date_to_check = old_start_date
 				else:
 					start_date_to_check = new_start_date
 
@@ -187,24 +202,37 @@ class AssessmentPutView(UGDPutView):
 				else:
 					end_date_to_check = new_end_date
 
-				old_available = cls._is_date_in_range(old_start_date, 
+				start_date_available_change = cls._start_date_available_change( old_start_date,
+																				start_date_to_check, now)
+
+				old_available = cls._is_date_in_range(old_start_date,
 													  old_end_date, now)
 
-				new_available = cls._is_date_in_range(start_date_to_check, 
+				new_available = cls._is_date_in_range(start_date_to_check,
 													  end_date_to_check, now)
 
 				# Note: we allow state to move from closed in past to
-				# closed, but will reopen in the future unchecked (edge case).
-				if old_available and not new_available:
+				# closed but will reopen in the future unchecked (edge case).
+				if old_available and not new_available and start_date_available_change:
+					# Start date made unavailable
 					cls._raise_conflict_error(request,
 											  cls.TO_UNAVAILABLE_CODE,
 											  cls.TO_UNAVAILABLE_MSG,
 											  course,
 											  contentObject.ntiid)
-				elif not old_available and new_available:
+				elif not old_available and new_available and start_date_available_change:
+					# Start date made available
 					cls._raise_conflict_error(request,
 											  cls.TO_AVAILABLE_CODE,
 											  cls.TO_AVAILABLE_MSG,
+											  course,
+											  contentObject.ntiid)
+				elif old_available != new_available:
+					# State change but not due to the start date. Give a
+					# general confirmation message.
+					cls._raise_conflict_error(request,
+											  cls.CONFIRM_CODE,
+											  cls.DUE_DATE_CONFIRM_MSG,
 											  course,
 											  contentObject.ntiid)
 

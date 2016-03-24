@@ -26,10 +26,9 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQuestion
-from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQuestionSet
-from nti.assessment.interfaces import IQAssessment
 from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQPollSubmission
 from nti.assessment.interfaces import IQSurveySubmission
 from nti.assessment.interfaces import IQAssignmentSubmission
@@ -284,6 +283,7 @@ def install_submission_catalog(site_manager_container, intids=None):
 EVALUATION_CATALOG_NAME = 'nti.dataserver.++etc++evaluation-catalog'
 
 IX_NTIID = 'ntiid'
+IX_MIMETYPE = 'mimeType'
 IX_CONTAINERS = 'containers'
 IX_CONTAINMENT = 'containment'
 
@@ -323,7 +323,7 @@ class ValidatingEvaluationSite(object):
 	__slots__ = (b'site',)
 
 	def __init__(self, obj, default=None):
-		if IQAssessment.providedBy(obj) or IQInquiry.providedBy(obj):
+		if IQEvaluation.providedBy(obj):
 			folder = find_interface(obj, IHostPolicyFolder, strict=False)
 		if folder is not None:
 			self.site = unicode(folder.__name__)
@@ -335,12 +335,27 @@ class EvaluationSiteIndex(ValueIndex):
 	default_field_name = 'site'
 	default_interface = ValidatingEvaluationSite
 
+class ValidatingMimeType(object):
+
+	__slots__ = (b'mimeType',)
+
+	def __init__(self, obj, default=None):
+		if IQEvaluation.providedBy(obj):
+			self.mimeType = obj.mimeType
+
+	def __reduce__(self):
+		raise TypeError()
+
+class EvaluationMimeTypeIndex(ValueIndex):
+	default_field_name = 'mimeType'
+	default_interface = ValidatingMimeType
+
 class ValidatingEvaluationNTIID(object):
 
 	__slots__ = (b'ntiid',)
 
 	def __init__(self, obj, default=None):
-		if IQAssessment.providedBy(obj) or IQInquiry.providedBy(obj):
+		if IQEvaluation.providedBy(obj):
 			self.ntiid = obj.ntiid
 
 	def __reduce__(self):
@@ -414,7 +429,7 @@ class ValidatingEvaluationContainers(object):
 		return result
 
 	def __init__(self, obj, default=None):
-		if IQAssessment.providedBy(obj) or IQInquiry.providedBy(obj):
+		if IQEvaluation.providedBy(obj):
 			self.containers = self._get_containers(obj)
 
 	def __reduce__(self):
@@ -454,6 +469,7 @@ def create_evaluation_catalog(catalog=None, family=None):
 	catalog = EvaluationCatalog() if catalog is None else catalog
 	for name, clazz in ((IX_SITE, EvaluationSiteIndex),
 						(IX_NTIID, EvaluationNTIIDIndex),
+						(IX_MIMETYPE, EvaluationMimeTypeIndex),
 						(IX_CONTAINERS, EvaluationContainerIndex),
 						(IX_CONTAINMENT, EvaluationContainmentIndex),):
 		index = clazz(family=family)

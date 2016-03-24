@@ -22,6 +22,8 @@ from zope.component.hooks import getSite
 
 from zope.container.contained import Contained
 
+from zope.container.btree import BTreeContainer
+
 from zope.deprecation import deprecated
 
 from zope.intid.interfaces import IIntIds
@@ -52,13 +54,10 @@ from nti.assessment.interfaces import QUESTION_SET_MIME_TYPE
 
 from nti.common.proxy import removeAllProxies
 
-from nti.containers.containers import NOOwnershipLastModifiedBTreeContainer
-
 from nti.coremetadata.interfaces import IRecordable
 from nti.coremetadata.interfaces import IPublishable
 
 from nti.contentlibrary.indexed_data import get_site_registry
-from nti.contentlibrary.indexed_data import get_library_catalog
 
 from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.interfaces import IContentPackage
@@ -77,10 +76,6 @@ from nti.externalization.persistence import NoPickle
 from nti.intid.common import addIntId
 from nti.intid.common import removeIntId
 
-from nti.recorder.record import remove_transaction_history
-
-from nti.site.site import get_component_hierarchy_names
-
 from nti.site.utils import registerUtility
 from nti.site.utils import unregisterUtility
 
@@ -91,7 +86,7 @@ class _AssessmentItemContainer(Persistent):
 	pass
 
 deprecated('_AssessmentItemStore', 'Deprecated Storage Mode')
-class _AssessmentItemStore(NOOwnershipLastModifiedBTreeContainer):
+class _AssessmentItemStore(BTreeContainer):
 	pass
 
 @component.adapter(IContentUnit)
@@ -195,23 +190,9 @@ class QuestionMap(QuestionIndex):
 														  registry)
 		return result
 
-	def _index_object(self, assessment_item, content_package,
-					  hierarchy_ntiids, registry=None):
-		"""
-		Index the item in our catalog.
-		"""
-		result = False
+	def _publish_object(self, assessment_item):
 		if IPublishable.providedBy(assessment_item):
 			assessment_item.publish()  # by default
-		if self._get_registry(registry) == component.getGlobalSiteManager():
-			return result
-		else:
-			catalog = get_library_catalog()
-			if catalog is not None:  # Test mode
-				result = catalog.index(assessment_item, container_ntiids=hierarchy_ntiids,
-									   namespace=content_package.ntiid,
-									   sites=get_component_hierarchy_names())
-		return result
 
 	def _connection(self, registry=None):
 		registry = self._get_registry(registry)
@@ -232,24 +213,6 @@ class QuestionMap(QuestionIndex):
 			return True
 		return False
 
-	def _lineage(self, resource):
-		while resource is not None:
-			yield resource
-			try:
-				resource = resource.__container__
-			except AttributeError:
-				resource = None
-
-	def _containers(self, resource):
-		result = set()
-		for x in self._lineage(resource):
-			try:
-				result.add(x.ntiid)
-			except AttributeError:
-				pass
-		result.discard(None)
-		return result
-
 	def _get_assess_item_dict(self, base):
 		"""
 		Make sure we iterate through our assessment dict in a
@@ -258,9 +221,9 @@ class QuestionMap(QuestionIndex):
 		"""
 		result = OrderedDict()
 		for mime_type in (ASSIGNMENT_MIME_TYPE,
-							SURVEY_MIME_TYPE,
-							QUESTION_SET_MIME_TYPE,
-							None):
+						  SURVEY_MIME_TYPE,
+						  QUESTION_SET_MIME_TYPE,
+						  None):
 			for key, assess_dict in base.items():
 				if key in result:
 					continue
@@ -325,9 +288,6 @@ class QuestionMap(QuestionIndex):
 				things_to_register = self._explode_object_to_register(obj)
 
 				for item in things_to_register:
-					# get containment hierarchy
-					containers = self._containers(item)
-
 					# get unproxied object
 					thing_to_register = removeAllProxies(item)
 
@@ -336,9 +296,6 @@ class QuestionMap(QuestionIndex):
 					provided = _iface_to_register(thing_to_register)
 					if ntiid and registry.queryUtility(provided, name=ntiid) is None:
 						result.add(thing_to_register)
-						
-						containers.discard(ntiid)
-						containers.update(hierarchy_ntiids)
 
 						# register assesment
 						self._registry_utility(registry,
@@ -357,11 +314,8 @@ class QuestionMap(QuestionIndex):
 						parents_questions.append(thing_to_register)
 						self._intid_register(thing_to_register, registry=registry)
 
-						# index item
-						self._index_object(thing_to_register,
-										   content_package,
-										   containers,
-										   registry=registry)
+						# publish item
+						self._publish_object(thing_to_register)
 
 						# register in sync results
 						if sync_results is not None:
@@ -372,9 +326,8 @@ class QuestionMap(QuestionIndex):
 						parents_questions.append(thing_to_register)
 			else:
 				obj = registered
+				self._publish_object(obj)
 				self._store_object(ntiid, obj)
-				self._index_object(obj, content_package, 
-								   hierarchy_ntiids, registry=registry)
 				if ntiid not in parents_questions:
 					# XXX: Seen in alpha 
 					# registered object is not in unit container 
@@ -613,24 +566,20 @@ def _remove_assessment_items_from_oldcontent(content_package,
 
 	ignore = set()
 	result = dict()
-	catalog = get_library_catalog()
 	intids = component.queryUtility(IIntIds)  # test mode
 
 	def _remove(container, name, item):
 		if name not in result:
 			result[name] = item
 			provided = _iface_to_register(item)
-			# unregister
+			# unregister utility
 			if not unregisterUtility(sm, provided=provided, name=name):
 				logger.warn("Could not unregister %s from %s", name, sm)
 			else:
 				logger.debug("(%s,%s) has been unregistered", provided.__name__, name)
-			# remove from index
+			# unregister from intid
 			if intids is not None and intids.queryId(item) is not None:
-				catalog.unindex(item, intids=intids)
 				removeIntId(item)
-			# remove transactions
-			remove_transaction_history(item)
 		# always remove from container
 		container.pop(name, None)
 

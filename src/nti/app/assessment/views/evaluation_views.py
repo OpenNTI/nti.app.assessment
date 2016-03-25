@@ -71,7 +71,6 @@ from nti.traversal.traversal import find_interface
 ITEMS = StandardExternalFields.ITEMS
 NTIID = StandardExternalFields.NTIID
 
-#
 # def _handle_multipart(context, user, model, sources):
 # 	provided = ICourseDiscussion
 # 	filer = get_course_filer(context, user)
@@ -172,7 +171,19 @@ class EvaluationMixin(object):
 							 None)
 		return question
 
-	def handle_questionset(self, theObject, course, sources, user):
+	def handle_poll(self, poll, course, sources, user):
+		poll = self.get_register_evaluation(poll, course, user)
+		if poll is None:
+			raise_json_error(self.request,
+							 hexc.HTTPUnprocessableEntity,
+							 {
+								u'message': _("Poll does not exists."),
+								u'code': 'PollDoesNotExists',
+							 },
+							 None)
+		return poll
+
+	def handle_question_set(self, theObject, course, sources, user):
 		theObject = self.get_register_evaluation(theObject, course, user)
 		if theObject is None:
 			raise_json_error(self.request,
@@ -187,12 +198,58 @@ class EvaluationMixin(object):
 			question = self.handle_question(question, course, sources, user)
 			questions.append(questions)
 		theObject.questions = questions
+		return theObject
+
+	def handle_survey(self, theObject, course, sources, user):
+		theObject = self.get_register_evaluation(theObject, course, user)
+		if theObject is None:
+			raise_json_error(self.request,
+							 hexc.HTTPUnprocessableEntity,
+							 {
+								u'message': _("Survey does not exists."),
+								u'code': 'SurveyDoesNotExists',
+							 },
+							 None)
+		questions = []
+		for poll in theObject.questions or ():
+			poll = self.handle_poll(poll, course, sources, user)
+			poll.append(questions)
+		theObject.questions = questions
+		return theObject
+
+	def handle_assignment_part(self, part, course, sources, user):
+		question_set = self.handle_question_set(part.question_set, course, sources, user)
+		part.question_set = question_set
+		return part
+
+	def handle_assignment(self, theObject, course, sources, user):
+		theObject = self.get_register_evaluation(theObject, course, user)
+		if theObject is None:
+			raise_json_error(self.request,
+							 hexc.HTTPUnprocessableEntity,
+							 {
+								u'message': _("Assignment does not exists."),
+								u'code': 'AssignmentDoesNotExists',
+							 },
+							 None)
+		parts = []
+		for part in theObject.parts or ():
+			part = self.handle_assignment_part(part, course, sources, user)
+			parts.append(part)
+		theObject.parts = parts
+		return theObject
 
 	def handle_evaluation(self, theObject, course, sources, user):
 		if IQuestion.providedBy(theObject):
 			result = self.handle_question(theObject, course, sources, user)
+		elif IQPoll.providedBy(theObject):
+			result = self.handle_poll(theObject, course, sources, user)
 		elif IQuestionSet.providedBy(theObject):
-			result = self.handle_question(theObject, course, sources, user)
+			result = self.handle_question_set(theObject, course, sources, user)
+		elif IQSurvey.providedBy(theObject):
+			result = self.handle_survey(theObject, course, sources, user)
+		elif IQAssignment.providedBy(theObject):
+			result = self.handle_assignment(theObject, course, sources, user)
 		else:
 			result = theObject
 		return result
@@ -235,6 +292,8 @@ class CourseEvaluationsPostView(EvaluationMixin, UGDPostView):
 			   permission=nauth.ACT_CONTENT_EDIT)
 class EvaluationPutView(EvaluationMixin, UGDPutView):
 
+	OBJ_DEF_CHANGE_MSG = _("Cannot change the object definition.")
+
 	def readInput(self, value=None):
 		result = UGDPutView.readInput(self, value=value)
 		result.pop('ntiid', None)
@@ -247,7 +306,7 @@ class EvaluationPutView(EvaluationMixin, UGDPutView):
 			raise_json_error(self.request,
 							 hexc.HTTPUnprocessableEntity,
 							 {
-								u'message': _("Cannot change the object definition."),
+								u'message': self.OBJ_DEF_CHANGE_MSG,
 								u'code': 'CannotChangeObjectDefinition',
 							 },
 							 None)
@@ -274,6 +333,8 @@ class EvaluationPutView(EvaluationMixin, UGDPutView):
 			 renderer='rest')
 class QuestionPutView(EvaluationPutView):
 
+	OBJ_DEF_CHANGE_MSG = _("Cannot change the question definition.")
+
 	def _check_object_constraints(self, obj, externalValue):
 		super(QuestionPutView, self)._check_object_constraints(obj, externalValue)
 		course = find_interface(obj, ICourseInstance, strict=False)
@@ -281,7 +342,25 @@ class QuestionPutView(EvaluationPutView):
 		if parts:  # check for submissions
 			validate_submissions(obj, course, self.request)
 
+@view_config(route_name='objects.generic.traversal',
+			 context=IQuestionSet,
+			 request_method='PUT',
+			 permission=nauth.ACT_CONTENT_EDIT,
+			 renderer='rest')
+class QuestionSetPutView(EvaluationPutView):
+
+	OBJ_DEF_CHANGE_MSG = _("Cannot change the question set definition.")
+
+	def _check_object_constraints(self, obj, externalValue):
+		super(QuestionSetPutView, self)._check_object_constraints(obj, externalValue)
+		course = find_interface(obj, ICourseInstance, strict=False)
+		parts = externalValue.get('questions')
+		if parts:  # check for submissions
+			validate_submissions(obj, course, self.request)
+
 class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):
+
+	OBJ_DEF_CHANGE_MSG = _("Cannot change the object definition.")
 
 	def _check_object_constraints(self, obj, externalValue):
 		super(NewAndLegacyPutView, self)._check_object_constraints(obj, externalValue)
@@ -291,7 +370,7 @@ class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):
 				raise_json_error(self.request,
 								 hexc.HTTPUnprocessableEntity,
 								 {
-									u'message': _("Cannot change the object definition."),
+									u'message': self.OBJ_DEF_CHANGE_MSG,
 									u'code': 'CannotChangeObjectDefinition',
 								 },
 								 None)
@@ -309,6 +388,22 @@ class PollPutView(NewAndLegacyPutView):
 	TO_AVAILABLE_MSG = _('Poll will become available. Please confirm.')
 	TO_UNAVAILABLE_MSG = _('Poll will become unavailable. Please confirm.')
 
+	def _check_object_constraints(self, obj, externalValue):
+		super(PollPutView, self)._check_object_constraints(obj, externalValue)
+		parts = externalValue.get('parts')
+		if parts:
+			if not IQEditable.providedBy(obj):
+				raise_json_error(self.request,
+								 hexc.HTTPUnprocessableEntity,
+								 {
+									u'message': _("Cannot change the poll definition."),
+									u'code': 'CannotChangeObjectDefinition',
+								 },
+								 None)
+			else:
+				course = find_interface(obj, ICourseInstance, strict=False)
+				validate_submissions(obj, course, self.request)
+
 	def validate(self, contentObject, externalValue, courses=()):
 		if not IPublishable.providedBy(contentObject) or contentObject.is_published():
 			super(PollPutView, self).validate(contentObject, externalValue, courses)
@@ -323,6 +418,22 @@ class SurveyPutView(NewAndLegacyPutView):
 	TO_AVAILABLE_MSG = _('Survey will become available. Please confirm.')
 	TO_UNAVAILABLE_MSG = _('Survey will become unavailable. Please confirm.')
 
+	def _check_object_constraints(self, obj, externalValue):
+		super(PollPutView, self)._check_object_constraints(obj, externalValue)
+		parts = externalValue.get('questions')
+		if parts:
+			if not IQEditable.providedBy(obj):
+				raise_json_error(self.request,
+								 hexc.HTTPUnprocessableEntity,
+								 {
+									u'message': _("Cannot change the survey definition."),
+									u'code': 'CannotChangeObjectDefinition',
+								 },
+								 None)
+			else:
+				course = find_interface(obj, ICourseInstance, strict=False)
+				validate_submissions(obj, course, self.request)
+
 	def validate(self, contentObject, externalValue, courses=()):
 		if not IPublishable.providedBy(contentObject) or contentObject.is_published():
 			super(SurveyPutView, self).validate(contentObject, externalValue, courses)
@@ -336,6 +447,22 @@ class AssignmentPutView(NewAndLegacyPutView):
 
 	TO_AVAILABLE_MSG = _('Assignment will become available. Please confirm.')
 	TO_UNAVAILABLE_MSG = _('Assignment will become unavailable. Please confirm.')
+
+	def _check_object_constraints(self, obj, externalValue):
+		super(PollPutView, self)._check_object_constraints(obj, externalValue)
+		parts = externalValue.get('parts')
+		if parts:
+			if not IQEditable.providedBy(obj):
+				raise_json_error(self.request,
+								 hexc.HTTPUnprocessableEntity,
+								 {
+									u'message': _("Cannot change the assignment definition."),
+									u'code': 'CannotChangeObjectDefinition',
+								 },
+								 None)
+			else:
+				course = find_interface(obj, ICourseInstance, strict=False)
+				validate_submissions(obj, course, self.request)
 
 	def validate(self, contentObject, externalValue, courses=()):
 		if not IPublishable.providedBy(contentObject) or contentObject.is_published():

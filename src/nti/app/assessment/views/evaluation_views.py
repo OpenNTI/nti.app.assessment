@@ -45,15 +45,15 @@ from nti.appserver.ugd_edit_views import UGDDeleteView
 
 from nti.assessment.common import iface_of_assessment
 
-from nti.assessment.interfaces import IQPoll, IQuestion
+from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
+from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQEditable
 from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQEvaluation
 
 from nti.common.maps import CaseInsensitiveDict
-
-from nti.common.property import Lazy
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
@@ -146,39 +146,56 @@ def valdiate_internal(theObject, course, request):
 
 class EvaluationMixin(object):
 
-	@property
-	def course(self):
-		return None
-
-	@Lazy
-	def evaluations(self):
-		return ICourseEvaluations(self.course, None)
-
-	def handle_question(self, question):
-		ntiid = getattr(question, 'ntiid', None)
+	def get_register_evaluation(self, obj, course, user):
+		ntiid = getattr(obj, 'ntiid', None)
+		provided = iface_of_assessment(obj)
+		evaluations = ICourseEvaluations(course)
 		if not ntiid:  # new object
-			ntiid = make_evaluation_ntiid(IQuestion, self.remoteUser)
-			question.ntiid = ntiid
-			lifecycleevent.created(question)
-			self.evaluations[ntiid] = question
-		elif ntiid in self.evaluations:  # replace
-			question = self.evaluations[ntiid]
+			obj.ntiid = make_evaluation_ntiid(provided, user)
+			lifecycleevent.created(obj)
+			evaluations[ntiid] = obj
+		elif ntiid in evaluations:  # replace
+			obj = evaluations[ntiid]
 		else:
-			registered = component.queryUtility(IQuestion, ntiid=ntiid)
-			if registered is None:
-				raise_json_error(self.request,
-								 hexc.HTTPUnprocessableEntity,
-								 {
-									u'message': _("Question does not exists."),
-									u'code': 'QuestionDoesNotExists',
-									u'ntiid': ntiid,
-								 },
-								 None)
-			question = registered
+			obj = component.queryUtility(provided, ntiid=ntiid)
+		return obj
+
+	def handle_question(self, question, course, sources, user):
+		question = self.get_register_evaluation(question, course, user)
+		if question is None:
+			raise_json_error(self.request,
+							 hexc.HTTPUnprocessableEntity,
+							 {
+								u'message': _("Question does not exists."),
+								u'code': 'QuestionDoesNotExists',
+							 },
+							 None)
 		return question
 
-	def handle_questionset(self, theObject):
-		pass
+	def handle_questionset(self, theObject, course, sources, user):
+		theObject = self.get_register_evaluation(theObject, course, user)
+		if theObject is None:
+			raise_json_error(self.request,
+							 hexc.HTTPUnprocessableEntity,
+							 {
+								u'message': _("QuestionSet does not exists."),
+								u'code': 'QuestionSetDoesNotExists',
+							 },
+							 None)
+		questions = []
+		for question in theObject.questions or ():
+			question = self.handle_question(question, course, sources, user)
+			questions.append(questions)
+		theObject.questions = questions
+
+	def handle_evaluation(self, theObject, course, sources, user):
+		if IQuestion.providedBy(theObject):
+			result = self.handle_question(theObject, course, sources, user)
+		elif IQuestionSet.providedBy(theObject):
+			result = self.handle_question(theObject, course, sources, user)
+		else:
+			result = theObject
+		return result
 
 # POST views
 
@@ -187,7 +204,7 @@ class EvaluationMixin(object):
 			   renderer='rest',
 			   request_method='POST',
 			   permission=nauth.ACT_CONTENT_EDIT)
-class CourseEvaluationsPostView(UGDPostView):
+class CourseEvaluationsPostView(EvaluationMixin, UGDPostView):
 
 	content_predicate = IQEvaluation.providedBy
 
@@ -204,18 +221,8 @@ class CourseEvaluationsPostView(UGDPostView):
 		evaluation.creator = creator.username
 		interface.alsoProvides(evaluation, IQEditable)
 
-		provided = iface_of_assessment(evaluation)
-		ntiid = make_evaluation_ntiid(provided, self.remoteUser)
-
-		lifecycleevent.created(evaluation)
-		evaluation.ntiid = ntiid
-		self.context[ntiid] = evaluation  # save
-
-		# handle multi-part data
-		if sources:
-			validate_sources(self.remoteUser, evaluation, sources)
-			# _handle_multipart(self.context, self.remoteUser, discussion, sources)
-
+		course = find_interface(self.context, ICourseInstance, strict=False)
+		evaluation = self.handle_evaluation(evaluation, course, sources, creator)
 		self.request.response.status_int = 201
 		return evaluation
 
@@ -226,7 +233,7 @@ class CourseEvaluationsPostView(UGDPostView):
 			   renderer='rest',
 			   request_method='PUT',
 			   permission=nauth.ACT_CONTENT_EDIT)
-class EvaluationPutView(UGDPutView):
+class EvaluationPutView(EvaluationMixin, UGDPutView):
 
 	def readInput(self, value=None):
 		result = UGDPutView.readInput(self, value=value)
@@ -235,7 +242,7 @@ class EvaluationPutView(UGDPutView):
 		return result
 
 	def _check_object_constraints(self, obj, externalValue):
-		super(EvaluationPutView, self)._check_object_constraints( obj, externalValue)
+		super(EvaluationPutView, self)._check_object_constraints(obj, externalValue)
 		if not IQEditable.providedBy(obj):
 			raise_json_error(self.request,
 							 hexc.HTTPUnprocessableEntity,
@@ -274,7 +281,7 @@ class QuestionPutView(EvaluationPutView):
 		if parts:  # check for submissions
 			validate_submissions(obj, course, self.request)
 
-class NewAndLegacyPutView(AssessmentPutView):
+class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):
 
 	def _check_object_constraints(self, obj, externalValue):
 		super(NewAndLegacyPutView, self)._check_object_constraints(obj, externalValue)

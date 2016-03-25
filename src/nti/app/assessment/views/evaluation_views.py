@@ -5,7 +5,6 @@
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
-from nti.coremetadata.interfaces import IPublishable
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -20,6 +19,7 @@ from pyramid import httpexceptions as hexc
 from pyramid.view import view_config
 from pyramid.view import view_defaults
 
+from nti.app.assessment.common import has_savepoints
 from nti.app.assessment.common import has_submissions 
 from nti.app.assessment.common import make_evaluation_ntiid 
 
@@ -51,6 +51,8 @@ from nti.assessment.interfaces import IQEvaluation
 from nti.common.maps import CaseInsensitiveDict
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+
+from nti.coremetadata.interfaces import IPublishable
 
 from nti.dataserver import authorization as nauth
 
@@ -241,5 +243,7 @@ class EvaluationDeleteView(UGDDeleteView):
 		course = find_interface(theObject, ICourseInstance, strict=False)
 		if has_submissions(theObject, course):
 			raise hexc.HTTPForbidden(_("Cannot delete object with submissions."))
+		if has_savepoints(theObject, course):
+			raise hexc.HTTPForbidden(_("Cannot delete object with save points."))
 		del theObject.__parent__[theObject.__name__]
 		return theObject

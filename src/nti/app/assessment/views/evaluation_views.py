@@ -11,6 +11,7 @@ logger = __import__('logging').getLogger(__name__)
 
 import copy
 
+from zope import component
 from zope import interface
 from zope import lifecycleevent
 
@@ -32,6 +33,8 @@ from nti.app.assessment.views.view_mixins import AssessmentPutView
 from nti.app.base.abstract_views import get_all_sources
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
+from nti.app.externalization.error import raise_json_error
+
 from nti.app.externalization.view_mixins import BatchingUtilsMixin
 
 from nti.app.contentfile import validate_sources
@@ -42,13 +45,15 @@ from nti.appserver.ugd_edit_views import UGDDeleteView
 
 from nti.assessment.common import iface_of_assessment
 
-from nti.assessment.interfaces import IQPoll
+from nti.assessment.interfaces import IQPoll, IQuestion
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQEditable
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQEvaluation
 
 from nti.common.maps import CaseInsensitiveDict
+
+from nti.common.property import Lazy
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
@@ -64,6 +69,7 @@ from nti.externalization.internalization import notifyModified
 from nti.traversal.traversal import find_interface
 
 ITEMS = StandardExternalFields.ITEMS
+NTIID = StandardExternalFields.NTIID
 
 #
 # def _handle_multipart(context, user, model, sources):
@@ -94,8 +100,7 @@ class CourseEvaluationsGetView(AbstractAuthenticatedView, BatchingUtilsMixin):
 	def _get_mimeTypes(self):
 		params = CaseInsensitiveDict(self.request.params)
 		result = params.get('accept') or params.get('mimeType')
-		if result:
-			result = set(result.split(','))
+		result = set(result.split(',')) if result else ()
 		return result or ()
 
 	def __call__(self):
@@ -114,6 +119,54 @@ class CourseEvaluationsGetView(AbstractAuthenticatedView, BatchingUtilsMixin):
 		self._batch_items_iterable(result, items)
 		result['ItemCount'] = len(result[ITEMS])
 		return result
+
+def validate_submissions(theObject, course):
+	if has_submissions(theObject, course):
+		raise hexc.HTTPForbidden(_("Cannot delete object with submissions."))
+
+def validate_savepoints(theObject, course):
+	if has_savepoints(theObject, course):
+		raise hexc.HTTPForbidden(_("Cannot delete object with save points."))
+
+def valdiate_internal(theObject, course):
+	validate_savepoints(theObject, course)
+	validate_submissions(theObject, course)
+
+class EvaluationMixin(object):
+
+	@property
+	def course(self):
+		return None
+
+	@Lazy
+	def evaluations(self):
+		return ICourseEvaluations(self.course, None)
+
+	def handle_question(self, question):
+		ntiid = getattr(question, 'ntiid', None)
+		if not ntiid: # new object
+			ntiid = make_evaluation_ntiid(IQuestion, self.remoteUser)
+			question.ntiid = ntiid
+			lifecycleevent.created(question)
+			self.evaluations[ntiid] = question
+		elif ntiid in self.evaluations: # replace / new update
+			# TODO: Validate and update
+			question = self.evaluations[ntiid]
+		else:
+			registered = component.queryUtility(IQuestion, ntiid=ntiid)
+			if registered is None:
+				raise_json_error(self.request,
+								 hexc.HTTPUnprocessableEntity,
+								 {
+									u'message': _("Question does not exists."),
+									u'ntiid': ntiid,
+								 },
+								 None)
+			question = registered
+		return question
+
+	def handle_questionset(self, theObject):
+		pass
 
 @view_config(context=ICourseEvaluations)
 @view_defaults(route_name='objects.generic.traversal',
@@ -159,7 +212,13 @@ class CourseEvaluationsPostView(UGDPostView):
 			   permission=nauth.ACT_CONTENT_EDIT)
 class EvaluationPutView(UGDPutView):
 
-	def _check_object_constraints(self, obj):
+	def readInput(self, value=None):
+		result = UGDPutView.readInput(self, value=value)
+		result.pop('ntiid', None)
+		result.pop(NTIID, None)
+		return result
+
+	def _check_object_constraints(self, obj, externalValue):
 		UGDPutView._check_object_constraints(self, obj)
 		if not IQEditable.providedBy(obj):
 			raise hexc.HTTPPreconditionFailed(_("Cannot change object definition."))
@@ -178,6 +237,17 @@ class EvaluationPutView(UGDPutView):
 			# _handle_multipart(self.context, self.remoteUser, self.context, sources)
 		notifyModified(contentObject, originalSource)
 		return result
+
+@view_config(route_name='objects.generic.traversal',
+			 context=IQuestion,
+			 request_method='PUT',
+			 permission=nauth.ACT_CONTENT_EDIT,
+			 renderer='rest')
+class QuestionPutView(EvaluationPutView):
+	
+	def _check_object_constraints(self, obj, externalValue):
+		EvaluationPutView._check_object_constraints(self, obj, externalValue)
+		pass
 
 @view_config(route_name='objects.generic.traversal',
 			 context=IQPoll,
@@ -241,9 +311,6 @@ class EvaluationDeleteView(UGDDeleteView):
 		if not IQEditable.providedBy(theObject):
 			raise hexc.HTTPForbidden(_("Cannot delete legacy object."))
 		course = find_interface(theObject, ICourseInstance, strict=False)
-		if has_submissions(theObject, course):
-			raise hexc.HTTPForbidden(_("Cannot delete object with submissions."))
-		if has_savepoints(theObject, course):
-			raise hexc.HTTPForbidden(_("Cannot delete object with save points."))
+		valdiate_internal(theObject, course)
 		del theObject.__parent__[theObject.__name__]
 		return theObject

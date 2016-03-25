@@ -21,8 +21,8 @@ from pyramid.view import view_config
 from pyramid.view import view_defaults
 
 from nti.app.assessment.common import has_savepoints
-from nti.app.assessment.common import has_submissions 
-from nti.app.assessment.common import make_evaluation_ntiid 
+from nti.app.assessment.common import has_submissions
+from nti.app.assessment.common import make_evaluation_ntiid
 
 from nti.app.assessment.interfaces import ICourseEvaluations
 
@@ -120,17 +120,29 @@ class CourseEvaluationsGetView(AbstractAuthenticatedView, BatchingUtilsMixin):
 		result['ItemCount'] = len(result[ITEMS])
 		return result
 
-def validate_submissions(theObject, course):
+def validate_submissions(theObject, course, request):
 	if has_submissions(theObject, course):
-		raise hexc.HTTPForbidden(_("Cannot delete object with submissions."))
+		raise_json_error(request,
+						 hexc.HTTPUnprocessableEntity,
+						 {
+							u'message': _("Object has submissions."),
+							u'code': 'ObjectHasSubmissions',
+						 },
+						 None)
 
-def validate_savepoints(theObject, course):
+def validate_savepoints(theObject, course, request):
 	if has_savepoints(theObject, course):
-		raise hexc.HTTPForbidden(_("Cannot delete object with save points."))
+		raise_json_error(request,
+						 hexc.HTTPUnprocessableEntity,
+						 {
+							u'message': _("Object has savepoints"),
+							u'code': 'ObjectHasSavepoints',
+						 },
+						 None)
 
-def valdiate_internal(theObject, course):
-	validate_savepoints(theObject, course)
-	validate_submissions(theObject, course)
+def valdiate_internal(theObject, course, request):
+	validate_savepoints(theObject, course, request)
+	validate_submissions(theObject, course, request)
 
 class EvaluationMixin(object):
 
@@ -144,13 +156,12 @@ class EvaluationMixin(object):
 
 	def handle_question(self, question):
 		ntiid = getattr(question, 'ntiid', None)
-		if not ntiid: # new object
+		if not ntiid:  # new object
 			ntiid = make_evaluation_ntiid(IQuestion, self.remoteUser)
 			question.ntiid = ntiid
 			lifecycleevent.created(question)
 			self.evaluations[ntiid] = question
-		elif ntiid in self.evaluations: # replace / new update
-			# TODO: Validate and update
+		elif ntiid in self.evaluations:  # replace
 			question = self.evaluations[ntiid]
 		else:
 			registered = component.queryUtility(IQuestion, ntiid=ntiid)
@@ -159,6 +170,7 @@ class EvaluationMixin(object):
 								 hexc.HTTPUnprocessableEntity,
 								 {
 									u'message': _("Question does not exists."),
+									u'code': 'QuestionDoesNotExists',
 									u'ntiid': ntiid,
 								 },
 								 None)
@@ -167,6 +179,8 @@ class EvaluationMixin(object):
 
 	def handle_questionset(self, theObject):
 		pass
+
+# POST views
 
 @view_config(context=ICourseEvaluations)
 @view_defaults(route_name='objects.generic.traversal',
@@ -205,6 +219,8 @@ class CourseEvaluationsPostView(UGDPostView):
 		self.request.response.status_int = 201
 		return evaluation
 
+# PUT views
+
 @view_config(context=IQEvaluation)
 @view_defaults(route_name='objects.generic.traversal',
 			   renderer='rest',
@@ -219,9 +235,15 @@ class EvaluationPutView(UGDPutView):
 		return result
 
 	def _check_object_constraints(self, obj, externalValue):
-		UGDPutView._check_object_constraints(self, obj)
+		super(EvaluationPutView, self)._check_object_constraints( obj, externalValue)
 		if not IQEditable.providedBy(obj):
-			raise hexc.HTTPPreconditionFailed(_("Cannot change object definition."))
+			raise_json_error(self.request,
+							 hexc.HTTPUnprocessableEntity,
+							 {
+								u'message': _("Cannot change the object definition."),
+								u'code': 'CannotChangeObjectDefinition',
+							 },
+							 None)
 
 	def updateContentObject(self, contentObject, externalValue, set_id=False, notify=True):
 		originalSource = copy.copy(externalValue)
@@ -244,17 +266,38 @@ class EvaluationPutView(UGDPutView):
 			 permission=nauth.ACT_CONTENT_EDIT,
 			 renderer='rest')
 class QuestionPutView(EvaluationPutView):
-	
+
 	def _check_object_constraints(self, obj, externalValue):
-		EvaluationPutView._check_object_constraints(self, obj, externalValue)
-		pass
+		super(QuestionPutView, self)._check_object_constraints(obj, externalValue)
+		course = find_interface(obj, ICourseInstance, strict=False)
+		parts = externalValue.get('parts')
+		if parts:  # check for submissions
+			validate_submissions(obj, course, self.request)
+
+class NewAndLegacyPutView(AssessmentPutView):
+
+	def _check_object_constraints(self, obj, externalValue):
+		super(NewAndLegacyPutView, self)._check_object_constraints(obj, externalValue)
+		parts = externalValue.get('parts')
+		if parts:
+			if not IQEditable.providedBy(obj):
+				raise_json_error(self.request,
+								 hexc.HTTPUnprocessableEntity,
+								 {
+									u'message': _("Cannot change the object definition."),
+									u'code': 'CannotChangeObjectDefinition',
+								 },
+								 None)
+			else:
+				course = find_interface(obj, ICourseInstance, strict=False)
+				validate_submissions(obj, course, self.request)
 
 @view_config(route_name='objects.generic.traversal',
 			 context=IQPoll,
 			 request_method='PUT',
 			 permission=nauth.ACT_CONTENT_EDIT,
 			 renderer='rest')
-class PollPutView(AssessmentPutView):
+class PollPutView(NewAndLegacyPutView):
 
 	TO_AVAILABLE_MSG = _('Poll will become available. Please confirm.')
 	TO_UNAVAILABLE_MSG = _('Poll will become unavailable. Please confirm.')
@@ -262,16 +305,13 @@ class PollPutView(AssessmentPutView):
 	def validate(self, contentObject, externalValue, courses=()):
 		if not IPublishable.providedBy(contentObject) or contentObject.is_published():
 			super(PollPutView, self).validate(contentObject, externalValue, courses)
-		parts = externalValue.get('parts')
-		if not IQEditable.providedBy(contentObject) and parts:
-			raise hexc.HTTPForbidden(_("Cannot change the definition of a poll."))
 
 @view_config(route_name='objects.generic.traversal',
 			 context=IQSurvey,
 			 request_method='PUT',
 			 permission=nauth.ACT_CONTENT_EDIT,
 			 renderer='rest')
-class SurveyPutView(AssessmentPutView):
+class SurveyPutView(NewAndLegacyPutView):
 
 	TO_AVAILABLE_MSG = _('Survey will become available. Please confirm.')
 	TO_UNAVAILABLE_MSG = _('Survey will become unavailable. Please confirm.')
@@ -279,16 +319,13 @@ class SurveyPutView(AssessmentPutView):
 	def validate(self, contentObject, externalValue, courses=()):
 		if not IPublishable.providedBy(contentObject) or contentObject.is_published():
 			super(SurveyPutView, self).validate(contentObject, externalValue, courses)
-		questions = externalValue.get('questions')
-		if not IQEditable.providedBy(contentObject) and questions:
-			raise hexc.HTTPForbidden(_("Cannot change the definition of a survey."))
 
 @view_config(route_name='objects.generic.traversal',
 			 context=IQAssignment,
 			 request_method='PUT',
 			 permission=nauth.ACT_CONTENT_EDIT,
 			 renderer='rest')
-class AssignmentPutView(AssessmentPutView):
+class AssignmentPutView(NewAndLegacyPutView):
 
 	TO_AVAILABLE_MSG = _('Assignment will become available. Please confirm.')
 	TO_UNAVAILABLE_MSG = _('Assignment will become unavailable. Please confirm.')
@@ -296,9 +333,8 @@ class AssignmentPutView(AssessmentPutView):
 	def validate(self, contentObject, externalValue, courses=()):
 		if not IPublishable.providedBy(contentObject) or contentObject.is_published():
 			super(AssignmentPutView, self).validate(contentObject, externalValue, courses)
-		parts = externalValue.get('parts')
-		if not IQEditable.providedBy(contentObject) and parts:
-			raise hexc.HTTPForbidden(_("Cannot change the definition of an assignment."))
+
+# DELETE views
 
 @view_config(route_name="objects.generic.traversal",
 			 context=IQEvaluation,
@@ -311,6 +347,6 @@ class EvaluationDeleteView(UGDDeleteView):
 		if not IQEditable.providedBy(theObject):
 			raise hexc.HTTPForbidden(_("Cannot delete legacy object."))
 		course = find_interface(theObject, ICourseInstance, strict=False)
-		valdiate_internal(theObject, course)
+		valdiate_internal(theObject, course, self.request)
 		del theObject.__parent__[theObject.__name__]
 		return theObject

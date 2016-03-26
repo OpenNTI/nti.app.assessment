@@ -55,6 +55,8 @@ from nti.assessment.interfaces import IQEvaluation
 
 from nti.common.maps import CaseInsensitiveDict
 
+from nti.common.property import Lazy
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.coremetadata.interfaces import IPublishable
@@ -144,6 +146,19 @@ def valdiate_internal(theObject, course, request):
 	validate_submissions(theObject, course, request)
 
 class EvaluationMixin(object):
+
+	@Lazy
+	def course(self):
+		result = find_interface(self.context, ICourseInstance, strict=False)
+		return result
+	
+	@Lazy
+	def has_submissions(self):
+		return has_submissions(self.context, self.course)
+
+	@Lazy
+	def has_savepoints(self):
+		return has_savepoints(self.context, self.course)
 
 	def get_register_evaluation(self, obj, course, user):
 		ntiid = getattr(obj, 'ntiid', None)
@@ -337,10 +352,10 @@ class QuestionPutView(EvaluationPutView):
 
 	def _check_object_constraints(self, obj, externalValue):
 		super(QuestionPutView, self)._check_object_constraints(obj, externalValue)
-		course = find_interface(obj, ICourseInstance, strict=False)
 		parts = externalValue.get('parts')
-		if parts:  # check for submissions
-			validate_submissions(obj, course, self.request)
+		if parts and self.has_submissions:
+			# TODO: validate part changes
+			validate_submissions(obj, self.course, self.request)
 
 @view_config(route_name='objects.generic.traversal',
 			 context=IQuestionSet,
@@ -400,9 +415,9 @@ class PollPutView(NewAndLegacyPutView):
 									u'code': 'CannotChangeObjectDefinition',
 								 },
 								 None)
-			else:
-				course = find_interface(obj, ICourseInstance, strict=False)
-				validate_submissions(obj, course, self.request)
+			elif self.has_submissions:
+				# TODO: Analyze part changes
+				validate_submissions(obj, self.course, self.request)
 
 	def validate(self, contentObject, externalValue, courses=()):
 		if not IPublishable.providedBy(contentObject) or contentObject.is_published():

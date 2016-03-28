@@ -536,3 +536,13 @@ class EvaluationDeleteView(UGDDeleteView):
 		valdiate_internal(theObject, course, self.request)
 		del theObject.__parent__[theObject.__name__]
 		return theObject
+
+@view_config(route_name="objects.generic.traversal",
+			 context=IQuestionSet,
+			 renderer='rest',
+			 permission=nauth.ACT_DELETE,
+			 request_method='DELETE')
+class QuestionSetDeleteView(EvaluationDeleteView):
+
+	def _do_delete_object(self, theObject):
+		pass

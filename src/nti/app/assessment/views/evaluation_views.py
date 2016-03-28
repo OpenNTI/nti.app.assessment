@@ -151,7 +151,7 @@ class EvaluationMixin(object):
 	def course(self):
 		result = find_interface(self.context, ICourseInstance, strict=False)
 		return result
-	
+
 	@Lazy
 	def has_submissions(self):
 		return has_submissions(self.context, self.course)
@@ -434,7 +434,7 @@ class SurveyPutView(NewAndLegacyPutView):
 	TO_UNAVAILABLE_MSG = _('Survey will become unavailable. Please confirm.')
 
 	def _check_object_constraints(self, obj, externalValue):
-		super(PollPutView, self)._check_object_constraints(obj, externalValue)
+		super(SurveyPutView, self)._check_object_constraints(obj, externalValue)
 		parts = externalValue.get('questions')
 		if parts:
 			if not IQEditable.providedBy(obj):
@@ -464,7 +464,7 @@ class AssignmentPutView(NewAndLegacyPutView):
 	TO_UNAVAILABLE_MSG = _('Assignment will become unavailable. Please confirm.')
 
 	def _check_object_constraints(self, obj, externalValue):
-		super(PollPutView, self)._check_object_constraints(obj, externalValue)
+		super(AssignmentPutView, self)._check_object_constraints(obj, externalValue)
 		parts = externalValue.get('parts')
 		if parts:
 			if not IQEditable.providedBy(obj):

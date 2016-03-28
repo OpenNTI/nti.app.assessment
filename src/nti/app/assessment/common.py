@@ -9,6 +9,7 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+import six
 import time
 import itertools
 from datetime import datetime
@@ -22,6 +23,7 @@ from zope.proxy import ProxyBase
 
 from zope.schema.interfaces import RequiredMissing
 
+from nti.app.assessment import get_evaluation_catalog
 from nti.app.assessment import get_submission_catalog
 
 from nti.app.assessment.assignment_filters import AssessmentPolicyExclusionFilter
@@ -29,6 +31,7 @@ from nti.app.assessment.assignment_filters import AssessmentPolicyExclusionFilte
 from nti.app.assessment.index import IX_SITE
 from nti.app.assessment.index import IX_COURSE
 from nti.app.assessment.index import IX_SUBMITTED
+from nti.app.assessment.index import IX_CONTAINMENT
 from nti.app.assessment.index import IX_ASSESSMENT_ID
 
 from nti.app.assessment.interfaces import IUsersCourseInquiryItem
@@ -36,10 +39,12 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
 
-from nti.assessment.interfaces import NTIID_TYPE, IQPoll, IQSurvey
+from nti.assessment.interfaces import NTIID_TYPE
 from nti.assessment.interfaces import DISCLOSURE_NEVER
 from nti.assessment.interfaces import DISCLOSURE_ALWAYS
 
+from nti.assessment.interfaces import IQPoll
+from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
@@ -79,6 +84,8 @@ from nti.ntiids.ntiids import make_specific_safe
 from nti.ntiids.ntiids import find_object_with_ntiid
 
 from nti.site.interfaces import IHostPolicyFolder
+
+from nti.site.site import get_component_hierarchy_names
 
 from nti.traversal.traversal import find_interface
 
@@ -451,6 +458,7 @@ def get_max_time_allowed( assignment, course ):
 	return max_time_allowed
 
 def make_evaluation_ntiid(kind, creator=SYSTEM_USER_ID, base=None, extra=None):
+	# get kind
 	if IQAssignment.isOrExtends(kind):
 		kind = u'assignment'
 	elif IQuestionSet.isOrExtends(kind):
@@ -483,3 +491,21 @@ def make_evaluation_ntiid(kind, creator=SYSTEM_USER_ID, base=None, extra=None):
 					   provider=provider,
 					   specific=specific)
 	return ntiid
+
+# containment
+
+def get_evaluation_containment(ntiid, sites=None, intids=None):
+	result = []
+	sites = get_component_hierarchy_names() if not sites else None
+	sites = sites.split() if isinstance(sites, six.string_types) else sites
+	query = {
+		IX_SITE: {'any-of': (sites,)},
+		IX_CONTAINMENT: {'any-of': (ntiid,)}
+	}
+	catalog = get_evaluation_catalog()
+	intids = component.getUtility(IIntIds) if intids is None else intids
+	for uid in catalog.apply(query):
+		container = intids.queryObject(uid)
+		if container is not None and container.ntiid != ntiid:
+			result.append(container)
+	return tuple(result)

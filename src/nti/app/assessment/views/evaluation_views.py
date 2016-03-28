@@ -10,10 +10,13 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 import copy
+import uuid
 
 from zope import component
 from zope import interface
 from zope import lifecycleevent
+
+from zope.traversing.interfaces import IEtcNamespace
 
 from pyramid import httpexceptions as hexc
 
@@ -25,6 +28,8 @@ from nti.app.assessment import MessageFactory as _
 from nti.app.assessment.common import has_savepoints
 from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import make_evaluation_ntiid
+
+from nti.app.assessment.evaluations import get_item_containment
 
 from nti.app.assessment.interfaces import ICourseEvaluations
 from nti.app.assessment.interfaces import IQPartChangeAnalyzer
@@ -68,6 +73,10 @@ from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.externalization.internalization import notifyModified
+
+from nti.site.interfaces import IHostPolicyFolder
+
+from nti.site.utils import unregisterUtility
 
 from nti.traversal.traversal import find_interface
 
@@ -142,7 +151,7 @@ def validate_savepoints(theObject, course, request):
 						 },
 						 None)
 
-def valdiate_internal(theObject, course, request):
+def validate_internal(theObject, course, request):
 	validate_savepoints(theObject, course, request)
 	validate_submissions(theObject, course, request)
 
@@ -161,12 +170,16 @@ class EvaluationMixin(object):
 	def has_savepoints(self):
 		return has_savepoints(self.context, self.course)
 
+	@Lazy
+	def _extra(self):
+		return str(uuid.uuid4()).split('-')[0]
+
 	def get_register_evaluation(self, obj, course, user):
 		ntiid = getattr(obj, 'ntiid', None)
 		provided = iface_of_assessment(obj)
 		evaluations = ICourseEvaluations(course)
 		if not ntiid:  # new object
-			obj.ntiid = make_evaluation_ntiid(provided, user)
+			obj.ntiid = make_evaluation_ntiid(provided, user, extra=self._extra)
 			lifecycleevent.created(obj)
 			evaluations[ntiid] = obj
 		elif ntiid in evaluations:  # replace
@@ -522,6 +535,21 @@ class AssignmentPutView(NewAndLegacyPutView):
 
 # DELETE views
 
+def delete_evaluation(evaluation, course=None):
+	# delete from evaluations 
+	course = find_interface(evaluation, ICourseInstance, strict=False)
+	evaluations = ICourseEvaluations(course)
+	del evaluations[evaluation.ntiid]
+
+	# remove from registry
+	provided = iface_of_assessment(evaluation)
+	registered = component.queryUtility(provided, name=evaluation.ntiid)
+	if registered is not None:
+		folder = find_interface(evaluation, IHostPolicyFolder, strict=False)
+		folder = component.getUtility(IEtcNamespace, name='hostsites')[folder.__name__]
+		registry = folder.getSiteManager()
+		unregisterUtility(registry, provided=provided, name=evaluation.ntiid)
+	
 @view_config(route_name="objects.generic.traversal",
 			 context=IQEvaluation,
 			 renderer='rest',
@@ -529,12 +557,15 @@ class AssignmentPutView(NewAndLegacyPutView):
 			 request_method='DELETE')
 class EvaluationDeleteView(UGDDeleteView):
 
-	def _do_delete_object(self, theObject):
+	def _check_internal(self, theObject):
 		if not IQEditable.providedBy(theObject):
 			raise hexc.HTTPForbidden(_("Cannot delete legacy object."))
 		course = find_interface(theObject, ICourseInstance, strict=False)
-		valdiate_internal(theObject, course, self.request)
-		del theObject.__parent__[theObject.__name__]
+		validate_internal(theObject, course, self.request)
+
+	def _do_delete_object(self, theObject):
+		self._check_internal(theObject)
+		delete_evaluation(theObject)
 		return theObject
 
 @view_config(route_name="objects.generic.traversal",
@@ -544,5 +575,15 @@ class EvaluationDeleteView(UGDDeleteView):
 			 request_method='DELETE')
 class QuestionSetDeleteView(EvaluationDeleteView):
 
-	def _do_delete_object(self, theObject):
-		pass
+	def _check_internal(self, theObject):
+		super(QuestionSetDeleteView, self)._check_internal(theObject)
+		containment = get_item_containment(theObject)
+		if containment:
+			raise_json_error(
+						self.request,
+						hexc.HTTPUnprocessableEntity,
+						{
+							u'message': _("Cannot delete an assignment question set."),
+							u'code': 'CannotChangeDeleteQuestionSet',
+						},
+						None)

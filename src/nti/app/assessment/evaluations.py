@@ -15,26 +15,22 @@ from zope import lifecycleevent
 
 from zope.annotation.interfaces import IAnnotations
 
-from zope.intid.interfaces import IIntIds
-
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
 from zope.lifecycleevent.interfaces import IObjectRemovedEvent
 
 from pyramid.interfaces import IRequest
 
-from nti.app.assessment import get_evaluation_catalog
-
 from nti.app.assessment.adapters import course_from_context_lineage
 
-from nti.app.assessment.index import IX_SITE
-from nti.app.assessment.index import IX_CONTAINMENT
+from nti.app.assessment.common import get_evaluation_containment
 
 from nti.app.assessment.interfaces import ICourseEvaluations
 from nti.app.assessment.interfaces import IQPartChangeAnalyzer
 
-from nti.assessment.interfaces import IQPoll , IQEvaluationItemContainer
+from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQuestion 
 from nti.assessment.interfaces import IQNonGradablePart
+from nti.assessment.interfaces import  IQEvaluationItemContainer
 from nti.assessment.interfaces import IQNonGradableMultipleChoicePart
 
 from nti.common.sets import OrderedSet
@@ -55,8 +51,6 @@ from nti.dataserver.authorization_acl import ace_allowing
 from nti.dataserver.authorization_acl import acl_from_aces
 
 from nti.externalization.externalization import to_external_object
-
-from nti.site.interfaces import IHostPolicyFolder
 
 from nti.traversal.traversal import find_interface
 
@@ -117,27 +111,23 @@ def _on_course_added(course, event):
 
 # subscribers
 
-def _update_contaiment(item, intids=None):
-	catalog = get_evaluation_catalog()
-	site = find_interface(item, IHostPolicyFolder, strict=False).__name__
-	intids = component.getUtility(IIntIds) if intids is None else intids
-	query = {
-		IX_SITE: {'any-of': (site,)},
-		IX_CONTAINMENT: {'any-of': (item.ntiid,)}
-	}
-	for uid in catalog.apply(query):
-		container = intids.queryObject(uid)
+def get_item_containment(item, intids=None):
+	result = get_evaluation_containment(item.ntiid, intids=intids)
+	return result
+
+def _update_containment(item, intids=None):
+	for container in get_item_containment(item, intids):
 		if IQEvaluationItemContainer.providedBy(container):
 			container.remove(item)
 			lifecycleevent.modified(container)
 
 @component.adapter(IQuestion, IObjectRemovedEvent)
 def _on_question_removed(question, event):
-	_update_contaiment(question)
+	_update_containment(question)
 
 @component.adapter(IQPoll, IObjectRemovedEvent)
 def _on_poll_removed(poll, event):
-	_update_contaiment(poll)
+	_update_containment(poll)
 
 # Part change analyzers
 

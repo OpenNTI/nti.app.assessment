@@ -111,12 +111,8 @@ def _on_course_added(course, event):
 
 # subscribers
 
-def get_item_containment(item, intids=None):
-	result = get_evaluation_containment(item.ntiid, intids=intids)
-	return result
-
 def _update_containment(item, intids=None):
-	for container in get_item_containment(item, intids):
+	for container in get_evaluation_containment(item.ntiid, intids=intids):
 		if IQEvaluationItemContainer.providedBy(container):
 			container.remove(item)
 			lifecycleevent.modified(container)

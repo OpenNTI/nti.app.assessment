@@ -421,3 +421,13 @@ class ICourseEvaluations(IContainer,
 	A container for all the evaluation objects in a course
 	"""
 	contains(str(IQEvaluation))
+
+class IQPartChangeAnalyzer(interface.Interface):
+	"""
+	Marker interface for a question part adapter to analyze a update to it
+	"""
+	
+	def allow(change):
+		"""
+		Given the specified change it return whether or not it is allowed
+		"""

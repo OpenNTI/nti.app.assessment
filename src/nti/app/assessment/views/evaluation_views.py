@@ -20,13 +20,14 @@ from pyramid import httpexceptions as hexc
 from pyramid.view import view_config
 from pyramid.view import view_defaults
 
+from nti.app.assessment import MessageFactory as _
+
 from nti.app.assessment.common import has_savepoints
 from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import make_evaluation_ntiid
 
 from nti.app.assessment.interfaces import ICourseEvaluations
-
-from nti.app.assessment.views import MessageFactory as _
+from nti.app.assessment.interfaces import IQPartChangeAnalyzer
 
 from nti.app.assessment.views.view_mixins import AssessmentPutView
 
@@ -354,8 +355,26 @@ class QuestionPutView(EvaluationPutView):
 		super(QuestionPutView, self)._check_object_constraints(obj, externalValue)
 		parts = externalValue.get('parts')
 		if parts and self.has_submissions:
-			# TODO: validate part changes
-			validate_submissions(obj, self.course, self.request)
+			if len(parts) != len(self.context.parts):
+				raise_json_error(
+					self.request,
+					hexc.HTTPUnprocessableEntity,
+					{
+						u'message': _("Cannot change the number of question parts"),
+						u'code': 'CannotChangeObjectDefinition',
+					},
+					None)
+			for part, change in zip(self.context.parts, parts):
+				analyzer = IQPartChangeAnalyzer(part, None)
+				if analyzer is None or not analyzer.allow(change):
+					raise_json_error(
+						self.request,
+						hexc.HTTPUnprocessableEntity,
+						{
+							u'message': _("Question has submissions. It cannot be updated"),
+							u'code': 'CannotChangeObjectDefinition',
+						},
+						None)
 
 @view_config(route_name='objects.generic.traversal',
 			 context=IQuestionSet,
@@ -416,8 +435,26 @@ class PollPutView(NewAndLegacyPutView):
 								 },
 								 None)
 			elif self.has_submissions:
-				# TODO: Analyze part changes
-				validate_submissions(obj, self.course, self.request)
+				if len(parts) != len(self.context.parts):
+					raise_json_error(
+							self.request,
+							hexc.HTTPUnprocessableEntity,
+							{
+								u'message': _("Cannot change the number of poll parts"),
+								u'code': 'CannotChangeObjectDefinition',
+							},
+							None)
+				for part, change in zip(self.context.parts, parts):
+					analyzer = IQPartChangeAnalyzer(part, None)
+					if analyzer is None or not analyzer.allow(change):
+						raise_json_error(
+							self.request,
+							hexc.HTTPUnprocessableEntity,
+							{
+								u'message': _("Poll has submissions. It cannot be updated"),
+								u'code': 'CannotChangeObjectDefinition',
+							},
+							None)
 
 	def validate(self, contentObject, externalValue, courses=()):
 		if not IPublishable.providedBy(contentObject) or contentObject.is_published():

@@ -21,6 +21,12 @@ from pyramid.interfaces import IRequest
 from nti.app.assessment.adapters import course_from_context_lineage
 
 from nti.app.assessment.interfaces import ICourseEvaluations
+from nti.app.assessment.interfaces import IQPartChangeAnalyzer
+
+from nti.assessment.interfaces import IQNonGradablePart
+from nti.assessment.interfaces import IQNonGradableMultipleChoicePart
+
+from nti.common.sets import OrderedSet
 
 from nti.containers.containers import CaseInsensitiveCheckingLastModifiedBTreeContainer
 
@@ -36,6 +42,8 @@ from nti.dataserver.authorization import ROLE_CONTENT_ADMIN
 
 from nti.dataserver.authorization_acl import ace_allowing
 from nti.dataserver.authorization_acl import acl_from_aces
+
+from nti.externalization.externalization import to_external_object
 
 from nti.traversal.traversal import find_interface
 
@@ -93,3 +101,27 @@ def _course_from_item_lineage(item):
 @component.adapter(ICourseInstance, IObjectAddedEvent)
 def _on_course_added(course, event):
 	_evaluations_for_course(course)
+
+# Part change analyzers
+
+@interface.implementer(IQPartChangeAnalyzer)
+@component.adapter(IQNonGradableMultipleChoicePart)
+class _MultipleChoicePartChangeAnalyzer(object):
+
+	def __init__(self, part):
+		self.part = part
+	
+	def allow(self, change):
+		if IQNonGradablePart.providedBy(change):
+			change = to_external_object(change)
+		old_choices = self.part.choices
+		new_choices = OrderedSet(change.get('choices') or ())
+		# cannot substract choices
+		if len(new_choices) < len(old_choices):
+			return False
+		for idx, data in enumerate(zip(old_choices, new_choices)):
+			old, new = data
+			# label change, make sure we are not reordering
+			if old != new and new in old_choices[idx+1:]:
+				return False				
+		return True

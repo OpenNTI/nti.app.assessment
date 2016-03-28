@@ -430,4 +430,6 @@ class IQPartChangeAnalyzer(interface.Interface):
 	def allow(change):
 		"""
 		Given the specified change it return whether or not it is allowed
+		
+		:change: Part update
 		"""

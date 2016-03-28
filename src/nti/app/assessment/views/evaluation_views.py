@@ -173,7 +173,7 @@ class EvaluationMixin(object):
 	def _extra(self):
 		return str(uuid.uuid4()).split('-')[0]
 
-	def get_register_evaluation(self, obj, course, user):
+	def get_registered_evaluation(self, obj, course, user):
 		ntiid = getattr(obj, 'ntiid', None)
 		provided = iface_of_assessment(obj)
 		evaluations = ICourseEvaluations(course)
@@ -188,7 +188,7 @@ class EvaluationMixin(object):
 		return obj
 
 	def handle_question(self, question, course, sources, user):
-		question = self.get_register_evaluation(question, course, user)
+		question = self.get_registered_evaluation(question, course, user)
 		if question is None:
 			raise_json_error(self.request,
 							 hexc.HTTPUnprocessableEntity,
@@ -200,7 +200,7 @@ class EvaluationMixin(object):
 		return question
 
 	def handle_poll(self, poll, course, sources, user):
-		poll = self.get_register_evaluation(poll, course, user)
+		poll = self.get_registered_evaluation(poll, course, user)
 		if poll is None:
 			raise_json_error(self.request,
 							 hexc.HTTPUnprocessableEntity,
@@ -212,7 +212,7 @@ class EvaluationMixin(object):
 		return poll
 
 	def handle_question_set(self, theObject, course, sources, user):
-		theObject = self.get_register_evaluation(theObject, course, user)
+		theObject = self.get_registered_evaluation(theObject, course, user)
 		if theObject is None:
 			raise_json_error(self.request,
 							 hexc.HTTPUnprocessableEntity,
@@ -229,7 +229,7 @@ class EvaluationMixin(object):
 		return theObject
 
 	def handle_survey(self, theObject, course, sources, user):
-		theObject = self.get_register_evaluation(theObject, course, user)
+		theObject = self.get_registered_evaluation(theObject, course, user)
 		if theObject is None:
 			raise_json_error(self.request,
 							 hexc.HTTPUnprocessableEntity,
@@ -251,7 +251,7 @@ class EvaluationMixin(object):
 		return part
 
 	def handle_assignment(self, theObject, course, sources, user):
-		theObject = self.get_register_evaluation(theObject, course, user)
+		theObject = self.get_registered_evaluation(theObject, course, user)
 		if theObject is None:
 			raise_json_error(self.request,
 							 hexc.HTTPUnprocessableEntity,
@@ -305,9 +305,12 @@ class CourseEvaluationsPostView(EvaluationMixin, UGDPostView):
 		evaluation, sources = self.readCreateUpdateContentObject(creator, search_owner=False)
 		evaluation.creator = creator.username
 		interface.alsoProvides(evaluation, IQEditable)
+		
+		# validate sources if available
+		if sources:
+			validate_sources(self.remoteUser, evaluation, sources)
 
-		course = find_interface(self.context, ICourseInstance, strict=False)
-		evaluation = self.handle_evaluation(evaluation, course, sources, creator)
+		evaluation = self.handle_evaluation(evaluation, self.course, sources, creator)
 		self.request.response.status_int = 201
 		return evaluation
 
@@ -350,7 +353,8 @@ class EvaluationPutView(EvaluationMixin, UGDPutView):
 		sources = get_all_sources(self.request)
 		if sources:
 			validate_sources(self.remoteUser, result.model, sources)
-			# _handle_multipart(self.context, self.remoteUser, self.context, sources)
+
+		self.handle_evaluation(contentObject, self.course, sources, self.remoteUser)
 		notifyModified(contentObject, originalSource)
 		return result
 
@@ -424,6 +428,23 @@ class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):
 				course = find_interface(obj, ICourseInstance, strict=False)
 				validate_submissions(obj, course, self.request)
 
+	def updateContentObject(self, contentObject, externalValue, set_id=False, notify=True):
+		originalSource = copy.copy(externalValue)
+		result = AssessmentPutView.updateContentObject(self,
+													   contentObject,
+													   externalValue,
+													   set_id=set_id,
+													   notify=False)
+
+		sources = get_all_sources(self.request)
+		if sources:
+			validate_sources(self.remoteUser, result.model, sources)
+
+		if IQEditable.providedBy(contentObject):
+			self.handle_evaluation(contentObject, self.course, sources, self.remoteUser)
+		notifyModified(contentObject, originalSource)
+		return result
+	
 @view_config(route_name='objects.generic.traversal',
 			 context=IQPoll,
 			 request_method='PUT',

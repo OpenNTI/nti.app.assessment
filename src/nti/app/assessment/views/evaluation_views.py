@@ -28,8 +28,7 @@ from nti.app.assessment import MessageFactory as _
 from nti.app.assessment.common import has_savepoints
 from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import make_evaluation_ntiid
-
-from nti.app.assessment.evaluations import get_item_containment
+from nti.app.assessment.common import get_evaluation_containment
 
 from nti.app.assessment.interfaces import ICourseEvaluations
 from nti.app.assessment.interfaces import IQPartChangeAnalyzer
@@ -536,7 +535,7 @@ class AssignmentPutView(NewAndLegacyPutView):
 # DELETE views
 
 def delete_evaluation(evaluation, course=None):
-	# delete from evaluations 
+	# delete from evaluations
 	course = find_interface(evaluation, ICourseInstance, strict=False)
 	evaluations = ICourseEvaluations(course)
 	del evaluations[evaluation.ntiid]
@@ -549,7 +548,7 @@ def delete_evaluation(evaluation, course=None):
 		folder = component.getUtility(IEtcNamespace, name='hostsites')[folder.__name__]
 		registry = folder.getSiteManager()
 		unregisterUtility(registry, provided=provided, name=evaluation.ntiid)
-	
+
 @view_config(route_name="objects.generic.traversal",
 			 context=IQEvaluation,
 			 renderer='rest',
@@ -577,7 +576,7 @@ class QuestionSetDeleteView(EvaluationDeleteView):
 
 	def _check_internal(self, theObject):
 		super(QuestionSetDeleteView, self)._check_internal(theObject)
-		containment = get_item_containment(theObject)
+		containment = get_evaluation_containment(theObject.ntiid)
 		if containment:
 			raise_json_error(
 						self.request,

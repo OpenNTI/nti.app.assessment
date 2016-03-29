@@ -80,7 +80,7 @@ class _AssignmentsByOutlineNodeDecorator(AbstractAssessmentDecoratorPredicate):
 	# the enrollment record is a better place to go because it has the username
 	# in the path
 
-	def show_links(self, course):
+	def show_assignments_by_outline_link(self, course):
 		"""
 		Returns a true value if the course should show the links [Non] assignments
 		by outline node links
@@ -93,21 +93,24 @@ class _AssignmentsByOutlineNodeDecorator(AbstractAssessmentDecoratorPredicate):
 			result = True
 		return result
 
-	def _do_decorate_external(self, context, result_map):
-		course = ICourseInstance(context, context)
-		if not self.show_links(course):
-			return
-
-		links = result_map.setdefault(LINKS, [])
-		for rel in ('AssignmentsByOutlineNode', 'NonAssignmentAssessmentItemsByOutlineNode'):
-			# Prefer to canonicalize these through to the course, if possible
-			link = Link(course,
+	def _link_with_rel(self, course, rel):
+		link = Link(course,
 						 rel=rel,
 						 elements=(rel,),
 						 # We'd get the wrong type/ntiid values if we
 						 # didn't ignore them.
 						 ignore_properties_of_target=True)
-			links.append(link)
+		return link
+
+	def _do_decorate_external(self, context, result_map):
+		course = ICourseInstance(context, context)
+
+		links = result_map.setdefault(LINKS, [])
+		links.append(self._link_with_rel(course, 'NonAssignmentAssessmentItemsByOutlineNode'))
+
+		if self.show_assignments_by_outline_link(course):
+			links.append(self._link_with_rel(course, 'AssignmentsByOutlineNode'))
+
 
 class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""

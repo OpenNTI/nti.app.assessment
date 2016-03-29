@@ -20,6 +20,8 @@ from zope.lifecycleevent.interfaces import IObjectRemovedEvent
 
 from pyramid.interfaces import IRequest
 
+from nti.app.assessment import MessageFactory as _
+
 from nti.app.assessment.adapters import course_from_context_lineage
 
 from nti.app.assessment.common import get_evaluation_containment
@@ -30,8 +32,9 @@ from nti.app.assessment.interfaces import IQPartChangeAnalyzer
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQuestion 
 from nti.assessment.interfaces import IQNonGradablePart
-from nti.assessment.interfaces import  IQEvaluationItemContainer
+from nti.assessment.interfaces import IQEvaluationItemContainer
 from nti.assessment.interfaces import IQNonGradableMultipleChoicePart
+from nti.assessment.interfaces import IQNonGradableMultipleChoiceMultipleAnswerPart
 
 from nti.common.sets import OrderedSet
 
@@ -134,6 +137,13 @@ class _MultipleChoicePartChangeAnalyzer(object):
 	def __init__(self, part):
 		self.part = part
 	
+	def validate(self, part=None):
+		part = self.part if part is None else part
+		choices = part.choices or ()
+		unique_choices = OrderedSet(choices)
+		if len(choices) != len(unique_choices):
+			raise ValueError(_("Cannot have duplicate choices"))
+		
 	def allow(self, change):
 		if IQNonGradablePart.providedBy(change):
 			change = to_external_object(change)
@@ -148,3 +158,8 @@ class _MultipleChoicePartChangeAnalyzer(object):
 			if old != new and new in old_choices[idx+1:]:
 				return False				
 		return True
+
+@interface.implementer(IQPartChangeAnalyzer)
+@component.adapter(IQNonGradableMultipleChoiceMultipleAnswerPart)
+class _MultipleChoiceMultiplePartChangeAnalyzer(_MultipleChoicePartChangeAnalyzer):
+	pass

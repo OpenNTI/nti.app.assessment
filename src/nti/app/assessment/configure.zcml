@@ -240,6 +240,7 @@
 	<subscriber handler=".evaluations._on_question_removed" />
 	
 	<adapter factory=".evaluations._MultipleChoicePartChangeAnalyzer" />
+	<adapter factory=".evaluations._MultipleChoiceMultiplePartChangeAnalyzer" />
 
 	<!-- Metatada -->
 	<adapter factory=".metadata._metadatacontainer_for_course_path_adapter"

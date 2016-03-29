@@ -565,7 +565,7 @@ def delete_evaluation(evaluation, course=None):
 	provided = iface_of_assessment(evaluation)
 	registered = component.queryUtility(provided, name=evaluation.ntiid)
 	if registered is not None:
-		folder = find_interface(evaluation, IHostPolicyFolder, strict=False)
+		folder = find_interface(course, IHostPolicyFolder, strict=False)
 		folder = component.getUtility(IEtcNamespace, name='hostsites')[folder.__name__]
 		registry = folder.getSiteManager()
 		unregisterUtility(registry, provided=provided, name=evaluation.ntiid)
@@ -604,6 +604,6 @@ class QuestionSetDeleteView(EvaluationDeleteView):
 						hexc.HTTPUnprocessableEntity,
 						{
 							u'message': _("Cannot delete an assignment question set."),
-							u'code': 'CannotChangeDeleteQuestionSet',
+							u'code': 'CannotDeleteQuestionSet',
 						},
 						None)

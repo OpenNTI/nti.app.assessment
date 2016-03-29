@@ -17,6 +17,7 @@ from zope.annotation.interfaces import IAnnotations
 
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
 from zope.lifecycleevent.interfaces import IObjectRemovedEvent
+from zope.lifecycleevent.interfaces import IObjectModifiedEvent
 
 from pyramid.interfaces import IRequest
 
@@ -31,6 +32,7 @@ from nti.app.assessment.interfaces import IQPartChangeAnalyzer
 
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQuestion 
+from nti.assessment.interfaces import IQEditable
 from nti.assessment.interfaces import IQNonGradablePart
 from nti.assessment.interfaces import IQEvaluationItemContainer
 from nti.assessment.interfaces import IQNonGradableMultipleChoicePart
@@ -129,6 +131,22 @@ def _on_poll_removed(poll, event):
 	_update_containment(poll)
 
 # Part change analyzers
+
+def _validate_question(question):
+	for part in question.parts or ():
+		analyzer = IQPartChangeAnalyzer(part, None)
+		if analyzer is not None:
+			analyzer.validate()
+
+@component.adapter(IQuestion, IObjectAddedEvent)
+def _on_question_added(question, event):
+	if IQEditable.providedBy(question):
+		_validate_question(question)
+		
+@component.adapter(IQuestion, IObjectModifiedEvent)
+def _on_question_modified(question, event):
+	if IQEditable.providedBy(question):
+		_validate_question(question)
 
 @interface.implementer(IQPartChangeAnalyzer)
 @component.adapter(IQNonGradableMultipleChoicePart)

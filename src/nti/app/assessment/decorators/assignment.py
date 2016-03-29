@@ -95,11 +95,11 @@ class _AssignmentsByOutlineNodeDecorator(AbstractAssessmentDecoratorPredicate):
 
 	def _link_with_rel(self, course, rel):
 		link = Link(course,
-						 rel=rel,
-						 elements=(rel,),
-						 # We'd get the wrong type/ntiid values if we
-						 # didn't ignore them.
-						 ignore_properties_of_target=True)
+					rel=rel,
+					elements=(rel,),
+					# We'd get the wrong type/ntiid values if we
+					# didn't ignore them.
+					ignore_properties_of_target=True)
 		return link
 
 	def _do_decorate_external(self, context, result_map):

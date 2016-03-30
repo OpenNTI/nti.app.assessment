@@ -155,12 +155,24 @@ class _MultipleChoicePartChangeAnalyzer(object):
 	def __init__(self, part):
 		self.part = part
 	
+	def validate_solutions(self, part):
+		solutions = part.solutions
+		if not solutions:
+			raise ValueError(_("Must specified a solution."))
+		choices = set(c.lower() for c in part.choices)
+		for solution in solutions:
+			if solution.lower() not in choices:
+				raise ValueError(_("Solution not in choices."))
+
 	def validate(self, part=None):
 		part = self.part if part is None else part
 		choices = part.choices or ()
 		unique_choices = OrderedSet(choices)
+		if not choices:
+			raise ValueError(_("Must specify a choice selection."))
 		if len(choices) != len(unique_choices):
-			raise ValueError(_("Cannot have duplicate choices"))
+			raise ValueError(_("Cannot have duplicate choices."))
+		self.validate_solutions(part)
 		
 	def allow(self, change):
 		if IQNonGradablePart.providedBy(change):

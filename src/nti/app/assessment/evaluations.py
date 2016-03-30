@@ -31,7 +31,7 @@ from nti.app.assessment.interfaces import ICourseEvaluations
 from nti.app.assessment.interfaces import IQPartChangeAnalyzer
 
 from nti.assessment.interfaces import IQPoll
-from nti.assessment.interfaces import IQuestion 
+from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQEditable
 from nti.assessment.interfaces import IQNonGradablePart
 from nti.assessment.interfaces import IQEvaluationItemContainer
@@ -142,7 +142,7 @@ def _validate_question(question):
 def _on_question_added(question, event):
 	if IQEditable.providedBy(question):
 		_validate_question(question)
-		
+
 @component.adapter(IQuestion, IObjectModifiedEvent)
 def _on_question_modified(question, event):
 	if IQEditable.providedBy(question):
@@ -154,15 +154,15 @@ class _MultipleChoicePartChangeAnalyzer(object):
 
 	def __init__(self, part):
 		self.part = part
-	
+
 	def validate_solutions(self, part):
 		solutions = part.solutions
 		if not solutions:
-			raise ValueError(_("Must specified a solution."))
+			raise ValueError(_("Must specify a solution."))
 		choices = set(c.lower() for c in part.choices)
 		for solution in solutions:
 			if solution.lower() not in choices:
-				raise ValueError(_("Solution not in choices."))
+				raise ValueError(_("Solution in not in choices."))
 
 	def validate(self, part=None):
 		part = self.part if part is None else part
@@ -173,7 +173,7 @@ class _MultipleChoicePartChangeAnalyzer(object):
 		if len(choices) != len(unique_choices):
 			raise ValueError(_("Cannot have duplicate choices."))
 		self.validate_solutions(part)
-		
+
 	def allow(self, change):
 		if IQNonGradablePart.providedBy(change):
 			change = to_external_object(change)
@@ -185,8 +185,8 @@ class _MultipleChoicePartChangeAnalyzer(object):
 		for idx, data in enumerate(zip(old_choices, new_choices)):
 			old, new = data
 			# label change, make sure we are not reordering
-			if old != new and new in old_choices[idx+1:]:
-				return False				
+			if old != new and new in old_choices[idx + 1:]:
+				return False
 		return True
 
 @interface.implementer(IQPartChangeAnalyzer)

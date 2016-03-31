@@ -107,7 +107,7 @@ class AssessmentsExporter(object):
 			self.mapped(package, items)
 		# export to json
 		source = StringIO()
-		simplejson.dump(result, source, indent=2, sort_keys=True)
+		simplejson.dump(result, source, indent=4, sort_keys=True)
 		source.seek(0)
 		# save in filer
 		filer.save("assessment_index.json", source, 

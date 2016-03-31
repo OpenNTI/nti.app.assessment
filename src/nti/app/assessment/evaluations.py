@@ -19,7 +19,11 @@ from zope.lifecycleevent.interfaces import IObjectAddedEvent
 from zope.lifecycleevent.interfaces import IObjectRemovedEvent
 from zope.lifecycleevent.interfaces import IObjectModifiedEvent
 
+from pyramid import httpexceptions as hexc
+
 from pyramid.interfaces import IRequest
+
+from pyramid.threadlocal import get_current_request
 
 from nti.app.assessment import MessageFactory as _
 
@@ -29,6 +33,8 @@ from nti.app.assessment.common import get_evaluation_containment
 
 from nti.app.assessment.interfaces import ICourseEvaluations
 from nti.app.assessment.interfaces import IQPartChangeAnalyzer
+
+from nti.app.externalization.error import raise_json_error
 
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQuestion
@@ -148,6 +154,10 @@ def _on_question_modified(question, event):
 	if IQEditable.providedBy(question):
 		_validate_question(question)
 
+def raise_error(v, tb=None, factory=hexc.HTTPUnprocessableEntity,):
+	request = get_current_request()
+	raise_json_error(request, factory, v, tb)
+
 @interface.implementer(IQPartChangeAnalyzer)
 @component.adapter(IQNonGradableMultipleChoicePart)
 class _MultipleChoicePartChangeAnalyzer(object):
@@ -158,20 +168,24 @@ class _MultipleChoicePartChangeAnalyzer(object):
 	def validate_solutions(self, part):
 		solutions = part.solutions
 		if not solutions:
-			raise ValueError(_("Must specify a solution."))
+			raise raise_error({ u'message': _("Must specify a solution."),
+								u'code': 'MissingSolutions'})
 		choices = set(c.lower() for c in part.choices)
 		for solution in solutions:
 			if solution.lower() not in choices:
-				raise ValueError(_("Solution in not in choices."))
+				raise raise_error({ u'message': _("Solution in not in choices."),
+									u'code': 'InvalidSolution'})
 
 	def validate(self, part=None):
 		part = self.part if part is None else part
 		choices = part.choices or ()
 		unique_choices = OrderedSet(choices)
 		if not choices:
-			raise ValueError(_("Must specify a choice selection."))
+			raise raise_error({ u'message': _("Must specify a choice selection."),
+								u'code': 'MissingPartChoices'})
 		if len(choices) != len(unique_choices):
-			raise ValueError(_("Cannot have duplicate choices."))
+			raise raise_error({ u'message': _("Cannot have duplicate choices."),
+								u'code': 'DuplicatePartChoices'})
 		self.validate_solutions(part)
 
 	def allow(self, change):
@@ -192,4 +206,18 @@ class _MultipleChoicePartChangeAnalyzer(object):
 @interface.implementer(IQPartChangeAnalyzer)
 @component.adapter(IQNonGradableMultipleChoiceMultipleAnswerPart)
 class _MultipleChoiceMultiplePartChangeAnalyzer(_MultipleChoicePartChangeAnalyzer):
-	pass
+	
+	def validate_solutions(self, part):
+		multiple_choice_solutions = part.solutions
+		if not multiple_choice_solutions:
+			raise raise_error({ u'message': _("Must specify a solution set."),
+								u'code': 'MissingSolutions'})
+		for solutions in multiple_choice_solutions:
+			if not solutions:
+				raise raise_error({ u'message': _("Solution set cannot be empty."),
+									u'code': 'MissingSolutions'})
+			choices = set(c.lower() for c in part.choices)
+			for solution in solutions:
+				if solution.lower() not in choices:
+					raise raise_error({ u'message': _("Solution in not in choices."),
+										u'code': 'InvalidSolution'})

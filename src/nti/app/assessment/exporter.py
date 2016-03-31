@@ -28,13 +28,13 @@ from nti.contenttypes.courses.common import get_course_packages
 
 from nti.contenttypes.courses.utils import get_parent_course
 
-from nti.externalization.externalization import to_external_object
+from nti.externalization.externalization import toExternalObject
 
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.mimetype import decorateMimeType
 
-from nti.ntiids.ntiids import TYPE_OID, find_object_with_ntiid
+from nti.ntiids.ntiids import TYPE_OID
 from nti.ntiids.ntiids import is_ntiid_of_type
 
 OID = StandardExternalFields.OID
@@ -49,24 +49,22 @@ def safe_filename(s):
 @interface.implementer(ICourseSectionExporter)
 class AssessmentsExporter(object):
 
-	def adjuster(self, result):
+	def decorate_callback(self, obj, result):
+		if isinstance(result, Mapping) and MIMETYPE not in result:
+			decorateMimeType(obj, result)
+
+	def _remover(self, result):
 		if isinstance(result, Mapping):
 			for name, value in list(result.items()):
 				if name in (OID, CONTAINER_ID, 'containerId'):
 					result.pop(name, None)
-				elif name == NTIID:
-					if is_ntiid_of_type(value, TYPE_OID):
-						result.pop(name, None)
-					else:
-						if MIMETYPE not in result:
-							obj = find_object_with_ntiid(value)
-							if obj is not None:
-								decorateMimeType(obj, result)
+				elif name == NTIID and is_ntiid_of_type(value, TYPE_OID):
+					result.pop(name, None)
 				else:
-					self.adjuster(value)
+					self._remover(value)
 		elif isinstance(result, (list, tuple)):
 			for value in result:
-				self.adjuster(value)
+				self._remover(value)
 		return result
 
 	def mapped(self, package, items):
@@ -77,10 +75,11 @@ class AssessmentsExporter(object):
 			evaluations = dict()
 			for evaluation in get_unit_assessments(unit):
 				evaluation = removeAllProxies(evaluation)
-				ext_obj = self.adjuster(to_external_object(evaluation, decorate=False))
+				ext_obj = toExternalObject(evaluation, 
+							   			   decorate=False,
+										   decorate_callback=self.decorate_callback)
+				ext_obj = self._remover(ext_obj)
 				evaluations[evaluation.ntiid] = ext_obj
-				if MIMETYPE not in ext_obj:
-					decorateMimeType(evaluation, ext_obj)
 			items[unit.ntiid]['AssessmentItems'] = evaluations
 			# create new items for children
 			child_items = items[unit.ntiid][ITEMS] = dict()
@@ -108,7 +107,7 @@ class AssessmentsExporter(object):
 			self.mapped(package, items)
 		# export to json
 		source = StringIO()
-		simplejson.dump(result, source, indent=4, sort_keys=True)
+		simplejson.dump(result, source, indent=2, sort_keys=True)
 		source.seek(0)
 		# save in filer
 		filer.save("assessment_index.json", source, 

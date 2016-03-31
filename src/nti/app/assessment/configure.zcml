@@ -332,6 +332,9 @@
 	<utility factory=".utils.PrincipalSeedSelector" />
 	<utility factory=".utils.AssessmentContainerIdGetter" />
 
+	<!-- Exporter -->
+	<utility factory=".exporter.AssessmentsExporter" name="assessments" />
+		
 	<!-- Metadata -->
 	<configure zcml:condition="installed nti.metadata">
 		<subscriber	factory=".predicates._AssignmentHistoryPrincipalObjects"

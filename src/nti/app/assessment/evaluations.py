@@ -41,6 +41,7 @@ from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQEditable
 from nti.assessment.interfaces import IQNonGradablePart
 from nti.assessment.interfaces import IQEvaluationItemContainer
+from nti.assessment.interfaces import IQNonGradableFreeResponsePart
 from nti.assessment.interfaces import IQNonGradableMultipleChoicePart
 from nti.assessment.interfaces import IQNonGradableMultipleChoiceMultipleAnswerPart
 
@@ -206,7 +207,7 @@ class _MultipleChoicePartChangeAnalyzer(object):
 @interface.implementer(IQPartChangeAnalyzer)
 @component.adapter(IQNonGradableMultipleChoiceMultipleAnswerPart)
 class _MultipleChoiceMultiplePartChangeAnalyzer(_MultipleChoicePartChangeAnalyzer):
-	
+
 	def validate_solutions(self, part):
 		multiple_choice_solutions = part.solutions
 		if not multiple_choice_solutions:
@@ -218,6 +219,26 @@ class _MultipleChoiceMultiplePartChangeAnalyzer(_MultipleChoicePartChangeAnalyze
 									u'code': 'MissingSolutions'})
 			choices = set(c.lower() for c in part.choices)
 			for solution in solutions:
+				if not solution:
+					raise raise_error({ u'message': _("Solution cannot be empty."),
+										u'code': 'InvalidSolution'})
 				if solution.lower() not in choices:
 					raise raise_error({ u'message': _("Solution in not in choices."),
 										u'code': 'InvalidSolution'})
+
+@interface.implementer(IQPartChangeAnalyzer)
+@component.adapter(IQNonGradableFreeResponsePart)
+class _FreeResponsePartChangeAnalyzer(object):
+
+	def validate(self, part=None):
+		solutions = part.solutions
+		if not solutions:
+			raise raise_error({ u'message': _("Must specify a solution."),
+								u'code': 'MissingSolutions'})
+		for solution in solutions:
+			if not solution:
+				raise raise_error({ u'message': _("Solution cannot be empty."),
+									u'code': 'InvalidSolution'})
+
+	def allow(self, change):
+		return True  # always allow

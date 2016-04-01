@@ -125,7 +125,7 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
 	def _do_decorate_external(self, context, result):
 		# TODO: It would be better to have the course context in our link,
 		# but for now, we'll just have a course param.
-		course = _get_course_from_assignment(context, self.remoteUser)
+		course = _get_course_from_assignment(context, self.remoteUser, request=self.request)
 		catalog_entry = ICourseCatalogEntry(course, None)
 		if catalog_entry is not None:
 			parameters = { 'course' : catalog_entry.ntiid }
@@ -148,7 +148,10 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		return result
 
 	def _do_decorate_external(self, assignment, result):
-		course = _get_course_from_assignment(assignment, self.remoteUser, self._catalog)
+		course = _get_course_from_assignment(assignment, 
+											 self.remoteUser,
+											 self._catalog,
+											 request=self.request)
 		if course is None:
 			return
 
@@ -169,7 +172,9 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
 class _TimedAssignmentPartStripperDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _do_decorate_external(self, context, result):
-		course = _get_course_from_assignment(context, user=self.remoteUser)
+		course = _get_course_from_assignment(context, 
+											 user=self.remoteUser,
+											 request=self.request)
 		if course is None or is_course_instructor(course, self.remoteUser):
 			return
 		item = get_assessment_metadata_item(course, self.remoteUser, context.ntiid)
@@ -179,7 +184,9 @@ class _TimedAssignmentPartStripperDecorator(AbstractAuthenticatedRequestAwareDec
 class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _do_decorate_external(self, context, result):
-		course = _get_course_from_assignment(context, user=self.remoteUser)
+		course = _get_course_from_assignment(context,
+											 user=self.remoteUser,
+											 request=self.request)
 		if course is None:
 			return
 		if is_course_instructor(course, self.remoteUser):
@@ -224,7 +231,7 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 	def needs_stripped(cls, context, request, remoteUser):
 		due_date = None
 		if context is not None:
-			course = _get_course_from_assignment(context, remoteUser)
+			course = _get_course_from_assignment(context, remoteUser, request=request)
 		else:
 			course = None
 

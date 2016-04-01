@@ -134,7 +134,10 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 
 		user = self.remoteUser
 		links = result_map.setdefault(LINKS, [])
-		course = _get_course_from_assignment(context, user, self._catalog)
+		course = _get_course_from_assignment(context, 
+											 user,
+											 self._catalog,
+											 request=self.request)
 
 		submissions = self._submissions(course, context) if course is not None else 0
 

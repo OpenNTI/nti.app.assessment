@@ -35,7 +35,7 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _do_decorate_external(self, assignment, result):
 		user = self.remoteUser
-		course = _get_course_from_assignment(assignment, user)
+		course = _get_course_from_assignment(assignment, user, request=self.request)
 		if course is None:
 			return
 

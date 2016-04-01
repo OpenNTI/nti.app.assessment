@@ -39,7 +39,9 @@ class _AssignmentSavepointDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		"""
 		result = True
 		if IQTimedAssignment.providedBy(context):
-			course = _get_course_from_assignment(context, user=self.remoteUser)
+			course = _get_course_from_assignment(context, 
+												 user=self.remoteUser,
+												 request=self.request)
 			if course is not None:
 				item = get_assessment_metadata_item(course, self.remoteUser, context.ntiid)
 				result = bool(item is not None and item.StartTime)
@@ -47,7 +49,7 @@ class _AssignmentSavepointDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _do_decorate_external(self, assignment, result):
 		user = self.remoteUser
-		course = _get_course_from_assignment(assignment, user)
+		course = _get_course_from_assignment(assignment, user, request=self.request)
 		if course is not None and user != None:
 			links = result.setdefault(LINKS, [])
 			links.append(Link(course,

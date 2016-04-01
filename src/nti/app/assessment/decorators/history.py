@@ -108,7 +108,10 @@ class _AssignmentHistoryLinkDecorator(_AbstractTraversableLinkDecorator):
 
 	def _do_decorate_external(self, context, result_map):
 		user = self.remoteUser
-		course = _get_course_from_assignment(context, user, self._catalog)
+		course = _get_course_from_assignment(context, 
+											 user, 
+											 self._catalog,
+											 request=self.request)
 		history = component.queryMultiAdapter((course, user),
 											  IUsersCourseAssignmentHistory)
 		if history and context.ntiid in history:

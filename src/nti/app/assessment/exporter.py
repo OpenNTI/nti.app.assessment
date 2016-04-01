@@ -11,7 +11,6 @@ logger = __import__('logging').getLogger(__name__)
 
 import re
 from StringIO import StringIO
-from collections import Mapping
 
 import simplejson
 
@@ -32,16 +31,8 @@ from nti.externalization.externalization import toExternalObject
 
 from nti.externalization.interfaces import StandardExternalFields
 
-from nti.mimetype import decorateMimeType
-
-from nti.ntiids.ntiids import TYPE_OID
-from nti.ntiids.ntiids import is_ntiid_of_type
-
-OID = StandardExternalFields.OID
 ITEMS = StandardExternalFields.ITEMS
 NTIID = StandardExternalFields.NTIID
-MIMETYPE = StandardExternalFields.MIMETYPE
-CONTAINER_ID = StandardExternalFields.CONTAINER_ID
 
 def safe_filename(s):
 	return re.sub(r'[/<>:"\\|?*]+', '_', s) if s else s
@@ -49,25 +40,8 @@ def safe_filename(s):
 @interface.implementer(ICourseSectionExporter)
 class AssessmentsExporter(object):
 
-	def decorate_callback(self, obj, result):
-		if isinstance(result, Mapping) and MIMETYPE not in result:
-			decorateMimeType(obj, result)
-
-	def _remover(self, result):
-		if isinstance(result, Mapping):
-			for name, value in list(result.items()):
-				if name in (OID, CONTAINER_ID, 'containerId'):
-					result.pop(name, None)
-				elif name == NTIID and is_ntiid_of_type(value, TYPE_OID):
-					result.pop(name, None)
-				else:
-					self._remover(value)
-		elif isinstance(result, (list, tuple)):
-			for value in result:
-				self._remover(value)
-		return result
-
 	def mapped(self, package, items):
+
 		def _recur(unit, items):
 			# all units have a map
 			items[unit.ntiid] = dict()
@@ -75,15 +49,12 @@ class AssessmentsExporter(object):
 			evaluations = dict()
 			for evaluation in get_unit_assessments(unit):
 				evaluation = removeAllProxies(evaluation)
-				ext_obj = toExternalObject(evaluation, 
-							   			   decorate=False,
-										   decorate_callback=self.decorate_callback)
-				ext_obj = self._remover(ext_obj)
+				ext_obj = toExternalObject(evaluation, name="exporter")
 				evaluations[evaluation.ntiid] = ext_obj
 			items[unit.ntiid]['AssessmentItems'] = evaluations
 			# create new items for children
 			child_items = items[unit.ntiid][ITEMS] = dict()
-			for child in unit.children:	
+			for child in unit.children:
 				_recur(child, child_items)
 			# remove empty
 			if not evaluations and not child_items:
@@ -98,17 +69,20 @@ class AssessmentsExporter(object):
 		if package.ntiid in items:
 			items[package.ntiid]['filename'] = 'index.html'
 
-	def export(self, context, filer):
+	def externalize(self, context):
 		result = {}
 		course = ICourseInstance(context)
 		course = get_parent_course(course)
 		items = result[ITEMS] = dict()
 		for package in get_course_packages(course):
 			self.mapped(package, items)
-		# export to json
+		return result
+
+	def export(self, context, filer):
+		result = self.externalize(context)
 		source = StringIO()
 		simplejson.dump(result, source, indent=4, sort_keys=True)
 		source.seek(0)
 		# save in filer
-		filer.save("assessment_index.json", source, 
+		filer.save("assessment_index.json", source,
 				   contentType="application/json", overwrite=True)

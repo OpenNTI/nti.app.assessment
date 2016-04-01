@@ -42,6 +42,7 @@ from nti.assessment.interfaces import IQEditable
 from nti.assessment.interfaces import IQNonGradablePart
 from nti.assessment.interfaces import IQNonGradableFilePart
 from nti.assessment.interfaces import IQEvaluationItemContainer
+from nti.assessment.interfaces import IQNonGradableConnectingPart 
 from nti.assessment.interfaces import IQNonGradableFreeResponsePart
 from nti.assessment.interfaces import IQNonGradableMultipleChoicePart
 from nti.assessment.interfaces import IQNonGradableMultipleChoiceMultipleAnswerPart
@@ -174,6 +175,9 @@ class _MultipleChoicePartChangeAnalyzer(object):
 								u'code': 'MissingSolutions'})
 		choices = set(c.lower() for c in part.choices)
 		for solution in solutions:
+			if not solution:
+				raise raise_error({ u'message': _("Solution cannot be empty."),
+									u'code': 'InvalidSolution'})
 			if solution.lower() not in choices:
 				raise raise_error({ u'message': _("Solution in not in choices."),
 									u'code': 'InvalidSolution'})
@@ -244,6 +248,60 @@ class _FreeResponsePartChangeAnalyzer(object):
 	def allow(self, change):
 		return True  # always allow
 
+
+@interface.implementer(IQPartChangeAnalyzer)
+@component.adapter(IQNonGradableConnectingPart)
+class _MatchingPartChangeAnalyzer(object):
+
+	def validate(self, part=None):
+		part = self.part if part is None else part
+		labels = part.labels or ()
+		unique_labels = OrderedSet(labels)
+		if not labels:
+			raise raise_error({ u'message': _("Must specify a label selection."),
+								u'code': 'MissingPartLabels'})
+		if len(labels) != len(unique_labels):
+			raise raise_error({ u'message': _("Cannot have duplicate labels."),
+								u'code': 'DuplicatePartLabels'})
+			
+		values = part.values or ()
+		unique_values = OrderedSet(values)
+		if not values:
+			raise raise_error({ u'message': _("Must specify a value selection."),
+								u'code': 'MissingPartValues'})
+		if len(values) != len(unique_values):
+			raise raise_error({ u'message': _("Cannot have duplicate values."),
+								u'code': 'DuplicatePartValues'})
+
+		solutions = part.solutions
+		if not solutions:
+			raise raise_error({ u'message': _("Must specify a solution."),
+ 								u'code': 'MissingSolutions'})
+		for solution in solutions:
+			if not solution:
+				raise raise_error({ u'message': _("Solution cannot be empty."),
+ 									u'code': 'InvalidSolution'})
+
+	def _check_selection(self, change, name):
+		old_sels= getattr(self.part, name, None) or ()
+		new_sels = OrderedSet(change.get(name) or ())
+		if len(new_sels) < len(old_sels):
+			return False
+		for idx, data in enumerate(zip(old_sels, new_sels)):
+			old, new = data
+			if old != new and new in old_sels[idx + 1:]: # no reordering
+				return False
+		return True
+
+	def allow(self, change):
+		if IQNonGradablePart.providedBy(change):
+			change = to_external_object(change)
+		
+		if		not self._check_selection(change, 'labels') \
+			or	not self._check_selection(change, 'values'):
+			return False
+		
+		return True
 
 @component.adapter(IQNonGradableFilePart)
 @interface.implementer(IQPartChangeAnalyzer)

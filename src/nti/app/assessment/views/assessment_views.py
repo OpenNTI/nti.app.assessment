@@ -311,7 +311,9 @@ class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 
 		# Now remove the forbidden
 		for ntiid, items in data.items():
-			result[ntiid] = [items[x] for x in items.keys() if x not in qsids_to_strip]
+			result_items = [items[x] for x in items.keys() if x not in qsids_to_strip]
+			if result_items:
+				result[ntiid] = result_items
 
 		return result
 

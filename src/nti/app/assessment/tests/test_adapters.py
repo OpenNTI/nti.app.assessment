@@ -548,8 +548,7 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin, ApplicationLayerTest
 			course_href += '/'
 		course_href = urlparse.unquote(course_href)
 
-		# It's also not on the page info, and the question sets it contains
-		# aren't either
+		# It's also not on the page info, and the question sets it contains aren't either
 		lesson_page_id = "tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:QUIZ_01.01"
 		question_set_id  = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.set.qset:QUIZ1_aristotle"
 		page_info_mt = nti_mimetype_with_class( 'pageinfo' )
@@ -572,7 +571,7 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin, ApplicationLayerTest
 			assert_that( res.json_body,
 						 has_entries('href', course_href + 'NonAssignmentAssessmentItemsByOutlineNode'))
 			assert_that( res.json_body['Items'],
-						 has_entries(lesson_page_id, []))
+						 is_not( has_item(lesson_page_id)))
 
 		_missing()
 
@@ -592,7 +591,7 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin, ApplicationLayerTest
 		assert_that( res.json_body,
 					 has_entries('href', course_href + 'NonAssignmentAssessmentItemsByOutlineNode'))
 		assert_that( res.json_body['Items'],
-					 has_entries(lesson_page_id, []) )
+					 is_not( has_item(lesson_page_id)))
 
 		ntiid_set = set()
 		found_survey = False

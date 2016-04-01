@@ -162,11 +162,14 @@ def raise_error(v, tb=None, factory=hexc.HTTPUnprocessableEntity,):
 	raise_json_error(request, factory, v, tb)
 
 @interface.implementer(IQPartChangeAnalyzer)
-@component.adapter(IQNonGradableMultipleChoicePart)
-class _MultipleChoicePartChangeAnalyzer(object):
-
+class _BasicPartChangeAnalyzer(object):
+	
 	def __init__(self, part):
 		self.part = part
+		
+@interface.implementer(IQPartChangeAnalyzer)
+@component.adapter(IQNonGradableMultipleChoicePart)
+class _MultipleChoicePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 
 	def validate_solutions(self, part):
 		solutions = part.solutions
@@ -248,7 +251,7 @@ class _MultipleChoiceMultipleAnswerPartChangeAnalyzer(_MultipleChoicePartChangeA
 
 @interface.implementer(IQPartChangeAnalyzer)
 @component.adapter(IQNonGradableFreeResponsePart)
-class _FreeResponsePartChangeAnalyzer(object):
+class _FreeResponsePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 
 	def validate(self, part=None):
 		solutions = part.solutions
@@ -265,7 +268,7 @@ class _FreeResponsePartChangeAnalyzer(object):
 
 @interface.implementer(IQPartChangeAnalyzer)
 @component.adapter(IQNonGradableConnectingPart)
-class _ConnectingPartChangeAnalyzer(object):
+class _ConnectingPartChangeAnalyzer(_BasicPartChangeAnalyzer):
 
 	def validate(self, part=None):
 		part = self.part if part is None else part
@@ -364,7 +367,7 @@ class _ConnectingPartChangeAnalyzer(object):
 
 @component.adapter(IQNonGradableFilePart)
 @interface.implementer(IQPartChangeAnalyzer)
-class _FilePartChangeAnalyzer(object):
+class _FilePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 
 	def validate(self, part=None):
 		pass

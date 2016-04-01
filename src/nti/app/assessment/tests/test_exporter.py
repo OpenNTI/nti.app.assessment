@@ -39,12 +39,11 @@ class TestExporter(ApplicationLayerTest):
 			context = find_object_with_ntiid(self.course_ntiid)
 			exporter = AssessmentsExporter()
 			ext_obj = exporter.externalize(context)
-			assert_that(ext_obj, 
-				has_entry('Items', 
+			assert_that(ext_obj,
+				has_entry('Items',
 					has_entry('tag:nextthought.com,2011-10:OU-HTML-CS1323_F_2015_Intro_to_Computer_Programming.introduction_to_computer_programming',
-						has_entry('Items', 
-							has_entry(u'tag:nextthought.com,2011-10:OU-HTML-CS1323_F_2015_Intro_to_Computer_Programming.lec:01.02_LESSON', 
-								has_entry('Items', 
-									has_entry(u'tag:nextthought.com,2011-10:OU-HTML-CS1323_F_2015_Intro_to_Computer_Programming.iclicker_08_26_(not_graded)', 
+						has_entry('Items',
+							has_entry(u'tag:nextthought.com,2011-10:OU-HTML-CS1323_F_2015_Intro_to_Computer_Programming.lec:01.02_LESSON',
+								has_entry('Items',
+									has_entry(u'tag:nextthought.com,2011-10:OU-HTML-CS1323_F_2015_Intro_to_Computer_Programming.iclicker_08_26_(not_graded)',
 										has_entry(u'AssessmentItems', has_length(1)))))))))
-		

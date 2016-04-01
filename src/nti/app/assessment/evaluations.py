@@ -40,6 +40,7 @@ from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQEditable
 from nti.assessment.interfaces import IQNonGradablePart
+from nti.assessment.interfaces import IQNonGradableFilePart
 from nti.assessment.interfaces import IQEvaluationItemContainer
 from nti.assessment.interfaces import IQNonGradableFreeResponsePart
 from nti.assessment.interfaces import IQNonGradableMultipleChoicePart
@@ -239,6 +240,17 @@ class _FreeResponsePartChangeAnalyzer(object):
 			if not solution:
 				raise raise_error({ u'message': _("Solution cannot be empty."),
 									u'code': 'InvalidSolution'})
+
+	def allow(self, change):
+		return True  # always allow
+
+
+@component.adapter(IQNonGradableFilePart)
+@interface.implementer(IQPartChangeAnalyzer)
+class _FilePartChangeAnalyzer(object):
+
+	def validate(self, part=None):
+		pass
 
 	def allow(self, change):
 		return True  # always allow

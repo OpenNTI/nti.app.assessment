@@ -242,6 +242,7 @@
 	<subscriber handler=".evaluations._on_poll_removed" />
 	<subscriber handler=".evaluations._on_question_removed" />
 	
+	<adapter factory=".evaluations._FilePartChangeAnalyzer" />
 	<adapter factory=".evaluations._FreeResponsePartChangeAnalyzer" />
 	<adapter factory=".evaluations._MultipleChoicePartChangeAnalyzer" />
 	<adapter factory=".evaluations._MultipleChoiceMultiplePartChangeAnalyzer" />

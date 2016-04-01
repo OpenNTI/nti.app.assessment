@@ -20,7 +20,10 @@ from zope.component.hooks import site as current_site
 
 from zope.intid.interfaces import IIntIds
 
+from nti.assessment.interfaces import IQPoll
+from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQEditable
+from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQEvaluation
 
 from nti.coremetadata.interfaces import IPublishable
@@ -43,6 +46,11 @@ def _process_items(registry, intids, seen):
 			if IPublishable.providedBy(item) and not item.is_published():
 				item.publish()
 				catalog.index_doc(doc_id, item)
+			if 		IQAssignment.providedBy(item) \
+				or	IQuestion.providedBy(item) \
+				or	IQPoll.providedBy(item):
+				for x in item.parts or ():
+					x.__parent__ = self  # take ownership
 
 @interface.implementer(IDataserver)
 class MockDataserver(object):

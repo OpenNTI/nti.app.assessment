@@ -42,7 +42,7 @@ from nti.assessment.interfaces import IQEditable
 from nti.assessment.interfaces import IQNonGradablePart
 from nti.assessment.interfaces import IQNonGradableFilePart
 from nti.assessment.interfaces import IQEvaluationItemContainer
-from nti.assessment.interfaces import IQNonGradableConnectingPart 
+from nti.assessment.interfaces import IQNonGradableConnectingPart
 from nti.assessment.interfaces import IQNonGradableFreeResponsePart
 from nti.assessment.interfaces import IQNonGradableMultipleChoicePart
 from nti.assessment.interfaces import IQNonGradableMultipleChoiceMultipleAnswerPart
@@ -173,12 +173,11 @@ class _MultipleChoicePartChangeAnalyzer(object):
 		if not solutions:
 			raise raise_error({ u'message': _("Must specify a solution."),
 								u'code': 'MissingSolutions'})
-		choices = set(c.lower() for c in part.choices)
 		for solution in solutions:
-			if not solution or not solution.value:
+			if not solution or solution.value is None:
 				raise raise_error({ u'message': _("Solution cannot be empty."),
 									u'code': 'InvalidSolution'})
-			if solution.value.lower() not in choices:
+			if solution.value < 0 or solution.value >= len(part.choices):  # solutions are indices
 				raise raise_error({ u'message': _("Solution in not in choices."),
 									u'code': 'InvalidSolution'})
 
@@ -197,37 +196,53 @@ class _MultipleChoicePartChangeAnalyzer(object):
 	def allow(self, change):
 		if IQNonGradablePart.providedBy(change):
 			change = to_external_object(change)
-		old_choices = self.part.choices
-		new_choices = OrderedSet(change.get('choices') or ())
-		# cannot substract choices
-		if len(new_choices) < len(old_choices):
-			return False
-		for idx, data in enumerate(zip(old_choices, new_choices)):
-			old, new = data
-			# label change, make sure we are not reordering
-			if old != new and new in old_choices[idx + 1:]:
+		# check new choices
+		new_choices = change.get('choices')
+		if new_choices is not None:
+			old_choices = self.part.choices
+			new_choices = OrderedSet(new_choices)
+			# cannot substract choices
+			if len(new_choices) < len(old_choices):
 				return False
+			for idx, data in enumerate(zip(old_choices, new_choices)):
+				old, new = data
+				# label change, make sure we are not reordering
+				if old != new and new in old_choices[idx + 1:]:
+					return False
+		# check new new_solss
+		new_sols = change.get('solutions')
+		if new_sols is not None:
+			old_sols = self.part.solutions
+			# cannot substract solutions
+			if len(new_sols) < len(old_sols):
+				return False
+			for old, new in enumerate(zip(old_sols, new_sols)):
+				# cannot change solution order/value
+				if old.value != new.get('value'):  # int or array of ints
+					return False
 		return True
 
 @interface.implementer(IQPartChangeAnalyzer)
 @component.adapter(IQNonGradableMultipleChoiceMultipleAnswerPart)
-class _MultipleChoiceMultiplePartChangeAnalyzer(_MultipleChoicePartChangeAnalyzer):
+class _MultipleChoiceMultipleAnswerPartChangeAnalyzer(_MultipleChoicePartChangeAnalyzer):
 
 	def validate_solutions(self, part):
-		multiple_choice_solutions = part.solutions
-		if not multiple_choice_solutions:
+		solutions = part.solutions
+		if not solutions:
 			raise raise_error({ u'message': _("Must specify a solution set."),
 								u'code': 'MissingSolutions'})
-		for solutions in multiple_choice_solutions:
-			if not solutions:
+		for solution in solutions:
+			if not solution or not solution.value:
 				raise raise_error({ u'message': _("Solution set cannot be empty."),
 									u'code': 'MissingSolutions'})
-			choices = set(c.lower() for c in part.choices)
-			for solution in solutions:
-				if not solution or not solution.value:
-					raise raise_error({ u'message': _("Solution cannot be empty."),
-										u'code': 'InvalidSolution'})
-				if solution.value.lower() not in choices:
+
+			unique_solutions = set(solution.value)
+			if len(solution.value) > len(unique_solutions):
+				raise raise_error({ u'message': _("Cannot have duplicate solution values."),
+									u'code': 'DuplicateSolution'})
+
+			for idx in solution.value:
+				if idx < 0 or idx >= len(part.choices):  # solutions are indices
 					raise raise_error({ u'message': _("Solution in not in choices."),
 										u'code': 'InvalidSolution'})
 
@@ -248,10 +263,9 @@ class _FreeResponsePartChangeAnalyzer(object):
 	def allow(self, change):
 		return True  # always allow
 
-
 @interface.implementer(IQPartChangeAnalyzer)
 @component.adapter(IQNonGradableConnectingPart)
-class _MatchingPartChangeAnalyzer(object):
+class _ConnectingPartChangeAnalyzer(object):
 
 	def validate(self, part=None):
 		part = self.part if part is None else part
@@ -263,7 +277,7 @@ class _MatchingPartChangeAnalyzer(object):
 		if len(labels) != len(unique_labels):
 			raise raise_error({ u'message': _("Cannot have duplicate labels."),
 								u'code': 'DuplicatePartLabels'})
-			
+
 		values = part.values or ()
 		unique_values = OrderedSet(values)
 		if not values:
@@ -272,6 +286,11 @@ class _MatchingPartChangeAnalyzer(object):
 		if len(values) != len(unique_values):
 			raise raise_error({ u'message': _("Cannot have duplicate values."),
 								u'code': 'DuplicatePartValues'})
+
+		if len(labels) != len(values):
+			raise raise_error(
+					{ u'message': _("Number of labels and values must be equal."),
+					  u'code': 'DuplicatePartValues'})
 
 		solutions = part.solutions
 		if not solutions:
@@ -282,25 +301,65 @@ class _MatchingPartChangeAnalyzer(object):
 				raise raise_error({ u'message': _("Solutions cannot be empty."),
  									u'code': 'InvalidSolution'})
 
+			# map of indices
+			m = solution.value
+
+			# checkk all labels in solution
+			if len(m) != len(labels):
+				raise raise_error(
+						{ u'message': _("Cannot have an incomplete solution."),
+						  u'code': 'IncompleteSolution'})
+
+			# check for duplicate values
+			unique_values = set(m.values())
+			if len(m) > len(unique_values):
+				raise raise_error(
+						{ u'message': _("Cannot have duplicate solution values."),
+						  u'code': 'DuplicateSolution'})
+
+			for label, value in m.items():
+				if label < 0 or label >= len(labels):  # solutions are indices
+					raise raise_error(
+							{ u'message': _("Solution label in not in part labels."),
+							 u'code': 'InvalidSolution'})
+
+				if value < 0 or value >= len(values):  # solutions are indices
+					raise raise_error(
+							{ u'message': _("Solution value in not in part values."),
+							  u'code': 'InvalidSolution'})
+
 	def _check_selection(self, change, name):
-		old_sels= getattr(self.part, name, None) or ()
-		new_sels = OrderedSet(change.get(name) or ())
-		if len(new_sels) < len(old_sels):
-			return False
-		for idx, data in enumerate(zip(old_sels, new_sels)):
-			old, new = data
-			if old != new and new in old_sels[idx + 1:]: # no reordering
+		new_sels = change.get(name)
+		if new_sels is not None:
+			new_sels = OrderedSet(new_sels)
+			old_sels = getattr(self.part, name, None)
+			if len(new_sels) != len(old_sels):
 				return False
+			for idx, data in enumerate(zip(old_sels, new_sels)):
+				old, new = data
+				if old != new and new in old_sels[idx + 1:]:  # no reordering
+					return False
 		return True
 
 	def allow(self, change):
 		if IQNonGradablePart.providedBy(change):
 			change = to_external_object(change)
-		
+
 		if		not self._check_selection(change, 'labels') \
 			or	not self._check_selection(change, 'values'):
 			return False
-		
+
+		# check new new_solss
+		new_sols = change.get('solutions')
+		if new_sols is not None:
+			old_sols = self.part.solutions
+			# cannot substract solutions
+			if len(new_sols) < len(old_sols):
+				return False
+			for old, new in enumerate(zip(old_sols, new_sols)):
+				# cannot change solution order/value
+				if old.value != new.get('value'):  # map of ints
+					return False
 		return True
 
 @component.adapter(IQNonGradableFilePart)

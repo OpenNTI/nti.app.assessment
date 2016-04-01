@@ -243,9 +243,10 @@
 	<subscriber handler=".evaluations._on_question_removed" />
 	
 	<adapter factory=".evaluations._FilePartChangeAnalyzer" />
+	<adapter factory=".evaluations._ConnectingPartChangeAnalyzer" />
 	<adapter factory=".evaluations._FreeResponsePartChangeAnalyzer" />
 	<adapter factory=".evaluations._MultipleChoicePartChangeAnalyzer" />
-	<adapter factory=".evaluations._MultipleChoiceMultiplePartChangeAnalyzer" />
+	<adapter factory=".evaluations._MultipleChoiceMultipleAnswerPartChangeAnalyzer" />
 
 	<!-- Metatada -->
 	<adapter factory=".metadata._metadatacontainer_for_course_path_adapter"

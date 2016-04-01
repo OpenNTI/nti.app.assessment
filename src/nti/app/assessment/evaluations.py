@@ -175,10 +175,10 @@ class _MultipleChoicePartChangeAnalyzer(object):
 								u'code': 'MissingSolutions'})
 		choices = set(c.lower() for c in part.choices)
 		for solution in solutions:
-			if not solution:
+			if not solution or not solution.value:
 				raise raise_error({ u'message': _("Solution cannot be empty."),
 									u'code': 'InvalidSolution'})
-			if solution.lower() not in choices:
+			if solution.value.lower() not in choices:
 				raise raise_error({ u'message': _("Solution in not in choices."),
 									u'code': 'InvalidSolution'})
 
@@ -224,10 +224,10 @@ class _MultipleChoiceMultiplePartChangeAnalyzer(_MultipleChoicePartChangeAnalyze
 									u'code': 'MissingSolutions'})
 			choices = set(c.lower() for c in part.choices)
 			for solution in solutions:
-				if not solution:
+				if not solution or not solution.value:
 					raise raise_error({ u'message': _("Solution cannot be empty."),
 										u'code': 'InvalidSolution'})
-				if solution.lower() not in choices:
+				if solution.value.lower() not in choices:
 					raise raise_error({ u'message': _("Solution in not in choices."),
 										u'code': 'InvalidSolution'})
 
@@ -241,7 +241,7 @@ class _FreeResponsePartChangeAnalyzer(object):
 			raise raise_error({ u'message': _("Must specify a solution."),
 								u'code': 'MissingSolutions'})
 		for solution in solutions:
-			if not solution:
+			if not solution or not solution.value:
 				raise raise_error({ u'message': _("Solution cannot be empty."),
 									u'code': 'InvalidSolution'})
 
@@ -278,8 +278,8 @@ class _MatchingPartChangeAnalyzer(object):
 			raise raise_error({ u'message': _("Must specify a solution."),
  								u'code': 'MissingSolutions'})
 		for solution in solutions:
-			if not solution:
-				raise raise_error({ u'message': _("Solution cannot be empty."),
+			if not solution or not solution.value:
+				raise raise_error({ u'message': _("Solutions cannot be empty."),
  									u'code': 'InvalidSolution'})
 
 	def _check_selection(self, change, name):

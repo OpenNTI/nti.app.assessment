@@ -5,6 +5,7 @@
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
+from nti.app.assessment.acl import get_evaluation_courses
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -92,6 +93,41 @@ from nti.traversal.traversal import find_interface
 from nti.zope_catalog.catalog import ResultSet
 
 NAQ = NTIID_TYPE
+
+# containment
+
+def get_evaluation_containment(ntiid, sites=None, intids=None):
+	result = []
+	sites = get_component_hierarchy_names() if not sites else None
+	sites = sites.split() if isinstance(sites, six.string_types) else sites
+	query = {
+		IX_SITE: {'any-of': (sites,)},
+		IX_CONTAINMENT: {'any-of': (ntiid,)}
+	}
+	catalog = get_evaluation_catalog()
+	intids = component.getUtility(IIntIds) if intids is None else intids
+	for uid in catalog.apply(query):
+		container = intids.queryObject(uid)
+		if container is not None and container.ntiid != ntiid:
+			result.append(container)
+	return tuple(result)
+
+def get_evaluation_containers(evaluation):
+	result = []
+	catalog = get_evaluation_catalog()
+	for ntiid in catalog.get_containers(evaluation):
+		container = find_object_with_ntiid(ntiid) if ntiid else None
+		if container is not None:
+			result.append(container)
+	return tuple(result)
+
+def get_evaluation_courses(evaluation):
+	result = []
+	for container in get_evaluation_containers(evaluation):
+		if	 ICourseInstance.providedBy(container) \
+			or ICourseCatalogEntry.providedBy(container):
+			result.append(ICourseInstance(container))
+	return tuple(result)
 
 # assessment
 
@@ -227,15 +263,19 @@ def get_course_from_assignment(assignment, user=None, catalog=None,
 	# as reference (.AssessmentItemProxy) this way
 	# instructor can find the correct course when they are looking at a section.
 	result = None
+	catalog = catalog if catalog is not None else registry.getUtility(ICourseCatalog)
 	try:
 		ntiid = assignment.CatalogEntryNTIID or u''
 		entry = find_object_with_ntiid(ntiid)
 		if entry is None:
-			catalog = catalog if catalog is not None else registry.getUtility(ICourseCatalog)
 			entry = catalog.getCatalogEntry(ntiid)
 		result = ICourseInstance(entry, None)
 	except (KeyError, AttributeError):
 		pass
+
+	if result is None:
+		courses = get_evaluation_courses(assignment)
+		result = courses[0] if len(courses) == 1 else None
 
 	# could not find a course .. try adapter
 	if result is None and user is not None:
@@ -372,7 +412,7 @@ def has_savepoints(context, courses=()):
 		if savepoints is not None and savepoints.has_assignment(context_ntiid):
 			return True
 	return False
-	
+
 def get_submissions(context, courses=(), index_name=IX_ASSESSMENT_ID):
 	courses = to_list(courses)
 	if not courses:
@@ -398,14 +438,14 @@ def has_submissions(context, courses=()):
 
 def evaluation_submissions(context, course, subinstances=True):
 	course = ICourseInstance(course)
-	result = get_submissions(context, 
+	result = get_submissions(context,
 							 index_name=IX_SUBMITTED,
 							 courses=get_courses(course, subinstances=subinstances))
 	return result
 
 def inquiry_submissions(context, course, subinstances=True):
 	course = ICourseInstance(course)
-	result = get_submissions(context, 
+	result = get_submissions(context,
 							 index_name=IX_ASSESSMENT_ID,
 							 courses=get_courses(course, subinstances=subinstances))
 	return result
@@ -444,7 +484,7 @@ def aggregate_page_inquiry(containerId, mimeType, *items):
 			result += aggregated
 	return result
 
-def get_max_time_allowed( assignment, course ):
+def get_max_time_allowed(assignment, course):
 	"""
 	For a given IQTimedAssignment and course, return the maximum time allowed to
 	take the assignment, definied by the assignment policies.
@@ -491,21 +531,3 @@ def make_evaluation_ntiid(kind, creator=SYSTEM_USER_ID, base=None, extra=None):
 					   provider=provider,
 					   specific=specific)
 	return ntiid
-
-# containment
-
-def get_evaluation_containment(ntiid, sites=None, intids=None):
-	result = []
-	sites = get_component_hierarchy_names() if not sites else None
-	sites = sites.split() if isinstance(sites, six.string_types) else sites
-	query = {
-		IX_SITE: {'any-of': (sites,)},
-		IX_CONTAINMENT: {'any-of': (ntiid,)}
-	}
-	catalog = get_evaluation_catalog()
-	intids = component.getUtility(IIntIds) if intids is None else intids
-	for uid in catalog.apply(query):
-		container = intids.queryObject(uid)
-		if container is not None and container.ntiid != ntiid:
-			result.append(container)
-	return tuple(result)

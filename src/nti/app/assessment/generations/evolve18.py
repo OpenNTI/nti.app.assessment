@@ -50,7 +50,7 @@ def _process_items(registry, intids, seen):
 				or	IQuestion.providedBy(item) \
 				or	IQPoll.providedBy(item):
 				for x in item.parts or ():
-					x.__parent__ = self  # take ownership
+					x.__parent__ = item  # take ownership
 
 @interface.implementer(IDataserver)
 class MockDataserver(object):

@@ -5,7 +5,6 @@
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
-from nti.app.assessment.acl import get_evaluation_courses
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)

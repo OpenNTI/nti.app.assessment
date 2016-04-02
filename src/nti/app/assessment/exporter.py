@@ -9,7 +9,6 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-import re
 from StringIO import StringIO
 
 import simplejson
@@ -17,6 +16,8 @@ import simplejson
 from zope import interface
 
 from nti.app.assessment.common import get_unit_assessments
+
+from nti.common.file import safe_filename
 
 from nti.common.proxy import removeAllProxies
 
@@ -33,9 +34,6 @@ from nti.externalization.interfaces import StandardExternalFields
 
 ITEMS = StandardExternalFields.ITEMS
 NTIID = StandardExternalFields.NTIID
-
-def safe_filename(s):
-	return re.sub(r'[/<>:"\\|?*]+', '_', s) if s else s
 
 @interface.implementer(ICourseSectionExporter)
 class AssessmentsExporter(object):

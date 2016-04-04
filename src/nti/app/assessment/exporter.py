@@ -47,7 +47,7 @@ class AssessmentsExporter(object):
 			evaluations = dict()
 			for evaluation in get_unit_assessments(unit):
 				evaluation = removeAllProxies(evaluation)
-				ext_obj = toExternalObject(evaluation, name="exporter")
+				ext_obj = toExternalObject(evaluation, name="exporter", decorate=False)
 				evaluations[evaluation.ntiid] = ext_obj
 			items[unit.ntiid]['AssessmentItems'] = evaluations
 			# create new items for children

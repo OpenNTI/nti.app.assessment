@@ -335,7 +335,7 @@
 	<utility factory=".utils.AssessmentContainerIdGetter" />
 
 	<!-- Exporter -->
-	<utility factory=".exporter.AssessmentsExporter" name="assessments" />
+	<utility factory=".exporter.AssessmentsExporter" name="010:Assessments" />
 		
 	<!-- Metadata -->
 	<configure zcml:condition="installed nti.metadata">

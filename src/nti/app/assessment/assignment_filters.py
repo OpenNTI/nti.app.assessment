@@ -70,11 +70,12 @@ class UserEnrolledForCreditInCourseOrInstructsFilter(object):
 		if self.TEST_OVERRIDE:
 			return True
 
-		# Note implicit assumption that assignment is in course
-		if self.is_instructor or self.is_enrolled_for_credit:
-			# TODO: check if assignment is indeed in the enroll for credit courses
+		if not asg.is_non_public:
 			return True
-		return not asg.is_non_public
+
+		# Note implicit assumption that assignment is in course
+		# TODO: check if assignment is indeed in the enroll for credit courses
+		return self.is_instructor or self.is_enrolled_for_credit
 	allow_assignment_for_user_in_course = allow_assessment_for_user_in_course  # BWC
 
 UserEnrolledForCreditInCourseFilter = UserEnrolledForCreditInCourseOrInstructsFilter  # BWC

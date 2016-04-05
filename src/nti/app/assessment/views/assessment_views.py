@@ -217,7 +217,7 @@ class AssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 							ntiid = reverse_qset.get(item.target)
 							if ntiid:
 								outline.setdefault(key, [])
-								outline[key].append(item.target or item.ntiid)
+								outline[key].append(ntiid)
 			for child in node.values():
 				_recur(child)
 		_recur(instance.Outline)

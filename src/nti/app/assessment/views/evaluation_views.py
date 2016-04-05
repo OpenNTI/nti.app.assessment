@@ -16,8 +16,6 @@ from zope import component
 from zope import interface
 from zope import lifecycleevent
 
-from zope.traversing.interfaces import IEtcNamespace
-
 from pyramid import httpexceptions as hexc
 
 from pyramid.view import view_config
@@ -45,7 +43,9 @@ from nti.app.externalization.view_mixins import BatchingUtilsMixin
 from nti.app.contentfile import validate_sources
 
 from nti.app.publishing import VIEW_PUBLISH
+from nti.app.publishing import VIEW_UNPUBLISH
 from nti.app.publishing.views import PublishView
+from nti.app.publishing.views import UnpublishView
 
 from nti.appserver.ugd_edit_views import UGDPutView
 from nti.appserver.ugd_edit_views import UGDPostView
@@ -574,7 +574,7 @@ def delete_evaluation(evaluation, course=None):
 	registered = component.queryUtility(provided, name=evaluation.ntiid)
 	if registered is not None:
 		folder = find_interface(course, IHostPolicyFolder, strict=False)
-		folder = component.getUtility(IEtcNamespace, name='hostsites')[folder.__name__]
+		folder = get_host_site(folder.__name__)
 		registry = folder.getSiteManager()
 		unregisterUtility(registry, provided=provided, name=evaluation.ntiid)
 
@@ -639,35 +639,41 @@ def publish_context(context, folder=None):
 		for item in context.iter_question_sets():
 			publish_context(item, folder)
 
+@view_config(context=IQInquiry)
+@view_config(context=IQuestionSet)
+@view_config(context=IQAssignment)
+@view_defaults(route_name='objects.generic.traversal',
+			   renderer='rest',
+ 			   name=VIEW_PUBLISH,
+			   permission=nauth.ACT_UPDATE,
+			   request_method='POST')
 class EvaluationPublishView(PublishView):
 
 	def _do_provide(self, context):
 		if IQEditable.providedBy(context):
 			publish_context(context)
 
-@view_config(route_name="objects.generic.traversal",
-			 context=IQuestionSet,
-			 renderer='rest',
-			 name=VIEW_PUBLISH,
-			 permission=nauth.ACT_UPDATE,
-			 request_method='POST')
-class QuestionSetPublishView(EvaluationPublishView):
-	pass
+# Unublish views
 
-@view_config(route_name="objects.generic.traversal",
-			 context=IQAssignment,
-			 renderer='rest',
-			 name=VIEW_PUBLISH,
-			 permission=nauth.ACT_UPDATE,
-			 request_method='POST')
-class AssignmentPublishView(EvaluationPublishView):
-	pass
+@view_config(context=IQInquiry)
+@view_config(context=IQuestionSet)
+@view_config(context=IQAssignment)
+@view_defaults(route_name='objects.generic.traversal',
+			   renderer='rest',
+ 			   name=VIEW_UNPUBLISH,
+			   permission=nauth.ACT_UPDATE,
+			   request_method='POST')
+class EvaluationUnpublishView(UnpublishView):
 
-@view_config(route_name="objects.generic.traversal",
-			 context=IQInquiry,
-			 renderer='rest',
-			 name=VIEW_PUBLISH,
-			 permission=nauth.ACT_UPDATE,
-			 request_method='POST')
-class InquiryPublishView(EvaluationPublishView):
-	pass
+	def _do_provide(self, context):
+		if not IQEditable.providedBy(context):
+			provided = iface_of_assessment(context)
+			course = find_interface(context, ICourseInstance, strict=False)
+			validate_submissions(context, course, self.request)
+			# unpublish
+			super(EvaluationUnpublishView, self)._do_provide(context)
+			# unregister
+			folder = find_interface(context, IHostPolicyFolder, strict=False)
+			site = get_host_site(folder.__name__)
+			registry = site.getSiteManager()
+			unregisterUtility(registry, provided=provided, name=context.ntiid)

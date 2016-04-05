@@ -56,6 +56,7 @@ from nti.common.proxy import removeAllProxies
 
 from nti.coremetadata.interfaces import IRecordable
 from nti.coremetadata.interfaces import IPublishable
+from nti.coremetadata.interfaces import INoPublishLink
 
 from nti.contentlibrary.indexed_data import get_site_registry
 
@@ -193,6 +194,7 @@ class QuestionMap(QuestionIndex):
 	def _publish_object(self, assessment_item):
 		if IPublishable.providedBy(assessment_item):
 			assessment_item.publish()  # by default
+			interface.alsoProvides(assessment_item, INoPublishLink)
 
 	def _connection(self, registry=None):
 		registry = self._get_registry(registry)

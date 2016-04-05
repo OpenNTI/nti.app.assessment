@@ -24,6 +24,8 @@ from pyramid.threadlocal import get_current_request
 from pyramid.view import view_config
 from pyramid.view import view_defaults
 
+from nti.app.assessment import MessageFactory as _
+
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedback
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedbackFileConstraints
 

@@ -56,7 +56,6 @@ from nti.assessment.common import iface_of_assessment
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQuestion
-from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQEditable
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
@@ -639,9 +638,7 @@ def publish_context(context, folder=None):
 		for item in context.iter_question_sets():
 			publish_context(item, folder)
 
-@view_config(context=IQInquiry)
-@view_config(context=IQuestionSet)
-@view_config(context=IQAssignment)
+@view_config(context=IQEvaluation)
 @view_defaults(route_name='objects.generic.traversal',
 			   renderer='rest',
  			   name=VIEW_PUBLISH,
@@ -655,9 +652,7 @@ class EvaluationPublishView(PublishView):
 
 # Unublish views
 
-@view_config(context=IQInquiry)
-@view_config(context=IQuestionSet)
-@view_config(context=IQAssignment)
+@view_config(context=IQEvaluation)
 @view_defaults(route_name='objects.generic.traversal',
 			   renderer='rest',
  			   name=VIEW_UNPUBLISH,

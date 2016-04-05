@@ -14,10 +14,12 @@ from functools import partial
 from zope import component
 from zope import interface
 
-from zope.schema.interfaces import ConstraintNotSatisfied
+from pyramid import httpexceptions as hexc
 
 from pyramid.interfaces import IRequest
 from pyramid.interfaces import IExceptionResponse
+
+from pyramid.threadlocal import get_current_request
 
 from pyramid.view import view_config
 from pyramid.view import view_defaults
@@ -32,6 +34,8 @@ from nti.app.contentfile import validate_sources
 from nti.app.contentfile import get_content_files
 from nti.app.contentfile import read_multipart_sources
 from nti.app.contentfile import transfer_internal_content_data
+
+from nti.app.externalization.error import raise_json_error
 
 from nti.appserver.interfaces import INewObjectTransformer
 
@@ -92,7 +96,15 @@ def validate_attachments(user, context, sources=()):
 					context=context,
 					constraint=IUsersCourseAssignmentHistoryItemFeedbackFileConstraints)
 	if constraints is not None and len(sources) > constraints.max_files:
-		raise ConstraintNotSatisfied(len(sources), 'max_files')
+		raise_json_error(get_current_request(),
+						 hexc.HTTPUnprocessableEntity,
+						 {
+							u'message': _('Maximum number attachments exceeded.'),
+							u'code': 'MaxAttachmentsExceeded',
+							u'field': 'max_files',
+							u'constraint': constraints.max_files
+						 },
+						 None)
 	
 	# take ownership
 	for source in sources:

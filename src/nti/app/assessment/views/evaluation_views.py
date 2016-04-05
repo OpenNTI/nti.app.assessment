@@ -44,6 +44,9 @@ from nti.app.externalization.view_mixins import BatchingUtilsMixin
 
 from nti.app.contentfile import validate_sources
 
+from nti.app.publishing import VIEW_PUBLISH
+from nti.app.publishing.views import PublishView
+
 from nti.appserver.ugd_edit_views import UGDPutView
 from nti.appserver.ugd_edit_views import UGDPostView
 from nti.appserver.ugd_edit_views import UGDDeleteView
@@ -53,10 +56,12 @@ from nti.assessment.common import iface_of_assessment
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQuestion
+from nti.assessment.interfaces import IQInquiry 
 from nti.assessment.interfaces import IQEditable
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQEvaluation
+from nti.assessment.interfaces import IQEvaluationItemContainer
 
 from nti.common.maps import CaseInsensitiveDict
 
@@ -75,7 +80,10 @@ from nti.externalization.internalization import notifyModified
 
 from nti.site.interfaces import IHostPolicyFolder
 
-from nti.site.utils import unregisterUtility
+from nti.site.hostpolicy import get_host_site
+
+from nti.site.utils import registerUtility 
+from nti.site.utils import unregisterUtility 
 
 from nti.traversal.traversal import find_interface
 
@@ -607,3 +615,56 @@ class QuestionSetDeleteView(EvaluationDeleteView):
 							u'code': 'CannotDeleteQuestionSet',
 						},
 						None)
+
+# Publish views
+
+def publish_context(context, folder=None):
+	# publish
+	if not context.is_published():
+		context.publish()
+	# register utility
+	ntiid = context.ntiid
+	provided = iface_of_assessment(context)
+	if folder is None:
+		folder = find_interface(context, IHostPolicyFolder, strict=False)
+	site = get_host_site(folder.__name__)
+	registry = site.getSiteManager()
+	if registry.queryUtility(provided, name=ntiid) is None:
+		registerUtility(registry, context, provided, name=ntiid)
+	# process 'children'
+	if IQEvaluationItemContainer.providedBy(context):
+		for item in context.Items or ():
+			publish_context(item, folder)
+
+class EvaluationPublishView(PublishView):
+
+	def _do_provide(self, context):
+		if IQEditable.providedBy(context):
+			publish_context(context)
+			
+@view_config(route_name="objects.generic.traversal",
+			 context=IQuestionSet,
+			 renderer='rest',
+			 name=VIEW_PUBLISH,
+			 permission=nauth.ACT_UPDATE,
+			 request_method='POST')
+class QuestionSetPublishView(EvaluationPublishView):
+	pass
+
+@view_config(route_name="objects.generic.traversal",
+			 context=IQAssignment,
+			 renderer='rest',
+			 name=VIEW_PUBLISH,
+			 permission=nauth.ACT_UPDATE,
+			 request_method='POST')
+class AssignmentPublishView(EvaluationPublishView):
+	pass
+
+@view_config(route_name="objects.generic.traversal",
+			 context=IQInquiry,
+			 renderer='rest',
+			 name=VIEW_PUBLISH,
+			 permission=nauth.ACT_UPDATE,
+			 request_method='POST')
+class InquiryPublishView(EvaluationPublishView):
+	pass

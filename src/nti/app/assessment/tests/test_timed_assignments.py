@@ -9,22 +9,22 @@ __docformat__ = "restructuredtext en"
 
 from hamcrest import is_not
 from hamcrest import not_none
-from hamcrest import assert_that
 from hamcrest import less_than
+from hamcrest import assert_that
 does_not = is_not
 
-from zope import interface
 from zope import component
+from zope import interface
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 
 from nti.assessment.interfaces import IQTimedAssignment
 
-from nti.ntiids.ntiids import find_object_with_ntiid
-
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver.users import User
+
+from nti.ntiids.ntiids import find_object_with_ntiid
 
 from nti.app.products.courseware.tests import InstructedCourseApplicationTestLayer
 

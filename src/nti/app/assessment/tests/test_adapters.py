@@ -28,18 +28,24 @@ from nti.testing.matchers import is_empty
 from nti.testing.matchers import validly_provides
 
 import fudge
-import urlparse
 import datetime
+import urlparse
 from urllib import unquote
 
 from zope import component
+
 from zope.schema.interfaces import NotUnique
 from zope.schema.interfaces import ConstraintNotSatisfied
 
-from nti.assessment import interfaces as asm_interfaces
+from nti.app.assessment.adapters import _begin_assessment_for_assignment_submission
+
+from nti.app.assessment.feedback import UsersCourseAssignmentHistoryItemFeedback
+
+from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
+
 from nti.assessment.submission import AssignmentSubmission
 from nti.assessment.submission import QuestionSetSubmission
-from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 
 from nti.contentfragments.interfaces import IPlainTextContentFragment
 
@@ -50,15 +56,13 @@ from nti.externalization.externalization import to_external_object
 
 from nti.mimetype.mimetype import nti_mimetype_with_class
 
-from nti.app.assessment.feedback import UsersCourseAssignmentHistoryItemFeedback
-from nti.app.assessment.adapters import _begin_assessment_for_assignment_submission
-
 from nti.app.assessment.tests import RegisterAssignmentLayer
 from nti.app.assessment.tests import RegisterAssignmentLayerMixin
 from nti.app.assessment.tests import RegisterAssignmentsForEveryoneLayer
 
-from nti.app.testing.decorators import WithSharedApplicationMockDS
 from nti.app.testing.application_webtest import ApplicationLayerTest
+
+from nti.app.testing.decorators import WithSharedApplicationMockDS
 
 from nti.dataserver.tests import mock_dataserver
 
@@ -101,13 +105,13 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
 		# Open tomorrow
 		with mock_dataserver.mock_db_trans(self.ds, site_name='platform.ou.edu'):
-			assignment = component.getUtility(asm_interfaces.IQAssignment, name=self.assignment_id)
+			assignment = component.getUtility(IQAssignment, name=self.assignment_id)
 			assignment.available_for_submission_beginning = (datetime.datetime.utcnow() + datetime.timedelta(days=1))
 			try:
 				assert_that( calling(IQAssignmentSubmissionPendingAssessment).with_args(submission),
 							 raises(ConstraintNotSatisfied, 'early') )
 			finally:
-				assignment = component.getUtility(asm_interfaces.IQAssignment, name=self.assignment_id)
+				assignment = component.getUtility(IQAssignment, name=self.assignment_id)
 
 				assignment.available_for_submission_beginning = None
 
@@ -454,7 +458,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
 		# First, adjust the parts and category
 		with mock_dataserver.mock_db_trans(self.ds, site_name='platform.ou.edu'):
-			assignment = component.getUtility(asm_interfaces.IQAssignment, name=self.assignment_id)
+			assignment = component.getUtility(IQAssignment, name=self.assignment_id)
 			assignment._old_parts = assignment.parts
 			old_cat = assignment.category_name
 
@@ -487,7 +491,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
 		finally:
 			with mock_dataserver.mock_db_trans(self.ds, site_name='platform.ou.edu'):
-				assignment = component.getUtility(asm_interfaces.IQAssignment, name=self.assignment_id)
+				assignment = component.getUtility(IQAssignment, name=self.assignment_id)
 
 				assignment.category_name = old_cat
 				assignment.parts = assignment._old_parts
@@ -626,8 +630,11 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin, ApplicationLayerTest
 		_missing()
 
 class TestNoteCreation(RegisterAssignmentLayerMixin,ApplicationLayerTest):
-	"We can not create notes an any component of an assignment"
+	"""
+	We can not create notes an any component of an assignment
+	"""
 	layer = RegisterAssignmentLayer
+
 	# This only works in the site that the assignment is registered in;
 	# it could be bypassed by a sufficiently clever person...
 	default_origin = str('http://janux.ou.edu')

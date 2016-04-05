@@ -12,6 +12,9 @@ from hamcrest import has_entries
 from hamcrest import assert_that
 from hamcrest import has_property
 
+from nti.testing.matchers import is_false
+from nti.testing.matchers import validly_provides
+
 import weakref
 
 from nti.app.assessment.history import UsersCourseAssignmentHistory
@@ -22,20 +25,20 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemSummary
 
-from nti.assessment.submission import AssignmentSubmission
 from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
 
-from nti.dataserver.users import User
+from nti.assessment.submission import AssignmentSubmission
+
 from nti.dataserver.interfaces import IUser
 
-from nti.externalization.tests import externalizes
-
-from nti.testing.matchers import is_false
-from nti.testing.matchers import validly_provides
+from nti.dataserver.users import User
 
 from nti.app.assessment.tests import AssessmentLayerTest
 
+from nti.externalization.tests import externalizes
+
 class TestHistory(AssessmentLayerTest):
+
 	# NOTE: We don't actually need all this setup the layer does,
 	# but it saves time when we run in bulk
 
@@ -49,42 +52,40 @@ class TestHistory(AssessmentLayerTest):
 		item = UsersCourseAssignmentHistoryItem()
 		item.creator = 'foo'
 		item.__parent__ = history
-		assert_that( item,
+		assert_that(item,
 					 validly_provides(IUsersCourseAssignmentHistoryItem))
 
-		assert_that( history,
+		assert_that(history,
 					 validly_provides(IUsersCourseAssignmentHistory))
-		assert_that( IUser(item), is_(history.owner))
-		assert_that( IUser(history), is_(history.owner))
+		assert_that(IUser(item), is_(history.owner))
+		assert_that(IUser(history), is_(history.owner))
 
 		summ = IUsersCourseAssignmentHistoryItemSummary(item)
-		assert_that( summ,
-					 validly_provides(IUsersCourseAssignmentHistoryItemSummary))
+		assert_that(summ,
+					validly_provides(IUsersCourseAssignmentHistoryItemSummary))
 
-		assert_that(item, externalizes( has_entries( 'Class', 'UsersCourseAssignmentHistoryItem',
-													 'MimeType', 'application/vnd.nextthought.assessment.userscourseassignmenthistoryitem' )))
+		assert_that(item, externalizes(has_entries(	'Class', 'UsersCourseAssignmentHistoryItem',
+													'MimeType', 'application/vnd.nextthought.assessment.userscourseassignmenthistoryitem')))
 
 	def test_record(self):
 		history = UsersCourseAssignmentHistory()
 		submission = AssignmentSubmission(assignmentId='b')
-		pending =  QAssignmentSubmissionPendingAssessment( assignmentId='b',
-														   parts=() )
+		pending = QAssignmentSubmissionPendingAssessment(assignmentId='b', parts=())
 
-		item = history.recordSubmission( submission, pending )
-		assert_that( item, has_property( 'Submission', is_( submission )))
-		assert_that( item, has_property( '__name__', is_( submission.assignmentId)) )
+		item = history.recordSubmission(submission, pending)
+		assert_that(item, has_property('Submission', is_(submission)))
+		assert_that(item, has_property('__name__', is_(submission.assignmentId)))
 
-		assert_that( item.__parent__, is_( history ))
+		assert_that(item.__parent__, is_(history))
 
-		assert_that( history, has_property( 'lastViewed', 0 ))
+		assert_that(history, has_property('lastViewed', 0))
 
 	def test_nuclear_option(self):
 		history = UsersCourseAssignmentHistory()
 		submission = AssignmentSubmission(assignmentId='b')
-		pending =  QAssignmentSubmissionPendingAssessment( assignmentId='b',
-														   parts=() )
+		pending = QAssignmentSubmissionPendingAssessment(assignmentId='b', parts=())
 
-		item = history.recordSubmission( submission, pending )
+		item = history.recordSubmission(submission, pending)
 
 		# in the absence of info, it's false
 		assert_that(item, has_property('_student_nuclear_reset_capable', is_false()))

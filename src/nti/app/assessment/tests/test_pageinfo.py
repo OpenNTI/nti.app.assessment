@@ -18,24 +18,25 @@ from hamcrest import has_entries
 from hamcrest import greater_than
 does_not = is_not
 
-from nti.app.testing.application_webtest import ApplicationLayerTest
-from nti.app.testing.decorators import WithSharedApplicationMockDS
-
 from nti.app.assessment.tests import InstructedCourseApplicationTestLayer
+
+from nti.app.testing.application_webtest import ApplicationLayerTest
+
+from nti.app.testing.decorators import WithSharedApplicationMockDS
 
 class TestPageInfo(ApplicationLayerTest):
 
 	layer = InstructedCourseApplicationTestLayer
 
 	default_origin = str('http://janux.ou.edu')
-	
+
 	page_ntiid = 'tag:nextthought.com,2011-10:OU-HTML-CS1323_F_2015_Intro_to_Computer_Programming.project_10_(100_points)'
 	question_ntiid = 'tag:nextthought.com,2011-10:OU-NAQ-CS1323_F_2015_Intro_to_Computer_Programming.naq.asg.assignment:Lab_10'
 
 	@WithSharedApplicationMockDS(users=True, testapp=True)
 	def test_fetch_pageinfo_with_questions(self):
 		page_ntiid = self.page_ntiid
-		
+
 		accept_type = b'application/vnd.nextthought.pageinfo+json'
 		__traceback_info__ = accept_type
 		res = self.fetch_by_ntiid(page_ntiid,

@@ -53,7 +53,7 @@ class TestHistory(AssessmentLayerTest):
 		item.creator = 'foo'
 		item.__parent__ = history
 		assert_that(item,
-					 validly_provides(IUsersCourseAssignmentHistoryItem))
+					validly_provides(IUsersCourseAssignmentHistoryItem))
 
 		assert_that(history,
 					 validly_provides(IUsersCourseAssignmentHistory))

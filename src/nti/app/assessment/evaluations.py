@@ -321,11 +321,13 @@ class _ConnectingPartChangeAnalyzer(_BasicPartChangeAnalyzer):
 						  u'code': 'DuplicateSolution'})
 
 			for label, value in m.items():
+				label = int(label)
 				if label < 0 or label >= len(labels):  # solutions are indices
 					raise raise_error(
-							{ u'message': _("Solution label in not in part labels."),
+							{u'message': _("Solution label in not in part labels."),
 							 u'code': 'InvalidSolution'})
 
+				value = int(value)
 				if value < 0 or value >= len(values):  # solutions are indices
 					raise raise_error(
 							{ u'message': _("Solution value in not in part values."),

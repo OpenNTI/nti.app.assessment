@@ -11,6 +11,7 @@ from hamcrest import none
 from hamcrest import is_not
 from hamcrest import has_entry
 from hamcrest import assert_that
+from hamcrest import greater_than
 does_not = is_not
 
 import os
@@ -21,6 +22,8 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.externalization.externalization import to_external_object
 from nti.externalization.externalization import to_external_ntiid_oid
 
+from nti.externalization.interfaces import StandardExternalFields
+
 from nti.ntiids.ntiids import find_object_with_ntiid
 
 from nti.app.products.courseware.tests import InstructedCourseApplicationTestLayer
@@ -30,6 +33,8 @@ from nti.app.testing.application_webtest import ApplicationLayerTest
 from nti.app.testing.decorators import WithSharedApplicationMockDS
 
 from nti.dataserver.tests import mock_dataserver
+
+NTIID = StandardExternalFields.NTIID
 
 class TestEvaluationViews(ApplicationLayerTest):
 
@@ -44,7 +49,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		with open(path, "r") as fp:
 			result = json.load(fp)
 			return result
-			
+
 	def _get_course_oid(self):
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
 			entry = find_object_with_ntiid(self.entry_ntiid)
@@ -54,9 +59,13 @@ class TestEvaluationViews(ApplicationLayerTest):
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_simple_post(self):
 		course_oid = self._get_course_oid()
-		qset = self._load_questionset()
-		question = to_external_object(qset['questions'][0])
-		question.pop('NTIID', None)
 		href = '/dataserver2/Objects/%s/CourseEvaluations' % course_oid
-		res = self.testapp.post_json(href, question, status=201)
-		assert_that(res.json_body, has_entry('NTIID', is_not(none())))
+		qset = self._load_questionset()
+		for question in qset['questions']:
+			question = to_external_object(question)
+			question.pop(NTIID, None)
+			res = self.testapp.post_json(href, question, status=201)
+			assert_that(res.json_body, has_entry(NTIID, is_not(none())))
+
+		res = self.testapp.get(href, status=200)
+		assert_that(res.json_body, has_entry('ItemCount', greater_than(1)))

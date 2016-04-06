@@ -50,6 +50,12 @@ class TestEvaluationViews(ApplicationLayerTest):
 			result = json.load(fp)
 			return result
 
+	def _load_assignment(self):
+		path = os.path.join(os.path.dirname(__file__), "assignment.json")
+		with open(path, "r") as fp:
+			result = json.load(fp)
+			return result
+
 	def _get_course_oid(self):
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
 			entry = find_object_with_ntiid(self.entry_ntiid)
@@ -65,7 +71,6 @@ class TestEvaluationViews(ApplicationLayerTest):
 		posted = []
 		for question in qset['questions']:
 			question = to_external_object(question)
-			question.pop(NTIID, None)
 			res = self.testapp.post_json(href, question, status=201)
 			assert_that(res.json_body, has_entry(NTIID, is_not(none())))
 			posted.append(res.json_body)
@@ -76,3 +81,9 @@ class TestEvaluationViews(ApplicationLayerTest):
 		for question in posted:
 			url = question.pop('href')
 			self.testapp.put_json(url, question, status=200)
+		# post question set and assignment
+		assignment = self._load_assignment()
+		for evaluation in (qset, assignment):
+			evaluation = to_external_object(evaluation)
+			res = self.testapp.post_json(href, evaluation, status=201)
+			assert_that(res.json_body, has_entry(NTIID, is_not(none())))

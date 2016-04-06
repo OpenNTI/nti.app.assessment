@@ -188,10 +188,11 @@ class EvaluationMixin(object):
 			obj.ntiid = ntiid = make_evaluation_ntiid(provided, user, extra=self._extra)
 			lifecycleevent.created(obj)
 			evaluations[ntiid] = obj
+			interface.alsoProvides(obj, IQEditable)
 		elif ntiid in evaluations:  # replace
 			obj = evaluations[ntiid]
 		else:
-			obj = component.queryUtility(provided, ntiid=ntiid)
+			obj = component.queryUtility(provided, name=ntiid)
 		return obj
 
 	def handle_question(self, question, course, sources, user):

@@ -231,7 +231,7 @@ class EvaluationMixin(object):
 		questions = []
 		for question in theObject.questions or ():
 			question = self.handle_question(question, course, sources, user)
-			questions.append(questions)
+			questions.append(question)
 		theObject.questions = questions
 		return theObject
 
@@ -248,7 +248,7 @@ class EvaluationMixin(object):
 		questions = []
 		for poll in theObject.questions or ():
 			poll = self.handle_poll(poll, course, sources, user)
-			poll.append(questions)
+			questions.append(poll)
 		theObject.questions = questions
 		return theObject
 

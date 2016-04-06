@@ -332,7 +332,7 @@
 
 	<!-- Utilities -->
 	<utility factory=".utils.PrincipalSeedSelector" />
-	<utility factory=".utils.AssessmentContainerIdGetter" />
+	<utility factory=".utils.EvaluationContainerIdGetter" />
 
 	<!-- Exporter -->
 	<utility factory=".exporter.AssessmentsExporter" name="010:Assessments" />

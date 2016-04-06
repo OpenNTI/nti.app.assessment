@@ -185,7 +185,7 @@ class EvaluationMixin(object):
 		provided = iface_of_assessment(obj)
 		evaluations = ICourseEvaluations(course)
 		if not ntiid:  # new object
-			obj.ntiid = make_evaluation_ntiid(provided, user, extra=self._extra)
+			obj.ntiid = ntiid = make_evaluation_ntiid(provided, user, extra=self._extra)
 			lifecycleevent.created(obj)
 			evaluations[ntiid] = obj
 		elif ntiid in evaluations:  # replace

@@ -37,7 +37,7 @@ from nti.appserver.pyramid_authorization import has_permission
 
 from nti.assessment.interfaces import IQFilePart
 from nti.assessment.interfaces import IQAssignment
-from nti.assessment.interfaces import IQAssessmentContainerIdGetter
+from nti.assessment.interfaces import IQEvaluationContainerIdGetter
 
 from nti.assessment.randomized import questionbank_question_chooser
 
@@ -261,8 +261,8 @@ class PrincipalSeedSelector(object):
 			return get_uid(user)
 		return None
 
-@interface.implementer(IQAssessmentContainerIdGetter)
-class AssessmentContainerIdGetter(object):
+@interface.implementer(IQEvaluationContainerIdGetter)
+class EvaluationContainerIdGetter(object):
 
 	def __call__(self, item):
 		for name in ('__home__', '__parent__'):

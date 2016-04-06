@@ -32,6 +32,8 @@ from nti.app.products.courseware.interfaces import ICourseInstanceEnrollment
 
 from nti.appserver.pyramid_authorization import has_permission
 
+from nti.assessment.common import get_containerId
+
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQuestion
@@ -42,7 +44,6 @@ from nti.common.property import Lazy
 from nti.common.proxy import removeAllProxies
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
-from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 from nti.contenttypes.courses.interfaces import ICourseAssignmentCatalog
 from nti.contenttypes.courses.interfaces import ICourseOutlineContentNode
 from nti.contenttypes.courses.interfaces import ICourseAssessmentItemCatalog
@@ -227,15 +228,12 @@ class AssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 		catalog = ICourseAssignmentCatalog(instance)
 		uber_filter = get_course_assessment_predicate_for_user(self.remoteUser, instance)
 		for asg in (x for x in catalog.iter_assignments() if uber_filter(x) or self._is_editor):
-			# The assignment's __parent__ is always the 'home' content unit
-			parent = asg.__parent__ # TODO: use home var
-			if parent is not None:
+			parent_ntiid = get_containerId(asg)
+			if parent_ntiid:
 				if 		not self.is_ipad_legacy \
 					and (self.is_course_instructor or self._is_editor):
 					asg = copy_assignment(asg, True)
-				if ICourseInstance.providedBy(parent):
-					parent = ICourseCatalogEntry(parent)
-				result.setdefault(parent.ntiid, []).append(asg)
+				result.setdefault(parent_ntiid, []).append(asg)
 			else:
 				logger.error("%s is an assignment without parent unit", asg.ntiid)
 		return result
@@ -299,13 +297,12 @@ class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 			elif IQSurvey.providedBy(item):
 				qsids_to_strip.update(p.ntiid for p in item.questions or ())
 			else:
-				# The item's __parent__ is always the 'home' content unit
-				unit = item.__parent__ # TODO: use __home__
-				if unit is not None:
+				unit_ntiid = get_containerId(item)
+				if unit_ntiid:
 					# CS: We can remove proxies since the items are neither assignments
 					# nor survey, so no course lookup is necesary
 					item = removeAllProxies(item)
-					data[unit.ntiid][item.ntiid] = item
+					data[unit_ntiid][item.ntiid] = item
 				else:
 					logger.error("%s is an item without parent unit", item.ntiid)
 

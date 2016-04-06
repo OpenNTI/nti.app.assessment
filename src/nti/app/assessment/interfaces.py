@@ -420,7 +420,7 @@ class ICourseEvaluations(IContainer,
 	"""
 	A container for all the evaluation objects in a course
 	"""
-	contains(str(IQEvaluation))
+	contains(IQEvaluation)
 
 class IQPartChangeAnalyzer(interface.Interface):
 	"""

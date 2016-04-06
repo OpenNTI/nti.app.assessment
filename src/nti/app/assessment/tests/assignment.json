@@ -2,7 +2,6 @@
 	"Class": "Assignment",
 	"CategoryName": "homework",
 	"MimeType": "application/vnd.nextthought.assessment.assignment",
-	"NTIID": "tag:nextthought.com,2011-10:NTIAlpha-NAQ-BLEACH_S_2006_Shikai.naq.asg.assignment:file_upload",
 	"NoSubmit": false,
 	"available_for_submission_beginning": "2015-05-12T05:00:00Z",
 	"available_for_submission_ending": "2024-07-16T04:59:00Z",
@@ -10,7 +9,6 @@
 	"content": "",
 	"is_non_public": false,
 	"no_submit": false,
-	"ntiid": "tag:nextthought.com,2011-10:NTIAlpha-NAQ-BLEACH_S_2006_Shikai.naq.asg.assignment:file_upload",
 	"parts": [
 		{
 			"Class": "AssignmentPart",
@@ -20,12 +18,10 @@
 			"question_set": {
 				"Class": "QuestionSet",
 				"MimeType": "application/vnd.nextthought.naquestionset",
-				"NTIID": "tag:nextthought.com,2011-10:NTIAlpha-NAQ-BLEACH_S_2006_Shikai.naq.set.qset:content_file_upload",
 				"questions": [
 					{
 						"Class": "Question",
 						"MimeType": "application/vnd.nextthought.naquestion",
-						"NTIID": "tag:nextthought.com,2011-10:NTIAlpha-NAQ-BLEACH_S_2006_Shikai.naq.qid.content.file.upload",
 						"content": "Upload your .docx or .pdf file. Maximum file size is 10MB.",
 						"parts": [
 							{

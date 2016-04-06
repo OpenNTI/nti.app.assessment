@@ -1,12 +1,10 @@
 {
 	"Class": "QuestionSet",
 	"MimeType": "application/vnd.nextthought.naquestionset",
-	"NTIID": "tag:nextthought.com,2011-10:OU-NAQ-BLEACH_S_2006_Shikai.naq.set.qset:intro_quiz1",
 	"questions": [
 		{
 			"Class": "Question",
 			"MimeType": "application/vnd.nextthought.naquestion",
-			"NTIID": "tag:nextthought.com,2011-10:OU-NAQ-BLEACH_S_2006_Shikai.naq.qid.intro.02",
 			"content": "<a name=\"qid.intro.02\"></a> 2. When blood oxygen levels drop below normal, this is detected by receptors in the kidneys which then triggers the synthesis and secretion of erythropoietin. An increase in erythropoietin stimulates the production of red blood cells which increases blood oxygen levels. When blood oxygen levels are returned to normal concentrations, receptors will stop signaling the kidneys which will stop the synthesis and secretion of erythropoietin.<br />What type of feedback system is described above?",
 			"parts": [
 				{
@@ -34,7 +32,6 @@
 		{
 			"Class": "Question",
 			"MimeType": "application/vnd.nextthought.naquestion",
-			"NTIID": "tag:nextthought.com,2011-10:OU-NAQ-BLEACH_S_2006_Shikai.naq.qid.intro.05",
 			"content": "<a name=\"qid.intro.05\"></a>",
 			"parts": [
 				{
@@ -68,7 +65,6 @@
 		{
 			"Class": "Question",
 			"MimeType": "application/vnd.nextthought.naquestion",
-			"NTIID": "tag:nextthought.com,2011-10:OU-NAQ-BLEACH_S_2006_Shikai.naq.qid.intro.01",
 			"content": "<a name=\"qid.intro.01\"></a> 1. Rank the following in terms of complexity from low (1) to high (7)",
 			"parts": [
 				{
@@ -117,7 +113,6 @@
 		{
 			"Class": "Question",
 			"MimeType": "application/vnd.nextthought.naquestion",
-			"NTIID": "tag:nextthought.com,2011-10:NTIAlpha-NAQ-BLEACH_S_2006_Shikai.naq.qid.content.file.upload",
 			"content": "Upload your .docx or .pdf file. Maximum file size is 10MB.",
 			"parts": [
 				{

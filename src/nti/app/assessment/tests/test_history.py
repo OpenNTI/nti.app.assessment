@@ -56,16 +56,21 @@ class TestHistory(AssessmentLayerTest):
 					validly_provides(IUsersCourseAssignmentHistoryItem))
 
 		assert_that(history,
-					 validly_provides(IUsersCourseAssignmentHistory))
-		assert_that(IUser(item), is_(history.owner))
-		assert_that(IUser(history), is_(history.owner))
+					validly_provides(IUsersCourseAssignmentHistory))
+		user = IUser(item, None)
+		if user is not None:
+			assert_that(user, is_(history.owner))
+
+		user = IUser(history, None)
+		if user is not None:
+			assert_that(user, is_(history.owner))
 
 		summ = IUsersCourseAssignmentHistoryItemSummary(item)
 		assert_that(summ,
 					validly_provides(IUsersCourseAssignmentHistoryItemSummary))
 
-		assert_that(item, externalizes(has_entries(	'Class', 'UsersCourseAssignmentHistoryItem',
-													'MimeType', 'application/vnd.nextthought.assessment.userscourseassignmenthistoryitem')))
+		assert_that(item, externalizes(has_entries('Class', 'UsersCourseAssignmentHistoryItem',
+												   'MimeType', 'application/vnd.nextthought.assessment.userscourseassignmenthistoryitem')))
 
 	def test_record(self):
 		history = UsersCourseAssignmentHistory()

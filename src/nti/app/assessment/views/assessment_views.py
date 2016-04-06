@@ -300,7 +300,7 @@ class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 				qsids_to_strip.update(p.ntiid for p in item.questions or ())
 			else:
 				# The item's __parent__ is always the 'home' content unit
-				unit = item.__parent__
+				unit = item.__parent__ # TODO: use __home__
 				if unit is not None:
 					# CS: We can remove proxies since the items are neither assignments
 					# nor survey, so no course lookup is necesary

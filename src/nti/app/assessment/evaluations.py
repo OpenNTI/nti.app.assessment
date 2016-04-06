@@ -180,7 +180,8 @@ class _MultipleChoicePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 			if not solution or solution.value is None:
 				raise raise_error({ u'message': _("Solution cannot be empty."),
 									u'code': 'InvalidSolution'})
-			if solution.value < 0 or solution.value >= len(part.choices):  # solutions are indices
+			value = int(solution.value) # solutions are indices
+			if value < 0 or value >= len(part.choices):  
 				raise raise_error({ u'message': _("Solution in not in choices."),
 									u'code': 'InvalidSolution'})
 
@@ -245,6 +246,7 @@ class _MultipleChoiceMultipleAnswerPartChangeAnalyzer(_MultipleChoicePartChangeA
 									u'code': 'DuplicateSolution'})
 
 			for idx in solution.value:
+				idx = int(idx)
 				if idx < 0 or idx >= len(part.choices):  # solutions are indices
 					raise raise_error({ u'message': _("Solution in not in choices."),
 										u'code': 'InvalidSolution'})

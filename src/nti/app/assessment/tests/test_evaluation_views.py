@@ -57,15 +57,22 @@ class TestEvaluationViews(ApplicationLayerTest):
 			return to_external_ntiid_oid(course)
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
-	def test_simple_post(self):
+	def test_simple_ops(self):
 		course_oid = self._get_course_oid()
 		href = '/dataserver2/Objects/%s/CourseEvaluations' % course_oid
 		qset = self._load_questionset()
+		# post
+		posted = []
 		for question in qset['questions']:
 			question = to_external_object(question)
 			question.pop(NTIID, None)
 			res = self.testapp.post_json(href, question, status=201)
 			assert_that(res.json_body, has_entry(NTIID, is_not(none())))
-
+			posted.append(res.json_body)
+		# get
 		res = self.testapp.get(href, status=200)
 		assert_that(res.json_body, has_entry('ItemCount', greater_than(1)))
+		# put
+		for question in posted:
+			url = question.pop('href')
+			self.testapp.put_json(url, question, status=200)

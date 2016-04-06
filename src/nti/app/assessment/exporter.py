@@ -9,10 +9,6 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-from StringIO import StringIO
-
-import simplejson
-
 from zope import interface
 
 from nti.app.assessment.common import get_unit_assessments
@@ -26,6 +22,8 @@ from nti.contenttypes.courses.interfaces import ICourseSectionExporter
 
 from nti.contenttypes.courses.common import get_course_packages
 
+from nti.contenttypes.courses.exporter import BaseSectionExporter
+
 from nti.contenttypes.courses.utils import get_parent_course
 
 from nti.externalization.externalization import toExternalObject
@@ -36,7 +34,7 @@ ITEMS = StandardExternalFields.ITEMS
 NTIID = StandardExternalFields.NTIID
 
 @interface.implementer(ICourseSectionExporter)
-class AssessmentsExporter(object):
+class AssessmentsExporter(BaseSectionExporter):
 
 	def mapped(self, package, items):
 
@@ -68,7 +66,7 @@ class AssessmentsExporter(object):
 			items[package.ntiid]['filename'] = 'index.html'
 
 	def externalize(self, context):
-		result = {}
+		result = dict()
 		course = ICourseInstance(context)
 		course = get_parent_course(course)
 		items = result[ITEMS] = dict()
@@ -78,9 +76,6 @@ class AssessmentsExporter(object):
 
 	def export(self, context, filer):
 		result = self.externalize(context)
-		source = StringIO()
-		simplejson.dump(result, source, indent=4, sort_keys=True)
-		source.seek(0)
-		# save in filer
+		source = self.dump(result)
 		filer.save("assessment_index.json", source,
 				   contentType="application/json", overwrite=True)

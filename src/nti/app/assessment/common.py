@@ -56,8 +56,6 @@ from nti.assessment.interfaces import IQAssessmentPolicies
 from nti.assessment.interfaces import IQAssessmentDateContext
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
-from nti.common.iterables import to_list
-
 from nti.common.time import time_to_64bit_int
 
 from nti.contentlibrary.interfaces import IContentPackage
@@ -394,26 +392,35 @@ def get_courses(context, subinstances=True):
 		courses = (course,)
 	return courses
 
+def to_course_list(courses=()):
+	if ICourseCatalogEntry.providedBy(courses):
+		courses = ICourseInstance(courses)
+	if ICourseInstance.providedBy(courses):
+		courses = (courses,)
+	elif isinstance(courses, (list, tuple, set)):
+		courses = tuple(courses)
+	return courses or ()
+
 def get_course_site(course):
 	folder = find_interface(course, IHostPolicyFolder, strict=False)
 	return folder.__name__
 
 def get_entry_ntiids(courses=()):
-	courses = to_list(courses) or ()
+	courses = to_course_list(courses) or ()
 	ntiids = {getattr(ICourseCatalogEntry(x, None), 'ntiid', None) for x in courses}
 	ntiids.discard(None)
 	return ntiids
 
 def has_savepoints(context, courses=()):
 	context_ntiid = getattr(context, 'ntiid', context)
-	for course in to_list(courses) or ():
+	for course in to_course_list(courses) or ():
 		savepoints = IUsersCourseAssignmentSavepoints(course, None)
 		if savepoints is not None and savepoints.has_assignment(context_ntiid):
 			return True
 	return False
 
 def get_submissions(context, courses=(), index_name=IX_ASSESSMENT_ID):
-	courses = to_list(courses)
+	courses = to_course_list(courses)
 	if not courses:
 		return ()
 	else:

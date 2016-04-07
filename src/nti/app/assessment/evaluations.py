@@ -179,7 +179,14 @@ class _BasicPartChangeAnalyzer(object):
 	
 	def __init__(self, part):
 		self.part = part
-		
+	
+def to_int(value):
+	try:
+		return int(value)
+	except ValueError:
+		raise raise_error({ u'message': _("Invalid integer value."),
+							u'code': 'ValueError'})
+	
 @interface.implementer(IQPartChangeAnalyzer)
 @component.adapter(IQNonGradableMultipleChoicePart)
 class _MultipleChoicePartChangeAnalyzer(_BasicPartChangeAnalyzer):
@@ -259,7 +266,7 @@ class _MultipleChoiceMultipleAnswerPartChangeAnalyzer(_MultipleChoicePartChangeA
 									u'code': 'DuplicateSolution'})
 
 			for idx in solution.value:
-				idx = int(idx)
+				idx = to_int(idx)
 				if idx < 0 or idx >= len(part.choices):  # solutions are indices
 					raise raise_error({ u'message': _("Solution in not in choices."),
 										u'code': 'InvalidSolution'})
@@ -336,13 +343,13 @@ class _ConnectingPartChangeAnalyzer(_BasicPartChangeAnalyzer):
 						  u'code': 'DuplicateSolution'})
 
 			for label, value in m.items():
-				label = int(label)
+				label = to_int(label)
 				if label < 0 or label >= len(labels):  # solutions are indices
 					raise raise_error(
 							{u'message': _("Solution label in not in part labels."),
 							 u'code': 'InvalidSolution'})
 
-				value = int(value)
+				value = to_int(value)
 				if value < 0 or value >= len(values):  # solutions are indices
 					raise raise_error(
 							{ u'message': _("Solution value in not in part values."),

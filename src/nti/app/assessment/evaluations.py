@@ -329,7 +329,7 @@ class _ConnectingPartChangeAnalyzer(_BasicPartChangeAnalyzer):
 			# map of indices
 			m = solution.value
 
-			# checkk all labels in solution
+			# check all labels in solution
 			if len(m) != len(labels):
 				raise raise_error(
 						{ u'message': _("Cannot have an incomplete solution."),

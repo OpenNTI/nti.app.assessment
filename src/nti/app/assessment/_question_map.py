@@ -422,21 +422,19 @@ class QuestionMap(QuestionIndex):
 			logger.warn("Ignoring assessment index that contains no assessments at any level %s",
 						content_package)
 			return
-		assert len(root_items) == 1, "Root's 'Items' must only have Root NTIID"
 
-		# TODO: This ought to come from the content_package.
-		# We need to update tests to be sure
-		root_ntiid = root_items.keys()[0]
+		# if only one key assume it for the incoming content package
+		root_keys = tuple(root_items.keys())
+		root_ntiid = root_keys[0] if len(root_keys) == 1 else content_package.ntiid
 
-		by_file = self._get_by_file()
-		assert 	'Items' in root_items[root_ntiid], \
-				"Root's 'Items' contains the actual section Items"
-
-		if sync_results is None:
-			sync_results = _new_sync_results(content_package)
+		by_file = self._get_by_file()			
+		if 'Items' not in root_items[root_ntiid]:
+			return by_file, set()
 
 		things_to_register = set()
-
+		if sync_results is None:
+			sync_results = _new_sync_results(content_package)
+			
 		for child_ntiid, child_index in root_items[root_ntiid]['Items'].items():
 			__traceback_info__ = child_ntiid, child_index, content_package
 			# Each of these should have a filename. If they do not, they obviously
@@ -471,19 +469,19 @@ class QuestionMap(QuestionIndex):
 		registered = {x.ntiid for x in registered}
 		return by_file, registered
 
-def _populate_question_map_from_text(question_map,
-									 asm_index_text,
-									 content_package,
-									 registry=None,
-									 sync_results=None):
+def populate_question_map_json(asm_index_json,
+							   content_package,
+							   registry=None,
+							   sync_results=None,
+							   question_map=None):
 	result = None
-	index = _load_question_map_json(asm_index_text)
-	if index:
+	if asm_index_json:
 		try:
 			if sync_results is None:
 				sync_results = _new_sync_results(content_package)
 
-			result = question_map._from_root_index(index,
+			question_map = QuestionMap() if question_map is None else question_map
+			result = question_map._from_root_index(asm_index_json,
 												   content_package,
 												   registry=registry,
 												   sync_results=sync_results)
@@ -497,6 +495,18 @@ def _populate_question_map_from_text(question_map,
 				"Failed to load assessment items, invalid assessment_index for %s",
 				 content_package)
 	return result or set()
+
+def _populate_question_map_from_text(question_map,
+									 asm_index_text,
+									 content_package,
+									 registry=None,
+									 sync_results=None):
+	index = _load_question_map_json(asm_index_text)
+	return populate_question_map_json(asm_index_json=index, 
+									  registry=registry,
+									  content_package=content_package,
+									  question_map=question_map,
+									  sync_results=sync_results)
 
 def _add_assessment_items_from_new_content(content_package, key, sync_results=None):
 	if sync_results is None:

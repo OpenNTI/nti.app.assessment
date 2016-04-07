@@ -121,8 +121,8 @@ def get_evaluation_containers(evaluation):
 def get_evaluation_courses(evaluation):
 	result = []
 	for container in get_evaluation_containers(evaluation):
-		if	 ICourseInstance.providedBy(container) \
-			or ICourseCatalogEntry.providedBy(container):
+		if		ICourseInstance.providedBy(container) \
+			or	ICourseCatalogEntry.providedBy(container):
 			result.append(ICourseInstance(container))
 	return tuple(result)
 
@@ -185,10 +185,9 @@ def get_content_packages_assessment_items(package):
 		for item in items:
 			item = proxy(item, content_unit=unit.ntiid)
 			result.append(item)
-		for child in unit.children:
+		for child in unit.children or ():
 			_recur(child)
 	_recur(package)
-	# On py3.3, can easily 'yield from' nested generators
 	return result
 
 def get_course_assessment_items(context):
@@ -401,9 +400,10 @@ def to_course_list(courses=()):
 		courses = tuple(courses)
 	return courses or ()
 
-def get_course_site(course):
+def get_resource_site_name(course):
 	folder = find_interface(course, IHostPolicyFolder, strict=False)
 	return folder.__name__
+get_course_site = get_resource_site_name
 
 def get_entry_ntiids(courses=()):
 	courses = to_course_list(courses) or ()
@@ -474,9 +474,10 @@ def aggregate_course_inquiry(inquiry, course, *items):
 def aggregate_page_inquiry(containerId, mimeType, *items):
 	catalog = dataserver_metadata_catalog()
 	intids = component.getUtility(IIntIds)
-	query = { IX_MIMETYPE: {'any_of':(mimeType,)},
-			  IX_CONTAINERID: {'any_of':(containerId,)} }
-
+	query = { 
+		IX_MIMETYPE: {'any_of':(mimeType,)},
+		IX_CONTAINERID: {'any_of':(containerId,)} 
+	}
 	result = None
 	uids = catalog.apply(query) or ()
 	items = itertools.chain(ResultSet(uids, intids, True), items)

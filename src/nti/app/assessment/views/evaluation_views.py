@@ -26,6 +26,7 @@ from nti.app.assessment import MessageFactory as _
 from nti.app.assessment.common import has_savepoints
 from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import make_evaluation_ntiid
+from nti.app.assessment.common import get_resource_site_name
 from nti.app.assessment.common import get_evaluation_containment
 
 from nti.app.assessment.interfaces import ICourseEvaluations
@@ -76,8 +77,6 @@ from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.externalization.internalization import notifyModified
-
-from nti.site.interfaces import IHostPolicyFolder
 
 from nti.site.hostpolicy import get_host_site
 
@@ -573,8 +572,8 @@ def delete_evaluation(evaluation, course=None):
 	provided = iface_of_assessment(evaluation)
 	registered = component.queryUtility(provided, name=evaluation.ntiid)
 	if registered is not None:
-		folder = find_interface(course, IHostPolicyFolder, strict=False)
-		folder = get_host_site(folder.__name__)
+		site_name = get_resource_site_name(course)
+		folder = get_host_site(site_name)
 		registry = folder.getSiteManager()
 		unregisterUtility(registry, provided=provided, name=evaluation.ntiid)
 
@@ -618,26 +617,25 @@ class QuestionSetDeleteView(EvaluationDeleteView):
 
 # Publish views
 
-def publish_context(context, folder=None):
+def publish_context(context, site_name=None):
 	# publish
 	if not context.is_published():
 		context.publish()
 	# register utility
 	ntiid = context.ntiid
 	provided = iface_of_assessment(context)
-	if folder is None:
-		folder = find_interface(context, IHostPolicyFolder, strict=False)
-	site = get_host_site(folder.__name__)
+	site_name = get_resource_site_name(site_name) if not site_name else site_name
+	site = get_host_site(site_name)
 	registry = site.getSiteManager()
 	if registry.queryUtility(provided, name=ntiid) is None:
 		registerUtility(registry, context, provided, name=ntiid)
 	# process 'children'
 	if IQEvaluationItemContainer.providedBy(context):
 		for item in context.Items or ():
-			publish_context(item, folder)
+			publish_context(item, site_name)
 	elif IQAssignment.providedBy(context):
 		for item in context.iter_question_sets():
-			publish_context(item, folder)
+			publish_context(item, site_name)
 
 @view_config(context=IQEvaluation)
 @view_defaults(route_name='objects.generic.traversal',
@@ -669,7 +667,7 @@ class EvaluationUnpublishView(UnpublishView):
 			# unpublish
 			super(EvaluationUnpublishView, self)._do_provide(context)
 			# unregister
-			folder = find_interface(context, IHostPolicyFolder, strict=False)
-			site = get_host_site(folder.__name__)
+			site_name = get_resource_site_name(context)
+			site = get_host_site(site_name)
 			registry = site.getSiteManager()
 			unregisterUtility(registry, provided=provided, name=context.ntiid)

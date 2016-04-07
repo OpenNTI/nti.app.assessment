@@ -43,6 +43,8 @@ from nti.app.externalization.view_mixins import BatchingUtilsMixin
 
 from nti.app.contentfile import validate_sources
 
+from nti.app.products.courseware.resources.utils import get_course_filer
+
 from nti.app.publishing import VIEW_PUBLISH
 from nti.app.publishing import VIEW_UNPUBLISH
 from nti.app.publishing.views import PublishView
@@ -54,12 +56,15 @@ from nti.appserver.ugd_edit_views import UGDDeleteView
 
 from nti.assessment.common import iface_of_assessment
 
+from nti.assessment.interfaces import IQHint
+from nti.assessment.interfaces import IQPart 
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQEvaluation
+from nti.assessment.interfaces import IQAssignmentPart
 from nti.assessment.interfaces import IQEditableEvalutation
 from nti.assessment.interfaces import IQEvaluationItemContainer
 
@@ -88,16 +93,40 @@ from nti.traversal.traversal import find_interface
 ITEMS = StandardExternalFields.ITEMS
 NTIID = StandardExternalFields.NTIID
 
-# def _handle_multipart(context, user, model, sources):
-# 	provided = ICourseDiscussion
-# 	filer = get_course_filer(context, user)
-# 	for name, source in sources.items():
-# 		if name in provided:
-# 			# remove existing
-# 			location = getattr(discussion, name, None)
-# 			if location:
-# 				filer.remove(location)
-# 			# save a in a new file
+def get_content_fields(context):
+	result = []
+	if IQHint.providedBy(context):
+		result.append((context, 'value'))
+	elif IQPart.providedBy(context):
+		result.append((context, 'content'))
+		result.append((context, 'explanation'))
+		for hint in context.hints or ():
+			result.extend(get_content_fields(hint))
+	elif 	IQAssignment.providedBy(context) \
+		or	IQuestion.providedBy(context) \
+		or	IQPoll.providedBy(context):
+		result.append((context, 'content'))
+		for part in context.parts or ():
+			result.extend(get_content_fields(part))
+	elif IQuestionSet.providedBy(context) or IQSurvey.providedBy(context):
+		for question in context.questions or ():
+			result.extend(get_content_fields(question))
+	elif IQAssignmentPart.providedBy(context):
+		result.append((context, 'content'))
+		result.extend(get_content_fields(context.question_set))
+	elif IQAssignment.providedBy(context):
+		result.append((context, 'content'))
+		for parts in context.parts or ():
+			result.extend(get_content_fields(parts))
+	return result
+
+def _handle_multipart(context, user, model, sources):
+	filer = get_course_filer(context, user)
+	for obj, name in get_content_fields(model):
+		value = getattr(obj, name, None)
+		if value and filer != None:
+			pass
+			# save a in a new file
 # 			key = get_safe_source_filename(source, name)
 # 			location = filer.save(key, source, overwrite=False,
 # 								  bucket=ASSETS_FOLDER, context=discussion)

@@ -15,6 +15,8 @@ from zope import lifecycleevent
 
 from zope.annotation.interfaces import IAnnotations
 
+from zope.intid.interfaces import IIntIdAddedEvent
+
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
 from zope.lifecycleevent.interfaces import IObjectRemovedEvent
 from zope.lifecycleevent.interfaces import IObjectModifiedEvent
@@ -38,8 +40,8 @@ from nti.app.externalization.error import raise_json_error
 
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQuestion
-from nti.assessment.interfaces import IQEditable
 from nti.assessment.interfaces import IQNonGradablePart
+from nti.assessment.interfaces import IQEditableEvalutation
 from nti.assessment.interfaces import IQNonGradableFilePart
 from nti.assessment.interfaces import IQEvaluationItemContainer
 from nti.assessment.interfaces import IQNonGradableConnectingPart
@@ -55,6 +57,8 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.contenttypes.courses.utils import get_course_editors
 
+from nti.coremetadata.interfaces import IRecordable
+
 from nti.dataserver.interfaces import ACE_DENY_ALL
 from nti.dataserver.interfaces import ALL_PERMISSIONS
 
@@ -65,6 +69,10 @@ from nti.dataserver.authorization_acl import ace_allowing
 from nti.dataserver.authorization_acl import acl_from_aces
 
 from nti.externalization.externalization import to_external_object
+
+from nti.recorder.interfaces import TRX_TYPE_CREATE
+
+from nti.recorder.utils import record_transaction
 
 from nti.traversal.traversal import find_interface
 
@@ -139,6 +147,11 @@ def _on_question_removed(question, event):
 def _on_poll_removed(poll, event):
 	_update_containment(poll)
 
+@component.adapter(IQEditableEvalutation, IIntIdAddedEvent)
+def _on_editable_eval_created(asset, event):
+	if IRecordable.providedBy(asset) and event.principal:
+		record_transaction(asset, type_=TRX_TYPE_CREATE)
+
 # Part change analyzers
 
 def _validate_question(question):
@@ -149,12 +162,12 @@ def _validate_question(question):
 
 @component.adapter(IQuestion, IObjectAddedEvent)
 def _on_question_added(question, event):
-	if IQEditable.providedBy(question):
+	if IQEditableEvalutation.providedBy(question):
 		_validate_question(question)
 
 @component.adapter(IQuestion, IObjectModifiedEvent)
 def _on_question_modified(question, event):
-	if IQEditable.providedBy(question):
+	if IQEditableEvalutation.providedBy(question):
 		_validate_question(question)
 
 def raise_error(v, tb=None, factory=hexc.HTTPUnprocessableEntity,):

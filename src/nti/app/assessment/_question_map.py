@@ -311,11 +311,14 @@ class QuestionMap(QuestionIndex):
 						# registered
 						if thing_to_register.__parent__ is None and parent is not None:
 							thing_to_register.__parent__ = parent
+						else:
+							logger.warn("Could not set parent for %s. %s %s", ntiid, 
+										thing_to_register.__parent__, parent)
 
 						# add to container and get and intid
-						parents_questions.append(thing_to_register)
 						self._intid_register(thing_to_register, registry=registry)
-
+						parents_questions.append(thing_to_register)
+							
 						# publish item
 						self._publish_object(thing_to_register)
 

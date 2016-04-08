@@ -5,6 +5,8 @@
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
+
+
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -13,6 +15,7 @@ generation = 19
 
 from zope import component
 from zope import interface
+from zope import lifecycleevent
 
 from zope.component.hooks import site
 from zope.component.hooks import setHooks
@@ -20,39 +23,45 @@ from zope.component.hooks import site as current_site
 
 from zope.intid.interfaces import IIntIds
 
-from nti.assessment.interfaces import IQPoll
-from nti.assessment.interfaces import IQuestion
-from nti.assessment.interfaces import IQEditable
-from nti.assessment.interfaces import IQAssignment
-from nti.assessment.interfaces import IQEvaluation
+from nti.app.contentlibrary.utils import yield_sync_content_packages
 
-from nti.coremetadata.interfaces import IPublishable
-from nti.coremetadata.interfaces import INoPublishLink 
+from nti.assessment.common import iface_of_assessment
+
+from nti.assessment.interfaces import IQAssessmentItemContainer
+
+from nti.contentlibrary.interfaces import IContentPackageLibrary
 
 from nti.dataserver.interfaces import IDataserver
 from nti.dataserver.interfaces import IOIDResolver
 
-from nti.recorder import get_recorder_catalog
-
 from nti.site.hostpolicy import get_all_host_sites
 
-def _process_items(registry, intids, seen):
-	catalog = get_recorder_catalog()
-	for _, item in list(registry.getUtilitiesFor(IQEvaluation)):
-		if IQEditable.providedBy(item):
-			continue
-		doc_id = intids.queryId(item)
-		if doc_id is not None and doc_id not in seen:
-			seen.add(doc_id)
-			if IPublishable.providedBy(item) and not item.is_published():
-				item.publish()
-				catalog.index_doc(doc_id, item)
-				interface.alsoProvides(item, INoPublishLink)
-			if 		IQAssignment.providedBy(item) \
-				or	IQuestion.providedBy(item) \
-				or	IQPoll.providedBy(item):
-				for x in item.parts or ():
-					x.__parent__ = item  # take ownership
+def _process_pacakge(package, intids):
+	def _recur(unit):
+		items = IQAssessmentItemContainer(unit)
+		for ntiid, item in list(items.items()): # mutating
+			provided = iface_of_assessment(item)
+			registered = component.getUtility(provided, name=ntiid)
+			if registered is not item:
+				if intids.queryId(registered) is None:
+					intids.register(registered)
+				if registered.__parent__ is None:
+					registered.__parent__ = unit
+				# update container
+				items.pop(ntiid, None)
+				items[ntiid] = registered
+				# update indices
+				lifecycleevent.modified(registered)
+				logger.warn("%s has been updated", ntiid)
+		for child in unit.children or ():
+			_recur(child)
+	_recur(package)
+	
+def _process_registry(registry, intids, seen):
+	for package in yield_sync_content_packages():
+		if package.ntiid not in seen:
+			seen.add(package.ntiid)
+			_process_pacakge(package, intids)
 
 @interface.implementer(IDataserver)
 class MockDataserver(object):
@@ -84,17 +93,22 @@ def do_evolve(context, generation=generation):
 		assert 	component.getSiteManager() == ds_folder.getSiteManager(), \
 				"Hooks not installed?"
 
+		library = component.queryUtility(IContentPackageLibrary)
+		if library is not None:
+			library.syncContentPackages()
+
 		seen = set()
 		for site in get_all_host_sites():
 			with current_site(site):
 				registry = component.getSiteManager()
-				_process_items(registry, intids, seen)
+				_process_registry(registry, intids, seen)
 
 	component.getGlobalSiteManager().unregisterUtility(mock_ds, IDataserver)
 	logger.info('Assessment evolution %s done.', generation)
 
 def evolve(context):
 	"""
-	Evolve to generation 19 by publishing evaluations
+	Evolve to generation 20 by updating the AssessmentItemContainer for content units
+	with the registered objects
 	"""
 	do_evolve(context)

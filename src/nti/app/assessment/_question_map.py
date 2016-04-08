@@ -208,10 +208,13 @@ class QuestionMap(QuestionIndex):
 		# We always want to register and persist our assessment items,
 		# even from the global library.
 		registry = self._get_registry(registry)
+		intids = component.getUtility(IIntIds) if intids is None else intids
 		connection = self._connection(registry) if connection is None else connection
 		if connection is not None:  # Tests/
-			connection.add(item)
-			addIntId(item)
+			if IConnection(item, None) is None:
+				connection.add(item)
+			if intids is not None and intids.queryId(item) is None:
+				addIntId(item)
 			return True
 		return False
 
@@ -252,9 +255,10 @@ class QuestionMap(QuestionIndex):
 
 		parent = None
 		signatures_dict = signatures_dict or {}
+		intids = component.getUtility(IIntIds)
 		library = component.queryUtility(IContentPackageLibrary)
 		parents_questions = IQAssessmentItemContainer(content_package)
-
+		
 		hierarchy_ntiids = set()
 		hierarchy_ntiids.add(content_package.ntiid)
 
@@ -316,7 +320,9 @@ class QuestionMap(QuestionIndex):
 										thing_to_register.__parent__, parent)
 
 						# add to container and get and intid
-						self._intid_register(thing_to_register, registry=registry)
+						self._intid_register(thing_to_register, 
+											 intids=intids, 
+											 registry=registry)
 						parents_questions.append(thing_to_register)
 							
 						# publish item
@@ -328,6 +334,11 @@ class QuestionMap(QuestionIndex):
 					elif ntiid and ntiid not in parents_questions:
 						# XXX: Seen in alpha 
 						# registered object is not in unit container 
+						if thing_to_register.__parent__ is None and parent is not None:
+							thing_to_register.__parent__ = parent
+						self._intid_register(thing_to_register,
+											 intids=intids, 
+											 registry=registry)
 						parents_questions.append(thing_to_register)
 			else:
 				obj = registered

@@ -14,6 +14,8 @@ from io import BytesIO
 
 from zope import component
 
+from zope.component.hooks import site as current_site
+
 from zope.security.interfaces import IPrincipal
 
 from pyramid import httpexceptions as hexc
@@ -25,6 +27,7 @@ from nti.app.assessment import MessageFactory as _
 from nti.app.assessment._question_map import _add_assessment_items_from_new_content
 from nti.app.assessment._question_map import _remove_assessment_items_from_oldcontent
 
+from nti.app.assessment.common import get_resource_site_name
 from nti.app.assessment.common import get_course_from_inquiry
 
 from nti.app.assessment.interfaces import IUsersCourseInquiry
@@ -63,6 +66,8 @@ from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.ntiids.ntiids import find_object_with_ntiid
+
+from nti.site.hostpolicy import get_host_site
 
 ITEMS = StandardExternalFields.ITEMS
 
@@ -183,7 +188,10 @@ class UnregisterAssessmentItemsView(AbstractAuthenticatedView,
 		if package is None:
 			raise hexc.HTTPUnprocessableEntity(_("Invalid content package."))
 
-		items = _remove_assessment_items_from_oldcontent(package, force=force)
+		name = get_resource_site_name(package)
+		site = get_host_site(name)
+		with current_site(site):
+			items = _remove_assessment_items_from_oldcontent(package, force=force)
 		result = LocatedExternalDict()
 		result[ITEMS] = sorted(items.keys())
 		result['ItemCount'] = result['Total'] = len(items)
@@ -220,10 +228,13 @@ class RegisterAssessmentItemsView(AbstractAuthenticatedView,
 		result = LocatedExternalDict()
 		key = package.does_sibling_entry_exist('assessment_index.json')
 		if key is not None:
-			items = _add_assessment_items_from_new_content(package, key)
-			main_container = IQAssessmentItemContainer(package)
-			main_container.lastModified = key.lastModified
-			result.lastModified = key.lastModified
+			name = get_resource_site_name(package)
+			site = get_host_site(name)
+			with current_site(site):
+				items = _add_assessment_items_from_new_content(package, key)
+				main_container = IQAssessmentItemContainer(package)
+				main_container.lastModified = key.lastModified
+				result.lastModified = key.lastModified
 		result[ITEMS] = sorted(items)
 		result['ItemCount'] = result['Total'] = len(items)
 		return result

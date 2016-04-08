@@ -28,8 +28,7 @@ from nti.assessment.common import iface_of_assessment
 
 from nti.assessment.interfaces import ALL_EVALUATION_MIME_TYPES
 
-from nti.assessment.interfaces import IQInquiry
-from nti.assessment.interfaces import IQAssessment
+from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.contentlibrary.indexed_data import get_library_catalog
@@ -65,14 +64,10 @@ def _master_data_collector():
 	
 	for site in get_all_host_sites():
 		registry = site.getSiteManager()
-		for ntiid, item in list(registry.getUtilitiesFor(IQAssessment)):
+		for ntiid, item in list(registry.getUtilitiesFor(IQEvaluation)):
 			if ntiid not in registered:
 				registered[ntiid] = (site, item)
-				
-		for ntiid, item in list(registry.getUtilitiesFor(IQInquiry)):
-			if ntiid not in registered:
-				registered[ntiid] = (site, item)
-				
+
 		with current_site(site):
 			for package in yield_sync_content_packages():
 				if package.ntiid not in seen:
@@ -89,7 +84,7 @@ def _get_data_item_counts(intids):
 	}
 	for uid in catalog.apply(query) or ():
 		item = intids.queryObject(uid)
-		if IQAssessment.providedBy(item) or IQInquiry.providedBy(item):
+		if IQEvaluation.providedBy(item):
 			count[item.ntiid].append(item)
 	return count
 

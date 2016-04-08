@@ -44,6 +44,9 @@ def _process_pacakge(package, intids):
 			registered = component.queryUtility(provided, name=ntiid)
 			if registered is None:
 				items.pop(ntiid, None)
+				if intids.queryId(item) is not None:
+					lifecycleevent.removed(item)
+				item.__parent__ = None
 				logger.warn("%s has been removed from container %s", 
 						    ntiid, unit.ntiid)
 			elif registered is not item:

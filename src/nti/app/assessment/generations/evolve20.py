@@ -11,13 +11,12 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-generation = 19
+generation = 20
 
 from zope import component
 from zope import interface
 from zope import lifecycleevent
 
-from zope.component.hooks import site
 from zope.component.hooks import setHooks
 from zope.component.hooks import site as current_site
 

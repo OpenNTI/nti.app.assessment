@@ -52,7 +52,8 @@ def _process_pacakge(package, intids):
 				items[ntiid] = registered
 				# update indices
 				lifecycleevent.modified(registered)
-				logger.warn("%s has been updated", ntiid)
+				logger.warn("%s has been updated in container %s", 
+						    ntiid, unit.ntiid)
 		for child in unit.children or ():
 			_recur(child)
 	_recur(package)

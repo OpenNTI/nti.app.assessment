@@ -297,11 +297,11 @@ class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 			elif IQSurvey.providedBy(item):
 				qsids_to_strip.update(p.ntiid for p in item.questions or ())
 			else:
+				# CS: We can remove proxies since the items are neither assignments
+				# nor survey, so no course lookup is necesary
+				item = removeAllProxies(item)
 				unit_ntiid = get_containerId(item)
-				if unit_ntiid:
-					# CS: We can remove proxies since the items are neither assignments
-					# nor survey, so no course lookup is necesary
-					item = removeAllProxies(item)
+				if unit_ntiid:	
 					data[unit_ntiid][item.ntiid] = item
 				else:
 					logger.error("%s is an item without parent unit", item.ntiid)

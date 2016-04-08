@@ -334,11 +334,6 @@ class QuestionMap(QuestionIndex):
 					elif ntiid and ntiid not in parents_questions:
 						# XXX: Seen in alpha 
 						# registered object is not in unit container 
-						if thing_to_register.__parent__ is None and parent is not None:
-							thing_to_register.__parent__ = parent
-						self._intid_register(thing_to_register,
-											 intids=intids, 
-											 registry=registry)
 						parents_questions.append(thing_to_register)
 			else:
 				obj = registered

@@ -39,7 +39,7 @@ from nti.contentlibrary.interfaces import IContentPackageLibrary
 from nti.dataserver.utils import run_with_dataserver
 from nti.dataserver.utils.base_script import create_context
 
-from nti.intid.common import removeIntId, addIntId
+from nti.intid.common import removeIntId
 
 from nti.metadata import dataserver_metadata_catalog
 				
@@ -154,11 +154,6 @@ def _process_args(verbose=True, with_library=True):
 			if unit is not None:
 				logger.warn("Fixing lineage for %s", ntiid)	
 				registered.__parent__ = unit
-			
-		# make sure we have an intid
-		if intids.queryId(registered) is None and registered.__parent__ is not None:
-			logger.warn("Adding intid to %s", ntiid)	
-			addIntId(registered)
 
 		# make sure containers have registered object
 		for container in containers or ():

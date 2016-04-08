@@ -41,8 +41,12 @@ def _process_pacakge(package, intids):
 		items = IQAssessmentItemContainer(unit)
 		for ntiid, item in list(items.items()): # mutating
 			provided = iface_of_assessment(item)
-			registered = component.getUtility(provided, name=ntiid)
-			if registered is not item:
+			registered = component.queryUtility(provided, name=ntiid)
+			if registered is None:
+				items.pop(ntiid, None)
+				logger.warn("%s has been removed from container %s", 
+						    ntiid, unit.ntiid)
+			elif registered is not item:
 				if intids.queryId(registered) is None:
 					intids.register(registered)
 				if registered.__parent__ is None:

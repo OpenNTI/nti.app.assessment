@@ -159,6 +159,8 @@ def _process_args(verbose=True, with_library=True):
 		for container in containers or ():
 			item = container.get(ntiid)
 			if item is not registered:
+				if intids.queryId(item) is not None:
+					removeIntId(item)
 				logger.warn("Adjusting container for %s", ntiid)
 				container.pop(ntiid, None)
 				container[ntiid] = registered

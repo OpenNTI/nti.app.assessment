@@ -336,6 +336,9 @@
 
 	<!-- Exporter -->
 	<utility factory=".exporter.AssessmentsExporter" name="010:Assessments" />
+
+	<!-- Importer -->
+	<utility factory=".importer.AssessmentsImporter" name="010:Assessments" />
 		
 	<!-- Metadata -->
 	<configure zcml:condition="installed nti.metadata">

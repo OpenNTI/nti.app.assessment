@@ -208,7 +208,7 @@ class QuestionMap(QuestionIndex):
 		# We always want to register and persist our assessment items,
 		# even from the global library.
 		registry = self._get_registry(registry)
-		intids = component.getUtility(IIntIds) if intids is None else intids
+		intids = component.queryUtility(IIntIds) if intids is None else intids
 		connection = self._connection(registry) if connection is None else connection
 		if connection is not None:  # Tests/
 			if IConnection(item, None) is None:
@@ -255,7 +255,7 @@ class QuestionMap(QuestionIndex):
 
 		parent = None
 		signatures_dict = signatures_dict or {}
-		intids = component.getUtility(IIntIds)
+		intids = component.queryUtility(IIntIds)
 		library = component.queryUtility(IContentPackageLibrary)
 		parents_questions = IQAssessmentItemContainer(content_package)
 		

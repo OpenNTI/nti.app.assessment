@@ -351,6 +351,8 @@ class EvaluationMixin(object):
 			result = self.handle_assignment(theObject, course, sources, user)
 		else:
 			result = theObject
+		if sources:
+			_handle_multipart(course, user, result, sources)
 		return result
 
 # POST views

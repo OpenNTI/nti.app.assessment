@@ -9,8 +9,13 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+import os
 import copy
 import uuid
+from urlparse import urlparse
+
+from html5lib import HTMLParser
+from html5lib import treebuilders
 
 from zope import component
 from zope import interface
@@ -35,6 +40,7 @@ from nti.app.assessment.interfaces import IQPartChangeAnalyzer
 from nti.app.assessment.views.view_mixins import AssessmentPutView
 
 from nti.app.base.abstract_views import get_all_sources
+from nti.app.base.abstract_views import get_safe_source_filename
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
 from nti.app.externalization.error import raise_json_error
@@ -42,6 +48,8 @@ from nti.app.externalization.error import raise_json_error
 from nti.app.externalization.view_mixins import BatchingUtilsMixin
 
 from nti.app.contentfile import validate_sources
+
+from nti.app.products.courseware import ASSETS_FOLDER
 
 from nti.app.products.courseware.resources.utils import get_course_filer
 
@@ -57,7 +65,7 @@ from nti.appserver.ugd_edit_views import UGDDeleteView
 from nti.assessment.common import iface_of_assessment
 
 from nti.assessment.interfaces import IQHint
-from nti.assessment.interfaces import IQPart 
+from nti.assessment.interfaces import IQPart
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQuestion
@@ -71,6 +79,12 @@ from nti.assessment.interfaces import IQEvaluationItemContainer
 from nti.common.maps import CaseInsensitiveDict
 
 from nti.common.property import Lazy
+
+from nti.contentfragments.html import _html5lib_tostring
+
+from nti.contentfragments.interfaces import IHTMLContentFragment
+
+from nti.contenttypes.courses.interfaces import NTI_COURSE_FILE_SCHEME
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
@@ -93,7 +107,7 @@ from nti.traversal.traversal import find_interface
 ITEMS = StandardExternalFields.ITEMS
 NTIID = StandardExternalFields.NTIID
 
-def get_content_fields(context):
+def get_html_content_fields(context):
 	result = []
 	if IQHint.providedBy(context):
 		result.append((context, 'value'))
@@ -101,36 +115,57 @@ def get_content_fields(context):
 		result.append((context, 'content'))
 		result.append((context, 'explanation'))
 		for hint in context.hints or ():
-			result.extend(get_content_fields(hint))
+			result.extend(get_html_content_fields(hint))
 	elif 	IQAssignment.providedBy(context) \
 		or	IQuestion.providedBy(context) \
 		or	IQPoll.providedBy(context):
 		result.append((context, 'content'))
 		for part in context.parts or ():
-			result.extend(get_content_fields(part))
+			result.extend(get_html_content_fields(part))
 	elif IQuestionSet.providedBy(context) or IQSurvey.providedBy(context):
 		for question in context.questions or ():
-			result.extend(get_content_fields(question))
+			result.extend(get_html_content_fields(question))
 	elif IQAssignmentPart.providedBy(context):
 		result.append((context, 'content'))
-		result.extend(get_content_fields(context.question_set))
+		result.extend(get_html_content_fields(context.question_set))
 	elif IQAssignment.providedBy(context):
 		result.append((context, 'content'))
 		for parts in context.parts or ():
-			result.extend(get_content_fields(parts))
-	return result
+			result.extend(get_html_content_fields(parts))
+	return tuple(result)
 
 def _handle_multipart(context, user, model, sources):
 	filer = get_course_filer(context, user)
-	for obj, name in get_content_fields(model):
+	for obj, name in get_html_content_fields(model):
 		value = getattr(obj, name, None)
 		if value and filer != None:
-			pass
-			# save a in a new file
-# 			key = get_safe_source_filename(source, name)
-# 			location = filer.save(key, source, overwrite=False,
-# 								  bucket=ASSETS_FOLDER, context=discussion)
-# 			setattr(discussion, name, location)
+			modified = False
+			value = IHTMLContentFragment(value)
+			parser = HTMLParser(tree=treebuilders.getTreeBuilder("lxml"),
+								namespaceHTMLElements=False)
+			doc = parser.parse(value)
+			for e in doc.iter():
+				attrib = e.attrib
+				href = attrib.get('href') or u''
+				if href.startswith(NTI_COURSE_FILE_SCHEME):
+					# save resource in filer
+					path = urlparse(href).path
+					name = os.path.split(path)[1]
+					source = sources.get(name)
+					if source is None:
+						logger.error("Missing source %s", href)
+						continue
+					key = get_safe_source_filename(source, name)
+					location = filer.save(key, source, overwrite=False,
+										  bucket=ASSETS_FOLDER, context=model)
+					# change href
+					attrib['href'] = location
+					modified = True
+
+			if modified:
+				value = _html5lib_tostring(doc, sanitize=False)
+				setattr(obj, name, value)
+	return model
 
 @view_config(context=ICourseEvaluations)
 @view_defaults(route_name='objects.generic.traversal',

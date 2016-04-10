@@ -96,7 +96,7 @@ NAQ = NTIID_TYPE
 
 def get_evaluation_containment(ntiid, sites=None, intids=None):
 	result = []
-	sites = get_component_hierarchy_names() if not sites else None
+	sites = get_component_hierarchy_names() if not sites else sites
 	sites = sites.split() if isinstance(sites, six.string_types) else sites
 	query = {
 		IX_SITE: {'any_of': sites},

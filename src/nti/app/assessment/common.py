@@ -65,6 +65,7 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.contenttypes.courses.common import get_course_packages
+
 from nti.contenttypes.courses.utils import get_course_hierarchy
 
 from nti.coremetadata.interfaces import IRecordable
@@ -98,12 +99,12 @@ def get_evaluation_containment(ntiid, sites=None, intids=None):
 	sites = get_component_hierarchy_names() if not sites else None
 	sites = sites.split() if isinstance(sites, six.string_types) else sites
 	query = {
-		IX_SITE: {'any-of': (sites,)},
-		IX_CONTAINMENT: {'any-of': (ntiid,)}
+		IX_SITE: {'any_of': sites},
+		IX_CONTAINMENT: {'any_of': (ntiid,)}
 	}
 	catalog = get_evaluation_catalog()
 	intids = component.getUtility(IIntIds) if intids is None else intids
-	for uid in catalog.apply(query):
+	for uid in catalog.apply(query) or ():
 		container = intids.queryObject(uid)
 		if container is not None and container.ntiid != ntiid:
 			result.append(container)

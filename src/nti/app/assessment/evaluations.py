@@ -180,6 +180,15 @@ class _BasicPartChangeAnalyzer(object):
 	def __init__(self, part):
 		self.part = part
 	
+	def validate(self, part=None):
+		raise NotImplementedError()
+	
+	def allow(self, change):
+		raise NotImplementedError()
+	
+	def regrade(self, change):
+		raise NotImplementedError()
+
 def to_int(value):
 	try:
 		return int(value)
@@ -236,7 +245,7 @@ class _MultipleChoicePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 				# label change, make sure we are not reordering
 				if old != new and new in old_choices[idx + 1:]:
 					return False
-		# check new new_solss
+		# check new new sols
 		new_sols = change.get('solutions')
 		if new_sols is not None:
 			old_sols = self.part.solutions
@@ -299,6 +308,9 @@ class _FreeResponsePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 
 	def allow(self, change):
 		return True  # always allow
+	
+	def regrade(self, change):
+		return False 
 
 @interface.implementer(IQPartChangeAnalyzer)
 @component.adapter(IQNonGradableConnectingPart)
@@ -404,6 +416,16 @@ class _ConnectingPartChangeAnalyzer(_BasicPartChangeAnalyzer):
 					return False
 		return True
 
+	def regrade(self, change):
+		new_sols = change.get('solutions')
+		if new_sols is not None:
+			old_sols = self.part.solutions
+			for old, new in enumerate(zip(old_sols, new_sols)):
+				# change solution order/value
+				if self.homogenize(old.value) != self.homogenize(new.get('value')):  # map of ints
+					return True
+		return False
+
 @component.adapter(IQNonGradableFilePart)
 @interface.implementer(IQPartChangeAnalyzer)
 class _FilePartChangeAnalyzer(_BasicPartChangeAnalyzer):
@@ -413,3 +435,6 @@ class _FilePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 
 	def allow(self, change):
 		return True  # always allow
+	
+	def regrade(self, change):
+		return False

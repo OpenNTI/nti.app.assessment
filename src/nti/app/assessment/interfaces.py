@@ -438,3 +438,10 @@ class IQPartChangeAnalyzer(interface.Interface):
 		
 		:change: Part update
 		"""
+		
+	def regrade(change):
+		"""
+		Given the specified change it returns whether or not the part must be regraded
+		
+		:change: Part update
+		"""

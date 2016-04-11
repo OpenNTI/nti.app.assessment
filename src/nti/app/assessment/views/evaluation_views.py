@@ -355,6 +355,9 @@ class EvaluationMixin(object):
 			_handle_multipart(course, user, result, sources)
 		return result
 
+	def post_update_check(self, contentObject, externalValue):
+		pass
+
 # POST views
 
 @view_config(context=ICourseEvaluations)
@@ -428,7 +431,10 @@ class EvaluationPutView(EvaluationMixin, UGDPutView):
 			validate_sources(self.remoteUser, result.model, sources)
 
 		self.handle_evaluation(contentObject, self.course, sources, self.remoteUser)
+		# validate changes - subscribers
 		notifyModified(contentObject, originalSource)
+		# post validation
+		self.post_update_check(contentObject, originalSource)
 		return result
 
 @view_config(route_name='objects.generic.traversal',
@@ -453,6 +459,10 @@ class QuestionPutView(EvaluationPutView):
 						u'code': 'CannotChangeObjectDefinition',
 					},
 					None)
+
+	def post_update_check(self, contentObject, externalValue):
+		parts = externalValue.get('parts')
+		if self.has_submissions:
 			for part, change in zip(self.context.parts, parts):
 				analyzer = IQPartChangeAnalyzer(part, None)
 				if analyzer is None or not analyzer.allow(change):
@@ -515,7 +525,10 @@ class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):
 
 		if IQEditableEvalutation.providedBy(contentObject):
 			self.handle_evaluation(contentObject, self.course, sources, self.remoteUser)
+		# validate changes, subscribers
 		notifyModified(contentObject, originalSource)
+		# post validation
+		self.post_update_check(contentObject, originalSource)
 		return result
 
 @view_config(route_name='objects.generic.traversal',
@@ -550,17 +563,21 @@ class PollPutView(NewAndLegacyPutView):
 								u'code': 'CannotChangeObjectDefinition',
 							},
 							None)
-				for part, change in zip(self.context.parts, parts):
-					analyzer = IQPartChangeAnalyzer(part, None)
-					if analyzer is None or not analyzer.allow(change):
-						raise_json_error(
-							self.request,
-							hexc.HTTPUnprocessableEntity,
-							{
-								u'message': _("Poll has submissions. It cannot be updated"),
-								u'code': 'CannotChangeObjectDefinition',
-							},
-							None)
+
+	def post_update_check(self, contentObject, externalValue):
+		parts = externalValue.get('parts')
+		if self.has_submissions:
+			for part, change in zip(self.context.parts, parts):
+				analyzer = IQPartChangeAnalyzer(part, None)
+				if analyzer is None or not analyzer.allow(change):
+					raise_json_error(
+						self.request,
+						hexc.HTTPUnprocessableEntity,
+						{
+							u'message': _("Poll has submissions. It cannot be updated"),
+							u'code': 'CannotChangeObjectDefinition',
+						},
+						None)
 
 	def validate(self, contentObject, externalValue, courses=()):
 		if not IPublishable.providedBy(contentObject) or contentObject.is_published():

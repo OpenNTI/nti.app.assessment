@@ -191,6 +191,9 @@ def to_int(value):
 @component.adapter(IQNonGradableMultipleChoicePart)
 class _MultipleChoicePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 
+	def homogenize(self, value):
+		return to_int(value)
+
 	def validate_solutions(self, part):
 		solutions = part.solutions
 		if not solutions:
@@ -200,7 +203,7 @@ class _MultipleChoicePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 			if not solution or solution.value is None:
 				raise raise_error({ u'message': _("Solution cannot be empty."),
 									u'code': 'InvalidSolution'})
-			value = int(solution.value) # solutions are indices
+			value = to_int(solution.value) # solutions are indices
 			if value < 0 or value >= len(part.choices):  
 				raise raise_error({ u'message': _("Solution in not in choices."),
 									u'code': 'InvalidSolution'})
@@ -240,16 +243,25 @@ class _MultipleChoicePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 			# cannot substract solutions
 			if len(new_sols) < len(old_sols):
 				return False
-			for old, new in enumerate(zip(old_sols, new_sols)):
-				# cannot change solution order/value
-				if old.value != new.get('value'):  # int or array of ints
-					return False
 		return True
+
+	def regrade(self, change):
+		new_sols = change.get('solutions')
+		if new_sols is not None:
+			old_sols = self.part.solutions
+			for old, new in enumerate(zip(old_sols, new_sols)):
+				# change solution order/value - # int or array of ints
+				if self.homogenize(old.value) != self.homogenize(new.get('value')):
+					return True
+		return False
 
 @interface.implementer(IQPartChangeAnalyzer)
 @component.adapter(IQNonGradableMultipleChoiceMultipleAnswerPart)
 class _MultipleChoiceMultipleAnswerPartChangeAnalyzer(_MultipleChoicePartChangeAnalyzer):
 
+	def homogenize(self, value):
+		return tuple(to_int(x) for x in value)
+	
 	def validate_solutions(self, part):
 		solutions = part.solutions
 		if not solutions:
@@ -292,6 +304,9 @@ class _FreeResponsePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 @component.adapter(IQNonGradableConnectingPart)
 class _ConnectingPartChangeAnalyzer(_BasicPartChangeAnalyzer):
 
+	def homogenize(self, value):
+		return {to_int(x):to_int(y) for x, y in value.items()}
+	
 	def validate(self, part=None):
 		part = self.part if part is None else part
 		labels = part.labels or ()
@@ -385,7 +400,7 @@ class _ConnectingPartChangeAnalyzer(_BasicPartChangeAnalyzer):
 				return False
 			for old, new in enumerate(zip(old_sols, new_sols)):
 				# cannot change solution order/value
-				if old.value != new.get('value'):  # map of ints
+				if self.homogenize(old.value) != self.homogenize(new.get('value')):  # map of ints
 					return False
 		return True
 

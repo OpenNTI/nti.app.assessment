@@ -424,17 +424,17 @@ class ICourseEvaluations(IContainer,
 
 class IQPartChangeAnalyzer(interface.Interface):
 	"""
-	Marker interface for a question part adapter to analyze a update to it
+	Marker interface for a question part adapter to analyze an update to it
 	"""
 	
 	def validate(part=None):
 		"""
-		validate the specified or adapted part
+		validate this or the specified part
 		"""
 
 	def allow(change):
 		"""
-		Given the specified change it return whether or not it is allowed
+		Given the specified change it returns whether or not it is allowed
 		
 		:change: Part update
 		"""

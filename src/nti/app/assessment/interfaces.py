@@ -18,10 +18,13 @@ from zope.container.interfaces import IContained
 from zope.container.interfaces import IContainer
 from zope.container.interfaces import IContainerNamesContainer
 
+from zope.interface.interfaces import ObjectEvent
+from zope.interface.interfaces import IObjectEvent
+
 from zope.security.permission import Permission
 
-from nti.assessment.interfaces import IQAssignment 
-from nti.assessment.interfaces import IQEvaluation 
+from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQAssignmentSubmission
 from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 
@@ -412,7 +415,7 @@ class ICourseAggregatedInquiries(IContainer,
 	A container for all the aggreated survey and polls key by their ntiids
 	"""
 	contains(IQAggregatedInquiry)
-	
+
 
 class ICourseEvaluations(IContainer,
 						 IContained,
@@ -426,7 +429,7 @@ class IQPartChangeAnalyzer(interface.Interface):
 	"""
 	Marker interface for a question part adapter to analyze an update to it
 	"""
-	
+
 	def validate(part=None):
 		"""
 		validate this or the specified part
@@ -435,13 +438,22 @@ class IQPartChangeAnalyzer(interface.Interface):
 	def allow(change):
 		"""
 		Given the specified change it returns whether or not it is allowed
-		
+
 		:change: Part update
 		"""
-		
+
 	def regrade(change):
 		"""
 		Given the specified change it returns whether or not the part must be regraded
-		
+
 		:change: Part update
 		"""
+
+class IRegradeQuestionEvent(IObjectEvent):
+	parts = interface.Attribute("Change parts")
+
+class RegradeQuestionEvent(ObjectEvent):
+
+	def __init__(self, obj, parts=()):
+		self.obj = obj
+		self.parts = parts or ()

@@ -170,7 +170,7 @@ def _on_question_modified(question, event):
 	if IQEditableEvalutation.providedBy(question):
 		_validate_question(question)
 
-def raise_error(v, tb=None, factory=hexc.HTTPUnprocessableEntity,):
+def raise_error(v, tb=None, factory=hexc.HTTPUnprocessableEntity):
 	request = get_current_request()
 	raise_json_error(request, factory, v, tb)
 
@@ -187,7 +187,7 @@ class _BasicPartChangeAnalyzer(object):
 		raise NotImplementedError()
 	
 	def regrade(self, change):
-		raise NotImplementedError()
+		raise False
 
 def to_int(value):
 	try:
@@ -308,9 +308,6 @@ class _FreeResponsePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 
 	def allow(self, change):
 		return True  # always allow
-	
-	def regrade(self, change):
-		return False 
 
 @interface.implementer(IQPartChangeAnalyzer)
 @component.adapter(IQNonGradableConnectingPart)
@@ -435,6 +432,3 @@ class _FilePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 
 	def allow(self, change):
 		return True  # always allow
-	
-	def regrade(self, change):
-		return False

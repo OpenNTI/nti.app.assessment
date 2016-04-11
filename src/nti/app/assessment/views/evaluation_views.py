@@ -21,6 +21,8 @@ from zope import component
 from zope import interface
 from zope import lifecycleevent
 
+from zope.event import notify
+
 from pyramid import httpexceptions as hexc
 
 from pyramid.view import view_config
@@ -36,6 +38,8 @@ from nti.app.assessment.common import get_evaluation_containment
 
 from nti.app.assessment.interfaces import ICourseEvaluations
 from nti.app.assessment.interfaces import IQPartChangeAnalyzer
+
+from nti.app.assessment.interfaces import RegradeQuestionEvent
 
 from nti.app.assessment.views.view_mixins import AssessmentPutView
 
@@ -463,17 +467,23 @@ class QuestionPutView(EvaluationPutView):
 	def post_update_check(self, contentObject, externalValue):
 		parts = externalValue.get('parts')
 		if self.has_submissions:
+			regrade = []
 			for part, change in zip(self.context.parts, parts):
 				analyzer = IQPartChangeAnalyzer(part, None)
-				if analyzer is None or not analyzer.allow(change):
-					raise_json_error(
-						self.request,
-						hexc.HTTPUnprocessableEntity,
-						{
-							u'message': _("Question has submissions. It cannot be updated"),
-							u'code': 'CannotChangeObjectDefinition',
-						},
-						None)
+				if analyzer is None:
+					if not analyzer.allow(change):
+						raise_json_error(
+							self.request,
+							hexc.HTTPUnprocessableEntity,
+							{
+								u'message': _("Question has submissions. It cannot be updated"),
+								u'code': 'CannotChangeObjectDefinition',
+							},
+							None)
+					if analyzer.regrade(change):
+						regrade.append(part)
+			if regrade:
+				notify(RegradeQuestionEvent(contentObject, regrade))
 
 @view_config(route_name='objects.generic.traversal',
 			 context=IQuestionSet,
@@ -487,8 +497,8 @@ class QuestionSetPutView(EvaluationPutView):
 	def _check_object_constraints(self, obj, externalValue):
 		super(QuestionSetPutView, self)._check_object_constraints(obj, externalValue)
 		course = find_interface(obj, ICourseInstance, strict=False)
-		parts = externalValue.get('questions')
-		if parts:  # check for submissions
+		questions = externalValue.get('questions')
+		if questions:  # check for submissions
 			validate_submissions(obj, course, self.request)
 
 class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):

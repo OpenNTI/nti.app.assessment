@@ -78,12 +78,17 @@ class TestEvaluationViews(ApplicationLayerTest):
 		res = self.testapp.get(href, status=200)
 		assert_that(res.json_body, has_entry('ItemCount', greater_than(1)))
 		# put
+		hrefs = []
 		for question in posted:
 			url = question.pop('href')
 			self.testapp.put_json(url, question, status=200)
+			hrefs.append(url)
 		# post question set and assignment
 		assignment = self._load_assignment()
 		for evaluation in (qset, assignment):
 			evaluation = to_external_object(evaluation)
 			res = self.testapp.post_json(href, evaluation, status=201)
 			assert_that(res.json_body, has_entry(NTIID, is_not(none())))
+			hrefs.append(res.json_body['href'])
+		# delete
+		self.testapp.delete(hrefs[0], status=204)

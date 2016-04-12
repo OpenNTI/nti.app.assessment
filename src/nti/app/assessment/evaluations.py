@@ -407,10 +407,6 @@ class _ConnectingPartChangeAnalyzer(_BasicPartChangeAnalyzer):
 			# cannot substract solutions
 			if len(new_sols) < len(old_sols):
 				return False
-			for old, new in enumerate(zip(old_sols, new_sols)):
-				# cannot change solution order/value
-				if self.homogenize(old.value) != self.homogenize(new.get('value')):  # map of ints
-					return False
 		return True
 
 	def regrade(self, change):

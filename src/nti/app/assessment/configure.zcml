@@ -349,7 +349,7 @@
 		<subscriber	factory=".predicates._InquiryPrincipalObjects"
 					provides="nti.dataserver.interfaces.IPrincipalMetadataObjects" />
 		
-		<subscriber	factory=".predicates._AssesmentsObjects"
+		<subscriber	factory=".predicates._EvaluationObjects"
 					provides="nti.dataserver.interfaces.IPrincipalMetadataObjects" />
 	</configure>
 

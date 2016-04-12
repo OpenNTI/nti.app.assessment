@@ -17,8 +17,7 @@ from nti.app.assessment.interfaces import IUsersCourseInquiry
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 
-from nti.assessment.interfaces import IQInquiry
-from nti.assessment.interfaces import IQAssessment 
+from nti.assessment.interfaces import IQEvaluation
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
@@ -133,14 +132,13 @@ class _InquiryPrincipalObjects(BasePrincipalObjects):
 		return result
 
 @component.adapter(ISystemUserPrincipal)
-class _AssesmentsObjects(BasePrincipalObjects):
+class _EvaluationObjects(BasePrincipalObjects):
 
 	def iter_items(self, result, seen):
-		for iface in (IQAssessment, IQInquiry):
-			for _, item in list(component.getUtilitiesFor(iface)):
-				if item.ntiid not in seen:
-					seen.add(item.ntiid)
-					result.append(item)
+		for ntiid, item in list(component.getUtilitiesFor(IQEvaluation)):
+			if ntiid not in seen:
+				seen.add(ntiid)
+				result.append(item)
 
 	def iter_objects(self):
 		result = []

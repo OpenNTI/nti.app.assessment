@@ -178,9 +178,6 @@ def _validate_part_resource(resource):
 		if analyzer is not None:
 			analyzer.validate()
 
-_validate_poll = _validate_part_resource
-_validate_question = _validate_part_resource
-
 def _allow_question_change(question, externalValue):
 	parts = externalValue.get('parts')
 	course = find_interface(question, ICourseInstance, strict=False)
@@ -217,18 +214,23 @@ def _allow_poll_change(question, externalValue):
 @component.adapter(IQuestion, IObjectAddedEvent)
 def _on_question_added(question, event):
 	if IQEditableEvalutation.providedBy(question):
-		_validate_question(question)
+		_validate_part_resource(question)
 
 @component.adapter(IQuestion, IObjectModifiedFromExternalEvent)
 def _on_question_modified(question, event):
 	if IQEditableEvalutation.providedBy(question):
-		_validate_question(question)
+		_validate_part_resource(question)
 		_allow_question_change(question, event.external_value)
+
+@component.adapter(IQPoll, IObjectAddedEvent)
+def _on_poll_added(poll, event):
+	if IQEditableEvalutation.providedBy(poll):
+		_validate_part_resource(poll)
 
 @component.adapter(IQPoll, IObjectModifiedFromExternalEvent)
 def _on_poll_modified(poll, event):
 	if IQEditableEvalutation.providedBy(poll):
-		_validate_poll(poll)
+		_validate_part_resource(poll)
 		_allow_poll_change(poll)
 
 @interface.implementer(IQPartChangeAnalyzer)

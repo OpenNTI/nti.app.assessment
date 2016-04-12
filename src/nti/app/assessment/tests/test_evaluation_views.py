@@ -16,6 +16,7 @@ does_not = is_not
 
 import os
 import json
+import fudge
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
@@ -92,3 +93,24 @@ class TestEvaluationViews(ApplicationLayerTest):
 			hrefs.append(res.json_body['href'])
 		# delete
 		self.testapp.delete(hrefs[0], status=204)
+
+	@WithSharedApplicationMockDS(testapp=True, users=True)
+	@fudge.patch('nti.app.assessment.evaluations.has_submissions',
+				 'nti.app.assessment.views.evaluation_views.has_submissions')
+	def test_change_with_subs(self, mock_ehs, mock_vhs):
+		mock_ehs.is_callable().with_args().returns(False)
+		mock_vhs.is_callable().with_args().returns(False)
+
+		course_oid = self._get_course_oid()
+		href = '/dataserver2/Objects/%s/CourseEvaluations' % course_oid
+		qset = self._load_questionset()
+		question = qset['questions'][0]
+		question = to_external_object(question)
+		res = self.testapp.post_json(href, question, status=201)
+		question = res.json_body
+	
+		mock_ehs.is_callable().with_args().returns(True)
+		mock_vhs.is_callable().with_args().returns(True)
+		
+		url = question.pop('href')
+		self.testapp.put_json(url, question, status=200)

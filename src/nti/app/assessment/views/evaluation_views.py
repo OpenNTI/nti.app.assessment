@@ -418,7 +418,7 @@ class EvaluationPutView(EvaluationMixin, UGDPutView):
 							 None)
 
 	def updateContentObject(self, contentObject, externalValue, set_id=False, notify=True):
-		originalSource = copy.copy(externalValue)
+		originalSource = copy.deepcopy(externalValue)
 		result = UGDPutView.updateContentObject(self,
 												contentObject,
 												externalValue,

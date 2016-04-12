@@ -9,6 +9,8 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+from collections import Mapping
+
 from zope import component
 from zope import interface
 from zope import lifecycleevent
@@ -44,7 +46,6 @@ from nti.app.externalization.error import raise_json_error
 
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQuestion
-from nti.assessment.interfaces import IQNonGradablePart
 from nti.assessment.interfaces import IQEditableEvalutation
 from nti.assessment.interfaces import IQNonGradableFilePart
 from nti.assessment.interfaces import IQEvaluationItemContainer
@@ -187,7 +188,7 @@ def _allow_question_change(question, externalValue):
 		regrade = []
 		for part, change in zip(question.parts, parts):
 			analyzer = IQPartChangeAnalyzer(part, None)
-			if analyzer is None:
+			if analyzer is not None:
 				if not analyzer.allow(change):
 					raise_error(
 						{
@@ -205,7 +206,7 @@ def _allow_poll_change(question, externalValue):
 	if parts and has_submissions(question, course):
 		for part, change in zip(question.parts, parts):
 			analyzer = IQPartChangeAnalyzer(part, None)
-			if analyzer is None:
+			if analyzer is not None:
 				if not analyzer.allow(change):
 					raise_error(
 						{
@@ -252,6 +253,11 @@ def to_int(value):
 		raise raise_error({ u'message': _("Invalid integer value."),
 							u'code': 'ValueError'})
 
+def to_external(obj):
+	if not isinstance(obj, Mapping):
+		return to_external_object(obj, decorate=False)
+	return obj
+
 @interface.implementer(IQPartChangeAnalyzer)
 @component.adapter(IQNonGradableMultipleChoicePart)
 class _MultipleChoicePartChangeAnalyzer(_BasicPartChangeAnalyzer):
@@ -286,8 +292,7 @@ class _MultipleChoicePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 		self.validate_solutions(part)
 
 	def allow(self, change):
-		if IQNonGradablePart.providedBy(change):
-			change = to_external_object(change)
+		change = to_external(change)
 		# check new choices
 		new_choices = change.get('choices')
 		if new_choices is not None:
@@ -311,10 +316,11 @@ class _MultipleChoicePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 		return True
 
 	def regrade(self, change):
+		change = to_external(change)
 		new_sols = change.get('solutions')
 		if new_sols is not None:
 			old_sols = self.part.solutions
-			for old, new in enumerate(zip(old_sols, new_sols)):
+			for old, new in zip(old_sols, new_sols):
 				# change solution order/value - # int or array of ints
 				if self.homogenize(old.value) != self.homogenize(new.get('value')):
 					return True
@@ -449,9 +455,7 @@ class _ConnectingPartChangeAnalyzer(_BasicPartChangeAnalyzer):
 		return True
 
 	def allow(self, change):
-		if IQNonGradablePart.providedBy(change):
-			change = to_external_object(change)
-
+		change = to_external(change)
 		if		not self._check_selection(change, 'labels') \
 			or	not self._check_selection(change, 'values'):
 			return False
@@ -466,10 +470,11 @@ class _ConnectingPartChangeAnalyzer(_BasicPartChangeAnalyzer):
 		return True
 
 	def regrade(self, change):
+		change = to_external(change)
 		new_sols = change.get('solutions')
 		if new_sols is not None:
 			old_sols = self.part.solutions
-			for old, new in enumerate(zip(old_sols, new_sols)):
+			for old, new in zip(old_sols, new_sols):
 				# change solution order/value
 				if self.homogenize(old.value) != self.homogenize(new.get('value')):  # map of ints
 					return True

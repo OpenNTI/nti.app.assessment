@@ -21,8 +21,6 @@ from zope import component
 from zope import interface
 from zope import lifecycleevent
 
-from zope.event import notify
-
 from pyramid import httpexceptions as hexc
 
 from pyramid.view import view_config
@@ -37,9 +35,6 @@ from nti.app.assessment.common import get_resource_site_name
 from nti.app.assessment.common import get_evaluation_containment
 
 from nti.app.assessment.interfaces import ICourseEvaluations
-from nti.app.assessment.interfaces import IQPartChangeAnalyzer
-
-from nti.app.assessment.interfaces import RegradeQuestionEvent
 
 from nti.app.assessment.views.view_mixins import AssessmentPutView
 
@@ -464,27 +459,6 @@ class QuestionPutView(EvaluationPutView):
 					},
 					None)
 
-	def post_update_check(self, contentObject, externalValue):
-		parts = externalValue.get('parts')
-		if self.has_submissions:
-			regrade = []
-			for part, change in zip(self.context.parts, parts):
-				analyzer = IQPartChangeAnalyzer(part, None)
-				if analyzer is None:
-					if not analyzer.allow(change):
-						raise_json_error(
-							self.request,
-							hexc.HTTPUnprocessableEntity,
-							{
-								u'message': _("Question has submissions. It cannot be updated"),
-								u'code': 'CannotChangeObjectDefinition',
-							},
-							None)
-					if analyzer.regrade(change):
-						regrade.append(part)
-			if regrade:
-				notify(RegradeQuestionEvent(contentObject, regrade))
-
 @view_config(route_name='objects.generic.traversal',
 			 context=IQuestionSet,
 			 request_method='PUT',
@@ -573,21 +547,6 @@ class PollPutView(NewAndLegacyPutView):
 								u'code': 'CannotChangeObjectDefinition',
 							},
 							None)
-
-	def post_update_check(self, contentObject, externalValue):
-		parts = externalValue.get('parts')
-		if self.has_submissions:
-			for part, change in zip(self.context.parts, parts):
-				analyzer = IQPartChangeAnalyzer(part, None)
-				if analyzer is None or not analyzer.allow(change):
-					raise_json_error(
-						self.request,
-						hexc.HTTPUnprocessableEntity,
-						{
-							u'message': _("Poll has submissions. It cannot be updated"),
-							u'code': 'CannotChangeObjectDefinition',
-						},
-						None)
 
 	def validate(self, contentObject, externalValue, courses=()):
 		if not IPublishable.providedBy(contentObject) or contentObject.is_published():

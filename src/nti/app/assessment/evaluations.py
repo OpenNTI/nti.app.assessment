@@ -15,11 +15,12 @@ from zope import lifecycleevent
 
 from zope.annotation.interfaces import IAnnotations
 
+from zope.event import notify
+
 from zope.intid.interfaces import IIntIdAddedEvent
 
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
 from zope.lifecycleevent.interfaces import IObjectRemovedEvent
-from zope.lifecycleevent.interfaces import IObjectModifiedEvent
 
 from pyramid import httpexceptions as hexc
 
@@ -31,10 +32,13 @@ from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment.adapters import course_from_context_lineage
 
+from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import get_evaluation_containment
 
 from nti.app.assessment.interfaces import ICourseEvaluations
 from nti.app.assessment.interfaces import IQPartChangeAnalyzer
+
+from nti.app.assessment.interfaces import RegradeQuestionEvent
 
 from nti.app.externalization.error import raise_json_error
 
@@ -69,6 +73,8 @@ from nti.dataserver.authorization_acl import ace_allowing
 from nti.dataserver.authorization_acl import acl_from_aces
 
 from nti.externalization.externalization import to_external_object
+
+from nti.externalization.interfaces import IObjectModifiedFromExternalEvent
 
 from nti.recorder.interfaces import TRX_TYPE_CREATE
 
@@ -131,6 +137,11 @@ def _course_from_item_lineage(item):
 def _on_course_added(course, event):
 	_evaluations_for_course(course)
 
+@interface.implementer(ICourseInstance)
+@component.adapter(IQEditableEvalutation)
+def _editable_evaluation_to_course(resource):
+	return find_interface(resource, ICourseInstance, strict=False)
+
 # subscribers
 
 def _update_containment(item, intids=None):
@@ -152,40 +163,85 @@ def _on_editable_eval_created(asset, event):
 	if IRecordable.providedBy(asset) and event.principal:
 		record_transaction(asset, type_=TRX_TYPE_CREATE)
 
+# misc errors
+
+def raise_error(v, tb=None, factory=hexc.HTTPUnprocessableEntity):
+	request = get_current_request()
+	raise_json_error(request, factory, v, tb)
+
 # Part change analyzers
 
-def _validate_question(question):
-	for part in question.parts or ():
+def _validate_part_resource(resource):
+	for part in resource.parts or ():
 		analyzer = IQPartChangeAnalyzer(part, None)
 		if analyzer is not None:
 			analyzer.validate()
+
+_validate_poll = _validate_part_resource
+_validate_question = _validate_part_resource
+
+def _allow_question_change(question, externalValue):
+	parts = externalValue.get('parts')
+	course = find_interface(question, ICourseInstance, strict=False)
+	if parts and has_submissions(question, course):
+		regrade = []
+		for part, change in zip(question.parts, parts):
+			analyzer = IQPartChangeAnalyzer(part, None)
+			if analyzer is None:
+				if not analyzer.allow(change):
+					raise_error(
+						{
+							u'message': _("Question has submissions. It cannot be updated"),
+							u'code': 'CannotChangeObjectDefinition',
+						})
+				if analyzer.regrade(change):
+					regrade.append(part)
+		if regrade:
+			notify(RegradeQuestionEvent(question, regrade))
+
+def _allow_poll_change(question, externalValue):
+	parts = externalValue.get('parts')
+	course = find_interface(question, ICourseInstance, strict=False)
+	if parts and has_submissions(question, course):
+		for part, change in zip(question.parts, parts):
+			analyzer = IQPartChangeAnalyzer(part, None)
+			if analyzer is None:
+				if not analyzer.allow(change):
+					raise_error(
+						{
+							u'message': _("Poll has submissions. It cannot be updated"),
+							u'code': 'CannotChangeObjectDefinition',
+						})
 
 @component.adapter(IQuestion, IObjectAddedEvent)
 def _on_question_added(question, event):
 	if IQEditableEvalutation.providedBy(question):
 		_validate_question(question)
 
-@component.adapter(IQuestion, IObjectModifiedEvent)
+@component.adapter(IQuestion, IObjectModifiedFromExternalEvent)
 def _on_question_modified(question, event):
 	if IQEditableEvalutation.providedBy(question):
 		_validate_question(question)
+		_allow_question_change(question, event.external_value)
 
-def raise_error(v, tb=None, factory=hexc.HTTPUnprocessableEntity):
-	request = get_current_request()
-	raise_json_error(request, factory, v, tb)
+@component.adapter(IQPoll, IObjectModifiedFromExternalEvent)
+def _on_poll_modified(poll, event):
+	if IQEditableEvalutation.providedBy(poll):
+		_validate_poll(poll)
+		_allow_poll_change(poll)
 
 @interface.implementer(IQPartChangeAnalyzer)
 class _BasicPartChangeAnalyzer(object):
-	
+
 	def __init__(self, part):
 		self.part = part
-	
+
 	def validate(self, part=None):
 		raise NotImplementedError()
-	
+
 	def allow(self, change):
 		raise NotImplementedError()
-	
+
 	def regrade(self, change):
 		raise False
 
@@ -195,7 +251,7 @@ def to_int(value):
 	except ValueError:
 		raise raise_error({ u'message': _("Invalid integer value."),
 							u'code': 'ValueError'})
-	
+
 @interface.implementer(IQPartChangeAnalyzer)
 @component.adapter(IQNonGradableMultipleChoicePart)
 class _MultipleChoicePartChangeAnalyzer(_BasicPartChangeAnalyzer):
@@ -212,8 +268,8 @@ class _MultipleChoicePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 			if not solution or solution.value is None:
 				raise raise_error({ u'message': _("Solution cannot be empty."),
 									u'code': 'InvalidSolution'})
-			value = to_int(solution.value) # solutions are indices
-			if value < 0 or value >= len(part.choices):  
+			value = to_int(solution.value)  # solutions are indices
+			if value < 0 or value >= len(part.choices):
 				raise raise_error({ u'message': _("Solution in not in choices."),
 									u'code': 'InvalidSolution'})
 
@@ -270,7 +326,7 @@ class _MultipleChoiceMultipleAnswerPartChangeAnalyzer(_MultipleChoicePartChangeA
 
 	def homogenize(self, value):
 		return tuple(to_int(x) for x in value)
-	
+
 	def validate_solutions(self, part):
 		solutions = part.solutions
 		if not solutions:
@@ -315,7 +371,7 @@ class _ConnectingPartChangeAnalyzer(_BasicPartChangeAnalyzer):
 
 	def homogenize(self, value):
 		return {to_int(x):to_int(y) for x, y in value.items()}
-	
+
 	def validate(self, part=None):
 		part = self.part if part is None else part
 		labels = part.labels or ()

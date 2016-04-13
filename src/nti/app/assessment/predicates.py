@@ -13,8 +13,8 @@ from functools import partial
 
 from zope import component
 
-from nti.app.assessment.interfaces import IUsersCourseInquiry, \
-	ICourseEvaluations
+from nti.app.assessment.interfaces import ICourseEvaluations
+from nti.app.assessment.interfaces import IUsersCourseInquiry
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 

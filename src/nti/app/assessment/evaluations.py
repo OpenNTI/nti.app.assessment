@@ -82,6 +82,7 @@ from nti.recorder.interfaces import TRX_TYPE_CREATE
 from nti.recorder.utils import record_transaction
 
 from nti.traversal.traversal import find_interface
+from nti.traversal.traversal import ContainerAdapterTraversable
 
 @interface.implementer(ICourseEvaluations)
 class CourseEvaluations(CaseInsensitiveCheckingLastModifiedBTreeContainer):
@@ -128,6 +129,12 @@ def _evaluations_for_course(course, create=True):
 @component.adapter(ICourseInstance, IRequest)
 def _evaluations_for_course_path_adapter(course, request):
 	return _evaluations_for_course(course)
+
+@component.adapter(ICourseEvaluations, IRequest)
+class _CourseEvaluationsTraversable(ContainerAdapterTraversable):
+
+	def traverse(self, key, remaining_path):
+		return super(_CourseEvaluationsTraversable, self).traverse(key, remaining_path)
 
 @interface.implementer(ICourseInstance)
 @component.adapter(ICourseEvaluations)

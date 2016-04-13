@@ -242,24 +242,35 @@ class EvaluationMixin(object):
 	def _extra(self):
 		return str(uuid.uuid4()).split('-')[0]
 
-	def get_registered_evaluation(self, obj, course, user):
-		ntiid = getattr(obj, 'ntiid', None)
+	def get_ntiid(self, theObject):
+		return getattr(theObject, 'ntiid', None)
+	
+	def store_evaluation(self, obj, course, user):
 		provided = iface_of_assessment(obj)
 		evaluations = ICourseEvaluations(course)
-		if not ntiid:  # new object
-			obj.ntiid = ntiid = make_evaluation_ntiid(provided, user, extra=self._extra)
-			lifecycleevent.created(obj)
-			evaluations[ntiid] = obj
-			interface.alsoProvides(obj, IQEditableEvalutation)
-		elif ntiid in evaluations:  # replace
+		obj.ntiid = ntiid = make_evaluation_ntiid(provided, user, extra=self._extra)
+		lifecycleevent.created(obj)
+		evaluations[ntiid] = obj # stored and gain intid
+		interface.alsoProvides(obj, IQEditableEvalutation)
+		return obj
+
+	def get_registered_evaluation(self, obj, course):
+		ntiid = obj.ntiid
+		evaluations = ICourseEvaluations(course)
+		if ntiid in evaluations:  # replace
 			obj = evaluations[ntiid]
 		else:
+			provided = iface_of_assessment(obj)
 			obj = component.queryUtility(provided, name=ntiid)
 		return obj
 
-	def handle_question(self, question, course, sources, user):
-		question = self.get_registered_evaluation(question, course, user)
-		if question is None:
+	def handle_question(self, theObject, course, user):
+		ntiid = self.get_ntiid(theObject)
+		if not ntiid:
+			theObject = self.store_evaluation(theObject, course, user)
+		else:
+			theObject = self.get_registered_evaluation(theObject, course)
+		if theObject is None:
 			raise_json_error(self.request,
 							 hexc.HTTPUnprocessableEntity,
 							 {
@@ -267,11 +278,15 @@ class EvaluationMixin(object):
 								u'code': 'QuestionDoesNotExists',
 							 },
 							 None)
-		return question
+		return theObject
 
-	def handle_poll(self, poll, course, sources, user):
-		poll = self.get_registered_evaluation(poll, course, user)
-		if poll is None:
+	def handle_poll(self, theObject, course, user):
+		ntiid = self.get_ntiid(theObject)
+		if not ntiid:
+			theObject = self.store_evaluation(theObject, course, user)
+		else:
+			theObject = self.get_registered_evaluation(theObject, course)
+		if theObject is None:
 			raise_json_error(self.request,
 							 hexc.HTTPUnprocessableEntity,
 							 {
@@ -279,10 +294,19 @@ class EvaluationMixin(object):
 								u'code': 'PollDoesNotExists',
 							 },
 							 None)
-		return poll
+		return theObject
 
-	def handle_question_set(self, theObject, course, sources, user):
-		theObject = self.get_registered_evaluation(theObject, course, user)
+	def handle_question_set(self, theObject, course, user):
+		ntiid = self.get_ntiid(theObject)
+		if not ntiid:
+			questions = []
+			for question in theObject.questions or ():
+				question = self.handle_question(question, course, user)
+				questions.append(question)
+			theObject.questions = questions
+			theObject = self.store_evaluation(theObject, course, user)
+		else:
+			theObject = self.get_registered_evaluation(theObject, course)
 		if theObject is None:
 			raise_json_error(self.request,
 							 hexc.HTTPUnprocessableEntity,
@@ -291,15 +315,20 @@ class EvaluationMixin(object):
 								u'code': 'QuestionSetDoesNotExists',
 							 },
 							 None)
-		questions = []
-		for question in theObject.questions or ():
-			question = self.handle_question(question, course, sources, user)
-			questions.append(question)
-		theObject.questions = questions
+		
 		return theObject
 
-	def handle_survey(self, theObject, course, sources, user):
-		theObject = self.get_registered_evaluation(theObject, course, user)
+	def handle_survey(self, theObject, course, user):
+		ntiid = self.get_ntiid(theObject)
+		if not ntiid:
+			questions = []
+			for poll in theObject.questions or ():
+				poll = self.handle_poll(poll, course, user)
+				questions.append(poll)
+			theObject.questions = questions
+			theObject = self.store_evaluation(theObject, course, user)
+		else:
+			theObject = self.get_registered_evaluation(theObject, course)
 		if theObject is None:
 			raise_json_error(self.request,
 							 hexc.HTTPUnprocessableEntity,
@@ -308,20 +337,24 @@ class EvaluationMixin(object):
 								u'code': 'SurveyDoesNotExists',
 							 },
 							 None)
-		questions = []
-		for poll in theObject.questions or ():
-			poll = self.handle_poll(poll, course, sources, user)
-			questions.append(poll)
-		theObject.questions = questions
 		return theObject
 
-	def handle_assignment_part(self, part, course, sources, user):
-		question_set = self.handle_question_set(part.question_set, course, sources, user)
+	def handle_assignment_part(self, part, course, user):
+		question_set = self.handle_question_set(part.question_set, course, user)
 		part.question_set = question_set
 		return part
 
-	def handle_assignment(self, theObject, course, sources, user):
-		theObject = self.get_registered_evaluation(theObject, course, user)
+	def handle_assignment(self, theObject, course, user):
+		ntiid = self.get_ntiid(theObject)
+		if not ntiid:
+			parts = []
+			for part in theObject.parts or ():
+				part = self.handle_assignment_part(part, course, user)
+				parts.append(part)
+			theObject.parts = parts
+			theObject = self.store_evaluation(theObject, course, user)
+		else:
+			theObject = self.get_registered_evaluation(theObject, course)
 		if theObject is None:
 			raise_json_error(self.request,
 							 hexc.HTTPUnprocessableEntity,
@@ -330,24 +363,19 @@ class EvaluationMixin(object):
 								u'code': 'AssignmentDoesNotExists',
 							 },
 							 None)
-		parts = []
-		for part in theObject.parts or ():
-			part = self.handle_assignment_part(part, course, sources, user)
-			parts.append(part)
-		theObject.parts = parts
 		return theObject
 
 	def handle_evaluation(self, theObject, course, sources, user):
 		if IQuestion.providedBy(theObject):
-			result = self.handle_question(theObject, course, sources, user)
+			result = self.handle_question(theObject, course, user)
 		elif IQPoll.providedBy(theObject):
-			result = self.handle_poll(theObject, course, sources, user)
+			result = self.handle_poll(theObject, course, user)
 		elif IQuestionSet.providedBy(theObject):
-			result = self.handle_question_set(theObject, course, sources, user)
+			result = self.handle_question_set(theObject, course, user)
 		elif IQSurvey.providedBy(theObject):
-			result = self.handle_survey(theObject, course, sources, user)
+			result = self.handle_survey(theObject, course, user)
 		elif IQAssignment.providedBy(theObject):
-			result = self.handle_assignment(theObject, course, sources, user)
+			result = self.handle_assignment(theObject, course, user)
 		else:
 			result = theObject
 		if sources:
@@ -384,7 +412,6 @@ class CourseEvaluationsPostView(EvaluationMixin, UGDPostView):
 		# validate sources if available
 		if sources:
 			validate_sources(self.remoteUser, evaluation, sources)
-
 		evaluation = self.handle_evaluation(evaluation, self.course, sources, creator)
 		self.request.response.status_int = 201
 		return evaluation

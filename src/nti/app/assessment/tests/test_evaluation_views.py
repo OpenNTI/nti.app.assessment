@@ -17,6 +17,7 @@ does_not = is_not
 import os
 import json
 import fudge
+from urllib import quote
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
@@ -66,7 +67,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_simple_ops(self):
 		course_oid = self._get_course_oid()
-		href = '/dataserver2/Objects/%s/CourseEvaluations' % course_oid
+		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
 		qset = self._load_questionset()
 		# post
 		posted = []
@@ -102,7 +103,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		mock_vhs.is_callable().with_args().returns(False)
 
 		course_oid = self._get_course_oid()
-		href = '/dataserver2/Objects/%s/CourseEvaluations' % course_oid
+		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
 		qset = self._load_questionset()
 		question = qset['questions'][0]
 		question = to_external_object(question)
@@ -114,3 +115,16 @@ class TestEvaluationViews(ApplicationLayerTest):
 		
 		url = question.pop('href')
 		self.testapp.put_json(url, question, status=200)
+		
+	@WithSharedApplicationMockDS(testapp=True, users=True)
+	def test_delete_containment(self):
+		course_oid = self._get_course_oid()
+		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
+		qset = self._load_questionset()
+		qset = to_external_object(qset)
+		res = self.testapp.post_json(href, qset, status=201)
+		# qset_href = res.json_body['href']
+		question = res.json_body['questions'][0]
+		href = href + '/%s' % quote(question['NTIID'])
+		self.testapp.delete(href, status=422)
+		

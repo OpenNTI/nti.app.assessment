@@ -633,7 +633,7 @@ def _remove_assessment_items_from_oldcontent(content_package,
 	return result
 
 @component.adapter(IContentPackage, IObjectRemovedEvent)
-def remove_assessment_items_from_oldcontent(content_package, event, force=True):
+def remove_assessment_items_from_oldcontent(content_package, event=None, force=True):
 	sync_results = _get_sync_results(content_package, event)
 	logger.info("Removing assessment items from old content %s %s", content_package, event)
 	result = _remove_assessment_items_from_oldcontent(content_package,

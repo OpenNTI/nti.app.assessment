@@ -123,8 +123,12 @@ class TestEvaluationViews(ApplicationLayerTest):
 		qset = self._load_questionset()
 		qset = to_external_object(qset)
 		res = self.testapp.post_json(href, qset, status=201)
-		# qset_href = res.json_body['href']
+		qset_href = res.json_body['href']
+		# cannot delete a contained object
 		question = res.json_body['questions'][0]
 		href = href + '/%s' % quote(question['NTIID'])
 		self.testapp.delete(href, status=422)
-		
+		# delete container
+		self.testapp.delete(qset_href, status=204)
+		# now delete again
+		self.testapp.delete(href, status=204)

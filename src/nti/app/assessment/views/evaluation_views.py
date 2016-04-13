@@ -693,7 +693,7 @@ def publish_context(context, site_name=None):
 	# register utility
 	ntiid = context.ntiid
 	provided = iface_of_assessment(context)
-	site_name = get_resource_site_name(site_name) if not site_name else site_name
+	site_name = get_resource_site_name(context) if not site_name else site_name
 	site = get_host_site(site_name)
 	registry = site.getSiteManager()
 	if registry.queryUtility(provided, name=ntiid) is None:
@@ -729,7 +729,7 @@ class EvaluationPublishView(PublishView):
 class EvaluationUnpublishView(UnpublishView):
 
 	def _do_provide(self, context):
-		if not IQEditableEvalutation.providedBy(context):
+		if IQEditableEvalutation.providedBy(context):
 			provided = iface_of_assessment(context)
 			course = find_interface(context, ICourseInstance, strict=False)
 			validate_submissions(context, course, self.request)

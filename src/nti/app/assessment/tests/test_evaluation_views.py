@@ -7,6 +7,7 @@ __docformat__ = "restructuredtext en"
 # disable: accessing protected members, too many methods
 # pylint: disable=W0212,R0904
 
+from hamcrest import is_
 from hamcrest import none
 from hamcrest import is_not
 from hamcrest import has_entry
@@ -18,6 +19,10 @@ import os
 import json
 import fudge
 from urllib import quote
+
+from zope import component
+
+from nti.assessment.interfaces import IQuestion
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
@@ -132,3 +137,37 @@ class TestEvaluationViews(ApplicationLayerTest):
 		self.testapp.delete(qset_href, status=204)
 		# now delete again
 		self.testapp.delete(href, status=204)
+		
+	@WithSharedApplicationMockDS(testapp=True, users=True)
+	@fudge.patch('nti.app.assessment.views.evaluation_views.has_submissions')
+	def test_publish_unpublish(self, mock_vhs):
+		mock_vhs.is_callable().with_args().returns(False)
+		course_oid = self._get_course_oid()
+		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
+		qset = self._load_questionset()
+		# post question
+		question = qset['questions'][0]
+		question = to_external_object(question)
+		res = self.testapp.post_json(href, question, status=201)
+		q_href = res.json_body['href']
+		# check not registered
+		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+			ntiid = res.json_body['NTIID']
+			obj = component.queryUtility(IQuestion, name=ntiid)
+			assert_that(obj, is_(none()))
+		publish_href = q_href + '/@@publish'
+		self.testapp.post(publish_href, status=200)
+		# check registered
+		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+			obj = component.queryUtility(IQuestion, name=ntiid)
+			assert_that(obj, is_not(none()))
+		# cannot unpublish w/ submissions
+		unpublish_href = q_href + '/@@unpublish'
+		mock_vhs.is_callable().with_args().returns(True)
+		self.testapp.post(unpublish_href, status=422)
+		# try w/o submissions
+		mock_vhs.is_callable().with_args().returns(False)
+		self.testapp.post(unpublish_href, status=200)
+		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+			obj = component.queryUtility(IQuestion, name=ntiid)
+			assert_that(obj, is_(none()))

@@ -496,7 +496,7 @@ class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):
 				validate_submissions(obj, course, self.request)
 
 	def updateContentObject(self, contentObject, externalValue, set_id=False, notify=True):
-		originalSource = copy.copy(externalValue)
+		originalSource = copy.deepcopy(externalValue)
 		result = AssessmentPutView.updateContentObject(self,
 													   contentObject,
 													   externalValue,

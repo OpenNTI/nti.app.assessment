@@ -351,7 +351,10 @@
 		<subscriber	factory=".predicates._InquiryPrincipalObjects"
 					provides="nti.dataserver.interfaces.IPrincipalMetadataObjects" />
 		
-		<subscriber	factory=".predicates._EvaluationObjects"
+		<subscriber	factory=".predicates._SystemEvaluationObjects"
+					provides="nti.dataserver.interfaces.IPrincipalMetadataObjects" />
+
+		<subscriber	factory=".predicates._UserEvaluationObjects"
 					provides="nti.dataserver.interfaces.IPrincipalMetadataObjects" />
 	</configure>
 

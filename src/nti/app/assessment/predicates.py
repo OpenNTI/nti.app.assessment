@@ -19,6 +19,7 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 
 from nti.assessment.interfaces import IQEvaluation
+from nti.assessment.interfaces import IQEditableEvalutation 
 
 from nti.contenttypes.courses.interfaces import ICourseInstance, ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
@@ -133,24 +134,38 @@ class _InquiryPrincipalObjects(BasePrincipalObjects):
 		return result
 
 @component.adapter(ISystemUserPrincipal)
-class _EvaluationObjects(BasePrincipalObjects):
+class _SystemEvaluationObjects(BasePrincipalObjects):
 
 	def iter_items(self, result, seen):
 		for ntiid, item in list(component.getUtilitiesFor(IQEvaluation)):
-			if ntiid not in seen:
+			if ntiid not in seen and not IQEditableEvalutation.providedBy(item):
 				seen.add(ntiid)
 				result.append(item)
 
+	def iter_objects(self):
+		result = []
+		seen = set()
+		run_job_in_all_host_sites(partial(self.iter_items, result, seen))
+		return result
+
+@component.adapter(IUser)
+class _UserEvaluationObjects(BasePrincipalObjects):
+
+	def iter_items(self, result, seen):
+		user = self.user
 		catalog = component.getUtility(ICourseCatalog)
 		for entry in catalog.iterCatalogEntries():
-			if entry.ntiid not in seen:
-				seen.add(entry.ntiid)
-				course = ICourseInstance(entry)
-				evaluations = ICourseEvaluations(course)
-				for ntiid, e in list(evaluations.items()):
-					if ntiid not in seen:
-						seen.add(ntiid)
-						result.extend(e)
+			if entry.ntiid in seen:
+				continue
+			seen.add(entry.ntiid)
+			course = ICourseInstance(entry)
+			evaluations = ICourseEvaluations(course)
+			for ntiid, e in list(evaluations.items()):
+				creator = e.creator
+				creator = getattr(creator, 'username', creator)
+				if ntiid not in seen and creator == user.username:
+					seen.add(ntiid)
+					result.extend(e)
 
 	def iter_objects(self):
 		result = []

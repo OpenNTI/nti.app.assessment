@@ -43,4 +43,5 @@ class AssessmentsImporter(BaseSectionImporter):
 				site = get_host_site(site)
 				with current_site(site):
 					remove_assessment_items_from_oldcontent(package, force=True)
-					populate_question_map_json(source, package)
+					return populate_question_map_json(source, package)
+		return ()

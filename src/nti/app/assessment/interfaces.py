@@ -449,20 +449,19 @@ class IQPartChangeAnalyzer(interface.Interface):
 		:change: Part update
 		"""
 
-class IRegradeQuestionEvent(IObjectEvent):
-	parts = interface.Attribute("Change parts")
-
-class RegradeQuestionEvent(ObjectEvent):
-
-	def __init__(self, obj, parts=()):
-		self.obj = obj
-		self.parts = parts or ()
-
-class IRegradeUsersCourseAssignmentHistoryItemEvent(IObjectEvent):
+class IObjectRegradeEvent(IObjectEvent):
 	pass
 
-class RegradeUsersCourseAssignmentHistoryItemEvent(ObjectEvent):
+@interface.implementer(IObjectRegradeEvent)
+class ObjectRegradeEvent(ObjectEvent):
+	pass
+
+class IRegradeQuestionEvent(IObjectRegradeEvent):
+	parts = interface.Attribute("Change parts")
+
+@interface.implementer(IRegradeQuestionEvent)
+class RegradeQuestionEvent(ObjectRegradeEvent):
 
 	def __init__(self, obj, parts=()):
-		self.obj = obj
+		super(RegradeQuestionEvent, self).__init__(obj)
 		self.parts = parts or ()

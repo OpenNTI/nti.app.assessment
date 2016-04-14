@@ -367,6 +367,9 @@ class _MultipleChoiceMultipleAnswerPartChangeAnalyzer(_MultipleChoicePartChangeA
 @component.adapter(IQNonGradableFreeResponsePart)
 class _FreeResponsePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 
+	def homogenize(self, value):
+		return u'' if not value else value.lower()
+
 	def validate(self, part=None):
 		solutions = part.solutions
 		if not solutions:
@@ -379,6 +382,17 @@ class _FreeResponsePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 
 	def allow(self, change):
 		return True  # always allow
+
+	def regrade(self, change):
+		change = to_external(change)
+		new_sols = change.get('solutions')
+		if new_sols is not None:
+			old_sols = self.part.solutions
+			for old, new in zip(old_sols, new_sols):
+				# change solution order/value
+				if self.homogenize(old.value) != self.homogenize(new.get('value')):
+					return True
+		return False
 
 @interface.implementer(IQPartChangeAnalyzer)
 @component.adapter(IQNonGradableConnectingPart)

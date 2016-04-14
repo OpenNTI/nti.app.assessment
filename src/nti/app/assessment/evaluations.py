@@ -35,11 +35,15 @@ from nti.app.assessment import MessageFactory as _
 from nti.app.assessment.adapters import course_from_context_lineage
 
 from nti.app.assessment.common import has_submissions
+from nti.app.assessment.common import evaluation_submissions 
 from nti.app.assessment.common import get_evaluation_containment
 
 from nti.app.assessment.interfaces import ICourseEvaluations
 from nti.app.assessment.interfaces import IQPartChangeAnalyzer
+from nti.app.assessment.interfaces import IRegradeQuestionEvent
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 
+from nti.app.assessment.interfaces import ObjectRegradeEvent
 from nti.app.assessment.interfaces import RegradeQuestionEvent
 
 from nti.app.externalization.error import raise_json_error
@@ -167,9 +171,9 @@ def _on_poll_removed(poll, event):
 	_update_containment(poll)
 
 @component.adapter(IQEditableEvalutation, IIntIdAddedEvent)
-def _on_editable_eval_created(asset, event):
-	if IRecordable.providedBy(asset) and event.principal:
-		record_transaction(asset, type_=TRX_TYPE_CREATE)
+def _on_editable_eval_created(context, event):
+	if IRecordable.providedBy(context) and event.principal:
+		record_transaction(context, type_=TRX_TYPE_CREATE)
 
 # misc errors
 
@@ -240,6 +244,20 @@ def _on_poll_modified(poll, event):
 		_validate_part_resource(poll)
 		_allow_poll_change(poll)
 
+@component.adapter(IQuestion, IRegradeQuestionEvent)
+def _on_regrade_question_event(context, event):
+	course = ICourseInstance(context, None)
+	if course is not None:
+		seen = set()
+		for item in evaluation_submissions(context, course):
+			if not IUsersCourseAssignmentHistoryItem.providedBy(item):
+				continue
+			assignmentId = item.__name__ # by def
+			if assignmentId in seen: # safety
+				continue
+			seen.add(assignmentId)
+			notify(ObjectRegradeEvent(item))
+			
 @interface.implementer(IQPartChangeAnalyzer)
 class _BasicPartChangeAnalyzer(object):
 

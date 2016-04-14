@@ -26,6 +26,7 @@ from nti.app.assessment import MessageFactory as _
 from nti.app.assessment import get_submission_catalog
 
 from nti.app.assessment.common import get_unit_assessments
+from nti.app.assessment.common import get_resource_site_name
 from nti.app.assessment.common import get_course_from_assignment
 from nti.app.assessment.common import get_available_for_submission_ending
 
@@ -61,8 +62,6 @@ from nti.dataserver.interfaces import IUser
 from nti.dataserver.users.interfaces import IWillDeleteEntityEvent
 
 from nti.externalization.externalization import to_external_object
-
-from nti.site.interfaces import IHostPolicyFolder
 
 from nti.traversal.traversal import find_interface
 
@@ -211,11 +210,11 @@ def delete_course_data(course):
 
 def unindex_course_data(course):
 	entry = ICourseCatalogEntry(course, None)
-	folder = find_interface(course, IHostPolicyFolder, strict=False)
-	if entry is not None and folder is not None:
+	site_name = get_resource_site_name(course)
+	if entry is not None and site_name:
 		catalog = get_submission_catalog()
 		query = { IX_COURSE: {'any_of':(entry.ntiid,)},
-				  IX_SITE: {'any_of':(folder.__name__,) } }
+				  IX_SITE: {'any_of':(site_name,) } }
 		for uid in catalog.apply(query) or ():
 			catalog.unindex_doc(uid)
 

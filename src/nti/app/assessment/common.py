@@ -401,9 +401,9 @@ def to_course_list(courses=()):
 		courses = tuple(courses)
 	return courses or ()
 
-def get_resource_site_name(course):
-	folder = find_interface(course, IHostPolicyFolder, strict=False)
-	return folder.__name__
+def get_resource_site_name(context):
+	folder = find_interface(context, IHostPolicyFolder, strict=False)
+	return folder.__name__ if folder is not None else None
 get_course_site = get_resource_site_name
 
 def get_entry_ntiids(courses=()):
@@ -428,7 +428,7 @@ def get_submissions(context, courses=(), index_name=IX_ASSESSMENT_ID):
 		catalog = get_submission_catalog()
 		intids = component.getUtility(IIntIds)
 		entry_ntiids = get_entry_ntiids(courses)
-		sites = {get_course_site(x) for x in courses}
+		sites = {get_resource_site_name(x) for x in courses}
 		context_ntiid = getattr(context, 'ntiid', context)
 		query = {
 		 	IX_SITE: {'any_of':sites},

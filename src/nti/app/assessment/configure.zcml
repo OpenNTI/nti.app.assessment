@@ -247,6 +247,8 @@
 	<subscriber handler=".evaluations._on_poll_removed" />
 	<subscriber handler=".evaluations._on_poll_modified" />
 
+	<subscriber handler=".evaluations._on_regrade_question_event" />
+
 	<adapter factory=".evaluations._FilePartChangeAnalyzer" />
 	<adapter factory=".evaluations._ConnectingPartChangeAnalyzer" />
 	<adapter factory=".evaluations._FreeResponsePartChangeAnalyzer" />

@@ -457,3 +457,12 @@ class RegradeQuestionEvent(ObjectEvent):
 	def __init__(self, obj, parts=()):
 		self.obj = obj
 		self.parts = parts or ()
+
+class IRegradeUsersCourseAssignmentHistoryItemEvent(IObjectEvent):
+	pass
+
+class RegradeUsersCourseAssignmentHistoryItemEvent(ObjectEvent):
+
+	def __init__(self, obj, parts=()):
+		self.obj = obj
+		self.parts = parts or ()

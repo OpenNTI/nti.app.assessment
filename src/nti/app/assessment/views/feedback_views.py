@@ -115,5 +115,5 @@ def validate_attachments(user, context, sources=()):
 @component.adapter(IUsersCourseAssignmentHistoryItemFeedback)
 @interface.implementer(IUsersCourseAssignmentHistoryItemFeedbackFileConstraints)
 class _AssignmentHistoryItemFeedbackFileConstraints(FileConstraints):
-	max_files = 5
+	max_files = 2
 	max_file_size = 10485760 # 10 MB

@@ -61,6 +61,9 @@ from nti.contentlibrary.interfaces import IContentUnit
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
+from nti.contenttypes.courses.utils import is_enrolled
+from nti.contenttypes.courses.utils import get_enrollments
+
 from nti.dataserver.interfaces import IUser
 
 from nti.traversal.traversal import find_interface
@@ -217,8 +220,6 @@ from nti.app.assessment.history import UsersCourseAssignmentHistories
 from nti.contentlibrary.interfaces import IContentPackage
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
-from nti.contenttypes.courses.interfaces import ICourseEnrollments
-from nti.contenttypes.courses.interfaces import IPrincipalEnrollments
 
 @component.adapter(ICourseInstance)
 @interface.implementer(IUsersCourseAssignmentHistories)
@@ -391,21 +392,19 @@ def course_from_submittable_lineage(assesment, user):
 			# Ok, found one. Are we enrolled or an instructor?
 			if prin in course.instructors:
 				return course
-			if ICourseEnrollments(course).get_enrollment_for_principal(user) is not None:
+			if is_enrolled(course, user):
 				return course
 
 	# Snap. No current course matches. Fall back to the old approach of checking
 	# all your enrollments. This could find things not currently in the catalog.
-	# TODO: Probably really inefficient
-	for enrollments in component.subscribers((user,), IPrincipalEnrollments):
-		for enrollment in enrollments.iter_enrollments():
-			course = ICourseInstance(enrollment)
-			if package in course.ContentPackageBundle.ContentPackages:
-				return course
-			if ICourseEnrollments(course).get_enrollment_for_principal(user) is not None:
-				return course
-
-_course_from_assignment_lineage = _course_from_submittable_lineage = course_from_submittable_lineage # BWC
+	for enrollment in get_enrollments(user):
+		course = ICourseInstance(enrollment, None)
+		if 		course is not None \
+			and package in course.ContentPackageBundle.ContentPackages:
+			return course
+	return None
+_course_from_assignment_lineage = course_from_submittable_lineage # BWC
+_course_from_submittable_lineage = course_from_submittable_lineage # BWC
 
 def _get_assessment_item_lineage_obj(obj):
 	return find_interface(obj, IContentUnit, strict=False)

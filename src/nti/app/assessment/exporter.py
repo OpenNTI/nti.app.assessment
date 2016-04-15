@@ -58,11 +58,13 @@ class AssessmentsExporter(BaseSectionExporter):
 			else:
 				if not evaluations:
 					items[unit.ntiid].pop('AssessmentItems', None)
-				# add legacy
+				# XXX: add legacy required for importimg
 				items[unit.ntiid][NTIID] = unit.ntiid
 				items[unit.ntiid]['filename'] = safe_filename(unit.ntiid) + '.html'
+
 		_recur(package, items)
 		if package.ntiid in items:
+			# XXX: add legacy required for importimg
 			items[package.ntiid]['filename'] = 'index.html'
 
 	def externalize(self, context):
@@ -79,3 +81,4 @@ class AssessmentsExporter(BaseSectionExporter):
 		source = self.dump(result)
 		filer.save("assessment_index.json", source,
 				   contentType="application/json", overwrite=True)
+		return result

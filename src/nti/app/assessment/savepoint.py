@@ -48,16 +48,18 @@ from nti.containers.containers import CaseInsensitiveCheckingLastModifiedBTreeCo
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
-from nti.dataserver.interfaces import IUser
-from nti.dataserver.interfaces import ACE_DENY_ALL
-from nti.dataserver.interfaces import ALL_PERMISSIONS
-
-from nti.dataserver.users import User
 from nti.dataserver.authorization import ACT_READ
-from nti.dataserver.interfaces import IACLProvider
 
 from nti.dataserver.authorization_acl import ace_allowing
 from nti.dataserver.authorization_acl import acl_from_aces
+
+from nti.dataserver.interfaces import ACE_DENY_ALL
+from nti.dataserver.interfaces import ALL_PERMISSIONS
+
+from nti.dataserver.interfaces import IUser
+from nti.dataserver.interfaces import IACLProvider
+
+from nti.dataserver.users import User
 
 from nti.dublincore.datastructures import PersistentCreatedModDateTrackingObject
 

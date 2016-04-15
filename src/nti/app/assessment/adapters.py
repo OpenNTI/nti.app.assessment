@@ -63,6 +63,7 @@ from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.contenttypes.courses.utils import is_enrolled
 from nti.contenttypes.courses.utils import get_enrollments
+from nti.contenttypes.courses.utils import get_courses_for_packages
 
 from nti.dataserver.interfaces import IUser
 
@@ -386,14 +387,11 @@ def course_from_submittable_lineage(assesment, user):
 		return
 
 	prin = IPrincipal(user)
-	for entry in catalog.iterCatalogEntries():
-		course = ICourseInstance(entry)
-		if package in course.ContentPackageBundle.ContentPackages:
-			# Ok, found one. Are we enrolled or an instructor?
-			if prin in course.instructors:
-				return course
-			if is_enrolled(course, user):
-				return course
+	for course in get_courses_for_packages(packages=package.ntiid):
+		if prin in course.instructors:
+			return course
+		if is_enrolled(course, user):
+			return course
 
 	# Snap. No current course matches. Fall back to the old approach of checking
 	# all your enrollments. This could find things not currently in the catalog.

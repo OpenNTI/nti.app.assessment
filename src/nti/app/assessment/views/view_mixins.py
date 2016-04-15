@@ -54,8 +54,6 @@ from nti.links.links import Link
 
 from nti.schema.interfaces import InvalidValue
 
-from nti.site.site import get_component_hierarchy_names
-
 from nti.traversal.traversal import find_interface
 
 CLASS = StandardExternalFields.CLASS
@@ -82,8 +80,7 @@ def get_courses_from_assesment(assesment):
 		if package is None:
 			result = ()
 		else:
-			sites = get_component_hierarchy_names()
-			result = get_courses_for_packages(sites, package.ntiid)
+			result = get_courses_for_packages(packages=package.ntiid)
 	return result
 
 class AssessmentPutView(UGDPutView):

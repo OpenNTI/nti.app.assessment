@@ -5,7 +5,6 @@
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
-from nti.app.assessment import get_evaluation_catalog
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -23,6 +22,8 @@ from zope.component.hooks import site as current_site
 from zope.intid.interfaces import IIntIds
 
 from nti.app.contentlibrary.utils import yield_sync_content_packages
+
+from nti.app.assessment import get_evaluation_catalog
 
 from nti.assessment._question_index import QuestionIndex
 
@@ -169,7 +170,8 @@ def _process_args(verbose=True, with_library=True):
 				container.pop(ntiid, None)
 				container[ntiid] = registered
 
-		if not catalog.get_containers(registered):
+		if 		intids.queryId(registered) is not None \
+			and not catalog.get_containers(registered):
 			logger.warn("Indexing containers for %s", ntiid)	
 			lifecycleevent.modified(registered)
 

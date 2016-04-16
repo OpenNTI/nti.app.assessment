@@ -216,8 +216,6 @@ def _begin_assessment_for_assignment_submission(submission):
 	assignment_history.recordSubmission(submission, pending_assessment)
 	return pending_assessment
 
-from zope.security.interfaces import IPrincipal
-
 from nti.app.assessment.history import UsersCourseAssignmentHistories
 
 from nti.contentlibrary.interfaces import IContentPackage
@@ -386,11 +384,9 @@ def _legacy_course_from_submittable_lineage(assesment, user):
 	if catalog is None:
 		return
 
-	prin = IPrincipal(user)
 	for course in get_courses_for_packages(packages=package.ntiid):
-		if prin in course.instructors:
-			return course
-		if is_enrolled(course, user):
+		if 		is_course_instructor_or_editor(course, user) \
+			or	is_enrolled(course, user):
 			return course
 
 	# Snap. No current course matches. Fall back to the old approach of checking

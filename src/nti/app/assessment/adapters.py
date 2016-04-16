@@ -24,7 +24,8 @@ from zope.schema.interfaces import ConstraintNotSatisfied
 
 from persistent.list import PersistentList
 
-from nti.app.assessment.common import get_available_for_submission_beginning
+from nti.app.assessment.common import get_available_for_submission_beginning,\
+	get_evaluation_courses
 
 from nti.app.assessment.history import UsersCourseAssignmentHistory
 
@@ -64,6 +65,7 @@ from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 from nti.contenttypes.courses.utils import is_enrolled
 from nti.contenttypes.courses.utils import get_enrollments
 from nti.contenttypes.courses.utils import get_courses_for_packages
+from nti.contenttypes.courses.utils import is_course_instructor_or_editor
 
 from nti.dataserver.interfaces import IUser
 
@@ -403,6 +405,11 @@ def _legacy_course_from_submittable_lineage(assesment, user):
 @interface.implementer(ICourseInstance)
 @component.adapter(IQSubmittable, IUser)
 def course_from_submittable_lineage(assesment, user):
+	courses = get_evaluation_courses(assesment)
+	for course in courses or ():
+		if 		is_course_instructor_or_editor(course, user) \
+			or	is_enrolled(course, user):
+			return course
 	return _legacy_course_from_submittable_lineage(assesment, user)
 
 def _get_assessment_item_lineage_obj(obj):

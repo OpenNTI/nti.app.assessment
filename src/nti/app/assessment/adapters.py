@@ -13,8 +13,8 @@ logger = __import__('logging').getLogger(__name__)
 
 import datetime
 
-from zope import interface
 from zope import component
+from zope import interface
 from zope import lifecycleevent
 
 from zope.annotation.interfaces import IAnnotations
@@ -24,8 +24,8 @@ from zope.schema.interfaces import ConstraintNotSatisfied
 
 from persistent.list import PersistentList
 
-from nti.app.assessment.common import get_available_for_submission_beginning,\
-	get_evaluation_courses
+from nti.app.assessment.common import get_evaluation_courses
+from nti.app.assessment.common import get_available_for_submission_beginning
 
 from nti.app.assessment.history import UsersCourseAssignmentHistory
 

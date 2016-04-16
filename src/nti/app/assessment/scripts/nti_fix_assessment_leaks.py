@@ -15,6 +15,7 @@ import argparse
 from collections import defaultdict
 
 from zope import component
+from zope import lifecycleevent
 
 from zope.component.hooks import site as current_site
 
@@ -154,6 +155,7 @@ def _process_args(verbose=True, with_library=True):
 			if unit is not None:
 				logger.warn("Fixing lineage for %s", ntiid)	
 				registered.__parent__ = unit
+				lifecycleevent.modified(registered)
 
 		# make sure containers have registered object
 		for container in containers or ():

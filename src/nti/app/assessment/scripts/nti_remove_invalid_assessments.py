@@ -17,6 +17,7 @@ from collections import defaultdict
 from collections import OrderedDict
 
 from zope import component
+from zope import lifecycleevent 
 
 from zope.component.hooks import site as current_site
 
@@ -134,6 +135,7 @@ def remove_site_invalid_assessments(current, containers, intids=None,
 			for container in containers.get(ntiid) or ():
 				if IQAssessmentItemContainer.providedBy(container):
 					item.__parent__ = container.__parent__  # pick first
+					lifecycleevent.modified(item)
 					break
 
 		seen.add(ntiid)

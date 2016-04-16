@@ -5,6 +5,7 @@
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
+from nti.app.assessment import get_evaluation_catalog
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -144,6 +145,7 @@ def _process_args(verbose=True, with_library=True):
 		# canonicalize
 		QuestionIndex.canonicalize_object(registered, registry)
 		
+	catalog = get_evaluation_catalog()
 	# check all registered items
 	for ntiid, things in all_registered.items():
 		_, registered = things
@@ -166,6 +168,10 @@ def _process_args(verbose=True, with_library=True):
 				logger.warn("Adjusting container for %s", ntiid)
 				container.pop(ntiid, None)
 				container[ntiid] = registered
+
+		if not catalog.get_containers(registered):
+			logger.warn("Indexing containers for %s", ntiid)	
+			lifecycleevent.modified(registered)
 
 	logger.info('Done!!!, %s record(s) unregistered', result)
 

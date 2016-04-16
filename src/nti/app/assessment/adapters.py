@@ -342,9 +342,7 @@ def course_from_history_item_lineage(item):
 	return course_from_context_lineage(item)
 _course_from_history_item_lineage = course_from_history_item_lineage # BWC
 
-@interface.implementer(ICourseInstance)
-@component.adapter(IQSubmittable, IUser)
-def course_from_submittable_lineage(assesment, user):
+def _legacy_course_from_submittable_lineage(assesment, user):
 	"""
 	Given a generic assesment and a user, we
 	attempt to associate the assesment with the most
@@ -401,8 +399,11 @@ def course_from_submittable_lineage(assesment, user):
 			and package in course.ContentPackageBundle.ContentPackages:
 			return course
 	return None
-_course_from_assignment_lineage = course_from_submittable_lineage # BWC
-_course_from_submittable_lineage = course_from_submittable_lineage # BWC
+
+@interface.implementer(ICourseInstance)
+@component.adapter(IQSubmittable, IUser)
+def course_from_submittable_lineage(assesment, user):
+	return _legacy_course_from_submittable_lineage(assesment, user)
 
 def _get_assessment_item_lineage_obj(obj):
 	return find_interface(obj, IContentUnit, strict=False)

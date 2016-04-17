@@ -82,8 +82,11 @@ class CheckAssessmentIntegrityView(AbstractAuthenticatedView,
 							   	   ModeledContentUploadRequestUtilsMixin):
 	
 	def readInput(self, value=None):
-		result = ModeledContentUploadRequestUtilsMixin.readInput(self, value=value)
-		return CaseInsensitiveDict(result)
+		if self.request.body:
+			result = CaseInsensitiveDict(read_body_as_external_object(self.request))
+		else:
+			result = CaseInsensitiveDict()
+		return result
 
 	def _do_call(self):
 		values = self.readInput()

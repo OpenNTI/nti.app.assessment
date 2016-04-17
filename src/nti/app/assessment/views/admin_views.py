@@ -37,6 +37,7 @@ from nti.app.assessment.interfaces import IUsersCourseInquiries
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
 
+from nti.app.assessment.views import is_true
 from nti.app.assessment.views import parse_catalog_entry
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
@@ -48,8 +49,6 @@ from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.common.maps import CaseInsensitiveDict
-
-from nti.common.string import TRUE_VALUES
 
 from nti.contentlibrary.interfaces import IContentPackage
 
@@ -81,10 +80,16 @@ ITEMS = StandardExternalFields.ITEMS
 			 name='CheckAssessmentIntegrity')
 class CheckAssessmentIntegrityView(AbstractAuthenticatedView,
 							   	   ModeledContentUploadRequestUtilsMixin):
+	
+	def readInput(self, value=None):
+		result = ModeledContentUploadRequestUtilsMixin.readInput(self, value=value)
+		return CaseInsensitiveDict(result)
 
 	def _do_call(self):
+		values = self.readInput()
+		unparented = is_true(values.get('unparented'))
+		integrity = check_assessment_integrity(unparented)
 		result = LocatedExternalDict()
-		integrity = check_assessment_integrity()
 		result['Duplicates'] = integrity[0]
 		result['Removed'] = list(integrity[1])
 		result['Reindexed'] = list(integrity[2])
@@ -201,9 +206,8 @@ class UnregisterAssessmentItemsView(AbstractAuthenticatedView,
 		ntiid = values.get('ntiid') or values.get('pacakge')
 		if not ntiid:
 			raise hexc.HTTPUnprocessableEntity(_("Invalid content package NTIID."))
-		force =  values.get('force') or u''
-		force = force.lower() in TRUE_VALUES
-		
+
+		force =  is_true(values.get('force'))
 		package = find_object_with_ntiid(ntiid)
 		package = IContentPackage(package, None)
 		if package is None:

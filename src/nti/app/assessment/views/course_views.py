@@ -17,11 +17,11 @@ from pyramid.view import view_defaults
 from nti.app.assessment.common import get_course_inquiries
 from nti.app.assessment.common import get_course_assignments
 
+from nti.app.assessment.views import is_true
+
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
 from nti.common.maps import CaseInsensitiveDict
-
-from nti.common.string import TRUE_VALUES
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
@@ -33,9 +33,6 @@ from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
 ITEMS = StandardExternalFields.ITEMS
-
-def is_true(value):
-	return value and str(value).lower() in TRUE_VALUES
 
 class CourseViewMixin(AbstractAuthenticatedView):
 
@@ -61,7 +58,7 @@ class CourseViewMixin(AbstractAuthenticatedView):
 		mimeTypes = self._get_mimeTypes()
 		items = result[ITEMS] = {} if outline else list()
 		for item in func():
-			if mimeTypes: # filter by
+			if mimeTypes:  # filter by
 				mt = getattr(item, 'mimeType', None) or	getattr(item, 'mime_type', None)
 				if mt not in mimeTypes:
 					continue
@@ -101,8 +98,7 @@ class CourseAssignmentsView(CourseViewMixin):
 	def __call__(self):
 		instance = ICourseInstance(self.request.context)
 		params = CaseInsensitiveDict(self.request.params)
-		do_filtering = params.get('filter') or u''
-		do_filtering = do_filtering.lower() in TRUE_VALUES
+		do_filtering = is_true(params.get('filter'))
 		func = partial(get_course_assignments, instance, do_filtering=do_filtering)
 		return self._do_call(func)
 

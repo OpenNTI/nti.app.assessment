@@ -84,7 +84,7 @@ def _get_data_item_counts(intids):
 			count[item.ntiid].append(item)
 	return count
 
-def check_assessment_integrity():
+def check_assessment_integrity(remove_unparented=False):
 	intids = component.getUtility(IIntIds)
 	count = _get_data_item_counts(intids)
 	logger.info('%s item(s) counted', len(count))
@@ -159,7 +159,7 @@ def check_assessment_integrity():
 					fixed_lineage.add(ntiid)
 					registered.__parent__ = unit
 					lifecycleevent.modified(registered)
-			else:
+			elif remove_unparented and intids.queryId(registered) is not None:
 				registry = site.getSiteManager()
 				removeIntId(item)
 				removed.add(ntiid)
@@ -167,6 +167,7 @@ def check_assessment_integrity():
 				logger.warn("Removing unparented object %s (%s)", 
 							ntiid, site.__name__)
 				unregisterUtility(registry, provided=provided, name=ntiid)
+				continue
 
 		# make sure containers have registered object
 		for container in containers or ():
@@ -181,7 +182,7 @@ def check_assessment_integrity():
 
 		if 		intids.queryId(registered) is not None \
 			and not catalog.get_containers(registered):
-			logger.warn("Reindexing %s(%s)", ntiid, registered.__parent__)
+			logger.warn("Reindexing %s(%s)", ntiid)
 			reindexed.add(ntiid)
 			lifecycleevent.modified(registered)
 

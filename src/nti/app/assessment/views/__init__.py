@@ -15,6 +15,8 @@ from pyramid.threadlocal import get_current_request
 
 from nti.app.assessment import MessageFactory
 
+from nti.common.string import TRUE_VALUES
+
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.ntiids.ntiids import find_object_with_ntiid
@@ -40,3 +42,7 @@ def get_ds2(request=None):
 		result = None
 	return result or u"dataserver2"
 get_path_info = get_ds2
+
+def is_true(value):
+	return bool(value and str(value).lower() in TRUE_VALUES)
+

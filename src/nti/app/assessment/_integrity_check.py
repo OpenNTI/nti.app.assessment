@@ -147,20 +147,26 @@ def check_assessment_integrity():
 
 	# check all registered items
 	for ntiid, things in all_registered.items():
-		_, registered = things
+		site, registered = things
 		containers = all_containers.get(ntiid)
-		uid = intids.queryId(registered)
 		
 		# fix lineage
-		if registered.__parent__ is None and containers:
-			unit = find_interface(containers[0], IContentUnit, strict=False)
-			if unit is not None:
-				logger.warn("Fixing lineage for %s", ntiid)
-				fixed_lineage.add(ntiid)
-				registered.__parent__ = unit
-				lifecycleevent.modified(registered)
-				if uid is not None:
-					catalog.index_doc(uid, registered)
+		if registered.__parent__ is None:
+			if containers:
+				unit = find_interface(containers[0], IContentUnit, strict=False)
+				if unit is not None:
+					logger.warn("Fixing lineage for %s", ntiid)
+					fixed_lineage.add(ntiid)
+					registered.__parent__ = unit
+					lifecycleevent.modified(registered)
+			else:
+				registry = site.getSiteManager()
+				removeIntId(item)
+				removed.add(ntiid)
+				provided = iface_of_assessment(registered)
+				logger.warn("Removing unparented object %s (%s)", 
+							ntiid, site.__name__)
+				unregisterUtility(registry, provided=provided, name=ntiid)
 
 		# make sure containers have registered object
 		for container in containers or ():
@@ -178,8 +184,6 @@ def check_assessment_integrity():
 			logger.warn("Reindexing %s(%s)", ntiid, registered.__parent__)
 			reindexed.add(ntiid)
 			lifecycleevent.modified(registered)
-			if uid is not None:
-				catalog.index_doc(uid, registered)
 
 	logger.info('Done!!!, %s record(s) unregistered', result)
 	return (duplicates, removed, reindexed, fixed_lineage, adjusted_container)

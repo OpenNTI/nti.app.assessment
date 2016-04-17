@@ -24,6 +24,8 @@ from pyramid.view import view_config
 
 from nti.app.assessment import MessageFactory as _
 
+from nti.app.assessment._integrity_check import check_assessment_integrity
+
 from nti.app.assessment._question_map import _add_assessment_items_from_new_content
 from nti.app.assessment._question_map import _remove_assessment_items_from_oldcontent
 
@@ -70,6 +72,25 @@ from nti.ntiids.ntiids import find_object_with_ntiid
 from nti.site.hostpolicy import get_host_site
 
 ITEMS = StandardExternalFields.ITEMS
+
+@view_config(route_name='objects.generic.traversal',
+			 renderer='rest',
+			 permission=nauth.ACT_NTI_ADMIN,
+			 context=IDataserverFolder,
+			 request_method='POST',
+			 name='CheckAssessmentIntegrity')
+class CheckAssessmentIntegrityView(AbstractAuthenticatedView,
+							   	   ModeledContentUploadRequestUtilsMixin):
+
+	def _do_call(self):
+		result = LocatedExternalDict()
+		integrity = check_assessment_integrity()
+		result['Duplicates'] = integrity[0]
+		result['Removed'] = list(integrity[1])
+		result['Reindexed'] = list(integrity[2])
+		result['FixedLineage'] = list(integrity[3])
+		result['AdjustedContainer'] = list(integrity[4])		
+		return result
 
 @view_config(route_name='objects.generic.traversal',
 			 renderer='rest',

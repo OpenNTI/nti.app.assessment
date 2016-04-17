@@ -9,9 +9,6 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-import os
-import sys
-import argparse
 from collections import defaultdict
 
 from zope import component
@@ -37,15 +34,11 @@ from nti.assessment.interfaces import IQAssessmentItemContainer
 from nti.contentlibrary.indexed_data import get_library_catalog
 
 from nti.contentlibrary.interfaces import IContentUnit
-from nti.contentlibrary.interfaces import IContentPackageLibrary
-
-from nti.dataserver.utils import run_with_dataserver
-from nti.dataserver.utils.base_script import create_context
 
 from nti.intid.common import removeIntId
 
 from nti.metadata import dataserver_metadata_catalog
-				
+
 from nti.site.hostpolicy import get_all_host_sites
 
 from nti.site.utils import registerUtility
@@ -57,14 +50,14 @@ def _master_data_collector():
 	seen = set()
 	registered = {}
 	containers = defaultdict(list)
-		
+
 	def recur(unit):
 		for child in unit.children or ():
 			recur(child)
 		container = IQAssessmentItemContainer(unit)
 		for item in container.assessments():
 			containers[item.ntiid].append(container)
-	
+
 	for site in get_all_host_sites():
 		registry = site.getSiteManager()
 		for ntiid, item in list(registry.getUtilitiesFor(IQEvaluation)):
@@ -91,21 +84,21 @@ def _get_data_item_counts(intids):
 			count[item.ntiid].append(item)
 	return count
 
-def _process_args(verbose=True, with_library=True):
-	library = component.getUtility(IContentPackageLibrary)
-	library.syncContentPackages()
-	
+def check_assessment_integrity():
 	intids = component.getUtility(IIntIds)
 	count = _get_data_item_counts(intids)
 	logger.info('%s item(s) counted', len(count))
-	
+
 	all_registered, all_containers = _master_data_collector()
 
 	result = 0
+	removed = set()
+	duplicates = dict()
 	catalog = get_library_catalog()
 	for ntiid, data in count.items():
 		if len(data) <= 1:
 			continue
+		duplicates[ntiid] = len(data) - 1
 		logger.warn("%s has %s duplicate(s)", ntiid, len(data) - 1)
 
 		# find registry and registered objects
@@ -113,20 +106,21 @@ def _process_args(verbose=True, with_library=True):
 		provided = iface_of_assessment(context)
 		things = all_registered.get(ntiid)
 		if not things:
-			logger.warn("No registration found for %s", ntiid)	
+			logger.warn("No registration found for %s", ntiid)
 			for item in data:
 				iid = intids.queryId(item)
 				if iid is not None:
 					removeIntId(item)
+					removed.add(ntiid)
 			continue
 
 		site, registered = things
 		registry = site.getSiteManager()
-		
+
 		# if registered has been found.. check validity
 		ruid = intids.queryId(registered)
 		if ruid is None:
-			logger.warn("Invalid registration for %s", ntiid)		
+			logger.warn("Invalid registration for %s", ntiid)
 			unregisterUtility(registry, provided=provided, name=ntiid)
 			# register a valid object
 			registered = context
@@ -145,18 +139,23 @@ def _process_args(verbose=True, with_library=True):
 
 		# canonicalize
 		QuestionIndex.canonicalize_object(registered, registry)
-		
+
+	reindexed = set()
+	fixed_lineage = set()
+	adjusted_container = set()
 	catalog = get_evaluation_catalog()
+
 	# check all registered items
 	for ntiid, things in all_registered.items():
 		_, registered = things
 		containers = all_containers.get(ntiid)
 
 		# fix lineage
-		if registered.__parent__ is None and containers:	
+		if registered.__parent__ is None and containers:
 			unit = find_interface(containers[0], IContentUnit, strict=False)
 			if unit is not None:
-				logger.warn("Fixing lineage for %s", ntiid)	
+				logger.warn("Fixing lineage for %s", ntiid)
+				fixed_lineage.add(ntiid)
 				registered.__parent__ = unit
 				lifecycleevent.modified(registered)
 
@@ -169,35 +168,13 @@ def _process_args(verbose=True, with_library=True):
 				logger.warn("Adjusting container for %s", ntiid)
 				container.pop(ntiid, None)
 				container[ntiid] = registered
+				adjusted_container.add(ntiid)
 
 		if 		intids.queryId(registered) is not None \
 			and not catalog.get_containers(registered):
-			logger.warn("Indexing containers for %s", ntiid)	
+			logger.warn("Redexing %s", ntiid)
+			reindexed.add(ntiid)
 			lifecycleevent.modified(registered)
 
 	logger.info('Done!!!, %s record(s) unregistered', result)
-
-def main():
-	arg_parser = argparse.ArgumentParser(description="Assessment leak fixer")
-	arg_parser.add_argument('-v', '--verbose', help="Be Verbose", action='store_true',
-							dest='verbose')
-
-	args = arg_parser.parse_args()
-	env_dir = os.getenv('DATASERVER_DIR')
-	if not env_dir or not os.path.exists(env_dir) and not os.path.isdir(env_dir):
-		raise IOError("Invalid dataserver environment root directory")
-
-	verbose = args.verbose
-
-	context = create_context(env_dir, with_library=True)
-	conf_packages = ('nti.appserver',)
-	run_with_dataserver(environment_dir=env_dir,
-						xmlconfig_packages=conf_packages,
-						context=context,
-						minimal_ds=True,
-						verbose=verbose,
-						function=lambda: _process_args(verbose))
-	sys.exit(0)
-
-if __name__ == '__main__':
-	main()
+	return (duplicates, removed, reindexed, fixed_lineage, adjusted_container)

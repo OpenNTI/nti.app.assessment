@@ -12,7 +12,6 @@ logger = __import__('logging').getLogger(__name__)
 from collections import defaultdict
 
 from zope import component
-from zope import lifecycleevent
 
 from zope.component.hooks import site as current_site
 
@@ -149,7 +148,8 @@ def check_assessment_integrity():
 	for ntiid, things in all_registered.items():
 		_, registered = things
 		containers = all_containers.get(ntiid)
-
+		uid = intids.queryId(registered)
+		
 		# fix lineage
 		if registered.__parent__ is None and containers:
 			unit = find_interface(containers[0], IContentUnit, strict=False)
@@ -157,7 +157,8 @@ def check_assessment_integrity():
 				logger.warn("Fixing lineage for %s", ntiid)
 				fixed_lineage.add(ntiid)
 				registered.__parent__ = unit
-				lifecycleevent.modified(registered)
+				if uid is not None:
+					catalog.index_doc(uid, registered)
 
 		# make sure containers have registered object
 		for container in containers or ():
@@ -172,9 +173,10 @@ def check_assessment_integrity():
 
 		if 		intids.queryId(registered) is not None \
 			and not catalog.get_containers(registered):
-			logger.warn("Redexing %s", ntiid)
+			logger.warn("Reindexing %s(%s)", ntiid, registered.__parent__)
 			reindexed.add(ntiid)
-			lifecycleevent.modified(registered)
+			if uid is not None:
+				catalog.index_doc(uid, registered)
 
 	logger.info('Done!!!, %s record(s) unregistered', result)
 	return (duplicates, removed, reindexed, fixed_lineage, adjusted_container)

@@ -346,6 +346,11 @@
 
 	<!-- Importer -->
 	<utility factory=".importer.AssessmentsImporter" name="010:Assessments" />
+	
+	<!-- Feedback constraints -->
+	<adapter factory=".feedback._AssignmentHistoryItemFeedbackFileConstraints"
+			 for=".interfaces.IUsersCourseAssignmentHistoryItemFeedback"
+			 provides=".interfaces.IUsersCourseAssignmentHistoryItemFeedbackFileConstraints" />
 		
 	<!-- Metadata -->
 	<configure zcml:condition="installed nti.metadata">

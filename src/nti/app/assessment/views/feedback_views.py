@@ -45,8 +45,6 @@ from nti.appserver.ugd_edit_views import UGDPutView
 
 from nti.dataserver import authorization as nauth
 
-from nti.namedfile.constraints import FileConstraints
-
 @component.adapter(IRequest, IUsersCourseAssignmentHistoryItemFeedback)
 @interface.implementer(INewObjectTransformer)
 def _feedback_transformer_factory(request, context):
@@ -111,9 +109,3 @@ def validate_attachments(user, context, sources=()):
 	# take ownership
 	for source in sources:
 		source.__parent__ = context
-
-@component.adapter(IUsersCourseAssignmentHistoryItemFeedback)
-@interface.implementer(IUsersCourseAssignmentHistoryItemFeedbackFileConstraints)
-class _AssignmentHistoryItemFeedbackFileConstraints(FileConstraints):
-	max_files = 2
-	max_file_size = 10485760 # 10 MB

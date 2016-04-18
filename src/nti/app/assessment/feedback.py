@@ -28,6 +28,7 @@ from zope.mimetype.interfaces import IContentTypeAware
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedback
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedbackContainer
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedbackFileConstraints
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
@@ -46,6 +47,8 @@ from nti.dataserver.sharing import AbstractReadableSharedMixin
 from nti.dataserver_core.mixins import ContainedMixin
 
 from nti.dublincore.datastructures import PersistentCreatedModDateTrackingObject
+
+from nti.namedfile.constraints import FileConstraints
 
 from nti.schema.field import SchemaConfigured
 from nti.schema.fieldproperty import AdaptingFieldProperty
@@ -215,3 +218,9 @@ def when_feedback_modified_modify_history_item(feedback, event):
 		when_feedback_container_modified_modify_history_item(container, event, False)
 	except AttributeError:
 		pass
+
+@component.adapter(IUsersCourseAssignmentHistoryItemFeedback)
+@interface.implementer(IUsersCourseAssignmentHistoryItemFeedbackFileConstraints)
+class _AssignmentHistoryItemFeedbackFileConstraints(FileConstraints):
+	max_files = 2
+	max_file_size = 10485760 # 10 MB

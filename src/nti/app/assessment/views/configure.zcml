@@ -11,11 +11,6 @@
 	<!-- Traversal-ish stuff -->
 	<adapter factory=".history_views.AssignmentHistoryRequestTraversable" />
 
-	<!-- Feedback constraints -->
-	<adapter factory=".feedback_views._AssignmentHistoryItemFeedbackFileConstraints"
-			 for="..interfaces.IUsersCourseAssignmentHistoryItemFeedback"
-			 provides="..interfaces.IUsersCourseAssignmentHistoryItemFeedbackFileConstraints" />
-
 	<adapter factory=".feedback_views._feedback_transformer" />
 	<adapter factory=".feedback_views._feedback_transformer_factory" />
 	

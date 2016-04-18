@@ -21,7 +21,8 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQEditableEvalutation 
 
-from nti.contenttypes.courses.interfaces import ICourseInstance, ICourseCatalog
+from nti.contenttypes.courses.interfaces import ICourseCatalog 
+from nti.contenttypes.courses.interfaces import ICourseInstance 
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.contenttypes.courses.interfaces import IPrincipalEnrollments
 from nti.contenttypes.courses.interfaces import IPrincipalAdministrativeRoleCatalog

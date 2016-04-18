@@ -45,7 +45,7 @@ from nti.appserver.ugd_edit_views import UGDPutView
 
 from nti.dataserver import authorization as nauth
 
-from nti.namedfile.file import FileConstraints
+from nti.namedfile.constraints import FileConstraints
 
 @component.adapter(IRequest, IUsersCourseAssignmentHistoryItemFeedback)
 @interface.implementer(INewObjectTransformer)

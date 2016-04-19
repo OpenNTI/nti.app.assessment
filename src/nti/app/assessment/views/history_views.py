@@ -42,7 +42,7 @@ from nti.app.assessment.common import get_course_from_assignment
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedback
-from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedbackContainer
+
 
 from nti.app.assessment.utils import replace_username
 from nti.app.assessment.utils import assignment_download_precondition
@@ -71,8 +71,6 @@ from nti.dataserver.interfaces import IUser
 from nti.dataserver.users import User
 
 from nti.dataserver.users.interfaces import IUserProfile
-
-from nti.externalization.oids import to_external_oid
 
 from nti.ntiids.ntiids import find_object_with_ntiid
 
@@ -326,39 +324,6 @@ class AssignmentHistoryLastViewedPutView(AbstractAuthenticatedView,
 		history = self.request.context
 		self.request.context.lastViewed = ext_input
 		return history
-
-@view_config(route_name="objects.generic.traversal",
-			 context=IUsersCourseAssignmentHistoryItemFeedbackContainer,
-			 renderer='rest',
-			 permission=nauth.ACT_CREATE,
-			 request_method='POST')
-class AsssignmentHistoryItemFeedbackPostView(AbstractAuthenticatedView,
-											 ModeledContentUploadRequestUtilsMixin):
-	"""
-	Students/faculty can POST to the history item's Feedback collection
-	to create a feedback node.
-
-	The ACL will limit this to the student himself and the teacher(s) of the
-	course.
-
-	.. note:: The ACL is not currently implemented.
-	"""
-
-	content_predicate = IUsersCourseAssignmentHistoryItemFeedback
-
-	def _do_call(self):
-		creator = self.remoteUser
-		feedback = self.readCreateUpdateContentObject(creator)
-		self.request.context['ignored'] = feedback
-
-		self.request.response.status_int = 201
-		# TODO: Shouldn't this be the external NTIID?
-		# This is what ugd_edit_views does though
-		self.request.response.location = \
-				self.request.resource_url(creator,
-										  'Objects',
-										  to_external_oid(feedback))
-		return feedback
 
 @view_config(route_name="objects.generic.traversal",
 			 context=IUsersCourseAssignmentHistoryItem,

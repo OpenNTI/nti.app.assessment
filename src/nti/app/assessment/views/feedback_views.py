@@ -45,14 +45,14 @@ from nti.appserver.ugd_edit_views import UGDPutView
 
 from nti.dataserver import authorization as nauth
 
-@component.adapter(IRequest, IUsersCourseAssignmentHistoryItemFeedback)
 @interface.implementer(INewObjectTransformer)
+@component.adapter(IRequest, IUsersCourseAssignmentHistoryItemFeedback)
 def _feedback_transformer_factory(request, context):
 	result = partial(_feedback_transformer, request)
 	return result
 
-@component.adapter(IRequest, IUsersCourseAssignmentHistoryItemFeedback)
 @interface.implementer(IExceptionResponse)
+@component.adapter(IRequest, IUsersCourseAssignmentHistoryItemFeedback)
 def _feedback_transformer(request, context):
 	sources = get_content_files(context)
 	if sources and request and request.POST:

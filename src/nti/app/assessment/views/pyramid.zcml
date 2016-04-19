@@ -10,6 +10,7 @@
 	<pyramid:scan package=".course_views" />
 	<pyramid:scan package=".survey_views" />
 	<pyramid:scan package=".history_views" />
+	<pyramid:scan package=".feedback_views" />
 	<pyramid:scan package=".metadata_views" />
 	<pyramid:scan package=".savepoint_views" />
 	<pyramid:scan package=".assessment_views" />

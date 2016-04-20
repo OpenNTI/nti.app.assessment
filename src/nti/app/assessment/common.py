@@ -29,9 +29,9 @@ from nti.app.assessment import get_submission_catalog
 from nti.app.assessment.assignment_filters import AssessmentPolicyExclusionFilter
 
 from nti.app.assessment.index import IX_SITE
-from nti.app.assessment.index import IX_ENTRY
 from nti.app.assessment.index import IX_COURSE
 from nti.app.assessment.index import IX_SUBMITTED
+from nti.app.assessment.index import IX_CONTAINERS
 from nti.app.assessment.index import IX_CONTAINMENT
 from nti.app.assessment.index import IX_ASSESSMENT_ID
 
@@ -133,13 +133,18 @@ def get_evaluation_courses(evaluation):
 			result.append(ICourseInstance(container))
 	return tuple(result)
 
-def get_course_evaluations(context, intids=None):
-	course = ICourseInstance(context)
-	site = get_course_site(course)
-	entry = ICourseCatalogEntry(course)
+def get_course_evaluations(context, sites=None, intids=None):
+	if isinstance(context, six.string_types):
+		ntiid = context
+	else:
+		course = ICourseInstance(context)
+		ntiid = ICourseCatalogEntry(course).ntiid
+		sites = get_course_site(course) if not sites else sites
+	sites = get_component_hierarchy_names() if not sites else sites
+	sites = sites.split() if isinstance(sites, six.string_types) else sites
 	query = {
-		IX_SITE: {'any_of': (site,)},
-		IX_ENTRY: {'any_of': (entry.ntiid,)}
+		IX_SITE: {'any_of': sites},
+		IX_CONTAINERS: {'any_of': (ntiid,)}
 	}
 	result = []
 	catalog = get_evaluation_catalog()

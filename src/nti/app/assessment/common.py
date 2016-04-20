@@ -29,6 +29,7 @@ from nti.app.assessment import get_submission_catalog
 from nti.app.assessment.assignment_filters import AssessmentPolicyExclusionFilter
 
 from nti.app.assessment.index import IX_SITE
+from nti.app.assessment.index import IX_ENTRY
 from nti.app.assessment.index import IX_COURSE
 from nti.app.assessment.index import IX_SUBMITTED
 from nti.app.assessment.index import IX_CONTAINMENT
@@ -39,7 +40,7 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
 
-from nti.assessment.interfaces import NTIID_TYPE
+from nti.assessment.interfaces import NTIID_TYPE, IQEvaluation
 from nti.assessment.interfaces import DISCLOSURE_NEVER
 from nti.assessment.interfaces import DISCLOSURE_ALWAYS
 
@@ -92,6 +93,11 @@ from nti.zope_catalog.catalog import ResultSet
 
 NAQ = NTIID_TYPE
 
+def get_resource_site_name(context):
+	folder = find_interface(context, IHostPolicyFolder, strict=False)
+	return folder.__name__ if folder is not None else None
+get_course_site = get_resource_site_name
+
 # containment
 
 def get_evaluation_containment(ntiid, sites=None, intids=None):
@@ -125,6 +131,23 @@ def get_evaluation_courses(evaluation):
 		if		ICourseInstance.providedBy(container) \
 			or	ICourseCatalogEntry.providedBy(container):
 			result.append(ICourseInstance(container))
+	return tuple(result)
+
+def get_course_evaluations(context, intids=None):
+	course = ICourseInstance(context)
+	site = get_course_site(course)
+	entry = ICourseCatalogEntry(course)
+	query = {
+		IX_SITE: {'any_of': (site,)},
+		IX_ENTRY: {'any_of': (entry.ntiid,)}
+	}
+	result = []
+	catalog = get_evaluation_catalog()
+	intids = component.getUtility(IIntIds) if intids is None else intids
+	for uid in catalog.apply(query) or ():
+		evaluation = intids.queryObject(uid)
+		if IQEvaluation.providedBy(evaluation): # extra check
+			result.append(evaluation)
 	return tuple(result)
 
 # assessment
@@ -400,11 +423,6 @@ def to_course_list(courses=()):
 	elif isinstance(courses, (list, tuple, set)):
 		courses = tuple(courses)
 	return courses or ()
-
-def get_resource_site_name(context):
-	folder = find_interface(context, IHostPolicyFolder, strict=False)
-	return folder.__name__ if folder is not None else None
-get_course_site = get_resource_site_name
 
 def get_entry_ntiids(courses=()):
 	courses = to_course_list(courses) or ()

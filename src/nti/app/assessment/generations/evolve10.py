@@ -41,7 +41,7 @@ CONTAINER_INTERFACES = (IUsersCourseInquiries,
 def clean_course(course):
 	for iface in CONTAINER_INTERFACES:
 		container = iface(course)
-		for username, item in list(container.items()): # mutating
+		for username, item in tuple(container.items()): # mutating
 			if not username or User.get_user(username) is None:
 				if IContainer.providedBy(item):
 					item.clear()

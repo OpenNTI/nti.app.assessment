@@ -38,7 +38,7 @@ from nti.site.hostpolicy import get_all_host_sites
 def _process_pacakge(package, intids):
 	def _recur(unit):
 		items = IQAssessmentItemContainer(unit)
-		for ntiid, item in list(items.items()): # mutating
+		for ntiid, item in tuple(items.items()): # mutating
 			provided = iface_of_assessment(item)
 			registered = component.queryUtility(provided, name=ntiid)
 			if registered is None:

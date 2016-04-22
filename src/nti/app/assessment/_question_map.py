@@ -606,7 +606,7 @@ def _remove_assessment_items_from_oldcontent(content_package,
 
 	def _unregister(unit):
 		items = IQAssessmentItemContainer(unit)
-		for name, item in list(items.items()):  # mutating
+		for name, item in tuple(items.items()):  # mutating
 			if can_be_removed(item, force):
 				_remove(items, name, item)
 			else:

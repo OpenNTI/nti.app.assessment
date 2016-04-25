@@ -191,10 +191,10 @@ class QuestionMap(QuestionIndex):
 														  registry)
 		return result
 
-	def _publish_object(self, assessment_item):
-		if IPublishable.providedBy(assessment_item):
-			assessment_item.publish()  # by default
-			interface.alsoProvides(assessment_item, INoPublishLink)
+	def _publish_object(self, item):
+		if IPublishable.providedBy(item) and not item.is_published():
+			item.publish()  # by default
+			interface.alsoProvides(item, INoPublishLink)
 
 	def _connection(self, registry=None):
 		registry = self._get_registry(registry)
@@ -336,6 +336,7 @@ class QuestionMap(QuestionIndex):
 						# registered object is not in unit container
 						parents_questions.append(thing_to_register)
 						thing_to_register.__parent__ = parent
+						self._publish_object(thing_to_register)
 			else:
 				obj = registered
 				self._publish_object(obj)

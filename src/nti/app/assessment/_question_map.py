@@ -311,7 +311,7 @@ class QuestionMap(QuestionIndex):
 
 						# TODO: We are only partially supporting having question/sets
 						# used multiple places. When we get to that point, we need to
-						# handle it by noting on each assessment object where it is 
+						# handle it by noting on each assessment object where it is
 						# registered
 						if thing_to_register.__parent__ is None and parent is not None:
 							thing_to_register.__parent__ = parent
@@ -332,16 +332,17 @@ class QuestionMap(QuestionIndex):
 						if sync_results is not None:
 							sync_results.add_assessment(thing_to_register, False)
 					elif ntiid and ntiid not in parents_questions:
-						# XXX: Seen in alpha 
-						# registered object is not in unit container 
+						# XXX: Seen in alpha
+						# registered object is not in unit container
 						parents_questions.append(thing_to_register)
+						thing_to_register.__parent__ = parent
 			else:
 				obj = registered
 				self._publish_object(obj)
 				self._store_object(ntiid, obj)
 				if ntiid not in parents_questions:
-					# XXX: Seen in alpha 
-					# registered object is not in unit container 
+					# XXX: Seen in alpha
+					# registered object is not in unit container
 					parents_questions.append(registered)
 
 			if containing_hierarchy_key:
@@ -436,14 +437,14 @@ class QuestionMap(QuestionIndex):
 		root_keys = tuple(root_items.keys())
 		root_ntiid = root_keys[0] if len(root_keys) == 1 else content_package.ntiid
 
-		by_file = self._get_by_file()			
+		by_file = self._get_by_file()
 		if 'Items' not in root_items[root_ntiid]:
 			return by_file, set()
 
 		things_to_register = set()
 		if sync_results is None:
 			sync_results = _new_sync_results(content_package)
-			
+
 		for child_ntiid, child_index in root_items[root_ntiid]['Items'].items():
 			__traceback_info__ = child_ntiid, child_index, content_package
 			# Each of these should have a filename. If they do not, they obviously
@@ -511,7 +512,7 @@ def _populate_question_map_from_text(question_map,
 									 registry=None,
 									 sync_results=None):
 	index = _load_question_map_json(asm_index_text)
-	return populate_question_map_json(asm_index_json=index, 
+	return populate_question_map_json(asm_index_json=index,
 									  registry=registry,
 									  content_package=content_package,
 									  question_map=question_map,

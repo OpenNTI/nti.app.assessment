@@ -64,6 +64,7 @@ from nti.contentlibrary.interfaces import IContentPackage
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
+from nti.contenttypes.courses.legacy_catalog import ICourseCatalogLegacyEntry
 
 from nti.contenttypes.courses.common import get_course_packages
 
@@ -131,14 +132,18 @@ def get_evaluation_courses(evaluation):
 		if		ICourseInstance.providedBy(container) \
 			or	ICourseCatalogEntry.providedBy(container):
 			result.append(ICourseInstance(container))
-	return tuple(result)
+	return result
 
 def get_course_evaluations(context, sites=None, intids=None):
 	if isinstance(context, six.string_types):
 		ntiid = context
 	else:
 		course = ICourseInstance(context)
-		ntiid = ICourseCatalogEntry(course).ntiid
+		entry = ICourseCatalogEntry( course )
+		if ICourseCatalogLegacyEntry.providedBy( entry ):
+			# Global courses cannot use index.
+			return get_course_assessment_items( course )
+		ntiid = entry.ntiid
 		sites = get_course_site(course) if not sites else sites
 	sites = get_component_hierarchy_names() if not sites else sites
 	sites = sites.split() if isinstance(sites, six.string_types) else sites
@@ -337,7 +342,7 @@ def assignment_comparator(a, b):
 	return 0
 
 def get_course_assignments(context, sort=True, reverse=False, do_filtering=True):
-	items = get_course_assessment_items(context)
+	items = get_course_evaluations(context)
 	ntiid = getattr(ICourseCatalogEntry(context, None), 'ntiid', None)
 	if do_filtering:
 		# Filter out excluded assignments so they don't show in the gradebook either
@@ -379,7 +384,7 @@ def get_course_from_inquiry(inquiry, user=None, registry=component, exc=False):
 	return result
 
 def get_course_inquiries(context, do_filtering=True):
-	items = get_course_assessment_items(context)
+	items = get_course_evaluations(context)
 	ntiid = ICourseCatalogEntry(context).ntiid
 	if do_filtering:
 		# Filter out excluded assignments so they don't show in the gradebook either
@@ -498,9 +503,9 @@ def aggregate_course_inquiry(inquiry, course, *items):
 def aggregate_page_inquiry(containerId, mimeType, *items):
 	catalog = dataserver_metadata_catalog()
 	intids = component.getUtility(IIntIds)
-	query = { 
+	query = {
 		IX_MIMETYPE: {'any_of':(mimeType,)},
-		IX_CONTAINERID: {'any_of':(containerId,)} 
+		IX_CONTAINERID: {'any_of':(containerId,)}
 	}
 	result = None
 	uids = catalog.apply(query) or ()

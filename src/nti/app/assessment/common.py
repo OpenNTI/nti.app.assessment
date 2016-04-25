@@ -392,7 +392,7 @@ def get_course_self_assessments(context):
 			result.append(item)
 
 	# Now remove the forbidden
-	result = [x for x in result if x.ntiid not in qsids_to_strip]
+	result = [x for x in result if x.ntiid not in qsids_to_strip and x.is_published()]
 	return result
 
 # surveys
@@ -429,9 +429,11 @@ def get_course_inquiries(context, do_filtering=True):
 		_filter = AssessmentPolicyExclusionFilter(course=course)
 		surveys = [ proxy(x, catalog_entry=ntiid) for x in items
 			 	  	if 		IQInquiry.providedBy(x) \
+			 	  		and x.is_published() \
 			 	  		and _filter.allow_assessment_for_user_in_course(x, course=course) ]
 	else:
-		surveys = [proxy(x, catalog_entry=ntiid) for x in items if IQInquiry.providedBy(x)]
+		surveys = [	proxy(x, catalog_entry=ntiid) 
+					for x in items if IQInquiry.providedBy(x) and x.is_published() ]
 	return surveys
 
 def can_disclose_inquiry(inquiry, context=None):

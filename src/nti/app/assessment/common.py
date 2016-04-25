@@ -358,10 +358,11 @@ def get_course_assignments(context, sort=True, reverse=False, do_filtering=True)
 		_filter = AssessmentPolicyExclusionFilter(course=course)
 		assignments = [ proxy(x, catalog_entry=ntiid) for x in items
 			 	  		if 		IQAssignment.providedBy(x) \
+			 	  			and x.is_published() \
 			 	  			and _filter.allow_assessment_for_user_in_course(x, course=course) ]
 	else:
 		assignments = [	proxy(x, catalog_entry=ntiid)
-						for x in items if IQAssignment.providedBy(x) ]
+						for x in items if IQAssignment.providedBy(x) and x.is_published()]
 	if sort:
 		assignments = sorted(assignments, cmp=assignment_comparator, reverse=reverse)
 	return assignments

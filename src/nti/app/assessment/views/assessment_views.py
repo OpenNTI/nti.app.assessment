@@ -267,7 +267,7 @@ class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 	authenticated users, it returns a map from NTIID to the assessment items
 	contained within that NTIID.
 
-	At this time, nodes in the course outline
+	At the time this was created, nodes in the course outline
 	do not have their own identity as NTIIDs; therefore, the NTIIDs
 	returned from here are the NTIIDs of content pages that show up
 	in the individual lessons; for maximum granularity, these are returned
@@ -301,7 +301,7 @@ class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 				# nor survey, so no course lookup is necesary
 				item = removeAllProxies(item)
 				unit_ntiid = get_containerId(item)
-				if unit_ntiid:	
+				if unit_ntiid:
 					data[unit_ntiid][item.ntiid] = item
 				else:
 					logger.error("%s is an item without parent unit", item.ntiid)

@@ -301,9 +301,11 @@ class _UsersCourseAssignmentHistoriesTraversable(ContainerAdapterTraversable):
 
 from nti.app.assessment.common import get_course_assignments
 from nti.app.assessment.common import get_course_evaluations
+from nti.app.assessment.common import get_course_self_assessments
 
 from nti.contenttypes.courses.interfaces import ICourseAssignmentCatalog
 from nti.contenttypes.courses.interfaces import ICourseAssessmentItemCatalog
+from nti.contenttypes.courses.interfaces import ICourseSelfAssessmentItemCatalog
 
 @component.adapter(ICourseInstance)
 @interface.implementer(ICourseAssessmentItemCatalog)
@@ -314,6 +316,17 @@ class _DefaultCourseAssessmentItemCatalog(object):
 
 	def iter_assessment_items(self):
 		result = get_course_evaluations(self.context)
+		return result
+
+@component.adapter(ICourseInstance)
+@interface.implementer(ICourseSelfAssessmentItemCatalog)
+class _DefaultCourseSelfAssessmentItemCatalog(object):
+
+	def __init__(self, context):
+		self.context = context
+
+	def iter_assessment_items(self):
+		result = get_course_self_assessments(self.context)
 		return result
 
 @component.adapter(ICourseInstance)

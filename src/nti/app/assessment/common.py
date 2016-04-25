@@ -34,15 +34,18 @@ from nti.app.assessment.index import IX_SUBMITTED
 from nti.app.assessment.index import IX_CONTAINERS
 from nti.app.assessment.index import IX_CONTAINMENT
 from nti.app.assessment.index import IX_ASSESSMENT_ID
+from nti.app.assessment.index import IX_MIMETYPE as IX_ASSESS_MIMETYPE
 
 from nti.app.assessment.interfaces import IUsersCourseInquiryItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
 
-from nti.assessment.interfaces import NTIID_TYPE, IQEvaluation
+from nti.assessment.interfaces import NTIID_TYPE
 from nti.assessment.interfaces import DISCLOSURE_NEVER
 from nti.assessment.interfaces import DISCLOSURE_ALWAYS
+from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
+from nti.assessment.interfaces import QUESTION_SET_MIME_TYPE
 
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
@@ -50,6 +53,7 @@ from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
+from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQAggregatedInquiry
 from nti.assessment.interfaces import IQInquirySubmission
 from nti.assessment.interfaces import IQAssignmentPolicies
@@ -134,7 +138,7 @@ def get_evaluation_courses(evaluation):
 			result.append(ICourseInstance(container))
 	return result
 
-def get_course_evaluations(context, sites=None, intids=None):
+def get_course_evaluations(context, sites=None, intids=None, mimetypes=None):
 	if isinstance(context, six.string_types):
 		ntiid = context
 	else:
@@ -149,14 +153,18 @@ def get_course_evaluations(context, sites=None, intids=None):
 	sites = sites.split() if isinstance(sites, six.string_types) else sites
 	query = {
 		IX_SITE: {'any_of': sites},
-		IX_CONTAINERS: {'any_of': (ntiid,)}
+		IX_CONTAINERS: {'any_of': (ntiid,)},
 	}
+	mimetypes = mimetypes.split() if isinstance(mimetypes, six.string_types) else mimetypes
+	if mimetypes:
+		query[IX_ASSESS_MIMETYPE] = {'any_of' : mimetypes }
+
 	result = []
 	catalog = get_evaluation_catalog()
 	intids = component.getUtility(IIntIds) if intids is None else intids
 	for uid in catalog.apply(query) or ():
 		evaluation = intids.queryObject(uid)
-		if IQEvaluation.providedBy(evaluation): # extra check
+		if not mimetypes or IQEvaluation.providedBy(evaluation): # extra check
 			result.append(evaluation)
 	return tuple(result)
 
@@ -342,7 +350,7 @@ def assignment_comparator(a, b):
 	return 0
 
 def get_course_assignments(context, sort=True, reverse=False, do_filtering=True):
-	items = get_course_evaluations(context)
+	items = get_course_evaluations(context, mimetypes=ASSIGNMENT_MIME_TYPE)
 	ntiid = getattr(ICourseCatalogEntry(context, None), 'ntiid', None)
 	if do_filtering:
 		# Filter out excluded assignments so they don't show in the gradebook either
@@ -357,6 +365,35 @@ def get_course_assignments(context, sort=True, reverse=False, do_filtering=True)
 	if sort:
 		assignments = sorted(assignments, cmp=assignment_comparator, reverse=reverse)
 	return assignments
+
+def get_course_self_assessments(context):
+	"""
+	Given an :class:`.ICourseInstance`, return a list of all
+	the \"self assessments\" in the course. Self-assessments are
+	defined as top-level question sets that are not used within an assignment
+	in the course.
+	"""
+	result = list()
+	qsids_to_strip = set()
+	items = get_course_evaluations(context,
+								   mimetypes=(QUESTION_SET_MIME_TYPE, ASSIGNMENT_MIME_TYPE))
+
+	for item in items:
+		if IQAssignment.providedBy(item):
+			qsids_to_strip.add(item.ntiid)
+			for assignment_part in item.parts:
+				question_set = assignment_part.question_set
+				qsids_to_strip.add(question_set.ntiid)
+				for question in question_set.questions:
+					qsids_to_strip.add(question.ntiid)
+		elif not IQuestionSet.providedBy(item):
+			qsids_to_strip.add(item.ntiid)
+		else:
+			result.append(item)
+
+	# Now remove the forbidden
+	result = [x for x in result if x.ntiid not in qsids_to_strip]
+	return result
 
 # surveys
 

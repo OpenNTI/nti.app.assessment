@@ -68,7 +68,7 @@ from nti.contentlibrary.interfaces import IContentPackage
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
-from nti.contenttypes.courses.legacy_catalog import ICourseCatalogLegacyEntry
+from nti.contenttypes.courses.legacy_catalog import ILegacyCourseInstance
 
 from nti.contenttypes.courses.common import get_course_packages
 
@@ -141,19 +141,25 @@ def get_evaluation_courses(evaluation):
 def get_course_evaluations(context, sites=None, intids=None, mimetypes=None):
 	if isinstance(context, six.string_types):
 		ntiid = context
+		containers = (ntiid,)
 	else:
 		course = ICourseInstance(context)
 		entry = ICourseCatalogEntry( course )
-		if ICourseCatalogLegacyEntry.providedBy( entry ):
+		if ILegacyCourseInstance.providedBy( course ):
 			# Global courses cannot use index.
 			return get_course_assessment_items( course )
+		# We index assessment items before our courses; so
+		# make sure we also check for course packages.
 		ntiid = entry.ntiid
+		containers = [ntiid]
+		packages = get_course_packages( course )
+		containers.extend( (x.ntiid for x in packages) )
 		sites = get_course_site(course) if not sites else sites
 	sites = get_component_hierarchy_names() if not sites else sites
 	sites = sites.split() if isinstance(sites, six.string_types) else sites
 	query = {
 		IX_SITE: {'any_of': sites},
-		IX_CONTAINERS: {'any_of': (ntiid,)},
+		IX_CONTAINERS: {'any_of': containers},
 	}
 	mimetypes = mimetypes.split() if isinstance(mimetypes, six.string_types) else mimetypes
 	if mimetypes:

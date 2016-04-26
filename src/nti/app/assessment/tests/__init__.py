@@ -60,6 +60,8 @@ from zope.intid.interfaces import IIntIds
 
 import ZODB
 
+from nti.app.assessment import get_evaluation_catalog
+
 from nti.app.products.courseware.tests import publish_ou_course_entries
 from nti.app.products.courseware.tests import InstructedCourseApplicationTestLayer
 
@@ -131,6 +133,10 @@ class RegisterAssignmentLayer(InstructedCourseApplicationTestLayer):
 
 			content_package_ntiid = 'tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.clc_3403_law_and_justice'
 			catalog.index(assignment, container_ntiids=(lesson.ntiid, content_package_ntiid))
+
+			eval_catalog = get_evaluation_catalog()
+			intid = intids.getId( assignment )
+			eval_catalog.index_doc( intid, assignment )
 
 			cls.poll_id = poll_ntiid
 			cls.survey_id = survey_ntiid

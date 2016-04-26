@@ -21,6 +21,8 @@ from nti.app.assessment.views import is_true
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
+from nti.app.externalization.view_mixins import BatchingUtilsMixin
+
 from nti.common.maps import CaseInsensitiveDict
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -34,7 +36,10 @@ from nti.externalization.interfaces import StandardExternalFields
 
 ITEMS = StandardExternalFields.ITEMS
 
-class CourseViewMixin(AbstractAuthenticatedView):
+class CourseViewMixin(AbstractAuthenticatedView, BatchingUtilsMixin):
+
+	_DEFAULT_BATCH_START = 0
+	_DEFAULT_BATCH_SIZE = 20
 
 	def _get_mimeTypes(self):
 		params = CaseInsensitiveDict(self.request.params)
@@ -52,11 +57,11 @@ class CourseViewMixin(AbstractAuthenticatedView):
 		result = LocatedExternalDict()
 		result.__name__ = self.request.view_name
 		result.__parent__ = self.request.context
-
+		self.request.acl_decoration = False
 		count = 0
 		outline = self._byOutline()
 		mimeTypes = self._get_mimeTypes()
-		items = result[ITEMS] = {} if outline else list()
+		items = result[ITEMS] = dict() if outline else list()
 		for item in func():
 			if mimeTypes:  # filter by
 				mt = getattr(item, 'mimeType', None) or	getattr(item, 'mime_type', None)
@@ -69,7 +74,11 @@ class CourseViewMixin(AbstractAuthenticatedView):
 				unit = item.__parent__
 				ntiid = unit.ntiid if unit is not None else 'unparented'
 				items.setdefault(ntiid, []).append(item)
-		result['Total'] = result['ItemCount'] = count
+		if not outline: 
+			self._batch_items_iterable(result, items)
+		else:
+			result['ItemCount'] = count
+		result['Total'] =  count
 		return result
 
 @view_config(context=ICourseInstance)

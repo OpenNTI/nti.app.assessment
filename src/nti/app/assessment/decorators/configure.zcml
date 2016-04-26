@@ -134,6 +134,9 @@
 	<subscriber factory=".feedback._FeedbackItemAssignmentIdDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"/>
 
+	<subscriber factory=".feedback._FeedbackLibraryPathLinkDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"/>
+
 	<!-- ipad -->
 	<subscriber factory=".ipad._IPad110NoSubmitPartAdjuster"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"

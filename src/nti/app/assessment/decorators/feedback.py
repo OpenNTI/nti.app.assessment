@@ -14,6 +14,8 @@ from zope import interface
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedback
 
+from nti.app.contentlibrary.decorators import AbstractLibraryPathLinkDecorator
+
 from nti.externalization.singleton import SingletonDecorator
 from nti.externalization.interfaces import IExternalMappingDecorator
 
@@ -35,3 +37,8 @@ class _FeedbackItemAssignmentIdDecorator(object):
 			result_map['AssignmentId'] = submission.assignmentId
 		except AttributeError:
 			pass
+
+@interface.implementer(IExternalMappingDecorator)
+@component.adapter(IUsersCourseAssignmentHistoryItemFeedback)
+class _FeedbackLibraryPathLinkDecorator(AbstractLibraryPathLinkDecorator):
+	pass

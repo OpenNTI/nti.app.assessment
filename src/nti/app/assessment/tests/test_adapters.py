@@ -15,6 +15,7 @@ from hamcrest import calling
 from hamcrest import contains
 from hamcrest import not_none
 from hamcrest import has_item
+from hamcrest import has_items
 from hamcrest import has_entry
 from hamcrest import ends_with
 from hamcrest import has_length
@@ -59,6 +60,8 @@ from nti.mimetype.mimetype import nti_mimetype_with_class
 from nti.app.assessment.tests import RegisterAssignmentLayer
 from nti.app.assessment.tests import RegisterAssignmentLayerMixin
 from nti.app.assessment.tests import RegisterAssignmentsForEveryoneLayer
+
+from nti.app.contentlibrary import LIBRARY_PATH_GET_VIEW
 
 from nti.app.testing.application_webtest import ApplicationLayerTest
 
@@ -283,6 +286,20 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		res = self.testapp.post_json( history_feedback_container_href,
 									  ext_feedback,
 									  status=201 )
+
+		# Library path gives us course, submission, feedback.
+		library_path = self.require_link_href_with_rel(res.json_body, LIBRARY_PATH_GET_VIEW)
+		library_path_res = self.testapp.get( library_path )
+		library_path_res = library_path_res.json_body
+		assert_that( library_path_res, has_length( 1 ))
+		library_path_res = library_path_res[0]
+		assert_that( library_path_res, has_length( 3 ))
+		classes = [x.get( 'Class' ) for x in library_path_res]
+		assert_that( classes, has_items( 'CourseInstance',
+										 'UsersCourseAssignmentHistoryItem',
+										 'UsersCourseAssignmentHistoryItemFeedback'))
+		feedback_ntiid = res.json_body.get( 'NTIID' )
+		assert_that( library_path_res[-1].get( 'NTIID' ), is_( feedback_ntiid ))
 
 		# He can edit it
 		feedback_item_edit_link = self.require_link_href_with_rel( res.json_body, 'edit' )

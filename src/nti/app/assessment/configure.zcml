@@ -403,11 +403,11 @@
 	<subscriber factory=".adapters._hierarchy_from_obj_and_user"
 				provides="nti.appserver.interfaces.IHierarchicalContextProvider"
 				for="nti.assessment.interfaces.IQAssessment
-					nti.dataserver.interfaces.IUser"/>
+					 nti.dataserver.interfaces.IUser"/>
 
 	<subscriber factory=".adapters._hierarchy_from_obj_and_user"
 				provides="nti.appserver.interfaces.IHierarchicalContextProvider"
 				for="nti.assessment.interfaces.IQInquiry
-					nti.dataserver.interfaces.IUser"/>
+					 nti.dataserver.interfaces.IUser"/>
 
 </configure>

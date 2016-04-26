@@ -358,11 +358,10 @@ def get_course_assignments(context, sort=True, reverse=False, do_filtering=True)
 		_filter = AssessmentPolicyExclusionFilter(course=course)
 		assignments = [ proxy(x, catalog_entry=ntiid) for x in items
 			 	  		if 		IQAssignment.providedBy(x) \
-			 	  			and x.is_published() \
 			 	  			and _filter.allow_assessment_for_user_in_course(x, course=course) ]
 	else:
 		assignments = [	proxy(x, catalog_entry=ntiid)
-						for x in items if IQAssignment.providedBy(x) and x.is_published()]
+						for x in items if IQAssignment.providedBy(x)]
 	if sort:
 		assignments = sorted(assignments, cmp=assignment_comparator, reverse=reverse)
 	return assignments
@@ -393,7 +392,7 @@ def get_course_self_assessments(context):
 			result.append(item)
 
 	# Now remove the forbidden
-	result = [x for x in result if x.ntiid not in qsids_to_strip and x.is_published()]
+	result = [x for x in result if x.ntiid not in qsids_to_strip]
 	return result
 
 # surveys
@@ -430,11 +429,10 @@ def get_course_inquiries(context, do_filtering=True):
 		_filter = AssessmentPolicyExclusionFilter(course=course)
 		surveys = [ proxy(x, catalog_entry=ntiid) for x in items
 			 	  	if 		IQInquiry.providedBy(x) \
-			 	  		and x.is_published() \
 			 	  		and _filter.allow_assessment_for_user_in_course(x, course=course) ]
 	else:
 		surveys = [	proxy(x, catalog_entry=ntiid) 
-					for x in items if IQInquiry.providedBy(x) and x.is_published() ]
+					for x in items if IQInquiry.providedBy(x) ]
 	return surveys
 
 def can_disclose_inquiry(inquiry, context=None):

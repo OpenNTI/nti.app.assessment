@@ -77,7 +77,6 @@ class UserEnrolledForCreditInCourseOrInstructsFilter(object):
 		# TODO: check if assignment is indeed in the enroll for credit courses
 		return self.is_instructor or self.is_enrolled_for_credit
 	allow_assignment_for_user_in_course = allow_assessment_for_user_in_course  # BWC
-
 UserEnrolledForCreditInCourseFilter = UserEnrolledForCreditInCourseOrInstructsFilter  # BWC
 
 @component.adapter(IUser, ICourseInstance)
@@ -99,3 +98,15 @@ class AssessmentPolicyExclusionFilter(object):
 		return not excluded
 	allow_assignment_for_user_in_course = allow_assessment_for_user_in_course
 AssignmentPolicyExclusionFilter = AssessmentPolicyExclusionFilter
+
+@component.adapter(IUser, ICourseInstance)
+@interface.implementer(ICourseAssessmentUserFilter)
+class AssessmentPublishExclusionFilter(object):
+
+	def __init__(self, user=None, course=None):
+		pass
+
+	def allow_assessment_for_user_in_course(self, asg, user=None, course=None):
+		result = asg.is_published()
+		return result
+	allow_assignment_for_user_in_course = allow_assessment_for_user_in_course # BWC

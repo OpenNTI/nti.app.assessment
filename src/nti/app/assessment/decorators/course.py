@@ -47,3 +47,4 @@ class _CourseEditorLinksDecorator(_AbstractTraversableLinkDecorator):
 		links.append(Link(context, rel='Inquiries', elements=('@@Inquiries',)))
 		links.append(Link(context, rel='Assessments', elements=('@@Assessments',)))
 		links.append(Link(context, rel='Assignments', elements=('@@Assignments',)))
+		links.append(Link(context, rel='CourseEvaluations', elements=('@@CourseEvaluations',)))

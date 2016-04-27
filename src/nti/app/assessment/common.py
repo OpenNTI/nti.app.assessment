@@ -163,14 +163,14 @@ def get_course_evaluations(context, sites=None, intids=None, mimetypes=None):
 	}
 	mimetypes = mimetypes.split() if isinstance(mimetypes, six.string_types) else mimetypes
 	if mimetypes:
-		query[IX_ASSESS_MIMETYPE] = {'any_of' : mimetypes }
+		query[IX_ASSESS_MIMETYPE] = {'any_of': mimetypes}
 
 	result = []
 	catalog = get_evaluation_catalog()
 	intids = component.getUtility(IIntIds) if intids is None else intids
 	for uid in catalog.apply(query) or ():
 		evaluation = intids.queryObject(uid)
-		if not mimetypes or IQEvaluation.providedBy(evaluation): # extra check
+		if IQEvaluation.providedBy(evaluation): # extra check
 			result.append(evaluation)
 	return tuple(result)
 

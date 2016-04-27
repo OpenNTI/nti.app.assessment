@@ -44,7 +44,7 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
 from nti.assessment.interfaces import NTIID_TYPE
 from nti.assessment.interfaces import DISCLOSURE_NEVER
 from nti.assessment.interfaces import DISCLOSURE_ALWAYS
-from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
+from nti.assessment.interfaces import ALL_ASSIGNMENT_MIME_TYPES
 from nti.assessment.interfaces import QUESTION_SET_MIME_TYPE
 
 from nti.assessment.interfaces import IQPoll
@@ -356,7 +356,7 @@ def assignment_comparator(a, b):
 	return 0
 
 def get_course_assignments(context, sort=True, reverse=False, do_filtering=True):
-	items = get_course_evaluations(context, mimetypes=ASSIGNMENT_MIME_TYPE)
+	items = get_course_evaluations(context, mimetypes=ALL_ASSIGNMENT_MIME_TYPES)
 	ntiid = getattr(ICourseCatalogEntry(context, None), 'ntiid', None)
 	if do_filtering:
 		# Filter out excluded assignments so they don't show in the gradebook either
@@ -382,8 +382,10 @@ def get_course_self_assessments(context):
 	"""
 	result = list()
 	qsids_to_strip = set()
+	query_types = [QUESTION_SET_MIME_TYPE]
+	query_types.extend( ALL_ASSIGNMENT_MIME_TYPES )
 	items = get_course_evaluations(context,
-								   mimetypes=(QUESTION_SET_MIME_TYPE, ASSIGNMENT_MIME_TYPE))
+								   mimetypes=query_types)
 
 	for item in items:
 		if IQAssignment.providedBy(item):
@@ -439,7 +441,7 @@ def get_course_inquiries(context, do_filtering=True):
 			 	  		and x.is_published() \
 			 	  		and _filter.allow_assessment_for_user_in_course(x, course=course) ]
 	else:
-		surveys = [	proxy(x, catalog_entry=ntiid) 
+		surveys = [	proxy(x, catalog_entry=ntiid)
 					for x in items if IQInquiry.providedBy(x) ]
 	return surveys
 

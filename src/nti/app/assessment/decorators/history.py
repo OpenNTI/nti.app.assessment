@@ -45,7 +45,7 @@ from nti.traversal.traversal import find_interface
 LINKS = StandardExternalFields.LINKS
 
 @interface.implementer(IExternalMappingDecorator)
-class _AssignmentsAvailableAssignmentHistoryDecorator( AbstractAuthenticatedRequestAwareDecorator ):
+class _AssignmentsAvailableAssignmentHistoryDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
 	For a user's assignment history, expose available assignments.
 	"""
@@ -54,12 +54,12 @@ class _AssignmentsAvailableAssignmentHistoryDecorator( AbstractAuthenticatedRequ
 		user = context.owner
 		course = find_interface(context, ICourseInstance, strict=False)
 		if course is not None:
-			result_map['AvailableAssignmentNTIIDs'] = result = []
-			assignment_catalog = ICourseAssignmentCatalog( course )
-			user_predicate = get_course_assessment_predicate_for_user( user, course )
-			for asg in assignment_catalog.iter_assignments():
-				if user_predicate( asg ):
-					result.append( asg.ntiid )
+			assignment_catalog = ICourseAssignmentCatalog(course)
+			user_predicate = get_course_assessment_predicate_for_user(user, course)
+			result_map['AvailableAssignmentNTIIDs'] = [
+				asg.ntiid 
+				for asg in assignment_catalog.iter_assignments() if user_predicate(asg)
+			]
 
 @interface.implementer(IExternalMappingDecorator)
 class _CourseAssignmentHistoryDecorator(AbstractAssessmentDecoratorPredicate):
@@ -87,7 +87,7 @@ class _LastViewedAssignmentHistoryDecorator(AbstractAuthenticatedRequestAwareDec
 	"""
 
 	def _predicate(self, context, result):
-		return (	self._is_authenticated
+		return (self._is_authenticated
 				and context.owner is not None
 				and context.owner == self.remoteUser)
 
@@ -108,8 +108,8 @@ class _AssignmentHistoryLinkDecorator(_AbstractTraversableLinkDecorator):
 
 	def _do_decorate_external(self, context, result_map):
 		user = self.remoteUser
-		course = _get_course_from_assignment(context, 
-											 user, 
+		course = _get_course_from_assignment(context,
+											 user,
 											 self._catalog,
 											 request=self.request)
 		history = component.queryMultiAdapter((course, user),

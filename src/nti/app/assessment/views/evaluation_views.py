@@ -51,6 +51,8 @@ from nti.app.contentfile import validate_sources
 from nti.app.products.courseware import ASSETS_FOLDER
 
 from nti.app.products.courseware.resources.utils import get_course_filer
+from nti.app.products.courseware.resources.utils import is_internal_file_link
+from nti.app.products.courseware.resources.utils import get_file_from_external_link
 
 from nti.app.publishing import VIEW_PUBLISH
 from nti.app.publishing import VIEW_UNPUBLISH
@@ -82,6 +84,8 @@ from nti.assessment.interfaces import IQEvaluationItemContainer
 from nti.common.maps import CaseInsensitiveDict
 
 from nti.common.property import Lazy
+
+from nti.contentfile.interfaces import IContentBaseFile
 
 from nti.contentfragments.html import _html5lib_tostring
 
@@ -138,8 +142,13 @@ def get_html_content_fields(context):
 			result.extend(get_html_content_fields(parts))
 	return tuple(result)
 
-def _handle_multipart(context, user, model, sources):
+def _associate(model, source):
+	if IContentBaseFile.providedBy(source):
+		source.add_association(model)
+
+def _handle_evaluation_content(context, user, model, sources=None):
 	filer = get_course_filer(context, user)
+	sources = sources if sources is not None else {}
 	for obj, name in get_html_content_fields(model):
 		value = getattr(obj, name, None)
 		if value and filer != None:
@@ -150,18 +159,30 @@ def _handle_multipart(context, user, model, sources):
 			doc = parser.parse(value)
 			for e in doc.iter():
 				attrib = e.attrib
-				href = attrib.get('href') or u''
-				if href.startswith(NTI_COURSE_FILE_SCHEME):
+				href = attrib.get('href')
+				if not href:
+					continue
+				elif is_internal_file_link(href):
+					source = get_file_from_external_link(href)
+					_associate(model, source)
+				elif href.startswith(NTI_COURSE_FILE_SCHEME):
 					# save resource in filer
 					path = urlparse(href).path
-					name = os.path.split(path)[1]
+					path, name = os.path.split(path)
 					source = sources.get(name)
 					if source is None:
-						logger.error("Missing source %s", href)
-						continue
-					key = get_safe_source_filename(source, name)
-					location = filer.save(key, source, overwrite=False,
-										  bucket=ASSETS_FOLDER, context=model)
+						source = filer.get(name, path)
+						if source is not None:
+							_associate(model, source)
+							location = filer.get_external_link(source)
+						else:
+							logger.error("Missing multipart-source %s", href)
+							continue
+					else:
+						path = path or ASSETS_FOLDER
+						key = get_safe_source_filename(source, name)
+						location = filer.save(key, source, overwrite=False,
+											  bucket=path, context=model)
 					# change href
 					attrib['href'] = location
 					modified = True
@@ -398,10 +419,13 @@ class EvaluationMixin(object):
 			result = self.handle_assignment(theObject, course, user)
 		else:
 			result = theObject
-		if sources:
-			_handle_multipart(course, user, result, sources)
+	
+		# course is the evaluation home	
+		theObject.__home__ = course
+		# parse content fields and load sources
+		_handle_evaluation_content(course, user, result, sources)
+		# always register
 		register_context(result)
-		theObject.__home__ = course # set home always
 		return result
 
 	def post_update_check(self, contentObject, externalValue):

@@ -401,6 +401,7 @@ class EvaluationMixin(object):
 		if sources:
 			_handle_multipart(course, user, result, sources)
 		register_context(result)
+		theObject.__home__ = course # set home always
 		return result
 
 	def post_update_check(self, contentObject, externalValue):

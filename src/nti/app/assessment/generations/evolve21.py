@@ -25,6 +25,8 @@ from nti.app.assessment import get_evaluation_catalog
 from nti.assessment.interfaces import IQEvaluation
 
 from nti.contentlibrary.interfaces import IContentUnit
+from nti.contentlibrary.interfaces import IContentPackageLibrary
+from nti.contentlibrary.interfaces import IGlobalContentPackageLibrary
 
 from nti.dataserver.interfaces import IDataserver
 from nti.dataserver.interfaces import IOIDResolver
@@ -32,6 +34,8 @@ from nti.dataserver.interfaces import IOIDResolver
 from nti.ntiids.ntiids import find_object_with_ntiid
 
 from nti.site.hostpolicy import get_all_host_sites
+
+from nti.traversal.traversal import find_interface
 
 def _process_items(registry, intids, seen):
 	catalog = get_evaluation_catalog()
@@ -51,11 +55,13 @@ def _process_items(registry, intids, seen):
 				new_parent = container
 		else:
 			new_parent = find_object_with_ntiid( old_parent.ntiid )
-		# Make sure we have intid
-		doc_id = intids.queryId(item)
-		if doc_id is None:
-			logger.info( 'Item without intid (%s)', item.ntiid )
-			intids.register( item )
+		library = find_interface( item, IContentPackageLibrary, strict=False )
+		if not IGlobalContentPackageLibrary.providedBy( library ):
+			# Make sure we have intid
+			doc_id = intids.queryId(item)
+			if doc_id is None:
+				logger.info( 'Item without intid (%s)', item.ntiid )
+				intids.register( item )
 
 		if old_parent != new_parent:
 			# These are probably locked objects that we never re-parented

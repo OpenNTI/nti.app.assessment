@@ -760,6 +760,8 @@ class EvaluationGetView(GenericGetView):
 
 	def __call__(self):
 		result = GenericGetView.__call__(self)
+		# XXX Check than only editors can have access 
+		# to unpublished evalutations
 		if 		IQEditableEvalutation.providedBy(result) \
 			and not result.is_published() \
 			and not has_permission(ACT_CONTENT_EDIT, result, self.request):

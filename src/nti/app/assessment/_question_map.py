@@ -341,10 +341,11 @@ class QuestionMap(QuestionIndex):
 				# make sure we place in parent container and make sure
 				# we update lineage to the new content unit objects.
 				obj = registered
-				self._store_object(ntiid, obj)
 				obj.__parent__ = parent
+				self._store_object(ntiid, obj)
 				things_to_register = self._explode_object_to_register(obj)
 				for item in things_to_register:
+					item = removeAllProxies(item)
 					item.__parent__ = parent
 				if ntiid not in parents_questions:
 					parents_questions.append(registered)

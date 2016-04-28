@@ -189,7 +189,7 @@ class AssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 	@Lazy
 	def _is_editor(self):
 		instance = ICourseInstance(self.context)
-		return has_permission( nauth.ACT_CONTENT_EDIT, instance )
+		return has_permission(nauth.ACT_CONTENT_EDIT, instance)
 
 	def _do_outline(self, instance, items, outline):
 		# reverse question set map
@@ -227,7 +227,7 @@ class AssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 	def _do_catalog(self, instance, result):
 		catalog = ICourseAssignmentCatalog(instance)
 		uber_filter = get_course_assessment_predicate_for_user(self.remoteUser, instance)
-		for asg in (x for x in catalog.iter_assignments() if uber_filter(x) or self._is_editor):
+		for asg in (x for x in catalog.iter_assignments() if self._is_editor or uber_filter(x)):
 			parent_ntiid = get_containerId(asg)
 			if parent_ntiid:
 				if 		not self.is_ipad_legacy \

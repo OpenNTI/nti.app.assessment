@@ -51,15 +51,19 @@ def _process_items(registry, intids, seen):
 				new_parent = container
 		else:
 			new_parent = find_object_with_ntiid( old_parent.ntiid )
+		# Make sure we have intid
+		doc_id = intids.queryId(item)
+		if doc_id is None:
+			logger.info( 'Item without intid (%s)', item.ntiid )
+			intids.register( item )
+
 		if old_parent != new_parent:
 			# These are probably locked objects that we never re-parented
-			# on subsequent syncs.
+			# contente untis on subsequent syncs.
 			item.__parent__ = new_parent
-			doc_id = intids.queryId(item)
-			logger.info( 'Fixing lineage and re-indexing (%s) (id=%s)',
-						 item.ntiid, doc_id )
-			if doc_id:
-				catalog.index_doc(doc_id, item)
+			logger.info( 'Fixing lineage and re-indexing (%s)',
+						 item.ntiid )
+			catalog.index_doc(doc_id, item)
 
 @interface.implementer(IDataserver)
 class MockDataserver(object):

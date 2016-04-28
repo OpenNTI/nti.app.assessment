@@ -57,6 +57,10 @@ from nti.app.publishing import VIEW_UNPUBLISH
 from nti.app.publishing.views import PublishView
 from nti.app.publishing.views import UnpublishView
 
+from nti.appserver.dataserver_pyramid_views import GenericGetView
+
+from nti.appserver.pyramid_authorization import has_permission
+
 from nti.appserver.ugd_edit_views import UGDPutView
 from nti.appserver.ugd_edit_views import UGDPostView
 from nti.appserver.ugd_edit_views import UGDDeleteView
@@ -90,6 +94,7 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.coremetadata.interfaces import IPublishable
 
 from nti.dataserver import authorization as nauth
+from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
@@ -223,6 +228,21 @@ def validate_internal(theObject, course, request):
 	validate_savepoints(theObject, course, request)
 	validate_submissions(theObject, course, request)
 
+def register_context(context, site_name=None):
+	ntiid = context.ntiid
+	provided = iface_of_assessment(context)
+	site_name = get_resource_site_name(context) if not site_name else site_name
+	registry = get_host_site(site_name).getSiteManager()
+	if registry.queryUtility(provided, name=ntiid) is None:
+		registerUtility(registry, context, provided, name=ntiid)
+	# process 'children'
+	if IQEvaluationItemContainer.providedBy(context):
+		for item in context.Items or ():
+			register_context(item, site_name)
+	elif IQAssignment.providedBy(context):
+		for item in context.iter_question_sets():
+			register_context(item, site_name)
+			
 class EvaluationMixin(object):
 
 	@Lazy
@@ -380,6 +400,7 @@ class EvaluationMixin(object):
 			result = theObject
 		if sources:
 			_handle_multipart(course, user, result, sources)
+		register_context(result)
 		return result
 
 	def post_update_check(self, contentObject, externalValue):
@@ -652,8 +673,7 @@ def delete_evaluation(evaluation, course=None):
 	registered = component.queryUtility(provided, name=evaluation.ntiid)
 	if registered is not None:
 		site_name = get_resource_site_name(course)
-		folder = get_host_site(site_name)
-		registry = folder.getSiteManager()
+		registry = get_host_site(site_name).getSiteManager()
 		unregisterUtility(registry, provided=provided, name=evaluation.ntiid)
 
 @view_config(route_name="objects.generic.traversal",
@@ -691,13 +711,7 @@ def publish_context(context, site_name=None):
 	if not context.is_published():
 		context.publish()
 	# register utility
-	ntiid = context.ntiid
-	provided = iface_of_assessment(context)
-	site_name = get_resource_site_name(context) if not site_name else site_name
-	site = get_host_site(site_name)
-	registry = site.getSiteManager()
-	if registry.queryUtility(provided, name=ntiid) is None:
-		registerUtility(registry, context, provided, name=ntiid)
+	register_context(context, site_name)
 	# process 'children'
 	if IQEvaluationItemContainer.providedBy(context):
 		for item in context.Items or ():
@@ -730,13 +744,24 @@ class EvaluationUnpublishView(UnpublishView):
 
 	def _do_provide(self, context):
 		if IQEditableEvalutation.providedBy(context):
-			provided = iface_of_assessment(context)
 			course = find_interface(context, ICourseInstance, strict=False)
 			validate_submissions(context, course, self.request)
 			# unpublish
 			super(EvaluationUnpublishView, self)._do_provide(context)
-			# unregister
-			site_name = get_resource_site_name(context)
-			site = get_host_site(site_name)
-			registry = site.getSiteManager()
-			unregisterUtility(registry, provided=provided, name=context.ntiid)
+
+# get views
+
+@view_config(route_name='objects.generic.traversal',
+			 renderer='rest',
+			 context=IQEvaluation,
+			 request_method='GET',
+			 permission=nauth.ACT_READ)
+class EvaluationGetView(GenericGetView):
+
+	def __call__(self):
+		result = GenericGetView.__call__(self)
+		if 		IQEditableEvalutation.providedBy(result) \
+			and not result.is_published() \
+			and not has_permission(ACT_CONTENT_EDIT, result, self.request):
+			raise hexc.HTTPForbidden()
+		return result

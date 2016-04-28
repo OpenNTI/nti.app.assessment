@@ -129,6 +129,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		qset = to_external_object(qset)
 		res = self.testapp.post_json(href, qset, status=201)
 		qset_href = res.json_body['href']
+		ntiid = res.json_body['NTIID']
 		# cannot delete a contained object
 		question = res.json_body['questions'][0]
 		href = href + '/%s' % quote(question['NTIID'])
@@ -137,6 +138,9 @@ class TestEvaluationViews(ApplicationLayerTest):
 		self.testapp.delete(qset_href, status=204)
 		# now delete again
 		self.testapp.delete(href, status=204)
+		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+			obj = component.queryUtility(IQuestion, name=ntiid)
+			assert_that(obj, is_(none()))
 		
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	@fudge.patch('nti.app.assessment.views.evaluation_views.has_submissions')
@@ -154,13 +158,13 @@ class TestEvaluationViews(ApplicationLayerTest):
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
 			ntiid = res.json_body['NTIID']
 			obj = component.queryUtility(IQuestion, name=ntiid)
-			assert_that(obj, is_(none()))
+			assert_that(obj.is_published(), is_(False))
 		publish_href = q_href + '/@@publish'
 		self.testapp.post(publish_href, status=200)
 		# check registered
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
 			obj = component.queryUtility(IQuestion, name=ntiid)
-			assert_that(obj, is_not(none()))
+			assert_that(obj.is_published(), is_(True))
 		# cannot unpublish w/ submissions
 		unpublish_href = q_href + '/@@unpublish'
 		mock_vhs.is_callable().with_args().returns(True)
@@ -170,4 +174,4 @@ class TestEvaluationViews(ApplicationLayerTest):
 		self.testapp.post(unpublish_href, status=200)
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
 			obj = component.queryUtility(IQuestion, name=ntiid)
-			assert_that(obj, is_(none()))
+			assert_that(obj.is_published(), is_(False))

@@ -31,6 +31,8 @@ from nti.contentlibrary.interfaces import IGlobalContentPackageLibrary
 from nti.dataserver.interfaces import IDataserver
 from nti.dataserver.interfaces import IOIDResolver
 
+from nti.intid.common import addIntId
+
 from nti.ntiids.ntiids import find_object_with_ntiid
 
 from nti.site.hostpolicy import get_all_host_sites
@@ -50,9 +52,10 @@ def _process_items(registry, intids, seen):
 			container_id = getattr( item, 'containerId', '' )
 			logger.info( 'Empty parent for (%s) (new_parent=%s)',
 						 name, container_id )
-			container = find_object_with_ntiid( container_id )
-			if IContentUnit.providedBy( container ):
-				new_parent = container
+			if container_id is not None:
+				container = find_object_with_ntiid( container_id )
+				if IContentUnit.providedBy( container ):
+					new_parent = container
 		else:
 			new_parent = find_object_with_ntiid( old_parent.ntiid )
 		library = find_interface( item, IContentPackageLibrary, strict=False )
@@ -61,7 +64,7 @@ def _process_items(registry, intids, seen):
 			doc_id = intids.queryId(item)
 			if doc_id is None:
 				logger.info( 'Item without intid (%s)', item.ntiid )
-				intids.register( item )
+				addIntId( item )
 
 		if old_parent != new_parent:
 			# These are probably locked objects that we never re-parented

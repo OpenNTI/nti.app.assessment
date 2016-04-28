@@ -59,6 +59,7 @@ def _process_items(registry, intids, seen):
 		else:
 			new_parent = find_object_with_ntiid( old_parent.ntiid )
 		library = find_interface( item, IContentPackageLibrary, strict=False )
+		doc_id = None
 		if not IGlobalContentPackageLibrary.providedBy( library ):
 			# Make sure we have intid
 			doc_id = intids.queryId(item)
@@ -72,7 +73,8 @@ def _process_items(registry, intids, seen):
 			item.__parent__ = new_parent
 			logger.info( 'Fixing lineage and re-indexing (%s)',
 						 item.ntiid )
-			catalog.index_doc(doc_id, item)
+			if doc_id is not None:
+				catalog.index_doc(doc_id, item)
 
 @interface.implementer(IDataserver)
 class MockDataserver(object):

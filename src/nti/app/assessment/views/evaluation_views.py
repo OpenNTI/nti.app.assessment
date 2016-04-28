@@ -668,6 +668,7 @@ def delete_evaluation(evaluation, course=None):
 	course = find_interface(evaluation, ICourseInstance, strict=False)
 	evaluations = ICourseEvaluations(course)
 	del evaluations[evaluation.ntiid]
+	evaluation.__home__ = None 
 
 	# remove from registry
 	provided = iface_of_assessment(evaluation)

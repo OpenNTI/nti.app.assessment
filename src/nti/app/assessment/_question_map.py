@@ -258,7 +258,7 @@ class QuestionMap(QuestionIndex):
 		intids = component.queryUtility(IIntIds)
 		library = component.queryUtility(IContentPackageLibrary)
 		parents_questions = IQAssessmentItemContainer(content_package)
-		
+
 		hierarchy_ntiids = set()
 		hierarchy_ntiids.add(content_package.ntiid)
 
@@ -316,15 +316,15 @@ class QuestionMap(QuestionIndex):
 						if thing_to_register.__parent__ is None and parent is not None:
 							thing_to_register.__parent__ = parent
 						else:
-							logger.warn("Could not set parent for %s. %s %s", ntiid, 
+							logger.warn("Could not set parent for %s. %s %s", ntiid,
 										thing_to_register.__parent__, parent)
 
 						# add to container and get and intid
-						self._intid_register(thing_to_register, 
-											 intids=intids, 
+						self._intid_register(thing_to_register,
+											 intids=intids,
 											 registry=registry)
 						parents_questions.append(thing_to_register)
-							
+
 						# publish item
 						self._publish_object(thing_to_register)
 
@@ -332,18 +332,21 @@ class QuestionMap(QuestionIndex):
 						if sync_results is not None:
 							sync_results.add_assessment(thing_to_register, False)
 					elif ntiid and ntiid not in parents_questions:
-						# XXX: Seen in alpha
-						# registered object is not in unit container
+						# Child item locked/edited.
+						# Update parent and put in parent container.
 						parents_questions.append(thing_to_register)
 						thing_to_register.__parent__ = parent
-						self._publish_object(thing_to_register)
 			else:
+				# These are locked/edited objects. We want to
+				# make sure we place in parent container and make sure
+				# we update lineage to the new content unit objects.
 				obj = registered
-				self._publish_object(obj)
 				self._store_object(ntiid, obj)
+				obj.__parent__ = parent
+				things_to_register = self._explode_object_to_register(obj)
+				for item in things_to_register:
+					item.__parent__ = parent
 				if ntiid not in parents_questions:
-					# XXX: Seen in alpha
-					# registered object is not in unit container
 					parents_questions.append(registered)
 
 			if containing_hierarchy_key:

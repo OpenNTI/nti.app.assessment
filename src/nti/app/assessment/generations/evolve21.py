@@ -24,6 +24,8 @@ from nti.app.assessment import get_evaluation_catalog
 
 from nti.assessment.interfaces import IQEvaluation
 
+from nti.contentlibrary.interfaces import IContentUnit
+
 from nti.dataserver.interfaces import IDataserver
 from nti.dataserver.interfaces import IOIDResolver
 
@@ -33,19 +35,31 @@ from nti.site.hostpolicy import get_all_host_sites
 
 def _process_items(registry, intids, seen):
 	catalog = get_evaluation_catalog()
-	for _, item in list(registry.getUtilitiesFor(IQEvaluation)):
-		if item.ntiid in seen:
+	for name, item in list(registry.getUtilitiesFor(IQEvaluation)):
+		if name in seen:
 			continue
-		seen.add( item.ntiid )
+		seen.add( name )
+		if item is None:
+			logger.info( 'Empty assessment registered (%s)', name )
 		old_parent = item.__parent__
-		new_parent = find_object_with_ntiid( old_parent.ntiid )
+		if old_parent is None:
+			container_id = getattr( item, 'containerId', '' )
+			logger.info( 'Empty parent for (%s) (new_parent=%s)',
+						 name, container_id )
+			container = find_object_with_ntiid( container_id )
+			if IContentUnit.providedBy( container ):
+				new_parent = container
+		else:
+			new_parent = find_object_with_ntiid( old_parent.ntiid )
 		if old_parent != new_parent:
 			# These are probably locked objects that we never re-parented
 			# on subsequent syncs.
-			logger.info( 'Fixing lineage and re-indexing (%s)', item.ntiid )
 			item.__parent__ = new_parent
 			doc_id = intids.queryId(item)
-			catalog.index_doc(doc_id, item)
+			logger.info( 'Fixing lineage and re-indexing (%s) (id=%s)',
+						 item.ntiid, doc_id )
+			if doc_id:
+				catalog.index_doc(doc_id, item)
 
 @interface.implementer(IDataserver)
 class MockDataserver(object):

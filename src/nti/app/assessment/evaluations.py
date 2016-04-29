@@ -50,6 +50,7 @@ from nti.app.externalization.error import raise_json_error
 
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQuestion
+from nti.assessment.interfaces import IQGradablePart
 from nti.assessment.interfaces import IQEditableEvalutation
 from nti.assessment.interfaces import IQNonGradableFilePart
 from nti.assessment.interfaces import IQEvaluationItemContainer
@@ -264,10 +265,10 @@ class _BasicPartChangeAnalyzer(object):
 	def __init__(self, part):
 		self.part = part
 
-	def validate(self, part=None):
+	def validate(self, part=None, check_solutions=True):
 		raise NotImplementedError()
 
-	def allow(self, change):
+	def allow(self, change, check_solutions=True):
 		raise NotImplementedError()
 
 	def regrade(self, change):
@@ -285,6 +286,10 @@ def to_external(obj):
 		return to_external_object(obj, decorate=False)
 	return obj
 
+def is_gradable(part):
+	result = IQGradablePart.providedBy(part)
+	return result
+	
 @interface.implementer(IQPartChangeAnalyzer)
 @component.adapter(IQNonGradableMultipleChoicePart)
 class _MultipleChoicePartChangeAnalyzer(_BasicPartChangeAnalyzer):
@@ -294,10 +299,10 @@ class _MultipleChoicePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 
 	def validate_solutions(self, part):
 		solutions = part.solutions
-		if not solutions:
+		if not solutions and is_gradable(part):
 			raise raise_error({ u'message': _("Must specify a solution."),
 								u'code': 'MissingSolutions'})
-		for solution in solutions:
+		for solution in solutions or ():
 			if not solution or solution.value is None:
 				raise raise_error({ u'message': _("Solution cannot be empty."),
 									u'code': 'InvalidSolution'})
@@ -306,7 +311,7 @@ class _MultipleChoicePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 				raise raise_error({ u'message': _("Solution in not in choices."),
 									u'code': 'InvalidSolution'})
 
-	def validate(self, part=None):
+	def validate(self, part=None, check_solutions=True):
 		part = self.part if part is None else part
 		choices = part.choices or ()
 		unique_choices = OrderedSet(choices)
@@ -316,9 +321,10 @@ class _MultipleChoicePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 		if len(choices) != len(unique_choices):
 			raise raise_error({ u'message': _("Cannot have duplicate choices."),
 								u'code': 'DuplicatePartChoices'})
-		self.validate_solutions(part)
+		if check_solutions:
+			self.validate_solutions(part)
 
-	def allow(self, change):
+	def allow(self, change, check_solutions=True):
 		change = to_external(change)
 		# check new choices
 		new_choices = change.get('choices')
@@ -333,19 +339,21 @@ class _MultipleChoicePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 				# label change, make sure we are not reordering
 				if old != new and new in old_choices[idx + 1:]:
 					return False
+
 		# check new new sols
-		new_sols = change.get('solutions')
-		if new_sols is not None:
-			old_sols = self.part.solutions
-			# cannot substract solutions
-			if len(new_sols) < len(old_sols):
-				return False
+		if check_solutions:
+			new_sols = change.get('solutions')
+			if new_sols is not None and is_gradable(self.part):
+				old_sols = self.part.solutions
+				# cannot substract solutions
+				if len(new_sols) < len(old_sols):
+					return False
 		return True
 
 	def regrade(self, change):
 		change = to_external(change)
 		new_sols = change.get('solutions')
-		if new_sols is not None:
+		if new_sols is not None and is_gradable(self.part):
 			old_sols = self.part.solutions
 			for old, new in zip(old_sols, new_sols):
 				# change solution order/value - # int or array of ints
@@ -362,10 +370,10 @@ class _MultipleChoiceMultipleAnswerPartChangeAnalyzer(_MultipleChoicePartChangeA
 
 	def validate_solutions(self, part):
 		solutions = part.solutions
-		if not solutions:
+		if not solutions and is_gradable(part):
 			raise raise_error({ u'message': _("Must specify a solution set."),
 								u'code': 'MissingSolutions'})
-		for solution in solutions:
+		for solution in solutions or ():
 			if not solution or not solution.value:
 				raise raise_error({ u'message': _("Solution set cannot be empty."),
 									u'code': 'MissingSolutions'})
@@ -388,23 +396,29 @@ class _FreeResponsePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 	def homogenize(self, value):
 		return u'' if not value else value.lower()
 
-	def validate(self, part=None):
+	def validate_solutions(self, part):
 		solutions = part.solutions
-		if not solutions:
+		if not solutions and is_gradable(part):
 			raise raise_error({ u'message': _("Must specify a solution."),
 								u'code': 'MissingSolutions'})
-		for solution in solutions:
+		for solution in solutions or ():
 			if not solution or not solution.value:
 				raise raise_error({ u'message': _("Solution cannot be empty."),
 									u'code': 'InvalidSolution'})
 
-	def allow(self, change):
+
+	def validate(self, part=None, check_solutions=True):
+		part = self.part if part is None else part
+		if check_solutions:
+			self.validate_solutions(part)
+
+	def allow(self, change, check_solutions=True):
 		return True  # always allow
 
 	def regrade(self, change):
 		change = to_external(change)
 		new_sols = change.get('solutions')
-		if new_sols is not None:
+		if new_sols is not None and is_gradable(self.part):
 			old_sols = self.part.solutions
 			for old, new in zip(old_sols, new_sols):
 				# change solution order/value
@@ -419,36 +433,12 @@ class _ConnectingPartChangeAnalyzer(_BasicPartChangeAnalyzer):
 	def homogenize(self, value):
 		return {to_int(x):to_int(y) for x, y in value.items()}
 
-	def validate(self, part=None):
-		part = self.part if part is None else part
-		labels = part.labels or ()
-		unique_labels = OrderedSet(labels)
-		if not labels:
-			raise raise_error({ u'message': _("Must specify a label selection."),
-								u'code': 'MissingPartLabels'})
-		if len(labels) != len(unique_labels):
-			raise raise_error({ u'message': _("Cannot have duplicate labels."),
-								u'code': 'DuplicatePartLabels'})
-
-		values = part.values or ()
-		unique_values = OrderedSet(values)
-		if not values:
-			raise raise_error({ u'message': _("Must specify a value selection."),
-								u'code': 'MissingPartValues'})
-		if len(values) != len(unique_values):
-			raise raise_error({ u'message': _("Cannot have duplicate values."),
-								u'code': 'DuplicatePartValues'})
-
-		if len(labels) != len(values):
-			raise raise_error(
-					{ u'message': _("Number of labels and values must be equal."),
-					  u'code': 'DuplicatePartValues'})
-
+	def validate_solutions(self, part, labels, values):
 		solutions = part.solutions
-		if not solutions:
+		if not solutions and is_gradable(part):
 			raise raise_error({ u'message': _("Must specify a solution."),
  								u'code': 'MissingSolutions'})
-		for solution in solutions:
+		for solution in solutions or ():
 			if not solution or not solution.value:
 				raise raise_error({ u'message': _("Solutions cannot be empty."),
  									u'code': 'InvalidSolution'})
@@ -482,6 +472,34 @@ class _ConnectingPartChangeAnalyzer(_BasicPartChangeAnalyzer):
 							{ u'message': _("Solution value in not in part values."),
 							  u'code': 'InvalidSolution'})
 
+	def validate(self, part=None, check_solutions=True):
+		part = self.part if part is None else part
+		labels = part.labels or ()
+		unique_labels = OrderedSet(labels)
+		if not labels:
+			raise raise_error({ u'message': _("Must specify a label selection."),
+								u'code': 'MissingPartLabels'})
+		if len(labels) != len(unique_labels):
+			raise raise_error({ u'message': _("Cannot have duplicate labels."),
+								u'code': 'DuplicatePartLabels'})
+
+		values = part.values or ()
+		unique_values = OrderedSet(values)
+		if not values:
+			raise raise_error({ u'message': _("Must specify a value selection."),
+								u'code': 'MissingPartValues'})
+		if len(values) != len(unique_values):
+			raise raise_error({ u'message': _("Cannot have duplicate values."),
+								u'code': 'DuplicatePartValues'})
+
+		if len(labels) != len(values):
+			raise raise_error(
+					{ u'message': _("Number of labels and values must be equal."),
+					  u'code': 'DuplicatePartValues'})
+
+		if check_solutions:
+			self.validate_solutions(part, labels, values)
+
 	def _check_selection(self, change, name):
 		new_sels = change.get(name)
 		if new_sels is not None:
@@ -495,25 +513,26 @@ class _ConnectingPartChangeAnalyzer(_BasicPartChangeAnalyzer):
 					return False
 		return True
 
-	def allow(self, change):
+	def allow(self, change, check_solutions=True):
 		change = to_external(change)
 		if		not self._check_selection(change, 'labels') \
 			or	not self._check_selection(change, 'values'):
 			return False
 
 		# check new new_solss
-		new_sols = change.get('solutions')
-		if new_sols is not None:
-			old_sols = self.part.solutions
-			# cannot substract solutions
-			if len(new_sols) < len(old_sols):
-				return False
+		if check_solutions:
+			new_sols = change.get('solutions')
+			if new_sols is not None and is_gradable(self.part):
+				old_sols = self.part.solutions
+				# cannot substract solutions
+				if len(new_sols) < len(old_sols):
+					return False
 		return True
 
 	def regrade(self, change):
 		change = to_external(change)
 		new_sols = change.get('solutions')
-		if new_sols is not None:
+		if new_sols is not None and is_gradable(self.part):
 			old_sols = self.part.solutions
 			for old, new in zip(old_sols, new_sols):
 				# change solution order/value
@@ -525,8 +544,8 @@ class _ConnectingPartChangeAnalyzer(_BasicPartChangeAnalyzer):
 @interface.implementer(IQPartChangeAnalyzer)
 class _FilePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 
-	def validate(self, part=None):
+	def validate(self, part=None, check_solutions=True):
 		pass
 
-	def allow(self, change):
+	def allow(self, change, check_solutions=True):
 		return True  # always allow

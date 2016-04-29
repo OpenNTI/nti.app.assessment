@@ -430,23 +430,26 @@ class IQPartChangeAnalyzer(interface.Interface):
 	Marker interface for a question part adapter to analyze an update to it
 	"""
 
-	def validate(part=None):
+	def validate(part=None, check_solutions=True):
 		"""
 		validate this or the specified part
+		
+		:param check_solutions: Validate part solutions
 		"""
 
-	def allow(change):
+	def allow(change, check_solutions=True):
 		"""
 		Given the specified change it returns whether or not it is allowed
 
-		:change: Part update
+		:param change: Part update
+		:param check_solutions: Validate change/part solutions
 		"""
 
 	def regrade(change):
 		"""
 		Given the specified change it returns whether or not the part must be regraded
 
-		:change: Part update
+		:param change: Part update
 		"""
 
 class IObjectRegradeEvent(IObjectEvent):

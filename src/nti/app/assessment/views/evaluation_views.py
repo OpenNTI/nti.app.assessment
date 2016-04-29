@@ -35,6 +35,7 @@ from nti.app.assessment.common import get_resource_site_name
 from nti.app.assessment.common import get_evaluation_containment
 
 from nti.app.assessment.interfaces import ICourseEvaluations
+from nti.app.assessment.interfaces import IQAvoidSolutionCheck
 
 from nti.app.assessment.views.view_mixins import AssessmentPutView
 
@@ -293,6 +294,7 @@ class EvaluationMixin(object):
 		lifecycleevent.created(obj)
 		evaluations[ntiid] = obj # stored and gain intid
 		interface.alsoProvides(obj, IQEditableEvalutation)
+		interface.noLongerProvides(obj, IQAvoidSolutionCheck)
 		return obj
 
 	def get_registered_evaluation(self, obj, course):
@@ -305,9 +307,12 @@ class EvaluationMixin(object):
 			obj = component.queryUtility(provided, name=ntiid)
 		return obj
 
+	def is_new(self, context):
+		ntiid = self.get_ntiid(context)
+		return not ntiid
+
 	def handle_question(self, theObject, course, user):
-		ntiid = self.get_ntiid(theObject)
-		if not ntiid:
+		if self.is_new(theObject):
 			theObject = self.store_evaluation(theObject, course, user)
 		else:
 			theObject = self.get_registered_evaluation(theObject, course)
@@ -322,8 +327,7 @@ class EvaluationMixin(object):
 		return theObject
 
 	def handle_poll(self, theObject, course, user):
-		ntiid = self.get_ntiid(theObject)
-		if not ntiid:
+		if self.is_new(theObject):
 			theObject = self.store_evaluation(theObject, course, user)
 		else:
 			theObject = self.get_registered_evaluation(theObject, course)
@@ -338,8 +342,7 @@ class EvaluationMixin(object):
 		return theObject
 
 	def handle_question_set(self, theObject, course, user):
-		ntiid = self.get_ntiid(theObject)
-		if not ntiid:
+		if self.is_new(theObject):
 			questions = []
 			for question in theObject.questions or ():
 				question = self.handle_question(question, course, user)
@@ -360,8 +363,7 @@ class EvaluationMixin(object):
 		return theObject
 
 	def handle_survey(self, theObject, course, user):
-		ntiid = self.get_ntiid(theObject)
-		if not ntiid:
+		if self.is_new(theObject):
 			questions = []
 			for poll in theObject.questions or ():
 				poll = self.handle_poll(poll, course, user)
@@ -386,8 +388,7 @@ class EvaluationMixin(object):
 		return part
 
 	def handle_assignment(self, theObject, course, user):
-		ntiid = self.get_ntiid(theObject)
-		if not ntiid:
+		if self.is_new(theObject):
 			parts = []
 			for part in theObject.parts or ():
 				part = self.handle_assignment_part(part, course, user)

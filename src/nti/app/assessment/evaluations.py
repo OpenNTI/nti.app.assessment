@@ -38,7 +38,8 @@ from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import evaluation_submissions 
 from nti.app.assessment.common import get_evaluation_containment
 
-from nti.app.assessment.interfaces import ICourseEvaluations
+from nti.app.assessment.interfaces import ICourseEvaluations,\
+	IQAvoidSolutionCheck
 from nti.app.assessment.interfaces import IQPartChangeAnalyzer
 from nti.app.assessment.interfaces import IRegradeQuestionEvent
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
@@ -185,20 +186,22 @@ def raise_error(v, tb=None, factory=hexc.HTTPUnprocessableEntity):
 # Part change analyzers
 
 def _validate_part_resource(resource):
+	check_solutions = not IQAvoidSolutionCheck.providedBy(resource)
 	for part in resource.parts or ():
 		analyzer = IQPartChangeAnalyzer(part, None)
 		if analyzer is not None:
-			analyzer.validate()
+			analyzer.validate(check_solutions=check_solutions)
 
 def _allow_question_change(question, externalValue):
 	parts = externalValue.get('parts')
+	check_solutions = not IQAvoidSolutionCheck.providedBy(question)
 	course = find_interface(question, ICourseInstance, strict=False)
 	if parts and has_submissions(question, course):
 		regrade = []
 		for part, change in zip(question.parts, parts):
 			analyzer = IQPartChangeAnalyzer(part, None)
 			if analyzer is not None:
-				if not analyzer.allow(change):
+				if not analyzer.allow(change, check_solutions=check_solutions):
 					raise_error(
 						{
 							u'message': _("Question has submissions. It cannot be updated"),
@@ -211,12 +214,13 @@ def _allow_question_change(question, externalValue):
 
 def _allow_poll_change(question, externalValue):
 	parts = externalValue.get('parts')
+	check_solutions = not IQAvoidSolutionCheck.providedBy(question)
 	course = find_interface(question, ICourseInstance, strict=False)
 	if parts and has_submissions(question, course):
 		for part, change in zip(question.parts, parts):
 			analyzer = IQPartChangeAnalyzer(part, None)
 			if analyzer is not None:
-				if not analyzer.allow(change):
+				if not analyzer.allow(change, check_solutions=check_solutions):
 					raise_error(
 						{
 							u'message': _("Poll has submissions. It cannot be updated"),

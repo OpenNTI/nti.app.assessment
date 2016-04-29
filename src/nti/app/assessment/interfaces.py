@@ -452,6 +452,12 @@ class IQPartChangeAnalyzer(interface.Interface):
 		:param change: Part update
 		"""
 
+class IQAvoidSolutionCheck(interface.Interface):
+	"""
+	Marker interface to avoid solution checks
+	"""
+IQAvoidSolutionCheck.setTaggedValue('_ext_is_marker_interface', True)
+
 class IObjectRegradeEvent(IObjectEvent):
 	pass
 

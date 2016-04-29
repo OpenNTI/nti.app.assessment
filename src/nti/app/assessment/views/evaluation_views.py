@@ -287,14 +287,20 @@ class EvaluationMixin(object):
 	def get_ntiid(self, theObject):
 		return getattr(theObject, 'ntiid', None)
 	
-	def store_evaluation(self, obj, course, user):
+	def store_evaluation(self, obj, course, user, check_solutions=True):
 		provided = iface_of_assessment(obj)
 		evaluations = ICourseEvaluations(course)
 		obj.ntiid = ntiid = make_evaluation_ntiid(provided, user, extra=self._extra)
 		lifecycleevent.created(obj)
-		evaluations[ntiid] = obj # stored and gain intid
-		interface.alsoProvides(obj, IQEditableEvalutation)
-		interface.noLongerProvides(obj, IQAvoidSolutionCheck)
+		try:
+			if not check_solutions: # mark to avoid checking solutions
+				interface.alsoProvides(obj, IQAvoidSolutionCheck)
+			# stored and gain intid
+			evaluations[ntiid] = obj
+			interface.alsoProvides(obj, IQEditableEvalutation)
+		finally:
+			if not check_solutions:
+				interface.noLongerProvides(obj, IQAvoidSolutionCheck)
 		return obj
 
 	def get_registered_evaluation(self, obj, course):
@@ -311,7 +317,7 @@ class EvaluationMixin(object):
 		ntiid = self.get_ntiid(context)
 		return not ntiid
 
-	def handle_question(self, theObject, course, user):
+	def handle_question(self, theObject, course, user, check_solutions=True):
 		if self.is_new(theObject):
 			theObject = self.store_evaluation(theObject, course, user)
 		else:
@@ -341,7 +347,7 @@ class EvaluationMixin(object):
 							 None)
 		return theObject
 
-	def handle_question_set(self, theObject, course, user):
+	def handle_question_set(self, theObject, course, user, check_solutions=True):
 		if self.is_new(theObject):
 			questions = []
 			for question in theObject.questions or ():
@@ -383,7 +389,11 @@ class EvaluationMixin(object):
 		return theObject
 
 	def handle_assignment_part(self, part, course, user):
-		question_set = self.handle_question_set(part.question_set, course, user)
+		check_solutions = not part.auto_grade
+		question_set = self.handle_question_set(part.question_set,
+												course, 
+												user,
+												check_solutions)
 		part.question_set = question_set
 		return part
 

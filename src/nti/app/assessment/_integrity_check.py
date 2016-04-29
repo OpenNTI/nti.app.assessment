@@ -149,7 +149,8 @@ def check_assessment_integrity(remove_unparented=False):
 	for ntiid, things in all_registered.items():
 		site, registered = things
 		containers = all_containers.get(ntiid)
-		
+		uid = intids.queryId(registered)
+			
 		# fix lineage
 		if registered.__parent__ is None:
 			if containers:
@@ -158,8 +159,10 @@ def check_assessment_integrity(remove_unparented=False):
 					logger.warn("Fixing lineage for %s", ntiid)
 					fixed_lineage.add(ntiid)
 					registered.__parent__ = unit
+					if uid is not None:
+						catalog.index_doc(uid, registered)
 					lifecycleevent.modified(registered)
-			elif remove_unparented and intids.queryId(registered) is not None:
+			elif remove_unparented and uid is not None:
 				registry = site.getSiteManager()
 				removeIntId(item)
 				removed.add(ntiid)
@@ -180,7 +183,6 @@ def check_assessment_integrity(remove_unparented=False):
 				container[ntiid] = registered
 				adjusted_container.add(ntiid)
 
-		uid = intids.queryId(registered)
 		if uid is not None and not catalog.get_containers(registered):
 			logger.warn("Reindexing %s(%s)", ntiid)
 			reindexed.add(ntiid)

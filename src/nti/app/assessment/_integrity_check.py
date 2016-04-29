@@ -184,7 +184,7 @@ def check_assessment_integrity(remove_unparented=False):
 				adjusted_container.add(ntiid)
 
 		if uid is not None and not catalog.get_containers(registered):
-			logger.warn("Reindexing %s(%s)", ntiid)
+			logger.warn("Reindexing %s", ntiid)
 			reindexed.add(ntiid)
 			catalog.index_doc(uid, registered)
 			lifecycleevent.modified(registered)

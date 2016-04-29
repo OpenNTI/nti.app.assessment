@@ -94,10 +94,10 @@ class CheckAssessmentIntegrityView(AbstractAuthenticatedView,
 		integrity = check_assessment_integrity(unparented)
 		result = LocatedExternalDict()
 		result['Duplicates'] = integrity[0]
-		result['Removed'] = list(integrity[1])
-		result['Reindexed'] = list(integrity[2])
-		result['FixedLineage'] = list(integrity[3])
-		result['AdjustedContainer'] = list(integrity[4])		
+		result['Removed'] = sorted(integrity[1])
+		result['Reindexed'] = sorted(integrity[2])
+		result['FixedLineage'] = sorted(integrity[3])
+		result['AdjustedContainer'] = sorted(integrity[4])		
 		return result
 
 @view_config(route_name='objects.generic.traversal',

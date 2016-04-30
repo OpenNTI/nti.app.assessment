@@ -38,8 +38,8 @@ from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import evaluation_submissions 
 from nti.app.assessment.common import get_evaluation_containment
 
-from nti.app.assessment.interfaces import ICourseEvaluations,\
-	IQAvoidSolutionCheck
+from nti.app.assessment.interfaces import ICourseEvaluations
+from nti.app.assessment.interfaces import IQAvoidSolutionCheck
 from nti.app.assessment.interfaces import IQPartChangeAnalyzer
 from nti.app.assessment.interfaces import IRegradeQuestionEvent
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem

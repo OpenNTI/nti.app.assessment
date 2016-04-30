@@ -293,12 +293,14 @@ class EvaluationMixin(object):
 		obj.ntiid = ntiid = make_evaluation_ntiid(provided, user, extra=self._extra)
 		lifecycleevent.created(obj)
 		try:
-			if not check_solutions: # mark to avoid checking solutions
+			# XXX mark to avoid checking solutions
+			if not check_solutions: 
 				interface.alsoProvides(obj, IQAvoidSolutionCheck)
-			# stored and gain intid
-			evaluations[ntiid] = obj
+			# XXX mark as editable before storing so proper validation is done
 			interface.alsoProvides(obj, IQEditableEvalutation)
+			evaluations[ntiid] = obj # gain intid
 		finally:
+			# XXX remove temp interface
 			if not check_solutions:
 				interface.noLongerProvides(obj, IQAvoidSolutionCheck)
 		return obj
@@ -319,7 +321,7 @@ class EvaluationMixin(object):
 
 	def handle_question(self, theObject, course, user, check_solutions=True):
 		if self.is_new(theObject):
-			theObject = self.store_evaluation(theObject, course, user)
+			theObject = self.store_evaluation(theObject, course, user, check_solutions)
 		else:
 			theObject = self.get_registered_evaluation(theObject, course)
 		if theObject is None:
@@ -351,7 +353,7 @@ class EvaluationMixin(object):
 		if self.is_new(theObject):
 			questions = []
 			for question in theObject.questions or ():
-				question = self.handle_question(question, course, user)
+				question = self.handle_question(question, course, user, check_solutions)
 				questions.append(question)
 			theObject.questions = questions
 			theObject = self.store_evaluation(theObject, course, user)
@@ -389,7 +391,7 @@ class EvaluationMixin(object):
 		return theObject
 
 	def handle_assignment_part(self, part, course, user):
-		check_solutions = not part.auto_grade
+		check_solutions = part.auto_grade
 		question_set = self.handle_question_set(part.question_set,
 												course, 
 												user,

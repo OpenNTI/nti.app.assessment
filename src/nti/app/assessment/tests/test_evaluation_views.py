@@ -51,17 +51,20 @@ class TestEvaluationViews(ApplicationLayerTest):
 
 	entry_ntiid = 'tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2015_CS_1323'
 
-	def _load_questionset(self):
-		path = os.path.join(os.path.dirname(__file__), "questionset.json")
+	def _load_json_resource(self, resource):
+		path = os.path.join(os.path.dirname(__file__), resource)
 		with open(path, "r") as fp:
 			result = json.load(fp)
 			return result
 
+	def _load_questionset(self):
+		return self._load_json_resource("questionset.json")
+
 	def _load_assignment(self):
-		path = os.path.join(os.path.dirname(__file__), "assignment.json")
-		with open(path, "r") as fp:
-			result = json.load(fp)
-			return result
+		return self._load_json_resource("assignment.json")
+
+	def _load_assignment_no_solutions(self):
+		return self._load_json_resource("assignment_no_solutions.json")
 
 	def _get_course_oid(self):
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
@@ -99,6 +102,15 @@ class TestEvaluationViews(ApplicationLayerTest):
 			hrefs.append(res.json_body['href'])
 		# delete
 		self.testapp.delete(hrefs[0], status=204)
+
+	@WithSharedApplicationMockDS(testapp=True, users=True)
+	def test_assignment_no_solutions(self):
+		course_oid = self._get_course_oid()
+		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
+		assignment = self._load_assignment_no_solutions()
+		evaluation = to_external_object(assignment)
+		res = self.testapp.post_json(href, evaluation, status=201)
+		assert_that(res.json_body, has_entry(NTIID, is_not(none())))
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	@fudge.patch('nti.app.assessment.evaluations.has_submissions',

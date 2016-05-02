@@ -1,0 +1,142 @@
+{
+	"CategoryName": "homework",
+	"Class": "Assignment",
+	"MimeType": "application/vnd.nextthought.assessment.assignment",
+	"NoSubmit": false,
+	"available_for_submission_beginning": "2015-05-12T05:00:00Z",
+	"available_for_submission_ending": "2024-07-16T04:59:00Z",
+	"category_name": "homework",
+	"content": "This is a description of an <b>assignment.</b>",
+	"is_non_public": false,
+	"no_submit": false,
+	"parts": [
+		{
+			"Class": "AssignmentPart",
+			"MimeType": "application/vnd.nextthought.assessment.assignmentpart",
+			"auto_grade": false,
+			"content": "",
+			"question_set": {
+				"Class": "QuestionSet",
+				"MimeType": "application/vnd.nextthought.naquestionset",
+				"questions": [
+					{
+						"Class": "Question",
+						"MimeType": "application/vnd.nextthought.naquestion",
+						"content": "The Compromise of 1877 involved all the following <i class=\"itshape\">except</i>:",
+						"parts": [
+							{
+								"Class": "MultipleChoicePart",
+								"MimeType": "application/vnd.nextthought.assessment.randomizedmultiplechoicepart",
+								"choices": [
+									"Federal support for rebuilding the southern economy and society",
+									"Created new opportunities and protections for freedmen and their citizenship",
+									"Affirmation of the \"Lost Cause\" movement",
+									"Withdrawal of federal troops from the South",
+									"Election of Rutherford B. Hayes as the president",
+									"Southern politicians accepted the Reconstruction amendment>"
+								],
+								"solutions": []
+							}
+						]
+					},
+					{
+						"Class": "Question",
+						"MimeType": "application/vnd.nextthought.naquestion",
+						"content": "This political cartoon depicted President Hayes presiding over a reconciliation between North and South illustrates what event? <br /><span itemprop=\"nti-data-markupdisabled\"> <img crossorigin=\"anonymous\" src=\"resources/TestAutomationCourse/7670371530cb7b0d3e6f05bb54a619ebbb8f920a/fd35e23767020999111e1f49239199b4c5eff23e.jpg\" id=\"f4f009691db9d7dd4ebd85fe36ce394f\" style=\"width:600px\" data-nti-image-size=\"oversize\" data-nti-image-full=\"resources/TestAutomationCourse/7670371530cb7b0d3e6f05bb54a619ebbb8f920a/fd35e23767020999111e1f49239199b4c5eff23e.jpg\" data-nti-image-half=\"resources/TestAutomationCourse/7670371530cb7b0d3e6f05bb54a619ebbb8f920a/2cff8dc544afd32305107ce559484cb4ce1730df.jpg\" data-nti-image-quarter=\"resources/TestAutomationCourse/7670371530cb7b0d3e6f05bb54a619ebbb8f920a/06aefff9765154841fac3704b0e59674fae7a005.jpg\" /> </span>",
+						"parts": [
+							{
+								"Class": "MultipleChoicePart",
+								"MimeType": "application/vnd.nextthought.assessment.randomizedmultiplechoicepart",
+								"choices": [
+									"The First Reconstruction Acts",
+									"The Atlanta Compromise",
+									"The Compromise of 1877",
+									"Emergence of the New South",
+									"Creation of the Freedman\u2019s Bureau"
+								],
+								"solutions": []
+							}
+						]
+					},
+					{
+						"Class": "Question",
+						"MimeType": "application/vnd.nextthought.naquestion",
+						"content": "Which of the following were used by southerners to deprive African Americans of their constitutional rights during the Reconstruction Era? <b class=\"bfseries\">Select all that apply.</b>",
+						"parts": [
+							{
+								"Class": "MultipleChoiceMultipleAnswerPart",
+								"MimeType": "application/vnd.nextthought.assessment.randomizedmultiplechoicemultipleanswerpart",
+								"choices": [
+									"Black Codes",
+									"Sharecropping",
+									"Fifteenth Amendment",
+									"Lynching",
+									"Violence and intimidation",
+									"Jim Crow laws"
+								],
+								"solutions": []
+							}
+						]
+					},
+					{
+						"Class": "Question",
+						"MimeType": "application/vnd.nextthought.naquestion",
+						"content": "Match the following individuals with their respective identifiers.",
+						"parts": [
+							{
+								"Class": "OrderingPart",
+								"MimeType": "application/vnd.nextthought.assessment.orderingpart",
+								"labels": [
+									"Booker T. Washington",
+									"Thaddeus Stevens",
+									"Abraham Lincoln",
+									"Andrew Johnson",
+									"Henry Grady",
+									"Ulysses S. Grant"
+								],
+								"solutions": [],
+								"values": [
+									"New South",
+									"Whiskey Ring",
+									"Atlanta Compromise",
+									"\"A swing around the circle\" campaign",
+									"Fourteenth Amendment",
+									"Proclamation of Amnesty and Reconstruction"
+								]
+							}
+						]
+					},
+					{
+						"Class": "Question",
+						"MimeType": "application/vnd.nextthought.naquestion",
+						"content": "5. Students can mark up images and illustrate concepts to share using the ____________.",
+						"parts": [
+							{
+								"Class": "FreeResponsePart",
+								"MimeType": "application/vnd.nextthought.assessment.freeresponsepart",
+								"solutions": []
+							}
+						]
+					},
+					{
+						"Class": "Question",
+						"MimeType": "application/vnd.nextthought.naquestion",
+						"content": "5. Students can mark up images and illustrate concepts to share using the ____________.",
+						"parts": [
+							{
+								"Class": "ModeledContentPart",
+								"MimeType": "application/vnd.nextthought.assessment.modeledcontentpart",
+								"solutions": []
+							}
+						]
+					}
+				],
+				"title": "File Upload"
+			},
+			"title": "Submission"
+		}
+	],
+	"publishBeginning": null,
+	"publishEnding": null,
+	"title": "Test Assignment With All Questions"
+}

@@ -245,6 +245,7 @@
 	<adapter factory=".evaluations._course_from_item_lineage" />
 	<adapter factory=".evaluations._editable_evaluation_to_course" />
 
+	<subscriber handler=".evaluations._on_course_added" />
 	<subscriber handler=".evaluations._on_question_added" />
 	<subscriber handler=".evaluations._on_question_removed" />
 	<subscriber handler=".evaluations._on_question_modified" />

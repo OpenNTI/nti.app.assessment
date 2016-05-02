@@ -109,8 +109,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
 		assignment = self._load_assignment_no_solutions()
 		evaluation = to_external_object(assignment)
-		res = self.testapp.post_json(href, evaluation, status=201)
-		assert_that(res.json_body, has_entry(NTIID, is_not(none())))
+		self.testapp.post_json(href, evaluation, status=422)
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	@fudge.patch('nti.app.assessment.evaluations.has_submissions',

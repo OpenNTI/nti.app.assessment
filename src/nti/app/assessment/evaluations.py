@@ -214,13 +214,12 @@ def _allow_question_change(question, externalValue):
 
 def _allow_poll_change(question, externalValue):
 	parts = externalValue.get('parts')
-	check_solutions = not IQAvoidSolutionCheck.providedBy(question)
 	course = find_interface(question, ICourseInstance, strict=False)
 	if parts and has_submissions(question, course):
 		for part, change in zip(question.parts, parts):
 			analyzer = IQPartChangeAnalyzer(part, None)
 			if analyzer is not None:
-				if not analyzer.allow(change, check_solutions=check_solutions):
+				if not analyzer.allow(change, check_solutions=False):
 					raise_error(
 						{
 							u'message': _("Poll has submissions. It cannot be updated"),

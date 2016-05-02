@@ -336,7 +336,7 @@ class EvaluationMixin(object):
 
 	def handle_poll(self, theObject, course, user):
 		if self.is_new(theObject):
-			theObject = self.store_evaluation(theObject, course, user)
+			theObject = self.store_evaluation(theObject, course, user, False)
 		else:
 			theObject = self.get_registered_evaluation(theObject, course)
 		if theObject is None:
@@ -391,11 +391,9 @@ class EvaluationMixin(object):
 		return theObject
 
 	def handle_assignment_part(self, part, course, user):
-		check_solutions = part.auto_grade
 		question_set = self.handle_question_set(part.question_set,
 												course, 
-												user,
-												check_solutions)
+												user)
 		part.question_set = question_set
 		return part
 

@@ -449,7 +449,7 @@ class EvaluationMixin(object):
 		pass
 
 	def auto_complete_questionset(self, context, externalValue):
-		questions = list()
+		questions = list() if context.questions is None else context.questions
 		items = externalValue.get(ITEMS)
 		for item in items or ():
 			question = self.get_registered_evaluation(item, self.course)
@@ -468,7 +468,7 @@ class EvaluationMixin(object):
 		context.questions = questions
 		
 	def auto_complete_survey(self, context, externalValue):
-		questions = list()
+		questions = list() if context.questions is None else context.questions
 		items = externalValue.get(ITEMS)
 		for item in items or ():
 			poll = self.get_registered_evaluation(item, self.course)
@@ -487,11 +487,11 @@ class EvaluationMixin(object):
 		context.questions = questions
 
 	def auto_complete_assignment(self, context, externalValue):
-		parts = context.parts or list()
-		if not parts:
+		parts = list() if context.parts is None else context.parts
+		if not parts:  # auto create part
 			parts.append(QAssignmentPart())
 		for part in parts:
-			if part.question_set is None:
+			if part.question_set is None: # auto create question set
 				part.question_set = QQuestionSet()
 			self.auto_complete_questionset(part.question_set, externalValue)		
 		context.parts = parts
@@ -574,7 +574,7 @@ class EvaluationPutView(EvaluationMixin, UGDPutView):
 												externalValue,
 												set_id=set_id,
 												notify=False)
-
+		self.post_update_check(contentObject, originalSource)
 		sources = get_all_sources(self.request)
 		if sources:
 			validate_sources(self.remoteUser, result.model, sources)
@@ -582,8 +582,6 @@ class EvaluationPutView(EvaluationMixin, UGDPutView):
 		self.handle_evaluation(contentObject, self.course, sources, self.remoteUser)
 		# validate changes - subscribers
 		notifyModified(contentObject, originalSource)
-		# post validation
-		self.post_update_check(contentObject, originalSource)
 		return result
 
 @view_config(route_name='objects.generic.traversal',
@@ -625,6 +623,13 @@ class QuestionSetPutView(EvaluationPutView):
 		if questions:  # check for submissions
 			validate_submissions(obj, course, self.request)
 
+	def post_update_check(self, contentObject, originalSource):
+		if IQEditableEvalutation.providedBy(contentObject):
+			items = originalSource.get(ITEMS)
+			if items: # list of ntiids
+				contentObject.questions = list() # reset
+				self.auto_complete_questionset(contentObject, originalSource)
+
 class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):
 
 	OBJ_DEF_CHANGE_MSG = _("Cannot change the object definition.")
@@ -652,7 +657,7 @@ class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):
 													   externalValue,
 													   set_id=set_id,
 													   notify=False)
-
+		self.post_update_check(contentObject, originalSource)
 		sources = get_all_sources(self.request)
 		if sources:
 			validate_sources(self.remoteUser, result.model, sources)
@@ -661,8 +666,6 @@ class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):
 			self.handle_evaluation(contentObject, self.course, sources, self.remoteUser)
 		# validate changes, subscribers
 		notifyModified(contentObject, originalSource)
-		# post validation
-		self.post_update_check(contentObject, originalSource)
 		return result
 
 @view_config(route_name='objects.generic.traversal',
@@ -732,6 +735,13 @@ class SurveyPutView(NewAndLegacyPutView):
 		if not IPublishable.providedBy(contentObject) or contentObject.is_published():
 			super(SurveyPutView, self).validate(contentObject, externalValue, courses)
 
+	def post_update_check(self, contentObject, originalSource):
+		if IQEditableEvalutation.providedBy(contentObject):
+			items = originalSource.get(ITEMS)
+			if items: # list of ntiids
+				contentObject.questions = list() # reset
+				self.auto_complete_survey(contentObject, originalSource)
+
 @view_config(route_name='objects.generic.traversal',
 			 context=IQAssignment,
 			 request_method='PUT',
@@ -761,6 +771,14 @@ class AssignmentPutView(NewAndLegacyPutView):
 	def validate(self, contentObject, externalValue, courses=()):
 		if not IPublishable.providedBy(contentObject) or contentObject.is_published():
 			super(AssignmentPutView, self).validate(contentObject, externalValue, courses)
+
+	def post_update_check(self, contentObject, originalSource):
+		if IQEditableEvalutation.providedBy(contentObject):
+			items = originalSource.get(ITEMS)
+			if items: # list of ntiids
+				for qset in contentObject.iter_question_sets(): # reset
+					qset.questions = list()
+				self.auto_complete_assignment(contentObject, originalSource)
 
 # DELETE views
 

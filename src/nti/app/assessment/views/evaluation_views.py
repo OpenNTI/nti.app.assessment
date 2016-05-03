@@ -199,6 +199,9 @@ def _handle_evaluation_content(context, user, model, sources=None):
 				setattr(obj, name, value)
 	return model
 
+def indexed_iter():
+	return list()
+
 @view_config(context=ICourseEvaluations)
 @view_defaults(route_name='objects.generic.traversal',
 			   renderer='rest',
@@ -357,7 +360,7 @@ class EvaluationMixin(object):
 
 	def handle_question_set(self, theObject, course, user, check_solutions=True):
 		if self.is_new(theObject):
-			questions = []
+			questions = indexed_iter()
 			for question in theObject.questions or ():
 				question = self.handle_question(question, course, user, check_solutions)
 				questions.append(question)
@@ -378,7 +381,7 @@ class EvaluationMixin(object):
 
 	def handle_survey(self, theObject, course, user):
 		if self.is_new(theObject):
-			questions = []
+			questions = indexed_iter()
 			for poll in theObject.questions or ():
 				poll = self.handle_poll(poll, course, user)
 				questions.append(poll)
@@ -405,7 +408,7 @@ class EvaluationMixin(object):
 
 	def handle_assignment(self, theObject, course, user):
 		if self.is_new(theObject):
-			parts = []
+			parts = indexed_iter()
 			for part in theObject.parts or ():
 				part = self.handle_assignment_part(part, course, user)
 				parts.append(part)
@@ -449,7 +452,7 @@ class EvaluationMixin(object):
 		pass
 
 	def auto_complete_questionset(self, context, externalValue):
-		questions = list() if context.questions is None else context.questions
+		questions = indexed_iter() if context.questions is None else context.questions
 		items = externalValue.get(ITEMS)
 		for item in items or ():
 			question = self.get_registered_evaluation(item, self.course)
@@ -468,7 +471,7 @@ class EvaluationMixin(object):
 		context.questions = questions
 		
 	def auto_complete_survey(self, context, externalValue):
-		questions = list() if context.questions is None else context.questions
+		questions = indexed_iter() if context.questions is None else context.questions
 		items = externalValue.get(ITEMS)
 		for item in items or ():
 			poll = self.get_registered_evaluation(item, self.course)
@@ -487,7 +490,7 @@ class EvaluationMixin(object):
 		context.questions = questions
 
 	def auto_complete_assignment(self, context, externalValue):
-		parts = list() if context.parts is None else context.parts
+		parts = indexed_iter() if context.parts is None else context.parts
 		if not parts:  # auto create part
 			parts.append(QAssignmentPart())
 		for part in parts:
@@ -627,7 +630,7 @@ class QuestionSetPutView(EvaluationPutView):
 		if IQEditableEvalutation.providedBy(contentObject):
 			items = originalSource.get(ITEMS)
 			if items: # list of ntiids
-				contentObject.questions = list() # reset
+				contentObject.questions = indexed_iter() # reset
 				self.auto_complete_questionset(contentObject, originalSource)
 
 class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):
@@ -739,7 +742,7 @@ class SurveyPutView(NewAndLegacyPutView):
 		if IQEditableEvalutation.providedBy(contentObject):
 			items = originalSource.get(ITEMS)
 			if items: # list of ntiids
-				contentObject.questions = list() # reset
+				contentObject.questions = indexed_iter() # reset
 				self.auto_complete_survey(contentObject, originalSource)
 
 @view_config(route_name='objects.generic.traversal',
@@ -777,7 +780,7 @@ class AssignmentPutView(NewAndLegacyPutView):
 			items = originalSource.get(ITEMS)
 			if items: # list of ntiids
 				for qset in contentObject.iter_question_sets(): # reset
-					qset.questions = list()
+					qset.questions = indexed_iter()
 				self.auto_complete_assignment(contentObject, originalSource)
 
 # DELETE views

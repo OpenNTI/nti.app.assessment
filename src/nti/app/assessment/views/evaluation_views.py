@@ -21,6 +21,8 @@ from zope import component
 from zope import interface
 from zope import lifecycleevent
 
+from zope.i18n import translate
+
 from pyramid import httpexceptions as hexc
 
 from pyramid.view import view_config
@@ -68,6 +70,8 @@ from nti.appserver.ugd_edit_views import UGDPutView
 from nti.appserver.ugd_edit_views import UGDPostView
 from nti.appserver.ugd_edit_views import UGDDeleteView
 
+from nti.assessment.assignment import QAssignmentPart
+
 from nti.assessment.common import iface_of_assessment
 
 from nti.assessment.interfaces import IQHint
@@ -81,6 +85,8 @@ from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQAssignmentPart
 from nti.assessment.interfaces import IQEditableEvalutation
 from nti.assessment.interfaces import IQEvaluationItemContainer
+
+from nti.assessment.question import QQuestionSet
 
 from nti.common.maps import CaseInsensitiveDict
 
@@ -306,7 +312,7 @@ class EvaluationMixin(object):
 		return obj
 
 	def get_registered_evaluation(self, obj, course):
-		ntiid = obj.ntiid
+		ntiid = self.get_ntiid(obj)
 		evaluations = ICourseEvaluations(course)
 		if ntiid in evaluations:  # replace
 			obj = evaluations[ntiid]
@@ -442,6 +448,54 @@ class EvaluationMixin(object):
 	def post_update_check(self, contentObject, externalValue):
 		pass
 
+	def auto_complete_questionset(self, context, externalValue):
+		questions = list()
+		items = externalValue.get(ITEMS)
+		for item in items or ():
+			question = self.get_registered_evaluation(item, self.course)
+			if not IQuestion.providedBy(question):
+				msg = translate(_("Question ${ntiid} does not exists.",
+								mapping={'ntiid': item}))
+				raise_json_error(self.request,
+								 hexc.HTTPUnprocessableEntity,
+								 {
+									u'message': msg,
+									u'code': 'QuestionDoesNotExists',
+								 },
+								 None)
+			else:
+				questions.append(question)
+		context.questions = questions
+		
+	def auto_complete_survey(self, context, externalValue):
+		questions = list()
+		items = externalValue.get(ITEMS)
+		for item in items or ():
+			poll = self.get_registered_evaluation(item, self.course)
+			if not IQPoll.providedBy(poll):
+				msg = translate(_("Question ${ntiid} does not exists.",
+								mapping={'ntiid': item}))
+				raise_json_error(self.request,
+								 hexc.HTTPUnprocessableEntity,
+								 {
+									u'message': msg,
+									u'code': 'QuestionDoesNotExists',
+								 },
+								 None)
+			else:
+				questions.append(poll)
+		context.questions = questions
+
+	def auto_complete_assignment(self, context, externalValue):
+		parts = context.parts or list()
+		if not parts:
+			parts.append(QAssignmentPart())
+		for part in parts:
+			if part.question_set is None:
+				part.question_set = QQuestionSet()
+			self.auto_complete_questionset(part.question_set, externalValue)		
+		context.parts = parts
+
 # POST views
 
 @view_config(context=ICourseEvaluations)
@@ -453,10 +507,22 @@ class CourseEvaluationsPostView(EvaluationMixin, UGDPostView):
 
 	content_predicate = IQEvaluation.providedBy
 
+	def postCreateObject(self, context, externalValue):
+		if IQuestionSet.providedBy(context) and not context.questions:
+			self.auto_complete_questionset(context, externalValue)
+		elif IQSurvey.providedBy(context) and not context.questions:
+			self.auto_complete_survey(context, externalValue)
+		elif 	IQAssignment.providedBy(context) \
+			and (not context.parts or any(p.question_set is None for p in context.parts)):
+			self.auto_complete_assignment(context, externalValue)
+				
 	def readCreateUpdateContentObject(self, creator, search_owner=False, externalValue=None):
-		contentObject = self.doReadCreateUpdateContentObject(creator=creator,
-															 search_owner=search_owner,
-															 externalValue=externalValue)
+		contentObject, _, externalValue = \
+				self.performReadCreateUpdateContentObject(user=creator,
+													 	  search_owner=search_owner,
+													 	  externalValue=externalValue,
+													 	  deepCopy=True)
+		self.postCreateObject(contentObject, externalValue)
 		sources = get_all_sources(self.request)
 		return contentObject, sources
 

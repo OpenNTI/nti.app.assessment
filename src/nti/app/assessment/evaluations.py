@@ -49,8 +49,10 @@ from nti.app.assessment.interfaces import RegradeQuestionEvent
 
 from nti.app.externalization.error import raise_json_error
 
-from nti.assessment.interfaces import IQPoll
+from nti.assessment.interfaces import IQPoll, IQAssignment
+from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQuestion
+from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQGradablePart
 from nti.assessment.interfaces import IQEditableEvalutation
 from nti.assessment.interfaces import IQNonGradableFilePart
@@ -204,7 +206,7 @@ def _allow_question_change(question, externalValue):
 				if not analyzer.allow(change, check_solutions=check_solutions):
 					raise_error(
 						{
-							u'message': _("Question has submissions. It cannot be updated"),
+							u'message': _("Question has submissions. It cannot be updated."),
 							u'code': 'CannotChangeObjectDefinition',
 						})
 				if analyzer.regrade(change):
@@ -222,7 +224,7 @@ def _allow_poll_change(question, externalValue):
 				if not analyzer.allow(change, check_solutions=False):
 					raise_error(
 						{
-							u'message': _("Poll has submissions. It cannot be updated"),
+							u'message': _("Poll has submissions. It cannot be updated."),
 							u'code': 'CannotChangeObjectDefinition',
 						})
 
@@ -247,6 +249,42 @@ def _on_poll_modified(poll, event):
 	if IQEditableEvalutation.providedBy(poll):
 		_validate_part_resource(poll)
 		_allow_poll_change(poll)
+
+@component.adapter(IQuestionSet, IObjectAddedEvent)
+@component.adapter(IQuestionSet, IObjectModifiedFromExternalEvent)
+def _on_questionset_event(context, event):
+	if 		IQEditableEvalutation.providedBy(context) \
+		and not context.questions:
+		raise_error({
+						u'message': _("QuestionSet cannot be empty."),
+						u'code': 'EmptyQuestionSet',
+					})
+		
+@component.adapter(IQSurvey, IObjectAddedEvent)
+@component.adapter(IQSurvey, IObjectModifiedFromExternalEvent)
+def _on_survey_event(context, event):
+	if 		IQEditableEvalutation.providedBy(context) \
+		and not context.questions:
+		raise_error({
+						u'message': _("Survey cannot be empty."),
+						u'code': 'EmptyQuestionSet',
+					})
+
+@component.adapter(IQAssignment, IObjectAddedEvent)
+@component.adapter(IQAssignment, IObjectModifiedFromExternalEvent)
+def _on_assignment_event(context, event):
+	if IQEditableEvalutation.providedBy(context):
+		if not context.parts:
+			raise_error({
+							u'message': _("Assignment cannot be empty."),
+							u'code': 'EmptyAssignment',
+						})
+		for part in context.parts:
+			if part.question_set is None or not part.question_set.questions:
+				raise_error({
+								u'message': _("Assignment part cannot be empty."),
+								u'code': 'EmptyAssignmentPart',
+							})
 
 @component.adapter(IQuestion, IRegradeQuestionEvent)
 def _on_regrade_question_event(context, event):

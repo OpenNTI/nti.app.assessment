@@ -11,6 +11,7 @@ from hamcrest import is_
 from hamcrest import none
 from hamcrest import is_not
 from hamcrest import has_entry
+from hamcrest import has_length
 from hamcrest import assert_that
 from hamcrest import greater_than
 does_not = is_not
@@ -26,7 +27,6 @@ from nti.assessment.interfaces import IQuestion
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
-from nti.externalization.externalization import to_external_object
 from nti.externalization.externalization import to_external_ntiid_oid
 
 from nti.externalization.interfaces import StandardExternalFields
@@ -80,7 +80,6 @@ class TestEvaluationViews(ApplicationLayerTest):
 		# post
 		posted = []
 		for question in qset['questions']:
-			question = to_external_object(question)
 			res = self.testapp.post_json(href, question, status=201)
 			assert_that(res.json_body, has_entry(NTIID, is_not(none())))
 			posted.append(res.json_body)
@@ -96,20 +95,24 @@ class TestEvaluationViews(ApplicationLayerTest):
 		# post question set and assignment
 		assignment = self._load_assignment()
 		for evaluation in (qset, assignment):
-			evaluation = to_external_object(evaluation)
 			res = self.testapp.post_json(href, evaluation, status=201)
 			assert_that(res.json_body, has_entry(NTIID, is_not(none())))
 			hrefs.append(res.json_body['href'])
-		# delete
+		# delete first question
 		self.testapp.delete(hrefs[0], status=204)
+		# items as questions
+		qset = self._load_questionset()
+		qset.pop('questions', None)
+		questions = qset['Items'] = [p['ntiid'] for p in posted[1:]]
+		res = self.testapp.post_json(href, qset, status=201)
+		assert_that(res.json_body, has_entry('questions', has_length(len(questions))))
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_assignment_no_solutions(self):
 		course_oid = self._get_course_oid()
 		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
 		assignment = self._load_assignment_no_solutions()
-		evaluation = to_external_object(assignment)
-		self.testapp.post_json(href, evaluation, status=422)
+		self.testapp.post_json(href, assignment, status=422)
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	@fudge.patch('nti.app.assessment.evaluations.has_submissions',
@@ -122,7 +125,6 @@ class TestEvaluationViews(ApplicationLayerTest):
 		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
 		qset = self._load_questionset()
 		question = qset['questions'][0]
-		question = to_external_object(question)
 		res = self.testapp.post_json(href, question, status=201)
 		question = res.json_body
 	
@@ -137,7 +139,6 @@ class TestEvaluationViews(ApplicationLayerTest):
 		course_oid = self._get_course_oid()
 		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
 		qset = self._load_questionset()
-		qset = to_external_object(qset)
 		res = self.testapp.post_json(href, qset, status=201)
 		qset_href = res.json_body['href']
 		ntiid = res.json_body['NTIID']
@@ -162,7 +163,6 @@ class TestEvaluationViews(ApplicationLayerTest):
 		qset = self._load_questionset()
 		# post question
 		question = qset['questions'][0]
-		question = to_external_object(question)
 		res = self.testapp.post_json(href, question, status=201)
 		q_href = res.json_body['href']
 		# check not registered

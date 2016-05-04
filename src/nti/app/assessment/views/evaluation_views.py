@@ -10,6 +10,7 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 import os
+import six
 import copy
 import uuid
 from urlparse import urlparse
@@ -293,8 +294,12 @@ class EvaluationMixin(object):
 	def _extra(self):
 		return str(uuid.uuid4()).split('-')[0]
 
-	def get_ntiid(self, theObject):
-		return getattr(theObject, 'ntiid', None)
+	def get_ntiid(self, context):
+		if isinstance(context, six.string_types):
+			result = context
+		else:
+			result = getattr(context, 'ntiid', None)
+		return result
 	
 	def store_evaluation(self, obj, course, user, check_solutions=True):
 		provided = iface_of_assessment(obj)
@@ -474,6 +479,7 @@ class EvaluationMixin(object):
 		questions = indexed_iter() if context.questions is None else context.questions
 		items = externalValue.get(ITEMS)
 		for item in items or ():
+			from IPython.core.debugger import Tracer; Tracer()()
 			poll = self.get_registered_evaluation(item, self.course)
 			if not IQPoll.providedBy(poll):
 				msg = translate(_("Question ${ntiid} does not exists.",

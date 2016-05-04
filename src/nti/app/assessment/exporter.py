@@ -13,6 +13,8 @@ from zope import interface
 
 from nti.app.assessment.common import get_unit_assessments
 
+from nti.assessment.interfaces import IQEditableEvalutation
+
 from nti.common.file import safe_filename
 
 from nti.common.proxy import removeAllProxies
@@ -26,7 +28,7 @@ from nti.contenttypes.courses.exporter import BaseSectionExporter
 
 from nti.contenttypes.courses.utils import get_parent_course
 
-from nti.externalization.externalization import toExternalObject
+from nti.externalization.externalization import to_external_object
 
 from nti.externalization.interfaces import StandardExternalFields
 
@@ -45,7 +47,9 @@ class AssessmentsExporter(BaseSectionExporter):
 			evaluations = dict()
 			for evaluation in get_unit_assessments(unit):
 				evaluation = removeAllProxies(evaluation)
-				ext_obj = toExternalObject(evaluation, name="exporter", decorate=False)
+				if IQEditableEvalutation.providedBy(evaluation):
+					continue
+				ext_obj = to_external_object(evaluation, name="exporter", decorate=False)
 				evaluations[evaluation.ntiid] = ext_obj
 			items[unit.ntiid]['AssessmentItems'] = evaluations
 			# create new items for children

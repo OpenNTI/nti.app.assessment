@@ -106,6 +106,11 @@ class TestEvaluationViews(ApplicationLayerTest):
 		questions = qset['Items'] = [p['ntiid'] for p in posted[1:]]
 		res = self.testapp.post_json(href, qset, status=201)
 		assert_that(res.json_body, has_entry('questions', has_length(len(questions))))
+		# items as questions/ assignment
+		assignment = self._load_assignment()
+		assignment.pop('parts', None)
+		assignment['Items'] = questions
+		self.testapp.post_json(href, assignment, status=201)
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_assignment_no_solutions(self):

@@ -479,7 +479,6 @@ class EvaluationMixin(object):
 		questions = indexed_iter() if context.questions is None else context.questions
 		items = externalValue.get(ITEMS)
 		for item in items or ():
-			from IPython.core.debugger import Tracer; Tracer()()
 			poll = self.get_registered_evaluation(item, self.course)
 			if not IQPoll.providedBy(poll):
 				msg = translate(_("Question ${ntiid} does not exists.",

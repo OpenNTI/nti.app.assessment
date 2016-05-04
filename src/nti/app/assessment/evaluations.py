@@ -54,7 +54,7 @@ from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQGradablePart
-from nti.assessment.interfaces import IQEditableEvalutation
+from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQNonGradableFilePart
 from nti.assessment.interfaces import IQEvaluationItemContainer
 from nti.assessment.interfaces import IQNonGradableConnectingPart
@@ -154,7 +154,7 @@ def _on_course_added(course, event):
 	_evaluations_for_course(course)
 
 @interface.implementer(ICourseInstance)
-@component.adapter(IQEditableEvalutation)
+@component.adapter(IQEditableEvaluation)
 def _editable_evaluation_to_course(resource):
 	return find_interface(resource, ICourseInstance, strict=False)
 
@@ -174,7 +174,7 @@ def _on_question_removed(question, event):
 def _on_poll_removed(poll, event):
 	_update_containment(poll)
 
-@component.adapter(IQEditableEvalutation, IIntIdAddedEvent)
+@component.adapter(IQEditableEvaluation, IIntIdAddedEvent)
 def _on_editable_eval_created(context, event):
 	if IRecordable.providedBy(context) and event.principal:
 		record_transaction(context, type_=TRX_TYPE_CREATE)
@@ -230,30 +230,30 @@ def _allow_poll_change(question, externalValue):
 
 @component.adapter(IQuestion, IObjectAddedEvent)
 def _on_question_added(question, event):
-	if IQEditableEvalutation.providedBy(question):
+	if IQEditableEvaluation.providedBy(question):
 		_validate_part_resource(question)
 
 @component.adapter(IQuestion, IObjectModifiedFromExternalEvent)
 def _on_question_modified(question, event):
-	if IQEditableEvalutation.providedBy(question):
+	if IQEditableEvaluation.providedBy(question):
 		_validate_part_resource(question)
 		_allow_question_change(question, event.external_value)
 
 @component.adapter(IQPoll, IObjectAddedEvent)
 def _on_poll_added(poll, event):
-	if IQEditableEvalutation.providedBy(poll):
+	if IQEditableEvaluation.providedBy(poll):
 		_validate_part_resource(poll)
 
 @component.adapter(IQPoll, IObjectModifiedFromExternalEvent)
 def _on_poll_modified(poll, event):
-	if IQEditableEvalutation.providedBy(poll):
+	if IQEditableEvaluation.providedBy(poll):
 		_validate_part_resource(poll)
 		_allow_poll_change(poll)
 
 @component.adapter(IQuestionSet, IObjectAddedEvent)
 @component.adapter(IQuestionSet, IObjectModifiedFromExternalEvent)
 def _on_questionset_event(context, event):
-	if 		IQEditableEvalutation.providedBy(context) \
+	if 		IQEditableEvaluation.providedBy(context) \
 		and not context.questions:
 		raise_error({
 						u'message': _("QuestionSet cannot be empty."),
@@ -263,7 +263,7 @@ def _on_questionset_event(context, event):
 @component.adapter(IQSurvey, IObjectAddedEvent)
 @component.adapter(IQSurvey, IObjectModifiedFromExternalEvent)
 def _on_survey_event(context, event):
-	if 		IQEditableEvalutation.providedBy(context) \
+	if 		IQEditableEvaluation.providedBy(context) \
 		and not context.questions:
 		raise_error({
 						u'message': _("Survey cannot be empty."),
@@ -273,7 +273,7 @@ def _on_survey_event(context, event):
 @component.adapter(IQAssignment, IObjectAddedEvent)
 @component.adapter(IQAssignment, IObjectModifiedFromExternalEvent)
 def _on_assignment_event(context, event):
-	if IQEditableEvalutation.providedBy(context):
+	if IQEditableEvaluation.providedBy(context):
 		if not context.parts:
 			raise_error({
 							u'message': _("Assignment cannot be empty."),

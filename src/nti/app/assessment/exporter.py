@@ -13,7 +13,7 @@ from zope import interface
 
 from nti.app.assessment.common import get_unit_assessments
 
-from nti.assessment.interfaces import IQEditableEvalutation
+from nti.assessment.interfaces import IQEditableEvaluation
 
 from nti.common.file import safe_filename
 
@@ -47,7 +47,7 @@ class AssessmentsExporter(BaseSectionExporter):
 			evaluations = dict()
 			for evaluation in get_unit_assessments(unit):
 				evaluation = removeAllProxies(evaluation)
-				if IQEditableEvalutation.providedBy(evaluation):
+				if IQEditableEvaluation.providedBy(evaluation):
 					continue
 				ext_obj = to_external_object(evaluation, name="exporter", decorate=False)
 				evaluations[evaluation.ntiid] = ext_obj

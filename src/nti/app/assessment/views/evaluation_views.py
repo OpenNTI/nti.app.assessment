@@ -84,7 +84,7 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQAssignmentPart
-from nti.assessment.interfaces import IQEditableEvalutation
+from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQEvaluationItemContainer
 
 from nti.assessment.question import QQuestionSet
@@ -311,7 +311,7 @@ class EvaluationMixin(object):
 			if not check_solutions: 
 				interface.alsoProvides(obj, IQAvoidSolutionCheck)
 			# XXX mark as editable before storing so proper validation is done
-			interface.alsoProvides(obj, IQEditableEvalutation)
+			interface.alsoProvides(obj, IQEditableEvaluation)
 			evaluations[ntiid] = obj # gain intid
 		finally:
 			# XXX remove temp interface
@@ -538,7 +538,7 @@ class CourseEvaluationsPostView(EvaluationMixin, UGDPostView):
 		creator = self.remoteUser
 		evaluation, sources = self.readCreateUpdateContentObject(creator, search_owner=False)
 		evaluation.creator = creator.username
-		interface.alsoProvides(evaluation, IQEditableEvalutation)
+		interface.alsoProvides(evaluation, IQEditableEvaluation)
 
 		# validate sources if available
 		if sources:
@@ -566,7 +566,7 @@ class EvaluationPutView(EvaluationMixin, UGDPutView):
 
 	def _check_object_constraints(self, obj, externalValue):
 		super(EvaluationPutView, self)._check_object_constraints(obj, externalValue)
-		if not IQEditableEvalutation.providedBy(obj):
+		if not IQEditableEvaluation.providedBy(obj):
 			raise_json_error(self.request,
 							 hexc.HTTPUnprocessableEntity,
 							 {
@@ -632,7 +632,7 @@ class QuestionSetPutView(EvaluationPutView):
 			validate_submissions(obj, course, self.request)
 
 	def post_update_check(self, contentObject, originalSource):
-		if IQEditableEvalutation.providedBy(contentObject):
+		if IQEditableEvaluation.providedBy(contentObject):
 			items = originalSource.get(ITEMS)
 			if items: # list of ntiids
 				contentObject.questions = indexed_iter() # reset
@@ -646,7 +646,7 @@ class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):
 		super(NewAndLegacyPutView, self)._check_object_constraints(obj, externalValue)
 		parts = externalValue.get('parts')
 		if parts:
-			if not IQEditableEvalutation.providedBy(obj):
+			if not IQEditableEvaluation.providedBy(obj):
 				raise_json_error(self.request,
 								 hexc.HTTPUnprocessableEntity,
 								 {
@@ -670,7 +670,7 @@ class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):
 		if sources:
 			validate_sources(self.remoteUser, result.model, sources)
 
-		if IQEditableEvalutation.providedBy(contentObject):
+		if IQEditableEvaluation.providedBy(contentObject):
 			self.handle_evaluation(contentObject, self.course, sources, self.remoteUser)
 		# validate changes, subscribers
 		notifyModified(contentObject, originalSource)
@@ -690,7 +690,7 @@ class PollPutView(NewAndLegacyPutView):
 		super(PollPutView, self)._check_object_constraints(obj, externalValue)
 		parts = externalValue.get('parts')
 		if parts:
-			if not IQEditableEvalutation.providedBy(obj):
+			if not IQEditableEvaluation.providedBy(obj):
 				raise_json_error(self.request,
 								 hexc.HTTPUnprocessableEntity,
 								 {
@@ -727,7 +727,7 @@ class SurveyPutView(NewAndLegacyPutView):
 		super(SurveyPutView, self)._check_object_constraints(obj, externalValue)
 		parts = externalValue.get('questions')
 		if parts:
-			if not IQEditableEvalutation.providedBy(obj):
+			if not IQEditableEvaluation.providedBy(obj):
 				raise_json_error(self.request,
 								 hexc.HTTPUnprocessableEntity,
 								 {
@@ -744,7 +744,7 @@ class SurveyPutView(NewAndLegacyPutView):
 			super(SurveyPutView, self).validate(contentObject, externalValue, courses)
 
 	def post_update_check(self, contentObject, originalSource):
-		if IQEditableEvalutation.providedBy(contentObject):
+		if IQEditableEvaluation.providedBy(contentObject):
 			items = originalSource.get(ITEMS)
 			if items: # list of ntiids
 				contentObject.questions = indexed_iter() # reset
@@ -764,7 +764,7 @@ class AssignmentPutView(NewAndLegacyPutView):
 		super(AssignmentPutView, self)._check_object_constraints(obj, externalValue)
 		parts = externalValue.get('parts')
 		if parts:
-			if not IQEditableEvalutation.providedBy(obj):
+			if not IQEditableEvaluation.providedBy(obj):
 				raise_json_error(self.request,
 								 hexc.HTTPUnprocessableEntity,
 								 {
@@ -781,7 +781,7 @@ class AssignmentPutView(NewAndLegacyPutView):
 			super(AssignmentPutView, self).validate(contentObject, externalValue, courses)
 
 	def post_update_check(self, contentObject, originalSource):
-		if IQEditableEvalutation.providedBy(contentObject):
+		if IQEditableEvaluation.providedBy(contentObject):
 			items = originalSource.get(ITEMS)
 			if items: # list of ntiids
 				for qset in contentObject.iter_question_sets(): # reset
@@ -813,7 +813,7 @@ def delete_evaluation(evaluation, course=None):
 class EvaluationDeleteView(UGDDeleteView):
 
 	def _check_internal(self, theObject):
-		if not IQEditableEvalutation.providedBy(theObject):
+		if not IQEditableEvaluation.providedBy(theObject):
 			raise hexc.HTTPForbidden(_("Cannot delete legacy object."))
 		course = find_interface(theObject, ICourseInstance, strict=False)
 		validate_internal(theObject, course, self.request)
@@ -858,7 +858,7 @@ def publish_context(context, site_name=None):
 class EvaluationPublishView(PublishView):
 
 	def _do_provide(self, context):
-		if IQEditableEvalutation.providedBy(context):
+		if IQEditableEvaluation.providedBy(context):
 			publish_context(context)
 
 # Unublish views
@@ -872,7 +872,7 @@ class EvaluationPublishView(PublishView):
 class EvaluationUnpublishView(UnpublishView):
 
 	def _do_provide(self, context):
-		if IQEditableEvalutation.providedBy(context):
+		if IQEditableEvaluation.providedBy(context):
 			course = find_interface(context, ICourseInstance, strict=False)
 			validate_submissions(context, course, self.request)
 			# unpublish
@@ -891,7 +891,7 @@ class EvaluationGetView(GenericGetView):
 		result = GenericGetView.__call__(self)
 		# XXX Check than only editors can have access 
 		# to unpublished evalutations
-		if 		IQEditableEvalutation.providedBy(result) \
+		if 		IQEditableEvaluation.providedBy(result) \
 			and not result.is_published() \
 			and not has_permission(ACT_CONTENT_EDIT, result, self.request):
 			raise hexc.HTTPForbidden()

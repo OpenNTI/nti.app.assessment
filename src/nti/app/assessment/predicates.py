@@ -19,7 +19,7 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 
 from nti.assessment.interfaces import IQEvaluation
-from nti.assessment.interfaces import IQEditableEvalutation 
+from nti.assessment.interfaces import IQEditableEvaluation 
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog 
 from nti.contenttypes.courses.interfaces import ICourseInstance 
@@ -139,7 +139,7 @@ class _SystemEvaluationObjects(BasePrincipalObjects):
 
 	def iter_items(self, result, seen):
 		for ntiid, item in list(component.getUtilitiesFor(IQEvaluation)):
-			if ntiid not in seen and not IQEditableEvalutation.providedBy(item):
+			if ntiid not in seen and not IQEditableEvaluation.providedBy(item):
 				seen.add(ntiid)
 				result.append(item)
 

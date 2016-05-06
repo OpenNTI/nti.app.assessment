@@ -18,6 +18,8 @@ from zope.component.hooks import site as current_site
 
 from zope.intid.interfaces import IIntIds
 
+from ZODB.interfaces import IConnection
+
 from nti.app.contentlibrary.utils import yield_sync_content_packages
 
 from nti.app.assessment import get_evaluation_catalog
@@ -173,6 +175,9 @@ def check_assessment_integrity(remove_unparented=False):
 				unregisterUtility(registry, provided=provided, name=ntiid)
 				continue
 		elif uid is None: # valid parent no uid
+			if IConnection(registered, None) is None:
+				registry = site.getSiteManager()
+				IConnection(registry).add(registered)
 			addIntId(registered)
 
 		# make sure containers have registered object

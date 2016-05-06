@@ -35,7 +35,8 @@ from nti.contentlibrary.indexed_data import get_library_catalog
 
 from nti.contentlibrary.interfaces import IContentUnit
 
-from nti.intid.common import removeIntId
+from nti.intid.common import addIntId
+from nti.intid.common import removeIntId 
 
 from nti.metadata import dataserver_metadata_catalog
 
@@ -164,13 +165,15 @@ def check_assessment_integrity(remove_unparented=False):
 					lifecycleevent.modified(registered)
 			elif remove_unparented and uid is not None:
 				registry = site.getSiteManager()
-				removeIntId(item)
 				removed.add(ntiid)
+				removeIntId(registered)
 				provided = iface_of_assessment(registered)
 				logger.warn("Removing unparented object %s (%s)", 
 							ntiid, site.__name__)
 				unregisterUtility(registry, provided=provided, name=ntiid)
 				continue
+		elif uid is None: # valid parent no uid
+			addIntId(registered)
 
 		# make sure containers have registered object
 		for container in containers or ():

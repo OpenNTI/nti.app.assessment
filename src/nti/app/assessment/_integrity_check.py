@@ -143,6 +143,8 @@ def check_assessment_integrity(remove_unparented=False):
 		# canonicalize
 		QuestionIndex.canonicalize_object(registered, registry)
 
+	logger.info('Checking %s registered item(s)', len(all_registered))
+
 	reindexed = set()
 	fixed_lineage = set()
 	adjusted_container = set()

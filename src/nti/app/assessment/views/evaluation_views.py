@@ -457,7 +457,7 @@ class EvaluationMixin(object):
 		pass
 
 	def auto_complete_questionset(self, context, externalValue):
-		questions = indexed_iter() if context.questions is None else context.questions
+		questions = indexed_iter() if not context.questions else context.questions
 		items = externalValue.get(ITEMS)
 		for item in items or ():
 			question = self.get_registered_evaluation(item, self.course)
@@ -476,7 +476,7 @@ class EvaluationMixin(object):
 		context.questions = questions
 		
 	def auto_complete_survey(self, context, externalValue):
-		questions = indexed_iter() if context.questions is None else context.questions
+		questions = indexed_iter() if not context.questions else context.questions
 		items = externalValue.get(ITEMS)
 		for item in items or ():
 			poll = self.get_registered_evaluation(item, self.course)
@@ -495,7 +495,7 @@ class EvaluationMixin(object):
 		context.questions = questions
 
 	def auto_complete_assignment(self, context, externalValue):
-		parts = indexed_iter() if context.parts is None else context.parts
+		parts = indexed_iter() if not context.parts else context.parts
 		if not parts:  # auto create part
 			parts.append(QAssignmentPart())
 		for part in parts:
@@ -537,7 +537,7 @@ class CourseEvaluationsPostView(EvaluationMixin, UGDPostView):
 	def _do_call(self):
 		creator = self.remoteUser
 		evaluation, sources = self.readCreateUpdateContentObject(creator, search_owner=False)
-		evaluation.creator = creator.username
+		evaluation.creator = creator.username # use username
 		interface.alsoProvides(evaluation, IQEditableEvaluation)
 
 		# validate sources if available

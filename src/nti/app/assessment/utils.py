@@ -215,7 +215,7 @@ def assignment_download_precondition(context, request=None, remoteUser=None):
 	for assignment_part in context.parts:
 		question_set = assignment_part.question_set
 		for question in question_set.Items:
-			for question_part in question.parts:
+			for question_part in question.parts or ():
 				if IQFilePart.providedBy(question_part):
 					return True
 	return False

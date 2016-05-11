@@ -12,7 +12,6 @@ logger = __import__('logging').getLogger(__name__)
 from collections import defaultdict
 
 from zope import component
-from zope import lifecycleevent
 
 from zope.component.hooks import site as current_site
 
@@ -142,9 +141,9 @@ def check_assessment_integrity(remove_unparented=False):
 
 		# canonicalize
 		QuestionIndex.canonicalize_object(registered, registry)
-
-	logger.info('Checking %s registered item(s)', len(all_registered))
-
+	
+	logger.info('%s record(s) unregistered', result)
+	
 	reindexed = set()
 	fixed_lineage = set()
 	adjusted_container = set()
@@ -166,7 +165,6 @@ def check_assessment_integrity(remove_unparented=False):
 					registered.__parent__ = unit
 					if uid is not None:
 						catalog.index_doc(uid, registered)
-					lifecycleevent.modified(registered)
 			elif remove_unparented and uid is not None:
 				registry = site.getSiteManager()
 				removed.add(ntiid)
@@ -197,7 +195,6 @@ def check_assessment_integrity(remove_unparented=False):
 			logger.warn("Reindexing %s", ntiid)
 			reindexed.add(ntiid)
 			catalog.index_doc(uid, registered)
-			lifecycleevent.modified(registered)
 
-	logger.info('Done!!!, %s record(s) unregistered', result)
+	logger.info('%s registered item(s) checked', len(all_registered))
 	return (duplicates, removed, reindexed, fixed_lineage, adjusted_container)

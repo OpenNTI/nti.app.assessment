@@ -147,9 +147,7 @@ class AssignmentPracticeSubmissionPostView(AssignmentSubmissionPostView):
 			result = super(AssignmentPracticeSubmissionPostView, self)._do_call()
 			return result
 		finally:
-			# Why does transaction.abort not work?
 			self.request.environ['nti.commit_veto'] = 'abort'
-			#transaction.abort()
 
 @view_config(route_name="objects.generic.traversal",
 			 context=IQAssignment,

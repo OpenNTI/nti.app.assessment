@@ -174,11 +174,13 @@ def check_assessment_integrity(remove_unparented=False):
 							ntiid, site.__name__)
 				unregisterUtility(registry, provided=provided, name=ntiid)
 				continue
-		elif uid is None: # valid parent no uid
-			if IConnection(registered, None) is None:
-				registry = site.getSiteManager()
-				IConnection(registry).add(registered)
-			addIntId(registered)
+		elif uid is None:
+			registry = site.getSiteManager()
+			connection = IConnection(registry, None)
+			if connection is not None and IConnection(registered, None) is None:
+				connection.add(registered)
+				addIntId(registered)
+				uid = intids.queryId(registered)
 
 		# make sure containers have registered object
 		for container in containers or ():

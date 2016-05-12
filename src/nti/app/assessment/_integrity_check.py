@@ -52,18 +52,21 @@ def _master_data_collector():
 	seen = set()
 	registered = {}
 	containers = defaultdict(list)
+	legacy = {ntiid for ntiid, _ in list(component.getUtilitiesFor(IQEvaluation))}
 
 	def recur(unit):
 		for child in unit.children or ():
 			recur(child)
 		container = IQAssessmentItemContainer(unit)
 		for item in container.assessments():
-			containers[item.ntiid].append(container)
+			ntiid = item.ntiid
+			if ntiid not in legacy:
+				containers[item.ntiid].append(container)
 
 	for site in get_all_host_sites():
 		registry = site.getSiteManager()
 		for ntiid, item in list(registry.getUtilitiesFor(IQEvaluation)):
-			if ntiid not in registered:
+			if ntiid not in registered and ntiid not in legacy:
 				registered[ntiid] = (site, item)
 
 		with current_site(site):
@@ -72,7 +75,7 @@ def _master_data_collector():
 					seen.add(package.ntiid)
 					recur(package)
 
-	return registered, containers
+	return registered, containers, legacy
 
 def _get_data_item_counts(intids):
 	count = defaultdict(list)
@@ -91,7 +94,7 @@ def check_assessment_integrity(remove_unparented=False):
 	count = _get_data_item_counts(intids)
 	logger.info('%s item(s) counted', len(count))
 
-	all_registered, all_containers = _master_data_collector()
+	all_registered, all_containers, legacy = _master_data_collector()
 
 	result = 0
 	removed = set()
@@ -151,6 +154,8 @@ def check_assessment_integrity(remove_unparented=False):
 
 	# check all registered items
 	for ntiid, things in all_registered.items():
+		if ntiid in legacy:
+			continue
 		site, registered = things
 		containers = all_containers.get(ntiid)
 		uid = intids.queryId(registered)

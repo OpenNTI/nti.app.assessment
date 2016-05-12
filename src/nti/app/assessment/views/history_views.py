@@ -37,6 +37,8 @@ from nti.app.assessment._submission import get_source
 from nti.app.assessment._submission import check_upload_files
 from nti.app.assessment._submission import read_multipart_sources
 
+from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
+
 from nti.app.assessment.common import get_course_from_assignment
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
@@ -129,6 +131,25 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 		# Re-use the same code for putting to a user
 		result = component.getMultiAdapter((self.request, submission), IExceptionResponse)
 		return result
+
+@view_config(route_name="objects.generic.traversal",
+			 context=IQAssignment,
+			 renderer='rest',
+			 name=ASSESSMENT_PRACTICE_SUBMISSION,
+			 request_method='POST')
+class AssignmentPracticeSubmissionPostView(AssignmentSubmissionPostView):
+	"""
+	A practice assignment submission view that will submit/grade results
+	but not persist.
+	"""
+	def _do_call(self):
+		try:
+			result = super(AssignmentPracticeSubmissionPostView, self)._do_call()
+			return result
+		finally:
+			# Why does transaction.abort not work?
+			self.request.environ['nti.commit_veto'] = 'abort'
+			#transaction.abort()
 
 @view_config(route_name="objects.generic.traversal",
 			 context=IQAssignment,

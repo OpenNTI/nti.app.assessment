@@ -38,6 +38,8 @@ from zope import component
 from zope.schema.interfaces import NotUnique
 from zope.schema.interfaces import ConstraintNotSatisfied
 
+from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
+
 from nti.app.assessment.adapters import _begin_assessment_for_assignment_submission
 
 from nti.app.assessment.feedback import UsersCourseAssignmentHistoryItemFeedback
@@ -404,6 +406,40 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id,
 									  ext_obj)
 		self._check_submission(res, enrollment_history_link, 1234)
+
+	@WithSharedApplicationMockDS(users=('outest5',),testapp=True,default_authenticate=True)
+	@fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
+	def test_instructor_pending_application_assignment(self, fake_active):
+		"""
+		Validate an instructor can practice submitting without persisting it.
+		"""
+		fake_active.is_callable().returns(True)
+		instructor_environ = self._make_extra_environ(username='harp4162')
+
+		# Sends an assignment through the application by posting to the assignment
+		qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id)
+		submission = AssignmentSubmission(assignmentId=self.assignment_id, parts=(qs_submission,))
+
+		ext_obj = to_external_object( submission )
+		del ext_obj['Class']
+		assert_that( ext_obj, has_entry( 'MimeType', 'application/vnd.nextthought.assessment.assignmentsubmission'))
+
+		history_href = '/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice/AssignmentHistories/harp4162/tag%3Anextthought.com%2C2011-10%3AOU-NAQ-CLC3403_LawAndJustice.naq.asg%3AQUIZ1_aristotle'
+		self.testapp.get( history_href, extra_environ=instructor_environ, status=404)
+
+		assignment = self.testapp.get( '/dataserver2/Objects/%s' % self.assignment_id,
+										extra_environ=instructor_environ )
+		practice_href = self.require_link_href_with_rel( assignment.json_body, ASSESSMENT_PRACTICE_SUBMISSION )
+
+		res = self.testapp.post_json( practice_href,
+									  ext_obj,
+									  extra_environ=instructor_environ)
+		res = res.json_body
+		assert_that( res.get( 'MimeType' ), is_('application/vnd.nextthought.assessment.assignmentsubmissionpendingassessment') )
+
+		# Nothing persisted.
+		history_href = self.require_link_href_with_rel(res, 'AssignmentHistoryItem')
+		self.testapp.get( history_href, extra_environ=instructor_environ, status=404)
 
 	@WithSharedApplicationMockDS(users=True,testapp=True)
 	def test_assignment_items_view(self):

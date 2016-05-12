@@ -132,13 +132,13 @@ class TestEvaluationViews(ApplicationLayerTest):
 		question = qset['questions'][0]
 		res = self.testapp.post_json(href, question, status=201)
 		question = res.json_body
-	
+
 		mock_ehs.is_callable().with_args().returns(True)
 		mock_vhs.is_callable().with_args().returns(True)
-		
+
 		url = question.pop('href')
 		self.testapp.put_json(url, question, status=200)
-		
+
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_delete_containment(self):
 		course_oid = self._get_course_oid()
@@ -158,7 +158,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
 			obj = component.queryUtility(IQuestion, name=ntiid)
 			assert_that(obj, is_(none()))
-		
+
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	@fudge.patch('nti.app.assessment.views.evaluation_views.has_submissions')
 	def test_publish_unpublish(self, mock_vhs):

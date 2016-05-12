@@ -16,6 +16,8 @@ from zope import interface
 
 from zope.location.interfaces import ILocation
 
+from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
+
 from nti.app.assessment.common import get_max_time_allowed
 from nti.app.assessment.common import get_assessment_metadata_item
 from nti.app.assessment.common import get_available_for_submission_ending
@@ -148,7 +150,7 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		return result
 
 	def _do_decorate_external(self, assignment, result):
-		course = _get_course_from_assignment(assignment, 
+		course = _get_course_from_assignment(assignment,
 											 self.remoteUser,
 											 self._catalog,
 											 request=self.request)
@@ -172,7 +174,7 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
 class _TimedAssignmentPartStripperDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _do_decorate_external(self, context, result):
-		course = _get_course_from_assignment(context, 
+		course = _get_course_from_assignment(context,
 											 user=self.remoteUser,
 											 request=self.request)
 		if course is None or is_course_instructor(course, self.remoteUser):
@@ -315,6 +317,9 @@ class _QuestionSetDecorator(object):
 
 @interface.implementer(IExternalMappingDecorator)
 class _AssessmentEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
+	"""
+	Give editors an edit link.
+	"""
 
 	def _has_edit_link(self, result):
 		for lnk in result.get(LINKS) or ():
@@ -324,12 +329,34 @@ class _AssessmentEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _predicate(self, context, result):
 		return 		self._is_authenticated \
-				and	not self._has_edit_link(result) \
+				and not self._has_edit_link(result) \
 				and has_permission(ACT_CONTENT_EDIT, context, self.request)
 
 	def _do_decorate_external(self, context, result):
 		_links = result.setdefault(LINKS, [])
 		link = Link(context, rel='edit')
+		interface.alsoProvides(link, ILocation)
+		link.__name__ = ''
+		link.__parent__ = context
+		_links.append(link)
+
+@interface.implementer(IExternalMappingDecorator)
+class _AssessmentPracticeLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
+	"""
+	Give editors and instructors the practice submission link.
+	"""
+
+	def _predicate(self, context, result):
+		user = self.remoteUser
+		course = _get_course_from_assignment(context, user, request=self.request)
+		return 		self._is_authenticated \
+				and (  has_permission(ACT_CONTENT_EDIT, context, self.request) \
+					or is_course_instructor( course, user ))
+
+	def _do_decorate_external(self, context, result):
+		_links = result.setdefault(LINKS, [])
+		link = Link(context, rel=ASSESSMENT_PRACTICE_SUBMISSION,
+					elements=(ASSESSMENT_PRACTICE_SUBMISSION,))
 		interface.alsoProvides(link, ILocation)
 		link.__name__ = ''
 		link.__parent__ = context

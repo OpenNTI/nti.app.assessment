@@ -21,6 +21,9 @@ from nti.app.assessment.index import SUBMISSION_CATALOG_NAME
 
 from nti.dataserver.interfaces import IMetadataCatalog
 
+#: A view name to submit an assignment without persisting.
+ASSESSMENT_PRACTICE_SUBMISSION = 'PracticeSubmission'
+
 def get_submission_catalog():
 	return component.queryUtility(IMetadataCatalog, name=SUBMISSION_CATALOG_NAME)
 

@@ -274,7 +274,7 @@ def register_context(context, site_name=None):
 	elif IQAssignment.providedBy(context):
 		for item in context.iter_question_sets():
 			register_context(item, site_name)
-			
+
 class EvaluationMixin(object):
 
 	@Lazy
@@ -300,7 +300,7 @@ class EvaluationMixin(object):
 		else:
 			result = getattr(context, 'ntiid', None)
 		return result
-	
+
 	def store_evaluation(self, obj, course, user, check_solutions=True):
 		provided = iface_of_assessment(obj)
 		evaluations = ICourseEvaluations(course)
@@ -308,7 +308,7 @@ class EvaluationMixin(object):
 		lifecycleevent.created(obj)
 		try:
 			# XXX mark to avoid checking solutions
-			if not check_solutions: 
+			if not check_solutions:
 				interface.alsoProvides(obj, IQAvoidSolutionCheck)
 			# XXX mark as editable before storing so proper validation is done
 			interface.alsoProvides(obj, IQEditableEvaluation)
@@ -381,7 +381,7 @@ class EvaluationMixin(object):
 								u'code': 'QuestionSetDoesNotExists',
 							 },
 							 None)
-		
+
 		return theObject
 
 	def handle_survey(self, theObject, course, user):
@@ -406,7 +406,7 @@ class EvaluationMixin(object):
 
 	def handle_assignment_part(self, part, course, user):
 		question_set = self.handle_question_set(part.question_set,
-												course, 
+												course,
 												user)
 		part.question_set = question_set
 		return part
@@ -444,8 +444,8 @@ class EvaluationMixin(object):
 			result = self.handle_assignment(theObject, course, user)
 		else:
 			result = theObject
-	
-		# course is the evaluation home	
+
+		# course is the evaluation home
 		theObject.__home__ = course
 		# parse content fields and load sources
 		_handle_evaluation_content(course, user, result, sources)
@@ -474,7 +474,7 @@ class EvaluationMixin(object):
 			else:
 				questions.append(question)
 		context.questions = questions
-		
+
 	def auto_complete_survey(self, context, externalValue):
 		questions = indexed_iter() if not context.questions else context.questions
 		items = externalValue.get(ITEMS)
@@ -501,7 +501,7 @@ class EvaluationMixin(object):
 		for part in parts:
 			if part.question_set is None: # auto create question set
 				part.question_set = QQuestionSet()
-			self.auto_complete_questionset(part.question_set, externalValue)		
+			self.auto_complete_questionset(part.question_set, externalValue)
 		context.parts = parts
 
 # POST views
@@ -523,7 +523,7 @@ class CourseEvaluationsPostView(EvaluationMixin, UGDPostView):
 		elif 	IQAssignment.providedBy(context) \
 			and (not context.parts or any(p.question_set is None for p in context.parts)):
 			self.auto_complete_assignment(context, externalValue)
-				
+
 	def readCreateUpdateContentObject(self, creator, search_owner=False, externalValue=None):
 		contentObject, _, externalValue = \
 				self.performReadCreateUpdateContentObject(user=creator,
@@ -795,7 +795,7 @@ def delete_evaluation(evaluation, course=None):
 	course = find_interface(evaluation, ICourseInstance, strict=False)
 	evaluations = ICourseEvaluations(course)
 	del evaluations[evaluation.ntiid]
-	evaluation.__home__ = None 
+	evaluation.__home__ = None
 
 	# remove from registry
 	provided = iface_of_assessment(evaluation)
@@ -889,7 +889,7 @@ class EvaluationGetView(GenericGetView):
 
 	def __call__(self):
 		result = GenericGetView.__call__(self)
-		# XXX Check than only editors can have access 
+		# XXX Check than only editors can have access
 		# to unpublished evalutations
 		if 		IQEditableEvaluation.providedBy(result) \
 			and not result.is_published() \

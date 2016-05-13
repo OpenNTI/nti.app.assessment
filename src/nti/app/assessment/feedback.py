@@ -223,5 +223,4 @@ def when_feedback_modified_modify_history_item(feedback, event):
 @interface.implementer(IUsersCourseAssignmentHistoryItemFeedbackFileConstraints)
 class _AssignmentHistoryItemFeedbackFileConstraints(FileConstraints):
 	mimeType = mime_type = "application/vnd.nextthought.assessment.historyitemfeedbackfileconstraints"
-	max_files = 2
-	max_file_size = 10485760 # 10 MB
+	max_file_size = 52428800 # 50 MB

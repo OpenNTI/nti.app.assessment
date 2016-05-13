@@ -266,7 +266,7 @@ class IUsersCourseAssignmentHistoryItemFeedback(IContained,
 	body = ExtendedCompoundModeledContentBody()
 
 class IUsersCourseAssignmentHistoryItemFeedbackFileConstraints(IFileConstraints):
-	max_files = Int(title="max attachments files", required=True, default=5)
+	pass
 
 class IUsersCourseAssignmentMetadataContainer(IContainer,
 										  	  IContained,
@@ -433,7 +433,7 @@ class IQPartChangeAnalyzer(interface.Interface):
 	def validate(part=None, check_solutions=True):
 		"""
 		validate this or the specified part
-		
+
 		:param check_solutions: Validate part solutions
 		"""
 

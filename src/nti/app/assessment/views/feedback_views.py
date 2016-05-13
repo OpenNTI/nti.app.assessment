@@ -140,22 +140,6 @@ def validate_attachments(user, context, sources=()):
 					 sources,
 					 constraint=IUsersCourseAssignmentHistoryItemFeedbackFileConstraints)
 
-	# check max files to upload
-	constraints = file_contraints(
-					user=user,
-					context=context,
-					constraint=IUsersCourseAssignmentHistoryItemFeedbackFileConstraints)
-	if constraints is not None and len(sources) > constraints.max_files:
-		raise_json_error(get_current_request(),
-						 hexc.HTTPUnprocessableEntity,
-						 {
-							u'message': _('Maximum number attachments exceeded.'),
-							u'code': 'MaxAttachmentsExceeded',
-							u'field': 'max_files',
-							u'constraint': constraints.max_files
-						 },
-						 None)
-
 	# take ownership
 	for source in sources:
 		source.__parent__ = context

@@ -28,7 +28,7 @@ def _process_args(unparented=False):
 	check_assessment_integrity(unparented)
 
 def main():
-	arg_parser = argparse.ArgumentParser(description="Assessment leak fixer")
+	arg_parser = argparse.ArgumentParser(description="Assessment integrity check")
 	arg_parser.add_argument('-v', '--verbose', help="Be Verbose", action='store_true',
 							dest='verbose')
 

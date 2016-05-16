@@ -43,6 +43,7 @@ from nti.dataserver.interfaces import INeverStoredInSharedStream
 from nti.dataserver.interfaces import IShouldHaveTraversablePath
 from nti.dataserver.interfaces import ExtendedCompoundModeledContentBody
 
+from nti.namedfile.interfaces import IFileConstrained
 from nti.namedfile.interfaces import IFileConstraints
 
 from nti.schema.field import Int
@@ -204,9 +205,9 @@ class IUsersCourseAssignmentHistoryItemFeedbackContainer(IContainerNamesContaine
 				 			 "inline them for externalization.",
 				 readonly=True)
 
-class IUsersCourseAssignmentHistoryItem(IContained,
+class IUsersCourseAssignmentHistoryItem(ICreated, 
+										IContained,
 										ILastModified,
-										ICreated,
 										IShouldHaveTraversablePath):
 	"""
 	A record of something being submitted for an assignment.
@@ -250,6 +251,7 @@ class IUsersCourseAssignmentHistoryItemSummary(IContained,
 class IUsersCourseAssignmentHistoryItemFeedback(IContained,
 												ITitledContent,
 												IModeledContent,
+												IFileConstrained,
 												IModeledContentBody,
 												INeverStoredInSharedStream,
 												IShouldHaveTraversablePath):

@@ -14,17 +14,11 @@ from functools import partial
 from zope import component
 from zope import interface
 
-from pyramid import httpexceptions as hexc
-
 from pyramid.interfaces import IRequest
 from pyramid.interfaces import IExceptionResponse
 
-from pyramid.threadlocal import get_current_request
-
 from pyramid.view import view_config
 from pyramid.view import view_defaults
-
-from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment.adapters import course_from_context_lineage
 
@@ -37,7 +31,6 @@ from nti.app.authentication import get_remote_user
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
-from nti.app.contentfile import file_contraints
 from nti.app.contentfile import validate_sources
 from nti.app.contentfile import get_content_files
 from nti.app.contentfile import read_multipart_sources
@@ -47,8 +40,6 @@ from nti.app.contentlibrary import LIBRARY_PATH_GET_VIEW
 from nti.app.contentlibrary.views.library_views import AbstractCachingLibraryPathView
 
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
-
-from nti.app.externalization.error import raise_json_error
 
 from nti.appserver.interfaces import INewObjectTransformer
 

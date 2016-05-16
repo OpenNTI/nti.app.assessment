@@ -118,10 +118,10 @@ class EvaluationsExporter(BaseSectionExporter):
 	def externalize(self, context):
 		result = dict()
 		course = ICourseInstance(context)
-		course = get_parent_course(course)
 		items = result[ITEMS] = dict()
-		for course in {course, get_course_subinstances(course)}:
-			self.output(course, items)
+		courses = (course,) + tuple(get_course_subinstances(course))
+		for c in courses:
+			self.output(c, items)
 		return result
 
 	def export(self, context, filer):

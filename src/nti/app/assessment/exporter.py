@@ -13,6 +13,9 @@ from zope import interface
 
 from nti.app.assessment.common import get_unit_assessments
 
+from nti.app.assessment.interfaces import ICourseEvaluations
+
+from nti.assessment import EVALUATION_INTERFACES
 from nti.assessment.interfaces import IQEditableEvaluation
 
 from nti.common.file import safe_filename
@@ -20,13 +23,15 @@ from nti.common.file import safe_filename
 from nti.common.proxy import removeAllProxies
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 from nti.contenttypes.courses.interfaces import ICourseSectionExporter
 
 from nti.contenttypes.courses.common import get_course_packages
 
 from nti.contenttypes.courses.exporter import BaseSectionExporter
 
-from nti.contenttypes.courses.utils import get_parent_course
+from nti.contenttypes.courses.utils import get_parent_course,\
+	get_course_subinstances
 
 from nti.externalization.externalization import to_external_object
 
@@ -84,5 +89,44 @@ class AssessmentsExporter(BaseSectionExporter):
 		result = self.externalize(context)
 		source = self.dump(result)
 		filer.save("assessment_index.json", source,
+				   contentType="application/json", overwrite=True)
+		return result
+	
+@interface.implementer(ICourseSectionExporter)
+class EvaluationsExporter(BaseSectionExporter):
+
+	def output(self, course, store):
+		entry = ICourseCatalogEntry(course)
+		evaluations = ICourseEvaluations(course)
+
+		order = {i:x for i, x in enumerate(EVALUATION_INTERFACES)}.items()
+		def _get_key(item):
+			for i, iface in order:
+				if iface.providedBy(item):
+					return i
+			return 0
+
+		def _ext(item):
+			evaluation = removeAllProxies(item)
+			ext_obj = to_external_object(evaluation, name="exporter", decorate=False)
+			return ext_obj
+
+		ntiid = entry.ntiid
+		items = sorted(evaluations.values(), key=_get_key)
+		store[ntiid] = map(_ext, items)
+
+	def externalize(self, context):
+		result = dict()
+		course = ICourseInstance(context)
+		course = get_parent_course(course)
+		items = result[ITEMS] = dict()
+		for course in {course, get_course_subinstances(course)}:
+			self.output(course, items)
+		return result
+
+	def export(self, context, filer):
+		result = self.externalize(context)
+		source = self.dump(result)
+		filer.save("evaluation_index.json", source,
 				   contentType="application/json", overwrite=True)
 		return result

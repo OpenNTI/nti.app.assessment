@@ -24,15 +24,12 @@ from zope import lifecycleevent
 
 from zope.i18n import translate
 
-from zope.intid.interfaces import IIntIds
-
 from pyramid import httpexceptions as hexc
 
 from pyramid.view import view_config
 from pyramid.view import view_defaults
 
 from nti.app.assessment import MessageFactory as _
-from nti.app.assessment import get_evaluation_catalog
 
 from nti.app.assessment.common import has_savepoints
 from nti.app.assessment.common import has_submissions
@@ -790,10 +787,7 @@ class AssignmentPutView(NewAndLegacyPutView):
 				self.auto_complete_assignment(contentObject, originalSource)
 
 	def _index(self, item):
-		intids = component.getUtility(IIntIds)
-		doc_id = intids.queryId(item)
-		catalog = get_evaluation_catalog()
-		catalog.index_doc(doc_id, item)
+		lifecycleevent.modified(item)
 
 	def _re_register(self, context, old_iface, new_iface):
 		"""

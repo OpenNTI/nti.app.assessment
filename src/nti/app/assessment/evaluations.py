@@ -49,7 +49,7 @@ from nti.app.assessment.interfaces import RegradeQuestionEvent
 
 from nti.app.externalization.error import raise_json_error
 
-from nti.assessment.interfaces import IQPoll, IQAssignment
+from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet

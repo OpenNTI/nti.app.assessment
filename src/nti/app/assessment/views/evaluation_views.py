@@ -24,12 +24,15 @@ from zope import lifecycleevent
 
 from zope.i18n import translate
 
+from zope.intid.interfaces import IIntIds
+
 from pyramid import httpexceptions as hexc
 
 from pyramid.view import view_config
 from pyramid.view import view_defaults
 
 from nti.app.assessment import MessageFactory as _
+from nti.app.assessment import get_evaluation_catalog
 
 from nti.app.assessment.common import has_savepoints
 from nti.app.assessment.common import has_submissions
@@ -75,6 +78,9 @@ from nti.assessment.assignment import QAssignmentPart
 
 from nti.assessment.common import iface_of_assessment
 
+from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
+from nti.assessment.interfaces import TIMED_ASSIGNMENT_MIME_TYPE
+
 from nti.assessment.interfaces import IQHint
 from nti.assessment.interfaces import IQPart
 from nti.assessment.interfaces import IQPoll
@@ -84,6 +90,7 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQAssignmentPart
+from nti.assessment.interfaces import IQTimedAssignment
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQEvaluationItemContainer
 
@@ -787,6 +794,59 @@ class AssignmentPutView(NewAndLegacyPutView):
 				for qset in contentObject.iter_question_sets(): # reset
 					qset.questions = indexed_iter()
 				self.auto_complete_assignment(contentObject, originalSource)
+
+	def _index(self, item):
+		intids = component.getUtility(IIntIds)
+		doc_id = intids.queryId(item)
+		catalog = get_evaluation_catalog()
+		catalog.index_doc(doc_id, item)
+
+	def _re_register(self, context, old_iface, new_iface):
+		"""
+		Unregister the context under the given old interface and register
+		under the given new interface.
+		"""
+		ntiid = context.ntiid
+		site_name = get_resource_site_name(context)
+		registry = get_host_site(site_name).getSiteManager()
+		registerUtility(registry, context, provided=new_iface, name=ntiid, event=False)
+		unregisterUtility(registry, provided=old_iface, name=ntiid, event=False)
+		# Make sure we re-index.
+		self._index( context )
+
+	def _transform_to_timed(self, contentObject, max_time_allowed ):
+		"""
+		Transform from a regular assignment to a timed assignment.
+		"""
+		interface.alsoProvides(contentObject, IQTimedAssignment)
+		contentObject.maximum_time_allowed = max_time_allowed
+		contentObject.mimeType = contentObject.mime_type = TIMED_ASSIGNMENT_MIME_TYPE
+		self._re_register( contentObject, IQAssignment, IQTimedAssignment )
+
+	def _transform_to_untimed(self, contentObject ):
+		"""
+		Transform from a timed assignment to a regular assignment.
+		"""
+		interface.noLongerProvides(contentObject, IQTimedAssignment)
+		contentObject.mimeType = contentObject.mime_type = ASSIGNMENT_MIME_TYPE
+		contentObject.maximum_time_allowed = None
+		self._re_register( contentObject, IQTimedAssignment, IQAssignment )
+
+	def updateContentObject(self, contentObject, externalValue, set_id=False, notify=True):
+		# Must toggle types first (if necessary) before calling super; so
+		# everything validates.
+		# See if we are going to/from timed assignment.
+		max_time_allowed = externalValue.get( 'maximum_time_allowed' )
+		if 		max_time_allowed \
+			and not IQTimedAssignment.providedBy( contentObject ):
+			self._transform_to_timed( contentObject, max_time_allowed )
+		elif	max_time_allowed is None \
+			and IQTimedAssignment.providedBy( contentObject ):
+			self._transform_to_untimed( contentObject )
+
+		result = super( AssignmentPutView, self ).updateContentObject( contentObject, externalValue,
+																	   set_id, notify )
+		return result
 
 # DELETE views
 

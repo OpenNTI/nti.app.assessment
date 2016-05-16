@@ -10,6 +10,8 @@ __docformat__ = "restructuredtext en"
 from hamcrest import is_
 from hamcrest import none
 from hamcrest import is_not
+from hamcrest import has_item
+from hamcrest import not_none
 from hamcrest import has_entry
 from hamcrest import has_length
 from hamcrest import has_property
@@ -19,8 +21,21 @@ does_not = is_not
 from urllib import quote
 from itertools import chain
 
+from zope import component
+
+from zope.intid.interfaces import IIntIds
+
+from nti.app.assessment import get_evaluation_catalog
+
+from nti.app.assessment.index import IX_MIMETYPE
+
 from nti.app.assessment.views.view_mixins import AssessmentPutView
 
+from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
+from nti.assessment.interfaces import TIMED_ASSIGNMENT_MIME_TYPE
+
+from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQTimedAssignment
 from nti.assessment.interfaces import IQAssessmentPolicies
 from nti.assessment.interfaces import IQAssessmentDateContext
 
@@ -122,6 +137,64 @@ class TestAssignmentViews(ApplicationLayerTest):
 			asg = find_object_with_ntiid(self.assignment_id)
 			history = ITransactionRecordHistory(asg)
 			assert_that(history, has_length(3))
+
+		# Change to timed assignment
+		data = { 'maximum_time_allowed': 30 }
+		self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,
+							  data, extra_environ=editor_environ)
+
+		res = self.testapp.get('/dataserver2/Objects/' + self.assignment_id,
+							   extra_environ=editor_environ)
+		res = res.json_body
+		assert_that( res.get( 'Class' ), is_( 'TimedAssignment' ) )
+		assert_that( res.get( 'MimeType' ), is_( TIMED_ASSIGNMENT_MIME_TYPE ) )
+		assert_that( res.get( 'IsTimedAssignment' ), is_( True ) )
+		assert_that( res.get( 'MaximumTimeAllowed' ), is_( 30 ) )
+		assert_that( res.get( 'NTIID' ), is_( self.assignment_id ) )
+
+		def _get_timed():
+			cat = get_evaluation_catalog()
+			timed_objs = tuple( cat.apply(
+									{IX_MIMETYPE:
+									{'any_of': (TIMED_ASSIGNMENT_MIME_TYPE,)}}))
+			return timed_objs
+
+		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+			asg = find_object_with_ntiid(self.assignment_id)
+			obj = component.queryUtility( IQTimedAssignment, name=self.assignment_id )
+			assert_that( obj, not_none() )
+			assert_that( obj.ntiid, is_( self.assignment_id ))
+			assert_that( obj, is_( asg ))
+			intids = component.getUtility(IIntIds)
+			obj_id = intids.getId( obj )
+			timed_objs = _get_timed()
+			assert_that( timed_objs, has_item( obj_id ))
+
+		# Change to untimed assignment
+		data = { 'maximum_time_allowed': None }
+		self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,
+							  data, extra_environ=editor_environ)
+
+		res = self.testapp.get('/dataserver2/Objects/' + self.assignment_id,
+							   extra_environ=editor_environ)
+		res = res.json_body
+		assert_that( res.get( 'Class' ), is_( 'Assignment' ) )
+		assert_that( res.get( 'MimeType' ), is_( ASSIGNMENT_MIME_TYPE ) )
+		assert_that( res.get( 'IsTimedAssignment' ), is_( False ) )
+		assert_that( res.get( 'MaximumTimeAllowed' ), is_( None ) )
+		assert_that( res.get( 'NTIID' ), is_( self.assignment_id ) )
+
+		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+			asg = find_object_with_ntiid(self.assignment_id)
+			obj = component.queryUtility( IQTimedAssignment, name=self.assignment_id )
+			assert_that( obj, none() )
+			obj = component.queryUtility( IQAssignment, name=self.assignment_id )
+			assert_that( obj.ntiid, is_( self.assignment_id ))
+			assert_that( obj, is_( asg ))
+			intids = component.getUtility(IIntIds)
+			obj_id = intids.getId( obj )
+			timed_objs = _get_timed()
+			assert_that( timed_objs, does_not( has_item( obj_id )))
 
 	@WithSharedApplicationMockDS(users=True, testapp=True)
 	def test_assignment_editing_invalid(self):

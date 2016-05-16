@@ -267,9 +267,6 @@ class IUsersCourseAssignmentHistoryItemFeedback(IContained,
 
 	body = ExtendedCompoundModeledContentBody()
 
-class IUsersCourseAssignmentHistoryItemFeedbackFileConstraints(IFileConstraints):
-	pass
-
 class IUsersCourseAssignmentMetadataContainer(IContainer,
 										  	  IContained,
 										  	  IShouldHaveTraversablePath):

@@ -25,7 +25,6 @@ from nti.app.assessment.adapters import course_from_context_lineage
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedback
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedbackContainer
-from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedbackFileConstraints
 
 from nti.app.authentication import get_remote_user
 
@@ -126,10 +125,7 @@ def validate_attachments(user, context, sources=()):
 	sources = sources or ()
 
 	# check source contraints
-	validate_sources(user,
-					 context,
-					 sources,
-					 constraint=IUsersCourseAssignmentHistoryItemFeedbackFileConstraints)
+	validate_sources(user, context, sources)
 
 	# take ownership
 	for source in sources:

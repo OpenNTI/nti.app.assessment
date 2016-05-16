@@ -7,6 +7,7 @@ Implementations of the feedback content types.
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
+from nti.namedfile.interfaces import IFileConstraints
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -28,7 +29,6 @@ from zope.mimetype.interfaces import IContentTypeAware
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedback
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedbackContainer
-from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedbackFileConstraints
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
@@ -219,8 +219,7 @@ def when_feedback_modified_modify_history_item(feedback, event):
 	except AttributeError:
 		pass
 
+@interface.implementer(IFileConstraints)
 @component.adapter(IUsersCourseAssignmentHistoryItemFeedback)
-@interface.implementer(IUsersCourseAssignmentHistoryItemFeedbackFileConstraints)
 class _AssignmentHistoryItemFeedbackFileConstraints(FileConstraints):
-	mimeType = mime_type = "application/vnd.nextthought.assessment.historyitemfeedbackfileconstraints"
 	max_file_size = 52428800 # 50 MB

@@ -35,7 +35,7 @@ from nti.app.assessment import MessageFactory as _
 from nti.app.assessment.adapters import course_from_context_lineage
 
 from nti.app.assessment.common import has_submissions
-from nti.app.assessment.common import evaluation_submissions 
+from nti.app.assessment.common import evaluation_submissions
 from nti.app.assessment.common import get_evaluation_containment
 
 from nti.app.assessment.interfaces import ICourseEvaluations
@@ -259,7 +259,7 @@ def _on_questionset_event(context, event):
 						u'message': _("QuestionSet cannot be empty."),
 						u'code': 'EmptyQuestionSet',
 					})
-		
+
 @component.adapter(IQSurvey, IObjectAddedEvent)
 @component.adapter(IQSurvey, IObjectModifiedFromExternalEvent)
 def _on_survey_event(context, event):
@@ -269,22 +269,6 @@ def _on_survey_event(context, event):
 						u'message': _("Survey cannot be empty."),
 						u'code': 'EmptyQuestionSet',
 					})
-
-@component.adapter(IQAssignment, IObjectAddedEvent)
-@component.adapter(IQAssignment, IObjectModifiedFromExternalEvent)
-def _on_assignment_event(context, event):
-	if IQEditableEvaluation.providedBy(context):
-		if not context.parts:
-			raise_error({
-							u'message': _("Assignment cannot be empty."),
-							u'code': 'EmptyAssignment',
-						})
-		for part in context.parts:
-			if part.question_set is None or not part.question_set.questions:
-				raise_error({
-								u'message': _("Assignment part cannot be empty."),
-								u'code': 'EmptyAssignmentPart',
-							})
 
 @component.adapter(IQuestion, IRegradeQuestionEvent)
 def _on_regrade_question_event(context, event):
@@ -299,7 +283,7 @@ def _on_regrade_question_event(context, event):
 				continue
 			seen.add(assignmentId)
 			notify(ObjectRegradeEvent(item))
-			
+
 @interface.implementer(IQPartChangeAnalyzer)
 class _BasicPartChangeAnalyzer(object):
 
@@ -330,7 +314,7 @@ def to_external(obj):
 def is_gradable(part):
 	result = IQGradablePart.providedBy(part)
 	return result
-	
+
 @interface.implementer(IQPartChangeAnalyzer)
 @component.adapter(IQNonGradableMultipleChoicePart)
 class _MultipleChoicePartChangeAnalyzer(_BasicPartChangeAnalyzer):

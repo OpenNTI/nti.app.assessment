@@ -74,8 +74,6 @@ from nti.appserver.ugd_edit_views import UGDPutView
 from nti.appserver.ugd_edit_views import UGDPostView
 from nti.appserver.ugd_edit_views import UGDDeleteView
 
-from nti.assessment.assignment import QAssignmentPart
-
 from nti.assessment.common import iface_of_assessment
 
 from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
@@ -93,8 +91,6 @@ from nti.assessment.interfaces import IQAssignmentPart
 from nti.assessment.interfaces import IQTimedAssignment
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQEvaluationItemContainer
-
-from nti.assessment.question import QQuestionSet
 
 from nti.common.maps import CaseInsensitiveDict
 
@@ -502,13 +498,11 @@ class EvaluationMixin(object):
 		context.questions = questions
 
 	def auto_complete_assignment(self, context, externalValue):
+		# Clients are expected to create parts/qsets as needed.
 		parts = indexed_iter() if not context.parts else context.parts
-		if not parts:  # auto create part
-			parts.append(QAssignmentPart())
 		for part in parts:
-			if part.question_set is None: # auto create question set
-				part.question_set = QQuestionSet()
-			self.auto_complete_questionset(part.question_set, externalValue)
+			if part.question_set is not None:
+				self.auto_complete_questionset(part.question_set, externalValue)
 		context.parts = parts
 
 # POST views

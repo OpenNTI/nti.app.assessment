@@ -257,7 +257,7 @@
 	<subscriber handler=".evaluations._on_questionset_event"
 				for="nti.assessment.interfaces.IQuestionSet
 					 zope.lifecycleevent.IObjectAddedEvent" />
-		
+
 	<subscriber handler=".evaluations._on_questionset_event"
 				for="nti.assessment.interfaces.IQuestionSet
 					 nti.externalization.interfaces.IObjectModifiedFromExternalEvent" />
@@ -265,19 +265,11 @@
 	<subscriber handler=".evaluations._on_survey_event"
 				for="nti.assessment.interfaces.IQSurvey
 					 zope.lifecycleevent.IObjectAddedEvent" />
-		
+
 	<subscriber handler=".evaluations._on_survey_event"
 				for="nti.assessment.interfaces.IQSurvey
 					 nti.externalization.interfaces.IObjectModifiedFromExternalEvent" />
-	
-	<subscriber handler=".evaluations._on_assignment_event"
-				for="nti.assessment.interfaces.IQAssignment
-					 zope.lifecycleevent.IObjectAddedEvent" />
-		
-	<subscriber handler=".evaluations._on_assignment_event"
-				for="nti.assessment.interfaces.IQAssignment
-					 nti.externalization.interfaces.IObjectModifiedFromExternalEvent" />
-		 
+
 	<subscriber handler=".evaluations._on_regrade_question_event" />
 
 	<adapter factory=".evaluations._FilePartChangeAnalyzer" />

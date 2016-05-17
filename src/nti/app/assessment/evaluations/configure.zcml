@@ -22,6 +22,7 @@
 	<adapter factory=".adapters.course_from_item_lineage" />
 	<adapter factory=".adapters.editable_evaluation_to_course" />
 
+	<!-- Subscribers -->
 	<subscriber handler="._on_course_added" />
 	<subscriber handler="._on_question_added" />
 	<subscriber handler="._on_question_removed" />
@@ -49,11 +50,12 @@
 
 	<subscriber handler="._on_regrade_question_event" />
 
-	<adapter factory="._FilePartChangeAnalyzer" />
-	<adapter factory="._ConnectingPartChangeAnalyzer" />
-	<adapter factory="._FreeResponsePartChangeAnalyzer" />
-	<adapter factory="._MultipleChoicePartChangeAnalyzer" />
-	<adapter factory="._MultipleChoiceMultipleAnswerPartChangeAnalyzer" />
+	<!-- Analyzers -->
+	<adapter factory=".analyzers._FilePartChangeAnalyzer" />
+	<adapter factory=".analyzers._ConnectingPartChangeAnalyzer" />
+	<adapter factory=".analyzers._FreeResponsePartChangeAnalyzer" />
+	<adapter factory=".analyzers._MultipleChoicePartChangeAnalyzer" />
+	<adapter factory=".analyzers._MultipleChoiceMultipleAnswerPartChangeAnalyzer" />
 
 	<!-- Exporter -->
 	<utility factory=".exporter.EvaluationsExporter" name="012:Evaluations" />

@@ -234,50 +234,8 @@
 		modules=".savepoint" />
 
 	<!-- Evaluations -->
-	<adapter factory=".evaluations._evaluations_for_course_path_adapter"
-			 for="nti.contenttypes.courses.interfaces.ICourseInstance pyramid.interfaces.IRequest"
-			 provides="zope.traversing.interfaces.IPathAdapter"
-			 name="CourseEvaluations" />
-
-	<adapter factory=".evaluations._CourseEvaluationsTraversable" />
-
-	<adapter factory=".evaluations._evaluations_for_course" />
-	<adapter factory=".evaluations._course_from_item_lineage" />
-	<adapter factory=".evaluations._editable_evaluation_to_course" />
-
-	<subscriber handler=".evaluations._on_course_added" />
-	<subscriber handler=".evaluations._on_question_added" />
-	<subscriber handler=".evaluations._on_question_removed" />
-	<subscriber handler=".evaluations._on_question_modified" />
-
-	<subscriber handler=".evaluations._on_poll_added" />
-	<subscriber handler=".evaluations._on_poll_removed" />
-	<subscriber handler=".evaluations._on_poll_modified" />
-
-	<subscriber handler=".evaluations._on_questionset_event"
-				for="nti.assessment.interfaces.IQuestionSet
-					 zope.lifecycleevent.IObjectAddedEvent" />
-
-	<subscriber handler=".evaluations._on_questionset_event"
-				for="nti.assessment.interfaces.IQuestionSet
-					 nti.externalization.interfaces.IObjectModifiedFromExternalEvent" />
-
-	<subscriber handler=".evaluations._on_survey_event"
-				for="nti.assessment.interfaces.IQSurvey
-					 zope.lifecycleevent.IObjectAddedEvent" />
-
-	<subscriber handler=".evaluations._on_survey_event"
-				for="nti.assessment.interfaces.IQSurvey
-					 nti.externalization.interfaces.IObjectModifiedFromExternalEvent" />
-
-	<subscriber handler=".evaluations._on_regrade_question_event" />
-
-	<adapter factory=".evaluations._FilePartChangeAnalyzer" />
-	<adapter factory=".evaluations._ConnectingPartChangeAnalyzer" />
-	<adapter factory=".evaluations._FreeResponsePartChangeAnalyzer" />
-	<adapter factory=".evaluations._MultipleChoicePartChangeAnalyzer" />
-	<adapter factory=".evaluations._MultipleChoiceMultipleAnswerPartChangeAnalyzer" />
-
+	<include package=".evaluations" file="configure.zcml" />
+	
 	<!-- Metatada -->
 	<adapter factory=".metadata._metadatacontainer_for_course_path_adapter"
 			 for="nti.contenttypes.courses.interfaces.ICourseInstance pyramid.interfaces.IRequest"
@@ -357,7 +315,7 @@
 	<!-- User Events -->
 	<subscriber handler=".subscribers._on_user_will_be_removed" />
 
-	<!-- Course Evnets -->
+	<!-- Course Events -->
 	<subscriber handler=".subscribers.on_course_instance_removed" />
 
 	<!-- Utilities -->

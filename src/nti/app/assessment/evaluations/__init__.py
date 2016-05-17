@@ -15,8 +15,6 @@ from zope import component
 from zope import interface
 from zope import lifecycleevent
 
-from zope.annotation.interfaces import IAnnotations
-
 from zope.event import notify
 
 from zope.intid.interfaces import IIntIdAddedEvent
@@ -26,19 +24,16 @@ from zope.lifecycleevent.interfaces import IObjectRemovedEvent
 
 from pyramid import httpexceptions as hexc
 
-from pyramid.interfaces import IRequest
-
 from pyramid.threadlocal import get_current_request
 
 from nti.app.assessment import MessageFactory as _
-
-from nti.app.assessment.adapters import course_from_context_lineage
 
 from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import evaluation_submissions
 from nti.app.assessment.common import get_evaluation_containment
 
-from nti.app.assessment.interfaces import ICourseEvaluations
+from nti.app.assessment.evaluations.adapters import evaluations_for_course
+
 from nti.app.assessment.interfaces import IQAvoidSolutionCheck
 from nti.app.assessment.interfaces import IQPartChangeAnalyzer
 from nti.app.assessment.interfaces import IRegradeQuestionEvent
@@ -64,22 +59,9 @@ from nti.assessment.interfaces import IQNonGradableMultipleChoiceMultipleAnswerP
 
 from nti.common.sets import OrderedSet
 
-from nti.containers.containers import CaseInsensitiveCheckingLastModifiedBTreeContainer
-
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
-from nti.contenttypes.courses.utils import get_course_editors
-
 from nti.coremetadata.interfaces import IRecordable
-
-from nti.dataserver.interfaces import ACE_DENY_ALL
-from nti.dataserver.interfaces import ALL_PERMISSIONS
-
-from nti.dataserver.authorization import ROLE_ADMIN
-from nti.dataserver.authorization import ROLE_CONTENT_ADMIN
-
-from nti.dataserver.authorization_acl import ace_allowing
-from nti.dataserver.authorization_acl import acl_from_aces
 
 from nti.externalization.externalization import to_external_object
 
@@ -90,75 +72,21 @@ from nti.recorder.interfaces import TRX_TYPE_CREATE
 from nti.recorder.utils import record_transaction
 
 from nti.traversal.traversal import find_interface
-from nti.traversal.traversal import ContainerAdapterTraversable
 
-@interface.implementer(ICourseEvaluations)
-class CourseEvaluations(CaseInsensitiveCheckingLastModifiedBTreeContainer):
-	"""
-	Implementation of the course evaluations.
-	"""
+import zope.deferredimport
+zope.deferredimport.initialize()
 
-	__external_can_create__ = False
+zope.deferredimport.deprecatedFrom(
+	"Moved to nti.app.assessment.evaluations.model",
+	"nti.app.assessment.evaluations.model",
+	"CourseEvaluations"
+)
 
-	@property
-	def Items(self):
-		return dict(self)
-
-	@property
-	def __acl__(self):
-		aces = [ ace_allowing(ROLE_ADMIN, ALL_PERMISSIONS, self),
-				 ace_allowing(ROLE_CONTENT_ADMIN, ALL_PERMISSIONS, type(self))]
-		course = find_interface(self.context, ICourseInstance, strict=False)
-		if course is not None:
-			aces.extend(ace_allowing(i, ALL_PERMISSIONS, type(self))
-						for i in course.instructors)
-			aces.extend(ace_allowing(i, ALL_PERMISSIONS, type(self))
-						for i in get_course_editors(course))
-		aces.append(ACE_DENY_ALL)
-		result = acl_from_aces(aces)
-		return result
-
-@component.adapter(ICourseInstance)
-@interface.implementer(ICourseEvaluations)
-def _evaluations_for_course(course, create=True):
-	result = None
-	annotations = IAnnotations(course)
-	try:
-		KEY = 'CourseEvaluations'
-		result = annotations[KEY]
-	except KeyError:
-		if create:
-			result = CourseEvaluations()
-			annotations[KEY] = result
-			result.__name__ = KEY
-			result.__parent__ = course
-	return result
-
-@component.adapter(ICourseInstance, IRequest)
-def _evaluations_for_course_path_adapter(course, request):
-	return _evaluations_for_course(course)
-
-@component.adapter(ICourseEvaluations, IRequest)
-class _CourseEvaluationsTraversable(ContainerAdapterTraversable):
-
-	def traverse(self, key, remaining_path):
-		return super(_CourseEvaluationsTraversable, self).traverse(key, remaining_path)
-
-@interface.implementer(ICourseInstance)
-@component.adapter(ICourseEvaluations)
-def _course_from_item_lineage(item):
-	return course_from_context_lineage(item, validate=True)
+# subscribers
 
 @component.adapter(ICourseInstance, IObjectAddedEvent)
 def _on_course_added(course, event):
-	_evaluations_for_course(course)
-
-@interface.implementer(ICourseInstance)
-@component.adapter(IQEditableEvaluation)
-def _editable_evaluation_to_course(resource):
-	return find_interface(resource, ICourseInstance, strict=False)
-
-# subscribers
+	evaluations_for_course(course)
 
 def _update_containment(item, intids=None):
 	for container in get_evaluation_containment(item.ntiid, intids=intids):

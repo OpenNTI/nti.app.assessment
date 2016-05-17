@@ -129,7 +129,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		self.testapp.post_json(href, assignment, status=422)
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
-	@fudge.patch('nti.app.assessment.evaluations.has_submissions',
+	@fudge.patch('nti.app.assessment.evaluations.subscribers.has_submissions',
 				 'nti.app.assessment.views.evaluation_views.has_submissions')
 	def test_change_with_subs(self, mock_ehs, mock_vhs):
 		mock_ehs.is_callable().with_args().returns(False)

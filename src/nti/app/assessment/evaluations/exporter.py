@@ -11,9 +11,13 @@ logger = __import__('logging').getLogger(__name__)
 
 from zope import interface
 
+from nti.app.assessment.evaluations.utils import export_evaluation_content
+
 from nti.app.assessment.interfaces import ICourseEvaluations
 
 from nti.app.assessment.utils import copy_evaluation
+
+from nti.app.products.courseware.resources.utils import get_course_filer
 
 from nti.assessment import EVALUATION_INTERFACES
 
@@ -36,10 +40,11 @@ ITEMS = StandardExternalFields.ITEMS
 @interface.implementer(ICourseSectionExporter)
 class EvaluationsExporter(BaseSectionExporter):
 
-	def _output(self, course, store, filer=None):
+	def _output(self, course, store, target_filer=None):
 		entry = ICourseCatalogEntry(course)
 		evaluations = ICourseEvaluations(course)
-
+		source_filer = get_course_filer(course)
+		
 		order = {i:x for i, x in enumerate(EVALUATION_INTERFACES)}.items()
 		def _get_key(item):
 			for i, iface in order:
@@ -48,7 +53,10 @@ class EvaluationsExporter(BaseSectionExporter):
 			return 0
 
 		def _ext(item):
-			evaluation = copy_evaluation(removeAllProxies(item))
+			evaluation = removeAllProxies(item)
+			if target_filer is not None:
+				evaluation = copy_evaluation(evaluation)
+				export_evaluation_content(evaluation, source_filer, target_filer)
 			ext_obj = to_external_object(evaluation, name="exporter", decorate=False)
 			return ext_obj
 
@@ -62,11 +70,11 @@ class EvaluationsExporter(BaseSectionExporter):
 		items = result[ITEMS] = dict()
 		courses = (course,) + tuple(get_course_subinstances(course))
 		for course in courses:
-			self._output(course, items, filer=filer)
+			self._output(course, items, target_filer=filer)
 		return result
 
 	def export(self, context, filer):
-		result = self.externalize(context)
+		result = self.externalize(context, filer)
 		source = self.dump(result)
 		filer.save("evaluation_index.json", source,
 				   contentType="application/json", overwrite=True)

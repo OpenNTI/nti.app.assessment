@@ -427,6 +427,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		history_href = '/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice/AssignmentHistories/harp4162/tag%3Anextthought.com%2C2011-10%3AOU-NAQ-CLC3403_LawAndJustice.naq.asg%3AQUIZ1_aristotle'
 		self.testapp.get( history_href, extra_environ=instructor_environ, status=404)
 
+		# Practice assignment
 		assignment = self.testapp.get( '/dataserver2/Objects/%s' % self.assignment_id,
 										extra_environ=instructor_environ )
 		practice_href = self.require_link_href_with_rel( assignment.json_body, ASSESSMENT_PRACTICE_SUBMISSION )
@@ -440,6 +441,23 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		# Nothing persisted.
 		history_href = self.require_link_href_with_rel(res, 'AssignmentHistoryItem')
 		self.testapp.get( history_href, extra_environ=instructor_environ, status=404)
+
+		# Practice assessment
+		self_assess = self.testapp.get( '/dataserver2/Objects/%s' % self.question_set_id,
+										extra_environ=instructor_environ )
+		practice_href = self.require_link_href_with_rel( self_assess.json_body, ASSESSMENT_PRACTICE_SUBMISSION )
+
+		ext_obj = to_external_object( qs_submission )
+		del ext_obj['Class']
+		res = self.testapp.post_json( practice_href,
+									  ext_obj,
+									  extra_environ=instructor_environ)
+		res = res.json_body
+		assert_that( res.get( 'MimeType' ), is_('application/vnd.nextthought.assessment.assessedquestionset') )
+
+		# No results for qset.
+		qsets_url = '/dataserver2/users/harp4162/Pages(%s)/UserGeneratedData?accept=application,vnd.nextthought.assessment.assessedquestionset' % self.question_set_id
+		self.testapp.get( qsets_url, extra_environ=instructor_environ, status=404 )
 
 	@WithSharedApplicationMockDS(users=True,testapp=True)
 	def test_assignment_items_view(self):

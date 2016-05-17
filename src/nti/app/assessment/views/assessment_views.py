@@ -20,6 +20,8 @@ from pyramid import httpexceptions as hexc
 from pyramid.view import view_config
 from pyramid.view import view_defaults
 
+from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
+
 from nti.app.assessment.utils import copy_assignment
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
@@ -30,7 +32,11 @@ from nti.app.contentlibrary.utils import find_page_info_view_helper
 
 from nti.app.products.courseware.interfaces import ICourseInstanceEnrollment
 
+from nti.appserver.interfaces import INewObjectTransformer
+
 from nti.appserver.pyramid_authorization import has_permission
+
+from nti.appserver.ugd_edit_views import UGDPostView
 
 from nti.assessment.common import get_containerId
 
@@ -326,3 +332,33 @@ class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 			items = result[ITEMS] = {}
 			self._do_catalog(instance, items)
 		return result
+
+@view_config(route_name="objects.generic.traversal",
+			 context=IQuestionSet,
+			 renderer='rest',
+			 name=ASSESSMENT_PRACTICE_SUBMISSION,
+			 request_method='POST')
+class SelfAssessmentPracticeSubmissionPostView(UGDPostView):
+	"""
+	A practice self-assessment submission view that will assess results
+	but not persist.
+	"""
+
+	def _assess(self, submission):
+		transformer = component.queryMultiAdapter((self.request, submission),
+												   INewObjectTransformer)
+		if transformer is None:
+			transformer = component.queryAdapter(submission,
+												 INewObjectTransformer)
+
+		assessed = transformer(submission)
+		return assessed
+
+	def _do_call(self):
+		submission, _ = self.readCreateUpdateContentObject(self.remoteUser,
+															   search_owner=True)
+		try:
+			result = self._assess( submission )
+			return result
+		finally:
+			self.request.environ['nti.commit_veto'] = 'abort'

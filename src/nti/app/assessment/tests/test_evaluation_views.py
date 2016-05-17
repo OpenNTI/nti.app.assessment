@@ -117,8 +117,6 @@ class TestEvaluationViews(ApplicationLayerTest):
 			entry = find_object_with_ntiid(self.entry_ntiid)
 			exporter = EvaluationsExporter()
 			exported = exporter.externalize(entry)
-			import pprint
-			pprint.pprint(exported)
 			assert_that(exported, has_entry('Items', 
 											has_entry(entry.ProviderUniqueID, has_length(13))))
 			

@@ -30,8 +30,8 @@ from nti.contenttypes.courses.common import get_course_packages
 
 from nti.contenttypes.courses.exporter import BaseSectionExporter
 
-from nti.contenttypes.courses.utils import get_parent_course,\
-	get_course_subinstances
+from nti.contenttypes.courses.utils import get_parent_course
+from nti.contenttypes.courses.utils import get_course_subinstances
 
 from nti.externalization.externalization import to_external_object
 
@@ -111,17 +111,17 @@ class EvaluationsExporter(BaseSectionExporter):
 			ext_obj = to_external_object(evaluation, name="exporter", decorate=False)
 			return ext_obj
 
-		ntiid = entry.ntiid
+		key = entry.ProviderUniqueID
 		items = sorted(evaluations.values(), key=_get_key)
-		store[ntiid] = map(_ext, items)
+		store[key] = map(_ext, items)
 
 	def externalize(self, context):
 		result = dict()
 		course = ICourseInstance(context)
 		items = result[ITEMS] = dict()
 		courses = (course,) + tuple(get_course_subinstances(course))
-		for c in courses:
-			self.output(c, items)
+		for course in courses:
+			self.output(course, items)
 		return result
 
 	def export(self, context, filer):

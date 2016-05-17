@@ -117,8 +117,10 @@ class TestEvaluationViews(ApplicationLayerTest):
 			entry = find_object_with_ntiid(self.entry_ntiid)
 			exporter = EvaluationsExporter()
 			exported = exporter.externalize(entry)
+			import pprint
+			pprint.pprint(exported)
 			assert_that(exported, has_entry('Items', 
-											has_entry(self.entry_ntiid, has_length(13))))
+											has_entry(entry.ProviderUniqueID, has_length(13))))
 			
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_assignment_no_solutions(self):

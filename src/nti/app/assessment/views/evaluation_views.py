@@ -350,7 +350,7 @@ class EvaluationMixin(object):
 		# course is the evaluation home
 		theObject.__home__ = course
 		# parse content fields and load sources
-		import_evaluation_content(course, user, result, sources)
+		import_evaluation_content(result, context=course, user=user, sources=sources)
 		# always register
 		register_context(result)
 		return result

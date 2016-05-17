@@ -324,7 +324,6 @@
 
 	<!-- Exporter -->
 	<utility factory=".exporter.AssessmentsExporter" name="010:Assessments" />
-	<utility factory=".exporter.EvaluationsExporter" name="012:Evaluations" />
 
 	<!-- Importer -->
 	<utility factory=".importer.AssessmentsImporter" name="010:Assessments" />

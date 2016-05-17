@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function, unicode_literals, absolute_import, division
-from nti.app.assessment.exporter import EvaluationsExporter
 __docformat__ = "restructuredtext en"
 
 # disable: accessing protected members, too many methods
@@ -23,6 +22,8 @@ import fudge
 from urllib import quote
 
 from zope import component
+
+from nti.app.assessment.evaluations.exporter import EvaluationsExporter
 
 from nti.assessment.interfaces import IQuestion
 

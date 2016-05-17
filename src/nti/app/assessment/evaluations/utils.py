@@ -19,6 +19,8 @@ from nti.app.base.abstract_views import get_safe_source_filename
 
 from nti.app.products.courseware import ASSETS_FOLDER
 
+from nti.app.products.courseware.resources.interfaces import ICourseContentResource
+
 from nti.app.products.courseware.resources.utils import get_course_filer
 from nti.app.products.courseware.resources.utils import is_internal_file_link
 from nti.app.products.courseware.resources.utils import get_file_from_external_link
@@ -71,8 +73,8 @@ def get_html_content_fields(context):
 			result.extend(get_html_content_fields(parts))
 	return tuple(result)
 
-def import_evaluation_content(context, user, model, sources=None):
-	filer = get_course_filer(context, user)
+def import_evaluation_content(model, context=None, user=None, filer=None, sources=None):
+	filer = get_course_filer(context, user) if filer is None else filer
 	sources = sources if sources is not None else {}
 	for obj, name in get_html_content_fields(model):
 		value = getattr(obj, name, None)
@@ -115,4 +117,46 @@ def import_evaluation_content(context, user, model, sources=None):
 			if modified:
 				value = _html5lib_tostring(doc, sanitize=False)
 				setattr(obj, name, value)
+	return model
+
+def export_evaluation_content(model, source_filer, target_filer):
+	for obj, name in get_html_content_fields(model):
+		value = getattr(obj, name, None)
+		if not value:
+			continue
+		modified = False
+		value = IHTMLContentFragment(value)
+		parser = HTMLParser(tree=treebuilders.getTreeBuilder("lxml"),
+							namespaceHTMLElements=False)
+		doc = parser.parse(value)
+		for e in doc.iter():
+			attrib = e.attrib
+			href = attrib.get('href')
+			if not href:
+				continue
+			elif is_internal_file_link(href):
+				resource = get_file_from_external_link(href)
+				contentType = resource.contentType
+				ICourseContentResource
+				if ICourseContentResource.providedBy(resource) and hasattr(resource, 'path'):
+					path = resource.path
+					path = os.path.split(path)[0]  # remove resource name
+					path = path[1:] if path.startswith('/') else path
+				else:
+					path = ASSETS_FOLDER
+				# save resource
+				target_filer.save(resource.name,
+								  resource,
+								  bucket=path,
+								  context=obj,
+								  overwrite=True,
+								  contentType=contentType)
+				# get course file scheme
+				internal = NTI_COURSE_FILE_SCHEME + path + "/" + resource.name
+				attrib['href'] = internal
+				modified = True
+
+		if modified:
+			value = _html5lib_tostring(doc, sanitize=False)
+			setattr(obj, name, value)
 	return model

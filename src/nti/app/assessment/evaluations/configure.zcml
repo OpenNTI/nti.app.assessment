@@ -55,4 +55,7 @@
 	<adapter factory="._MultipleChoicePartChangeAnalyzer" />
 	<adapter factory="._MultipleChoiceMultipleAnswerPartChangeAnalyzer" />
 
+	<!-- Exporter -->
+	<utility factory=".exporter.EvaluationsExporter" name="012:Evaluations" />
+	
 </configure>

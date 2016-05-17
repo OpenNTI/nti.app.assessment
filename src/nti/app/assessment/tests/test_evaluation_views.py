@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function, unicode_literals, absolute_import, division
+from nti.app.assessment.exporter import EvaluationsExporter
 __docformat__ = "restructuredtext en"
 
 # disable: accessing protected members, too many methods
@@ -111,7 +112,14 @@ class TestEvaluationViews(ApplicationLayerTest):
 		assignment = self._load_assignment()
 		assignment.pop('parts', None)
 		self.testapp.post_json(href, assignment, status=201)
-
+		
+		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+			entry = find_object_with_ntiid(self.entry_ntiid)
+			exporter = EvaluationsExporter()
+			exported = exporter.externalize(entry)
+			assert_that(exported, has_entry('Items', 
+											has_entry(self.entry_ntiid, has_length(13))))
+			
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_assignment_no_solutions(self):
 		course_oid = self._get_course_oid()

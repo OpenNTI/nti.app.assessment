@@ -316,9 +316,9 @@ class _QuestionSetDecorator(object):
 			external[OID] = oid
 
 @interface.implementer(IExternalMappingDecorator)
-class _AssessmentEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
+class _AssessmentEditorLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
-	Give editors an edit link.
+	Give editors links.
 	"""
 
 	def _has_edit_link(self, result):
@@ -329,12 +329,17 @@ class _AssessmentEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _predicate(self, context, result):
 		return 		self._is_authenticated \
-				and not self._has_edit_link(result) \
 				and has_permission(ACT_CONTENT_EDIT, context, self.request)
 
 	def _do_decorate_external(self, context, result):
 		_links = result.setdefault(LINKS, [])
-		link = Link(context, rel='edit')
+		if not self._has_edit_link(result):
+			link = Link(context, rel='edit')
+			interface.alsoProvides(link, ILocation)
+			link.__name__ = ''
+			link.__parent__ = context
+			_links.append(link)
+		link = Link(context, rel='schema', elements=('@@schema',))
 		interface.alsoProvides(link, ILocation)
 		link.__name__ = ''
 		link.__parent__ = context
@@ -361,3 +366,4 @@ class _AssessmentPracticeLinkDecorator(AbstractAuthenticatedRequestAwareDecorato
 		link.__name__ = ''
 		link.__parent__ = context
 		_links.append(link)
+

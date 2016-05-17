@@ -9,14 +9,9 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-import os
 import six
 import copy
 import uuid
-from urlparse import urlparse
-
-from html5lib import HTMLParser
-from html5lib import treebuilders
 
 from zope import component
 from zope import interface
@@ -37,13 +32,14 @@ from nti.app.assessment.common import make_evaluation_ntiid
 from nti.app.assessment.common import get_resource_site_name
 from nti.app.assessment.common import get_evaluation_containment
 
+from nti.app.assessment.evaluations.utils import import_evaluation_content
+
 from nti.app.assessment.interfaces import ICourseEvaluations
 from nti.app.assessment.interfaces import IQAvoidSolutionCheck
 
 from nti.app.assessment.views.view_mixins import AssessmentPutView
 
 from nti.app.base.abstract_views import get_all_sources
-from nti.app.base.abstract_views import get_safe_source_filename
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
 from nti.app.externalization.error import raise_json_error
@@ -51,12 +47,6 @@ from nti.app.externalization.error import raise_json_error
 from nti.app.externalization.view_mixins import BatchingUtilsMixin
 
 from nti.app.contentfile import validate_sources
-
-from nti.app.products.courseware import ASSETS_FOLDER
-
-from nti.app.products.courseware.resources.utils import get_course_filer
-from nti.app.products.courseware.resources.utils import is_internal_file_link
-from nti.app.products.courseware.resources.utils import get_file_from_external_link
 
 from nti.app.publishing import VIEW_PUBLISH
 from nti.app.publishing import VIEW_UNPUBLISH
@@ -76,15 +66,12 @@ from nti.assessment.common import iface_of_assessment
 from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
 from nti.assessment.interfaces import TIMED_ASSIGNMENT_MIME_TYPE
 
-from nti.assessment.interfaces import IQHint
-from nti.assessment.interfaces import IQPart
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQEvaluation
-from nti.assessment.interfaces import IQAssignmentPart
 from nti.assessment.interfaces import IQTimedAssignment
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQEvaluationItemContainer
@@ -92,14 +79,6 @@ from nti.assessment.interfaces import IQEvaluationItemContainer
 from nti.common.maps import CaseInsensitiveDict
 
 from nti.common.property import Lazy
-
-from nti.contentfile.interfaces import IContentBaseFile
-
-from nti.contentfragments.html import _html5lib_tostring
-
-from nti.contentfragments.interfaces import IHTMLContentFragment
-
-from nti.contenttypes.courses.interfaces import NTI_COURSE_FILE_SCHEME
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
@@ -122,83 +101,6 @@ from nti.traversal.traversal import find_interface
 
 ITEMS = StandardExternalFields.ITEMS
 NTIID = StandardExternalFields.NTIID
-
-def get_html_content_fields(context):
-	result = []
-	if IQHint.providedBy(context):
-		result.append((context, 'value'))
-	elif IQPart.providedBy(context):
-		result.append((context, 'content'))
-		result.append((context, 'explanation'))
-		for hint in context.hints or ():
-			result.extend(get_html_content_fields(hint))
-	elif 	IQAssignment.providedBy(context) \
-		or	IQuestion.providedBy(context) \
-		or	IQPoll.providedBy(context):
-		result.append((context, 'content'))
-		for part in context.parts or ():
-			result.extend(get_html_content_fields(part))
-	elif IQuestionSet.providedBy(context) or IQSurvey.providedBy(context):
-		for question in context.questions or ():
-			result.extend(get_html_content_fields(question))
-	elif IQAssignmentPart.providedBy(context):
-		result.append((context, 'content'))
-		result.extend(get_html_content_fields(context.question_set))
-	elif IQAssignment.providedBy(context):
-		result.append((context, 'content'))
-		for parts in context.parts or ():
-			result.extend(get_html_content_fields(parts))
-	return tuple(result)
-
-def _associate(model, source):
-	if IContentBaseFile.providedBy(source):
-		source.add_association(model)
-
-def _handle_evaluation_content(context, user, model, sources=None):
-	filer = get_course_filer(context, user)
-	sources = sources if sources is not None else {}
-	for obj, name in get_html_content_fields(model):
-		value = getattr(obj, name, None)
-		if value and filer != None:
-			modified = False
-			value = IHTMLContentFragment(value)
-			parser = HTMLParser(tree=treebuilders.getTreeBuilder("lxml"),
-								namespaceHTMLElements=False)
-			doc = parser.parse(value)
-			for e in doc.iter():
-				attrib = e.attrib
-				href = attrib.get('href')
-				if not href:
-					continue
-				elif is_internal_file_link(href):
-					source = get_file_from_external_link(href)
-					_associate(model, source)
-				elif href.startswith(NTI_COURSE_FILE_SCHEME):
-					# save resource in filer
-					path = urlparse(href).path
-					path, name = os.path.split(path)
-					source = sources.get(name)
-					if source is None:
-						source = filer.get(name, path)
-						if source is not None:
-							_associate(model, source)
-							location = filer.get_external_link(source)
-						else:
-							logger.error("Missing multipart-source %s", href)
-							continue
-					else:
-						path = path or ASSETS_FOLDER
-						key = get_safe_source_filename(source, name)
-						location = filer.save(key, source, overwrite=False,
-											  bucket=path, context=model)
-					# change href
-					attrib['href'] = location
-					modified = True
-
-			if modified:
-				value = _html5lib_tostring(doc, sanitize=False)
-				setattr(obj, name, value)
-	return model
 
 def indexed_iter():
 	return list()
@@ -448,7 +350,7 @@ class EvaluationMixin(object):
 		# course is the evaluation home
 		theObject.__home__ = course
 		# parse content fields and load sources
-		_handle_evaluation_content(course, user, result, sources)
+		import_evaluation_content(course, user, result, sources)
 		# always register
 		register_context(result)
 		return result

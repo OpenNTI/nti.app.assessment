@@ -15,11 +15,11 @@ from zope import lifecycleevent
 
 from nti.app.assessment.evaluations.utils import indexed_iter
 from nti.app.assessment.evaluations.utils import register_context
-# from nti.app.assessment.evaluations.utils import import_evaluation_content
+from nti.app.assessment.evaluations.utils import import_evaluation_content
 
 from nti.app.assessment.interfaces import ICourseEvaluations
 
-# from nti.app.products.courseware.resources.utils import get_course_filer
+from nti.app.products.courseware.resources.utils import get_course_filer
 
 from nti.assessment.common import iface_of_assessment
 
@@ -37,7 +37,6 @@ from nti.externalization.interfaces import StandardExternalFields
 
 ITEMS = StandardExternalFields.ITEMS
 
-iface_of_assessment
 @interface.implementer(ICourseSectionImporter)
 class EvaluationsImporter(BaseSectionImporter):
 
@@ -134,7 +133,7 @@ class EvaluationsImporter(BaseSectionImporter):
 			raise KeyError("Assignment %s does not exists." % ntiid)
 		return theObject
 
-	def handle_evaluation(self, theObject, course):
+	def handle_evaluation(self, theObject, course, source_filer):
 		if IQuestion.providedBy(theObject):
 			result = self.handle_question(theObject, course)
 		elif IQPoll.providedBy(theObject):
@@ -150,8 +149,10 @@ class EvaluationsImporter(BaseSectionImporter):
 
 		# course is the evaluation home
 		theObject.__home__ = course
+		target_filer = get_course_filer(course)
 		# parse content fields and load sources
-		# import_evaluation_content(result, context=course, , sources=sources)
+		import_evaluation_content(result, source_filer=source_filer,
+								  target_filer=target_filer)
 		# always register
 		register_context(result)
 		return result

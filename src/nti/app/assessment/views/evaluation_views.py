@@ -26,6 +26,8 @@ from pyramid.view import view_defaults
 
 from nti.app.assessment import MessageFactory as _
 
+from nti.app.assessment import VIEW_ASSESSMENT_MOVE
+
 from nti.app.assessment.common import has_savepoints
 from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import make_evaluation_ntiid
@@ -47,8 +49,11 @@ from nti.app.base.abstract_views import AbstractAuthenticatedView
 from nti.app.externalization.error import raise_json_error
 
 from nti.app.externalization.view_mixins import BatchingUtilsMixin
+from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
 from nti.app.contentfile import validate_sources
+
+from nti.app.products.courseware.views.view_mixins import AbstractChildMoveView
 
 from nti.app.publishing import VIEW_PUBLISH
 from nti.app.publishing import VIEW_UNPUBLISH
@@ -865,6 +870,13 @@ class CourseAssessmentsMoveView(AbstractChildMoveView,
 		super(CourseAssessmentsMoveView,self)._validate_parents( *args, **kwargs )
 		if not( 	IQEditableEvaluation.providedBy( old_parent ) \
 				and IQEditableEvaluation.providedBy( new_parent )):
-			raise hexc.HTTPUnprocessableEntity(_('Cannot move between uneditable question sets.'))
+			raise_json_error(
+						self.request,
+						hexc.HTTPUnprocessableEntity,
+						{
+							u'message': _("Cannot move between uneditable question sets."),
+							u'code': 'CannotMoveEvaluations',
+						},
+						None)
 		# FIXME: If savepoints/submissions, raise challenge.
 		# What if moving within assignment?

@@ -834,3 +834,37 @@ class EvaluationGetView(GenericGetView):
 			and not has_permission(ACT_CONTENT_EDIT, result, self.request):
 			raise hexc.HTTPForbidden()
 		return result
+
+@view_config(route_name='objects.generic.traversal',
+			 context=ICourseInstance,
+			 request_method='POST',
+			 permission=nauth.ACT_CONTENT_EDIT,
+			 renderer='rest',
+			 name=VIEW_ASSESSMENT_MOVE)
+class CourseAssessmentsMoveView(AbstractChildMoveView,
+						  		ModeledContentUploadRequestUtilsMixin):
+	"""
+	Move the given question between QuestionSets in a course. The source and target
+	NTIIDs must exist in the outline (no moves are allowed between courses).
+	"""
+
+	# FIXME:
+	notify_type = None
+
+	def _remove_from_parent(self, parent, obj):
+		return parent.remove(obj)
+
+	def _get_children_ntiids(self, *args, **kwargs):
+		"""
+		Get all evaluation ids in our context.
+		"""
+		evaluations = ICourseEvaluations( self.context )
+		return tuple( evaluations.keys() )
+
+	def _validate_parents(self, old_parent=None, new_parent=None, *args, **kwargs):
+		super(CourseAssessmentsMoveView,self)._validate_parents( *args, **kwargs )
+		if not( 	IQEditableEvaluation.providedBy( old_parent ) \
+				and IQEditableEvaluation.providedBy( new_parent )):
+			raise hexc.HTTPUnprocessableEntity(_('Cannot move between uneditable question sets.'))
+		# FIXME: If savepoints/submissions, raise challenge.
+		# What if moving within assignment?

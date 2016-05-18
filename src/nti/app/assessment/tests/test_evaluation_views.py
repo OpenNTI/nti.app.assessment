@@ -24,6 +24,8 @@ from urllib import quote
 
 from zope import component
 
+from nti.app.assessment import VIEW_ASSESSMENT_MOVE
+
 from nti.app.assessment.evaluations.exporter import EvaluationsExporter
 
 from nti.assessment.interfaces import IQuestion
@@ -227,3 +229,49 @@ class TestEvaluationViews(ApplicationLayerTest):
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
 			obj = component.queryUtility(IQuestion, name=ntiid)
 			assert_that(obj.is_published(), is_(False))
+
+	def _get_move_json(self, obj_ntiid, new_parent_ntiid, index=None, old_parent_ntiid=None):
+		result = {  'ObjectNTIID': obj_ntiid,
+					'ParentNTIID': new_parent_ntiid }
+		if index is not None:
+			result['Index'] = index
+		if old_parent_ntiid is not None:
+			result['OldParentNTIID'] = old_parent_ntiid
+		return result
+
+	@WithSharedApplicationMockDS(testapp=True, users=True)
+	def test_move(self):
+		"""
+		Test moving questions between question sets.
+		"""
+		def _get_question_ntiids(ntiid=None, ext_obj=None):
+			if not ext_obj:
+				res = self.testapp.get( '/dataserver2/Objects/%s' % ntiid )
+				ext_obj = res.json_body
+			if ext_obj.get( 'Class' ) != 'QuestionSet':
+				ext_obj = ext_obj.get( 'parts' )[0].get( 'question_set' )
+			questions = ext_obj.get( 'questions' )
+			return [x.get( 'NTIID' ) for x in questions]
+
+		# Initialize and install qset and two assignments.
+		course_oid = self._get_course_oid()
+		course = self.testapp.get( '/dataserver2/Objects/%s' % course_oid )
+		course = course.json_body
+		evaluations_href = self.require_link_href_with_rel(course, 'CourseEvaluations')
+		move_href = self.require_link_href_with_rel(course, VIEW_ASSESSMENT_MOVE)
+		qset = self._load_questionset()
+		qset = self.testapp.post_json(evaluations_href, qset, status=201)
+		qset_ntiid = qset.json_body.get( 'NTIID' )
+		qset_question_ntiids = _get_question_ntiids(ext_obj=qset.json_body)
+		assignment = self._load_assignment()
+		assignment1 = self.testapp.post_json(evaluations_href, assignment, status=201)
+		assignment1_qset_ntiid = assignment1.json_body.get( 'parts' )[0].get( 'question_set' ).get( "NTIID" )
+		assignment2 = self.testapp.post_json(evaluations_href, assignment, status=201)
+		assignment2_qset_ntiid = assignment2.json_body.get( 'parts' )[0].get( 'question_set' ).get( "NTIID" )
+
+		# Move last question to first.
+		moved_ntiid = qset_question_ntiids[-1]
+		move_json = self._get_move_json( moved_ntiid, qset_ntiid, 0 )
+		self.testapp.post_json( move_href, move_json )
+		new_question_ntiids = _get_question_ntiids( qset_ntiid )
+		assert_that( new_question_ntiids, is_(qset_question_ntiids[-1:] + qset_question_ntiids[:-1]))

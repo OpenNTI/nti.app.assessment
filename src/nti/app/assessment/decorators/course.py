@@ -11,6 +11,8 @@ logger = __import__('logging').getLogger(__name__)
 
 from zope import interface
 
+from nti.app.assessment import VIEW_ASSESSMENT_MOVE
+
 from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
 
 from nti.appserver.pyramid_authorization import has_permission
@@ -48,3 +50,4 @@ class _CourseEditorLinksDecorator(_AbstractTraversableLinkDecorator):
 		links.append(Link(context, rel='Assessments', elements=('@@Assessments',)))
 		links.append(Link(context, rel='Assignments', elements=('@@Assignments',)))
 		links.append(Link(context, rel='CourseEvaluations', elements=('CourseEvaluations',)))
+		links.append(Link(context, rel=VIEW_ASSESSMENT_MOVE, elements=('@@%s' % VIEW_ASSESSMENT_MOVE,)))

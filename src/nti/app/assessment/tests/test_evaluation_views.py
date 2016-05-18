@@ -10,6 +10,7 @@ __docformat__ = "restructuredtext en"
 from hamcrest import is_
 from hamcrest import none
 from hamcrest import is_not
+from hamcrest import not_none
 from hamcrest import has_entry
 from hamcrest import has_length
 from hamcrest import assert_that
@@ -79,11 +80,14 @@ class TestEvaluationViews(ApplicationLayerTest):
 		course_oid = self._get_course_oid()
 		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
 		qset = self._load_questionset()
+		creator = 'sjohnson@nextthought.com'
+
 		# post
 		posted = []
 		for question in qset['questions']:
 			res = self.testapp.post_json(href, question, status=201)
-			assert_that(res.json_body, has_entry(NTIID, is_not(none())))
+			assert_that( res.json_body.get( 'Creator' ), not_none() )
+			assert_that(res.json_body, has_entry(NTIID, not_none()))
 			posted.append(res.json_body)
 		# get
 		res = self.testapp.get(href, status=200)
@@ -94,12 +98,35 @@ class TestEvaluationViews(ApplicationLayerTest):
 			url = question.pop('href')
 			self.testapp.put_json(url, question, status=200)
 			hrefs.append(url)
-		# post question set and assignment
+		# Edit question
+		self.testapp.put_json(url, {'content': 'blehcontent'})
+
+		# Post assignment
 		assignment = self._load_assignment()
-		for evaluation in (qset, assignment):
-			res = self.testapp.post_json(href, evaluation, status=201)
-			assert_that(res.json_body, has_entry(NTIID, is_not(none())))
-			hrefs.append(res.json_body['href'])
+		res = self.testapp.post_json(href, assignment, status=201)
+		res = res.json_body
+		assert_that(res, has_entry(NTIID, not_none()))
+		hrefs.append(res['href'])
+		assert_that( res.get( "Creator" ), is_(creator) )
+		for part in res.get( 'parts' ):
+			part_qset = part.get( 'question_set' )
+			assert_that( part_qset.get( "Creator" ), is_(creator) )
+			assert_that( part_qset.get( NTIID ), not_none() )
+			for question in part_qset.get( 'questions' ):
+				assert_that( question.get( "Creator" ), is_(creator) )
+				assert_that( question.get( NTIID ), not_none() )
+
+		# Post qset
+		res = self.testapp.post_json(href, qset, status=201)
+		res = res.json_body
+		assert_that(res, has_entry(NTIID, not_none()))
+		hrefs.append(res['href'])
+		assert_that( res.get( "Creator" ), is_(creator) )
+		assert_that( res.get( NTIID ), not_none() )
+		for question in res.get( 'questions' ):
+			assert_that( question.get( "Creator" ), is_(creator) )
+			assert_that( question.get( NTIID ), not_none() )
+
 		# delete first question
 		self.testapp.delete(hrefs[0], status=204)
 		# items as questions
@@ -113,14 +140,14 @@ class TestEvaluationViews(ApplicationLayerTest):
 		assignment = self._load_assignment()
 		assignment.pop('parts', None)
 		self.testapp.post_json(href, assignment, status=201)
-		
+
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
 			entry = find_object_with_ntiid(self.entry_ntiid)
 			exporter = EvaluationsExporter()
 			exported = exporter.externalize(entry)
-			assert_that(exported, has_entry('Items', 
+			assert_that(exported, has_entry('Items',
 											has_entry(entry.ProviderUniqueID, has_length(13))))
-			
+
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_assignment_no_solutions(self):
 		course_oid = self._get_course_oid()

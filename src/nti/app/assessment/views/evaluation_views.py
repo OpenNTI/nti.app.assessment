@@ -26,6 +26,8 @@ from pyramid.view import view_defaults
 
 from nti.app.assessment import MessageFactory as _
 
+from nti.app.assessment import VIEW_ASSESSMENT_MOVE
+
 from nti.app.assessment.common import has_savepoints
 from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import make_evaluation_ntiid
@@ -45,8 +47,11 @@ from nti.app.base.abstract_views import AbstractAuthenticatedView
 from nti.app.externalization.error import raise_json_error
 
 from nti.app.externalization.view_mixins import BatchingUtilsMixin
+from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
 from nti.app.contentfile import validate_sources
+
+from nti.app.products.courseware.views.view_mixins import AbstractChildMoveView
 
 from nti.app.publishing import VIEW_PUBLISH
 from nti.app.publishing import VIEW_UNPUBLISH
@@ -204,9 +209,13 @@ class EvaluationMixin(object):
 		return result
 
 	def store_evaluation(self, obj, course, user, check_solutions=True):
+		"""
+		Finish initalizing new evaluation object and store persistently.
+		"""
 		provided = iface_of_assessment(obj)
 		evaluations = ICourseEvaluations(course)
 		obj.ntiid = ntiid = make_evaluation_ntiid(provided, user, extra=self._extra)
+		obj.creator = getattr( user, 'username', user )
 		lifecycleevent.created(obj)
 		try:
 			# XXX mark to avoid checking solutions

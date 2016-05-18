@@ -26,14 +26,14 @@ from pyramid.view import view_defaults
 
 from nti.app.assessment import MessageFactory as _
 
-from nti.app.assessment import VIEW_ASSESSMENT_MOVE
-
 from nti.app.assessment.common import has_savepoints
 from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import make_evaluation_ntiid
 from nti.app.assessment.common import get_resource_site_name
 from nti.app.assessment.common import get_evaluation_containment
 
+from nti.app.assessment.evaluations.utils import indexed_iter
+from nti.app.assessment.evaluations.utils import register_context
 from nti.app.assessment.evaluations.utils import import_evaluation_content
 
 from nti.app.assessment.interfaces import ICourseEvaluations
@@ -47,11 +47,8 @@ from nti.app.base.abstract_views import AbstractAuthenticatedView
 from nti.app.externalization.error import raise_json_error
 
 from nti.app.externalization.view_mixins import BatchingUtilsMixin
-from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
 from nti.app.contentfile import validate_sources
-
-from nti.app.products.courseware.views.view_mixins import AbstractChildMoveView
 
 from nti.app.publishing import VIEW_PUBLISH
 from nti.app.publishing import VIEW_UNPUBLISH
@@ -106,9 +103,6 @@ from nti.traversal.traversal import find_interface
 
 ITEMS = StandardExternalFields.ITEMS
 NTIID = StandardExternalFields.NTIID
-
-def indexed_iter():
-	return list()
 
 @view_config(context=ICourseEvaluations)
 @view_defaults(route_name='objects.generic.traversal',
@@ -166,21 +160,6 @@ def validate_savepoints(theObject, course, request):
 def validate_internal(theObject, course, request):
 	validate_savepoints(theObject, course, request)
 	validate_submissions(theObject, course, request)
-
-def register_context(context, site_name=None):
-	ntiid = context.ntiid
-	provided = iface_of_assessment(context)
-	site_name = get_resource_site_name(context) if not site_name else site_name
-	registry = get_host_site(site_name).getSiteManager()
-	if registry.queryUtility(provided, name=ntiid) is None:
-		registerUtility(registry, context, provided, name=ntiid)
-	# process 'children'
-	if IQEvaluationItemContainer.providedBy(context):
-		for item in context.Items or ():
-			register_context(item, site_name)
-	elif IQAssignment.providedBy(context):
-		for item in context.iter_question_sets():
-			register_context(item, site_name)
 
 class EvaluationMixin(object):
 

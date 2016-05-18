@@ -15,6 +15,8 @@ from urlparse import urlparse
 from html5lib import HTMLParser
 from html5lib import treebuilders
 
+from nti.app.assessment.common import get_resource_site_name
+
 from nti.app.base.abstract_views import get_safe_source_filename
 
 from nti.app.products.courseware import ASSETS_FOLDER
@@ -25,6 +27,8 @@ from nti.app.products.courseware.resources.utils import get_course_filer
 from nti.app.products.courseware.resources.utils import is_internal_file_link
 from nti.app.products.courseware.resources.utils import get_file_from_external_link
 
+from nti.assessment.common import iface_of_assessment
+
 from nti.assessment.interfaces import IQHint
 from nti.assessment.interfaces import IQPart
 from nti.assessment.interfaces import IQPoll
@@ -33,6 +37,7 @@ from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignmentPart
+from nti.assessment.interfaces import IQEvaluationItemContainer
 
 from nti.contentfile.interfaces import IContentBaseFile
 
@@ -41,6 +46,13 @@ from nti.contentfragments.html import _html5lib_tostring
 from nti.contentfragments.interfaces import IHTMLContentFragment
 
 from nti.contenttypes.courses.interfaces import NTI_COURSE_FILE_SCHEME
+
+from nti.site.hostpolicy import get_host_site
+
+from nti.site.utils import registerUtility
+
+def indexed_iter():
+	return list()
 
 def associate(model, source):
 	if IContentBaseFile.providedBy(source):
@@ -73,12 +85,16 @@ def get_html_content_fields(context):
 			result.extend(get_html_content_fields(parts))
 	return tuple(result)
 
-def import_evaluation_content(model, context=None, user=None, filer=None, sources=None):
-	filer = get_course_filer(context, user) if filer is None else filer
+def import_evaluation_content(model, context=None, user=None, sources=None,
+							  source_filer=None, target_filer=None):
+	if source_filer is None:
+		source_filer = get_course_filer(context, user)
+	if target_filer is None:
+		target_filer = source_filer
 	sources = sources if sources is not None else {}
 	for obj, name in get_html_content_fields(model):
 		value = getattr(obj, name, None)
-		if value and filer != None:
+		if value and source_filer != None:
 			modified = False
 			value = IHTMLContentFragment(value)
 			parser = HTMLParser(tree=treebuilders.getTreeBuilder("lxml"),
@@ -93,23 +109,24 @@ def import_evaluation_content(model, context=None, user=None, filer=None, source
 					source = get_file_from_external_link(href)
 					associate(model, source)
 				elif href.startswith(NTI_COURSE_FILE_SCHEME):
-					# save resource in filer
+					save_in_filer = True
 					path = urlparse(href).path
 					path, name = os.path.split(path)
 					source = sources.get(name)
 					if source is None:
-						source = filer.get(name, path)
+						source = source_filer.get(name, path)
 						if source is not None:
 							associate(model, source)
-							location = filer.get_external_link(source)
+							location = source_filer.get_external_link(source)
+							save_in_filer = target_filer is not source_filer
 						else:
-							logger.error("Missing multipart-source %s", href)
+							logger.error("Missing source %s", href)
 							continue
-					else:
+					if source is not None and save_in_filer:
 						path = path or ASSETS_FOLDER
 						key = get_safe_source_filename(source, name)
-						location = filer.save(key, source, overwrite=False,
-											  bucket=path, context=model)
+						location = target_filer.save(key, source, overwrite=False,
+											  		 bucket=path, context=model)
 					# change href
 					attrib['href'] = location
 					modified = True
@@ -160,3 +177,18 @@ def export_evaluation_content(model, source_filer, target_filer):
 			value = _html5lib_tostring(doc, sanitize=False)
 			setattr(obj, name, value)
 	return model
+
+def register_context(context, site_name=None):
+	ntiid = context.ntiid
+	provided = iface_of_assessment(context)
+	site_name = get_resource_site_name(context) if not site_name else site_name
+	registry = get_host_site(site_name).getSiteManager()
+	if registry.queryUtility(provided, name=ntiid) is None:
+		registerUtility(registry, context, provided, name=ntiid)
+	# process 'children'
+	if IQEvaluationItemContainer.providedBy(context):
+		for item in context.Items or ():
+			register_context(item, site_name)
+	elif IQAssignment.providedBy(context):
+		for item in context.iter_question_sets():
+			register_context(item, site_name)

@@ -20,6 +20,8 @@ from pyramid import httpexceptions as hexc
 from pyramid.view import view_config
 from pyramid.view import view_defaults
 
+from nti.assessment.interfaces import IQAssessment
+
 from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
 
 from nti.app.assessment.utils import copy_assignment
@@ -362,3 +364,15 @@ class SelfAssessmentPracticeSubmissionPostView(UGDPostView):
 			return result
 		finally:
 			self.request.environ['nti.commit_veto'] = 'abort'
+
+@view_config(route_name='objects.generic.traversal',
+			 renderer='rest',
+			 context=IQAssessment,
+			 permission=nauth.ACT_READ,
+			 request_method='GET',
+			 name="schema")
+class AssessmentSchemaView(AbstractAuthenticatedView):
+
+	def __call__(self):
+		result = self.context.schema()
+		return result

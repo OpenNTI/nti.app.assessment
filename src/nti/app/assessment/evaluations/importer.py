@@ -29,11 +29,16 @@ from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 
+from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 from nti.contenttypes.courses.interfaces import ICourseSectionImporter
 
 from nti.contenttypes.courses.importer import BaseSectionImporter
 
 from nti.externalization.interfaces import StandardExternalFields
+
+from nti.externalization.internalization import find_factory_for
+from nti.externalization.internalization import update_from_external_object
 
 ITEMS = StandardExternalFields.ITEMS
 
@@ -157,7 +162,18 @@ class EvaluationsImporter(BaseSectionImporter):
 		register_context(result)
 		return result
 
+	def handle_course_items(self, items, course, source_filer):
+		for ext_obj in items or ():
+			factory = find_factory_for(ext_obj)
+			theObject = factory()
+			update_from_external_object(theObject, ext_obj, notify=False)
+			self.handle_evaluation(theObject, course, source_filer)
+
 	def process(self, context, filer):
+		course = ICourseInstance(context)
+		source = filer.get("evaluation_index.json")
+		if source is not None:
+			pass
 		result = self.externalize(context, filer)
 		source = self.dump(result)
 		filer.save("evaluation_index.json", source,

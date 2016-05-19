@@ -24,7 +24,6 @@ from nti.assessment import EVALUATION_INTERFACES
 from nti.common.proxy import removeAllProxies
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
-from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 from nti.contenttypes.courses.interfaces import ICourseSectionExporter
 
 from nti.contenttypes.courses.exporter import BaseSectionExporter
@@ -40,8 +39,7 @@ ITEMS = StandardExternalFields.ITEMS
 @interface.implementer(ICourseSectionExporter)
 class EvaluationsExporter(BaseSectionExporter):
 
-	def _output(self, course, store, target_filer=None):
-		entry = ICourseCatalogEntry(course)
+	def _output(self, course, target_filer=None):
 		evaluations = ICourseEvaluations(course)
 		source_filer = get_course_filer(course)
 		
@@ -60,22 +58,22 @@ class EvaluationsExporter(BaseSectionExporter):
 			ext_obj = to_external_object(evaluation, name="exporter", decorate=False)
 			return ext_obj
 
-		key = entry.ProviderUniqueID
-		items = sorted(evaluations.values(), key=_get_key)
-		store[key] = map(_ext, items)
+		ordered = sorted(evaluations.values(), key=_get_key)
+		return map(_ext, ordered)
 
 	def externalize(self, context, filer=None):
 		result = dict()
 		course = ICourseInstance(context)
-		items = result[ITEMS] = dict()
-		courses = (course,) + tuple(get_course_subinstances(course))
-		for course in courses:
-			self._output(course, items, target_filer=filer)
+		result[ITEMS] = self._output(course, target_filer=filer)
 		return result
 
 	def export(self, context, filer):
-		result = self.externalize(context, filer)
-		source = self.dump(result)
-		filer.save("evaluation_index.json", source,
-				   contentType="application/json", overwrite=True)
+		course = ICourseInstance(context)
+		courses = ( course, ) + tuple(get_course_subinstances(course))
+		for course in courses:
+			bucket = self.course_bucket(course)
+			result = self.externalize(course, filer)
+			source = self.dump(result)
+			filer.save("evaluation_index.json", source, bucket=bucket,
+				   		contentType="application/json", overwrite=True)
 		return result

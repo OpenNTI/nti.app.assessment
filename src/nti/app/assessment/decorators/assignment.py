@@ -16,6 +16,7 @@ from zope import interface
 
 from zope.location.interfaces import ILocation
 
+from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
 
 from nti.app.assessment.common import get_courses
@@ -40,6 +41,7 @@ from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecora
 from nti.appserver.pyramid_authorization import has_permission
 
 from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQTimedAssignment
 
 from nti.common.property import Lazy
@@ -348,18 +350,26 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			link.__parent__ = context
 			_links.append(link)
 
-		link = Link(context, rel='schema', elements=('@@schema',))
-		interface.alsoProvides(link, ILocation)
-		link.__name__ = ''
-		link.__parent__ = context
-		_links.append(link)
-
 		courses = self.get_courses( context )
 		savepoints = has_savepoints( context, courses )
 		submissions = has_submissions( context, courses )
-		result['LimitedEditingCapabilities'] = savepoints or submissions
+		in_progress = savepoints or submissions
+		result['LimitedEditingCapabilities'] = in_progress
 		result['LimitedEditingCapabilitiesSavepoints'] = savepoints
 		result['LimitedEditingCapabilitiesSubmissions'] = submissions
+
+		rels = ('schema',)
+		# Do not provide insert link if evaluation is being used.
+		# TODO: We may want to limit if available as well.
+		# TODO: We may also want to exclude any edit links.
+		if IQuestionSet.providedBy( context ) and not in_progress:
+			rels = (VIEW_QUESTION_SET_CONTENTS,'schema')
+		for rel in rels:
+			link = Link(context, rel=rel, elements=('@@%s' % rel,))
+			interface.alsoProvides(link, ILocation)
+			link.__name__ = ''
+			link.__parent__ = context
+			_links.append(link)
 
 @interface.implementer(IExternalMappingDecorator)
 class _AssessmentPracticeLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):

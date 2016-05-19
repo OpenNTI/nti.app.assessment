@@ -27,6 +27,7 @@ from pyramid.view import view_defaults
 from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment import VIEW_ASSESSMENT_MOVE
+from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 
 from nti.app.assessment.common import has_savepoints
 from nti.app.assessment.common import has_submissions
@@ -53,10 +54,12 @@ from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtils
 
 from nti.app.contentfile import validate_sources
 
+from nti.app.products.courseware.views.view_mixins import IndexedRequestMixin
 from nti.app.products.courseware.views.view_mixins import AbstractChildMoveView
 
 from nti.app.publishing import VIEW_PUBLISH
 from nti.app.publishing import VIEW_UNPUBLISH
+
 from nti.app.publishing.views import PublishView
 from nti.app.publishing.views import UnpublishView
 
@@ -172,6 +175,7 @@ class EvaluationMixin(object):
 
 	@Lazy
 	def course(self):
+		# XXX: Subinstances?
 		result = find_interface(self.context, ICourseInstance, strict=False)
 		return result
 
@@ -441,6 +445,56 @@ class CourseEvaluationsPostView(EvaluationMixin, UGDPostView):
 		evaluation = self.handle_evaluation(evaluation, self.course, sources, creator)
 		self.request.response.status_int = 201
 		return evaluation
+
+@view_config(route_name='objects.generic.traversal',
+			 context=IQuestionSet,
+			 request_method='POST',
+			 permission=nauth.ACT_CONTENT_EDIT,
+			 renderer='rest',
+			 name=VIEW_QUESTION_SET_CONTENTS)
+class QuestionSetInsertView(AbstractAuthenticatedView,
+							ModeledContentUploadRequestUtilsMixin,
+							EvaluationMixin,
+							IndexedRequestMixin):
+	"""
+	Creates a question at the given index path, if supplied.
+	Otherwise, append to our context.
+	"""
+
+	def readCreateUpdateContentObject(self, creator, search_owner=False, externalValue=None):
+		contentObject, _, externalValue = \
+				self.performReadCreateUpdateContentObject(user=creator,
+													 	  search_owner=search_owner,
+													 	  externalValue=externalValue,
+													 	  deepCopy=True)
+		sources = get_all_sources(self.request)
+		return contentObject, sources
+
+	def _get_new_question(self):
+		creator = self.remoteUser
+		new_question, sources = self.readCreateUpdateContentObject(creator, search_owner=False)
+		if sources:
+			validate_sources(self.remoteUser, new_question, sources)
+		new_question = self.handle_evaluation(new_question, self.course, sources, creator)
+		return new_question
+
+	def _validate_state(self):
+		# TODO: We may want validation to raise if this question set
+		# is now available in the wild (to avoid material changes
+		# while students work on them).
+		# XXX: Subinstances?
+		validate_internal(self.context, self.course, self.request)
+
+	def __call__(self):
+		# Check state straight off.
+		self._validate_state()
+		index = self._get_index()
+		question = self._get_new_question()
+		self.context.insert(index, question)
+		self.context.child_order_locked = True
+		logger.info('Inserted new question (%s)', question.ntiid)
+		self.request.response.status_int = 201
+		return question
 
 # PUT views
 

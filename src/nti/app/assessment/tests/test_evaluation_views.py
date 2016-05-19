@@ -24,7 +24,7 @@ from urllib import quote
 
 from zope import component
 
-from nti.app.assessment import VIEW_ASSESSMENT_MOVE
+from nti.app.assessment import VIEW_ASSESSMENT_MOVE, VIEW_QUESTION_SET_CONTENTS
 
 from nti.app.assessment.evaluations.exporter import EvaluationsExporter
 
@@ -344,3 +344,40 @@ class TestEvaluationViews(ApplicationLayerTest):
 		move_json = self._get_move_json( moved_ntiid, assignment1_qset_ntiid,
 										 index=1, old_parent_ntiid=dne_ntiid )
 		self.testapp.post_json( move_href, move_json, status=422 )
+
+	@WithSharedApplicationMockDS(testapp=True, users=True)
+	def test_insert(self):
+		"""
+		Test moving questions between question sets.
+		"""
+		def _get_question_ntiids(ntiid=None, ext_obj=None):
+			if not ext_obj:
+				res = self.testapp.get( '/dataserver2/Objects/%s' % ntiid )
+				ext_obj = res.json_body
+			questions = ext_obj.get( 'questions' )
+			return [x.get( 'NTIID' ) for x in questions]
+
+		# Initialize and install qset
+		course_oid = self._get_course_oid()
+		course = self.testapp.get( '/dataserver2/Objects/%s' % course_oid )
+		course = course.json_body
+		evaluations_href = self.require_link_href_with_rel(course, 'CourseEvaluations')
+		qset = self._load_questionset()
+		ext_question = qset.get( 'questions' )[0]
+		qset = self.testapp.post_json(evaluations_href, qset, status=201)
+		qset = qset.json_body
+		insert_href = self.require_link_href_with_rel(qset, VIEW_QUESTION_SET_CONTENTS)
+		qset_ntiid = qset.get( 'NTIID' )
+		original_question_ntiids = _get_question_ntiids(ext_obj=qset)
+
+		# Insert/append
+		inserted_question = self.testapp.post_json(insert_href, ext_question)
+		new_question_ntiid = inserted_question.json_body.get( 'NTIID' )
+		question_ntiids = _get_question_ntiids( qset_ntiid )
+		assert_that( question_ntiids, is_(original_question_ntiids + [new_question_ntiid]) )
+
+		# Prepend
+		inserted_question = self.testapp.post_json(insert_href + '/index/0', ext_question)
+		new_question_ntiid2 = inserted_question.json_body.get( 'NTIID' )
+		question_ntiids = _get_question_ntiids( qset_ntiid )
+		assert_that( question_ntiids, is_([new_question_ntiid2] + original_question_ntiids + [new_question_ntiid]) )

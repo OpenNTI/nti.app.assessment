@@ -27,6 +27,9 @@ ASSESSMENT_PRACTICE_SUBMISSION = 'PracticeSubmission'
 #: A view name to move questions between assessments.
 VIEW_ASSESSMENT_MOVE = 'AssessmentMove'
 
+#: The ordered-contents (insert) view for QuestionSets
+VIEW_QUESTION_SET_CONTENTS = 'contents'
+
 def get_submission_catalog():
 	return component.queryUtility(IMetadataCatalog, name=SUBMISSION_CATALOG_NAME)
 

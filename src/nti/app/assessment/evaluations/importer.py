@@ -30,7 +30,6 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
-from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 from nti.contenttypes.courses.interfaces import ICourseSectionImporter
 
 from nti.contenttypes.courses.importer import BaseSectionImporter
@@ -171,11 +170,11 @@ class EvaluationsImporter(BaseSectionImporter):
 
 	def process(self, context, filer):
 		course = ICourseInstance(context)
-		source = filer.get("evaluation_index.json")
+		href = self.course_bucket_path(course) + "evaluation_index.json"
+		source = self.safe_get(filer, href)
 		if source is not None:
-			pass
-		result = self.externalize(context, filer)
-		source = self.dump(result)
-		filer.save("evaluation_index.json", source,
-				   contentType="application/json", overwrite=True)
-		return result
+			source = self.load(source)
+			items = source.get(ITEMS)
+			self.handle_course_items(items, course, filer)
+			return True
+		return False

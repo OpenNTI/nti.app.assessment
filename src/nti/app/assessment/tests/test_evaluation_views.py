@@ -80,6 +80,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 			return to_external_ntiid_oid(course)
 
 	def _test_external_state(self, ext_obj, has_savepoints=False, has_submissions=False):
+		# TODO: test with submissions/savepoints.
 		self.require_link_href_with_rel(ext_obj, 'edit')
 		self.require_link_href_with_rel(ext_obj, 'schema')
 		limited = has_savepoints or has_submissions

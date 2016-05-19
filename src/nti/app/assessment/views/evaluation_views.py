@@ -851,8 +851,9 @@ class EvaluationGetView(GenericGetView):
 class CourseAssessmentsMoveView(AbstractChildMoveView,
 						  		ModeledContentUploadRequestUtilsMixin):
 	"""
-	Move the given question between QuestionSets in a course. The source and target
-	NTIIDs must exist in the outline (no moves are allowed between courses).
+	Move the given question between QuestionSets in a course. The source and
+	target NTIIDs must exist in the course evaluations (no moves are allowed
+	between courses).
 	"""
 
 	notify_type = QuestionMovedEvent
@@ -880,4 +881,7 @@ class CourseAssessmentsMoveView(AbstractChildMoveView,
 						},
 						None)
 		# FIXME: If savepoints/submissions, raise challenge.
-		# What if moving within assignment?
+		# We can challenge and allow (force) if approved for minor
+		# content changes ore re-ordering within assignment.
+		# We probably want to 422 if substantial changes are made (change
+		# of types, etc.

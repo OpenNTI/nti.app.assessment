@@ -316,7 +316,7 @@ class _QuestionSetDecorator(object):
 			external[OID] = oid
 
 @interface.implementer(IExternalMappingDecorator)
-class _AssessmentEditorLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
+class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
 	Give editors links.
 	"""

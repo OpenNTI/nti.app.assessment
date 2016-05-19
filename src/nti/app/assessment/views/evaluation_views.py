@@ -83,6 +83,8 @@ from nti.assessment.interfaces import IQTimedAssignment
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQEvaluationItemContainer
 
+from nti.assessment.question import QuestionMovedEvent
+
 from nti.common.maps import CaseInsensitiveDict
 
 from nti.common.property import Lazy
@@ -853,8 +855,7 @@ class CourseAssessmentsMoveView(AbstractChildMoveView,
 	NTIIDs must exist in the outline (no moves are allowed between courses).
 	"""
 
-	# FIXME:
-	notify_type = None
+	notify_type = QuestionMovedEvent
 
 	def _remove_from_parent(self, parent, obj):
 		return parent.remove(obj)

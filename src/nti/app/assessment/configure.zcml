@@ -151,6 +151,9 @@
 	<subscriber handler=".subscribers.remove_object_from_course_activity"
 				for=".interfaces.IUsersCourseAssignmentHistoryItemFeedback zope.intid.interfaces.IIntIdRemovedEvent"/>
 
+	<!-- Moved questions -->
+	<subscriber handler=".subscribers.on_question_moved" />
+
 	<!-- Other events -->
 	<subscriber handler=".feedback.when_feedback_modified_modify_history_item" />
 	<subscriber handler=".feedback.when_feedback_container_modified_modify_history_item" />
@@ -235,7 +238,7 @@
 
 	<!-- Evaluations -->
 	<include package=".evaluations" file="configure.zcml" />
-	
+
 	<!-- Metatada -->
 	<adapter factory=".metadata._metadatacontainer_for_course_path_adapter"
 			 for="nti.contenttypes.courses.interfaces.ICourseInstance pyramid.interfaces.IRequest"

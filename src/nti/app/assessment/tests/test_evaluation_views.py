@@ -46,6 +46,8 @@ from nti.app.testing.decorators import WithSharedApplicationMockDS
 
 from nti.dataserver.tests import mock_dataserver
 
+from nti.recorder.interfaces import ITransactionRecordHistory
+
 NTIID = StandardExternalFields.NTIID
 
 class TestEvaluationViews(ApplicationLayerTest):
@@ -239,6 +241,14 @@ class TestEvaluationViews(ApplicationLayerTest):
 			result['OldParentNTIID'] = old_parent_ntiid
 		return result
 
+	def _test_transaction_history(self, ntiid, count=0):
+		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+			obj = find_object_with_ntiid( ntiid )
+			assert_that( obj, not_none() )
+			history = ITransactionRecordHistory(obj)
+			record_types = [x.type for x in history.records()]
+			assert_that(record_types, has_length(count))
+
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_move(self):
 		"""
@@ -279,12 +289,14 @@ class TestEvaluationViews(ApplicationLayerTest):
 		self.testapp.post_json( move_href, move_json )
 		new_question_ntiids = _get_question_ntiids( qset_ntiid )
 		assert_that( new_question_ntiids, is_(qset_question_ntiids[-1:] + qset_question_ntiids[:-1]))
+		self._test_transaction_history( moved_ntiid, count=1 )
 
 		# Move back
 		move_json = self._get_move_json( moved_ntiid, qset_ntiid )
 		self.testapp.post_json( move_href, move_json )
 		new_question_ntiids = _get_question_ntiids( qset_ntiid )
 		assert_that( new_question_ntiids, is_(qset_question_ntiids))
+		self._test_transaction_history( moved_ntiid, count=2 )
 
 		# Move from qset to assignment1 (append).
 		move_json = self._get_move_json( moved_ntiid, assignment1_qset_ntiid,
@@ -294,6 +306,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		new_assignment1_qset_ntiids = _get_question_ntiids( assignment1_qset_ntiid )
 		assert_that( new_question_ntiids, is_(qset_question_ntiids[:-1]))
 		assert_that( new_assignment1_qset_ntiids, is_(assignment1_qset_ntiids + [moved_ntiid]))
+		self._test_transaction_history( moved_ntiid, count=3 )
 
 		# Move between assignments
 		move_json = self._get_move_json( moved_ntiid, assignment2_qset_ntiid,
@@ -304,6 +317,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		assert_that( new_assignment1_qset_ntiids, is_(assignment1_qset_ntiids))
 		test_ids = assignment2_qset_ntiids[:1] + [moved_ntiid] + assignment2_qset_ntiids[1:]
 		assert_that( new_assignment2_qset_ntiids, is_(test_ids))
+		self._test_transaction_history( moved_ntiid, count=4 )
 
 		# Move to question set not in course
 		dne_ntiid = assignment2_qset_ntiid + 'xxx'

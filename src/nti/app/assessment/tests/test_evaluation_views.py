@@ -79,8 +79,18 @@ class TestEvaluationViews(ApplicationLayerTest):
 			course = ICourseInstance(entry)
 			return to_external_ntiid_oid(course)
 
+	def _test_external_state(self, ext_obj, has_savepoints=False, has_submissions=False):
+		self.require_link_href_with_rel(ext_obj, 'edit')
+		self.require_link_href_with_rel(ext_obj, 'schema')
+		limited = has_savepoints or has_submissions
+		assert_that( ext_obj.get( 'LimitedEditingCapabilities' ), is_( limited ) )
+		assert_that( ext_obj.get( 'LimitedEditingCapabilitiesSavepoints' ),
+					 is_( has_savepoints ) )
+		assert_that( ext_obj.get( 'LimitedEditingCapabilitiesSubmissions' ),
+					 is_( has_submissions ) )
+
 	@WithSharedApplicationMockDS(testapp=True, users=True)
-	def test_simple_ops(self):
+	def test_creating_assessments(self):
 		course_oid = self._get_course_oid()
 		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
 		qset = self._load_questionset()
@@ -92,6 +102,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 			res = self.testapp.post_json(href, question, status=201)
 			assert_that( res.json_body.get( 'Creator' ), not_none() )
 			assert_that(res.json_body, has_entry(NTIID, not_none()))
+			self._test_external_state( res.json_body )
 			posted.append(res.json_body)
 		# get
 		res = self.testapp.get(href, status=200)
@@ -109,16 +120,19 @@ class TestEvaluationViews(ApplicationLayerTest):
 		assignment = self._load_assignment()
 		res = self.testapp.post_json(href, assignment, status=201)
 		res = res.json_body
+		self._test_external_state( res )
 		assert_that(res, has_entry(NTIID, not_none()))
 		hrefs.append(res['href'])
 		assert_that( res.get( "Creator" ), is_(creator) )
 		for part in res.get( 'parts' ):
 			part_qset = part.get( 'question_set' )
+			self._test_external_state( part_qset )
 			assert_that( part_qset.get( "Creator" ), is_(creator) )
 			assert_that( part_qset.get( NTIID ), not_none() )
 			for question in part_qset.get( 'questions' ):
 				assert_that( question.get( "Creator" ), is_(creator) )
 				assert_that( question.get( NTIID ), not_none() )
+				self._test_external_state( question )
 
 		# Post qset
 		res = self.testapp.post_json(href, qset, status=201)
@@ -127,9 +141,11 @@ class TestEvaluationViews(ApplicationLayerTest):
 		hrefs.append(res['href'])
 		assert_that( res.get( "Creator" ), is_(creator) )
 		assert_that( res.get( NTIID ), not_none() )
+		self._test_external_state( res )
 		for question in res.get( 'questions' ):
 			assert_that( question.get( "Creator" ), is_(creator) )
 			assert_that( question.get( NTIID ), not_none() )
+			self._test_external_state( question )
 
 		# delete first question
 		self.testapp.delete(hrefs[0], status=204)

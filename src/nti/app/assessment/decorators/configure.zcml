@@ -251,11 +251,7 @@
 
 	<subscriber factory=".assignment._AssessmentEditorDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
-				for="nti.assessment.interfaces.IQInquiry pyramid.interfaces.IRequest" />
-
-	<subscriber factory=".assignment._AssessmentEditorDecorator"
-				provides="nti.externalization.interfaces.IExternalMappingDecorator"
-				for="nti.assessment.interfaces.IQAssessment pyramid.interfaces.IRequest" />
+				for="nti.assessment.interfaces.IQEditableEvaluation pyramid.interfaces.IRequest" />
 
 	<subscriber factory=".assignment._AssessmentPracticeLinkDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"

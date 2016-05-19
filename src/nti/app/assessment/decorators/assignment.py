@@ -18,6 +18,9 @@ from zope.location.interfaces import ILocation
 
 from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
 
+from nti.app.assessment.common import get_courses
+from nti.app.assessment.common import has_savepoints
+from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import get_max_time_allowed
 from nti.app.assessment.common import get_assessment_metadata_item
 from nti.app.assessment.common import get_available_for_submission_ending
@@ -318,8 +321,13 @@ class _QuestionSetDecorator(object):
 @interface.implementer(IExternalMappingDecorator)
 class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
-	Give editors links.
+	Give editors edit and schema links. Also provide context on whether
+	the evaluation has been savepointed/submitted.
 	"""
+
+	def get_courses(self, context):
+		result = find_interface(context, ICourseInstance, strict=False)
+		return get_courses( result )
 
 	def _has_edit_link(self, result):
 		for lnk in result.get(LINKS) or ():
@@ -339,11 +347,19 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			link.__name__ = ''
 			link.__parent__ = context
 			_links.append(link)
+
 		link = Link(context, rel='schema', elements=('@@schema',))
 		interface.alsoProvides(link, ILocation)
 		link.__name__ = ''
 		link.__parent__ = context
 		_links.append(link)
+
+		courses = self.get_courses( context )
+		savepoints = has_savepoints( context, courses )
+		submissions = has_submissions( context, courses )
+		result['LimitedEditingCapabilities'] = savepoints or submissions
+		result['LimitedEditingCapabilitiesSavepoints'] = savepoints
+		result['LimitedEditingCapabilitiesSubmissions'] = submissions
 
 @interface.implementer(IExternalMappingDecorator)
 class _AssessmentPracticeLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):

@@ -15,11 +15,21 @@ from urlparse import urlparse
 from html5lib import HTMLParser
 from html5lib import treebuilders
 
+from pyramid import httpexceptions as hexc
+
+from pyramid.threadlocal import get_current_request
+
 from persistent.list import PersistentList
 
+from nti.app.assessment import MessageFactory as _
+
+from nti.app.assessment.common import has_savepoints
+from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import get_resource_site_name
 
 from nti.app.base.abstract_views import get_safe_source_filename
+
+from nti.app.externalization.error import raise_json_error
 
 from nti.app.products.courseware import ASSETS_FOLDER
 
@@ -194,3 +204,29 @@ def register_context(context, site_name=None):
 	elif IQAssignment.providedBy(context):
 		for item in context.iter_question_sets():
 			register_context(item, site_name)
+
+def validate_submissions(theObject, course, request=None):
+	if has_submissions(theObject, course):
+		request = request or get_current_request()
+		raise_json_error(request,
+						 hexc.HTTPUnprocessableEntity,
+						 {
+							u'message': _("Object has submissions."),
+							u'code': 'ObjectHasSubmissions',
+						 },
+						 None)
+
+def validate_savepoints(theObject, course, request=None):
+	if has_savepoints(theObject, course):
+		request = request or get_current_request()
+		raise_json_error(request,
+						 hexc.HTTPUnprocessableEntity,
+						 {
+							u'message': _("Object has savepoints"),
+							u'code': 'ObjectHasSavepoints',
+						 },
+						 None)
+
+def validate_internal(theObject, course, request=None):
+	validate_savepoints(theObject, course, request)
+	validate_submissions(theObject, course, request)

@@ -5,7 +5,6 @@
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
-from zope.event import notify
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -19,6 +18,8 @@ from zope import interface
 from zope import lifecycleevent
 
 from zope.i18n import translate
+
+from zope.event import notify
 
 from pyramid import httpexceptions as hexc
 
@@ -38,6 +39,8 @@ from nti.app.assessment.common import get_evaluation_containment
 
 from nti.app.assessment.evaluations.utils import indexed_iter
 from nti.app.assessment.evaluations.utils import register_context
+from nti.app.assessment.evaluations.utils import validate_internal
+from nti.app.assessment.evaluations.utils import validate_submissions
 from nti.app.assessment.evaluations.utils import import_evaluation_content
 
 from nti.app.assessment.interfaces import ICourseEvaluations
@@ -75,8 +78,7 @@ from nti.appserver.ugd_edit_views import UGDDeleteView
 
 from nti.assessment.common import iface_of_assessment
 
-from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE,\
-	QuestionInsertedEvent
+from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
 from nti.assessment.interfaces import TIMED_ASSIGNMENT_MIME_TYPE
 
 from nti.assessment.interfaces import IQPoll
@@ -88,6 +90,8 @@ from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQTimedAssignment
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQEvaluationItemContainer
+
+from nti.assessment.interfaces import QuestionInsertedEvent
 
 from nti.assessment.interfaces import QuestionMovedEvent
 
@@ -150,30 +154,6 @@ class CourseEvaluationsGetView(AbstractAuthenticatedView, BatchingUtilsMixin):
 		result['ItemCount'] = len(result[ITEMS])
 		return result
 
-def validate_submissions(theObject, course, request):
-	if has_submissions(theObject, course):
-		raise_json_error(request,
-						 hexc.HTTPUnprocessableEntity,
-						 {
-							u'message': _("Object has submissions."),
-							u'code': 'ObjectHasSubmissions',
-						 },
-						 None)
-
-def validate_savepoints(theObject, course, request):
-	if has_savepoints(theObject, course):
-		raise_json_error(request,
-						 hexc.HTTPUnprocessableEntity,
-						 {
-							u'message': _("Object has savepoints"),
-							u'code': 'ObjectHasSavepoints',
-						 },
-						 None)
-
-def validate_internal(theObject, course, request):
-	validate_savepoints(theObject, course, request)
-	validate_submissions(theObject, course, request)
-
 class EvaluationMixin(object):
 
 	@Lazy
@@ -208,7 +188,7 @@ class EvaluationMixin(object):
 		provided = iface_of_assessment(obj)
 		evaluations = ICourseEvaluations(course)
 		obj.ntiid = ntiid = make_evaluation_ntiid(provided, user, extra=self._extra)
-		obj.creator = getattr( user, 'username', user )
+		obj.creator = getattr(user, 'username', user)
 		lifecycleevent.created(obj)
 		try:
 			# XXX mark to avoid checking solutions
@@ -216,7 +196,7 @@ class EvaluationMixin(object):
 				interface.alsoProvides(obj, IQAvoidSolutionCheck)
 			# XXX mark as editable before storing so proper validation is done
 			interface.alsoProvides(obj, IQEditableEvaluation)
-			evaluations[ntiid] = obj # gain intid
+			evaluations[ntiid] = obj  # gain intid
 		finally:
 			# XXX remove temp interface
 			if not check_solutions:
@@ -439,7 +419,7 @@ class CourseEvaluationsPostView(EvaluationMixin, UGDPostView):
 	def _do_call(self):
 		creator = self.remoteUser
 		evaluation, sources = self.readCreateUpdateContentObject(creator, search_owner=False)
-		evaluation.creator = creator.username # use username
+		evaluation.creator = creator.username  # use username
 		interface.alsoProvides(evaluation, IQEditableEvaluation)
 
 		# validate sources if available
@@ -586,8 +566,8 @@ class QuestionSetPutView(EvaluationPutView):
 	def post_update_check(self, contentObject, originalSource):
 		if IQEditableEvaluation.providedBy(contentObject):
 			items = originalSource.get(ITEMS)
-			if items: # list of ntiids
-				contentObject.questions = indexed_iter() # reset
+			if items:  # list of ntiids
+				contentObject.questions = indexed_iter()  # reset
 				self.auto_complete_questionset(contentObject, originalSource)
 
 class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):
@@ -698,8 +678,8 @@ class SurveyPutView(NewAndLegacyPutView):
 	def post_update_check(self, contentObject, originalSource):
 		if IQEditableEvaluation.providedBy(contentObject):
 			items = originalSource.get(ITEMS)
-			if items: # list of ntiids
-				contentObject.questions = indexed_iter() # reset
+			if items:  # list of ntiids
+				contentObject.questions = indexed_iter()  # reset
 				self.auto_complete_survey(contentObject, originalSource)
 
 @view_config(route_name='objects.generic.traversal',
@@ -735,8 +715,8 @@ class AssignmentPutView(NewAndLegacyPutView):
 	def post_update_check(self, contentObject, originalSource):
 		if IQEditableEvaluation.providedBy(contentObject):
 			items = originalSource.get(ITEMS)
-			if items: # list of ntiids
-				for qset in contentObject.iter_question_sets(): # reset
+			if items:  # list of ntiids
+				for qset in contentObject.iter_question_sets():  # reset
 					qset.questions = indexed_iter()
 				self.auto_complete_assignment(contentObject, originalSource)
 
@@ -754,40 +734,40 @@ class AssignmentPutView(NewAndLegacyPutView):
 		registerUtility(registry, context, provided=new_iface, name=ntiid, event=False)
 		unregisterUtility(registry, provided=old_iface, name=ntiid, event=False)
 		# Make sure we re-index.
-		self._index( context )
+		self._index(context)
 
-	def _transform_to_timed(self, contentObject, max_time_allowed ):
+	def _transform_to_timed(self, contentObject, max_time_allowed):
 		"""
 		Transform from a regular assignment to a timed assignment.
 		"""
 		interface.alsoProvides(contentObject, IQTimedAssignment)
 		contentObject.maximum_time_allowed = max_time_allowed
 		contentObject.mimeType = contentObject.mime_type = TIMED_ASSIGNMENT_MIME_TYPE
-		self._re_register( contentObject, IQAssignment, IQTimedAssignment )
+		self._re_register(contentObject, IQAssignment, IQTimedAssignment)
 
-	def _transform_to_untimed(self, contentObject ):
+	def _transform_to_untimed(self, contentObject):
 		"""
 		Transform from a timed assignment to a regular assignment.
 		"""
 		interface.noLongerProvides(contentObject, IQTimedAssignment)
 		contentObject.mimeType = contentObject.mime_type = ASSIGNMENT_MIME_TYPE
 		contentObject.maximum_time_allowed = None
-		self._re_register( contentObject, IQTimedAssignment, IQAssignment )
+		self._re_register(contentObject, IQTimedAssignment, IQAssignment)
 
 	def updateContentObject(self, contentObject, externalValue, set_id=False, notify=True):
 		# Must toggle types first (if necessary) before calling super; so
 		# everything validates.
 		# See if we are going to/from timed assignment.
-		max_time_allowed = externalValue.get( 'maximum_time_allowed' )
+		max_time_allowed = externalValue.get('maximum_time_allowed')
 		if 		max_time_allowed \
-			and not IQTimedAssignment.providedBy( contentObject ):
-			self._transform_to_timed( contentObject, max_time_allowed )
+			and not IQTimedAssignment.providedBy(contentObject):
+			self._transform_to_timed(contentObject, max_time_allowed)
 		elif	max_time_allowed is None \
-			and IQTimedAssignment.providedBy( contentObject ):
-			self._transform_to_untimed( contentObject )
+			and IQTimedAssignment.providedBy(contentObject):
+			self._transform_to_untimed(contentObject)
 
-		result = super( AssignmentPutView, self ).updateContentObject( contentObject, externalValue,
-																	   set_id, notify )
+		result = super(AssignmentPutView, self).updateContentObject(contentObject, externalValue,
+																	   set_id, notify)
 		return result
 
 # DELETE views
@@ -859,9 +839,9 @@ class QuestionSetDeleteChildView(AbstractAuthenticatedView, DeleteChildViewMixin
 
 	def _remove(self, item, index):
 		if item is not None:
-			self.context.remove( item )
+			self.context.remove(item)
 		else:
-			self.context.pop( index )
+			self.context.pop(index)
 		# FIXME: Update any container indexes.
 
 # Publish views
@@ -951,13 +931,13 @@ class CourseAssessmentsMoveView(AbstractChildMoveView,
 		"""
 		Get all evaluation ids in our context.
 		"""
-		evaluations = ICourseEvaluations( self.context )
-		return tuple( evaluations.keys() )
+		evaluations = ICourseEvaluations(self.context)
+		return tuple(evaluations.keys())
 
 	def _validate_parents(self, old_parent=None, new_parent=None, *args, **kwargs):
-		super(CourseAssessmentsMoveView,self)._validate_parents( *args, **kwargs )
-		if not( 	IQEditableEvaluation.providedBy( old_parent ) \
-				and IQEditableEvaluation.providedBy( new_parent )):
+		super(CourseAssessmentsMoveView, self)._validate_parents(*args, **kwargs)
+		if not(IQEditableEvaluation.providedBy(old_parent) \
+				and IQEditableEvaluation.providedBy(new_parent)):
 			raise_json_error(
 						self.request,
 						hexc.HTTPUnprocessableEntity,

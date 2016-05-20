@@ -216,7 +216,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 			assert_that(obj, is_(none()))
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
-	@fudge.patch('nti.app.assessment.views.evaluation_views.has_submissions')
+	@fudge.patch('nti.app.assessment.evaluations.utils.has_submissions')
 	def test_publish_unpublish(self, mock_vhs):
 		mock_vhs.is_callable().with_args().returns(False)
 		course_oid = self._get_course_oid()

@@ -86,7 +86,7 @@ from nti.assessment.interfaces import IQTimedAssignment
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQEvaluationItemContainer
 
-from nti.assessment.question import QuestionMovedEvent
+from nti.assessment.interfaces import QuestionMovedEvent
 
 from nti.common.maps import CaseInsensitiveDict
 

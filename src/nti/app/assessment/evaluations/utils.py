@@ -15,6 +15,8 @@ from urlparse import urlparse
 from html5lib import HTMLParser
 from html5lib import treebuilders
 
+from persistent.list import PersistentList
+
 from nti.app.assessment.common import get_resource_site_name
 
 from nti.app.base.abstract_views import get_safe_source_filename
@@ -52,7 +54,7 @@ from nti.site.hostpolicy import get_host_site
 from nti.site.utils import registerUtility
 
 def indexed_iter():
-	return list()
+	return PersistentList()
 
 def associate(model, source):
 	if IContentBaseFile.providedBy(source):

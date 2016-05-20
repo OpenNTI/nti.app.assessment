@@ -42,6 +42,7 @@ from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQEditableEvaluation
+from nti.assessment.interfaces import IQuestionInsertedEvent
 from nti.assessment.interfaces import IQEvaluationItemContainer
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -161,6 +162,10 @@ def _on_survey_event(context, event):
 						u'message': _("Survey cannot be empty."),
 						u'code': 'EmptyQuestionSet',
 					})
+
+@component.adapter(IQEditableEvaluation, IQuestionInsertedEvent)
+def on_question_inserted_event(context, event):
+	pass
 
 @component.adapter(IQuestion, IRegradeQuestionEvent)
 def _on_regrade_question_event(context, event):

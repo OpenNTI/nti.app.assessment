@@ -48,9 +48,11 @@ from nti.assessment.interfaces import TRX_QUESTION_MOVE_TYPE
 
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQuestion
+from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionMovedEvent
+from nti.assessment.interfaces import IQuestionInsertedEvent
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 

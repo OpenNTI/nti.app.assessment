@@ -5,6 +5,7 @@
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
+from zope.event import notify
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -73,7 +74,8 @@ from nti.appserver.ugd_edit_views import UGDDeleteView
 
 from nti.assessment.common import iface_of_assessment
 
-from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
+from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE,\
+	QuestionInsertedEvent
 from nti.assessment.interfaces import TIMED_ASSIGNMENT_MIME_TYPE
 
 from nti.assessment.interfaces import IQPoll
@@ -491,7 +493,7 @@ class QuestionSetInsertView(AbstractAuthenticatedView,
 		index = self._get_index()
 		question = self._get_new_question()
 		self.context.insert(index, question)
-		self.context.child_order_locked = True
+		notify(QuestionInsertedEvent(self.context, question, index))
 		logger.info('Inserted new question (%s)', question.ntiid)
 		self.request.response.status_int = 201
 		return question

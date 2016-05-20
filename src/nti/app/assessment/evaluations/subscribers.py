@@ -48,6 +48,7 @@ from nti.assessment.interfaces import IQEvaluationItemContainer
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.coremetadata.interfaces import IRecordable
+from nti.coremetadata.interfaces import IRecordableContainer
 
 from nti.externalization.interfaces import IObjectModifiedFromExternalEvent
 
@@ -132,6 +133,11 @@ def _on_question_modified(question, event):
 		_validate_part_resource(question)
 		_allow_question_change(question, event.external_value)
 
+@component.adapter(IQEditableEvaluation, IQuestionInsertedEvent)
+def _on_question_inserted(container, event):
+	if IRecordableContainer.providedBy(container):
+		container.child_order_locked = True
+
 @component.adapter(IQPoll, IObjectAddedEvent)
 def _on_poll_added(poll, event):
 	if IQEditableEvaluation.providedBy(poll):
@@ -162,10 +168,6 @@ def _on_survey_event(context, event):
 						u'message': _("Survey cannot be empty."),
 						u'code': 'EmptyQuestionSet',
 					})
-
-@component.adapter(IQEditableEvaluation, IQuestionInsertedEvent)
-def on_question_inserted_event(context, event):
-	pass
 
 @component.adapter(IQuestion, IRegradeQuestionEvent)
 def _on_regrade_question_event(context, event):

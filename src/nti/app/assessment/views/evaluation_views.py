@@ -56,6 +56,7 @@ from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtils
 from nti.app.contentfile import validate_sources
 
 from nti.app.products.courseware.views.view_mixins import IndexedRequestMixin
+from nti.app.products.courseware.views.view_mixins import DeleteChildViewMixin
 from nti.app.products.courseware.views.view_mixins import AbstractChildMoveView
 
 from nti.app.publishing import VIEW_PUBLISH
@@ -833,6 +834,35 @@ class EvaluationDeleteView(UGDDeleteView):
 		self._check_internal(theObject)
 		delete_evaluation(theObject)
 		return theObject
+
+@view_config(route_name='objects.generic.traversal',
+			 renderer='rest',
+			 name=VIEW_QUESTION_SET_CONTENTS,
+			 context=IQuestionSet,
+			 request_method='DELETE',
+			 permission=nauth.ACT_CONTENT_EDIT)
+class QuestionSetDeleteChildView(AbstractAuthenticatedView, DeleteChildViewMixin):
+	"""
+	A view to delete a child underneath the given context.
+
+	index
+		This param will be used to indicate which object should be
+		deleted. If the object described by `ntiid` is no longer at
+		this index, the object will still be deleted, as long as it
+		is unambiguous.
+
+	:raises HTTPConflict if state has changed out from underneath user
+	"""
+
+	def _get_children(self):
+		return self.context.questions
+
+	def _remove(self, item, index):
+		if item is not None:
+			self.context.remove( item )
+		else:
+			self.context.pop( index )
+		# FIXME: Update any container indexes.
 
 # Publish views
 

@@ -265,20 +265,24 @@ class TestEvaluationViews(ApplicationLayerTest):
 			record_types = [x.type for x in history.records()]
 			assert_that(record_types, has_length(count))
 
+	def _get_question_ntiids(self, ntiid=None, ext_obj=None):
+		"""
+		For the given ntiid or ext_obj (of assignment or question set),
+		return all of the underlying question ntiids.
+		"""
+		if not ext_obj:
+			res = self.testapp.get( '/dataserver2/Objects/%s' % ntiid )
+			ext_obj = res.json_body
+		if ext_obj.get( 'Class' ) != 'QuestionSet':
+			ext_obj = ext_obj.get( 'parts' )[0].get( 'question_set' )
+		questions = ext_obj.get( 'questions' )
+		return [x.get( 'NTIID' ) for x in questions]
+
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_move(self):
 		"""
 		Test moving questions between question sets.
 		"""
-		def _get_question_ntiids(ntiid=None, ext_obj=None):
-			if not ext_obj:
-				res = self.testapp.get( '/dataserver2/Objects/%s' % ntiid )
-				ext_obj = res.json_body
-			if ext_obj.get( 'Class' ) != 'QuestionSet':
-				ext_obj = ext_obj.get( 'parts' )[0].get( 'question_set' )
-			questions = ext_obj.get( 'questions' )
-			return [x.get( 'NTIID' ) for x in questions]
-
 		# Initialize and install qset and two assignments.
 		course_oid = self._get_course_oid()
 		course = self.testapp.get( '/dataserver2/Objects/%s' % course_oid )
@@ -288,29 +292,29 @@ class TestEvaluationViews(ApplicationLayerTest):
 		qset = self._load_questionset()
 		qset = self.testapp.post_json(evaluations_href, qset, status=201)
 		qset_ntiid = qset.json_body.get( 'NTIID' )
-		qset_question_ntiids = _get_question_ntiids(ext_obj=qset.json_body)
+		qset_question_ntiids = self._get_question_ntiids(ext_obj=qset.json_body)
 		assignment = self._load_assignment()
 		assignment1 = self.testapp.post_json(evaluations_href, assignment, status=201)
 		assignment1 = assignment1.json_body
 		assignment1_qset_ntiid = assignment1.get( 'parts' )[0].get( 'question_set' ).get( "NTIID" )
-		assignment1_qset_ntiids = _get_question_ntiids( ext_obj=assignment1 )
+		assignment1_qset_ntiids = self._get_question_ntiids( ext_obj=assignment1 )
 		assignment2 = self.testapp.post_json(evaluations_href, assignment, status=201)
 		assignment2 = assignment2.json_body
 		assignment2_qset_ntiid = assignment2.get( 'parts' )[0].get( 'question_set' ).get( "NTIID" )
-		assignment2_qset_ntiids = _get_question_ntiids( ext_obj=assignment2 )
+		assignment2_qset_ntiids = self._get_question_ntiids( ext_obj=assignment2 )
 
 		# Move last question to first.
 		moved_ntiid = qset_question_ntiids[-1]
 		move_json = self._get_move_json( moved_ntiid, qset_ntiid, 0 )
 		self.testapp.post_json( move_href, move_json )
-		new_question_ntiids = _get_question_ntiids( qset_ntiid )
+		new_question_ntiids = self._get_question_ntiids( qset_ntiid )
 		assert_that( new_question_ntiids, is_(qset_question_ntiids[-1:] + qset_question_ntiids[:-1]))
 		self._test_transaction_history( moved_ntiid, count=1 )
 
 		# Move back
 		move_json = self._get_move_json( moved_ntiid, qset_ntiid )
 		self.testapp.post_json( move_href, move_json )
-		new_question_ntiids = _get_question_ntiids( qset_ntiid )
+		new_question_ntiids = self._get_question_ntiids( qset_ntiid )
 		assert_that( new_question_ntiids, is_(qset_question_ntiids))
 		self._test_transaction_history( moved_ntiid, count=2 )
 
@@ -318,8 +322,8 @@ class TestEvaluationViews(ApplicationLayerTest):
 		move_json = self._get_move_json( moved_ntiid, assignment1_qset_ntiid,
 										 index=100, old_parent_ntiid=qset_ntiid )
 		self.testapp.post_json( move_href, move_json )
-		new_question_ntiids = _get_question_ntiids( qset_ntiid )
-		new_assignment1_qset_ntiids = _get_question_ntiids( assignment1_qset_ntiid )
+		new_question_ntiids = self._get_question_ntiids( qset_ntiid )
+		new_assignment1_qset_ntiids = self._get_question_ntiids( assignment1_qset_ntiid )
 		assert_that( new_question_ntiids, is_(qset_question_ntiids[:-1]))
 		assert_that( new_assignment1_qset_ntiids, is_(assignment1_qset_ntiids + [moved_ntiid]))
 		self._test_transaction_history( moved_ntiid, count=3 )
@@ -328,8 +332,8 @@ class TestEvaluationViews(ApplicationLayerTest):
 		move_json = self._get_move_json( moved_ntiid, assignment2_qset_ntiid,
 										 index=1, old_parent_ntiid=assignment1_qset_ntiid )
 		self.testapp.post_json( move_href, move_json )
-		new_assignment1_qset_ntiids = _get_question_ntiids( assignment1_qset_ntiid )
-		new_assignment2_qset_ntiids = _get_question_ntiids( assignment2_qset_ntiid )
+		new_assignment1_qset_ntiids = self._get_question_ntiids( assignment1_qset_ntiid )
+		new_assignment2_qset_ntiids = self._get_question_ntiids( assignment2_qset_ntiid )
 		assert_that( new_assignment1_qset_ntiids, is_(assignment1_qset_ntiids))
 		test_ids = assignment2_qset_ntiids[:1] + [moved_ntiid] + assignment2_qset_ntiids[1:]
 		assert_that( new_assignment2_qset_ntiids, is_(test_ids))
@@ -350,13 +354,6 @@ class TestEvaluationViews(ApplicationLayerTest):
 		"""
 		Test moving questions between question sets.
 		"""
-		def _get_question_ntiids(ntiid=None, ext_obj=None):
-			if not ext_obj:
-				res = self.testapp.get( '/dataserver2/Objects/%s' % ntiid )
-				ext_obj = res.json_body
-			questions = ext_obj.get( 'questions' )
-			return [x.get( 'NTIID' ) for x in questions]
-
 		# Initialize and install qset
 		course_oid = self._get_course_oid()
 		course = self.testapp.get( '/dataserver2/Objects/%s' % course_oid )
@@ -366,18 +363,58 @@ class TestEvaluationViews(ApplicationLayerTest):
 		ext_question = qset.get( 'questions' )[0]
 		qset = self.testapp.post_json(evaluations_href, qset, status=201)
 		qset = qset.json_body
-		insert_href = self.require_link_href_with_rel(qset, VIEW_QUESTION_SET_CONTENTS)
+		contents_href = self.require_link_href_with_rel(qset, VIEW_QUESTION_SET_CONTENTS)
 		qset_ntiid = qset.get( 'NTIID' )
-		original_question_ntiids = _get_question_ntiids(ext_obj=qset)
+		original_question_ntiids = self._get_question_ntiids(ext_obj=qset)
 
 		# Insert/append
-		inserted_question = self.testapp.post_json(insert_href, ext_question)
+		inserted_question = self.testapp.post_json(contents_href, ext_question)
 		new_question_ntiid = inserted_question.json_body.get( 'NTIID' )
-		question_ntiids = _get_question_ntiids( qset_ntiid )
+		question_ntiids = self._get_question_ntiids( qset_ntiid )
 		assert_that( question_ntiids, is_(original_question_ntiids + [new_question_ntiid]) )
 
 		# Prepend
-		inserted_question = self.testapp.post_json(insert_href + '/index/0', ext_question)
+		inserted_question = self.testapp.post_json(contents_href + '/index/0', ext_question)
 		new_question_ntiid2 = inserted_question.json_body.get( 'NTIID' )
-		question_ntiids = _get_question_ntiids( qset_ntiid )
+		question_ntiids = self._get_question_ntiids( qset_ntiid )
 		assert_that( question_ntiids, is_([new_question_ntiid2] + original_question_ntiids + [new_question_ntiid]) )
+
+	def _get_delete_url_suffix(self, index, ntiid):
+		return '/ntiid/%s?index=%s' % (ntiid, index)
+
+	@WithSharedApplicationMockDS(testapp=True, users=True)
+	def test_delete(self):
+		"""
+		Test deleting by index/ntiid in question sets.
+		"""
+		# Initialize and install qset
+		course_oid = self._get_course_oid()
+		course = self.testapp.get( '/dataserver2/Objects/%s' % course_oid )
+		course = course.json_body
+		evaluations_href = self.require_link_href_with_rel(course, 'CourseEvaluations')
+		qset = self._load_questionset()
+		ext_question = qset.get( 'questions' )[0]
+		qset = self.testapp.post_json(evaluations_href, qset, status=201)
+		qset = qset.json_body
+		contents_href = self.require_link_href_with_rel(qset, VIEW_QUESTION_SET_CONTENTS)
+		qset_ntiid = qset.get( 'NTIID' )
+		original_question_ntiids = self._get_question_ntiids(ext_obj=qset)
+
+		# Insert/append
+		inserted_question = self.testapp.post_json(contents_href, ext_question)
+		new_question_ntiid = inserted_question.json_body.get( 'NTIID' )
+		question_ntiids = self._get_question_ntiids( qset_ntiid )
+		assert_that( question_ntiids, is_(original_question_ntiids + [new_question_ntiid]) )
+
+		# Now delete (incorrect index).
+		delete_suffix = self._get_delete_url_suffix(0, new_question_ntiid)
+		self.testapp.delete(contents_href + delete_suffix)
+		assert_that( self._get_question_ntiids( qset_ntiid ), is_(original_question_ntiids) )
+		# No problem with multiple calls
+		self.testapp.delete(contents_href + delete_suffix)
+		assert_that( self._get_question_ntiids( qset_ntiid ), is_(original_question_ntiids) )
+
+		# Delete first object
+		delete_suffix = self._get_delete_url_suffix(0, original_question_ntiids[0])
+		self.testapp.delete(contents_href + delete_suffix)
+		assert_that( self._get_question_ntiids( qset_ntiid ), is_(original_question_ntiids[1:]) )

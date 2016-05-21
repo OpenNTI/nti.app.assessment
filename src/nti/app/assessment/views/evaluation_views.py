@@ -838,7 +838,7 @@ class QuestionSetDeleteChildView(AbstractAuthenticatedView, DeleteChildViewMixin
 	def _get_children(self):
 		return self.context.questions
 
-	def _remove(self, item, index):
+	def _remove(self, item=None, index=None):
 		if item is not None:
 			self.context.remove(item)
 		else:

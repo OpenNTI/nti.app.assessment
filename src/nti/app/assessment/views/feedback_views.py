@@ -43,6 +43,7 @@ from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtils
 from nti.appserver.interfaces import INewObjectTransformer
 
 from nti.appserver.ugd_edit_views import UGDPutView
+from nti.appserver.ugd_edit_views import UGDDeleteView
 
 from nti.dataserver import authorization as nauth
 
@@ -130,6 +131,17 @@ def validate_attachments(user, context, sources=()):
 	# take ownership
 	for source in sources:
 		source.__parent__ = context
+
+@view_config(route_name="objects.generic.traversal",
+			 context=IUsersCourseAssignmentHistoryItemFeedback,
+			 renderer='rest',
+			 permission=nauth.ACT_DELETE,
+			 request_method='DELETE')
+class AssignmentHistoryItemFeedbackDeleteView(UGDDeleteView):
+
+	def _do_delete_object(self, theObject):
+		del theObject.__parent__[theObject.__name__]
+		return theObject
 
 @view_config(route_name='objects.generic.traversal',
 			 renderer='rest',

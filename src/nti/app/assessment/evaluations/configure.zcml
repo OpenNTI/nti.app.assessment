@@ -27,7 +27,8 @@
 	<subscriber handler=".subscribers._on_question_added" />
 	<subscriber handler=".subscribers._on_question_removed" />
 	<subscriber handler=".subscribers._on_question_modified" />
-	<subscriber handler=".subscribers._on_question_inserted" />
+	<subscriber handler=".subscribers._on_question_inserted_in_container" />
+	<subscriber handler=".subscribers._on_question_removed_from_container" />
 
 	<subscriber handler=".subscribers._on_poll_added" />
 	<subscriber handler=".subscribers._on_poll_removed" />

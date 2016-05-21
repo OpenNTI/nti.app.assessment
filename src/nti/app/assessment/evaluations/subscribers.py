@@ -44,8 +44,9 @@ from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQEditableEvaluation
-from nti.assessment.interfaces import IQuestionInsertedEvent
 from nti.assessment.interfaces import IQEvaluationItemContainer
+from nti.assessment.interfaces import IQuestionInsertedInContainerEvent
+from nti.assessment.interfaces import IQuestionRemovedFromContainerEvent
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
@@ -135,12 +136,16 @@ def _on_question_modified(question, event):
 		_validate_part_resource(question)
 		_allow_question_change(question, event.external_value)
 
-@component.adapter(IQEditableEvaluation, IQuestionInsertedEvent)
-def _on_question_inserted(container, event):
+@component.adapter(IQEditableEvaluation, IQuestionInsertedInContainerEvent)
+def _on_question_inserted_in_container(container, event):
+	course = find_interface(container, ICourseInstance, strict=False)
+	validate_internal(container, course)
 	if IRecordableContainer.providedBy(container):
-		course = find_interface(container, ICourseInstance, strict=False)
-		validate_internal(container, course)
 		container.child_order_locked = True
+
+@component.adapter(IQEditableEvaluation, IQuestionRemovedFromContainerEvent)
+def _on_question_removed_from_container(container, event):
+	_on_question_inserted_in_container(container, None)
 
 @component.adapter(IQPoll, IObjectAddedEvent)
 def _on_poll_added(poll, event):

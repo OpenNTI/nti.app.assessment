@@ -91,7 +91,8 @@ from nti.assessment.interfaces import IQTimedAssignment
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQEvaluationItemContainer
 
-from nti.assessment.interfaces import QuestionInsertedEvent
+from nti.assessment.interfaces import QuestionInsertedInContainerEvent
+from nti.assessment.interfaces import QuestionRemovedFromContainerEvent
 
 from nti.assessment.interfaces import QuestionMovedEvent
 
@@ -474,7 +475,7 @@ class QuestionSetInsertView(AbstractAuthenticatedView,
 		index = self._get_index()
 		question = self._get_new_question()
 		self.context.insert(index, question)
-		notify(QuestionInsertedEvent(self.context, question, index))
+		notify(QuestionInsertedInContainerEvent(self.context, question, index))
 		logger.info('Inserted new question (%s)', question.ntiid)
 		self.request.response.status_int = 201
 		return question
@@ -842,7 +843,7 @@ class QuestionSetDeleteChildView(AbstractAuthenticatedView, DeleteChildViewMixin
 			self.context.remove(item)
 		else:
 			self.context.pop(index)
-		# FIXME: Update any container indexes.
+		notify(QuestionRemovedFromContainerEvent(self.context, item, index))
 
 # Publish views
 

@@ -158,7 +158,7 @@ class EvaluationMixin(object):
 
 	@Lazy
 	def course(self):
-		# XXX: Subinstances?
+		# XXX: Evaluation has lineage access to its course
 		result = find_interface(self.context, ICourseInstance, strict=False)
 		return result
 

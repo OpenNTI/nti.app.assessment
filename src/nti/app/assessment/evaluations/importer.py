@@ -19,6 +19,8 @@ from nti.app.assessment.evaluations.utils import import_evaluation_content
 
 from nti.app.assessment.interfaces import ICourseEvaluations
 
+from nti.app.authentication import get_remote_user
+
 from nti.app.products.courseware.resources.utils import get_course_filer
 
 from nti.assessment.common import iface_of_assessment
@@ -153,7 +155,8 @@ class EvaluationsImporter(BaseSectionImporter):
 
 		# course is the evaluation home
 		theObject.__home__ = course
-		target_filer = get_course_filer(course)
+		remoteUser = get_remote_user()
+		target_filer = get_course_filer(course, remoteUser)
 		# parse content fields and load sources
 		import_evaluation_content(result, source_filer=source_filer,
 								  target_filer=target_filer)

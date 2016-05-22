@@ -310,9 +310,9 @@ def _assignment_history_item_2_metadata(item):
 	user = IUser(item, None)
 	course = find_interface(item, ICourseInstance, strict=False)
 	metadata = component.queryMultiAdapter((course, user),
-										   IUsersCourseAssignmentMetadata) or {}
+										   IUsersCourseAssignmentMetadata)
 	try:
-		result = metadata[item.assignmentId]
+		result = metadata[item.assignmentId] if metadata else None
 	except KeyError:
 		result = None
 	return result

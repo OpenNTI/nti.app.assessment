@@ -126,8 +126,8 @@ def get_question_view_link(request):
 	# Not supported.
 	return hexc.HTTPBadRequest()
 
-@view_config(accept=str(''),  # explicit empty accept, else we get a ConfigurationConflict
-			 ** _question_view)  # and/or no-Accept header goes to the wrong place
+@view_config(accept=str(''),  	# explicit empty accept, else we get a ConfigurationConflict
+			 ** _question_view)	# and/or no-Accept header goes to the wrong place
 @view_config(**_question_view)
 @view_config(accept=str(''),
 			 **_question_set_view)
@@ -174,7 +174,7 @@ class AssignmentsByOutlineNodeMixin(AbstractAuthenticatedView):
 			   permission=nauth.ACT_READ,
 			   request_method='GET',
 			   name='AssignmentsByOutlineNode')  # See decorators
-class AssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
+class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 	"""
 	For course instances (and things that can be adapted to them),
 	there is a view at ``/.../AssignmentsByOutlineNode``. For
@@ -268,7 +268,7 @@ class AssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
 			   permission=nauth.ACT_READ,
 			   request_method='GET',
 			   name='NonAssignmentAssessmentItemsByOutlineNode')  # See decorators
-class NonAssignmentsByOutlineNodeDecorator(AssignmentsByOutlineNodeMixin):
+class NonAssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 	"""
 	For course instances (and things that can be adapted to them),
 	there is a view at ``/.../NonAssignmentAssessmentItemsByOutlineNode``. For
@@ -358,9 +358,9 @@ class SelfAssessmentPracticeSubmissionPostView(UGDPostView):
 
 	def _do_call(self):
 		submission, _ = self.readCreateUpdateContentObject(self.remoteUser,
-															   search_owner=True)
+														   search_owner=True)
 		try:
-			result = self._assess( submission )
+			result = self._assess(submission)
 			return result
 		finally:
 			self.request.environ['nti.commit_veto'] = 'abort'

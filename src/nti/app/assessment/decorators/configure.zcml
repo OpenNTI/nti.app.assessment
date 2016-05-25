@@ -249,6 +249,17 @@
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="..interfaces.IUsersCourseAssignmentHistoryItemFeedbackContainer pyramid.interfaces.IRequest" />
 
+	<!-- We want only editable evaluations (created through API) to be edited
+		(as far as questions/content/etc), but any assessment can have dates edited.
+	-->
+	<subscriber factory=".assignment._AssessmentEditLinkDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="nti.assessment.interfaces.IQInquiry pyramid.interfaces.IRequest" />
+
+	<subscriber factory=".assignment._AssessmentEditLinkDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="nti.assessment.interfaces.IQAssessment pyramid.interfaces.IRequest" />
+
 	<subscriber factory=".assignment._AssessmentEditorDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.assessment.interfaces.IQEditableEvaluation pyramid.interfaces.IRequest" />

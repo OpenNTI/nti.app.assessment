@@ -331,24 +331,12 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		result = find_interface(context, ICourseInstance, strict=False)
 		return get_courses( result )
 
-	def _has_edit_link(self, result):
-		for lnk in result.get(LINKS) or ():
-			if getattr(lnk, 'rel', None) == 'edit':
-				return True
-		return False
-
 	def _predicate(self, context, result):
 		return 		self._is_authenticated \
 				and has_permission(ACT_CONTENT_EDIT, context, self.request)
 
 	def _do_decorate_external(self, context, result):
 		_links = result.setdefault(LINKS, [])
-		if not self._has_edit_link(result):
-			link = Link(context, rel='edit')
-			interface.alsoProvides(link, ILocation)
-			link.__name__ = ''
-			link.__parent__ = context
-			_links.append(link)
 
 		courses = self.get_courses( context )
 		savepoints = has_savepoints( context, courses )
@@ -366,6 +354,31 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			rels = (VIEW_QUESTION_SET_CONTENTS,'schema')
 		for rel in rels:
 			link = Link(context, rel=rel, elements=('@@%s' % rel,))
+			interface.alsoProvides(link, ILocation)
+			link.__name__ = ''
+			link.__parent__ = context
+			_links.append(link)
+
+@interface.implementer(IExternalMappingDecorator)
+class _AssessmentEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
+	"""
+	Give editors the edit link.
+	"""
+
+	def _has_edit_link(self, result):
+		for lnk in result.get(LINKS) or ():
+			if getattr(lnk, 'rel', None) == 'edit':
+				return True
+		return False
+
+	def _predicate(self, context, result):
+		return 		self._is_authenticated \
+				and has_permission(ACT_CONTENT_EDIT, context, self.request)
+
+	def _do_decorate_external(self, context, result):
+		_links = result.setdefault(LINKS, [])
+		if not self._has_edit_link(result):
+			link = Link(context, rel='edit')
 			interface.alsoProvides(link, ILocation)
 			link.__name__ = ''
 			link.__parent__ = context

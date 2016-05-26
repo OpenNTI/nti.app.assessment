@@ -24,6 +24,8 @@ from nti.app.assessment import get_evaluation_catalog
 
 from nti.assessment.interfaces import IQEvaluation
 
+from nti.common.proxy import removeAllProxies
+
 from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 from nti.contentlibrary.interfaces import IGlobalContentPackageLibrary
@@ -42,6 +44,10 @@ from nti.site.utils import unregisterUtility
 from nti.traversal.traversal import find_interface
 
 def _process_items(registry, intids, seen):
+	site_library = component.getUtility( IContentPackageLibrary )
+	if IGlobalContentPackageLibrary.providedBy(site_library):
+		return
+
 	catalog = get_evaluation_catalog()
 	for name, item in list(registry.getUtilitiesFor(IQEvaluation)):
 		if name in seen:
@@ -51,6 +57,8 @@ def _process_items(registry, intids, seen):
 			logger.info('Empty assessment registered (%s)', name)
 			unregisterUtility(registry, provided=IQEvaluation, name=name)
 			continue
+		item = removeAllProxies( item )
+		__traceback_info__ = item
 		old_parent = item.__parent__
 		if old_parent is None:
 			container_id = getattr(item, 'containerId', '')
@@ -73,7 +81,7 @@ def _process_items(registry, intids, seen):
 
 		if old_parent != new_parent:
 			# These are probably locked objects that we never re-parented
-			# contente untis on subsequent syncs.
+			# content units on subsequent syncs.
 			item.__parent__ = new_parent
 			logger.info('Fixing lineage and re-indexing (%s)', item.ntiid)
 			if doc_id is not None:

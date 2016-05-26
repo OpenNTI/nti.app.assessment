@@ -80,6 +80,7 @@ def _process_items(registry, intids, seen):
 				addIntId(item)
 
 		if old_parent != new_parent:
+			new_parent = removeAllProxies( new_parent )
 			# These are probably locked objects that we never re-parented
 			# content units on subsequent syncs.
 			item.__parent__ = new_parent

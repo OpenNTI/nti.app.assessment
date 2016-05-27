@@ -396,11 +396,8 @@ class EvaluationMixin(object):
 		context.parts = parts
 
 	def eval_href(self, context):
-		try:
-			link = Link(context)
-			return render_link(link)['href']
-		except (KeyError, ValueError, AssertionError):
-			pass  # Nope
+		link = Link(context)
+		return render_link(link)['href']
 
 	def to_external_object(self, context):
 		href = self.eval_href(context) # href is edit link too
@@ -450,7 +447,7 @@ class CourseEvaluationsPostView(EvaluationMixin, UGDPostView):
 			validate_sources(self.remoteUser, evaluation, sources)
 		evaluation = self.handle_evaluation(evaluation, self.course, sources, creator)
 		self.request.response.status_int = 201
-		return self.to_external_object(evaluation, self.request)
+		return self.to_external_object(evaluation)
 
 @view_config(route_name='objects.generic.traversal',
 			 context=IQuestionSet,

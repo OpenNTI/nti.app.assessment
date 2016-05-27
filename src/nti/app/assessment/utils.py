@@ -175,15 +175,15 @@ def copy_assignment(assignment, nonrandomized=False):
 	sublocations(result)
 	return result
 
-def copy_evaluation(context):
+def copy_evaluation(context, nonrandomized=False, is_instructor=True):
 	if IQAssignment.providedBy(context):
-		result = copy_assignment(context)
+		result = copy_assignment(context, nonrandomized=nonrandomized)
 	elif IQuestionBank.providedBy(context):
-		result = copy_questionbank(context, is_instructor=True) # all questions
+		result = copy_questionbank(context, is_instructor=is_instructor) # all questions
 	elif IQuestionSet.providedBy(context):
-		result = copy_questionset(context)
+		result = copy_questionset(context, nonrandomized=nonrandomized)
 	elif IQuestion.providedBy(context):
-		result = copy_question(context)
+		result = copy_question(context, nonrandomized=nonrandomized)
 	elif IQPoll.providedBy(context):
 		result = copy_poll(context)
 	elif IQSurvey.providedBy(context):

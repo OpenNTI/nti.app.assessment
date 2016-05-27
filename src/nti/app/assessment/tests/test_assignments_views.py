@@ -170,6 +170,21 @@ class TestAssignmentViews(ApplicationLayerTest):
 			timed_objs = _get_timed()
 			assert_that( timed_objs, has_item( obj_id ))
 
+		# Change fields but retain timed status
+		data =  {'available_for_submission_beginning': 1471010400,
+				 'available_for_submission_ending': 1471017600}
+		self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,
+							  data, extra_environ=editor_environ)
+
+		res = self.testapp.get('/dataserver2/Objects/' + self.assignment_id,
+							   extra_environ=editor_environ)
+		res = res.json_body
+		assert_that( res.get( 'Class' ), is_( 'TimedAssignment' ) )
+		assert_that( res.get( 'MimeType' ), is_( TIMED_ASSIGNMENT_MIME_TYPE ) )
+		assert_that( res.get( 'IsTimedAssignment' ), is_( True ) )
+		assert_that( res.get( 'MaximumTimeAllowed' ), is_( 30 ) )
+		assert_that( res.get( 'NTIID' ), is_( self.assignment_id ) )
+
 		# Change to untimed assignment
 		data = { 'maximum_time_allowed': None }
 		self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,

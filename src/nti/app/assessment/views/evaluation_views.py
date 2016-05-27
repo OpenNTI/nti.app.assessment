@@ -759,14 +759,15 @@ class AssignmentPutView(NewAndLegacyPutView):
 	def updateContentObject(self, contentObject, externalValue, set_id=False, notify=True):
 		# Must toggle types first (if necessary) before calling super; so
 		# everything validates.
-		# See if we are going to/from timed assignment.
-		max_time_allowed = externalValue.get('maximum_time_allowed')
-		if 		max_time_allowed \
-			and not IQTimedAssignment.providedBy(contentObject):
-			self._transform_to_timed(contentObject, max_time_allowed)
-		elif	max_time_allowed is None \
-			and IQTimedAssignment.providedBy(contentObject):
-			self._transform_to_untimed(contentObject)
+		if 'maximum_time_allowed' in externalValue:
+			# The client passed us something; see if we are going to/from timed assignment.
+			max_time_allowed = externalValue.get('maximum_time_allowed')
+			if 		max_time_allowed \
+				and not IQTimedAssignment.providedBy(contentObject):
+				self._transform_to_timed(contentObject, max_time_allowed)
+			elif	max_time_allowed is None \
+				and IQTimedAssignment.providedBy(contentObject):
+				self._transform_to_untimed(contentObject)
 
 		result = super(AssignmentPutView, self).updateContentObject(contentObject, externalValue,
 																	   set_id, notify)

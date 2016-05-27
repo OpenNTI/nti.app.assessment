@@ -322,13 +322,20 @@ class _QuestionSetDecorator(object):
 @interface.implementer(IExternalMappingDecorator)
 class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
-	Give editors edit and schema links. Also provide context on whether
-	the evaluation has been savepointed/submitted.
+	Give editors edit and schema links. These should only be available for
+	IQEditableEvaluations. Also provide context on whether the evaluation
+	has been savepointed/submitted.
 	"""
 
 	def get_courses(self, context):
 		result = find_interface(context, ICourseInstance, strict=False)
 		return get_courses( result )
+
+	def _has_edit_link(self, _links):
+		for lnk in _links:
+			if getattr(lnk, 'rel', None) == 'edit':
+				return True
+		return False
 
 	def _predicate(self, context, result):
 		return 		self._is_authenticated \
@@ -345,12 +352,14 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		result['LimitedEditingCapabilitiesSavepoints'] = savepoints
 		result['LimitedEditingCapabilitiesSubmissions'] = submissions
 
-		rels = ('schema',)
+		rels = ['schema',]
+		if not self._has_edit_link(_links):
+			rels.append( 'edit' )
 		# Do not provide insert link if evaluation is being used.
 		# TODO: We may want to limit if available as well.
 		# TODO: We may also want to exclude any edit links.
 		if IQuestionSet.providedBy( context ) and not in_progress:
-			rels = (VIEW_QUESTION_SET_CONTENTS,'schema')
+			rels.append( VIEW_QUESTION_SET_CONTENTS )
 		for rel in rels:
 			link = Link(context, rel=rel, elements=('@@%s' % rel,))
 			interface.alsoProvides(link, ILocation)
@@ -359,16 +368,11 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			_links.append(link)
 
 @interface.implementer(IExternalMappingDecorator)
-class _AssessmentEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
+class _AssessmentDateEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
-	Give editors the edit link.
+	Give editors a date-edit link. This should be available on all
+	assignments/inquiries.
 	"""
-
-	def _has_edit_link(self, result):
-		for lnk in result.get(LINKS) or ():
-			if getattr(lnk, 'rel', None) == 'edit':
-				return True
-		return False
 
 	def _predicate(self, context, result):
 		return 		self._is_authenticated \
@@ -376,12 +380,11 @@ class _AssessmentEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _do_decorate_external(self, context, result):
 		_links = result.setdefault(LINKS, [])
-		if not self._has_edit_link(result):
-			link = Link(context, rel='edit')
-			interface.alsoProvides(link, ILocation)
-			link.__name__ = ''
-			link.__parent__ = context
-			_links.append(link)
+		link = Link(context, rel='date-edit')
+		interface.alsoProvides(link, ILocation)
+		link.__name__ = ''
+		link.__parent__ = context
+		_links.append(link)
 
 @interface.implementer(IExternalMappingDecorator)
 class _AssessmentPracticeLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):

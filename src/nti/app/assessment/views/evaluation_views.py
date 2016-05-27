@@ -5,7 +5,6 @@
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
-from nti.externalization.externalization import to_external_object
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -111,6 +110,8 @@ from nti.coremetadata.interfaces import IPublishable
 
 from nti.dataserver import authorization as nauth
 from nti.dataserver.authorization import ACT_CONTENT_EDIT
+
+from nti.externalization.externalization import to_external_object
 
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields

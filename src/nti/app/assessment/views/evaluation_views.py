@@ -48,8 +48,6 @@ from nti.app.assessment.interfaces import IQAvoidSolutionCheck
 
 from nti.app.assessment.utils import copy_evaluation
 
-from nti.app.assessment.views import get_ds2
-
 from nti.app.assessment.views.view_mixins import AssessmentPutView
 
 from nti.app.base.abstract_views import get_all_sources
@@ -118,7 +116,9 @@ from nti.externalization.interfaces import StandardExternalFields
 
 from nti.externalization.internalization import notifyModified
 
-from nti.externalization.oids import to_external_ntiid_oid
+from nti.links.externalization import render_link
+
+from nti.links.links import Link
 
 from nti.site.hostpolicy import get_host_site
 
@@ -395,14 +395,15 @@ class EvaluationMixin(object):
 				self.auto_complete_questionset(part.question_set, externalValue)
 		context.parts = parts
 
-	def eval_href(self, context, request=None):
-		request = request or self.request
-		oid = to_external_ntiid_oid(context)
-		href = "/" + get_ds2(request) + '/Objects/%s' % oid
-		return href
+	def eval_href(self, context):
+		try:
+			link = Link(context)
+			return render_link(link)['href']
+		except (KeyError, ValueError, AssertionError):
+			pass  # Nope
 
-	def to_external_object(self, context, request=None):
-		href = self.eval_href(context, request)
+	def to_external_object(self, context):
+		href = self.eval_href(context) # href is edit link too
 		evaluation = copy_evaluation(context, nonrandomized=True)
 		external = to_external_object(evaluation)
 		external['href'] = href

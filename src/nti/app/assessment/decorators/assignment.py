@@ -118,7 +118,6 @@ class _AssignmentsByOutlineNodeDecorator(AbstractAssessmentDecoratorPredicate):
 		if self.show_assignments_by_outline_link(course):
 			links.append(self._link_with_rel(course, 'AssignmentsByOutlineNode'))
 
-
 class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
 	When an instructor fetches an assignment that contains a file part
@@ -405,4 +404,3 @@ class _AssessmentPracticeLinkDecorator(AbstractAuthenticatedRequestAwareDecorato
 		link.__name__ = ''
 		link.__parent__ = context
 		_links.append(link)
-

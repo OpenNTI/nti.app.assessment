@@ -70,6 +70,8 @@ from nti.app.publishing import VIEW_UNPUBLISH
 from nti.app.publishing.views import PublishView
 from nti.app.publishing.views import UnpublishView
 
+from nti.app.renderers.interfaces import INoHrefInResponse
+
 from nti.appserver.dataserver_pyramid_views import GenericGetView
 
 from nti.appserver.pyramid_authorization import has_permission
@@ -128,6 +130,7 @@ from nti.site.utils import unregisterUtility
 from nti.traversal.traversal import find_interface
 
 ITEMS = StandardExternalFields.ITEMS
+LINKS = StandardExternalFields.LINKS
 NTIID = StandardExternalFields.NTIID
 
 @view_config(context=ICourseEvaluations)
@@ -395,16 +398,24 @@ class EvaluationMixin(object):
 				self.auto_complete_questionset(part.question_set, externalValue)
 		context.parts = parts
 
-	def eval_href(self, context):
+	def eval_link(self, context):
 		link = Link(context)
-		return render_link(link)['href']
+		result = render_link(link)
+		return result
 
 	def to_external_object(self, context):
-		href = self.eval_href(context) # href is edit link too
+		# get evaluation link
+		rendered = self.eval_link(context)
+		rendered['rel'] = 'edit'
+		# copy and render non-persistent object
 		evaluation = copy_evaluation(context, nonrandomized=True)
-		external = to_external_object(evaluation)
-		external['href'] = href
-		return external
+		result = to_external_object(evaluation)
+		# add edit link
+		links = result.setdefault(LINKS, [])
+		links.append(rendered)
+		result['href'] = rendered['href']
+		interface.alsoProvides(result, INoHrefInResponse)
+		return result
 
 # POST views
 

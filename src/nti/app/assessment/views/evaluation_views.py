@@ -5,6 +5,7 @@
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
+from nti.externalization.externalization import to_external_object
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -45,6 +46,10 @@ from nti.app.assessment.evaluations.utils import import_evaluation_content
 
 from nti.app.assessment.interfaces import ICourseEvaluations
 from nti.app.assessment.interfaces import IQAvoidSolutionCheck
+
+from nti.app.assessment.utils import copy_evaluation
+
+from nti.app.assessment.views import get_ds2
 
 from nti.app.assessment.views.view_mixins import AssessmentPutView
 
@@ -111,6 +116,8 @@ from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.externalization.internalization import notifyModified
+
+from nti.externalization.oids import to_external_ntiid_oid
 
 from nti.site.hostpolicy import get_host_site
 
@@ -387,6 +394,19 @@ class EvaluationMixin(object):
 				self.auto_complete_questionset(part.question_set, externalValue)
 		context.parts = parts
 
+	def eval_href(self, context, request=None):
+		request = request or self.request
+		oid = to_external_ntiid_oid(context)
+		href = "/" + get_ds2(request) + '/Objects/%s' % oid
+		return href
+
+	def to_external_object(self, context, request=None):
+		href = self.eval_href(context, request)
+		evaluation = copy_evaluation(context, nonrandomized=True)
+		external = to_external_object(evaluation)
+		external['href'] = href
+		return external
+
 # POST views
 
 @view_config(context=ICourseEvaluations)
@@ -428,7 +448,7 @@ class CourseEvaluationsPostView(EvaluationMixin, UGDPostView):
 			validate_sources(self.remoteUser, evaluation, sources)
 		evaluation = self.handle_evaluation(evaluation, self.course, sources, creator)
 		self.request.response.status_int = 201
-		return evaluation
+		return self.to_external_object(evaluation, self.request)
 
 @view_config(route_name='objects.generic.traversal',
 			 context=IQuestionSet,

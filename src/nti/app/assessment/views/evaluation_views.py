@@ -46,8 +46,6 @@ from nti.app.assessment.evaluations.utils import import_evaluation_content
 from nti.app.assessment.interfaces import ICourseEvaluations
 from nti.app.assessment.interfaces import IQAvoidSolutionCheck
 
-from nti.app.assessment.utils import copy_evaluation
-
 from nti.app.assessment.views.view_mixins import AssessmentPutView
 
 from nti.app.base.abstract_views import get_all_sources
@@ -69,8 +67,6 @@ from nti.app.publishing import VIEW_UNPUBLISH
 
 from nti.app.publishing.views import PublishView
 from nti.app.publishing.views import UnpublishView
-
-from nti.app.renderers.interfaces import INoHrefInResponse
 
 from nti.appserver.dataserver_pyramid_views import GenericGetView
 
@@ -111,16 +107,10 @@ from nti.coremetadata.interfaces import IPublishable
 from nti.dataserver import authorization as nauth
 from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
-from nti.externalization.externalization import to_external_object
-
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.externalization.internalization import notifyModified
-
-from nti.links.externalization import render_link
-
-from nti.links.links import Link
 
 from nti.site.hostpolicy import get_host_site
 
@@ -398,25 +388,6 @@ class EvaluationMixin(object):
 				self.auto_complete_questionset(part.question_set, externalValue)
 		context.parts = parts
 
-	def eval_link(self, context):
-		link = Link(context)
-		result = render_link(link)
-		return result
-
-	def to_external_object(self, context):
-		# get evaluation link
-		rendered = self.eval_link(context)
-		rendered['rel'] = 'edit'
-		# copy and render non-persistent object
-		evaluation = copy_evaluation(context, nonrandomized=True)
-		result = to_external_object(evaluation)
-		# add edit link
-		links = result.setdefault(LINKS, [])
-		links.append(rendered)
-		result['href'] = rendered['href']
-		interface.alsoProvides(result, INoHrefInResponse)
-		return result
-
 # POST views
 
 @view_config(context=ICourseEvaluations)
@@ -458,7 +429,7 @@ class CourseEvaluationsPostView(EvaluationMixin, UGDPostView):
 			validate_sources(self.remoteUser, evaluation, sources)
 		evaluation = self.handle_evaluation(evaluation, self.course, sources, creator)
 		self.request.response.status_int = 201
-		return self.to_external_object(evaluation)
+		return evaluation
 
 @view_config(route_name='objects.generic.traversal',
 			 context=IQuestionSet,

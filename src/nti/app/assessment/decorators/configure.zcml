@@ -218,6 +218,32 @@
 						 pyramid.interfaces.IRequest" />
 	</configure>
 
+	<!-- randomized -->
+	<subscriber factory=".randomized._QRandomizedMatchingPartDecorator"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator"
+				for="nti.assessment.randomized.interfaces.IQRandomizedMatchingPart
+				     pyramid.interfaces.IRequest"/>
+
+	<subscriber factory=".randomized._QRandomizedOrderingPartDecorator"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator"
+				for="nti.assessment.randomized.interfaces.IQRandomizedOrderingPart
+				     pyramid.interfaces.IRequest"/>
+
+	<subscriber factory=".randomized._QRandomizedMultipleChoicePartDecorator"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator"
+				for="nti.assessment.randomized.interfaces.IQRandomizedMultipleChoicePart
+				     pyramid.interfaces.IRequest"/>>
+
+	<subscriber factory=".randomized._QRandomizedMultipleChoiceMultipleAnswerPartDecorator"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator"
+				for="nti.assessment.randomized.interfaces.IQRandomizedMultipleChoiceMultipleAnswerPart
+				     pyramid.interfaces.IRequest"/>
+
+	<subscriber factory=".randomized._QRandomizedQuestionSetDecorator"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator"
+				for="nti.assessment.randomized.interfaces.IRandomizedQuestionSet
+				     pyramid.interfaces.IRequest"/>
+
 	<!-- editor -->
 	<subscriber factory=".course._CourseEditorLinksDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"

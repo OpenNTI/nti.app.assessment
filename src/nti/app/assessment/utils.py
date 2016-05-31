@@ -11,8 +11,9 @@ logger = __import__('logging').getLogger(__name__)
 
 import os
 import copy
-import simplejson
 from urllib import unquote
+
+import simplejson
 
 from zope import component
 from zope import interface

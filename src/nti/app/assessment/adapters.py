@@ -45,6 +45,8 @@ from nti.appserver.interfaces import IHierarchicalContextProvider
 from nti.appserver.interfaces import ITopLevelContainerContextProvider
 from nti.appserver.interfaces import ITrustedTopLevelContainerContextProvider
 
+from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
+
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssessment
 from nti.assessment.interfaces import IQAssignment
@@ -54,7 +56,6 @@ from nti.assessment.interfaces import IQuestionSubmission
 from nti.assessment.interfaces import IQAssessedQuestionSet
 from nti.assessment.interfaces import IQAssignmentSubmission
 from nti.assessment.interfaces import IQuestionSetSubmission
-from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
 from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 
 from nti.contentlibrary.interfaces import IContentUnit

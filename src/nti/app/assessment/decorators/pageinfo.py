@@ -109,14 +109,14 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 			# itself.
 
 			if IQuestionBank.providedBy(x):
-				qsids_to_strip.update([q.ntiid for q in x.questions])
+				qsids_to_strip.update(q.ntiid for q in x.questions)
 				containerId = getattr(x, 'containerId', None) or unit_ntiid
 				oid = to_external_ntiid_oid(x)
 				x = copy_questionbank(x, is_instructor, user=user)
 				self._set_triplet(x, oid, ntiid, containerId)
 				new_result[ntiid] = x
 			elif IRandomizedQuestionSet.providedBy(x):
-				qsids_to_strip.update([q.ntiid for q in x.questions])
+				qsids_to_strip.update(q.ntiid for q in x.questions)
 				containerId = getattr(x, 'containerId', None) or unit_ntiid
 				oid = to_external_ntiid_oid(x)
 				x = x if not is_instructor else copy_questionset(x, True)
@@ -128,7 +128,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 				new_result[ntiid] = x
 			elif IQSurvey.providedBy(x):
 				new_result[ntiid] = x
-				qsids_to_strip.update([poll.ntiid for poll in x.questions])
+				qsids_to_strip.update(poll.ntiid for poll in x.questions)
 			elif IQAssignment.providedBy(x):
 				if assignment_predicate is None:
 					logger.warn("Found assignment (%s) outside of course context "
@@ -147,7 +147,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 				for assignment_part in x.parts:
 					question_set = assignment_part.question_set
 					qsids_to_strip.add(question_set.ntiid)
-					qsids_to_strip.update([q.ntiid for q in question_set.questions])
+					qsids_to_strip.update(q.ntiid for q in question_set.questions)
 			else:
 				new_result[ntiid] = x
 

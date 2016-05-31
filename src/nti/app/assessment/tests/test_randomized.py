@@ -145,7 +145,10 @@ class TestRandomized(ApplicationLayerTest):
 		creator = 'sjohnson@nextthought.com'
 
 		# Validate instructor is not randomized.
+		self._test_external_state( qset )
 		questions = qset.get( 'questions' )
+		for question in questions:
+			self._test_external_state( question )
 		qset_href = qset.get( 'href' )
 		assert_that( qset_href, not_none() )
 		assert_that( questions, has_length( 4 ))
@@ -157,8 +160,10 @@ class TestRandomized(ApplicationLayerTest):
 							   "application/vnd.nextthought.assessment.randomizedmatchingpart",
 							   "application/vnd.nextthought.assessment.filepart" ))
 
+		# But qset is
 		self._validate_random_qset(students, qset_href)
 
+		# As are the questions, if applicable.
 		for question in questions:
 			question_href = question.get( 'href' )
 			part_type = self._get_question_part_attr( question, 'MimeType' )

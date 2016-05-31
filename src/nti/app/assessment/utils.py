@@ -190,11 +190,9 @@ def copy_evaluation(context, nonrandomized=False, is_instructor=True):
 		result = copy_survey(context)
 	return result
 
-def check_assignment(assignment, user=None, is_instructor=False):
+def check_assignment(assignment, user=None):
 	result = assignment
-	if is_instructor:
-		result = copy_assignment(assignment, True)
-	elif user is not None:
+	if user is not None:
 		ntiid = assignment.ntiid
 		username = user.username
 		# check r47694

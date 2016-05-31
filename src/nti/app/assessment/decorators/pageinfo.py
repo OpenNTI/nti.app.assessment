@@ -16,8 +16,6 @@ from nti.app.assessment.common import get_assessment_items_from_unit
 from nti.app.assessment.common import AssessmentItemProxy as AssignmentProxy
 
 from nti.app.assessment.utils import check_assignment
-from nti.app.assessment.utils import copy_questionset
-from nti.app.assessment.utils import copy_questionbank
 from nti.app.assessment.utils import get_course_from_request
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
@@ -29,6 +27,7 @@ from nti.appserver.pyramid_authorization import has_permission
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
+
 from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
 
@@ -66,17 +65,11 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 			result = component.queryMultiAdapter((contentUnit, user), ICourseInstance)
 		return result
 
-	def _set_triplet(self, x, oid, ntiid, containerId):
-		x.oid = oid
-		x.ntiid = ntiid
-		x.containerId = containerId
-		return x
-
 	def _is_instructor_or_editor(self, course, user):
 		result = False
 		if course is not None:
 			result = 	is_course_instructor_or_editor(course, user) \
-					or 	has_permission( ACT_CONTENT_EDIT, course )
+					or 	has_permission(ACT_CONTENT_EDIT, course)
 		return result
 
 	def _do_decorate_external(self, context, result_map):
@@ -110,17 +103,9 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 
 			if IQuestionBank.providedBy(x):
 				qsids_to_strip.update(q.ntiid for q in x.questions)
-				containerId = getattr(x, 'containerId', None) or unit_ntiid
-				oid = to_external_ntiid_oid(x)
-				x = copy_questionbank(x, is_instructor, user=user)
-				self._set_triplet(x, oid, ntiid, containerId)
 				new_result[ntiid] = x
 			elif IRandomizedQuestionSet.providedBy(x):
 				qsids_to_strip.update(q.ntiid for q in x.questions)
-				containerId = getattr(x, 'containerId', None) or unit_ntiid
-				oid = to_external_ntiid_oid(x)
-				x = x if not is_instructor else copy_questionset(x, True)
-				self._set_triplet(x, oid, ntiid, containerId)
 				new_result[ntiid] = x
 			elif IQuestionSet.providedBy(x):
 				# CS:20150729 allow the questions to return along with question set
@@ -135,7 +120,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
 								"in %s; dropping", x, context.contentUnit)
 				elif assignment_predicate(x) or is_instructor:
 					# Yay, keep the assignment
-					x = check_assignment(x, user, is_instructor)
+					x = check_assignment(x, user)
 					x = AssignmentProxy(x, entry_ntiid)
 					new_result[ntiid] = x
 

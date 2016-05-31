@@ -50,7 +50,7 @@ class _AbstractNonEditorRandomizingDecorator(AbstractAuthenticatedRequestAwareDe
 		course = _get_course_from_assignment(context, user, request=self.request)
 		return 		self._is_authenticated \
 				and not has_permission(ACT_CONTENT_EDIT, context, self.request) \
-				and not is_course_instructor( course, user ) \
+				and not is_course_instructor(course, user) \
 				and must_randomize( context )
 
 @component.adapter(IQRandomizedMatchingPart)

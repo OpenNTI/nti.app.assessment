@@ -41,17 +41,17 @@ from nti.externalization.interfaces import IExternalObjectDecorator
 
 class _AbstractNonEditorRandomizingDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
-	An abstract decorator that only randomizes if we do not have an instructor, an
-	editor, or a non-randomized interface.
+	An abstract decorator that only randomizes if we do not have an instructor or
+	an editor, and a non-randomized interface.
 	"""
 
 	def _predicate(self, context, result):
 		user = self.remoteUser
 		course = _get_course_from_assignment(context, user, request=self.request)
 		return 		self._is_authenticated \
+				and must_randomize( context ) \
 				and not has_permission(ACT_CONTENT_EDIT, context, self.request) \
 				and not is_course_instructor(course, user) \
-				and must_randomize( context )
 
 @component.adapter(IQRandomizedMatchingPart)
 @interface.implementer(IExternalObjectDecorator)

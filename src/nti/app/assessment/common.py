@@ -23,6 +23,8 @@ from zope.proxy import ProxyBase
 
 from zope.schema.interfaces import RequiredMissing
 
+from ZODB import loglevels
+
 from nti.app.assessment import get_evaluation_catalog
 from nti.app.assessment import get_submission_catalog
 
@@ -292,7 +294,8 @@ def find_course_for_assignment(assignment, user, exc=True):
 		package = find_interface(assignment, IContentPackage, strict=False)
 		course = ICourseInstance(package, None)
 		if course is not None:
-			logger.debug("No enrollment found, assuming generic course. Tests only?")
+			logger.log(loglevels.TRACE,
+					   "No enrollment found, assuming generic course. Tests only?")
 
 	# If one does not exist, we cannot grade because we have nowhere
 	# to dispatch to.

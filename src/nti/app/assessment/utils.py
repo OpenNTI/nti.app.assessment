@@ -190,32 +190,6 @@ def copy_evaluation(context, nonrandomized=False, is_instructor=True):
 		result = copy_survey(context)
 	return result
 
-def copy_taken_assignment(assignment, user):
-	new_parts = []
-	result = do_copy(assignment)
-	for part in assignment.parts:
-		new_part = do_copy(part)
-		new_parts.append(new_part)
-		question_set = part.question_set
-		if IQuestionBank.providedBy(question_set):
-			# select questions from bank
-			questions = questionbank_question_chooser(question_set, user=user)
-			# make a copy of the questions. Don't mark them as non-randomized
-			questions = [copy_question(x, nonrandomized=False) for x in questions]
-			# create a new bank with copy so we get all properties
-			new_bank = do_copy(question_set)
-			# copy question bank with new questions
-			question_set = question_set.copyTo(new_bank, questions=questions)
-			# mark as non randomzied so no drawing will be made
-			make_nonrandomized(question_set)
-		else:
-			# copy all question set. Don't mark questions them as non-randomized
-			question_set = copy_questionset(question_set, nonrandomized=False)
-		new_part.question_set = question_set
-	result.parts = new_parts
-	sublocations(result)
-	return result
-
 def check_assignment(assignment, user=None, is_instructor=False):
 	result = assignment
 	if is_instructor:

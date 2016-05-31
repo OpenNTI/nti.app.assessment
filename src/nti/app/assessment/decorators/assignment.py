@@ -16,6 +16,10 @@ from zope import interface
 
 from zope.location.interfaces import ILocation
 
+from nti.app.assessment import VIEW_RANDOMIZE
+from nti.app.assessment import VIEW_UNRANDOMIZE
+from nti.app.assessment import VIEW_RANDOMIZE_PARTS
+from nti.app.assessment import VIEW_UNRANDOMIZE_PARTS
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
 
@@ -32,6 +36,7 @@ from nti.app.assessment.decorators import _get_course_from_assignment
 from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
 
 from nti.app.assessment.interfaces import ACT_VIEW_SOLUTIONS
+
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 
 from nti.app.assessment.utils import assignment_download_precondition
@@ -43,6 +48,9 @@ from nti.appserver.pyramid_authorization import has_permission
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQTimedAssignment
+
+from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
+from nti.assessment.randomized.interfaces import IRandomizedPartsContainer
 
 from nti.common.property import Lazy
 
@@ -340,6 +348,24 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		return 		self._is_authenticated \
 				and has_permission(ACT_CONTENT_EDIT, context, self.request)
 
+	def _get_question_set_rels(self, context):
+		"""
+		We handle question sets here for performance. Gather any links
+		needed for a non-in-progress editable question set.
+		"""
+		rels = []
+		rels.append( VIEW_QUESTION_SET_CONTENTS )
+		if IRandomizedQuestionSet.providedBy( context ):
+			rels.append( VIEW_UNRANDOMIZE )
+		else:
+			rels.append( VIEW_RANDOMIZE )
+
+		if IRandomizedPartsContainer.providedBy( context ):
+			rels.append( VIEW_UNRANDOMIZE_PARTS )
+		else:
+			rels.append( VIEW_RANDOMIZE_PARTS )
+		return rels
+
 	def _do_decorate_external(self, context, result):
 		_links = result.setdefault(LINKS, [])
 
@@ -357,8 +383,10 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		# Do not provide insert link if evaluation is being used.
 		# TODO: We may want to limit if available as well.
 		# TODO: We may also want to exclude any edit links.
-		if IQuestionSet.providedBy(context) and not in_progress:
-			rels.append(VIEW_QUESTION_SET_CONTENTS)
+		if IQuestionSet.providedBy( context ) and not in_progress:
+			qset_rels = self._get_question_set_rels( context )
+			if qset_rels:
+				rels.extend( qset_rels )
 		for rel in rels:
 			link = Link(context, rel=rel, elements=('@@%s' % rel,))
 			interface.alsoProvides(link, ILocation)

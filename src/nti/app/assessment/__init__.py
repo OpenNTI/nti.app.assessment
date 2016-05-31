@@ -30,6 +30,18 @@ VIEW_ASSESSMENT_MOVE = 'AssessmentMove'
 #: The ordered-contents (insert) view for QuestionSets
 VIEW_QUESTION_SET_CONTENTS = 'ordered-contents'
 
+#: A view to mark the assessment object as randomized.
+VIEW_RANDOMIZE = 'Randomize'
+
+#: A view to mark the assessment object as unrandomized.
+VIEW_UNRANDOMIZE = 'Unrandomize'
+
+#: A view to mark the assessment object as containing randomized parts.
+VIEW_RANDOMIZE_PARTS = 'RandomizeParts'
+
+#: A view to mark the assessment object as not containing randomized parts.
+VIEW_UNRANDOMIZE_PARTS = 'UnrandomizeParts'
+
 def get_submission_catalog():
 	return component.queryUtility(IMetadataCatalog, name=SUBMISSION_CATALOG_NAME)
 

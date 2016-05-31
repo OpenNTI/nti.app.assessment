@@ -244,6 +244,11 @@
 				for="nti.assessment.randomized.interfaces.IRandomizedQuestionSet
 				     pyramid.interfaces.IRequest"/>
 
+	<subscriber factory=".randomized._QQuestionBankDecorator"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator"
+				for="nti.assessment.randomized.interfaces.IQuestionBank
+				     pyramid.interfaces.IRequest"/>
+
 	<!-- editor -->
 	<subscriber factory=".course._CourseEditorLinksDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"

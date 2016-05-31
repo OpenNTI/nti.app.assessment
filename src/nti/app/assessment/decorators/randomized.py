@@ -21,10 +21,12 @@ from nti.appserver.pyramid_authorization import has_permission
 from nti.assessment.randomized import randomize
 from nti.assessment.randomized import shuffle_list
 from nti.assessment.randomized import must_randomize
+from nti.assessment.randomized import questionbank_question_chooser
 from nti.assessment.randomized import shuffle_matching_part_solutions
 from nti.assessment.randomized import shuffle_multiple_choice_part_solutions
 from nti.assessment.randomized import shuffle_multiple_choice_multiple_answer_part_solutions
 
+from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
 from nti.assessment.randomized.interfaces import IQRandomizedMatchingPart
 from nti.assessment.randomized.interfaces import IQRandomizedOrderingPart
@@ -51,8 +53,8 @@ class _AbstractNonEditorRandomizingDecorator(AbstractAuthenticatedRequestAwareDe
 				and not is_course_instructor( course, user ) \
 				and must_randomize( context )
 
-@interface.implementer(IExternalObjectDecorator)
 @component.adapter(IQRandomizedMatchingPart)
+@interface.implementer(IExternalObjectDecorator)
 class _QRandomizedMatchingPartDecorator(_AbstractNonEditorRandomizingDecorator):
 
 	def _do_decorate_external(self, context, result):
@@ -61,11 +63,11 @@ class _QRandomizedMatchingPartDecorator(_AbstractNonEditorRandomizingDecorator):
 			values = list(result['values'])
 			shuffle_list(generator, result['values'])
 			shuffle_matching_part_solutions(randomize(context=context), # new generator
-											 values,
-											 result['solutions'])
+											values,
+											result['solutions'])
 
-@interface.implementer(IExternalObjectDecorator)
 @component.adapter(IQRandomizedOrderingPart)
+@interface.implementer(IExternalObjectDecorator)
 class _QRandomizedOrderingPartDecorator(_QRandomizedMatchingPartDecorator):
 	pass
 
@@ -80,8 +82,8 @@ class _QRandomizedMultipleChoicePartDecorator(_AbstractNonEditorRandomizingDecor
 			choices = list(result['choices'])
 			shuffle_list(generator, result['choices'])
 			shuffle_multiple_choice_part_solutions(randomize(context=context), #  new generator
-													choices,
-													solutions)
+												   choices,
+												   solutions)
 
 @interface.implementer(IExternalObjectDecorator)
 @component.adapter(IQRandomizedMultipleChoiceMultipleAnswerPart)
@@ -93,11 +95,11 @@ class _QRandomizedMultipleChoiceMultipleAnswerPartDecorator(_AbstractNonEditorRa
 			choices = list(result['choices'])
 			shuffle_list(generator, result['choices'])
 			shuffle_multiple_choice_multiple_answer_part_solutions(randomize(context=context), #  new generator
-																	choices,
-																	result['solutions'])
+																   choices,
+																   result['solutions'])
 
-@interface.implementer(IExternalObjectDecorator)
 @component.adapter(IRandomizedQuestionSet)
+@interface.implementer(IExternalObjectDecorator)
 class _QRandomizedQuestionSetDecorator(_AbstractNonEditorRandomizingDecorator):
 
 	def _do_decorate_external(self, context, result):
@@ -105,3 +107,12 @@ class _QRandomizedQuestionSetDecorator(_AbstractNonEditorRandomizingDecorator):
 		questions = result.get('questions', ())
 		if generator and questions:
 			shuffle_list(generator, questions)
+
+@component.adapter(IQuestionBank)
+@interface.implementer(IExternalObjectDecorator)
+class _QQuestionBankDecorator(object):
+
+	def _do_decorate_external(self, context, result):
+		questions = result.get('questions', ())
+		questions = questionbank_question_chooser(context, questions)
+		result['questions'] = questions

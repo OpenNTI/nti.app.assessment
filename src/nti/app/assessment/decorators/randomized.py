@@ -110,7 +110,7 @@ class _QRandomizedQuestionSetDecorator(_AbstractNonEditorRandomizingDecorator):
 
 @component.adapter(IQuestionBank)
 @interface.implementer(IExternalObjectDecorator)
-class _QQuestionBankDecorator(object):
+class _QQuestionBankDecorator(_AbstractNonEditorRandomizingDecorator):
 
 	def _do_decorate_external(self, context, result):
 		questions = result.get('questions', ())

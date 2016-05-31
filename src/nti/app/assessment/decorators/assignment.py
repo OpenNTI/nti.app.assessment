@@ -171,7 +171,7 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			result['IsTimedAssignment'] = False
 			return
 
-		max_time_allowed = get_max_time_allowed( assignment, course )
+		max_time_allowed = get_max_time_allowed(assignment, course)
 		result['IsTimedAssignment'] = True
 		result['MaximumTimeAllowed'] = result['maximum_time_allowed' ] = max_time_allowed
 
@@ -199,8 +199,7 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			return
 		item = get_assessment_metadata_item(course, self.remoteUser, context.ntiid)
 		if item is not None:
-			metadata = {'Duration': item.Duration,
-						'StartTime': item.StartTime}
+			metadata = {'Duration': item.Duration, 'StartTime': item.StartTime}
 			result['Metadata'] = metadata
 
 class _AssignmentQuestionContentRootURLAdder(AbstractAuthenticatedRequestAwareDecorator):
@@ -329,7 +328,7 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 	def get_courses(self, context):
 		result = find_interface(context, ICourseInstance, strict=False)
-		return get_courses( result )
+		return get_courses(result)
 
 	def _has_edit_link(self, _links):
 		for lnk in _links:
@@ -344,22 +343,22 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	def _do_decorate_external(self, context, result):
 		_links = result.setdefault(LINKS, [])
 
-		courses = self.get_courses( context )
-		savepoints = has_savepoints( context, courses )
-		submissions = has_submissions( context, courses )
+		courses = self.get_courses(context)
+		savepoints = has_savepoints(context, courses)
+		submissions = has_submissions(context, courses)
 		in_progress = savepoints or submissions
 		result['LimitedEditingCapabilities'] = in_progress
 		result['LimitedEditingCapabilitiesSavepoints'] = savepoints
 		result['LimitedEditingCapabilitiesSubmissions'] = submissions
 
-		rels = ['schema',]
+		rels = ['schema', ]
 		if not self._has_edit_link(_links):
-			rels.append( 'edit' )
+			rels.append('edit')
 		# Do not provide insert link if evaluation is being used.
 		# TODO: We may want to limit if available as well.
 		# TODO: We may also want to exclude any edit links.
-		if IQuestionSet.providedBy( context ) and not in_progress:
-			rels.append( VIEW_QUESTION_SET_CONTENTS )
+		if IQuestionSet.providedBy(context) and not in_progress:
+			rels.append(VIEW_QUESTION_SET_CONTENTS)
 		for rel in rels:
 			link = Link(context, rel=rel, elements=('@@%s' % rel,))
 			interface.alsoProvides(link, ILocation)
@@ -396,8 +395,8 @@ class _AssessmentPracticeLinkDecorator(AbstractAuthenticatedRequestAwareDecorato
 		user = self.remoteUser
 		course = _get_course_from_assignment(context, user, request=self.request)
 		return 		self._is_authenticated \
-				and (  has_permission(ACT_CONTENT_EDIT, context, self.request) \
-					or is_course_instructor( course, user ))
+				and (has_permission(ACT_CONTENT_EDIT, context, self.request) \
+					or is_course_instructor(course, user))
 
 	def _do_decorate_external(self, context, result):
 		_links = result.setdefault(LINKS, [])

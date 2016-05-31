@@ -16,8 +16,9 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedb
 
 from nti.app.contentlibrary.decorators import AbstractLibraryPathLinkDecorator
 
-from nti.externalization.singleton import SingletonDecorator
 from nti.externalization.interfaces import IExternalMappingDecorator
+
+from nti.externalization.singleton import SingletonDecorator
 
 @interface.implementer(IExternalMappingDecorator)
 @component.adapter(IUsersCourseAssignmentHistoryItemFeedback)

@@ -113,6 +113,6 @@ class _QRandomizedQuestionSetDecorator(_AbstractNonEditorRandomizingDecorator):
 class _QQuestionBankDecorator(_AbstractNonEditorRandomizingDecorator):
 
 	def _do_decorate_external(self, context, result):
-		questions = result.get('questions', ())
+		questions = result.get('questions') or ()
 		questions = questionbank_question_chooser(context, questions)
 		result['questions'] = questions

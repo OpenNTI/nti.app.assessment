@@ -27,11 +27,12 @@ from nti.assessment.randomized import shuffle_multiple_choice_part_solutions
 from nti.assessment.randomized import shuffle_multiple_choice_multiple_answer_part_solutions
 
 from nti.assessment.randomized.interfaces import IQuestionBank
+from nti.assessment.randomized.interfaces import IQMatchingPart
+from nti.assessment.randomized.interfaces import IQOrderingPart
+from nti.assessment.randomized.interfaces import IQRandomizedPart
+from nti.assessment.randomized.interfaces import IQMultipleChoicePart
 from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
-from nti.assessment.randomized.interfaces import IQRandomizedMatchingPart
-from nti.assessment.randomized.interfaces import IQRandomizedOrderingPart
-from nti.assessment.randomized.interfaces import IQRandomizedMultipleChoicePart
-from nti.assessment.randomized.interfaces import IQRandomizedMultipleChoiceMultipleAnswerPart
+from nti.assessment.randomized.interfaces import IQMultipleChoiceMultipleAnswerPart
 
 from nti.contenttypes.courses.utils import is_course_instructor
 
@@ -53,9 +54,18 @@ class _AbstractNonEditorRandomizingDecorator(AbstractAuthenticatedRequestAwareDe
 				and not has_permission(ACT_CONTENT_EDIT, context, self.request) \
 				and not is_course_instructor(course, user) \
 
-@component.adapter(IQRandomizedMatchingPart)
+class _AbstractNonEditorRandomizingPartDecorator(_AbstractNonEditorRandomizingDecorator):
+	"""
+	An abstract decorator that only randomizes if we have a randomized part.
+	"""
+
+	def _predicate(self, context, result):
+		return 	IQRandomizedPart.providedBy( context ) \
+			and super(_AbstractNonEditorRandomizingPartDecorator, self)._predicate( context, result )
+
+@component.adapter(IQMatchingPart)
 @interface.implementer(IExternalObjectDecorator)
-class _QRandomizedMatchingPartDecorator(_AbstractNonEditorRandomizingDecorator):
+class _QRandomizedMatchingPartDecorator(_AbstractNonEditorRandomizingPartDecorator):
 
 	def _do_decorate_external(self, context, result):
 		generator = randomize(context=context)
@@ -66,14 +76,20 @@ class _QRandomizedMatchingPartDecorator(_AbstractNonEditorRandomizingDecorator):
 											values,
 											result['solutions'])
 
-@component.adapter(IQRandomizedOrderingPart)
+@component.adapter(IQOrderingPart)
 @interface.implementer(IExternalObjectDecorator)
 class _QRandomizedOrderingPartDecorator(_QRandomizedMatchingPartDecorator):
 	pass
 
 @interface.implementer(IExternalObjectDecorator)
-@component.adapter(IQRandomizedMultipleChoicePart)
-class _QRandomizedMultipleChoicePartDecorator(_AbstractNonEditorRandomizingDecorator):
+@component.adapter(IQMultipleChoicePart)
+class _QRandomizedMultipleChoicePartDecorator(_AbstractNonEditorRandomizingPartDecorator):
+
+	def _predicate(self, context, result):
+		# Cannot handle these types of IQMultipleChoiceParts
+		# XXX: Should this implement IQMultipleChoicePart then?
+		return 	not IQMultipleChoiceMultipleAnswerPart.providedBy( context ) \
+			and super(_QRandomizedMultipleChoicePartDecorator, self)._predicate( context, result )
 
 	def _do_decorate_external(self, context, result):
 		generator = randomize(context=context)
@@ -86,8 +102,8 @@ class _QRandomizedMultipleChoicePartDecorator(_AbstractNonEditorRandomizingDecor
 												   solutions)
 
 @interface.implementer(IExternalObjectDecorator)
-@component.adapter(IQRandomizedMultipleChoiceMultipleAnswerPart)
-class _QRandomizedMultipleChoiceMultipleAnswerPartDecorator(_AbstractNonEditorRandomizingDecorator):
+@component.adapter(IQMultipleChoiceMultipleAnswerPart)
+class _QRandomizedMultipleChoiceMultipleAnswerPartDecorator(_AbstractNonEditorRandomizingPartDecorator):
 
 	def _do_decorate_external(self, context, result):
 		generator = randomize(context=context)
@@ -103,6 +119,7 @@ class _QRandomizedMultipleChoiceMultipleAnswerPartDecorator(_AbstractNonEditorRa
 class _QRandomizedQuestionSetDecorator(_AbstractNonEditorRandomizingDecorator):
 
 	def _do_decorate_external(self, context, result):
+		# FIXME: part container
 		generator = randomize(context=context)
 		questions = result.get('questions', ())
 		if generator and questions:

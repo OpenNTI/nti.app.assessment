@@ -221,22 +221,22 @@
 	<!-- randomized -->
 	<subscriber factory=".randomized._QRandomizedMatchingPartDecorator"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
-				for="nti.assessment.randomized.interfaces.IQRandomizedMatchingPart
+				for="nti.assessment.randomized.interfaces.IQMatchingPart
 				     pyramid.interfaces.IRequest"/>
 
 	<subscriber factory=".randomized._QRandomizedOrderingPartDecorator"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
-				for="nti.assessment.randomized.interfaces.IQRandomizedOrderingPart
+				for="nti.assessment.randomized.interfaces.IQOrderingPart
 				     pyramid.interfaces.IRequest"/>
 
 	<subscriber factory=".randomized._QRandomizedMultipleChoicePartDecorator"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
-				for="nti.assessment.randomized.interfaces.IQRandomizedMultipleChoicePart
+				for="nti.assessment.randomized.interfaces.IQMultipleChoicePart
 				     pyramid.interfaces.IRequest"/>>
 
 	<subscriber factory=".randomized._QRandomizedMultipleChoiceMultipleAnswerPartDecorator"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
-				for="nti.assessment.randomized.interfaces.IQRandomizedMultipleChoiceMultipleAnswerPart
+				for="nti.assessment.randomized.interfaces.IQMultipleChoiceMultipleAnswerPart
 				     pyramid.interfaces.IRequest"/>
 
 	<subscriber factory=".randomized._QRandomizedQuestionSetDecorator"

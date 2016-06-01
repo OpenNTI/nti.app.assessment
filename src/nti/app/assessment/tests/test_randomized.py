@@ -103,7 +103,7 @@ class TestRandomized(ApplicationLayerTest):
 			result.append( part.get( part_attr ) )
 		return tuple( result )
 
-	def _validate_random_qset(self, students, href):
+	def _validate_random_qset(self, students, href, random=True):
 		"""
 		For the students and href, make sure this qset is randomized, based
 		on order of part mimetypes.
@@ -115,7 +115,10 @@ class TestRandomized(ApplicationLayerTest):
 			qset = res.json_body
 			part_mimes = self._get_qset_part_attr( qset, 'MimeType' )
 			values.add( part_mimes )
-		assert_that( values, has_length( greater_than( 1 )))
+		if random:
+			assert_that( values, has_length( greater_than( 1 )))
+		else:
+			assert_that( values, has_length( 1 ))
 
 	def _get_question_part_attr(self, question, part_attr):
 		"""
@@ -187,7 +190,7 @@ class TestRandomized(ApplicationLayerTest):
 		"""
 		Test randomize/unrandomize links. Duplicate operations do not change anything.
 		"""
-		students = ('student_with_no_links',)
+		students = ('student_with_no_links', 'atticus', 'declan', 'ozymandius')
 		self._enroll_users( students )
 		# Upload random question set.
 		course_oid = self._get_course_oid()
@@ -200,6 +203,7 @@ class TestRandomized(ApplicationLayerTest):
 		random_href = self.require_link_href_with_rel(qset, VIEW_RANDOMIZE)
 		self.forbid_link_with_rel(qset, VIEW_UNRANDOMIZE)
 		self.forbid_link_with_rel(qset, VIEW_UNRANDOMIZE_PARTS)
+		self._validate_random_qset(students, qset_href, random=False)
 
 		# Randomize qset
 		self.testapp.post( random_href )
@@ -210,6 +214,7 @@ class TestRandomized(ApplicationLayerTest):
 		self.require_link_href_with_rel(qset, VIEW_UNRANDOMIZE)
 		self.forbid_link_with_rel(qset, VIEW_RANDOMIZE)
 		self.forbid_link_with_rel(qset, VIEW_UNRANDOMIZE_PARTS)
+		self._validate_random_qset(students, qset_href)
 
 		# Randomize parts
 		self.testapp.post( random_parts_href )
@@ -220,6 +225,7 @@ class TestRandomized(ApplicationLayerTest):
 		unrandom_href = self.require_link_href_with_rel(qset, VIEW_UNRANDOMIZE)
 		self.forbid_link_with_rel(qset, VIEW_RANDOMIZE)
 		self.forbid_link_with_rel(qset, VIEW_RANDOMIZE_PARTS)
+		self._validate_random_qset(students, qset_href)
 
 		# Unrandomize qset.
 		self.testapp.post( unrandom_href )
@@ -230,6 +236,7 @@ class TestRandomized(ApplicationLayerTest):
 		self.require_link_href_with_rel(qset, VIEW_RANDOMIZE)
 		self.forbid_link_with_rel(qset, VIEW_UNRANDOMIZE)
 		self.forbid_link_with_rel(qset, VIEW_RANDOMIZE_PARTS)
+		self._validate_random_qset(students, qset_href, random=False)
 
 		# Unrandomize parts
 		self.testapp.post( unrandom_parts_href )
@@ -240,6 +247,7 @@ class TestRandomized(ApplicationLayerTest):
 		random_href = self.require_link_href_with_rel(qset, VIEW_RANDOMIZE)
 		self.forbid_link_with_rel(qset, VIEW_UNRANDOMIZE)
 		self.forbid_link_with_rel(qset, VIEW_UNRANDOMIZE_PARTS)
+		self._validate_random_qset(students, qset_href, random=False)
 
 		rel_list = (VIEW_UNRANDOMIZE, VIEW_RANDOMIZE, VIEW_RANDOMIZE_PARTS, VIEW_UNRANDOMIZE_PARTS)
 		# Students have none

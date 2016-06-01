@@ -15,8 +15,6 @@ from nti.app.assessment.evaluations.utils import export_evaluation_content
 
 from nti.app.assessment.interfaces import ICourseEvaluations
 
-from nti.app.assessment.utils import copy_evaluation
-
 from nti.app.products.courseware.resources.utils import get_course_filer
 
 from nti.assessment import EVALUATION_INTERFACES
@@ -53,7 +51,6 @@ class EvaluationsExporter(BaseSectionExporter):
 		def _ext(item):
 			evaluation = removeAllProxies(item)
 			if target_filer is not None:
-				evaluation = copy_evaluation(evaluation)
 				export_evaluation_content(evaluation, source_filer, target_filer)
 			ext_obj = to_external_object(evaluation, name="exporter", decorate=False)
 			return ext_obj

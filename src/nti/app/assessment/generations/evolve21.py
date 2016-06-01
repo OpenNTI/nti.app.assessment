@@ -135,6 +135,6 @@ def do_evolve(context, generation=generation):
 def evolve(context):
 	"""
 	Evolve to generation 21 by updating orphaned assessments
-	and indexing into correct site.
+	and indexing into the correct site.
 	"""
 	do_evolve(context)

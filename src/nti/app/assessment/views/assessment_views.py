@@ -188,18 +188,9 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 	"""
 
 	@Lazy
-	def is_course_instructor(self):
-		instance = ICourseInstance(self.context)
-		return is_course_instructor_or_editor(instance, self.remoteUser)
-
-	@Lazy
 	def _is_editor(self):
 		instance = ICourseInstance(self.context)
 		return has_permission(nauth.ACT_CONTENT_EDIT, instance)
-
-	@Lazy
-	def is_editor_or_instructor(self):
-		return self.is_course_instructor or self._is_editor
 
 	def _do_outline(self, instance, items, outline):
 		# reverse question set map

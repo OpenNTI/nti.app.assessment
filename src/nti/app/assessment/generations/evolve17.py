@@ -73,7 +73,7 @@ def do_evolve(context, generation=generation):
 
 		eval_catalog = install_evaluation_catalog(ds_folder, intids)
 		lib_catalog = get_library_catalog()
-		
+
 		# Load library
 		library = component.queryUtility(IContentPackageLibrary)
 		if library is not None:
@@ -83,13 +83,13 @@ def do_evolve(context, generation=generation):
 			with current_site(site):
 				registry = component.getSiteManager()
 				_process_items(registry,
-							   eval_catalog, 
+							   eval_catalog,
 							   lib_catalog,
 							   intids,
 							   seen)
 
 		component.getGlobalSiteManager().unregisterUtility(mock_ds, IDataserver)
-		logger.info('Assessment evolution %s done. %s items indexed', 
+		logger.info('Assessment evolution %s done. %s items indexed',
 					generation, len(seen))
 
 def evolve(context):

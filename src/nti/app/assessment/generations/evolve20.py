@@ -38,7 +38,7 @@ from nti.site.hostpolicy import get_all_host_sites
 def _process_pacakge(package, intids):
 	def _recur(unit):
 		items = IQAssessmentItemContainer(unit)
-		for ntiid, item in tuple(items.items()): # mutating
+		for ntiid, item in tuple(items.items()):  # mutating
 			provided = iface_of_assessment(item)
 			registered = component.queryUtility(provided, name=ntiid)
 			if registered is None:
@@ -46,8 +46,8 @@ def _process_pacakge(package, intids):
 				if intids.queryId(item) is not None:
 					lifecycleevent.removed(item)
 				item.__parent__ = None
-				logger.warn("%s has been removed from container %s", 
-						    ntiid, unit.ntiid)
+				logger.warn("%s has been removed from container %s",
+							ntiid, unit.ntiid)
 			elif registered is not item:
 				if intids.queryId(registered) is None:
 					intids.register(registered)
@@ -58,12 +58,12 @@ def _process_pacakge(package, intids):
 				items[ntiid] = registered
 				# update indices
 				lifecycleevent.modified(registered)
-				logger.warn("%s has been updated in container %s", 
-						    ntiid, unit.ntiid)
+				logger.warn("%s has been updated in container %s",
+							ntiid, unit.ntiid)
 		for child in unit.children or ():
 			_recur(child)
 	_recur(package)
-	
+
 def _process_registry(registry, intids, seen):
 	for package in yield_sync_content_packages():
 		if package.ntiid not in seen:
@@ -91,7 +91,7 @@ def do_evolve(context, generation=generation):
 	ds_folder = conn.root()['nti.dataserver']
 	lsm = ds_folder.getSiteManager()
 	intids = lsm.getUtility(IIntIds)
-	
+
 	mock_ds = MockDataserver()
 	mock_ds.root = ds_folder
 	component.provideUtility(mock_ds, IDataserver)

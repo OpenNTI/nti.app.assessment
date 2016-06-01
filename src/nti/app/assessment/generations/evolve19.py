@@ -27,7 +27,7 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQEvaluation
 
 from nti.coremetadata.interfaces import IPublishable
-from nti.coremetadata.interfaces import INoPublishLink 
+from nti.coremetadata.interfaces import INoPublishLink
 
 from nti.dataserver.interfaces import IDataserver
 from nti.dataserver.interfaces import IOIDResolver
@@ -75,7 +75,7 @@ def do_evolve(context, generation=generation):
 	ds_folder = conn.root()['nti.dataserver']
 	lsm = ds_folder.getSiteManager()
 	intids = lsm.getUtility(IIntIds)
-	
+
 	mock_ds = MockDataserver()
 	mock_ds.root = ds_folder
 	component.provideUtility(mock_ds, IDataserver)

@@ -44,7 +44,7 @@ from nti.site.utils import unregisterUtility
 from nti.traversal.traversal import find_interface
 
 def _process_items(registry, intids, seen):
-	site_library = component.getUtility( IContentPackageLibrary )
+	site_library = component.getUtility(IContentPackageLibrary)
 	if IGlobalContentPackageLibrary.providedBy(site_library):
 		return
 
@@ -57,7 +57,7 @@ def _process_items(registry, intids, seen):
 			logger.info('Empty assessment registered (%s)', name)
 			unregisterUtility(registry, provided=IQEvaluation, name=name)
 			continue
-		item = removeAllProxies( item )
+		item = removeAllProxies(item)
 		__traceback_info__ = item
 		old_parent = item.__parent__
 		if old_parent is None:
@@ -80,7 +80,7 @@ def _process_items(registry, intids, seen):
 				addIntId(item)
 
 		if old_parent != new_parent:
-			new_parent = removeAllProxies( new_parent )
+			new_parent = removeAllProxies(new_parent)
 			# These are probably locked objects that we never re-parented
 			# content units on subsequent syncs.
 			item.__parent__ = new_parent

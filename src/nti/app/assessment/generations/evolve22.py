@@ -59,7 +59,7 @@ def _process_items(registry, seen):
 		seen.add(name)
 		modified = False
 		parts = PersistentList()
-		question = removeAllProxies( item )
+		question = removeAllProxies(item)
 		for part in question.parts or ():
 			if isinstance(part, QRandomizedMatchingPart):
 				factory = QMatchingPart
@@ -71,7 +71,7 @@ def _process_items(registry, seen):
 				factory = QMultipleChoiceMultipleAnswerPart
 			else:
 				factory = None
-	
+
 			if factory is not None:
 				modified = True
 				new_part = factory()
@@ -82,17 +82,17 @@ def _process_items(registry, seen):
 						setattr(new_part, key, value)
 				# mark randomized
 				new_part.randomized = True
-				new_part.__parent__ = question # set lineage
+				new_part.__parent__ = question  # set lineage
 				# ground
 				part.__parent__ = None
 			else:
 				parts.append(part)
-				
+
 		if modified:
 			question.parts = parts
 			question._p_changed = True
 			logger.info("Question %s updated", name)
-			
+
 def do_evolve(context, generation=generation):
 	logger.info("Assessment evolution %s started", generation);
 

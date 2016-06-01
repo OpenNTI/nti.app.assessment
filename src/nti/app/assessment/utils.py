@@ -40,8 +40,6 @@ from nti.assessment.interfaces import IQFilePart
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQEvaluationContainerIdGetter
 
-from nti.assessment.randomized import questionbank_question_chooser
-
 from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.randomized.interfaces import IPrincipalSeedSelector
 
@@ -77,13 +75,6 @@ def r47694():
 			_r47694_map = simplejson.load(fp)
 	return _r47694_map
 
-def make_nonrandomized(context):
-	iface = getattr(context, 'nonrandomized_interface', None)
-	if iface is not None:
-		interface.alsoProvides(context, iface)
-		return True
-	return False
-
 def make_sha224randomized(context):
 	iface = getattr(context, 'sha224randomized_interface', None)
 	if iface is not None:
@@ -98,7 +89,7 @@ def sublocations(context):
 
 def has_question_bank(a):
 	if IQAssignment.providedBy(a):
-		for part in a.parts:
+		for part in a.parts or ():
 			if IQuestionBank.providedBy(part.question_set):
 				return True
 	return False
@@ -111,51 +102,29 @@ def do_copy(source):
 		result = copy.copy(source)
 	return result
 	
-def copy_part(part, nonrandomized=False, sha224randomized=False):
+def copy_part(part):
 	result = do_copy(part)
-	if nonrandomized:
-		make_nonrandomized(result)
-	elif sha224randomized:
-		make_sha224randomized(result)
 	return result
 
-def copy_question(q, nonrandomized=False):
+def copy_question(q):
 	result = do_copy(q)
-	result.parts = [copy_part(p, nonrandomized) for p in q.parts]
-	if nonrandomized:
-		make_nonrandomized(result)
+	result.parts = [copy_part(p) for p in q.parts]
 	sublocations(result)
 	return result
 
-def copy_questionset(qs, nonrandomized=False):
+def copy_questionset(qs):
 	result = do_copy(qs)
-	result.questions = [copy_question(q, nonrandomized) for q in qs.Items]
-	if nonrandomized:
-		make_nonrandomized(result)
+	result.questions = [copy_question(q) for q in qs.Items]
 	sublocations(result)
 	return result
 
-def copy_questionbank(bank, is_instructor=False, qsids_to_strip=None, user=None):
-	if is_instructor:
-		result = copy_questionset(bank, True)
-	else:
-		result = bank.copy(questions=questionbank_question_chooser(bank, user=user))
-		if qsids_to_strip is not None:
-			drawn_ntiids = {q.ntiid for q in result.questions}
-			# remove any question that has not been drawn
-			bank_ntiids = {q.ntiid for q in bank.questions}
-			if len(bank_ntiids) != len(drawn_ntiids):
-				qsids_to_strip.update(bank_ntiids.difference(drawn_ntiids))
-	sublocations(result)
-	return result
-
-def copy_assignment(assignment, nonrandomized=False):
+def copy_assignment(assignment):
 	new_parts = []
 	result = do_copy(assignment)
 	for part in assignment.parts:
 		new_part = do_copy(part)
 		new_parts.append(new_part)
-		new_part.question_set = copy_questionset(part.question_set, nonrandomized)
+		new_part.question_set = copy_questionset(part.question_set)
 	result.parts = new_parts
 	sublocations(result)
 	return result

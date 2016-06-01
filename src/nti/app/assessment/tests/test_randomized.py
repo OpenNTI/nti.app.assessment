@@ -103,47 +103,6 @@ class TestRandomized(ApplicationLayerTest):
 			result.append( part.get( part_attr ) )
 		return tuple( result )
 
-	def _validate_random_qset(self, students, href, random=True):
-		"""
-		For the students and href, make sure this qset is randomized, based
-		on order of part mimetypes.
-		"""
-		values = set()
-		for student in students:
-			student_env = self._make_extra_environ( username=student )
-			res = self.testapp.get(href, extra_environ=student_env)
-			qset = res.json_body
-			part_mimes = self._get_qset_part_attr( qset, 'MimeType' )
-			values.add( part_mimes )
-		if random:
-			assert_that( values, has_length( greater_than( 1 )))
-		else:
-			assert_that( values, has_length( 1 ))
-
-	def _get_question_part_attr(self, question, part_attr):
-		"""
-		For a question, find all the attrs for all the underlying parts
-		(assuming one part per question).
-		"""
-		parts = question.get( 'parts' )
-		part = parts[0]
-		values = part.get( part_attr )
-		return tuple( values )
-
-	def _validate_random_question(self, students, href, question_attr):
-		"""
-		For the students and href, make sure this question is randomized, based
-		on order of given attr.
-		"""
-		values = set()
-		for student in students:
-			student_env = self._make_extra_environ( username=student )
-			res = self.testapp.get(href, extra_environ=student_env)
-			qset = res.json_body
-			part_mimes = self._get_question_part_attr( qset, question_attr )
-			values.add( part_mimes )
-		assert_that( values, has_length( greater_than( 1 )))
-
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_random(self):
 		students = ('student11', 'student12', 'student13', 'student14')
@@ -171,22 +130,47 @@ class TestRandomized(ApplicationLayerTest):
 							   "application/vnd.nextthought.assessment.randomizedmatchingpart",
 							   "application/vnd.nextthought.assessment.filepart" ))
 
-		# But qset is
-		self._validate_random_qset(students, qset_href)
+		# QuestionSet is random for students, as well as the concrete parts.
+		self._validate_random_qset_and_parts(students, qset_href, random_set=True, random_parts=True)
 
-		# As are the questions, if applicable.
-		for question in questions:
-			question_href = question.get( 'href' )
-			part_type = self._get_question_part_attr( question, 'MimeType' )
-			if 'randomized' not in part_type:
-				continue
-			part_attr = 'choices'
-			if part_type == "application/vnd.nextthought.assessment.randomizedmatchingpart":
-				part_attr = 'labels'
-			self._validate_random_question( students, question_href, part_attr )
+	def _validate_random_qset_and_parts(self, students, href, random_set=True, random_parts=True):
+		"""
+		For the students and href, make sure this qset is randomized, based
+		on order of part mimetypes.
+		"""
+		question_mime_order = set()
+		part_choice_order = dict()
+		for student in students:
+			student_env = self._make_extra_environ( username=student )
+			res = self.testapp.get(href, extra_environ=student_env)
+			qset = res.json_body
+			student_mimes = list()
+			for question in qset.get( 'questions' ):
+				for part in question.get( 'parts' ):
+					part_type = part.get( 'MimeType'  )
+					student_mimes.append( part_type )
+					if part_type == 'application/vnd.nextthought.assessment.filepart':
+						continue
+					ntiid = part.get( 'NTIID' )
+					part_order = part_choice_order.setdefault( ntiid, set() )
+					student_choice = part.get( 'values', part.get( 'choices' ))
+					part_order.add( tuple( student_choice ) )
+			question_mime_order.add( tuple( student_mimes ) )
+
+		if random_set:
+			assert_that( question_mime_order, has_length( greater_than( 1 )))
+		else:
+			assert_that( question_mime_order, has_length( 1 ))
+
+		if random_parts:
+			for choice_order in part_choice_order.values():
+				assert_that( choice_order, has_length( greater_than( 1 )))
+		else:
+			for choice_order in part_choice_order.values():
+				assert_that( choice_order, has_length( 1 ))
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
-	def test_randomize_api(self):
+	def test_randomize_sets_and_parts(self):
 		"""
 		Test randomize/unrandomize links. Duplicate operations do not change anything.
 		"""
@@ -203,7 +187,7 @@ class TestRandomized(ApplicationLayerTest):
 		random_href = self.require_link_href_with_rel(qset, VIEW_RANDOMIZE)
 		self.forbid_link_with_rel(qset, VIEW_UNRANDOMIZE)
 		self.forbid_link_with_rel(qset, VIEW_UNRANDOMIZE_PARTS)
-		self._validate_random_qset(students, qset_href, random=False)
+		self._validate_random_qset_and_parts(students, qset_href, random_set=False, random_parts=False)
 
 		# Randomize qset
 		self.testapp.post( random_href )
@@ -214,7 +198,7 @@ class TestRandomized(ApplicationLayerTest):
 		self.require_link_href_with_rel(qset, VIEW_UNRANDOMIZE)
 		self.forbid_link_with_rel(qset, VIEW_RANDOMIZE)
 		self.forbid_link_with_rel(qset, VIEW_UNRANDOMIZE_PARTS)
-		self._validate_random_qset(students, qset_href)
+		self._validate_random_qset_and_parts(students, qset_href, random_set=True, random_parts=False)
 
 		# Randomize parts
 		self.testapp.post( random_parts_href )
@@ -225,7 +209,7 @@ class TestRandomized(ApplicationLayerTest):
 		unrandom_href = self.require_link_href_with_rel(qset, VIEW_UNRANDOMIZE)
 		self.forbid_link_with_rel(qset, VIEW_RANDOMIZE)
 		self.forbid_link_with_rel(qset, VIEW_RANDOMIZE_PARTS)
-		self._validate_random_qset(students, qset_href)
+		self._validate_random_qset_and_parts(students, qset_href, random_set=True, random_parts=True)
 
 		# Unrandomize qset.
 		self.testapp.post( unrandom_href )
@@ -236,7 +220,7 @@ class TestRandomized(ApplicationLayerTest):
 		self.require_link_href_with_rel(qset, VIEW_RANDOMIZE)
 		self.forbid_link_with_rel(qset, VIEW_UNRANDOMIZE)
 		self.forbid_link_with_rel(qset, VIEW_RANDOMIZE_PARTS)
-		self._validate_random_qset(students, qset_href, random=False)
+		self._validate_random_qset_and_parts(students, qset_href, random_set=False, random_parts=True)
 
 		# Unrandomize parts
 		self.testapp.post( unrandom_parts_href )
@@ -247,7 +231,7 @@ class TestRandomized(ApplicationLayerTest):
 		random_href = self.require_link_href_with_rel(qset, VIEW_RANDOMIZE)
 		self.forbid_link_with_rel(qset, VIEW_UNRANDOMIZE)
 		self.forbid_link_with_rel(qset, VIEW_UNRANDOMIZE_PARTS)
-		self._validate_random_qset(students, qset_href, random=False)
+		self._validate_random_qset_and_parts(students, qset_href, random_set=False, random_parts=False)
 
 		rel_list = (VIEW_UNRANDOMIZE, VIEW_RANDOMIZE, VIEW_RANDOMIZE_PARTS, VIEW_UNRANDOMIZE_PARTS)
 		# Students have none

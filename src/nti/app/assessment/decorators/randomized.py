@@ -20,7 +20,6 @@ from nti.appserver.pyramid_authorization import has_permission
 
 from nti.assessment.randomized import randomize
 from nti.assessment.randomized import shuffle_list
-from nti.assessment.randomized import must_randomize
 from nti.assessment.randomized import questionbank_question_chooser
 from nti.assessment.randomized import shuffle_matching_part_solutions
 from nti.assessment.randomized import shuffle_multiple_choice_part_solutions
@@ -50,9 +49,8 @@ class _AbstractNonEditorRandomizingDecorator(AbstractAuthenticatedRequestAwareDe
 		user = self.remoteUser
 		course = _get_course_from_assignment(context, user, request=self.request)
 		return 		self._is_authenticated \
-				and must_randomize( context ) \
-				and not has_permission(ACT_CONTENT_EDIT, context, self.request) \
 				and not is_course_instructor(course, user) \
+				and not has_permission(ACT_CONTENT_EDIT, context, self.request)
 
 class _AbstractNonEditorRandomizingPartDecorator(_AbstractNonEditorRandomizingDecorator):
 	"""

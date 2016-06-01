@@ -569,6 +569,48 @@ def aggregate_page_inquiry(containerId, mimeType, *items):
 			result += aggregated
 	return result
 
+def get_assignments_for_evaluation_object(context):
+	"""
+	For the given evaluation object, fetch all assignments which
+	contain it.
+	"""
+	if isinstance(context, six.string_types):
+		ntiid = context
+	else:
+		ntiid = context.ntiid
+	containers = (ntiid,)
+
+	sites = get_component_hierarchy_names()
+	sites = sites.split() if isinstance(sites, six.string_types) else sites
+	query = {
+		IX_SITE: {'any_of': sites},
+		IX_CONTAINMENT: {'any_of': containers},
+		IX_ASSESS_MIMETYPE: {'any_of': ALL_ASSIGNMENT_MIME_TYPES}
+	}
+
+	result = []
+	catalog = get_evaluation_catalog()
+	intids = component.getUtility(IIntIds)
+	for uid in catalog.apply(query) or ():
+		evaluation = intids.queryObject(uid)
+		if IQEvaluation.providedBy(evaluation): # extra check
+			result.append(evaluation)
+	return tuple(result)
+
+def get_available_assignments_for_evaluation_object(context):
+	"""
+	For the given evaluation object, fetch all currently available assignments
+	containing the object.
+	"""
+	assignments = get_assignments_for_evaluation_object(context)
+	results = []
+	now = datetime.utcnow()
+	for assignment in assignments or ():
+		start_date = get_available_for_submission_beginning( assignment )
+		if not start_date or start_date < now:
+			results.append( assignment )
+	return results
+
 def get_max_time_allowed(assignment, course):
 	"""
 	For a given IQTimedAssignment and course, return the maximum time allowed to

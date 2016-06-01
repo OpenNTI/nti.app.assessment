@@ -30,6 +30,7 @@ from nti.app.assessment.common import get_max_time_allowed
 from nti.app.assessment.common import get_assessment_metadata_item
 from nti.app.assessment.common import get_available_for_submission_ending
 from nti.app.assessment.common import get_available_for_submission_beginning
+from nti.app.assessment.common import get_available_assignments_for_evaluation_object
 
 from nti.app.assessment.decorators import _root_url
 from nti.app.assessment.decorators import _get_course_from_assignment
@@ -344,6 +345,10 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 				return True
 		return False
 
+	def _is_available(self, context):
+		assignments = get_available_assignments_for_evaluation_object(context)
+		return bool( assignments )
+
 	def _predicate(self, context, result):
 		return 		self._is_authenticated \
 				and has_permission(ACT_CONTENT_EDIT, context, self.request)
@@ -351,7 +356,7 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	def _get_question_set_rels(self, context):
 		"""
 		We handle question sets here for performance. Gather any links
-		needed for a non-in-progress editable question set.
+		needed for a non-in-progress editable question sets.
 		"""
 		rels = []
 		rels.append( VIEW_QUESTION_SET_CONTENTS )
@@ -367,22 +372,25 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		return rels
 
 	def _do_decorate_external(self, context, result):
+		# TODO: Publish status?
 		_links = result.setdefault(LINKS, [])
 
 		courses = self.get_courses(context)
 		savepoints = has_savepoints(context, courses)
 		submissions = has_submissions(context, courses)
-		in_progress = savepoints or submissions
+		is_available = self._is_available( context )
+		in_progress = savepoints or submissions or is_available
 		result['LimitedEditingCapabilities'] = in_progress
 		result['LimitedEditingCapabilitiesSavepoints'] = savepoints
 		result['LimitedEditingCapabilitiesSubmissions'] = submissions
 
-		rels = ['schema', ]
+		rels = ['schema',]
+		# We provide the edit link no matter the status of the assessment
+		# object. Some edits (textual changes) will be allowed no matter
+		# what.
 		if not self._has_edit_link(_links):
 			rels.append('edit')
 		# Do not provide insert link if evaluation is being used.
-		# TODO: We may want to limit if available as well.
-		# TODO: We may also want to exclude any edit links.
 		if IQuestionSet.providedBy( context ) and not in_progress:
 			qset_rels = self._get_question_set_rels( context )
 			if qset_rels:

@@ -24,7 +24,10 @@ from urllib import quote
 
 from zope import component
 
-from nti.app.assessment import VIEW_ASSESSMENT_MOVE, VIEW_QUESTION_SET_CONTENTS
+from nti.app.assessment import VIEW_ASSESSMENT_MOVE
+from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
+
+from nti.app.assessment.common import get_assignments_for_evaluation_object
 
 from nti.app.assessment.evaluations.exporter import EvaluationsExporter
 
@@ -79,12 +82,19 @@ class TestEvaluationViews(ApplicationLayerTest):
 			course = ICourseInstance(entry)
 			return to_external_ntiid_oid(course)
 
-	def _test_external_state(self, ext_obj, has_savepoints=False, has_submissions=False):
+	def _test_assignments(self, assessment_ntiid, assignment_ntiids=()):
+		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+			obj = find_object_with_ntiid( assessment_ntiid )
+			assignments = get_assignments_for_evaluation_object( obj )
+			found_ntiids = tuple(x.ntiid for x in assignments)
+			assert_that( found_ntiids, is_(assignment_ntiids))
+
+	def _test_external_state(self, ext_obj, available=False, has_savepoints=False, has_submissions=False):
 		# TODO: test with submissions/savepoints.
 		self.require_link_href_with_rel(ext_obj, 'edit')
 		self.require_link_href_with_rel(ext_obj, 'date-edit')
 		self.require_link_href_with_rel(ext_obj, 'schema')
-		limited = has_savepoints or has_submissions
+		limited = has_savepoints or has_submissions or available
 		assert_that( ext_obj.get( 'LimitedEditingCapabilities' ), is_( limited ) )
 		assert_that( ext_obj.get( 'LimitedEditingCapabilitiesSavepoints' ),
 					 is_( has_savepoints ) )
@@ -123,30 +133,38 @@ class TestEvaluationViews(ApplicationLayerTest):
 		res = self.testapp.post_json(href, assignment, status=201)
 		res = res.json_body
 		self._test_external_state( res )
-		assert_that(res, has_entry(NTIID, not_none()))
+		assignment_ntiid = res.get( NTIID )
+		assert_that(assignment_ntiid, not_none())
 		hrefs.append(res['href'])
 		assert_that( res.get( "Creator" ), is_(creator) )
 		for part in res.get( 'parts' ):
 			part_qset = part.get( 'question_set' )
-			self._test_external_state( part_qset )
+			self._test_assignments( part_qset.get( NTIID ), assignment_ntiids=(assignment_ntiid,) )
+			self._test_external_state( part_qset, available=True )
 			assert_that( part_qset.get( "Creator" ), is_(creator) )
 			assert_that( part_qset.get( NTIID ), not_none() )
 			for question in part_qset.get( 'questions' ):
+				question_ntiid = question.get( NTIID )
 				assert_that( question.get( "Creator" ), is_(creator) )
-				assert_that( question.get( NTIID ), not_none() )
-				self._test_external_state( question )
+				assert_that( question_ntiid, not_none() )
+				self._test_assignments( question_ntiid, assignment_ntiids=(assignment_ntiid,) )
+				self._test_external_state( question, available=True )
 
 		# Post qset
 		res = self.testapp.post_json(href, qset, status=201)
 		res = res.json_body
 		assert_that(res, has_entry(NTIID, not_none()))
 		hrefs.append(res['href'])
+		qset_ntiid = res.get( NTIID )
 		assert_that( res.get( "Creator" ), is_(creator) )
-		assert_that( res.get( NTIID ), not_none() )
+		assert_that( qset_ntiid, not_none() )
+		self._test_assignments( qset_ntiid )
 		self._test_external_state( res )
 		for question in res.get( 'questions' ):
+			question_ntiid = question.get( NTIID )
 			assert_that( question.get( "Creator" ), is_(creator) )
-			assert_that( question.get( NTIID ), not_none() )
+			assert_that( question_ntiid, not_none() )
+			self._test_assignments( question_ntiid )
 			self._test_external_state( question )
 
 		# delete first question

@@ -939,7 +939,7 @@ class CourseAssessmentsMoveView(AbstractChildMoveView,
 
 	def _validate_parents(self, old_parent=None, new_parent=None, *args, **kwargs):
 		super(CourseAssessmentsMoveView, self)._validate_parents(*args, **kwargs)
-		if not(IQEditableEvaluation.providedBy(old_parent) \
+		if not(		IQEditableEvaluation.providedBy(old_parent) \
 				and IQEditableEvaluation.providedBy(new_parent)):
 			raise_json_error(
 						self.request,

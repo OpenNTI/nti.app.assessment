@@ -18,6 +18,12 @@ from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecora
 
 from nti.appserver.pyramid_authorization import has_permission
 
+from nti.assessment.interfaces import IQuestionSet
+from nti.assessment.interfaces import IQMatchingPart
+from nti.assessment.interfaces import IQOrderingPart
+from nti.assessment.interfaces import IQMultipleChoicePart
+from nti.assessment.interfaces import IQMultipleChoiceMultipleAnswerPart
+
 from nti.assessment.randomized import randomize
 from nti.assessment.randomized import shuffle_list
 from nti.assessment.randomized import questionbank_question_chooser
@@ -26,18 +32,18 @@ from nti.assessment.randomized import shuffle_multiple_choice_part_solutions
 from nti.assessment.randomized import shuffle_multiple_choice_multiple_answer_part_solutions
 
 from nti.assessment.randomized.interfaces import IQuestionBank
-from nti.assessment.randomized.interfaces import IQMatchingPart
-from nti.assessment.randomized.interfaces import IQOrderingPart
 from nti.assessment.randomized.interfaces import IQRandomizedPart
-from nti.assessment.randomized.interfaces import IQMultipleChoicePart
 from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
-from nti.assessment.randomized.interfaces import IQMultipleChoiceMultipleAnswerPart
+from nti.assessment.randomized.interfaces import IRandomizedPartsContainer
 
 from nti.contenttypes.courses.utils import is_course_instructor
 
 from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
+from nti.externalization.externalization import to_external_object
+
 from nti.externalization.interfaces import IExternalObjectDecorator
+from nti.externalization.interfaces import IExternalMappingDecorator
 
 class _AbstractNonEditorRandomizingDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
@@ -112,12 +118,42 @@ class _QRandomizedMultipleChoiceMultipleAnswerPartDecorator(_AbstractNonEditorRa
 																   choices,
 																   result['solutions'])
 
+@component.adapter(IQuestionSet)
+@interface.implementer(IExternalMappingDecorator)
+class _QuestionSetRandomizedPartsDecorator(_AbstractNonEditorRandomizingDecorator):
+	"""
+	For question sets marked with `IRandomizedPartsContainer`, externalize all
+	question parts as `IQRandomizedPart`. We do so by temporarily marking these
+	parts as `IQRandomizedPart` during externalization.
+	"""
+
+	def _predicate(self, context, result):
+		return 	IRandomizedPartsContainer.providedBy( context ) \
+			and context.Items \
+			and super(_QuestionSetRandomizedPartsDecorator, self)._predicate( context, result )
+
+	def _do_decorate_external(self, context, result):
+		questions = context.Items
+		result['questions'] = questions_ext = []
+		try:
+			for question in questions:
+				for part in question.parts or ():
+					interface.alsoProvides( part, IQRandomizedPart )
+				questions_ext.append( to_external_object( question ) )
+		finally:
+			for question in questions:
+				for part in question.parts or ():
+					try:
+						interface.noLongerProvides( part, IQRandomizedPart )
+					except ValueError:
+						# Concrete randomized type already.
+						pass
+
 @component.adapter(IRandomizedQuestionSet)
 @interface.implementer(IExternalObjectDecorator)
 class _QRandomizedQuestionSetDecorator(_AbstractNonEditorRandomizingDecorator):
 
 	def _do_decorate_external(self, context, result):
-		# FIXME: part container
 		generator = randomize(context=context)
 		questions = result.get('questions', ())
 		if generator and questions:

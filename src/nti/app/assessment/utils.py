@@ -36,12 +36,8 @@ from nti.app.authentication import get_remote_user
 
 from nti.appserver.pyramid_authorization import has_permission
 
-from nti.assessment.interfaces import IQPoll
-from nti.assessment.interfaces import IQSurvey
-from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQFilePart
 from nti.assessment.interfaces import IQAssignment
-from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQEvaluationContainerIdGetter
 
 from nti.assessment.randomized import questionbank_question_chooser
@@ -123,23 +119,11 @@ def copy_part(part, nonrandomized=False, sha224randomized=False):
 		make_sha224randomized(result)
 	return result
 
-def copy_poll(context):
-	result = do_copy(context)
-	result.parts = [copy_part(p) for p in context.parts]
-	sublocations(result)
-	return result
-
 def copy_question(q, nonrandomized=False):
 	result = do_copy(q)
 	result.parts = [copy_part(p, nonrandomized) for p in q.parts]
 	if nonrandomized:
 		make_nonrandomized(result)
-	sublocations(result)
-	return result
-
-def copy_survey(survey):
-	result = do_copy(survey)
-	result.questions = [copy_poll(q) for q in survey.Items]
 	sublocations(result)
 	return result
 
@@ -174,21 +158,6 @@ def copy_assignment(assignment, nonrandomized=False):
 		new_part.question_set = copy_questionset(part.question_set, nonrandomized)
 	result.parts = new_parts
 	sublocations(result)
-	return result
-
-def copy_evaluation(context, nonrandomized=False, is_instructor=True):
-	if IQAssignment.providedBy(context):
-		result = copy_assignment(context, nonrandomized=nonrandomized)
-	elif IQuestionBank.providedBy(context):
-		result = copy_questionbank(context, is_instructor=is_instructor) # all questions
-	elif IQuestionSet.providedBy(context):
-		result = copy_questionset(context, nonrandomized=nonrandomized)
-	elif IQuestion.providedBy(context):
-		result = copy_question(context, nonrandomized=nonrandomized)
-	elif IQPoll.providedBy(context):
-		result = copy_poll(context)
-	elif IQSurvey.providedBy(context):
-		result = copy_survey(context)
 	return result
 
 def check_assignment(assignment, user=None):

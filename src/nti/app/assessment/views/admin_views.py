@@ -37,7 +37,6 @@ from nti.app.assessment.interfaces import IUsersCourseInquiries
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
 
-from nti.app.assessment.views import is_true
 from nti.app.assessment.views import parse_catalog_entry
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
@@ -49,6 +48,8 @@ from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.common.maps import CaseInsensitiveDict
+
+from nti.common.string import is_true
 
 from nti.contentlibrary.interfaces import IContentPackage
 

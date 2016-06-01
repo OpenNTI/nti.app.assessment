@@ -17,13 +17,13 @@ from pyramid.view import view_defaults
 from nti.app.assessment.common import get_course_inquiries
 from nti.app.assessment.common import get_course_assignments
 
-from nti.app.assessment.views import is_true
-
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
 from nti.app.externalization.view_mixins import BatchingUtilsMixin
 
 from nti.common.maps import CaseInsensitiveDict
+
+from nti.common.string import is_true
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry

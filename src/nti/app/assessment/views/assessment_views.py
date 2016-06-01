@@ -24,8 +24,6 @@ from nti.assessment.interfaces import IQAssessment
 
 from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
 
-from nti.app.assessment.utils import copy_assignment
-
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
 from nti.app.contentlibrary.utils import PAGE_INFO_MT
@@ -199,6 +197,10 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 		instance = ICourseInstance(self.context)
 		return has_permission(nauth.ACT_CONTENT_EDIT, instance)
 
+	@Lazy
+	def is_editor_or_instructor(self):
+		return self.is_course_instructor or self._is_editor
+
 	def _do_outline(self, instance, items, outline):
 		# reverse question set map
 		# this is done in case question set refs
@@ -238,9 +240,6 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 		for asg in (x for x in catalog.iter_assignments() if self._is_editor or uber_filter(x)):
 			parent_ntiid = get_containerId(asg)
 			if parent_ntiid:
-				if 		not self.is_ipad_legacy \
-					and (self.is_course_instructor or self._is_editor):
-					asg = copy_assignment(asg, True)
 				result.setdefault(parent_ntiid, []).append(asg)
 			else:
 				logger.error("%s is an assignment without parent unit", asg.ntiid)

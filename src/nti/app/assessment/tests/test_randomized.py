@@ -125,9 +125,9 @@ class TestRandomized(ApplicationLayerTest):
 		assert_that( qset.get( 'Creator' ), is_( creator ))
 		part_mimes = self._get_qset_part_attr( qset, 'MimeType' )
 		assert_that( part_mimes,
-					 contains( "application/vnd.nextthought.assessment.randomizedmultiplechoicepart",
-							   "application/vnd.nextthought.assessment.randomizedmultiplechoicemultipleanswerpart",
-							   "application/vnd.nextthought.assessment.randomizedmatchingpart",
+					 contains( "application/vnd.nextthought.assessment.multiplechoicepart",
+							   "application/vnd.nextthought.assessment.multiplechoicemultipleanswerpart",
+							   "application/vnd.nextthought.assessment.matchingpart",
 							   "application/vnd.nextthought.assessment.filepart" ))
 
 		# QuestionSet is random for students, as well as the concrete parts.

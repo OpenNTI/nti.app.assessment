@@ -18,9 +18,13 @@ from zope.component.hooks import site
 from zope.component.hooks import setHooks
 from zope.component.hooks import site as current_site
 
+from zope.interface.interfaces import IMethod
+
+from ZODB.interfaces import IConnection
+
 from persistent.list import PersistentList
 
-from nti.assessment.interfaces import IQuestion
+from nti.assessment.interfaces import IQuestion, IQPart
 
 from nti.assessment.parts import QMatchingPart
 from nti.assessment.parts import QOrderingPart
@@ -36,6 +40,8 @@ from nti.common.proxy import removeAllProxies
 
 from nti.dataserver.interfaces import IDataserver
 from nti.dataserver.interfaces import IOIDResolver
+
+from nti.schema.interfaces import find_most_derived_interface
 
 from nti.site.hostpolicy import get_all_host_sites
 
@@ -76,10 +82,14 @@ def _process_items(registry, seen):
 				modified = True
 				new_part = factory()
 				parts.append(new_part)
-				# copy public attributes
-				for key, value in part.__dict__.items():
-					if not key.startswith('_'):
-						setattr(new_part, key, value)
+				schema = find_most_derived_interface(part, IQPart)
+				for k, v in schema.namesAndDescriptions(all=True):
+					if not IMethod.providedBy(v):
+						value = getattr(part, k, None)
+						setattr(new_part, k, value)
+				if IConnection(part, None) is not None:
+					connection = IConnection(question)
+					connection.add(new_part)
 				# mark randomized
 				new_part.randomized = True
 				new_part.__parent__ = question  # set lineage

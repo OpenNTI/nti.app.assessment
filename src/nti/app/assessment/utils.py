@@ -108,7 +108,7 @@ def copy_part(part):
 
 def copy_question(q):
 	result = do_copy(q)
-	result.parts = [copy_part(p) for p in q.parts]
+	result.parts = [copy_part(p) for p in q.parts or ()]
 	sublocations(result)
 	return result
 
@@ -121,7 +121,7 @@ def copy_questionset(qs):
 def copy_assignment(assignment):
 	new_parts = []
 	result = do_copy(assignment)
-	for part in assignment.parts:
+	for part in assignment.parts or ():
 		new_part = do_copy(part)
 		new_parts.append(new_part)
 		new_part.question_set = copy_questionset(part.question_set)
@@ -154,7 +154,7 @@ def assignment_download_precondition(context, request=None, remoteUser=None):
 		return False
 
 	# Does it have a file part?
-	for assignment_part in context.parts:
+	for assignment_part in context.parts or ():
 		question_set = assignment_part.question_set
 		for question in question_set.Items:
 			for question_part in question.parts or ():

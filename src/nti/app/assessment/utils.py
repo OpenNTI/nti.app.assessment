@@ -138,8 +138,12 @@ def check_assignment(assignment, user=None):
 		hack_map = r47694()
 		if ntiid in hack_map and username in hack_map[ntiid]:
 			result = copy_assignment(assignment)
-			for part in result.parts:
-				make_sha224randomized(part.question_set)
+			for question_set in result.iter_question_sets():
+				make_sha224randomized(question_set.question_set)
+				for question in question_set.questions:
+					make_sha224randomized(question)
+					for part in question.parts or ():
+						make_sha224randomized(part)
 	return result
 
 def assignment_download_precondition(context, request=None, remoteUser=None):

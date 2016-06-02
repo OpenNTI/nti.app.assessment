@@ -77,6 +77,8 @@ from nti.contenttypes.courses.common import get_course_packages
 from nti.contenttypes.courses.utils import get_course_hierarchy
 
 from nti.coremetadata.interfaces import IRecordable
+from nti.coremetadata.interfaces import IPublishable
+
 from nti.coremetadata.interfaces import SYSTEM_USER_ID
 
 from nti.dataserver.metadata_index import IX_MIMETYPE
@@ -597,6 +599,10 @@ def get_assignments_for_evaluation_object(context):
 			result.append(evaluation)
 	return tuple(result)
 
+def _is_published(context):
+	return 	not IPublishable.providedBy(context) \
+		or 	context.is_published()
+
 def get_available_assignments_for_evaluation_object(context):
 	"""
 	For the given evaluation object, fetch all currently available assignments
@@ -606,6 +612,8 @@ def get_available_assignments_for_evaluation_object(context):
 	results = []
 	now = datetime.utcnow()
 	for assignment in assignments or ():
+		if not _is_published( assignment ):
+			continue
 		start_date = get_available_for_submission_beginning( assignment )
 		if not start_date or start_date < now:
 			results.append( assignment )

@@ -101,6 +101,18 @@ class TestEvaluationViews(ApplicationLayerTest):
 		assert_that( ext_obj.get( 'LimitedEditingCapabilitiesSubmissions' ),
 					 is_( has_submissions ) )
 
+	def _test_qset_ext_state(self, qset, creator, assignment_ntiid, **kwargs):
+		self._test_assignments( qset.get( NTIID ), assignment_ntiids=(assignment_ntiid,) )
+		self._test_external_state( qset, **kwargs )
+		assert_that( qset.get( "Creator" ), is_(creator) )
+		assert_that( qset.get( NTIID ), not_none() )
+		for question in qset.get( 'questions' ):
+			question_ntiid = question.get( NTIID )
+			assert_that( question.get( "Creator" ), is_(creator) )
+			assert_that( question_ntiid, not_none() )
+			self._test_assignments( question_ntiid, assignment_ntiids=(assignment_ntiid,) )
+			self._test_external_state( question, **kwargs )
+
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_creating_assessments(self):
 		course_oid = self._get_course_oid()
@@ -128,27 +140,27 @@ class TestEvaluationViews(ApplicationLayerTest):
 		# Edit question
 		self.testapp.put_json(url, {'content': 'blehcontent'})
 
-		# Post assignment
+		# Post (unpublished) assignment
 		assignment = self._load_assignment()
 		res = self.testapp.post_json(href, assignment, status=201)
 		res = res.json_body
 		self._test_external_state( res )
 		assignment_ntiid = res.get( NTIID )
+		assignment_href = res['href']
 		assert_that(assignment_ntiid, not_none())
-		hrefs.append(res['href'])
+		hrefs.append(assignment_href)
 		assert_that( res.get( "Creator" ), is_(creator) )
 		for part in res.get( 'parts' ):
 			part_qset = part.get( 'question_set' )
-			self._test_assignments( part_qset.get( NTIID ), assignment_ntiids=(assignment_ntiid,) )
-			self._test_external_state( part_qset, available=True )
-			assert_that( part_qset.get( "Creator" ), is_(creator) )
-			assert_that( part_qset.get( NTIID ), not_none() )
-			for question in part_qset.get( 'questions' ):
-				question_ntiid = question.get( NTIID )
-				assert_that( question.get( "Creator" ), is_(creator) )
-				assert_that( question_ntiid, not_none() )
-				self._test_assignments( question_ntiid, assignment_ntiids=(assignment_ntiid,) )
-				self._test_external_state( question, available=True )
+			qset_href = part_qset.get( 'href' )
+			assert_that( qset_href, not_none() )
+			self._test_qset_ext_state( part_qset, creator, assignment_ntiid, available=False )
+
+		# Now publish; items are available since they are in a published assignment.
+		self.testapp.post( '%s/@@publish' % assignment_href )
+		part_qset = self.testapp.get( qset_href )
+		part_qset = part_qset.json_body
+		self._test_qset_ext_state( part_qset, creator, assignment_ntiid, available=True )
 
 		# Post qset
 		res = self.testapp.post_json(href, qset, status=201)

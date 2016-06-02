@@ -65,6 +65,8 @@ from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.contenttypes.courses.utils import is_course_instructor
 
+from nti.coremetadata.interfaces import IPublishable
+
 from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
 from nti.externalization.externalization import to_external_object
@@ -331,8 +333,8 @@ class _QuestionSetDecorator(object):
 class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
 	Give editors edit and schema links. These should only be available for
-	IQEditableEvaluations. Also provide context on whether the evaluation
-	has been savepointed/submitted.
+	IQEditableEvaluations that are unpublished or unavailable. Also provide
+	context on whether the evaluation has been savepointed/submitted.
 	"""
 
 	def get_courses(self, context):
@@ -372,7 +374,6 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		return rels
 
 	def _do_decorate_external(self, context, result):
-		# TODO: Publish status?
 		_links = result.setdefault(LINKS, [])
 
 		courses = self.get_courses(context)

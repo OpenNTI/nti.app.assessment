@@ -24,7 +24,8 @@ from ZODB.interfaces import IConnection
 
 from persistent.list import PersistentList
 
-from nti.assessment.interfaces import IQuestion, IQPart
+from nti.assessment.interfaces import IQPart
+from nti.assessment.interfaces import IQuestion 
 
 from nti.assessment.parts import QMatchingPart
 from nti.assessment.parts import QOrderingPart

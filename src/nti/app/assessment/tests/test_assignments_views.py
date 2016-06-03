@@ -22,6 +22,7 @@ from urllib import quote
 from itertools import chain
 
 from zope import component
+from zope import interface
 
 from zope.intid.interfaces import IIntIds
 
@@ -36,6 +37,7 @@ from nti.assessment.interfaces import TIMED_ASSIGNMENT_MIME_TYPE
 
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQTimedAssignment
+from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQAssessmentPolicies
 from nti.assessment.interfaces import IQAssessmentDateContext
 
@@ -87,7 +89,12 @@ class TestAssignmentViews(ApplicationLayerTest):
 		assert_that(orig_non_public, is_(True))
 
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+			# Mark as editable for testing purposes.
+			entry = find_object_with_ntiid(self.course_ntiid)
+			course = ICourseInstance(entry)
 			asg = find_object_with_ntiid(self.assignment_id)
+			asg.__parent__ = course
+			interface.alsoProvides(asg, IQEditableEvaluation)
 			history = ITransactionRecordHistory(asg)
 			assert_that(history, has_length(0))
 
@@ -386,7 +393,18 @@ class TestAssignmentViews(ApplicationLayerTest):
 		data = {'available_for_submission_beginning':'2015-11-25T05:00:00Z',
 				'available_for_submission_ending':'2015-11-30T05:00:00Z',
 				'title':'ProjectOne'}
-		self.testapp.put_json(url, data, status=200)
+		# Cannot edit content assignments.
+		self.testapp.put_json(url, data, status=422)
+
+		# Mark as editable for testing purposes.
+		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+			entry = find_object_with_ntiid(self.course_ntiid)
+			course = ICourseInstance(entry)
+			asg = find_object_with_ntiid(self.assignment_id)
+			asg.__parent__ = course
+			interface.alsoProvides(asg, IQEditableEvaluation)
+		self.testapp.put_json(url, data)
+
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
 			asg = find_object_with_ntiid(self.assignment_id)
 			ending = datetime_from_string('2015-11-30T05:00:00Z')

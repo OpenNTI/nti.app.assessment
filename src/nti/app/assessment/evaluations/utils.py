@@ -244,6 +244,4 @@ def validate_structural_edits(theObject, course, request=None):
 	"""
 	Validate that we can structurally edit the given evaluation object.
 	"""
-	validate_savepoints(theObject, course, request)
 	validate_submissions(theObject, course, request)
-	validate_assignment(theObject, request)

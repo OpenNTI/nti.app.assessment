@@ -162,11 +162,12 @@ class EvaluationMixin(object):
 		result = find_interface(self.context, ICourseInstance, strict=False)
 		return result
 
-	def _validate_structural_edits(self, context):
+	def _validate_structural_edits(self, context=None):
 		"""
 		Validate we are allowed to change the given context's
 		structural state.
 		"""
+		context = context if context is not None else self.context
 		validate_structural_edits(context, self.course)
 
 	@Lazy
@@ -542,10 +543,9 @@ class QuestionSetPutView(EvaluationPutView):
 
 	def _check_object_constraints(self, obj, externalValue):
 		super(QuestionSetPutView, self)._check_object_constraints(obj, externalValue)
-		course = find_interface(obj, ICourseInstance, strict=False)
 		questions = externalValue.get('questions')
-		if questions:  # check for submissions
-			validate_submissions(obj, course, self.request)
+		if questions:
+			self._validate_structural_edits()
 
 	def post_update_check(self, contentObject, originalSource):
 		if IQEditableEvaluation.providedBy(contentObject):
@@ -557,22 +557,26 @@ class QuestionSetPutView(EvaluationPutView):
 class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):
 
 	OBJ_DEF_CHANGE_MSG = _("Cannot change the object definition.")
+	LEGACY_EDITABLE_FIELDS = ('available_for_submission_beginning',
+							  'available_for_submission_ending')
 
 	def _check_object_constraints(self, obj, externalValue):
+		editing_keys = set( externalValue.keys() )
+		if 		not IQEditableEvaluation.providedBy(obj) \
+			and editing_keys - set( self.LEGACY_EDITABLE_FIELDS ):
+			# Cannot edit content backed assessment objects (except
+			# for available dates).
+			raise_json_error(self.request,
+							 hexc.HTTPUnprocessableEntity,
+							 {
+								u'message': self.OBJ_DEF_CHANGE_MSG,
+								u'code': 'CannotChangeObjectDefinition',
+							 },
+							 None)
 		super(NewAndLegacyPutView, self)._check_object_constraints(obj, externalValue)
 		parts = externalValue.get('parts')
 		if parts:
-			if not IQEditableEvaluation.providedBy(obj):
-				raise_json_error(self.request,
-								 hexc.HTTPUnprocessableEntity,
-								 {
-									u'message': self.OBJ_DEF_CHANGE_MSG,
-									u'code': 'CannotChangeObjectDefinition',
-								 },
-								 None)
-			else:
-				course = find_interface(obj, ICourseInstance, strict=False)
-				validate_submissions(obj, course, self.request)
+			self._validate_structural_edits()
 
 	def updateContentObject(self, contentObject, externalValue, set_id=False, notify=True):
 		originalSource = copy.deepcopy(externalValue)
@@ -601,20 +605,7 @@ class PollPutView(NewAndLegacyPutView):
 
 	TO_AVAILABLE_MSG = _('Poll will become available. Please confirm.')
 	TO_UNAVAILABLE_MSG = _('Poll will become unavailable. Please confirm.')
-
-	def _check_object_constraints(self, obj, externalValue):
-		super(PollPutView, self)._check_object_constraints(obj, externalValue)
-		parts = externalValue.get('parts')
-		if parts:
-			self._validate_structural_edits( self.context )
-		if not IQEditableEvaluation.providedBy(obj):
-			raise_json_error(self.request,
-							 hexc.HTTPUnprocessableEntity,
-							 {
-								u'message': _("Cannot change the poll definition."),
-								u'code': 'CannotChangeObjectDefinition',
-							 },
-							 None)
+	OBJ_DEF_CHANGE_MSG = _("Cannot change the poll definition.")
 
 	def validate(self, contentObject, externalValue, courses=()):
 		if not IPublishable.providedBy(contentObject) or contentObject.is_published():
@@ -629,22 +620,13 @@ class SurveyPutView(NewAndLegacyPutView):
 
 	TO_AVAILABLE_MSG = _('Survey will become available. Please confirm.')
 	TO_UNAVAILABLE_MSG = _('Survey will become unavailable. Please confirm.')
+	OBJ_DEF_CHANGE_MSG = _("Cannot change the survey definition.")
 
 	def _check_object_constraints(self, obj, externalValue):
 		super(SurveyPutView, self)._check_object_constraints(obj, externalValue)
 		parts = externalValue.get('questions')
 		if parts:
-			if not IQEditableEvaluation.providedBy(obj):
-				raise_json_error(self.request,
-								 hexc.HTTPUnprocessableEntity,
-								 {
-									u'message': _("Cannot change the survey definition."),
-									u'code': 'CannotChangeObjectDefinition',
-								 },
-								 None)
-			else:
-				course = find_interface(obj, ICourseInstance, strict=False)
-				validate_submissions(obj, course, self.request)
+			self._validate_structural_edits()
 
 	def validate(self, contentObject, externalValue, courses=()):
 		if not IPublishable.providedBy(contentObject) or contentObject.is_published():
@@ -666,22 +648,13 @@ class AssignmentPutView(NewAndLegacyPutView):
 
 	TO_AVAILABLE_MSG = _('Assignment will become available. Please confirm.')
 	TO_UNAVAILABLE_MSG = _('Assignment will become unavailable. Please confirm.')
+	OBJ_DEF_CHANGE_MSG = _("Cannot change the assignment definition.")
 
 	def _check_object_constraints(self, obj, externalValue):
 		super(AssignmentPutView, self)._check_object_constraints(obj, externalValue)
 		parts = externalValue.get('parts')
 		if parts:
-			if not IQEditableEvaluation.providedBy(obj):
-				raise_json_error(self.request,
-								 hexc.HTTPUnprocessableEntity,
-								 {
-									u'message': _("Cannot change the assignment definition."),
-									u'code': 'CannotChangeObjectDefinition',
-								 },
-								 None)
-			else:
-				course = find_interface(obj, ICourseInstance, strict=False)
-				validate_submissions(obj, course, self.request)
+			self._validate_structural_edits()
 
 	def validate(self, contentObject, externalValue, courses=()):
 		if not IPublishable.providedBy(contentObject) or contentObject.is_published():
@@ -797,7 +770,9 @@ class EvaluationDeleteView(UGDDeleteView):
 			 context=IQuestionSet,
 			 request_method='DELETE',
 			 permission=nauth.ACT_CONTENT_EDIT)
-class QuestionSetDeleteChildView(AbstractAuthenticatedView, DeleteChildViewMixin):
+class QuestionSetDeleteChildView(AbstractAuthenticatedView,
+								 EvaluationMixin,
+								 DeleteChildViewMixin):
 	"""
 	A view to delete a child underneath the given context.
 
@@ -819,6 +794,9 @@ class QuestionSetDeleteChildView(AbstractAuthenticatedView, DeleteChildViewMixin
 		else:
 			self.context.pop(index)
 		notify(QuestionRemovedFromContainerEvent(self.context, item, index))
+
+	def _validate(self):
+		self._validate_structural_edits()
 
 # Publish views
 
@@ -877,7 +855,7 @@ class EvaluationGetView(GenericGetView):
 	def __call__(self):
 		result = GenericGetView.__call__(self)
 		# XXX Check than only editors can have access
-		# to unpublished evalutations
+		# to unpublished evaluations.
 		if 		IQEditableEvaluation.providedBy(result) \
 			and not result.is_published() \
 			and not has_permission(ACT_CONTENT_EDIT, result, self.request):

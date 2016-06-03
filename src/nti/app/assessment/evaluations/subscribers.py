@@ -29,7 +29,7 @@ from nti.app.assessment.evaluations import raise_error
 
 from nti.app.assessment.evaluations.adapters import evaluations_for_course
 
-from nti.app.assessment.evaluations.utils import validate_internal
+from nti.app.assessment.evaluations.utils import validate_structural_edits
 
 from nti.app.assessment.interfaces import IQAvoidSolutionCheck
 from nti.app.assessment.interfaces import IQPartChangeAnalyzer
@@ -139,7 +139,7 @@ def _on_question_modified(question, event):
 @component.adapter(IQEditableEvaluation, IQuestionInsertedInContainerEvent)
 def _on_question_inserted_in_container(container, event):
 	course = find_interface(container, ICourseInstance, strict=False)
-	validate_internal(container, course)
+	validate_structural_edits(container, course)
 	if IRecordableContainer.providedBy(container):
 		container.child_order_locked = True
 

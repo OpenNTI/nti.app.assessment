@@ -65,8 +65,6 @@ from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.contenttypes.courses.utils import is_course_instructor
 
-from nti.coremetadata.interfaces import IPublishable
-
 from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
 from nti.externalization.externalization import to_external_object

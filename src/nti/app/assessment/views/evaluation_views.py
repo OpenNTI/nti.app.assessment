@@ -31,15 +31,13 @@ from nti.app.assessment import MessageFactory as _
 from nti.app.assessment import VIEW_ASSESSMENT_MOVE
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 
-from nti.app.assessment.common import has_savepoints
-from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import make_evaluation_ntiid
 from nti.app.assessment.common import get_resource_site_name
 from nti.app.assessment.common import get_evaluation_containment
 
 from nti.app.assessment.evaluations.utils import indexed_iter
 from nti.app.assessment.evaluations.utils import register_context
-from nti.app.assessment.evaluations.utils import validate_internal
+from nti.app.assessment.evaluations.utils import validate_structural_edits
 from nti.app.assessment.evaluations.utils import validate_submissions
 from nti.app.assessment.evaluations.utils import import_evaluation_content
 
@@ -164,13 +162,12 @@ class EvaluationMixin(object):
 		result = find_interface(self.context, ICourseInstance, strict=False)
 		return result
 
-	@Lazy
-	def has_submissions(self):
-		return has_submissions(self.context, self.course)
-
-	@Lazy
-	def has_savepoints(self):
-		return has_savepoints(self.context, self.course)
+	def _validate_structural_edits(self, context):
+		"""
+		Validate we are allowed to change the given context's
+		structural state.
+		"""
+		validate_structural_edits(context, self.course)
 
 	@Lazy
 	def _extra(self):
@@ -463,16 +460,8 @@ class QuestionSetInsertView(AbstractAuthenticatedView,
 		new_question = self.handle_evaluation(new_question, self.course, sources, creator)
 		return new_question
 
-	def _validate_state(self):
-		# TODO: We may want validation to raise if this question set
-		# is now available in the wild (to avoid material changes
-		# while students work on them).
-		# XXX: Subinstances?
-		validate_internal(self.context, self.course, self.request)
-
 	def __call__(self):
-		# Check state straight off.
-		self._validate_state()
+		self._validate_structural_edits( self.context )
 		index = self._get_index()
 		question = self._get_new_question()
 		self.context.insert(index, question)
@@ -537,17 +526,10 @@ class QuestionPutView(EvaluationPutView):
 
 	def _check_object_constraints(self, obj, externalValue):
 		super(QuestionPutView, self)._check_object_constraints(obj, externalValue)
+		# TODO: What else do we want to validate here?
 		parts = externalValue.get('parts')
-		if parts and self.has_submissions:
-			if len(parts) != len(self.context.parts):
-				raise_json_error(
-					self.request,
-					hexc.HTTPUnprocessableEntity,
-					{
-						u'message': _("Cannot change the number of question parts"),
-						u'code': 'CannotChangeObjectDefinition',
-					},
-					None)
+		if parts:
+			self._validate_structural_edits( self.context )
 
 @view_config(route_name='objects.generic.traversal',
 			 context=IQuestionSet,
@@ -624,24 +606,15 @@ class PollPutView(NewAndLegacyPutView):
 		super(PollPutView, self)._check_object_constraints(obj, externalValue)
 		parts = externalValue.get('parts')
 		if parts:
-			if not IQEditableEvaluation.providedBy(obj):
-				raise_json_error(self.request,
-								 hexc.HTTPUnprocessableEntity,
-								 {
-									u'message': _("Cannot change the poll definition."),
-									u'code': 'CannotChangeObjectDefinition',
-								 },
-								 None)
-			elif self.has_submissions:
-				if len(parts) != len(self.context.parts):
-					raise_json_error(
-							self.request,
-							hexc.HTTPUnprocessableEntity,
-							{
-								u'message': _("Cannot change the number of poll parts"),
+			self._validate_structural_edits( self.context )
+		if not IQEditableEvaluation.providedBy(obj):
+			raise_json_error(self.request,
+							 hexc.HTTPUnprocessableEntity,
+							 {
+								u'message': _("Cannot change the poll definition."),
 								u'code': 'CannotChangeObjectDefinition',
-							},
-							None)
+							 },
+							 None)
 
 	def validate(self, contentObject, externalValue, courses=()):
 		if not IPublishable.providedBy(contentObject) or contentObject.is_published():
@@ -801,7 +774,7 @@ class EvaluationDeleteView(UGDDeleteView):
 		if not IQEditableEvaluation.providedBy(theObject):
 			raise hexc.HTTPForbidden(_("Cannot delete legacy object."))
 		course = find_interface(theObject, ICourseInstance, strict=False)
-		validate_internal(theObject, course, self.request)
+		validate_structural_edits(theObject, course, self.request)
 		containment = get_evaluation_containment(theObject.ntiid)
 		if containment:
 			raise_json_error(

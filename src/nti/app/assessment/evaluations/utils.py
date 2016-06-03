@@ -26,6 +26,7 @@ from nti.app.assessment import MessageFactory as _
 from nti.app.assessment.common import has_savepoints
 from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import get_resource_site_name
+from nti.app.assessment.common import get_available_assignments_for_evaluation_object
 
 from nti.app.base.abstract_views import get_safe_source_filename
 
@@ -227,6 +228,22 @@ def validate_savepoints(theObject, course, request=None):
 						 },
 						 None)
 
-def validate_internal(theObject, course, request=None):
+def validate_assignment(theObject, request=None):
+	assignments = get_available_assignments_for_evaluation_object(theObject)
+	if assignments:
+		request = request or get_current_request()
+		raise_json_error(request,
+						 hexc.HTTPUnprocessableEntity,
+						 {
+							u'message': _("Object is in available assignments."),
+							u'code': 'ObjectInAvailableAssignments',
+						 },
+						 None)
+
+def validate_structural_edits(theObject, course, request=None):
+	"""
+	Validate that we can structurally edit the given evaluation object.
+	"""
 	validate_savepoints(theObject, course, request)
 	validate_submissions(theObject, course, request)
+	validate_assignment(theObject, request)

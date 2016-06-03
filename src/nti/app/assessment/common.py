@@ -571,7 +571,7 @@ def aggregate_page_inquiry(containerId, mimeType, *items):
 			result += aggregated
 	return result
 
-def get_assignments_for_evaluation_object(context):
+def get_assignments_for_evaluation_object(context, sites=None):
 	"""
 	For the given evaluation object, fetch all assignments which
 	contain it.
@@ -582,7 +582,7 @@ def get_assignments_for_evaluation_object(context):
 		ntiid = context.ntiid
 	containers = (ntiid,)
 
-	sites = get_component_hierarchy_names()
+	sites = get_component_hierarchy_names() if not sites else sites
 	sites = sites.split() if isinstance(sites, six.string_types) else sites
 	query = {
 		IX_SITE: {'any_of': sites},
@@ -600,17 +600,16 @@ def get_assignments_for_evaluation_object(context):
 	return tuple(result)
 
 def _is_published(context):
-	return 	not IPublishable.providedBy(context) \
-		or 	context.is_published()
+	return not IPublishable.providedBy(context) or	context.is_published()
 
 def get_available_assignments_for_evaluation_object(context):
 	"""
 	For the given evaluation object, fetch all currently available assignments
 	containing the object.
 	"""
-	assignments = get_assignments_for_evaluation_object(context)
 	results = []
 	now = datetime.utcnow()
+	assignments = get_assignments_for_evaluation_object(context)
 	for assignment in assignments or ():
 		if not _is_published( assignment ):
 			continue

@@ -885,17 +885,16 @@ class EvaluationGetView(GenericGetView):
 		return result
 
 @view_config(route_name='objects.generic.traversal',
-			 context=ICourseInstance,
+			 context=IQuestionSet,
 			 request_method='POST',
 			 permission=nauth.ACT_CONTENT_EDIT,
 			 renderer='rest',
 			 name=VIEW_ASSESSMENT_MOVE)
-class CourseAssessmentsMoveView(AbstractChildMoveView,
-						  		ModeledContentUploadRequestUtilsMixin):
+class QuestionSetMoveView(AbstractChildMoveView,
+						  EvaluationMixin,
+						  ModeledContentUploadRequestUtilsMixin):
 	"""
-	Move the given question between QuestionSets in a course. The source and
-	target NTIIDs must exist in the course evaluations (no moves are allowed
-	between courses).
+	Move the given question within a QuestionSet.
 	"""
 
 	notify_type = QuestionMovedEvent
@@ -903,27 +902,16 @@ class CourseAssessmentsMoveView(AbstractChildMoveView,
 	def _remove_from_parent(self, parent, obj):
 		return parent.remove(obj)
 
-	def _get_children_ntiids(self, *args, **kwargs):
-		"""
-		Get all evaluation ids in our context.
-		"""
-		evaluations = ICourseEvaluations(self.context)
-		return tuple(evaluations.keys())
-
-	def _validate_parents(self, old_parent=None, new_parent=None, *args, **kwargs):
-		super(CourseAssessmentsMoveView, self)._validate_parents(*args, **kwargs)
-		if not(		IQEditableEvaluation.providedBy(old_parent) \
-				and IQEditableEvaluation.providedBy(new_parent)):
+	def _validate_parents(self, *args, **kwargs):
+		# We do not have to do super validation since we're only
+		# moving within question set.
+		self._validate_structural_edits()
+		if not IQEditableEvaluation.providedBy(self.context):
 			raise_json_error(
 						self.request,
 						hexc.HTTPUnprocessableEntity,
 						{
-							u'message': _("Cannot move between uneditable question sets."),
+							u'message': _("Cannot move within an uneditable question set."),
 							u'code': 'CannotMoveEvaluations',
 						},
 						None)
-		# FIXME: If savepoints/submissions, raise challenge.
-		# We can challenge and allow (force) if approved for minor
-		# content changes ore re-ordering within assignment.
-		# We probably want to 422 if substantial changes are made (change
-		# of types, etc.

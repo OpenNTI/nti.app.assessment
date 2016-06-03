@@ -18,6 +18,7 @@ from zope.location.interfaces import ILocation
 
 from nti.app.assessment import VIEW_RANDOMIZE
 from nti.app.assessment import VIEW_UNRANDOMIZE
+from nti.app.assessment import VIEW_ASSESSMENT_MOVE
 from nti.app.assessment import VIEW_RANDOMIZE_PARTS
 from nti.app.assessment import VIEW_UNRANDOMIZE_PARTS
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
@@ -360,6 +361,7 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		"""
 		rels = []
 		rels.append( VIEW_QUESTION_SET_CONTENTS )
+		rels.append( VIEW_ASSESSMENT_MOVE )
 		if IRandomizedQuestionSet.providedBy( context ):
 			rels.append( VIEW_UNRANDOMIZE )
 		else:
@@ -385,12 +387,11 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 		rels = ['schema',]
 		# We provide the edit link no matter the status of the assessment
-		# object. Some edits (textual changes) will be allowed no matter
-		# what.
+		# object. Some edits (textual changes) will be allowed no matter what.
 		if not self._has_edit_link(_links):
 			rels.append('edit')
-		# Do not provide insert link if evaluation is being used.
-		if IQuestionSet.providedBy( context ) and not in_progress:
+		# Do not provide insert link if evaluation has submissions.
+		if IQuestionSet.providedBy( context ) and not submissions:
 			qset_rels = self._get_question_set_rels( context )
 			if qset_rels:
 				rels.extend( qset_rels )

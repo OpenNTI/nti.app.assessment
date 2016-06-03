@@ -312,27 +312,24 @@ class TestEvaluationViews(ApplicationLayerTest):
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_move(self):
 		"""
-		Test moving questions between question sets.
+		Test moving questions within question sets.
 		"""
-		# Initialize and install qset and two assignments.
+		# Initialize and install qset and one assignments.
 		course_oid = self._get_course_oid()
 		course = self.testapp.get( '/dataserver2/Objects/%s' % course_oid )
 		course = course.json_body
 		evaluations_href = self.require_link_href_with_rel(course, 'CourseEvaluations')
-		move_href = self.require_link_href_with_rel(course, VIEW_ASSESSMENT_MOVE)
 		qset = self._load_questionset()
 		qset = self.testapp.post_json(evaluations_href, qset, status=201)
 		qset_ntiid = qset.json_body.get( 'NTIID' )
+		move_href = self.require_link_href_with_rel(qset.json_body, VIEW_ASSESSMENT_MOVE)
 		qset_question_ntiids = self._get_question_ntiids(ext_obj=qset.json_body)
 		assignment = self._load_assignment()
 		assignment1 = self.testapp.post_json(evaluations_href, assignment, status=201)
 		assignment1 = assignment1.json_body
-		assignment1_qset_ntiid = assignment1.get( 'parts' )[0].get( 'question_set' ).get( "NTIID" )
-		assignment1_qset_ntiids = self._get_question_ntiids( ext_obj=assignment1 )
-		assignment2 = self.testapp.post_json(evaluations_href, assignment, status=201)
-		assignment2 = assignment2.json_body
-		assignment2_qset_ntiid = assignment2.get( 'parts' )[0].get( 'question_set' ).get( "NTIID" )
-		assignment2_qset_ntiids = self._get_question_ntiids( ext_obj=assignment2 )
+		qset2 = assignment1.get( 'parts' )[0].get( 'question_set' )
+		qset2_ntiid = qset2.get( 'NTIID' )
+		qset2_move_href = self.require_link_href_with_rel(qset2, VIEW_ASSESSMENT_MOVE)
 
 		# Move last question to first.
 		moved_ntiid = qset_question_ntiids[-1]
@@ -349,36 +346,15 @@ class TestEvaluationViews(ApplicationLayerTest):
 		assert_that( new_question_ntiids, is_(qset_question_ntiids))
 		self._test_transaction_history( moved_ntiid, count=2 )
 
-		# Move from qset to assignment1 (append).
-		move_json = self._get_move_json( moved_ntiid, assignment1_qset_ntiid,
-										 index=100, old_parent_ntiid=qset_ntiid )
-		self.testapp.post_json( move_href, move_json )
-		new_question_ntiids = self._get_question_ntiids( qset_ntiid )
-		new_assignment1_qset_ntiids = self._get_question_ntiids( assignment1_qset_ntiid )
-		assert_that( new_question_ntiids, is_(qset_question_ntiids[:-1]))
-		assert_that( new_assignment1_qset_ntiids, is_(assignment1_qset_ntiids + [moved_ntiid]))
-		self._test_transaction_history( moved_ntiid, count=3 )
-
-		# Move between assignments
-		move_json = self._get_move_json( moved_ntiid, assignment2_qset_ntiid,
-										 index=1, old_parent_ntiid=assignment1_qset_ntiid )
-		self.testapp.post_json( move_href, move_json )
-		new_assignment1_qset_ntiids = self._get_question_ntiids( assignment1_qset_ntiid )
-		new_assignment2_qset_ntiids = self._get_question_ntiids( assignment2_qset_ntiid )
-		assert_that( new_assignment1_qset_ntiids, is_(assignment1_qset_ntiids))
-		test_ids = assignment2_qset_ntiids[:1] + [moved_ntiid] + assignment2_qset_ntiids[1:]
-		assert_that( new_assignment2_qset_ntiids, is_(test_ids))
-		self._test_transaction_history( moved_ntiid, count=4 )
-
-		# Move to question set not in course
-		dne_ntiid = assignment2_qset_ntiid + 'xxx'
-		move_json = self._get_move_json( moved_ntiid, dne_ntiid,
-										 index=1, old_parent_ntiid=assignment1_qset_ntiid )
+		# Move within a question set invalid.
+		dne_ntiid = qset_ntiid + 'xxx'
+		move_json = self._get_move_json( moved_ntiid, dne_ntiid, index=1 )
 		self.testapp.post_json( move_href, move_json, status=422 )
 
-		move_json = self._get_move_json( moved_ntiid, assignment1_qset_ntiid,
+		# Ntiid does not exist in qset2.
+		move_json = self._get_move_json( moved_ntiid, qset2_ntiid,
 										 index=1, old_parent_ntiid=dne_ntiid )
-		self.testapp.post_json( move_href, move_json, status=422 )
+		self.testapp.post_json( qset2_move_href, move_json, status=422 )
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_insert(self):

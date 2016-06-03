@@ -7,7 +7,6 @@ Implementations of the feedback content types.
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
-from nti.namedfile.interfaces import IFileConstraints
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -49,6 +48,7 @@ from nti.dataserver_core.mixins import ContainedMixin
 from nti.dublincore.datastructures import PersistentCreatedModDateTrackingObject
 
 from nti.namedfile.constraints import FileConstraints
+from nti.namedfile.interfaces import IFileConstraints
 
 from nti.schema.field import SchemaConfigured
 from nti.schema.fieldproperty import AdaptingFieldProperty

@@ -27,6 +27,8 @@ from zope.intid.interfaces import IIntIds
 
 from nti.app.contentlibrary.utils import yield_sync_content_packages
 
+from nti.app.assessment import get_evaluation_catalog
+
 from nti.assessment.common import iface_of_assessment
 
 from nti.assessment import ASSESSMENT_INTERFACES
@@ -34,7 +36,6 @@ from nti.assessment import ASSESSMENT_INTERFACES
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
-from nti.contentlibrary.indexed_data import get_library_catalog
 
 from nti.dataserver.utils import run_with_dataserver
 from nti.dataserver.utils.base_script import create_context
@@ -102,7 +103,7 @@ def remove_site_invalid_assessments(current, containers, intids=None,
 
 	# get defaults
 	seen = set() if seen is None else seen
-	catalog = get_library_catalog() if catalog is None else catalog
+	catalog = get_evaluation_catalog() if catalog is None else catalog
 	intids = component.getUtility(IIntIds) if intids is None else intids
 
 	# get all assets in site/no hierarchy
@@ -127,7 +128,7 @@ def remove_site_invalid_assessments(current, containers, intids=None,
 			logger.warn("Unregistering (%s,%s) from site %s",
 						provided.__name__, ntiid, site_name)
 			removeIntId(item)
-			catalog.unindex(doc_id)
+			catalog.unindex_doc(doc_id)
 			_remove_invalid_assessment(current, provided, ntiid, containers)
 			continue
 
@@ -144,7 +145,7 @@ def remove_site_invalid_assessments(current, containers, intids=None,
 def remove_all_invalid_assessment(containers):
 	seen = set()
 	result = OrderedDict()
-	catalog = get_library_catalog()
+	catalog = get_evaluation_catalog()
 	intids = component.getUtility(IIntIds)
 	for current in get_all_host_sites():
 		removed = remove_site_invalid_assessments(current,

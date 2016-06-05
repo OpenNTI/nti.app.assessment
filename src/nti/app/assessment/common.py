@@ -360,6 +360,13 @@ def assignment_comparator(a, b):
 		return -1 if a_begin < b_begin else 1
 	return 0
 
+def get_all_course_assignments(context):
+	"""
+	Get all un-proxied, non-filtered course assignments for the given context.
+	"""
+	items = get_course_assessment_items(context)
+	return [x for x in items if IQAssignment.providedBy(x)]
+
 def get_course_assignments(context, sort=True, reverse=False, do_filtering=True):
 	items = get_course_evaluations(context, mimetypes=ALL_ASSIGNMENT_MIME_TYPES)
 	ntiid = getattr(ICourseCatalogEntry(context, None), 'ntiid', None)

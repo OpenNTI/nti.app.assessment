@@ -36,9 +36,15 @@ from nti.app.authentication import get_remote_user
 
 from nti.appserver.pyramid_authorization import has_permission
 
+from nti.assessment.interfaces import IQPoll
+from nti.assessment.interfaces import IQSurvey
+from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQFilePart
 from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQEvaluationContainerIdGetter
+
+from nti.assessment.randomized import questionbank_question_chooser
 
 from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.randomized.interfaces import IPrincipalSeedSelector
@@ -106,15 +112,34 @@ def copy_part(part):
 	result = do_copy(part)
 	return result
 
+def copy_poll(context):
+	result = do_copy(context)
+	result.parts = [copy_part(p) for p in context.parts]
+	sublocations(result)
+	return result
+
 def copy_question(q):
 	result = do_copy(q)
 	result.parts = [copy_part(p) for p in q.parts or ()]
 	sublocations(result)
 	return result
 
+def copy_survey(survey):
+	result = do_copy(survey)
+	result.questions = [copy_poll(q) for q in survey.Items]
+	sublocations(result)
+	return result
+
 def copy_questionset(qs):
 	result = do_copy(qs)
 	result.questions = [copy_question(q) for q in qs.Items]
+	sublocations(result)
+	return result
+
+def copy_questionbank(bank, is_instructor=False, user=None):
+	result = copy_questionset(bank)
+	if not is_instructor:
+		result.questions = questionbank_question_chooser(bank, user=user)
 	sublocations(result)
 	return result
 
@@ -127,6 +152,21 @@ def copy_assignment(assignment):
 		new_part.question_set = copy_questionset(part.question_set)
 	result.parts = new_parts
 	sublocations(result)
+	return result
+
+def copy_evaluation(context, is_instructor=True):
+	if IQAssignment.providedBy(context):
+		result = copy_assignment(context)
+	elif IQuestionBank.providedBy(context):
+		result = copy_questionbank(context, is_instructor=is_instructor) # all questions
+	elif IQuestionSet.providedBy(context):
+		result = copy_questionset(context)
+	elif IQuestion.providedBy(context):
+		result = copy_question(context)
+	elif IQPoll.providedBy(context):
+		result = copy_poll(context)
+	elif IQSurvey.providedBy(context):
+		result = copy_survey(context)
 	return result
 
 def check_assignment(assignment, user=None):

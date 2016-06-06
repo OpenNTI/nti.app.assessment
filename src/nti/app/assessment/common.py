@@ -148,16 +148,16 @@ def get_course_evaluations(context, sites=None, intids=None, mimetypes=None):
 		containers = (ntiid,)
 	else:
 		course = ICourseInstance(context)
-		entry = ICourseCatalogEntry( course )
-		if ILegacyCourseInstance.providedBy( course ):
+		entry = ICourseCatalogEntry(course)
+		if ILegacyCourseInstance.providedBy(course):
 			# Global courses cannot use index.
-			return get_course_assessment_items( course )
+			return get_course_assessment_items(course)
 		# We index assessment items before our courses; so
 		# make sure we also check for course packages.
 		ntiid = entry.ntiid
 		containers = [ntiid]
-		packages = get_course_packages( course )
-		containers.extend( (x.ntiid for x in packages) )
+		packages = get_course_packages(course)
+		containers.extend((x.ntiid for x in packages))
 		sites = get_course_site(course) if not sites else sites
 	sites = get_component_hierarchy_names() if not sites else sites
 	sites = sites.split() if isinstance(sites, six.string_types) else sites
@@ -174,7 +174,7 @@ def get_course_evaluations(context, sites=None, intids=None, mimetypes=None):
 	intids = component.getUtility(IIntIds) if intids is None else intids
 	for uid in catalog.apply(query) or ():
 		evaluation = intids.queryObject(uid)
-		if IQEvaluation.providedBy(evaluation): # extra check
+		if IQEvaluation.providedBy(evaluation):  # extra check
 			result.append(evaluation)
 	return tuple(result)
 
@@ -394,7 +394,7 @@ def get_course_self_assessments(context):
 	result = list()
 	qsids_to_strip = set()
 	query_types = [QUESTION_SET_MIME_TYPE]
-	query_types.extend( ALL_ASSIGNMENT_MIME_TYPES )
+	query_types.extend(ALL_ASSIGNMENT_MIME_TYPES)
 	items = get_course_evaluations(context,
 								   mimetypes=query_types)
 
@@ -602,7 +602,7 @@ def get_assignments_for_evaluation_object(context, sites=None):
 	intids = component.getUtility(IIntIds)
 	for uid in catalog.apply(query) or ():
 		evaluation = intids.queryObject(uid)
-		if IQEvaluation.providedBy(evaluation): # extra check
+		if IQEvaluation.providedBy(evaluation):  # extra check
 			result.append(evaluation)
 	return tuple(result)
 
@@ -618,11 +618,11 @@ def get_available_assignments_for_evaluation_object(context):
 	now = datetime.utcnow()
 	assignments = get_assignments_for_evaluation_object(context)
 	for assignment in assignments or ():
-		if not _is_published( assignment ):
+		if not _is_published(assignment):
 			continue
-		start_date = get_available_for_submission_beginning( assignment )
+		start_date = get_available_for_submission_beginning(assignment)
 		if not start_date or start_date < now:
-			results.append( assignment )
+			results.append(assignment)
 	return results
 
 def get_max_time_allowed(assignment, course):

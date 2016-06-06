@@ -137,9 +137,8 @@ def copy_questionset(qs):
 	return result
 
 def copy_questionbank(bank, is_instructor=False, user=None):
-	result = copy_questionset(bank)
 	if is_instructor:
-		result = copy_questionset(bank)
+		result = bank.copy()
 	else:
 		questions = questionbank_question_chooser(bank, user=user)
 		result = bank.copy(questions=questions)

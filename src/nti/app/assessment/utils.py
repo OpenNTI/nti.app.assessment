@@ -138,8 +138,11 @@ def copy_questionset(qs):
 
 def copy_questionbank(bank, is_instructor=False, user=None):
 	result = copy_questionset(bank)
-	if not is_instructor:
-		result.questions = questionbank_question_chooser(bank, user=user)
+	if is_instructor:
+		result = copy_questionset(bank)
+	else:
+		questions = questionbank_question_chooser(bank, user=user)
+		result = bank.copy(questions=questions)
 	sublocations(result)
 	return result
 

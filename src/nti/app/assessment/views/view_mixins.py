@@ -312,7 +312,7 @@ class AssessmentPutView(UGDPutView):
 			value = self._get_value(float, value, key)
 			part = 'auto_grade'
 
-		for course in courses:
+		for course in courses or ():
 			policy = self._get_or_create_policy_part(course, ntiid, part)
 			policy[key] = value
 			event_notify(QAssessmentPoliciesModified(course, ntiid, key))

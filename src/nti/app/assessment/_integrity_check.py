@@ -101,11 +101,6 @@ def check_assessment_integrity(remove_unparented=False):
 	duplicates = dict()
 	catalog = get_library_catalog()
 	for ntiid, data in count.items():
-		if len(data) <= 1:
-			continue
-		duplicates[ntiid] = len(data) - 1
-		logger.warn("%s has %s duplicate(s)", ntiid, len(data) - 1)
-
 		# find registry and registered objects
 		context = data[0]  # pivot
 		provided = iface_of_assessment(context)
@@ -119,6 +114,12 @@ def check_assessment_integrity(remove_unparented=False):
 					removed.add(ntiid)
 			continue
 
+		if len(data) <= 1:
+			continue
+		duplicates[ntiid] = len(data) - 1
+		logger.warn("%s has %s duplicate(s)", ntiid, len(data) - 1)
+
+		
 		site, registered = things
 		registry = site.getSiteManager()
 

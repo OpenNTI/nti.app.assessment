@@ -248,6 +248,40 @@ class TestAssignmentViews(ApplicationLayerTest):
 		assert_that(res.get('auto_grade'), is_(True))
 		assert_that(res.get('total_points'), is_(500))
 
+		data = { 'auto_grade': 'false', 'total_points': 2.5 }
+		self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,
+							  data, extra_environ=editor_environ)
+		res = self.testapp.get('/dataserver2/Objects/' + self.assignment_id,
+							   extra_environ=editor_environ)
+		res = res.json_body
+		assert_that(res.get('auto_grade'), is_(False))
+		assert_that(res.get('total_points'), is_(2.5))
+
+		# Errors
+		data = { 'auto_grade': 'what', 'total_points': 2.5 }
+		res = self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,
+							  		data, extra_environ=editor_environ,
+							  		status=422)
+		assert_that( res.json_body.get( 'field' ), is_( 'auto_grade' ))
+
+		data = { 'auto_grade': 10, 'total_points': 2.5 }
+		res = self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,
+							  		data, extra_environ=editor_environ,
+							  		status=422)
+		assert_that( res.json_body.get( 'field' ), is_( 'auto_grade' ))
+
+		data = { 'auto_grade': 'True', 'total_points': -1 }
+		res = self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,
+							  		data, extra_environ=editor_environ,
+							  		status=422)
+		assert_that( res.json_body.get( 'field' ), is_( 'total_points' ))
+
+		data = { 'auto_grade': 'True', 'total_points': 'bleh' }
+		res = self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,
+							  		data, extra_environ=editor_environ,
+							  		status=422)
+		assert_that( res.json_body.get( 'field' ), is_( 'total_points' ))
+
 	@WithSharedApplicationMockDS(users=True, testapp=True)
 	def test_assignment_editing_invalid(self):
 		editor_environ = self._make_extra_environ(username="sjohnson@nextthought.com")

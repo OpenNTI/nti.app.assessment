@@ -270,19 +270,22 @@ class AssessmentPutView(UGDPutView):
 		Get the value for the given type.
 		"""
 		if value_type == bool:
-			if isinstance(value, six.string_types):
-				result = is_true(value)
-				if not result and is_false(value):
+			result = value
+			if isinstance( value, six.string_types ):
+				result = is_true( value )
+				if not result and is_false( value ):
 					result = False
-			try:
-				result = bool(value)
-			except (TypeError, ValueError):
+				elif not result:
+					result = None
+			if not isinstance( result, bool ):
 				self._raise_error('InvalidType',
 							  	  _('Value is invalid.'),
 							  	  field=field)
 		elif value_type == float:
 			try:
 				result = float(value)
+				if result < 0:
+					raise TypeError()
 			except (TypeError, ValueError):
 				self._raise_error('InvalidType',
 							  	  _('Value is invalid.'),
@@ -345,7 +348,7 @@ class AssessmentPutView(UGDPutView):
 													pre_hook=pre_hook,
 													externalValue=externalValue,
 													contentObject=contentObject)
-			
+
 			if notify:
 				notifyModified(contentObject, copied)
 		else:

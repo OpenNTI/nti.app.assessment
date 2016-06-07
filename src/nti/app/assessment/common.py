@@ -679,7 +679,7 @@ def validate_auto_grade(assignment, course):
 				for part in question.parts or ():
 					# Validate every part has grader.
 					if 		not getattr( part, 'grader_interface', None ) \
-						or 	not getattr( part, 'grader_name', None ):
+						and not getattr( part, 'grader_name', None ):
 						request = get_current_request()
 						raise_json_error(request,
 										 hexc.HTTPUnprocessableEntity,

@@ -54,6 +54,8 @@ from nti.contenttypes.courses.utils import get_courses_for_packages
 from nti.externalization.externalization import to_external_object
 from nti.externalization.externalization import StandardExternalFields
 
+from nti.externalization.internalization import notifyModified
+
 from nti.links.links import Link
 
 from nti.schema.interfaces import InvalidValue
@@ -62,6 +64,7 @@ from nti.traversal.traversal import find_interface
 
 CLASS = StandardExternalFields.CLASS
 LINKS = StandardExternalFields.LINKS
+NTIID = StandardExternalFields.NTIID
 MIME_TYPE = StandardExternalFields.MIMETYPE
 
 def canonicalize_question_set(self, obj, registry=component):
@@ -101,8 +104,8 @@ class AssessmentPutView(UGDPutView):
 
 	def readInput(self, value=None):
 		result = UGDPutView.readInput(self, value=value)
-		result.pop('ntiid', None)
-		result.pop('NTIID', None)
+		result.pop(NTIID, None)
+		result.pop(NTIID.lower(), None)
 		return result
 
 	def _raise_conflict_error(self, code, message, course, ntiid):
@@ -143,10 +146,10 @@ class AssessmentPutView(UGDPutView):
 		# 1. Move start date in future (old start date non-None)
 		# 2. Move start date in past (new start date non-None)
 		return 		old_start_date != new_start_date \
-				and 	((	new_start_date \
-						and cls._is_date_in_range( old_start_date, new_start_date, now))
-					or 	(	old_start_date \
-						and cls._is_date_in_range( new_start_date, old_start_date, now)))
+				and 	((	  new_start_date \
+						  and cls._is_date_in_range(old_start_date, new_start_date, now))
+					or 	(	 old_start_date \
+						 and cls._is_date_in_range(new_start_date, old_start_date, now)))
 
 	def validate_date_boundaries(self, contentObject, externalValue, courses=()):
 		"""
@@ -174,7 +177,7 @@ class AssessmentPutView(UGDPutView):
 																   course)
 
 				old_start_date = get_available_for_submission_beginning(contentObject,
-																	    course)
+																		course)
 
 				# Use old dates if the dates are not being edited.
 				if new_start_date is _marker:
@@ -241,17 +244,17 @@ class AssessmentPutView(UGDPutView):
 	def _get_or_create_policy_part(self, course, ntiid, part=None):
 		policy = result = IQAssessmentPolicies(course)
 		if part:
-			result = policy.get( ntiid, part )
+			result = policy.get(ntiid, part)
 			if not result:
 				result = {}
-				policy.set( ntiid, part, result )
+				policy.set(ntiid, part, result)
 		return result
 
 	def _raise_error(self, code, message, field=None):
 		"""
 		Raise a 422 with the give code, message and field (optional).
 		"""
-		data = {
+		data =	{
 					u'code': code,
 					u'message': message,
 				}
@@ -267,19 +270,19 @@ class AssessmentPutView(UGDPutView):
 		Get the value for the given type.
 		"""
 		if value_type == bool:
-			if isinstance( value, six.string_types ):
-				result = is_true( value )
-				if not result and is_false( value ):
+			if isinstance(value, six.string_types):
+				result = is_true(value)
+				if not result and is_false(value):
 					result = False
 			try:
-				result = bool( value )
+				result = bool(value)
 			except (TypeError, ValueError):
 				self._raise_error('InvalidType',
 							  	  _('Value is invalid.'),
 							  	  field=field)
 		elif value_type == float:
 			try:
-				result = float( value )
+				result = float(value)
 			except (TypeError, ValueError):
 				self._raise_error('InvalidType',
 							  	  _('Value is invalid.'),
@@ -292,7 +295,7 @@ class AssessmentPutView(UGDPutView):
 		if key in SUPPORTED_DATE_KEYS:
 			if value and not isinstance(value, datetime):
 				value = IDateTime(value)
-			for course in courses:
+			for course in courses or ():
 				dates = IQAssessmentDateContext(course)
 				dates.set(ntiid, key, value)
 				event_notify(QAssessmentDateContextModified(dates, ntiid, key))
@@ -301,18 +304,18 @@ class AssessmentPutView(UGDPutView):
 		part = None
 		if key == 'auto_grade':
 			# If auto_grade set to 'false', set 'disable' to true in auto_grade section.
-			value = self._get_value( bool, value, key )
+			value = self._get_value(bool, value, key)
 			part = 'auto_grade'
 			value = not value
 			key = 'disable'
 		elif key == 'total_points':
-			value = self._get_value( float, value, key )
+			value = self._get_value(float, value, key)
 			part = 'auto_grade'
 
 		for course in courses:
 			policy = self._get_or_create_policy_part(course, ntiid, part)
 			policy[key] = value
-			event_notify( QAssessmentPoliciesModified( course, ntiid, key ) )
+			event_notify(QAssessmentPoliciesModified(course, ntiid, key))
 
 	def updateContentObject(self, contentObject, externalValue, set_id=False,
 							notify=True, pre_hook=None):
@@ -328,19 +331,23 @@ class AssessmentPutView(UGDPutView):
 		if context is not None:
 			# Remove policy keys to avoid updating
 			# fields in the actual assessment object
-			backupData = copy.copy(externalValue)
+			backupData = copy.deepcopy(externalValue)
 			for key in self.policy_keys:
 				externalValue.pop(key, None)
 		else:
 			backupData = externalValue
 
 		if externalValue:
+			copied = copy.deepcopy(externalValue)
 			result = UGDPutView.updateContentObject(self,
-													notify=notify,
+													notify=False,
 													set_id=set_id,
 													pre_hook=pre_hook,
 													externalValue=externalValue,
 													contentObject=contentObject)
+			
+			if notify:
+				notifyModified(contentObject, copied)
 		else:
 			result = contentObject
 

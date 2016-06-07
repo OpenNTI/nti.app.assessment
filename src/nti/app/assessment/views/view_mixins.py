@@ -9,6 +9,7 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+import six
 import copy
 from datetime import datetime
 
@@ -20,8 +21,6 @@ from zope.event import notify as event_notify
 
 from zope.interface.common.idatetime import IDateTime
 
-from nti.app.assessment.common import has_savepoints
-from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import get_available_for_submission_ending
 from nti.app.assessment.common import get_available_for_submission_beginning
 
@@ -35,8 +34,13 @@ from nti.appserver.ugd_edit_views import UGDPutView
 
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
+from nti.assessment.interfaces import IQAssessmentPolicies
 from nti.assessment.interfaces import IQAssessmentDateContext
+from nti.assessment.interfaces import QAssessmentPoliciesModified
 from nti.assessment.interfaces import QAssessmentDateContextModified
+
+from nti.common.string import is_true
+from nti.common.string import is_false
 
 from nti.contentlibrary.interfaces import IContentPackage
 
@@ -93,19 +97,13 @@ class AssessmentPutView(UGDPutView):
 	TO_UNAVAILABLE_MSG = None
 	DUE_DATE_CONFIRM_MSG = _('Are you sure you want to change the due date?')
 
+	POLICY_KEYS = ("auto_grade", 'total_points')
+
 	def readInput(self, value=None):
 		result = UGDPutView.readInput(self, value=value)
 		result.pop('ntiid', None)
 		result.pop('NTIID', None)
 		return result
-
-	@classmethod
-	def has_submissions(cls, assessment, courses=()):
-		return has_submissions(assessment, courses)
-
-	@classmethod
-	def has_savepoints(cls, assessment, courses=()):
-		return has_savepoints(assessment, courses)
 
 	def _raise_conflict_error(self, code, message, course, ntiid):
 		entry = ICourseCatalogEntry(course)
@@ -233,17 +231,62 @@ class AssessmentPutView(UGDPutView):
 			end_date = get_available_for_submission_ending(contentObject, course)
 			start_date = get_available_for_submission_beginning(contentObject, course)
 			if start_date and end_date and end_date < start_date:
-				raise_json_error(self.request,
-								 hexc.HTTPUnprocessableEntity,
-								 {
-									u'code': 'AssessmentDueDateBeforeStartDate',
-									u'message': _('Due date cannot come before start date.'),
-								 },
-								 None)
+				self._raise_error('AssessmentDueDateBeforeStartDate',
+								  _('Due date cannot come before start date.'))
 
 	@property
 	def policy_keys(self):
-		return SUPPORTED_DATE_KEYS
+		return SUPPORTED_DATE_KEYS + self.POLICY_KEYS
+
+	def _get_or_create_policy_part(self, course, ntiid, part=None):
+		policy = result = IQAssessmentPolicies(course)
+		if part:
+			result = policy.get( ntiid, part )
+			if not result:
+				result = {}
+				policy.set( ntiid, part, result )
+		return result
+
+	def _raise_error(self, code, message, field=None):
+		"""
+		Raise a 422 with the give code, message and field (optional).
+		"""
+		data = {
+					u'code': code,
+					u'message': message,
+				}
+		if field:
+			data['field'] = field
+		raise_json_error(self.request,
+						 hexc.HTTPUnprocessableEntity,
+						 data,
+						 None)
+
+	def _get_value(self, value_type, value, field):
+		"""
+		Get the value for the given type.
+		"""
+		if value_type == bool:
+			if isinstance( value, six.string_types ):
+				result = is_true( value )
+				if not result and is_false( value ):
+					result = False
+			try:
+				result = bool( value )
+			except (TypeError, ValueError):
+				self._raise_error('InvalidType',
+							  	  _('Value is invalid.'),
+							  	  field=field)
+		elif value_type == float:
+			try:
+				result = float( value )
+			except (TypeError, ValueError):
+				self._raise_error('InvalidType',
+							  	  _('Value is invalid.'),
+							  	  field=field)
+		else:
+			raise TypeError()
+		return result
 
 	def update_policy(self, courses, ntiid, key, value):
 		if key in SUPPORTED_DATE_KEYS:
@@ -253,6 +296,23 @@ class AssessmentPutView(UGDPutView):
 				dates = IQAssessmentDateContext(course)
 				dates.set(ntiid, key, value)
 				event_notify(QAssessmentDateContextModified(dates, ntiid, key))
+			return
+
+		part = None
+		if key == 'auto_grade':
+			# If auto_grade set to 'false', set 'disable' to true in auto_grade section.
+			value = self._get_value( bool, value, key )
+			part = 'auto_grade'
+			value = not value
+			key = 'disable'
+		elif key == 'total_points':
+			value = self._get_value( float, value, key )
+			part = 'auto_grade'
+
+		for course in courses:
+			policy = self._get_or_create_policy_part(course, ntiid, part)
+			policy[key] = value
+			event_notify( QAssessmentPoliciesModified( course, ntiid, key ) )
 
 	def updateContentObject(self, contentObject, externalValue, set_id=False,
 							notify=True, pre_hook=None):

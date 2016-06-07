@@ -638,6 +638,14 @@ def get_max_time_allowed(assignment, course):
 		max_time_allowed = policy['maximum_time_allowed']
 	return max_time_allowed
 
+def get_auto_grade_policy(assignment, course):
+	"""
+	For a given assignment, return the autograde policy for the given course.
+	"""
+	policy = IQAssignmentPolicies(course)
+	result = policy.get(assignment.ntiid, 'auto_grade', {})
+	return result
+
 def make_evaluation_ntiid(kind, creator=SYSTEM_USER_ID, base=None, extra=None):
 	# get kind
 	if IQAssignment.isOrExtends(kind):

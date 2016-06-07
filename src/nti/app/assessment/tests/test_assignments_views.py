@@ -87,6 +87,8 @@ class TestAssignmentViews(ApplicationLayerTest):
 		orig_end_date = res.get(end_field)
 		orig_non_public = res.get(public_field)
 		assert_that(orig_non_public, is_(True))
+		assert_that(res.get( 'auto_grade' ), none())
+		assert_that(res.get( 'total_points' ), none())
 
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
 			# Mark as editable for testing purposes.
@@ -217,6 +219,34 @@ class TestAssignmentViews(ApplicationLayerTest):
 			obj_id = intids.getId( obj )
 			timed_objs = _get_timed()
 			assert_that( timed_objs, does_not( has_item( obj_id )))
+
+		# Test editing auto_grade/points.
+		data = { 'total_points': 100 }
+		self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,
+							  data, extra_environ=editor_environ)
+		res = self.testapp.get('/dataserver2/Objects/' + self.assignment_id,
+							   extra_environ=editor_environ)
+		res = res.json_body
+		assert_that(res.get('auto_grade'), none())
+		assert_that(res.get('total_points'), is_(100))
+
+		data = { 'auto_grade': False, 'total_points': 5 }
+		self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,
+							  data, extra_environ=editor_environ)
+		res = self.testapp.get('/dataserver2/Objects/' + self.assignment_id,
+							   extra_environ=editor_environ)
+		res = res.json_body
+		assert_that(res.get('auto_grade'), is_(False))
+		assert_that(res.get('total_points'), is_(5))
+
+		data = { 'auto_grade': 'true', 'total_points': 500 }
+		self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,
+							  data, extra_environ=editor_environ)
+		res = self.testapp.get('/dataserver2/Objects/' + self.assignment_id,
+							   extra_environ=editor_environ)
+		res = res.json_body
+		assert_that(res.get('auto_grade'), is_(True))
+		assert_that(res.get('total_points'), is_(500))
 
 	@WithSharedApplicationMockDS(users=True, testapp=True)
 	def test_assignment_editing_invalid(self):

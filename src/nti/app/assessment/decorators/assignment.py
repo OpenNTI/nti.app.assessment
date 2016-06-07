@@ -28,6 +28,7 @@ from nti.app.assessment.common import get_courses
 from nti.app.assessment.common import has_savepoints
 from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import get_max_time_allowed
+from nti.app.assessment.common import get_auto_grade_policy
 from nti.app.assessment.common import get_assessment_metadata_item
 from nti.app.assessment.common import get_available_for_submission_ending
 from nti.app.assessment.common import get_available_for_submission_beginning
@@ -177,13 +178,19 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		result['available_for_submission_beginning'] = to_external_object(start_date)
 		result['available_for_submission_ending'] = to_external_object(end_date)
 
-		if not IQTimedAssignment.providedBy(assignment):
+		if IQTimedAssignment.providedBy(assignment):
+			max_time_allowed = get_max_time_allowed(assignment, course)
+			result['IsTimedAssignment'] = True
+			result['MaximumTimeAllowed'] = result['maximum_time_allowed' ] = max_time_allowed
+		else:
 			result['IsTimedAssignment'] = False
-			return
 
-		max_time_allowed = get_max_time_allowed(assignment, course)
-		result['IsTimedAssignment'] = True
-		result['MaximumTimeAllowed'] = result['maximum_time_allowed' ] = max_time_allowed
+		# auto_grade/total_points
+		auto_grade = get_auto_grade_policy( assignment, course )
+		if auto_grade:
+			disabled = auto_grade.get( 'disable' )
+			result['auto_grade'] = not disabled if disabled is not None else None
+			result['total_points'] = auto_grade.get( 'total_points' )
 
 class _TimedAssignmentPartStripperDecorator(AbstractAuthenticatedRequestAwareDecorator):
 

@@ -26,6 +26,8 @@ from zope import interface
 
 from zope.intid.interfaces import IIntIds
 
+from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
+
 from nti.app.assessment import get_evaluation_catalog
 
 from nti.app.assessment.index import IX_MIMETYPE
@@ -70,7 +72,7 @@ class TestAssignmentViews(ApplicationLayerTest):
 	assignment_id = 'tag:nextthought.com,2011-10:OU-NAQ-CS1323_F_2015_Intro_to_Computer_Programming.naq.asg.assignment:Project_1'
 
 	@WithSharedApplicationMockDS(users=True, testapp=True)
-	def test_assignment_editing(self):
+	def test_content_assignment_date_editing(self):
 		editor_environ = self._make_extra_environ(username="sjohnson@nextthought.com")
 		new_start_date = "2014-09-10T05:00:00Z"
 		new_end_date = "2015-11-12T04:59:00Z"
@@ -91,12 +93,15 @@ class TestAssignmentViews(ApplicationLayerTest):
 		assert_that(res.get( 'total_points' ), none())
 
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
-			# Mark as editable for testing purposes.
+			# Mark assignment/question_set editable for testing purposes.
 			entry = find_object_with_ntiid(self.course_ntiid)
 			course = ICourseInstance(entry)
 			asg = find_object_with_ntiid(self.assignment_id)
 			asg.__parent__ = course
 			interface.alsoProvides(asg, IQEditableEvaluation)
+			qset = asg.parts[0].question_set
+			qset.__parent__ = course
+			interface.alsoProvides(qset, IQEditableEvaluation)
 			history = ITransactionRecordHistory(asg)
 			assert_that(history, has_length(0))
 
@@ -219,68 +224,6 @@ class TestAssignmentViews(ApplicationLayerTest):
 			obj_id = intids.getId( obj )
 			timed_objs = _get_timed()
 			assert_that( timed_objs, does_not( has_item( obj_id )))
-
-		# Test editing auto_grade/points.
-		data = { 'total_points': 100 }
-		self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,
-							  data, extra_environ=editor_environ)
-		res = self.testapp.get('/dataserver2/Objects/' + self.assignment_id,
-							   extra_environ=editor_environ)
-		res = res.json_body
-		assert_that(res.get('auto_grade'), none())
-		assert_that(res.get('total_points'), is_(100))
-
-		data = { 'auto_grade': False, 'total_points': 5 }
-		self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,
-							  data, extra_environ=editor_environ)
-		res = self.testapp.get('/dataserver2/Objects/' + self.assignment_id,
-							   extra_environ=editor_environ)
-		res = res.json_body
-		assert_that(res.get('auto_grade'), is_(False))
-		assert_that(res.get('total_points'), is_(5))
-
-		data = { 'auto_grade': 'true', 'total_points': 500 }
-		self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,
-							  data, extra_environ=editor_environ)
-		res = self.testapp.get('/dataserver2/Objects/' + self.assignment_id,
-							   extra_environ=editor_environ)
-		res = res.json_body
-		assert_that(res.get('auto_grade'), is_(True))
-		assert_that(res.get('total_points'), is_(500))
-
-		data = { 'auto_grade': 'false', 'total_points': 2.5 }
-		self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,
-							  data, extra_environ=editor_environ)
-		res = self.testapp.get('/dataserver2/Objects/' + self.assignment_id,
-							   extra_environ=editor_environ)
-		res = res.json_body
-		assert_that(res.get('auto_grade'), is_(False))
-		assert_that(res.get('total_points'), is_(2.5))
-
-		# Errors
-		data = { 'auto_grade': 'what', 'total_points': 2.5 }
-		res = self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,
-							  		data, extra_environ=editor_environ,
-							  		status=422)
-		assert_that( res.json_body.get( 'field' ), is_( 'auto_grade' ))
-
-		data = { 'auto_grade': 10, 'total_points': 2.5 }
-		res = self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,
-							  		data, extra_environ=editor_environ,
-							  		status=422)
-		assert_that( res.json_body.get( 'field' ), is_( 'auto_grade' ))
-
-		data = { 'auto_grade': 'True', 'total_points': -1 }
-		res = self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,
-							  		data, extra_environ=editor_environ,
-							  		status=422)
-		assert_that( res.json_body.get( 'field' ), is_( 'total_points' ))
-
-		data = { 'auto_grade': 'True', 'total_points': 'bleh' }
-		res = self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,
-							  		data, extra_environ=editor_environ,
-							  		status=422)
-		assert_that( res.json_body.get( 'field' ), is_( 'total_points' ))
 
 	@WithSharedApplicationMockDS(users=True, testapp=True)
 	def test_assignment_editing_invalid(self):

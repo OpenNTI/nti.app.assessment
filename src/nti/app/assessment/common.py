@@ -12,7 +12,12 @@ logger = __import__('logging').getLogger(__name__)
 import six
 import time
 import itertools
+
 from datetime import datetime
+
+from pyramid import httpexceptions as hexc
+
+from pyramid.threadlocal import get_current_request
 
 from zope import component
 
@@ -25,6 +30,7 @@ from zope.schema.interfaces import RequiredMissing
 
 from ZODB import loglevels
 
+from nti.app.assessment import MessageFactory as _
 from nti.app.assessment import get_evaluation_catalog
 from nti.app.assessment import get_submission_catalog
 
@@ -42,6 +48,8 @@ from nti.app.assessment.interfaces import IUsersCourseInquiryItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
+
+from nti.app.externalization.error import raise_json_error
 
 from nti.assessment.interfaces import NTIID_TYPE
 from nti.assessment.interfaces import DISCLOSURE_NEVER
@@ -643,8 +651,43 @@ def get_auto_grade_policy(assignment, course):
 	For a given assignment, return the autograde policy for the given course.
 	"""
 	policy = IQAssignmentPolicies(course)
-	result = policy.get(assignment.ntiid, 'auto_grade', {})
+	result = policy.get(assignment.ntiid, 'auto_grade')
 	return result
+
+def _get_auto_grade(assignment, course):
+	"""
+	For a given assignment, return the autograde for the given course.
+	"""
+	policy = get_auto_grade_policy(assignment, course)
+	result = False
+	if policy and policy.get( 'disable' ) is not None:
+		# Only allow auto_grading if disable is explicitly set to False.
+		result = not policy.get( 'disable' )
+	return result
+
+def validate_auto_grade(assignment, course):
+	"""
+	Validate the assignment has the proper state for auto-grading, if
+	necessary.
+	"""
+	auto_grade = _get_auto_grade( assignment, course )
+	if auto_grade:
+		# Work to do
+		for part in assignment.parts or ():
+			question_set = part.question_set
+			for question in question_set.questions or ():
+				for part in question.parts or ():
+					# Validate every part has grader.
+					if 		not getattr( part, 'grader_interface', None ) \
+						or 	not getattr( part, 'grader_name', None ):
+						request = get_current_request()
+						raise_json_error(request,
+										 hexc.HTTPUnprocessableEntity,
+										 {
+											u'message': _("Ungradable item in auto-graded assignment."),
+											u'code': 'UngradableInAutoGradeAssignment',
+										 },
+										 None)
 
 def make_evaluation_ntiid(kind, creator=SYSTEM_USER_ID, base=None, extra=None):
 	# get kind

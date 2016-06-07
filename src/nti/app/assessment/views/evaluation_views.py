@@ -31,9 +31,12 @@ from nti.app.assessment import MessageFactory as _
 from nti.app.assessment import VIEW_ASSESSMENT_MOVE
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 
+from nti.app.assessment.common import get_courses
+from nti.app.assessment.common import validate_auto_grade
 from nti.app.assessment.common import make_evaluation_ntiid
 from nti.app.assessment.common import get_resource_site_name
 from nti.app.assessment.common import get_evaluation_containment
+from nti.app.assessment.common import get_assignments_for_evaluation_object
 
 from nti.app.assessment.evaluations.utils import indexed_iter
 from nti.app.assessment.evaluations.utils import register_context
@@ -461,6 +464,18 @@ class QuestionSetInsertView(AbstractAuthenticatedView,
 		new_question = self.handle_evaluation(new_question, self.course, sources, creator)
 		return new_question
 
+	def _get_courses(self, context):
+		result = find_interface(context, ICourseInstance, strict=False)
+		return get_courses(result)
+
+	def _validate(self):
+		# Make sure our auto_grade status still holds.
+		courses = self._get_courses( self.context )
+		assignments = get_assignments_for_evaluation_object( self.context )
+		for course in courses or ():
+			for assignment in assignments or ():
+				validate_auto_grade(assignment, course)
+
 	def __call__(self):
 		self._validate_structural_edits( self.context )
 		index = self._get_index()
@@ -469,6 +484,7 @@ class QuestionSetInsertView(AbstractAuthenticatedView,
 		notify(QuestionInsertedInContainerEvent(self.context, question, index))
 		logger.info('Inserted new question (%s)', question.ntiid)
 		self.request.response.status_int = 201
+		self._validate()
 		return question
 
 # PUT views
@@ -607,10 +623,6 @@ class PollPutView(NewAndLegacyPutView):
 	TO_UNAVAILABLE_MSG = _('Poll will become unavailable. Please confirm.')
 	OBJ_DEF_CHANGE_MSG = _("Cannot change the poll definition.")
 
-	def validate(self, contentObject, externalValue, courses=()):
-		if not IPublishable.providedBy(contentObject) or contentObject.is_published():
-			super(PollPutView, self).validate(contentObject, externalValue, courses)
-
 @view_config(route_name='objects.generic.traversal',
 			 context=IQSurvey,
 			 request_method='PUT',
@@ -627,10 +639,6 @@ class SurveyPutView(NewAndLegacyPutView):
 		parts = externalValue.get('questions')
 		if parts:
 			self._validate_structural_edits()
-
-	def validate(self, contentObject, externalValue, courses=()):
-		if not IPublishable.providedBy(contentObject) or contentObject.is_published():
-			super(SurveyPutView, self).validate(contentObject, externalValue, courses)
 
 	def post_update_check(self, contentObject, originalSource):
 		if IQEditableEvaluation.providedBy(contentObject):
@@ -655,10 +663,6 @@ class AssignmentPutView(NewAndLegacyPutView):
 		parts = externalValue.get('parts')
 		if parts:
 			self._validate_structural_edits()
-
-	def validate(self, contentObject, externalValue, courses=()):
-		if not IPublishable.providedBy(contentObject) or contentObject.is_published():
-			super(AssignmentPutView, self).validate(contentObject, externalValue, courses)
 
 	def post_update_check(self, contentObject, originalSource):
 		if IQEditableEvaluation.providedBy(contentObject):

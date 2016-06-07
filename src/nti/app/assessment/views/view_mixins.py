@@ -21,6 +21,7 @@ from zope.event import notify as event_notify
 
 from zope.interface.common.idatetime import IDateTime
 
+from nti.app.assessment.common import validate_auto_grade
 from nti.app.assessment.common import get_available_for_submission_ending
 from nti.app.assessment.common import get_available_for_submission_beginning
 
@@ -231,11 +232,14 @@ class AssessmentPutView(UGDPutView):
 		# We could validate edits based on the unused submission/savepoint
 		# code above, based on the input keys being changed.
 		for course in courses:
+			# Validate dates
 			end_date = get_available_for_submission_ending(contentObject, course)
 			start_date = get_available_for_submission_beginning(contentObject, course)
 			if start_date and end_date and end_date < start_date:
 				self._raise_error('AssessmentDueDateBeforeStartDate',
 								  _('Due date cannot come before start date.'))
+			# Validate auto_grade
+			validate_auto_grade(contentObject, course)
 
 	@property
 	def policy_keys(self):

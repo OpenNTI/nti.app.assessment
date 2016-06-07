@@ -200,6 +200,123 @@ class TestEvaluationViews(ApplicationLayerTest):
 			assert_that(exported, has_entry('Items', has_length(13)))
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
+	def test_editing_assignments(self):
+		editor_environ = self._make_extra_environ(username="sjohnson@nextthought.com")
+		course_oid = self._get_course_oid()
+		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
+		# Make assignment empty, without questions
+		assignment = self._load_assignment()
+		res = self.testapp.post_json(href, assignment, status=201)
+		res = res.json_body
+		assignment_ntiid = res.get( 'ntiid' )
+		qset = res.get( 'parts' )[0].get( 'question_set' )
+		qset_contents_href = self.require_link_href_with_rel(qset, VIEW_QUESTION_SET_CONTENTS)
+		question_ntiid = qset.get( 'questions' )[0].get( 'ntiid' )
+		delete_suffix = self._get_delete_url_suffix(0, question_ntiid)
+		self.testapp.delete(qset_contents_href + delete_suffix)
+
+		# Test editing auto_grade/points.
+		data = { 'total_points': 100 }
+		self.testapp.put_json('/dataserver2/Objects/%s' % assignment_ntiid,
+							  data, extra_environ=editor_environ)
+		res = self.testapp.get('/dataserver2/Objects/' + assignment_ntiid,
+							   extra_environ=editor_environ)
+		res = res.json_body
+		assert_that(res.get('auto_grade'), none())
+		assert_that(res.get('total_points'), is_(100))
+
+		data = { 'auto_grade': False, 'total_points': 5 }
+		self.testapp.put_json('/dataserver2/Objects/%s' % assignment_ntiid,
+							  data, extra_environ=editor_environ)
+		res = self.testapp.get('/dataserver2/Objects/' + assignment_ntiid,
+							   extra_environ=editor_environ)
+		res = res.json_body
+		assert_that(res.get('auto_grade'), is_(False))
+		assert_that(res.get('total_points'), is_(5))
+
+		data = { 'auto_grade': 'true', 'total_points': 500 }
+		self.testapp.put_json('/dataserver2/Objects/%s' % assignment_ntiid,
+							  data, extra_environ=editor_environ)
+		res = self.testapp.get('/dataserver2/Objects/' + assignment_ntiid,
+							   extra_environ=editor_environ)
+		res = res.json_body
+		assert_that(res.get('auto_grade'), is_(True))
+		assert_that(res.get('total_points'), is_(500))
+
+		data = { 'auto_grade': 'false', 'total_points': 2.5 }
+		self.testapp.put_json('/dataserver2/Objects/%s' % assignment_ntiid,
+							  data, extra_environ=editor_environ)
+		res = self.testapp.get('/dataserver2/Objects/' + assignment_ntiid,
+							   extra_environ=editor_environ)
+		res = res.json_body
+		assert_that(res.get('auto_grade'), is_(False))
+		assert_that(res.get('total_points'), is_(2.5))
+
+		# Errors
+		data = { 'auto_grade': 'what', 'total_points': 2.5 }
+		res = self.testapp.put_json('/dataserver2/Objects/%s' % assignment_ntiid,
+							  		data, extra_environ=editor_environ,
+							  		status=422)
+		assert_that( res.json_body.get( 'field' ), is_( 'auto_grade' ))
+
+		data = { 'auto_grade': 10, 'total_points': 2.5 }
+		res = self.testapp.put_json('/dataserver2/Objects/%s' % assignment_ntiid,
+							  		data, extra_environ=editor_environ,
+							  		status=422)
+		assert_that( res.json_body.get( 'field' ), is_( 'auto_grade' ))
+
+		data = { 'auto_grade': 'True', 'total_points': -1 }
+		res = self.testapp.put_json('/dataserver2/Objects/%s' % assignment_ntiid,
+							  		data, extra_environ=editor_environ,
+							  		status=422)
+		assert_that( res.json_body.get( 'field' ), is_( 'total_points' ))
+
+		data = { 'auto_grade': 'True', 'total_points': 'bleh' }
+		res = self.testapp.put_json('/dataserver2/Objects/%s' % assignment_ntiid,
+							  		data, extra_environ=editor_environ,
+							  		status=422)
+		assert_that( res.json_body.get( 'field' ), is_( 'total_points' ))
+
+		# Validated auto-grading state.
+		data = { 'auto_grade': 'True' }
+		self.testapp.put_json('/dataserver2/Objects/%s' % assignment_ntiid,
+							  data, extra_environ=editor_environ)
+
+		# Add gradable question when auto-grade enabled.
+		qset_source = self._load_questionset()
+		gradable_question = qset_source.get( 'questions' )[0]
+		self.testapp.post_json(qset_contents_href, gradable_question)
+
+		# File part non-gradable cannot be added.
+		file_question = {'Class': 'Question',
+					'MimeType': 'application/vnd.nextthought.naquestion',
+					'content': '<a name="testquestion"></a> Arbitrary content goes here.',
+					'parts': [{'Class': 'FilePart',
+							   'MimeType': 'application/vnd.nextthought.assessment.filepart',
+							   'allowed_extensions': [],
+							   'allowed_mime_types': ['application/pdf'],
+							   'content': 'Arbitrary content goes here.',
+							   'explanation': u'',
+							   'hints': [],
+							   'max_file_size': None,
+							   'solutions': []}]}
+		res = self.testapp.post_json(qset_contents_href, file_question, status=422)
+		assert_that( res.json_body.get( 'code' ), is_('UngradableInAutoGradeAssignment'))
+
+		# Turn off auto-grade and add file part
+		data = { 'auto_grade': 'False' }
+		self.testapp.put_json('/dataserver2/Objects/%s' % assignment_ntiid,
+							  data, extra_environ=editor_environ)
+		self.testapp.post_json(qset_contents_href, file_question)
+
+		# Now enabling auto-grading fails.
+		data = { 'auto_grade': 'True' }
+		res = self.testapp.put_json('/dataserver2/Objects/%s' % assignment_ntiid,
+							 		 data, extra_environ=editor_environ,
+							 		 status=422)
+		assert_that( res.json_body.get( 'code' ), is_('UngradableInAutoGradeAssignment'))
+
+	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_assignment_no_solutions(self):
 		course_oid = self._get_course_oid()
 		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)

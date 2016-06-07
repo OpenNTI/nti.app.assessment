@@ -12,6 +12,7 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 import datetime
+from functools import partial
 
 from zope import component
 from zope import interface
@@ -21,6 +22,13 @@ from zope.annotation.interfaces import IAnnotations
 
 from zope.schema.interfaces import NotUnique
 from zope.schema.interfaces import ConstraintNotSatisfied
+
+from pyramid import renderers
+
+from pyramid.httpexceptions import HTTPCreated
+
+from pyramid.interfaces import IRequest
+from pyramid.interfaces import IExceptionResponse
 
 from persistent.list import PersistentList
 
@@ -70,6 +78,8 @@ from nti.contenttypes.courses.utils import is_course_instructor_or_editor
 
 from nti.dataserver.interfaces import IUser
 
+from nti.externalization.oids import to_external_oid
+
 from nti.traversal.traversal import find_interface
 
 @component.adapter(IQuestionSubmission)
@@ -87,17 +97,6 @@ def _question_set_submission_transformer(obj):
 	Grade it, by adapting the object into an IAssessedQuestionSet
 	"""
 	return IQAssessedQuestionSet
-
-from functools import partial
-
-from pyramid import renderers
-
-from pyramid.httpexceptions import HTTPCreated
-
-from pyramid.interfaces import IRequest
-from pyramid.interfaces import IExceptionResponse
-
-from nti.externalization.oids import to_external_oid
 
 @component.adapter(IRequest, IQAssignmentSubmission)
 @interface.implementer(INewObjectTransformer)

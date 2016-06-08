@@ -119,6 +119,10 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 											  IUsersCourseAssignmentMetadata)
 		metadata.get_or_create(submission.assignmentId, time.time())
 
+		version = getattr(self.context, 'version', None)
+		if version is not None: # record version
+			submission.version = version
+		
 		# Now record the submission.
 		self.request.response.status_int = 201
 		result = recorded = savepoint.recordSubmission(submission)

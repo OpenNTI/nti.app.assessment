@@ -190,7 +190,7 @@ def _begin_assessment_for_assignment_submission(submission):
 		ex.field = IQAssignmentSubmission['assignmentId']
 		ex.value = submission.assignmentId
 		raise ex
-
+	
 	set_submission_lineage(submission)
 	submission.containerId = submission.assignmentId
 
@@ -208,7 +208,11 @@ def _begin_assessment_for_assignment_submission(submission):
 																parts=new_parts)
 	pending_assessment.containerId = submission.assignmentId
 	lifecycleevent.created(pending_assessment)
-
+	
+	version = getattr(assignment, 'version', None)
+	if version is not None: # record version
+		pending_assessment.version = submission.version = version
+		
 	# Now record the submission. This will broadcast created and
 	# added events for the HistoryItem and an added event for the pending assessment.
 	# The HistoryItem will have

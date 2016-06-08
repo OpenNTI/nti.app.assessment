@@ -63,7 +63,7 @@ def _process_items(registry, queue, intids, seen):
 			container = IQAssessmentItemContainer(package, None)
 			if container is None:
 				continue
-			lastMod = container.lastModified or 0
+			lastMod = getattr(container, 'lastModified', None) or 0
 			if not lastMod:
 				continue
 			item = removeAllProxies(item)

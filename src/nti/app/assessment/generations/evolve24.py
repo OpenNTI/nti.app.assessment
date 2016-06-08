@@ -61,8 +61,6 @@ def _process_items(registry, queue, intids, seen):
 			if IGlobalContentPackage.providedBy(package):
 				continue
 			container = IQAssessmentItemContainer(package, None)
-			if container is None:
-				continue
 			lastMod = getattr(container, 'lastModified', None) or 0
 			if not lastMod:
 				continue

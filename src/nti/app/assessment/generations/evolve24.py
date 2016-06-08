@@ -27,6 +27,7 @@ from nti.assessment.interfaces import IQAssessmentItemContainer
 from nti.common.proxy import removeAllProxies
 
 from nti.contentlibrary.interfaces import IContentPackage
+from nti.contentlibrary.interfaces import IGlobalContentPackage
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 
 from nti.dataserver.interfaces import IDataserver
@@ -53,10 +54,13 @@ class MockDataserver(object):
 		return None
 
 def _process_items(registry, queue, intids, seen):
-	for _, item in list(registry.getUtilitiesFor(IQEvaluation)):
-		if not IQEditableEvaluation.providedBy(item):
-			pacakge = find_interface(item, IContentPackage, strict=False)
-			container = IQAssessmentItemContainer(pacakge, None)
+	for ntiid, item in list(registry.getUtilitiesFor(IQEvaluation)):
+		if not IQEditableEvaluation.providedBy(item) and ntiid not in seen:
+			seen.add(ntiid)
+			package = find_interface(item, IContentPackage, strict=False)
+			if IGlobalContentPackage.providedBy(package):
+				continue
+			container = IQAssessmentItemContainer(package, None)
 			if container is None:
 				continue
 			lastMod = container.lastModified or 0
@@ -99,6 +103,7 @@ def do_evolve(context, generation=generation):
 			with current_site(site):
 				registry = component.getSiteManager()
 				_process_items(registry, queue, intids, seen)
+		seen.clear()
 
 	component.getGlobalSiteManager().unregisterUtility(mock_ds, IDataserver)
 	logger.info('Assessment evolution %s done.', generation)

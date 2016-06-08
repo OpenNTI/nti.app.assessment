@@ -272,7 +272,7 @@ class QuestionMap(QuestionIndex):
 
 		result = set()
 		registry = self._get_registry(registry)
-
+		key_lastModified = key_lastModified or time.time()
 		assess_dict = self._get_assess_item_dict(assessment_item_dict)
 		for ntiid, v in assess_dict.items():
 			__traceback_info__ = ntiid, v
@@ -291,7 +291,7 @@ class QuestionMap(QuestionIndex):
 				obj.signature = signatures_dict.get(ntiid)
 				obj.__name__ = unicode(ntiid).encode('utf8').decode('utf8')
 				self._store_object(ntiid, obj)
-				obj.createdTime = obj.lastModified = key_lastModified or time.time()
+				obj.createdTime = obj.lastModified = key_lastModified
 
 				things_to_register = self._explode_object_to_register(obj)
 
@@ -344,7 +344,7 @@ class QuestionMap(QuestionIndex):
 				# we update lineage to the new content unit objects.
 				obj = registered
 				obj.__parent__ = parent
-				obj.lastModified = key_lastModified or time.time()
+				obj.createdTime = obj.lastModified = key_lastModified
 				self._store_object(ntiid, obj)
 				things_to_register = self._explode_object_to_register(obj)
 				for item in things_to_register:

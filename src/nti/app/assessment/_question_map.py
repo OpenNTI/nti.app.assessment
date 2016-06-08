@@ -247,7 +247,8 @@ class QuestionMap(QuestionIndex):
 							 level_ntiid=None,
 							 signatures_dict=None,
 							 registry=None,
-							 sync_results=None):
+							 sync_results=None,
+							 key_lastModified=None):
 		"""
 		Returns a set of object that should be placed in the registry, and then
 		canonicalized.
@@ -290,6 +291,7 @@ class QuestionMap(QuestionIndex):
 				obj.signature = signatures_dict.get(ntiid)
 				obj.__name__ = unicode(ntiid).encode('utf8').decode('utf8')
 				self._store_object(ntiid, obj)
+				obj.createdTime = obj.lastModified = key_lastModified or time.time()
 
 				things_to_register = self._explode_object_to_register(obj)
 
@@ -342,6 +344,7 @@ class QuestionMap(QuestionIndex):
 				# we update lineage to the new content unit objects.
 				obj = registered
 				obj.__parent__ = parent
+				obj.lastModified = key_lastModified or time.time()
 				self._store_object(ntiid, obj)
 				things_to_register = self._explode_object_to_register(obj)
 				for item in things_to_register:
@@ -364,7 +367,8 @@ class QuestionMap(QuestionIndex):
 						  nearest_containing_key=None,
 						  nearest_containing_ntiid=None,
 						  registry=None,
-						  sync_results=None):
+						  sync_results=None,
+						  key_lastModified=None):
 		"""
 		Called with an entry for a file or (sub)section. May or may not have
 		children of its own.
@@ -396,6 +400,7 @@ class QuestionMap(QuestionIndex):
 			by_file[key_for_this_level] = factory()
 
 		things_to_register = set()
+		key_lastModified = key_lastModified or time.time()
 		level_ntiid = index.get('NTIID') or nearest_containing_ntiid
 		items = self._process_assessments(index.get("AssessmentItems", {}),
 									 	  key_for_this_level,
@@ -404,7 +409,8 @@ class QuestionMap(QuestionIndex):
 									  	  level_ntiid,
 									 	  index.get("Signatures"),
 									 	  registry=registry,
-									 	  sync_results=sync_results)
+									 	  sync_results=sync_results,
+									 	  key_lastModified=key_lastModified)
 		things_to_register.update(items)
 
 		for child_item in index.get('Items', {}).values():
@@ -414,7 +420,8 @@ class QuestionMap(QuestionIndex):
 									   	   nearest_containing_key=key_for_this_level,
 									   	   nearest_containing_ntiid=level_ntiid,
 									   	   registry=registry,
-									   	   sync_results=sync_results)
+									   	   sync_results=sync_results,
+									   	   key_lastModified=key_lastModified)
 			things_to_register.update(items)
 
 		return things_to_register
@@ -423,7 +430,8 @@ class QuestionMap(QuestionIndex):
 						 assessment_index_json,
 						 content_package,
 						 registry=None,
-						 sync_results=None):
+						 sync_results=None,
+						 key_lastModified=None):
 		"""
 		The top-level is handled specially: ``index.html`` is never allowed to have
 		assessment items.
@@ -437,6 +445,7 @@ class QuestionMap(QuestionIndex):
 			logger.warn("Ignoring assessment index that contains no assessments at any level %s",
 						content_package)
 			return
+		key_lastModified = key_lastModified or time.time()
 
 		# if only one key assume it for the incoming content package
 		root_keys = tuple(root_items.keys())
@@ -469,9 +478,10 @@ class QuestionMap(QuestionIndex):
 			parsed = self._from_index_entry(child_index,
 									   		content_package,
 									   		by_file,
-									   		nearest_containing_ntiid=child_ntiid,
 									   		registry=registry,
-									   		sync_results=sync_results)
+									   		sync_results=sync_results,
+									   		key_lastModified=key_lastModified,
+									   		nearest_containing_ntiid=child_ntiid,)
 			things_to_register.update(parsed)
 
 		# register assessment items
@@ -488,7 +498,8 @@ def populate_question_map_json(asm_index_json,
 							   content_package,
 							   registry=None,
 							   sync_results=None,
-							   question_map=None):
+							   question_map=None,
+							   key_lastModified=None):
 	result = None
 	if asm_index_json:
 		try:
@@ -499,7 +510,8 @@ def populate_question_map_json(asm_index_json,
 			result = question_map._from_root_index(asm_index_json,
 												   content_package,
 												   registry=registry,
-												   sync_results=sync_results)
+												   sync_results=sync_results,
+												   key_lastModified=key_lastModified)
 			result = None if result is None else result[1]  # registered
 		except (interface.Invalid, ValueError):  # pragma: no cover
 			# Because the map is updated in place, depending on where the error
@@ -515,24 +527,30 @@ def _populate_question_map_from_text(question_map,
 									 asm_index_text,
 									 content_package,
 									 registry=None,
-									 sync_results=None):
+									 sync_results=None,
+									 key_lastModified=None):
 	index = _load_question_map_json(asm_index_text)
 	return populate_question_map_json(asm_index_json=index,
 									  registry=registry,
-									  content_package=content_package,
 									  question_map=question_map,
-									  sync_results=sync_results)
+									  sync_results=sync_results,
+									  content_package=content_package,
+									  key_lastModified=key_lastModified)
 
 def _add_assessment_items_from_new_content(content_package, key, sync_results=None):
 	if sync_results is None:
 		sync_results = _new_sync_results(content_package)
+
+	key = content_package.does_sibling_entry_exist('assessment_index.json')
+	key_lastModified = key.lastModified if key else None
 
 	question_map = QuestionMap()
 	asm_index_text = key.readContentsAsText()
 	result = _populate_question_map_from_text(question_map,
 											  asm_index_text,
 											  content_package,
-											  sync_results=sync_results)
+											  sync_results=sync_results,
+											  key_lastModified=key_lastModified)
 
 	logger.info("%s assessment item(s) read from %s %s",
 				len(result or ()), content_package, key)

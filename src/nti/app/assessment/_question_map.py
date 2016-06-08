@@ -273,6 +273,7 @@ class QuestionMap(QuestionIndex):
 		result = set()
 		registry = self._get_registry(registry)
 		key_lastModified = key_lastModified or time.time()
+
 		assess_dict = self._get_assess_item_dict(assessment_item_dict)
 		for ntiid, v in assess_dict.items():
 			__traceback_info__ = ntiid, v
@@ -291,14 +292,14 @@ class QuestionMap(QuestionIndex):
 				obj.signature = signatures_dict.get(ntiid)
 				obj.__name__ = unicode(ntiid).encode('utf8').decode('utf8')
 				self._store_object(ntiid, obj)
-				obj.createdTime = obj.lastModified = key_lastModified
 
 				things_to_register = self._explode_object_to_register(obj)
 
 				for item in things_to_register:
 					# get unproxied object
 					thing_to_register = removeAllProxies(item)
-
+					thing_to_register.createdTime = thing_to_register.lastModified = key_lastModified
+					
 					# check registry
 					ntiid = thing_to_register.ntiid
 					provided = _iface_to_register(thing_to_register)
@@ -344,7 +345,6 @@ class QuestionMap(QuestionIndex):
 				# we update lineage to the new content unit objects.
 				obj = registered
 				obj.__parent__ = parent
-				obj.createdTime = obj.lastModified = key_lastModified
 				self._store_object(ntiid, obj)
 				things_to_register = self._explode_object_to_register(obj)
 				for item in things_to_register:
@@ -353,6 +353,7 @@ class QuestionMap(QuestionIndex):
 				if ntiid not in parents_questions:
 					parents_questions.append(registered)
 
+			obj.createdTime = obj.lastModified = key_lastModified
 			if containing_hierarchy_key:
 				assert 	containing_hierarchy_key in by_file, \
 						"Container for file must already be present"

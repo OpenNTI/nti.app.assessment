@@ -103,8 +103,6 @@ from nti.common.property import Lazy
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
-from nti.coremetadata.interfaces import IPublishable
-
 from nti.dataserver import authorization as nauth
 from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
@@ -123,6 +121,8 @@ from nti.traversal.traversal import find_interface
 ITEMS = StandardExternalFields.ITEMS
 LINKS = StandardExternalFields.LINKS
 NTIID = StandardExternalFields.NTIID
+
+VERSION = u'Version'
 
 @view_config(context=ICourseEvaluations)
 @view_defaults(route_name='objects.generic.traversal',
@@ -400,6 +400,13 @@ class CourseEvaluationsPostView(EvaluationMixin, UGDPostView):
 
 	content_predicate = IQEvaluation.providedBy
 
+	def readInput(self, value=None):
+		result = UGDPostView.readInput(self, value=value)
+		for key in (VERSION,):
+			result.pop(key, None)
+			result.pop(key.lower(), None)
+		return result
+
 	def postCreateObject(self, context, externalValue):
 		if IQuestionSet.providedBy(context) and not context.questions:
 			self.auto_complete_questionset(context, externalValue)
@@ -447,6 +454,13 @@ class QuestionSetInsertView(AbstractAuthenticatedView,
 	Otherwise, append to our context.
 	"""
 
+	def readInput(self, value=None):
+		result = ModeledContentUploadRequestUtilsMixin.readInput(self, value=value)
+		for key in (VERSION,):
+			result.pop(key, None)
+			result.pop(key.lower(), None)
+		return result
+
 	def readCreateUpdateContentObject(self, creator, search_owner=False, externalValue=None):
 		contentObject, _, externalValue = \
 				self.performReadCreateUpdateContentObject(user=creator,
@@ -483,8 +497,9 @@ class QuestionSetInsertView(AbstractAuthenticatedView,
 		self.context.insert(index, question)
 		notify(QuestionInsertedInContainerEvent(self.context, question, index))
 		logger.info('Inserted new question (%s)', question.ntiid)
-		self.request.response.status_int = 201
+		# validate changes
 		self._validate()
+		self.request.response.status_int = 201
 		return question
 
 # PUT views
@@ -500,8 +515,9 @@ class EvaluationPutView(EvaluationMixin, UGDPutView):
 
 	def readInput(self, value=None):
 		result = UGDPutView.readInput(self, value=value)
-		result.pop('ntiid', None)
-		result.pop(NTIID, None)
+		for key in (NTIID, VERSION):
+			result.pop(key, None)
+			result.pop(key.lower(), None)
 		return result
 
 	def _check_object_constraints(self, obj, externalValue):
@@ -593,6 +609,13 @@ class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):
 		parts = externalValue.get('parts')
 		if parts:
 			self._validate_structural_edits()
+
+	def readInput(self, value=None):
+		result = AssessmentPutView.readInput(self, value=value)
+		for key in (VERSION,):
+			result.pop(key, None)
+			result.pop(key.lower(), None)
+		return result
 
 	def updateContentObject(self, contentObject, externalValue, set_id=False, notify=True):
 		originalSource = copy.deepcopy(externalValue)

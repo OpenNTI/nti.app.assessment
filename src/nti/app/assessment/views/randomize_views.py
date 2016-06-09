@@ -22,6 +22,8 @@ from nti.app.assessment import VIEW_UNRANDOMIZE
 from nti.app.assessment import VIEW_RANDOMIZE_PARTS
 from nti.app.assessment import VIEW_UNRANDOMIZE_PARTS
 
+from nti.app.assessment.views.view_mixins import StructuralValidationMixin
+
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
 from nti.assessment.interfaces import IQuestionSet
@@ -34,7 +36,8 @@ from nti.assessment.randomized.question import QRandomizedQuestionSet
 
 from nti.dataserver import authorization as nauth
 
-class AbstractRandomizeView(AbstractAuthenticatedView):
+class AbstractRandomizeView(AbstractAuthenticatedView,
+							StructuralValidationMixin):
 
 	#: The message returned for an unacceptable assessment type to modify.
 	_TYPE_RANDOMIZE_ERROR_MSG = ''
@@ -45,7 +48,7 @@ class AbstractRandomizeView(AbstractAuthenticatedView):
 	def _validate(self):
 		if not IQEditableEvaluation.providedBy(self.context):
 			raise hexc.HTTPUnprocessableEntity(_(self._TYPE_RANDOMIZE_ERROR_MSG))
-		# FIXME: test assignment available/submissions.
+		self._pre_flight_validation(self.context, structural_change=True)
 
 @view_config(route_name='objects.generic.traversal',
 			 renderer='rest',

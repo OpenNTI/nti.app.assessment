@@ -25,7 +25,11 @@ from urllib import quote
 
 from zope import component
 
+from nti.app.assessment import VIEW_RANDOMIZE
+from nti.app.assessment import VIEW_UNRANDOMIZE
+from nti.app.assessment import VIEW_RANDOMIZE_PARTS
 from nti.app.assessment import VIEW_ASSESSMENT_MOVE
+from nti.app.assessment import VIEW_UNRANDOMIZE_PARTS
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 
 from nti.app.assessment.common import get_assignments_for_evaluation_object
@@ -431,6 +435,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		assert_that( res.get( 'version' ), none() )
 		qset = res.get( 'parts' )[0].get( 'question_set' )
 		qset_ntiid = qset.get( 'NTIID' )
+		qset_href = qset.get( 'href' )
 		qset_move_href = self.require_link_href_with_rel(qset, VIEW_ASSESSMENT_MOVE)
 		qset_contents_href = self.require_link_href_with_rel(qset, VIEW_QUESTION_SET_CONTENTS)
 
@@ -470,9 +475,19 @@ class TestEvaluationViews(ApplicationLayerTest):
 # 		first_part['choices'] = ['new', 'old', 'different']
 # 		res = self.testapp.put_json( first_href, first_question )
 
-		# FIXME: test submissions
-		# FIXME: test randomize
 		# FIXME: Part changes
+
+		# Test randomization
+		# Order is important
+		rel_list = (VIEW_RANDOMIZE, VIEW_RANDOMIZE_PARTS, VIEW_UNRANDOMIZE, VIEW_UNRANDOMIZE_PARTS)
+		for rel in rel_list:
+			new_qset = self.testapp.get( qset_href )
+			new_qset = new_qset.json_body
+			random_link = self.require_link_href_with_rel(new_qset, rel)
+			self.testapp.post( random_link )
+			version = _check_version( version )
+
+		# FIXME: test submissions
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_assignment_no_solutions(self):

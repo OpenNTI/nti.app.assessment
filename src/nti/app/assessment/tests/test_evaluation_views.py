@@ -52,6 +52,8 @@ from nti.dataserver.tests import mock_dataserver
 
 from nti.recorder.interfaces import ITransactionRecordHistory
 
+from nti.testing.time import time_monotonically_increases
+
 NTIID = StandardExternalFields.NTIID
 
 class TestEvaluationViews(ApplicationLayerTest):
@@ -413,15 +415,64 @@ class TestEvaluationViews(ApplicationLayerTest):
 		assert_that( res.get( 'field' ), is_( 'values' ))
 		assert_that( res.get( 'code' ), is_( 'InvalidLabelsValues' ))
 
-		# Edit question part
-		multiple_choice['parts'][0]['choices'] = old_choices
-		res = self.testapp.post_json( qset_contents_href, multiple_choice )
+	@time_monotonically_increases
+	@WithSharedApplicationMockDS(testapp=True, users=True)
+	def test_assignment_versioning(self):
+		"""
+		Validate various edits bump an assignments version and
+		may not be allowed if there are submissions.
+		"""
+		course_oid = self._get_course_oid()
+		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
+		assignment = self._load_assignment()
+		question_set_source = self._load_questionset()
+		res = self.testapp.post_json(href, assignment, status=201)
 		res = res.json_body
-		first_question = res
-		first_href = first_question.get( 'href' )
-		first_part = first_question.get( 'parts' )[0]
-		first_part['choices'] = ['new', 'old', 'different']
-		res = self.testapp.put_json( first_href, first_question )
+		assignment_href = res.get( 'href' )
+		assert_that( res.get( 'version' ), none() )
+		qset = res.get( 'parts' )[0].get( 'question_set' )
+		qset_ntiid = qset.get( 'NTIID' )
+		qset_move_href = self.require_link_href_with_rel(qset, VIEW_ASSESSMENT_MOVE)
+		qset_contents_href = self.require_link_href_with_rel(qset, VIEW_QUESTION_SET_CONTENTS)
+
+		def _check_version( old_version=None ):
+			"Validate assigment version has changed"
+			assignment_res = self.testapp.get( assignment_href )
+			new_version = assignment_res.json_body.get( 'version' )
+			assert_that( new_version, is_not( old_version ))
+			assert_that( new_version, not_none() )
+			return new_version
+
+		# Delete a question
+		question_ntiid = qset.get( 'questions' )[0].get( 'ntiid' )
+		delete_suffix = self._get_delete_url_suffix(0, question_ntiid)
+		self.testapp.delete(qset_contents_href + delete_suffix)
+		version = _check_version()
+
+		# Add three questions
+		for question in question_set_source.get('questions'):
+			new_question = self.testapp.post_json( qset_contents_href, question )
+			new_question = new_question.json_body
+			question_ntiid = new_question.get( "NTIID" )
+			version = _check_version( version )
+
+		# Move a question
+		move_json = self._get_move_json( question_ntiid, qset_ntiid, 0 )
+		self.testapp.post_json( qset_move_href, move_json )
+		version = _check_version( version )
+
+		# Edit question part
+# 		multiple_choice['parts'][0]['choices'] = old_choices
+# 		res = self.testapp.post_json( qset_contents_href, multiple_choice )
+# 		res = res.json_body
+# 		first_question = res
+# 		first_href = first_question.get( 'href' )
+# 		first_part = first_question.get( 'parts' )[0]
+# 		first_part['choices'] = ['new', 'old', 'different']
+# 		res = self.testapp.put_json( first_href, first_question )
+
+		# FIXME: test submissions
+		# FIXME: test randomize
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_assignment_no_solutions(self):

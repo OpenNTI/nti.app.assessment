@@ -23,10 +23,8 @@ from persistent.list import PersistentList
 
 from nti.app.assessment import MessageFactory as _
 
-from nti.app.assessment.common import has_savepoints
 from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import get_resource_site_name
-from nti.app.assessment.common import get_available_assignments_for_evaluation_object
 
 from nti.app.base.abstract_views import get_safe_source_filename
 

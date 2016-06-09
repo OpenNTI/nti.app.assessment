@@ -205,5 +205,11 @@ def check_assessment_integrity(remove_unparented=False):
 			reindexed.add(ntiid)
 			catalog.index_doc(uid, registered)
 
+	count_set = set(count.keys())
+	reg_set = set(all_registered.keys())
+	diff_set = reg_set.difference(count_set)
+	for ntiid in diff_set:
+		logger.warn("%s is not registered with metadata catalog", ntiid)
+
 	logger.info('%s registered item(s) checked', len(all_registered))
 	return (duplicates, removed, reindexed, fixed_lineage, adjusted_container)

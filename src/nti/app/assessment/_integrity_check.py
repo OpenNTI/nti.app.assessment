@@ -54,9 +54,9 @@ def _master_data_collector():
 	containers = defaultdict(list)
 	legacy = {ntiid for ntiid, _ in list(component.getUtilitiesFor(IQEvaluation))}
 
-	def recur(unit):
+	def recur(site, unit):
 		for child in unit.children or ():
-			recur(child)
+			recur(site, child)
 		container = IQAssessmentItemContainer(unit)
 		for item in container.assessments():
 			ntiid = item.ntiid
@@ -73,7 +73,7 @@ def _master_data_collector():
 			for package in yield_sync_content_packages():
 				if package.ntiid not in seen:
 					seen.add(package.ntiid)
-					recur(package)
+					recur(site, package)
 
 	return registered, containers, legacy
 
@@ -119,7 +119,6 @@ def check_assessment_integrity(remove_unparented=False):
 		duplicates[ntiid] = len(data) - 1
 		logger.warn("%s has %s duplicate(s)", ntiid, len(data) - 1)
 
-		
 		site, registered = things
 		registry = site.getSiteManager()
 

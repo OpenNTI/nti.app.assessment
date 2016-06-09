@@ -131,7 +131,7 @@ def check_assessment_integrity(remove_unparented=False):
 		things = all_registered.get(key)
 		provided = iface_of_assessment(context)
 		if not things:
-			logger.warn("No registration found for %s", ntiid)
+			logger.warn("No registration found for %s", key)
 			for item in data:
 				iid = intids.queryId(item)
 				if iid is not None:
@@ -142,7 +142,7 @@ def check_assessment_integrity(remove_unparented=False):
 		if len(data) <= 1:
 			continue
 		duplicates[ntiid] = len(data) - 1
-		logger.warn("%s has %s duplicate(s)", ntiid, len(data) - 1)
+		logger.warn("%s has %s duplicate(s)", key, len(data) - 1)
 
 		site, registered = things
 		registry = site.getSiteManager()
@@ -150,7 +150,7 @@ def check_assessment_integrity(remove_unparented=False):
 		# if registered has been found.. check validity
 		ruid = intids.queryId(registered)
 		if ruid is None:
-			logger.warn("Invalid registration for %s", ntiid)
+			logger.warn("Invalid registration for %s", key)
 			unregisterUtility(registry, provided=provided, name=ntiid)
 			# register a valid object
 			registered = context
@@ -191,7 +191,7 @@ def check_assessment_integrity(remove_unparented=False):
 			if containers:
 				unit = find_interface(containers[0], IContentUnit, strict=False)
 				if unit is not None:
-					logger.warn("Fixing lineage for %s", ntiid)
+					logger.warn("Fixing lineage for %s", key)
 					fixed_lineage.add(ntiid)
 					registered.__parent__ = unit
 					if uid is not None:
@@ -201,8 +201,7 @@ def check_assessment_integrity(remove_unparented=False):
 				removed.add(ntiid)
 				removeIntId(registered)
 				provided = iface_of_assessment(registered)
-				logger.warn("Removing unparented object %s (%s)",
-							ntiid, site.__name__)
+				logger.warn("Removing unparented object %s", key)
 				unregisterUtility(registry, provided=provided, name=ntiid)
 				continue
 		elif uid is None:
@@ -220,7 +219,7 @@ def check_assessment_integrity(remove_unparented=False):
 			if uid is not None and item_iid != uid:
 				if item_iid is not None:
 					removeIntId(item)
-				logger.warn("Adjusting container for %s", ntiid)
+				logger.warn("Adjusting container for %s", key)
 				container.pop(ntiid, None)
 				container[ntiid] = registered
 				adjusted_container.add(ntiid)

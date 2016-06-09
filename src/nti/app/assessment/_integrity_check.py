@@ -191,8 +191,9 @@ def check_assessment_integrity(remove_unparented=False):
 		# make sure containers have registered object
 		for container in containers or ():
 			item = container.get(ntiid)
-			if item is not registered:
-				if intids.queryId(item) is not None:
+			item_iid = intids.queryId(item) if item is not None else None
+			if uid is not None and item_iid != uid:
+				if item_iid is not None:
 					removeIntId(item)
 				logger.warn("Adjusting container for %s", ntiid)
 				container.pop(ntiid, None)

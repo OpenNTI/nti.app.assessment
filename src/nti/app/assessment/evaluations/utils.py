@@ -217,29 +217,6 @@ def validate_submissions(theObject, course, request=None):
 						 },
 						 None)
 
-def validate_savepoints(theObject, course, request=None):
-	if has_savepoints(theObject, course):
-		request = request or get_current_request()
-		raise_json_error(request,
-						 hexc.HTTPUnprocessableEntity,
-						 {
-							u'message': _("Object has savepoints"),
-							u'code': 'ObjectHasSavepoints',
-						 },
-						 None)
-
-def validate_assignment(theObject, request=None):
-	assignments = get_available_assignments_for_evaluation_object(theObject)
-	if assignments:
-		request = request or get_current_request()
-		raise_json_error(request,
-						 hexc.HTTPUnprocessableEntity,
-						 {
-							u'message': _("Object is in available assignments."),
-							u'code': 'ObjectInAvailableAssignments',
-						 },
-						 None)
-
 def validate_structural_edits(theObject, course, request=None):
 	"""
 	Validate that we can structurally edit the given evaluation object.

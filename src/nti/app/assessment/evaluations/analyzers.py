@@ -62,6 +62,18 @@ def is_gradable(part):
 	result = IQGradablePart.providedBy(part)
 	return result
 
+def _check_duplicates( items ):
+	"""
+	Check for duplicates, returning the index(es) of duplicate items.
+	"""
+	indexes = []
+	seen = set()
+	for idx, item in enumerate( items ):
+		if item in seen:
+			indexes.append( idx )
+		seen.add( item )
+	return indexes
+
 @interface.implementer(IQPartChangeAnalyzer)
 @component.adapter(IQNonGradableMultipleChoicePart)
 class _MultipleChoicePartChangeAnalyzer(_BasicPartChangeAnalyzer):
@@ -72,27 +84,33 @@ class _MultipleChoicePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 	def validate_solutions(self, part):
 		solutions = part.solutions
 		if not solutions and is_gradable(part):
-			raise raise_error({ u'message': _("Must specify a solution."),
-								u'code': 'MissingSolutions'})
+			raise_error({ u'message': _("Must specify a solution."),
+						  u'field': 'solutions',
+						  u'code': 'MissingSolutions'})
 		for solution in solutions or ():
 			if not solution or solution.value is None:
-				raise raise_error({ u'message': _("Solution cannot be empty."),
-									u'code': 'InvalidSolution'})
+				raise_error({ u'message': _("Solution cannot be empty."),
+							  u'field': 'solutions',
+							  u'code': 'InvalidSolution'})
 			value = to_int(solution.value)  # solutions are indices
 			if value < 0 or value >= len(part.choices):
-				raise raise_error({ u'message': _("Solution in not in choices."),
-									u'code': 'InvalidSolution'})
+				raise_error({ u'message': _("Solution in not in choices."),
+							  u'field': 'solutions',
+							  u'code': 'InvalidSolution'})
 
 	def validate(self, part=None, check_solutions=True):
 		part = self.part if part is None else part
 		choices = part.choices or ()
-		unique_choices = OrderedSet(choices)
 		if not choices:
-			raise raise_error({ u'message': _("Must specify a choice selection."),
-								u'code': 'MissingPartChoices'})
-		if len(choices) != len(unique_choices):
-			raise raise_error({ u'message': _("Cannot have duplicate choices."),
-								u'code': 'DuplicatePartChoices'})
+			raise_error({ u'message': _("Must specify a choice selection."),
+						  u'field': 'choices',
+						  u'code': 'MissingPartChoices'})
+		dupes = _check_duplicates( choices )
+		if dupes:
+			raise_error({ u'message': _("Cannot have duplicate choices."),
+						  u'field': 'choices',
+						  u'index': dupes,
+						  u'code': 'DuplicatePartChoices'})
 		if check_solutions:
 			self.validate_solutions(part)
 
@@ -143,23 +161,27 @@ class _MultipleChoiceMultipleAnswerPartChangeAnalyzer(_MultipleChoicePartChangeA
 	def validate_solutions(self, part):
 		solutions = part.solutions
 		if not solutions and is_gradable(part):
-			raise raise_error({ u'message': _("Must specify a solution set."),
-								u'code': 'MissingSolutions'})
+			raise_error({ u'message': _("Must specify a solution set."),
+						  u'field': 'solutions',
+						  u'code': 'MissingSolutions'})
 		for solution in solutions or ():
 			if not solution or not solution.value:
-				raise raise_error({ u'message': _("Solution set cannot be empty."),
-									u'code': 'MissingSolutions'})
-
-			unique_solutions = set(solution.value)
-			if len(solution.value) > len(unique_solutions):
-				raise raise_error({ u'message': _("Cannot have duplicate solution values."),
-									u'code': 'DuplicateSolution'})
+				raise_error({ u'message': _("Solution set cannot be empty."),
+							  u'field': 'solutions',
+							  u'code': 'MissingSolutions'})
+			dupes = _check_duplicates( solution.value )
+			if dupes:
+				raise_error({ u'message': _("Cannot have duplicate solutions."),
+							  u'field': 'solutions',
+							  u'index': dupes,
+							  u'code': 'DuplicateSolution'})
 
 			for idx in solution.value:
 				idx = to_int(idx)
 				if idx < 0 or idx >= len(part.choices):  # solutions are indices
-					raise raise_error({ u'message': _("Solution in not in choices."),
-										u'code': 'InvalidSolution'})
+					raise_error({ u'message': _("Solution in not in choices."),
+								  u'field': 'solutions',
+								  u'code': 'InvalidSolution'})
 
 @interface.implementer(IQPartChangeAnalyzer)
 @component.adapter(IQNonGradableFreeResponsePart)
@@ -171,13 +193,14 @@ class _FreeResponsePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 	def validate_solutions(self, part):
 		solutions = part.solutions
 		if not solutions and is_gradable(part):
-			raise raise_error({ u'message': _("Must specify a solution."),
-								u'code': 'MissingSolutions'})
+			raise_error({ u'message': _("Must specify a solution."),
+						  u'field': 'solutions',
+						  u'code': 'MissingSolutions'})
 		for solution in solutions or ():
 			if not solution or not solution.value:
-				raise raise_error({ u'message': _("Solution cannot be empty."),
-									u'code': 'InvalidSolution'})
-
+				raise_error({ u'message': _("Solution cannot be empty."),
+							  u'field': 'solutions',
+							  u'code': 'InvalidSolution'})
 
 	def validate(self, part=None, check_solutions=True):
 		part = self.part if part is None else part
@@ -208,65 +231,80 @@ class _ConnectingPartChangeAnalyzer(_BasicPartChangeAnalyzer):
 	def validate_solutions(self, part, labels, values):
 		solutions = part.solutions
 		if not solutions and is_gradable(part):
-			raise raise_error({ u'message': _("Must specify a solution."),
- 								u'code': 'MissingSolutions'})
+			raise_error({ u'message': _("Must specify a solution."),
+						  u'field': 'solutions',
+ 						  u'code': 'MissingSolutions'})
 		for solution in solutions or ():
 			if not solution or not solution.value:
-				raise raise_error({ u'message': _("Solutions cannot be empty."),
- 									u'code': 'InvalidSolution'})
+				raise_error({ u'message': _("Solutions cannot be empty."),
+							  u'field': 'solutions',
+ 							  u'code': 'InvalidSolution'})
 
 			# map of indices
 			m = solution.value
 
 			# check all labels in solution
 			if len(m) != len(labels):
-				raise raise_error(
-						{ u'message': _("Cannot have an incomplete solution."),
-						  u'code': 'IncompleteSolution'})
+				raise_error(
+					{ u'message': _("Cannot have an incomplete solution."),
+					  u'field': 'solutions',
+					  u'code': 'IncompleteSolution'})
 
 			# check for duplicate values
-			unique_values = set(m.values())
-			if len(m) > len(unique_values):
-				raise raise_error(
-						{ u'message': _("Cannot have duplicate solution values."),
-						  u'code': 'DuplicateSolution'})
+			dupes = _check_duplicates( m.values() )
+			if dupes:
+				raise_error({ u'message': _("Cannot have duplicate solutions."),
+							  u'field': 'solutions',
+							  u'index': dupes,
+							  u'code': 'DuplicateSolution'})
 
 			for label, value in m.items():
 				label = to_int(label)
 				if label < 0 or label >= len(labels):  # solutions are indices
-					raise raise_error(
-							{u'message': _("Solution label in not in part labels."),
-							 u'code': 'InvalidSolution'})
+					raise_error(
+						{u'message': _("Solution label in not in part labels."),
+						 u'field': 'solutions',
+						 u'code': 'InvalidSolution'})
 
 				value = to_int(value)
 				if value < 0 or value >= len(values):  # solutions are indices
-					raise raise_error(
-							{ u'message': _("Solution value in not in part values."),
-							  u'code': 'InvalidSolution'})
+					raise_error(
+						{ u'message': _("Solution value in not in part values."),
+						  u'field': 'solutions',
+						  u'code': 'InvalidSolution'})
 
 	def validate(self, part=None, check_solutions=True):
 		part = self.part if part is None else part
 		labels = part.labels or ()
-		unique_labels = OrderedSet(labels)
 		if not labels:
-			raise raise_error({ u'message': _("Must specify a label selection."),
-								u'code': 'MissingPartLabels'})
-		if len(labels) != len(unique_labels):
-			raise raise_error({ u'message': _("Cannot have duplicate labels."),
-								u'code': 'DuplicatePartLabels'})
+			raise_error({ u'message': _("Must specify a label selection."),
+						  u'field': 'labels',
+						  u'code': 'MissingPartLabels'})
+
+		dupes = _check_duplicates( labels )
+		if dupes:
+			raise_error({ u'message': _("Cannot have duplicate labels."),
+						  u'field': 'labels',
+						  u'index': dupes,
+						  u'code': 'DuplicatePartLabels'})
 
 		values = part.values or ()
-		unique_values = OrderedSet(values)
 		if not values:
-			raise raise_error({ u'message': _("Must specify a value selection."),
-								u'code': 'MissingPartValues'})
-		if len(values) != len(unique_values):
-			raise raise_error({ u'message': _("Cannot have duplicate values."),
-								u'code': 'DuplicatePartValues'})
+			raise_error({ u'message': _("Must specify a value selection."),
+						  u'field': 'values',
+						  u'code': 'MissingPartValues'})
+
+		dupes = _check_duplicates( values )
+		if dupes:
+			raise_error({ u'message': _("Cannot have duplicate values."),
+						  u'field': 'values',
+						  u'index': dupes,
+						  u'code': 'DuplicatePartValues'})
 
 		if len(labels) != len(values):
-			raise raise_error(
+			raise_error(
 					{ u'message': _("Number of labels and values must be equal."),
+					  u'field': 'values',
 					  u'code': 'DuplicatePartValues'})
 
 		if check_solutions:

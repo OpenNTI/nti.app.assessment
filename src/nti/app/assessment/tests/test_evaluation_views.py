@@ -10,6 +10,7 @@ __docformat__ = "restructuredtext en"
 from hamcrest import is_
 from hamcrest import none
 from hamcrest import is_not
+from hamcrest import contains
 from hamcrest import not_none
 from hamcrest import has_entry
 from hamcrest import has_length
@@ -315,6 +316,59 @@ class TestEvaluationViews(ApplicationLayerTest):
 							 		 data, extra_environ=editor_environ,
 							 		 status=422)
 		assert_that( res.json_body.get( 'code' ), is_('UngradableInAutoGradeAssignment'))
+
+	@WithSharedApplicationMockDS(testapp=True, users=True)
+	def test_part_validation(self):
+		course_oid = self._get_course_oid()
+		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
+		assignment = self._load_assignment()
+		res = self.testapp.post_json(href, assignment, status=201)
+		res = res.json_body
+		qset = res.get( 'parts' )[0].get( 'question_set' )
+		qset_contents_href = self.require_link_href_with_rel(qset, VIEW_QUESTION_SET_CONTENTS)
+
+		question_set = self._load_questionset()
+		questions = question_set.get( 'questions' )
+		multiple_choice = questions[0]
+		multiple_answer = questions[1]
+		matching = questions[2]
+
+		# Multiple choice
+		dupes = ['1','2','3','1']
+		dupe_index = 3
+		multiple_choice['parts'][0]['choices'] = dupes
+		res = self.testapp.post_json( qset_contents_href, multiple_choice, status=422 )
+		res = res.json_body
+		assert_that( res.get( 'field' ), is_( 'choices' ))
+		assert_that( res.get( 'index' ), contains( dupe_index ))
+
+		# Multiple answer
+		multiple_answer['parts'][0]['choices'] = dupes
+		res = self.testapp.post_json( qset_contents_href, multiple_answer, status=422 )
+		res = res.json_body
+		assert_that( res.get( 'field' ), is_( 'choices' ))
+		assert_that( res.get( 'index' ), contains( dupe_index ))
+
+		# Matching
+		old_labels = matching['parts'][0]['labels']
+		matching['parts'][0]['labels'] = dupes
+		res = self.testapp.post_json( qset_contents_href, matching, status=422 )
+		res = res.json_body
+		assert_that( res.get( 'field' ), is_( 'labels' ))
+		assert_that( res.get( 'index' ), contains( dupe_index ))
+
+		matching['parts'][0]['labels'] = old_labels
+		matching['parts'][0]['values'] = dupes
+		res = self.testapp.post_json( qset_contents_href, matching, status=422 )
+		res = res.json_body
+		assert_that( res.get( 'field' ), is_( 'values' ))
+		assert_that( res.get( 'index' ), contains( dupe_index ))
+
+		matching['parts'][0]['values'] = dupes[:-1]
+		res = self.testapp.post_json( qset_contents_href, matching, status=422 )
+		res = res.json_body
+		assert_that( res.get( 'field' ), is_( 'values' ))
+		assert_that( res.get( 'code' ), is_( 'DuplicatePartValues' ))
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_assignment_no_solutions(self):

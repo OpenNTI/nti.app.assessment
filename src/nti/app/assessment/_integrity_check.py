@@ -208,7 +208,7 @@ def check_assessment_integrity(remove_unparented=False):
 	count_set = set(count.keys())
 	reg_set = set(all_registered.keys())
 	diff_set = reg_set.difference(count_set)
-	for ntiid in diff_set:
+	for ntiid in sorted(diff_set):
 		logger.warn("%s is not registered with metadata catalog", ntiid)
 
 	logger.info('%s registered item(s) checked', len(all_registered))

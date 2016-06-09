@@ -74,6 +74,16 @@ def _check_duplicates( items ):
 		seen.add( item )
 	return indexes
 
+def _check_empty( items ):
+	"""
+	Check for empties, returning the index(es) of empty items.
+	"""
+	indexes = []
+	for idx, item in enumerate( items ):
+		if not item:
+			indexes.append( idx )
+	return indexes
+
 @interface.implementer(IQPartChangeAnalyzer)
 @component.adapter(IQNonGradableMultipleChoicePart)
 class _MultipleChoicePartChangeAnalyzer(_BasicPartChangeAnalyzer):
@@ -111,6 +121,14 @@ class _MultipleChoicePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 						  u'field': 'choices',
 						  u'index': dupes,
 						  u'code': 'DuplicatePartChoices'})
+
+		empties = _check_empty( choices )
+		if empties:
+			raise_error({ u'message': _("Cannot have blank choices."),
+					  u'field': 'choices',
+					  u'index': empties,
+					  u'code': 'EmptyChoices'})
+
 		if check_solutions:
 			self.validate_solutions(part)
 
@@ -288,6 +306,13 @@ class _ConnectingPartChangeAnalyzer(_BasicPartChangeAnalyzer):
 						  u'index': dupes,
 						  u'code': 'DuplicatePartLabels'})
 
+		empties = _check_empty( labels )
+		if empties:
+			raise_error({ u'message': _("Cannot have blank labels."),
+					  u'field': 'labels',
+					  u'index': empties,
+					  u'code': 'EmptyLabels'})
+
 		values = part.values or ()
 		if not values:
 			raise_error({ u'message': _("Must specify a value selection."),
@@ -300,6 +325,13 @@ class _ConnectingPartChangeAnalyzer(_BasicPartChangeAnalyzer):
 						  u'field': 'values',
 						  u'index': dupes,
 						  u'code': 'DuplicatePartValues'})
+
+		empties = _check_empty( values )
+		if empties:
+			raise_error({ u'message': _("Cannot have blank values."),
+					  u'field': 'values',
+					  u'index': empties,
+					  u'code': 'EmptyValues'})
 
 		if len(labels) != len(values):
 			raise_error(
@@ -329,12 +361,12 @@ class _ConnectingPartChangeAnalyzer(_BasicPartChangeAnalyzer):
 			or	not self._check_selection(change, 'values'):
 			return False
 
-		# check new new_solss
+		# check new solutions
 		if check_solutions:
 			new_sols = change.get('solutions')
 			if new_sols is not None and is_gradable(self.part):
 				old_sols = self.part.solutions
-				# cannot substract solutions
+				# cannot subtract solutions
 				if len(new_sols) < len(old_sols):
 					return False
 		return True

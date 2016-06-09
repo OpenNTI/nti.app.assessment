@@ -138,6 +138,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 			url = question.pop('href')
 			self.testapp.put_json(url, question, status=200)
 			hrefs.append(url)
+
 		# Edit question
 		self.testapp.put_json(url, {'content': 'blehcontent'})
 
@@ -335,21 +336,40 @@ class TestEvaluationViews(ApplicationLayerTest):
 
 		# Multiple choice
 		dupes = ['1','2','3','1']
+		empties = [ 'test', 'empty', '', 'try']
 		dupe_index = 3
+		empty_index = 2
+		old_choices = multiple_choice['parts'][0]['choices']
+
+		# Multiple choice duplicates
 		multiple_choice['parts'][0]['choices'] = dupes
 		res = self.testapp.post_json( qset_contents_href, multiple_choice, status=422 )
 		res = res.json_body
 		assert_that( res.get( 'field' ), is_( 'choices' ))
 		assert_that( res.get( 'index' ), contains( dupe_index ))
 
-		# Multiple answer
+		# Multiple choice empty
+		multiple_choice['parts'][0]['choices'] = empties
+		res = self.testapp.post_json( qset_contents_href, multiple_choice, status=422 )
+		res = res.json_body
+		assert_that( res.get( 'field' ), is_( 'choices' ))
+		assert_that( res.get( 'index' ), contains( empty_index ))
+
+		# Multiple answer duplicates
 		multiple_answer['parts'][0]['choices'] = dupes
 		res = self.testapp.post_json( qset_contents_href, multiple_answer, status=422 )
 		res = res.json_body
 		assert_that( res.get( 'field' ), is_( 'choices' ))
 		assert_that( res.get( 'index' ), contains( dupe_index ))
 
-		# Matching
+		# Multiple answer empty
+		multiple_answer['parts'][0]['choices'] = empties
+		res = self.testapp.post_json( qset_contents_href, multiple_answer, status=422 )
+		res = res.json_body
+		assert_that( res.get( 'field' ), is_( 'choices' ))
+		assert_that( res.get( 'index' ), contains( empty_index ))
+
+		# Matching duplicate labels
 		old_labels = matching['parts'][0]['labels']
 		matching['parts'][0]['labels'] = dupes
 		res = self.testapp.post_json( qset_contents_href, matching, status=422 )
@@ -357,6 +377,14 @@ class TestEvaluationViews(ApplicationLayerTest):
 		assert_that( res.get( 'field' ), is_( 'labels' ))
 		assert_that( res.get( 'index' ), contains( dupe_index ))
 
+		# Matching empty labels
+		matching['parts'][0]['labels'] = empties
+		res = self.testapp.post_json( qset_contents_href, matching, status=422 )
+		res = res.json_body
+		assert_that( res.get( 'field' ), is_( 'labels' ))
+		assert_that( res.get( 'index' ), contains( empty_index ))
+
+		# Matching duplicate values
 		matching['parts'][0]['labels'] = old_labels
 		matching['parts'][0]['values'] = dupes
 		res = self.testapp.post_json( qset_contents_href, matching, status=422 )
@@ -364,17 +392,36 @@ class TestEvaluationViews(ApplicationLayerTest):
 		assert_that( res.get( 'field' ), is_( 'values' ))
 		assert_that( res.get( 'index' ), contains( dupe_index ))
 
+		# Matching empty values
+		matching['parts'][0]['values'] = empties
+		res = self.testapp.post_json( qset_contents_href, matching, status=422 )
+		res = res.json_body
+		assert_that( res.get( 'field' ), is_( 'values' ))
+		assert_that( res.get( 'index' ), contains( empty_index ))
+
+		# Matching multiple duplicates
 		matching['parts'][0]['values'] = ['1','2','1','3','3','1']
 		res = self.testapp.post_json( qset_contents_href, matching, status=422 )
 		res = res.json_body
 		assert_that( res.get( 'field' ), is_( 'values' ))
 		assert_that( res.get( 'index' ), contains( 2, 4, 5 ))
 
+		# Matching unequal count
 		matching['parts'][0]['values'] = dupes[:-1]
 		res = self.testapp.post_json( qset_contents_href, matching, status=422 )
 		res = res.json_body
 		assert_that( res.get( 'field' ), is_( 'values' ))
 		assert_that( res.get( 'code' ), is_( 'InvalidLabelsValues' ))
+
+		# Edit question part
+		multiple_choice['parts'][0]['choices'] = old_choices
+		res = self.testapp.post_json( qset_contents_href, multiple_choice )
+		res = res.json_body
+		first_question = res
+		first_href = first_question.get( 'href' )
+		first_part = first_question.get( 'parts' )[0]
+		first_part['choices'] = ['new', 'old', 'different']
+		res = self.testapp.put_json( first_href, first_question )
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_assignment_no_solutions(self):

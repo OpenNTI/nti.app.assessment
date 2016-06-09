@@ -129,7 +129,7 @@ class RemovedMatchedSavePointsView(AbstractAuthenticatedView,
 														IUsersCourseAssignmentSavepoint)
 				if not savepoint or not history:
 					continue
-				for assignmentId in history.keys():
+				for assignmentId in set(history.keys()): # snapshot
 					if assignmentId in savepoint:
 						savepoint._delitemf(assignmentId, event=False)
 						assignments = items.setdefault(principal.username, [])
@@ -180,7 +180,7 @@ class UnmatchedSavePointsView(AbstractAuthenticatedView):
 				if not savepoint:
 					continue
 
-				for assignmentId in savepoint.keys():
+				for assignmentId in set(savepoint.keys()): # snapshot
 					if assignmentId not in history or ():
 						row_data = [ntiid, principal.username, assignmentId]
 						writer.writerow(row_data)

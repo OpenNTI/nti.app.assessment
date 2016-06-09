@@ -364,11 +364,17 @@ class TestEvaluationViews(ApplicationLayerTest):
 		assert_that( res.get( 'field' ), is_( 'values' ))
 		assert_that( res.get( 'index' ), contains( dupe_index ))
 
+		matching['parts'][0]['values'] = ['1','2','1','3','3','1']
+		res = self.testapp.post_json( qset_contents_href, matching, status=422 )
+		res = res.json_body
+		assert_that( res.get( 'field' ), is_( 'values' ))
+		assert_that( res.get( 'index' ), contains( 2, 4, 5 ))
+
 		matching['parts'][0]['values'] = dupes[:-1]
 		res = self.testapp.post_json( qset_contents_href, matching, status=422 )
 		res = res.json_body
 		assert_that( res.get( 'field' ), is_( 'values' ))
-		assert_that( res.get( 'code' ), is_( 'DuplicatePartValues' ))
+		assert_that( res.get( 'code' ), is_( 'InvalidLabelsValues' ))
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_assignment_no_solutions(self):

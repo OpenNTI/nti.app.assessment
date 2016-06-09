@@ -305,7 +305,7 @@ class _ConnectingPartChangeAnalyzer(_BasicPartChangeAnalyzer):
 			raise_error(
 					{ u'message': _("Number of labels and values must be equal."),
 					  u'field': 'values',
-					  u'code': 'DuplicatePartValues'})
+					  u'code': 'InvalidLabelsValues'})
 
 		if check_solutions:
 			self.validate_solutions(part, labels, values)

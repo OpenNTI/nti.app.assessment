@@ -341,7 +341,6 @@ class TestEvaluationViews(ApplicationLayerTest):
 		empties = [ 'test', 'empty', '', 'try']
 		dupe_index = 3
 		empty_index = 2
-		old_choices = multiple_choice['parts'][0]['choices']
 
 		# Multiple choice duplicates
 		multiple_choice['parts'][0]['choices'] = dupes
@@ -473,6 +472,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 
 		# FIXME: test submissions
 		# FIXME: test randomize
+		# FIXME: Part changes
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_assignment_no_solutions(self):

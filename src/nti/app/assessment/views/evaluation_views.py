@@ -40,15 +40,14 @@ from nti.app.assessment.common import get_assignments_for_evaluation_object
 
 from nti.app.assessment.evaluations.utils import indexed_iter
 from nti.app.assessment.evaluations.utils import register_context
-from nti.app.assessment.evaluations.utils import validate_structural_edits
 from nti.app.assessment.evaluations.utils import validate_submissions
 from nti.app.assessment.evaluations.utils import import_evaluation_content
 
 from nti.app.assessment.interfaces import ICourseEvaluations
-from nti.app.assessment.interfaces import IQPartChangeAnalyzer
 from nti.app.assessment.interfaces import IQAvoidSolutionCheck
 
 from nti.app.assessment.views.view_mixins import AssessmentPutView
+from nti.app.assessment.views.view_mixins import StructuralValidationMixin
 
 from nti.app.base.abstract_views import get_all_sources
 from nti.app.base.abstract_views import AbstractAuthenticatedView
@@ -158,114 +157,7 @@ class CourseEvaluationsGetView(AbstractAuthenticatedView, BatchingUtilsMixin):
 		result['ItemCount'] = len(result[ITEMS])
 		return result
 
-class EvaluationMixin(object):
-
-	@Lazy
-	def course(self):
-		# XXX: Evaluation has lineage access to its course
-		result = find_interface(self.context, ICourseInstance, strict=False)
-		return result
-
-	def _check_part_structure(self, context, externalValue):
-		"""
-		Determines whether this question part has structural changes.
-		"""
-		ext_part_ntiid = externalValue.get( 'NTIID',
-							externalValue.get( 'ntiid', '' ))
-		if context.ntiid != ext_part_ntiid:
-			result = True
-		else:
-			analyzer = IQPartChangeAnalyzer(context, None)
-			if analyzer is not None:
-				# XXX: Is this what we want?
-				result = not analyzer.allow(externalValue, check_solutions=False)
-		return result
-
-	def _check_question_structure(self, context, externalValue):
-		"""
-		Determines whether this question has structural changes.
-		"""
-		ext_question_ntiid = externalValue.get( 'NTIID',
-								externalValue.get( 'ntiid', '' ))
-		if context.ntiid != ext_question_ntiid:
-			result = True
-		else:
-			for idx, part in enumerate( context.parts or () ):
-				ext_part = externalValue.get( 'parts' )[idx]
-				result = self._check_part_structure( part, ext_part )
-				if result:
-					break
-		return result
-
-	def _check_question_set_structure(self, context, externalValue):
-		"""
-		Determines whether this question set has structural changes.
-		"""
-		questions = context.questions or ()
-		ext_questions = externalValue.get( 'questions' ) or ()
-		result = len( questions ) != len( ext_questions )
-		if not result:
-			for idx, question in enumerate( questions ):
-				ext_question = ext_questions[idx]
-				result = self._check_question_structure( question, ext_question )
-				if result:
-					break
-		return result
-
-	def _check_assignment_structure(self, context, externalValue):
-		"""
-		Determines whether this assignment has structural changes.
-		"""
-		result = len( context.parts or () ) != len( externalValue.get( 'parts', () ))
-		if not result:
-			for idx, part in enumerate( context.parts or () ):
-				ext_set = externalValue.get( 'parts' )[idx].get( 'question_set' )
-				result = self._check_question_set_structure( part.question_set, ext_set )
-				if result:
-					break
-		return result
-
-	def _check_structural_change(self, context, externalValue):
-		"""
-		For the given evaluation and input, check if 'structural' changes
-		are being made.
-		"""
-		# We do not allow part level modifications.
-		result = False
-		if IQAssignment.providedBy( context ):
-			result = self._check_assignment_structure( context, externalValue )
-		elif IQuestionSet.providedBy( context ):
-			result = self._check_question_set_structure( context, externalValue )
-		elif IQuestion.providedBy( context ):
-			result = self._check_question_structure( context, externalValue )
-		return result
-
-	def _validate_structural_edits(self, context=None):
-		"""
-		Validate we are allowed to change the given context's
-		structural state.
-		"""
-		context = context if context is not None else self.context
-		validate_structural_edits(context, self.course)
-
-	def _pre_flight_validation(self, context, externalValue=None, structural_change=False):
-		"""
-		Validate whether the incoming changes are 'structural' changes that
-		require submission validation or a version bump of containing assignments.
-		"""
-		# Only validate editable items.
-		if not IQEditableEvaluation.providedBy(context):
-			return
-
-		if not structural_change:
-			structural_change = self._check_structural_change( context,
-															   externalValue )
-		if structural_change:
-			# We have changes, validate and bump version.
-			self._validate_structural_edits( context )
-			assignments = get_assignments_for_evaluation_object( context )
-			for assignment in assignments:
-				assignment.update_version()
+class EvaluationMixin(StructuralValidationMixin):
 
 	@Lazy
 	def _extra(self):

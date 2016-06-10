@@ -392,6 +392,7 @@ class StructuralValidationMixin(object):
 		"""
 		Determines whether this question part has structural changes.
 		"""
+		result = False
 		ext_part_ntiid = externalValue.get( 'NTIID',
 							externalValue.get( 'ntiid', '' ))
 		# FIXME: Need part ntiids to test part order changes?
@@ -409,15 +410,18 @@ class StructuralValidationMixin(object):
 		"""
 		Determines whether this question has structural changes.
 		"""
+		result = False
 		ext_question_ntiid = externalValue.get( 'NTIID',
 								externalValue.get( 'ntiid', '' ))
 		parts = context.parts or ()
-		ext_parts = externalValue.get( 'parts' ) or ()
-		if ext_question_ntiid and context.ntiid != ext_question_ntiid:
+		ext_parts = externalValue.get( 'parts' )
+		if	 	ext_question_ntiid \
+			and context.ntiid != ext_question_ntiid:
 			result = True
-		elif len( parts ) != len( ext_parts ):
+		elif 	ext_parts is not None \
+			and len( parts ) != len( ext_parts ):
 			result = True
-		else:
+		elif ext_parts is not None:
 			for idx, part in enumerate( context.parts or () ):
 				ext_part = externalValue.get( 'parts' )[idx]
 				result = self._check_part_structure( part, ext_part )
@@ -429,15 +433,18 @@ class StructuralValidationMixin(object):
 		"""
 		Determines whether this question set has structural changes.
 		"""
+		result = False
 		questions = context.questions or ()
-		ext_questions = externalValue.get( 'questions' ) or ()
+		ext_questions = externalValue.get( 'questions' )
 		ext_question_set_ntiid = externalValue.get( 'NTIID',
 									externalValue.get( 'ntiid', '' ))
-		if len( questions ) != len( ext_questions ):
+		if 		ext_questions is not None \
+			and len( questions ) != len( ext_questions ):
 			result = True
-		elif ext_question_set_ntiid and context.ntiid != ext_question_set_ntiid:
+		elif 	ext_question_set_ntiid \
+			and context.ntiid != ext_question_set_ntiid:
 			result = True
-		else:
+		elif ext_questions is not None:
 			for idx, question in enumerate( questions ):
 				ext_question = ext_questions[idx]
 				result = self._check_question_structure( question, ext_question )
@@ -449,13 +456,17 @@ class StructuralValidationMixin(object):
 		"""
 		Determines whether this assignment has structural changes.
 		"""
-		result = len( context.parts or () ) != len( externalValue.get( 'parts', () ))
-		if not result:
-			for idx, part in enumerate( context.parts or () ):
-				ext_set = externalValue.get( 'parts' )[idx].get( 'question_set' )
-				result = self._check_question_set_structure( part.question_set, ext_set )
-				if result:
-					break
+		result = False
+		ext_parts = externalValue.get( 'parts' )
+		if ext_parts is not None:
+			result = len( context.parts or () ) != len( ext_parts )
+			if not result:
+				for idx, part in enumerate( context.parts or () ):
+					ext_set = externalValue.get( 'parts' )[idx].get( 'question_set' )
+					if ext_set is not None:
+						result = self._check_question_set_structure( part.question_set, ext_set )
+					if result:
+						break
 		return result
 
 	def _check_structural_change(self, context, externalValue):

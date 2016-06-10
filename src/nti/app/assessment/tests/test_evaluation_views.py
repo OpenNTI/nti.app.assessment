@@ -519,7 +519,6 @@ class TestEvaluationViews(ApplicationLayerTest):
 		version = _check_version( version )
 
 		# FIXME: Part reorder (need part ntiids?)
-		# FIXME: test version does not change
 
 		# Move a question
 		move_json = self._get_move_json( question_ntiid, qset_ntiid, 0 )
@@ -535,6 +534,19 @@ class TestEvaluationViews(ApplicationLayerTest):
 			random_link = self.require_link_href_with_rel(new_qset, rel)
 			self.testapp.post( random_link )
 			version = _check_version( version )
+
+		# Test version does not change
+		# Content changes
+		self.testapp.put_json( assignment_href, {'content': 'new content'} )
+		_check_version( version, changed=False )
+
+		self.testapp.put_json( qset_href, {'title': 'new title'} )
+		_check_version( version, changed=False )
+
+		for question in questions:
+			self.testapp.put_json( question.get( 'href' ),
+								   {'content': 'blehbleh' })
+			_check_version( version, changed=False )
 
 		# FIXME: test submissions
 

@@ -440,7 +440,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		qset_contents_href = self.require_link_href_with_rel(qset, VIEW_QUESTION_SET_CONTENTS)
 
 		def _check_version( old_version=None ):
-			"Validate assigment version has changed"
+			"Validate assignment version has changed and return new version."
 			assignment_res = self.testapp.get( assignment_href )
 			new_version = assignment_res.json_body.get( 'version' )
 			assert_that( new_version, is_not( old_version ))
@@ -460,11 +460,6 @@ class TestEvaluationViews(ApplicationLayerTest):
 			question_ntiid = new_question.get( "NTIID" )
 			version = _check_version( version )
 
-		# Move a question
-		move_json = self._get_move_json( question_ntiid, qset_ntiid, 0 )
-		self.testapp.post_json( qset_move_href, move_json )
-		version = _check_version( version )
-
 		# Edit question part
 # 		multiple_choice['parts'][0]['choices'] = old_choices
 # 		res = self.testapp.post_json( qset_contents_href, multiple_choice )
@@ -477,9 +472,15 @@ class TestEvaluationViews(ApplicationLayerTest):
 
 		# FIXME: Part changes
 
+		# Move a question
+		move_json = self._get_move_json( question_ntiid, qset_ntiid, 0 )
+		self.testapp.post_json( qset_move_href, move_json )
+		version = _check_version( version )
+
 		# Test randomization
 		# Order is important
-		rel_list = (VIEW_RANDOMIZE, VIEW_RANDOMIZE_PARTS, VIEW_UNRANDOMIZE, VIEW_UNRANDOMIZE_PARTS)
+		rel_list = (VIEW_RANDOMIZE, VIEW_RANDOMIZE_PARTS,
+					VIEW_UNRANDOMIZE, VIEW_UNRANDOMIZE_PARTS)
 		for rel in rel_list:
 			new_qset = self.testapp.get( qset_href )
 			new_qset = new_qset.json_body

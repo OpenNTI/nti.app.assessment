@@ -477,23 +477,49 @@ class TestEvaluationViews(ApplicationLayerTest):
 												  assignment_ntiids )
 
 		# Edit questions (parts)
-# 		qset = self.testapp.get( qset_href )
-# 		qset = qset.json_body
-# 		questions = qset.get( 'questions' )
-# 		choices = ['one', 'two', 'three', 'four']
-# 		multiple_choice = questions[0]
-# 		multiple_choice_href = multiple_choice.get( 'href' )
-# 		multiple_answer = questions[1]
-# 		multiple_answer_href = multiple_answer.get( 'href' )
-# 		matching = questions[2]
-# 		matching_href = matching.get( 'href' )
-#
-# 		multiple_choice['parts'][0]['choices'] = choices
-# 		self.testapp.put_json( multiple_choice_href, multiple_choice )
-# 		version = _check_version( version )
+		qset = self.testapp.get( qset_href )
+		qset = qset.json_body
+		questions = qset.get( 'questions' )
+		choices = ['one', 'two', 'three', 'four']
+		multiple_choice = questions[0]
+		multiple_choice_href = multiple_choice.get( 'href' )
+		multiple_answer = questions[1]
+		multiple_answer_href = multiple_answer.get( 'href' )
+		matching = questions[2]
+		matching_href = matching.get( 'href' )
 
-		# FIXME: Part changes
+		# Multiple choice/answer choice length/reorder changes.
+		multiple_choice['parts'][0]['choices'] = choices
+		self.testapp.put_json( multiple_choice_href, multiple_choice )
+		version = _check_version( version )
+
+		multiple_choice['parts'][0]['choices'] = tuple(reversed( choices ))
+		self.testapp.put_json( multiple_choice_href, multiple_choice )
+		version = _check_version( version )
+
+		multiple_answer['parts'][0]['choices'] = choices
+		self.testapp.put_json( multiple_answer_href, multiple_answer )
+		version = _check_version( version )
+
+		multiple_answer['parts'][0]['choices'] = tuple(reversed( choices ))
+		self.testapp.put_json( multiple_answer_href, multiple_answer )
+		version = _check_version( version )
+
+		# Matching value/label length/reorder changes.
+		labels = list(choices)
+		matching['parts'][0]['labels'] = labels
+		matching['parts'][0]['values'] = labels
+		matching['parts'][0]['solutions'][0]['value'] = {'0':0,'1':1,'2':2,'3':3}
+		self.testapp.put_json( matching_href, matching )
+		version = _check_version( version )
+
+		matching['parts'][0]['labels'] = tuple(reversed( choices ))
+		matching['parts'][0]['values'] = tuple(reversed( choices ))
+		self.testapp.put_json( matching_href, matching )
+		version = _check_version( version )
+
 		# FIXME: Part reorder (need part ntiids?)
+		# FIXME: test version does not change
 
 		# Move a question
 		move_json = self._get_move_json( question_ntiid, qset_ntiid, 0 )

@@ -394,7 +394,7 @@ class StructuralValidationMixin(object):
 		"""
 		ext_part_ntiid = externalValue.get( 'NTIID',
 							externalValue.get( 'ntiid', '' ))
-		if context.ntiid != ext_part_ntiid:
+		if ext_part_ntiid and context.ntiid != ext_part_ntiid:
 			result = True
 		else:
 			analyzer = IQPartChangeAnalyzer(context, None)
@@ -411,7 +411,7 @@ class StructuralValidationMixin(object):
 								externalValue.get( 'ntiid', '' ))
 		parts = context.parts or ()
 		ext_parts = externalValue.get( 'parts' ) or ()
-		if context.ntiid != ext_question_ntiid:
+		if ext_question_ntiid and context.ntiid != ext_question_ntiid:
 			result = True
 		elif len( parts ) != len( ext_parts ):
 			result = True
@@ -433,7 +433,7 @@ class StructuralValidationMixin(object):
 									externalValue.get( 'ntiid', '' ))
 		if len( questions ) != len( ext_questions ):
 			result = True
-		elif context.ntiid != ext_question_set_ntiid:
+		elif ext_question_set_ntiid and context.ntiid != ext_question_set_ntiid:
 			result = True
 		else:
 			for idx, question in enumerate( questions ):

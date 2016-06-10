@@ -454,23 +454,29 @@ class TestEvaluationViews(ApplicationLayerTest):
 		version = _check_version()
 
 		# Add three questions
-		for question in question_set_source.get('questions'):
-			new_question = self.testapp.post_json( qset_contents_href, question )
-			new_question = new_question.json_body
-			question_ntiid = new_question.get( "NTIID" )
+		questions = question_set_source.get('questions')
+		for question in questions:
+			self.testapp.post_json( qset_contents_href, question )
 			version = _check_version( version )
 
-		# Edit question part
-# 		multiple_choice['parts'][0]['choices'] = old_choices
-# 		res = self.testapp.post_json( qset_contents_href, multiple_choice )
-# 		res = res.json_body
-# 		first_question = res
-# 		first_href = first_question.get( 'href' )
-# 		first_part = first_question.get( 'parts' )[0]
-# 		first_part['choices'] = ['new', 'old', 'different']
-# 		res = self.testapp.put_json( first_href, first_question )
+		# Edit questions (parts)
+# 		qset = self.testapp.get( qset_href )
+# 		qset = qset.json_body
+# 		questions = qset.get( 'questions' )
+# 		choices = ['one', 'two', 'three', 'four']
+# 		multiple_choice = questions[0]
+# 		multiple_choice_href = multiple_choice.get( 'href' )
+# 		multiple_answer = questions[1]
+# 		multiple_answer_href = multiple_answer.get( 'href' )
+# 		matching = questions[2]
+# 		matching_href = matching.get( 'href' )
+#
+# 		multiple_choice['parts'][0]['choices'] = choices
+# 		self.testapp.put_json( multiple_choice_href, multiple_choice )
+# 		version = _check_version( version )
 
 		# FIXME: Part changes
+		# FIXME: Part reorder
 
 		# Move a question
 		move_json = self._get_move_json( question_ntiid, qset_ntiid, 0 )

@@ -536,7 +536,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 			version = _check_version( version )
 
 		# Test version does not change
-		# Content changes
+		# Content changes do not affect version
 		self.testapp.put_json( assignment_href, {'content': 'new content'} )
 		_check_version( version, changed=False )
 
@@ -547,6 +547,26 @@ class TestEvaluationViews(ApplicationLayerTest):
 			self.testapp.put_json( question.get( 'href' ),
 								   {'content': 'blehbleh' })
 			_check_version( version, changed=False )
+
+		# Altering choice/labels/values/solutions does not affect version
+		choices = list(reversed( choices ))
+		choices[0] = 'fixed typo'
+		multiple_choice['parts'][0]['choices'] = choices
+		multiple_choice['parts'][0]['solutions'][0]['value'] = 1
+		self.testapp.put_json( multiple_choice_href, multiple_choice )
+		_check_version( version, changed=False )
+
+		multiple_answer['parts'][0]['choices'] = choices
+		multiple_answer['parts'][0]['solutions'][0]['value'] = [0,1]
+		self.testapp.put_json( multiple_answer_href, multiple_answer )
+		_check_version( version, changed=False )
+
+		labels = list(choices)
+		matching['parts'][0]['labels'] = labels
+		matching['parts'][0]['values'] = labels
+		matching['parts'][0]['solutions'][0]['value'] = {'0':1,'1':0,'2':2,'3':3}
+		self.testapp.put_json( matching_href, matching )
+		_check_version( version, changed=False )
 
 		# FIXME: test submissions
 

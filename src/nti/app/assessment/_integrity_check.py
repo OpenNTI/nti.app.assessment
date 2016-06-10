@@ -15,6 +15,8 @@ from zope import component
 
 from zope.component.hooks import site as current_site
 
+from zope.interface.adapter import _lookupAll as zopeLookupAll  # Private func
+
 from zope.intid.interfaces import IIntIds
 
 from ZODB.interfaces import IConnection
@@ -22,6 +24,8 @@ from ZODB.interfaces import IConnection
 from nti.app.contentlibrary.utils import yield_sync_content_packages
 
 from nti.app.assessment import get_evaluation_catalog
+
+from nti.assessment import EVALUATION_INTERFACES
 
 from nti.assessment._question_index import QuestionIndex
 
@@ -43,10 +47,26 @@ from nti.metadata import dataserver_metadata_catalog
 
 from nti.site.hostpolicy import get_all_host_sites
 
+from nti.site.interfaces import IHostPolicyFolder
+
 from nti.site.utils import registerUtility
 from nti.site.utils import unregisterUtility
 
 from nti.traversal.traversal import find_interface
+
+def lookup_all_evaluations(site_registry):
+	result = {}
+	required = ()
+	order = len(required)
+	for registry in site_registry.utilities.ro:  # must keep order
+		byorder = registry._adapters
+		if order >= len(byorder):
+			continue
+		components = byorder[order]
+		extendors = EVALUATION_INTERFACES
+		zopeLookupAll(components, required, extendors, result, 0, order)
+		break  # break on first
+	return result
 
 def _master_data_collector():
 	seen = set()
@@ -61,13 +81,15 @@ def _master_data_collector():
 		for item in container.assessments():
 			ntiid = item.ntiid
 			if ntiid not in legacy:
-				containers[item.ntiid].append(container)
+				key = (item.ntiid, site.__name__)
+				containers[key].append(container)
 
 	for site in get_all_host_sites():
 		registry = site.getSiteManager()
-		for ntiid, item in list(registry.getUtilitiesFor(IQEvaluation)):
-			if ntiid not in registered and ntiid not in legacy:
-				registered[ntiid] = (site, item)
+		for ntiid, item in lookup_all_evaluations(registry).items():
+			key = (ntiid, site.__name__)
+			if key not in registered and ntiid not in legacy:
+				registered[key] = (site, item)
 
 		with current_site(site):
 			for package in yield_sync_content_packages():
@@ -86,27 +108,30 @@ def _get_data_item_counts(intids):
 	for uid in catalog.apply(query) or ():
 		item = intids.queryObject(uid)
 		if IQEvaluation.providedBy(item):
-			count[item.ntiid].append(item)
+			folder = find_interface(item, IHostPolicyFolder, strict=False)
+			name = getattr(folder, '__name__', None)
+			key = (item.ntiid, name)
+			count[key].append(item)
 	return count
 
 def check_assessment_integrity(remove_unparented=False):
 	intids = component.getUtility(IIntIds)
 	count = _get_data_item_counts(intids)
 	logger.info('%s item(s) counted', len(count))
-
 	all_registered, all_containers, legacy = _master_data_collector()
 
 	result = 0
 	removed = set()
 	duplicates = dict()
 	catalog = get_library_catalog()
-	for ntiid, data in count.items():
+	for key, data in count.items():
+		ntiid, _ = key
 		# find registry and registered objects
 		context = data[0]  # pivot
+		things = all_registered.get(key)
 		provided = iface_of_assessment(context)
-		things = all_registered.get(ntiid)
 		if not things:
-			logger.warn("No registration found for %s", ntiid)
+			logger.warn("No registration found for %s", key)
 			for item in data:
 				iid = intids.queryId(item)
 				if iid is not None:
@@ -117,7 +142,7 @@ def check_assessment_integrity(remove_unparented=False):
 		if len(data) <= 1:
 			continue
 		duplicates[ntiid] = len(data) - 1
-		logger.warn("%s has %s duplicate(s)", ntiid, len(data) - 1)
+		logger.warn("%s has %s duplicate(s)", key, len(data) - 1)
 
 		site, registered = things
 		registry = site.getSiteManager()
@@ -125,14 +150,14 @@ def check_assessment_integrity(remove_unparented=False):
 		# if registered has been found.. check validity
 		ruid = intids.queryId(registered)
 		if ruid is None:
-			logger.warn("Invalid registration for %s", ntiid)
+			logger.warn("Invalid registration for %s", key)
 			unregisterUtility(registry, provided=provided, name=ntiid)
 			# register a valid object
 			registered = context
 			ruid = intids.getId(context)
 			registerUtility(registry, context, provided, name=ntiid)
 			# update map
-			all_registered[ntiid] = (site, registered)
+			all_registered[key] = (site, registered)
 
 		for item in data:
 			doc_id = intids.getId(item)
@@ -153,19 +178,20 @@ def check_assessment_integrity(remove_unparented=False):
 	catalog = get_evaluation_catalog()
 
 	# check all registered items
-	for ntiid, things in all_registered.items():
+	for key, things in all_registered.items():
+		ntiid, _ = key
 		if ntiid in legacy:
 			continue
 		site, registered = things
-		containers = all_containers.get(ntiid)
 		uid = intids.queryId(registered)
+		containers = all_containers.get(key)
 
 		# fix lineage
 		if registered.__parent__ is None:
 			if containers:
 				unit = find_interface(containers[0], IContentUnit, strict=False)
 				if unit is not None:
-					logger.warn("Fixing lineage for %s", ntiid)
+					logger.warn("Fixing lineage for %s", key)
 					fixed_lineage.add(ntiid)
 					registered.__parent__ = unit
 					if uid is not None:
@@ -175,8 +201,7 @@ def check_assessment_integrity(remove_unparented=False):
 				removed.add(ntiid)
 				removeIntId(registered)
 				provided = iface_of_assessment(registered)
-				logger.warn("Removing unparented object %s (%s)",
-							ntiid, site.__name__)
+				logger.warn("Removing unparented object %s", key)
 				unregisterUtility(registry, provided=provided, name=ntiid)
 				continue
 		elif uid is None:
@@ -194,7 +219,7 @@ def check_assessment_integrity(remove_unparented=False):
 			if uid is not None and item_iid != uid:
 				if item_iid is not None:
 					removeIntId(item)
-				logger.warn("Adjusting container for %s", ntiid)
+				logger.warn("Adjusting container for %s", key)
 				container.pop(ntiid, None)
 				container[ntiid] = registered
 				adjusted_container.add(ntiid)
@@ -207,8 +232,8 @@ def check_assessment_integrity(remove_unparented=False):
 	count_set = set(count.keys())
 	reg_set = set(all_registered.keys())
 	diff_set = reg_set.difference(count_set)
-	for ntiid in sorted(diff_set):
-		logger.warn("%s is not registered with metadata catalog", ntiid)
+	for key in sorted(diff_set):
+		logger.warn("%s is not registered with metadata catalog", key)
 
 	logger.info('%s registered item(s) checked', len(all_registered))
 	return (duplicates, removed, reindexed, fixed_lineage, adjusted_container)

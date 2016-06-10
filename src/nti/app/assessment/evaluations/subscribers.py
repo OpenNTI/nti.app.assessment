@@ -16,6 +16,7 @@ from zope.event import notify
 
 from zope.intid.interfaces import IIntIdAddedEvent
 
+from zope.lifecycleevent import ObjectModifiedEvent
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
 from zope.lifecycleevent.interfaces import IObjectRemovedEvent
 
@@ -24,6 +25,7 @@ from nti.app.assessment import MessageFactory as _
 from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import evaluation_submissions
 from nti.app.assessment.common import get_evaluation_containment
+from nti.app.assessment.common import get_assignments_for_evaluation_object
 
 from nti.app.assessment.evaluations import raise_error
 
@@ -142,6 +144,10 @@ def _on_question_inserted_in_container(container, event):
 	validate_structural_edits(container, course)
 	if IRecordableContainer.providedBy(container):
 		container.child_order_locked = True
+	# Now update any assignments for our container
+	assignments = get_assignments_for_evaluation_object( container )
+	for assignment in assignments or ():
+		notify( ObjectModifiedEvent( assignment ) )
 
 @component.adapter(IQEditableEvaluation, IQuestionRemovedFromContainerEvent)
 def _on_question_removed_from_container(container, event):

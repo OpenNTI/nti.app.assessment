@@ -595,13 +595,13 @@ def get_assignments_for_evaluation_object(context, sites=None):
 		ntiid = context
 	else:
 		ntiid = context.ntiid
-	containers = (ntiid,)
+	contained = (ntiid,)
 
 	sites = get_component_hierarchy_names() if not sites else sites
 	sites = sites.split() if isinstance(sites, six.string_types) else sites
 	query = {
 		IX_SITE: {'any_of': sites},
-		IX_CONTAINMENT: {'any_of': containers},
+		IX_CONTAINMENT: {'any_of': contained},
 		IX_ASSESS_MIMETYPE: {'any_of': ALL_ASSIGNMENT_MIME_TYPES}
 	}
 

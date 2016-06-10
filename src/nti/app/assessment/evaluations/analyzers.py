@@ -139,8 +139,8 @@ class _MultipleChoicePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 		if new_choices is not None:
 			old_choices = self.part.choices
 			new_choices = OrderedSet(new_choices)
-			# cannot substract choices
-			if len(new_choices) < len(old_choices):
+			# Cannot change choices
+			if len(new_choices) != len(old_choices):
 				return False
 			for idx, data in enumerate(zip(old_choices, new_choices)):
 				old, new = data

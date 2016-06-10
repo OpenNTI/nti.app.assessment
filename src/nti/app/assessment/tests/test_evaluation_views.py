@@ -16,6 +16,7 @@ from hamcrest import has_entry
 from hamcrest import has_length
 from hamcrest import assert_that
 from hamcrest import greater_than
+from hamcrest import contains_inanyorder
 does_not = is_not
 
 import os
@@ -418,6 +419,13 @@ class TestEvaluationViews(ApplicationLayerTest):
 		assert_that( res.get( 'field' ), is_( 'values' ))
 		assert_that( res.get( 'code' ), is_( 'InvalidLabelsValues' ))
 
+	def _validate_assignment_containers( self, obj_ntiid, assignment_ntiids=() ):
+		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+			obj = find_object_with_ntiid( obj_ntiid )
+			assignments = get_assignments_for_evaluation_object( obj )
+			found_ntiids = [x.ntiid for x in assignments or ()]
+			assert_that( found_ntiids, contains_inanyorder( *assignment_ntiids ))
+
 	@time_monotonically_increases
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_assignment_versioning(self):
@@ -432,18 +440,22 @@ class TestEvaluationViews(ApplicationLayerTest):
 		res = self.testapp.post_json(href, assignment, status=201)
 		res = res.json_body
 		assignment_href = res.get( 'href' )
+		assignment_ntiid = res.get('ntiid')
+		assignment_ntiids = (assignment_ntiid,)
 		assert_that( res.get( 'version' ), none() )
 		qset = res.get( 'parts' )[0].get( 'question_set' )
 		qset_ntiid = qset.get( 'NTIID' )
 		qset_href = qset.get( 'href' )
 		qset_move_href = self.require_link_href_with_rel(qset, VIEW_ASSESSMENT_MOVE)
 		qset_contents_href = self.require_link_href_with_rel(qset, VIEW_QUESTION_SET_CONTENTS)
+		self._validate_assignment_containers( qset_ntiid, assignment_ntiids )
 
-		def _check_version( old_version=None ):
-			"Validate assignment version has changed and return new version."
+		def _check_version( old_version=None, changed=True ):
+			"Validate assignment version has changed and return the new version."
+			to_check = is_not if changed else is_
 			assignment_res = self.testapp.get( assignment_href )
 			new_version = assignment_res.json_body.get( 'version' )
-			assert_that( new_version, is_not( old_version ))
+			assert_that( new_version, to_check( old_version ))
 			assert_that( new_version, not_none() )
 			return new_version
 
@@ -452,12 +464,17 @@ class TestEvaluationViews(ApplicationLayerTest):
 		delete_suffix = self._get_delete_url_suffix(0, question_ntiid)
 		self.testapp.delete(qset_contents_href + delete_suffix)
 		version = _check_version()
+		# No assignments for ntiid
+		self._validate_assignment_containers( question_ntiid )
 
 		# Add three questions
 		questions = question_set_source.get('questions')
 		for question in questions:
-			self.testapp.post_json( qset_contents_href, question )
+			new_question = self.testapp.post_json( qset_contents_href, question )
+			new_question = new_question.json_body
 			version = _check_version( version )
+			self._validate_assignment_containers( new_question.get( 'ntiid' ),
+												  assignment_ntiids )
 
 		# Edit questions (parts)
 # 		qset = self.testapp.get( qset_href )
@@ -476,15 +493,14 @@ class TestEvaluationViews(ApplicationLayerTest):
 # 		version = _check_version( version )
 
 		# FIXME: Part changes
-		# FIXME: Part reorder
+		# FIXME: Part reorder (need part ntiids?)
 
 		# Move a question
 		move_json = self._get_move_json( question_ntiid, qset_ntiid, 0 )
 		self.testapp.post_json( qset_move_href, move_json )
 		version = _check_version( version )
 
-		# Test randomization
-		# Order is important
+		# Test randomization (order is important).
 		rel_list = (VIEW_RANDOMIZE, VIEW_RANDOMIZE_PARTS,
 					VIEW_UNRANDOMIZE, VIEW_UNRANDOMIZE_PARTS)
 		for rel in rel_list:

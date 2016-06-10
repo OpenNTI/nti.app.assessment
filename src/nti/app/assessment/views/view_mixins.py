@@ -394,7 +394,9 @@ class StructuralValidationMixin(object):
 		"""
 		ext_part_ntiid = externalValue.get( 'NTIID',
 							externalValue.get( 'ntiid', '' ))
-		if ext_part_ntiid and context.ntiid != ext_part_ntiid:
+		# FIXME: Need part ntiids to test part order changes?
+		obj_ntiid = getattr( context, 'ntiid', '' )
+		if ext_part_ntiid and obj_ntiid and obj_ntiid != ext_part_ntiid:
 			result = True
 		else:
 			analyzer = IQPartChangeAnalyzer(context, None)

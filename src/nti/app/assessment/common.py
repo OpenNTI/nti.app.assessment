@@ -84,10 +84,10 @@ from nti.contenttypes.courses.common import get_course_packages
 
 from nti.contenttypes.courses.utils import get_course_hierarchy
 
+from nti.coremetadata.interfaces import SYSTEM_USER_ID
+
 from nti.coremetadata.interfaces import IRecordable
 from nti.coremetadata.interfaces import IPublishable
-
-from nti.coremetadata.interfaces import SYSTEM_USER_ID
 
 from nti.dataserver.metadata_index import IX_MIMETYPE
 from nti.dataserver.metadata_index import IX_CONTAINERID

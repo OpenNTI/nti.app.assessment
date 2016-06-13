@@ -19,7 +19,7 @@ from zope.catalog.interfaces import ICatalog
 from nti.app.assessment.index import EVALUATION_CATALOG_NAME
 from nti.app.assessment.index import SUBMISSION_CATALOG_NAME
 
-from nti.dataserver.interfaces import IMetadataCatalog
+from nti.zope_catalog.interfaces import IMetadataCatalog
 
 #: A view name to submit an assignment without persisting.
 ASSESSMENT_PRACTICE_SUBMISSION = 'PracticeSubmission'

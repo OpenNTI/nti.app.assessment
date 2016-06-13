@@ -26,6 +26,7 @@ from nti.app.assessment._submission import get_source
 from nti.app.assessment._submission import check_upload_files
 from nti.app.assessment._submission import read_multipart_sources
 
+from nti.app.assessment.common import check_submission_version
 from nti.app.assessment.common import get_course_from_assignment
 from nti.app.assessment.common import get_assessment_metadata_item
 
@@ -110,6 +111,7 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 															externalValue=extValue)
 			submission = read_multipart_sources(submission, self.request)
 
+		check_submission_version( submission, self.context )
 		savepoint = component.getMultiAdapter((course, submission.creator),
 											   IUsersCourseAssignmentSavepoint)
 		submission.containerId = submission.assignmentId
@@ -122,7 +124,7 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 		version = getattr(self.context, 'version', None)
 		if version is not None: # record version
 			submission.version = version
-		
+
 		# Now record the submission.
 		self.request.response.status_int = 201
 		result = recorded = savepoint.recordSubmission(submission)

@@ -455,7 +455,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 			submission.pop( 'version', None )
 			self.testapp.post_json( href, submission )
 		submission['version'] = new_version
-		# FIXME test assessed...
+		# XXX: We are not testing assessed results...
 		self.testapp.post_json( href, submission )
 
 	@time_monotonically_increases
@@ -465,7 +465,10 @@ class TestEvaluationViews(ApplicationLayerTest):
 		Validate various edits bump an assignments version and
 		may not be allowed if there are submissions.
 
+		XXX: AssignmentParts set below are not auto_grade...
+
 		FIXME: Assignment/Q part reorder (need part ntiids?)
+		FIXME: Delete versions fails on test server.
 		"""
 		course_oid = self._get_course_oid()
 		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
@@ -531,7 +534,8 @@ class TestEvaluationViews(ApplicationLayerTest):
 		# Add three questions
 		question_submissions = []
 		questions = question_set_source.get('questions')
-		for question in questions:
+		# XXX: Skip file upload question
+		for question in questions[:-1]:
 			new_question = self.testapp.post_json( qset_contents_href, question )
 			new_question = new_question.json_body
 			question_mime = new_question.get( 'MimeType' )
@@ -624,7 +628,11 @@ class TestEvaluationViews(ApplicationLayerTest):
 		multiple_choice['parts'] = new_parts
 		self.testapp.put_json( multiple_choice_href, multiple_choice )
 		version, old_version = _check_version( version )
-		# FIXME submit
+		old_sub_parts = question_submissions[0].parts
+		question_submissions[0].parts = [old_sub_parts, ('0',)]
+		self._test_version_submission( assignment_submit_href, submission,
+									   version, old_version )
+		question_submissions[0].parts = old_sub_parts
 
 		new_parts = (old_part,)
 		multiple_choice['parts'] = new_parts
@@ -640,16 +648,23 @@ class TestEvaluationViews(ApplicationLayerTest):
 		matching['parts'][0]['solutions'][0]['value'] = {'0':0,'1':1,'2':2,'3':3}
 		self.testapp.put_json( matching_href, matching )
 		version, old_version = _check_version( version )
+		question_submissions[2].parts = {'0':0,'1':1,'2':2,'3':3}
+		self._test_version_submission( assignment_submit_href, submission,
+									   version, old_version )
 
 		matching['parts'][0]['labels'] = tuple(reversed( choices ))
 		matching['parts'][0]['values'] = tuple(reversed( choices ))
 		self.testapp.put_json( matching_href, matching )
 		version, old_version = _check_version( version )
+		self._test_version_submission( assignment_submit_href, submission,
+									   version, old_version )
 
 		# Move a question
 		move_json = self._get_move_json( question_ntiid, qset_ntiid, 0 )
 		self.testapp.post_json( qset_move_href, move_json )
 		version, old_version = _check_version( version )
+		self._test_version_submission( assignment_submit_href, submission,
+									   version, old_version )
 
 		# Test randomization (order is important).
 		rel_list = (VIEW_RANDOMIZE, VIEW_RANDOMIZE_PARTS,
@@ -660,19 +675,25 @@ class TestEvaluationViews(ApplicationLayerTest):
 			random_link = self.require_link_href_with_rel(new_qset, rel)
 			self.testapp.post( random_link )
 			version, old_version = _check_version( version )
+			# XXX: Same submission works? (not autograded.)
+			self._test_version_submission( assignment_submit_href, submission,
+									   	   version, old_version )
 
 		# Test version does not change
 		# Content changes do not affect version
 		self.testapp.put_json( assignment_href, {'content': 'new content'} )
 		_check_version( version, changed=False )
+		self._test_version_submission( assignment_submit_href, submission, version )
 
 		self.testapp.put_json( qset_href, {'title': 'new title'} )
 		_check_version( version, changed=False )
+		self._test_version_submission( assignment_submit_href, submission, version )
 
 		for question in questions:
 			self.testapp.put_json( question.get( 'href' ),
 								   {'content': 'blehbleh' })
 			_check_version( version, changed=False )
+			self._test_version_submission( assignment_submit_href, submission, version )
 
 		# Altering choice/labels/values/solutions does not affect version
 		choices = list(reversed( choices ))
@@ -681,11 +702,13 @@ class TestEvaluationViews(ApplicationLayerTest):
 		multiple_choice['parts'][0]['solutions'][0]['value'] = 1
 		self.testapp.put_json( multiple_choice_href, multiple_choice )
 		_check_version( version, changed=False )
+		self._test_version_submission( assignment_submit_href, submission, version )
 
 		multiple_answer['parts'][0]['choices'] = choices
 		multiple_answer['parts'][0]['solutions'][0]['value'] = [0,1]
 		self.testapp.put_json( multiple_answer_href, multiple_answer )
 		_check_version( version, changed=False )
+		self._test_version_submission( assignment_submit_href, submission, version )
 
 		labels = list(choices)
 		matching['parts'][0]['labels'] = labels
@@ -693,8 +716,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		matching['parts'][0]['solutions'][0]['value'] = {'0':1,'1':0,'2':2,'3':3}
 		self.testapp.put_json( matching_href, matching )
 		_check_version( version, changed=False )
-
-		# FIXME: test submissions
+		self._test_version_submission( assignment_submit_href, submission, version )
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_assignment_no_solutions(self):

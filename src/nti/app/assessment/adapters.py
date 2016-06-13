@@ -34,13 +34,12 @@ from persistent.list import PersistentList
 
 from zope.location.interfaces import LocationError
 
-from nti.app.assessment import MessageFactory as _
-
 from nti.app.assessment._submission import set_submission_lineage
 
 from nti.app.assessment.common import get_course_assignments
 from nti.app.assessment.common import get_course_evaluations
 from nti.app.assessment.common import get_evaluation_courses
+from nti.app.assessment.common import check_submission_version
 from nti.app.assessment.common import get_course_from_assignment
 from nti.app.assessment.common import get_course_self_assessments
 from nti.app.assessment.common import get_available_for_submission_beginning
@@ -164,20 +163,9 @@ def _check_submission_before(course, assignment):
 			ex.value = available_beginning
 			raise ex
 
-def _check_version( submission, assignment ):
-	"""
-	Make sure the submitted version matches our assignment version.
-	If not, the client needs to refresh and re-submit to avoid
-	submitting stale, incorrect data for this assignment.
-	"""
-	assignment_version = assignment.version
-	if 		assignment_version \
-		and assignment_version != getattr( submission, 'version', '' ):
-		raise hexc.HTTPConflict( _('Assignment version has changed.') )
-
 def _validate_submission( submission, course, assignment ):
 	_check_submission_before(course, assignment)
-	_check_version( submission, assignment )
+	check_submission_version( submission, assignment )
 
 @component.adapter(IQAssignmentSubmission)
 @interface.implementer(IQAssignmentSubmissionPendingAssessment)
@@ -192,7 +180,6 @@ def _begin_assessment_for_assignment_submission(submission):
 	"""
 	# Get the assignment
 	assignment = component.getUtility(IQAssignment, name=submission.assignmentId)
-
 	# Submissions to an assignment with zero parts are not allowed;
 	# those are reserved for the professor
 	if len(assignment.parts) == 0:

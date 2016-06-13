@@ -18,7 +18,13 @@ from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
+from nti.appserver.pyramid_authorization import has_permission
+
 from nti.assessment.interfaces import IQTimedAssignment
+
+from nti.contenttypes.courses.utils import is_course_instructor
+
+from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
 from nti.dataserver.interfaces import IUser
 
@@ -37,13 +43,18 @@ class _AssignmentSavepointDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		"""
 		Do not decorate non-started timed assignments.
 		"""
-		result = True
-		if IQTimedAssignment.providedBy(context):
-			course = _get_course_from_assignment(context, 
-												 user=self.remoteUser,
-												 request=self.request)
-			if course is not None:
-				item = get_assessment_metadata_item(course, self.remoteUser, context.ntiid)
+		user = self.remoteUser
+		course = _get_course_from_assignment(context,
+											 user=self.remoteUser,
+											 request=self.request)
+		# Instructors/editors do not get savepoint links.
+		result = not(  has_permission(ACT_CONTENT_EDIT, context, self.request) \
+					or is_course_instructor(course, user))
+
+		if 		result \
+			and IQTimedAssignment.providedBy(context) \
+			and course is not None:
+				item = get_assessment_metadata_item(course, user, context.ntiid)
 				result = bool(item is not None and item.StartTime)
 		return result
 

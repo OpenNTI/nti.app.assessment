@@ -443,7 +443,19 @@ class TestEvaluationViews(ApplicationLayerTest):
 		assignment_ntiid = res.get('ntiid')
 		assignment_ntiids = (assignment_ntiid,)
 		assert_that( res.get( 'version' ), none() )
-		qset = res.get( 'parts' )[0].get( 'question_set' )
+		old_part = res.get( 'parts' )[0]
+		qset = old_part.get( 'question_set' )
+		# Must have at least one question...
+		new_part = {"Class": "AssignmentPart",
+					"MimeType": "application/vnd.nextthought.assessment.assignmentpart",
+					"auto_grade": False,
+					"content": "",
+					"question_set": {
+						"Class": "QuestionSet",
+						"MimeType": "application/vnd.nextthought.naquestionset",
+						"questions": [question_set_source.get('questions')[0],]
+					}
+				}
 		qset_ntiid = qset.get( 'NTIID' )
 		qset_href = qset.get( 'href' )
 		qset_move_href = self.require_link_href_with_rel(qset, VIEW_ASSESSMENT_MOVE)
@@ -459,11 +471,20 @@ class TestEvaluationViews(ApplicationLayerTest):
 			assert_that( new_version, not_none() )
 			return new_version
 
+		# Add/remove assignment part
+		new_parts = (old_part, new_part)
+		self.testapp.put_json( assignment_href, {'parts': new_parts})
+		version = _check_version()
+
+		new_parts = (old_part,)
+		self.testapp.put_json( assignment_href, {'parts': new_parts})
+		version = _check_version( version )
+
 		# Delete a question
 		question_ntiid = qset.get( 'questions' )[0].get( 'ntiid' )
 		delete_suffix = self._get_delete_url_suffix(0, question_ntiid)
 		self.testapp.delete(qset_contents_href + delete_suffix)
-		version = _check_version()
+		version = _check_version( version )
 		# No assignments for ntiid
 		self._validate_assignment_containers( question_ntiid )
 
@@ -505,6 +526,21 @@ class TestEvaluationViews(ApplicationLayerTest):
 		self.testapp.put_json( multiple_answer_href, multiple_answer )
 		version = _check_version( version )
 
+		# Add/remove question part
+		old_part = multiple_choice['parts'][0]
+		new_part = dict(old_part)
+		new_part.pop( 'NTIID', None )
+		new_part.pop( 'ntiid', None )
+		new_parts = (old_part, new_part)
+		multiple_choice['parts'] = new_parts
+		self.testapp.put_json( multiple_choice_href, multiple_choice )
+		version = _check_version( version )
+
+		new_parts = (old_part,)
+		multiple_choice['parts'] = new_parts
+		self.testapp.put_json( multiple_choice_href, multiple_choice )
+		version = _check_version( version )
+
 		# Matching value/label length/reorder changes.
 		labels = list(choices)
 		matching['parts'][0]['labels'] = labels
@@ -518,7 +554,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		self.testapp.put_json( matching_href, matching )
 		version = _check_version( version )
 
-		# FIXME: Part reorder (need part ntiids?)
+		# FIXME: Assignment/Q part reorder (need part ntiids?)
 
 		# Move a question
 		move_json = self._get_move_json( question_ntiid, qset_ntiid, 0 )

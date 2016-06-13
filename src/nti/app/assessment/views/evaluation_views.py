@@ -285,12 +285,14 @@ class EvaluationMixin(StructuralValidationMixin):
 		return part
 
 	def handle_assignment(self, theObject, course, user):
+		# Make sure we handle any parts that may have been
+		# added to our existing or new assignment.
+		parts = indexed_iter()
+		for part in theObject.parts or ():
+			part = self.handle_assignment_part(part, course, user)
+			parts.append(part)
+		theObject.parts = parts
 		if self.is_new(theObject):
-			parts = indexed_iter()
-			for part in theObject.parts or ():
-				part = self.handle_assignment_part(part, course, user)
-				parts.append(part)
-			theObject.parts = parts
 			theObject = self.store_evaluation(theObject, course, user)
 		else:
 			theObject = self.get_registered_evaluation(theObject, course)

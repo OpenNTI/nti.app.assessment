@@ -591,6 +591,9 @@ def get_assignments_for_evaluation_object(context, sites=None):
 	For the given evaluation object, fetch all assignments which
 	contain it.
 	"""
+	if IQAssignment.providedBy( context ):
+		return (context,)
+
 	if isinstance(context, six.string_types):
 		ntiid = context
 	else:

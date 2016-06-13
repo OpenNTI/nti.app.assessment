@@ -25,17 +25,28 @@ from zope.schema.interfaces import ConstraintNotSatisfied
 
 from pyramid import renderers
 
-from pyramid.httpexceptions import HTTPCreated
+from pyramid import httpexceptions as hexc
 
 from pyramid.interfaces import IRequest
 from pyramid.interfaces import IExceptionResponse
 
 from persistent.list import PersistentList
 
+from zope.location.interfaces import LocationError
+
+from nti.app.assessment import MessageFactory as _
+
+from nti.app.assessment._submission import set_submission_lineage
+
+from nti.app.assessment.common import get_course_assignments
+from nti.app.assessment.common import get_course_evaluations
 from nti.app.assessment.common import get_evaluation_courses
+from nti.app.assessment.common import get_course_from_assignment
+from nti.app.assessment.common import get_course_self_assessments
 from nti.app.assessment.common import get_available_for_submission_beginning
 
 from nti.app.assessment.history import UsersCourseAssignmentHistory
+from nti.app.assessment.history import UsersCourseAssignmentHistories
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
@@ -67,9 +78,14 @@ from nti.assessment.interfaces import IQuestionSetSubmission
 from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 
 from nti.contentlibrary.interfaces import IContentUnit
+from nti.contentlibrary.interfaces import IContentPackage
 
+from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
+from nti.contenttypes.courses.interfaces import ICourseAssignmentCatalog
+from nti.contenttypes.courses.interfaces import ICourseAssessmentItemCatalog
+from nti.contenttypes.courses.interfaces import ICourseSelfAssessmentItemCatalog
 
 from nti.contenttypes.courses.utils import is_enrolled
 from nti.contenttypes.courses.utils import get_enrollments
@@ -78,9 +94,12 @@ from nti.contenttypes.courses.utils import is_course_instructor_or_editor
 
 from nti.dataserver.interfaces import IUser
 
+from nti.dataserver.users import User
+
 from nti.externalization.oids import to_external_oid
 
 from nti.traversal.traversal import find_interface
+from nti.traversal.traversal import ContainerAdapterTraversable
 
 @component.adapter(IQuestionSubmission)
 @interface.implementer(INewObjectTransformer)
@@ -119,7 +138,7 @@ def _assignment_submission_transformer(request, obj):
 	"""
 	pending = IQAssignmentSubmissionPendingAssessment(obj)
 
-	result = request.response = HTTPCreated()
+	result = request.response = hexc.HTTPCreated()
 	# TODO: Shouldn't this be the external NTIID? This is what ugd_edit_views does though
 	result.location = request.resource_url(obj.creator,
 										   'Objects',
@@ -145,9 +164,20 @@ def _check_submission_before(course, assignment):
 			ex.value = available_beginning
 			raise ex
 
-from nti.app.assessment._submission import set_submission_lineage
+def _check_version( submission, assignment ):
+	"""
+	Make sure the submitted version matches our assignment version.
+	If not, the client needs to refresh and re-submit to avoid
+	submitting stale, incorrect data for this assignment.
+	"""
+	assignment_version = assignment.version
+	if 		assignment_version \
+		and assignment_version != getattr( submission, 'version', '' ):
+		raise hexc.HTTPConflict( _('Assignment version has changed.') )
 
-from nti.app.assessment.common import get_course_from_assignment
+def _validate_submission( submission, course, assignment ):
+	_check_submission_before(course, assignment)
+	_check_version( submission, assignment )
 
 @component.adapter(IQAssignmentSubmission)
 @interface.implementer(IQAssignmentSubmissionPendingAssessment)
@@ -181,7 +211,7 @@ def _begin_assessment_for_assignment_submission(submission):
 
 	course = get_course_from_assignment(assignment, submission.creator)
 
-	_check_submission_before(course, assignment)
+	_validate_submission( submission, course, assignment )
 
 	assignment_history = component.getMultiAdapter((course, submission.creator),
 													IUsersCourseAssignmentHistory)
@@ -190,7 +220,7 @@ def _begin_assessment_for_assignment_submission(submission):
 		ex.field = IQAssignmentSubmission['assignmentId']
 		ex.value = submission.assignmentId
 		raise ex
-	
+
 	set_submission_lineage(submission)
 	submission.containerId = submission.assignmentId
 
@@ -208,23 +238,17 @@ def _begin_assessment_for_assignment_submission(submission):
 																parts=new_parts)
 	pending_assessment.containerId = submission.assignmentId
 	lifecycleevent.created(pending_assessment)
-	
+
 	version = getattr(assignment, 'version', None)
 	if version is not None: # record version
 		pending_assessment.version = submission.version = version
-		
+
 	# Now record the submission. This will broadcast created and
 	# added events for the HistoryItem and an added event for the pending assessment.
 	# The HistoryItem will have
 	# the course in its lineage.
 	assignment_history.recordSubmission(submission, pending_assessment)
 	return pending_assessment
-
-from nti.app.assessment.history import UsersCourseAssignmentHistories
-
-from nti.contentlibrary.interfaces import IContentPackage
-
-from nti.contenttypes.courses.interfaces import ICourseCatalog
 
 @component.adapter(ICourseInstance)
 @interface.implementer(IUsersCourseAssignmentHistories)
@@ -277,12 +301,6 @@ def _histories_for_course_path_adapter(course, request):
 def _histories_for_courseenrollment_path_adapter(enrollment, request):
 	return _histories_for_course(ICourseInstance(enrollment))
 
-from zope.location.interfaces import LocationError
-
-from nti.dataserver.users import User
-
-from nti.traversal.traversal import ContainerAdapterTraversable
-
 @component.adapter(IUsersCourseAssignmentHistories, IRequest)
 class _UsersCourseAssignmentHistoriesTraversable(ContainerAdapterTraversable):
 	"""
@@ -302,14 +320,6 @@ class _UsersCourseAssignmentHistoriesTraversable(ContainerAdapterTraversable):
 			if user is not None:
 				return _history_for_user_in_course(self.context.__parent__, user)
 			raise
-
-from nti.app.assessment.common import get_course_assignments
-from nti.app.assessment.common import get_course_evaluations
-from nti.app.assessment.common import get_course_self_assessments
-
-from nti.contenttypes.courses.interfaces import ICourseAssignmentCatalog
-from nti.contenttypes.courses.interfaces import ICourseAssessmentItemCatalog
-from nti.contenttypes.courses.interfaces import ICourseSelfAssessmentItemCatalog
 
 @component.adapter(ICourseInstance)
 @interface.implementer(ICourseAssessmentItemCatalog)

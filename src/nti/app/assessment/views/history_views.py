@@ -108,12 +108,16 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 
 	content_predicate = IQAssignmentSubmission.providedBy
 
-	def _do_call(self):
+	def _validate_submission(self):
 		creator = self.remoteUser
 		course = component.queryMultiAdapter((self.context, creator),
 											  ICourseInstance)
 		if course is None:
 			raise hexc.HTTPForbidden("Must be enrolled in a course.")
+
+	def _do_call(self):
+		creator = self.remoteUser
+		self._validate_submission()
 
 		if not self.request.POST:
 			submission = self.readCreateUpdateContentObject(creator)
@@ -141,6 +145,10 @@ class AssignmentPracticeSubmissionPostView(AssignmentSubmissionPostView):
 	A practice assignment submission view that will submit/grade results
 	but not persist.
 	"""
+
+	def _validate_submission(self):
+		pass
+
 	def _do_call(self):
 		try:
 			result = super(AssignmentPracticeSubmissionPostView, self)._do_call()

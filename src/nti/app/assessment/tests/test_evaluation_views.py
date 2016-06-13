@@ -32,6 +32,7 @@ from nti.app.assessment import VIEW_RANDOMIZE_PARTS
 from nti.app.assessment import VIEW_ASSESSMENT_MOVE
 from nti.app.assessment import VIEW_UNRANDOMIZE_PARTS
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
+from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
 
 from nti.app.assessment.common import get_assignments_for_evaluation_object
 
@@ -39,8 +40,15 @@ from nti.app.assessment.evaluations.exporter import EvaluationsExporter
 
 from nti.assessment.interfaces import IQuestion
 
+from nti.assessment.response import QUploadedFile
+
+from nti.assessment.submission import QuestionSubmission
+from nti.assessment.submission import AssignmentSubmission
+from nti.assessment.submission import QuestionSetSubmission
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
+from nti.externalization.externalization import toExternalObject
 from nti.externalization.externalization import to_external_ntiid_oid
 
 from nti.externalization.interfaces import StandardExternalFields
@@ -426,12 +434,38 @@ class TestEvaluationViews(ApplicationLayerTest):
 			found_ntiids = [x.ntiid for x in assignments or ()]
 			assert_that( found_ntiids, contains_inanyorder( *assignment_ntiids ))
 
+	def _test_version_submission(self, href, submission, new_version, old_version=None):
+		"""
+		Test submissions with versions.
+		"""
+		# We do this by doing the PracticeSubmission with instructor, which does not
+		# persist.
+		# Sends an assignment through the application by posting to the assignment
+		submission = toExternalObject( submission )
+		if old_version:
+			# All 409s if we post no version or old version on an assignment with version.
+			submission.pop( 'version', None )
+			self.testapp.post_json( href, submission, status=409 )
+			submission['version'] = None
+			self.testapp.post_json( href, submission, status=409 )
+			submission['version'] = old_version
+			self.testapp.post_json( href, submission, status=409 )
+		if not new_version:
+			# Assignment has no version, post with nothing is ok too.
+			submission.pop( 'version', None )
+			self.testapp.post_json( href, submission )
+		submission['version'] = new_version
+		# FIXME test assessed...
+		self.testapp.post_json( href, submission )
+
 	@time_monotonically_increases
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_assignment_versioning(self):
 		"""
 		Validate various edits bump an assignments version and
 		may not be allowed if there are submissions.
+
+		FIXME: Assignment/Q part reorder (need part ntiids?)
 		"""
 		course_oid = self._get_course_oid()
 		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
@@ -440,6 +474,8 @@ class TestEvaluationViews(ApplicationLayerTest):
 		res = self.testapp.post_json(href, assignment, status=201)
 		res = res.json_body
 		assignment_href = res.get( 'href' )
+		assignment_submit_href = self.require_link_href_with_rel( res,
+																  ASSESSMENT_PRACTICE_SUBMISSION)
 		assignment_ntiid = res.get('ntiid')
 		assignment_ntiids = (assignment_ntiid,)
 		assert_that( res.get( 'version' ), none() )
@@ -458,9 +494,23 @@ class TestEvaluationViews(ApplicationLayerTest):
 				}
 		qset_ntiid = qset.get( 'NTIID' )
 		qset_href = qset.get( 'href' )
+		question_ntiid = qset.get( 'questions' )[0].get( 'ntiid' )
 		qset_move_href = self.require_link_href_with_rel(qset, VIEW_ASSESSMENT_MOVE)
 		qset_contents_href = self.require_link_href_with_rel(qset, VIEW_QUESTION_SET_CONTENTS)
 		self._validate_assignment_containers( qset_ntiid, assignment_ntiids )
+
+		# Get submission ready
+		upload_submission = QUploadedFile(data=b'1234',
+										  contentType=b'image/gif',
+										  filename='foo.pdf')
+		q_sub = QuestionSubmission(questionId=question_ntiid,
+								   parts=(upload_submission,))
+
+		qs_submission = QuestionSetSubmission(questionSetId=qset_ntiid,
+											  questions=(q_sub,))
+		submission = AssignmentSubmission(assignmentId=assignment_ntiid,
+										  parts=(qs_submission,))
+		self._test_version_submission( assignment_submit_href, submission, None )
 
 		def _check_version( old_version=None, changed=True ):
 			"Validate assignment version has changed and return the new version."
@@ -469,33 +519,64 @@ class TestEvaluationViews(ApplicationLayerTest):
 			new_version = assignment_res.json_body.get( 'version' )
 			assert_that( new_version, to_check( old_version ))
 			assert_that( new_version, not_none() )
-			return new_version
-
-		# Add/remove assignment part
-		new_parts = (old_part, new_part)
-		self.testapp.put_json( assignment_href, {'parts': new_parts})
-		version = _check_version()
-
-		new_parts = (old_part,)
-		self.testapp.put_json( assignment_href, {'parts': new_parts})
-		version = _check_version( version )
+			return new_version, old_version
 
 		# Delete a question
-		question_ntiid = qset.get( 'questions' )[0].get( 'ntiid' )
 		delete_suffix = self._get_delete_url_suffix(0, question_ntiid)
 		self.testapp.delete(qset_contents_href + delete_suffix)
-		version = _check_version( version )
+		version, _ = _check_version()
 		# No assignments for ntiid
 		self._validate_assignment_containers( question_ntiid )
 
 		# Add three questions
+		question_submissions = []
 		questions = question_set_source.get('questions')
 		for question in questions:
 			new_question = self.testapp.post_json( qset_contents_href, question )
 			new_question = new_question.json_body
-			version = _check_version( version )
+			question_mime = new_question.get( 'MimeType' )
+			solution = ('0',)
+			if 'matchingpart' in question_mime:
+				solution = {'0': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6}
+			elif 'filepart' in question_mime:
+				solution = upload_submission
+			new_submission = QuestionSubmission(questionId=new_question.get( 'NTIID' ),
+								   				parts=solution)
+			question_submissions.append( new_submission )
+			version, old_version = _check_version( version )
+			qs_submission = QuestionSetSubmission(questionSetId=qset_ntiid,
+											      questions=question_submissions)
+			submission = AssignmentSubmission(assignmentId=assignment_ntiid,
+										  	  parts=(qs_submission,))
+			self._test_version_submission( assignment_submit_href, submission,
+										   version, old_version )
 			self._validate_assignment_containers( new_question.get( 'ntiid' ),
 												  assignment_ntiids )
+
+		# Add/remove assignment part
+		new_parts = (old_part, new_part)
+		res = self.testapp.put_json( assignment_href, {'parts': new_parts})
+		res = res.json_body
+		qset2 = res.get( 'parts' )[1].get( 'question_set' )
+		qset_ntiid2 = qset2.get( "NTIID" )
+		question_ntiid2 = qset2.get( 'questions' )[0].get( 'NTIID' )
+		version, old_version = _check_version( version )
+		q_sub2 = QuestionSubmission(questionId=question_ntiid2,
+								    parts=(upload_submission,))
+		qs_submission2 = QuestionSetSubmission(questionSetId=qset_ntiid2,
+											   questions=(q_sub2,))
+		submission = AssignmentSubmission(assignmentId=assignment_ntiid,
+										  parts=(qs_submission, qs_submission2))
+		# 422 thinks we dont have file submission??
+# 		self._test_version_submission( assignment_submit_href, submission,
+# 									   version, old_version )
+
+		new_parts = (old_part,)
+		self.testapp.put_json( assignment_href, {'parts': new_parts})
+		version, old_version = _check_version( version )
+		submission.parts = (qs_submission,)
+		self._test_version_submission( assignment_submit_href, submission,
+									   version, old_version )
 
 		# Edit questions (parts)
 		qset = self.testapp.get( qset_href )
@@ -512,19 +593,27 @@ class TestEvaluationViews(ApplicationLayerTest):
 		# Multiple choice/answer choice length/reorder changes.
 		multiple_choice['parts'][0]['choices'] = choices
 		self.testapp.put_json( multiple_choice_href, multiple_choice )
-		version = _check_version( version )
+		version, old_version = _check_version( version )
+		self._test_version_submission( assignment_submit_href, submission,
+									   version, old_version )
 
 		multiple_choice['parts'][0]['choices'] = tuple(reversed( choices ))
 		self.testapp.put_json( multiple_choice_href, multiple_choice )
-		version = _check_version( version )
+		version, old_version = _check_version( version )
+		self._test_version_submission( assignment_submit_href, submission,
+									   version, old_version )
 
 		multiple_answer['parts'][0]['choices'] = choices
 		self.testapp.put_json( multiple_answer_href, multiple_answer )
-		version = _check_version( version )
+		version, old_version = _check_version( version )
+		self._test_version_submission( assignment_submit_href, submission,
+									   version, old_version )
 
 		multiple_answer['parts'][0]['choices'] = tuple(reversed( choices ))
 		self.testapp.put_json( multiple_answer_href, multiple_answer )
-		version = _check_version( version )
+		version, old_version = _check_version( version )
+		self._test_version_submission( assignment_submit_href, submission,
+									   version, old_version )
 
 		# Add/remove question part
 		old_part = multiple_choice['parts'][0]
@@ -534,12 +623,15 @@ class TestEvaluationViews(ApplicationLayerTest):
 		new_parts = (old_part, new_part)
 		multiple_choice['parts'] = new_parts
 		self.testapp.put_json( multiple_choice_href, multiple_choice )
-		version = _check_version( version )
+		version, old_version = _check_version( version )
+		# FIXME submit
 
 		new_parts = (old_part,)
 		multiple_choice['parts'] = new_parts
 		self.testapp.put_json( multiple_choice_href, multiple_choice )
-		version = _check_version( version )
+		version, old_version = _check_version( version )
+		self._test_version_submission( assignment_submit_href, submission,
+									   version, old_version )
 
 		# Matching value/label length/reorder changes.
 		labels = list(choices)
@@ -547,19 +639,17 @@ class TestEvaluationViews(ApplicationLayerTest):
 		matching['parts'][0]['values'] = labels
 		matching['parts'][0]['solutions'][0]['value'] = {'0':0,'1':1,'2':2,'3':3}
 		self.testapp.put_json( matching_href, matching )
-		version = _check_version( version )
+		version, old_version = _check_version( version )
 
 		matching['parts'][0]['labels'] = tuple(reversed( choices ))
 		matching['parts'][0]['values'] = tuple(reversed( choices ))
 		self.testapp.put_json( matching_href, matching )
-		version = _check_version( version )
-
-		# FIXME: Assignment/Q part reorder (need part ntiids?)
+		version, old_version = _check_version( version )
 
 		# Move a question
 		move_json = self._get_move_json( question_ntiid, qset_ntiid, 0 )
 		self.testapp.post_json( qset_move_href, move_json )
-		version = _check_version( version )
+		version, old_version = _check_version( version )
 
 		# Test randomization (order is important).
 		rel_list = (VIEW_RANDOMIZE, VIEW_RANDOMIZE_PARTS,
@@ -569,7 +659,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 			new_qset = new_qset.json_body
 			random_link = self.require_link_href_with_rel(new_qset, rel)
 			self.testapp.post( random_link )
-			version = _check_version( version )
+			version, old_version = _check_version( version )
 
 		# Test version does not change
 		# Content changes do not affect version

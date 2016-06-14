@@ -103,7 +103,7 @@ class RegisterAssignmentLayer(InstructedCourseApplicationTestLayer):
 
 			question_set = component.getUtility(asm_interfaces.IQuestionSet,
 												name=question_set_id)
-			question_set.publish()
+			question_set.publish( event=False )
 
 			# add a assignment with a future date
 			due_date = datetime.datetime.today()
@@ -115,7 +115,7 @@ class RegisterAssignmentLayer(InstructedCourseApplicationTestLayer):
 			assignment = QAssignment(parts=(assignment_part,),
 									 available_for_submission_ending=due_date)
 			assignment.__name__ = assignment.ntiid = assignment_ntiid
-			assignment.publish()
+			assignment.publish( event=False )
 
 			intids = component.getUtility(IIntIds)
 			intids.register(assignment, event=False)

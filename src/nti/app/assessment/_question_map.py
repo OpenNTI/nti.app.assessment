@@ -193,7 +193,7 @@ class QuestionMap(QuestionIndex):
 
 	def _publish_object(self, item):
 		if IPublishable.providedBy(item) and not item.is_published():
-			item.publish()  # by default
+			item.publish( event=False )  # by default
 			interface.alsoProvides(item, INoPublishLink)
 
 	def _connection(self, registry=None):
@@ -299,7 +299,7 @@ class QuestionMap(QuestionIndex):
 					# get unproxied object
 					thing_to_register = removeAllProxies(item)
 					thing_to_register.createdTime = thing_to_register.lastModified = key_lastModified
-					
+
 					# check registry
 					ntiid = thing_to_register.ntiid
 					provided = _iface_to_register(thing_to_register)

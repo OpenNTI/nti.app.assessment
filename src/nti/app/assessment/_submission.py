@@ -100,7 +100,7 @@ def _set_part_value_lineage(part):
 	part_value = get_part_value(part)
 	if part_value is not part and INamedFile.providedBy(part_value):
 		_set_parent_(part_value, part)
-				
+
 def set_submission_lineage(submission):
 	# The constituent parts of these things need parents as well.
 	# It would be nice if externalization took care of this,
@@ -137,8 +137,8 @@ def transfer_submission_file_data(source, target,  force=False):
 	"""
 	Search for previously uploaded files and make them part of the
 	new submission if nothing has changed.
-	
-	:param sorce Source submission
+
+	:param source Source submission
 	:param target Target submission
 	"""
 
@@ -177,7 +177,8 @@ def transfer_submission_file_data(source, target,  force=False):
 						break
 					# check if the uploaded file has been internalized empty
 					# this is tightly coupled w/ the way IQUploadedFile are updated.
-					if INamedFile.providedBy(old_part_value) and _is_internal(part_value):
+					if 		INamedFile.providedBy(old_part_value) \
+						and _is_internal(part_value):
 						part_value.data = old_part_value.data
 						part_value.filename = old_part_value.filename
 						part_value.contentType = old_part_value.contentType

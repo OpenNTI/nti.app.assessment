@@ -434,29 +434,35 @@ class TestEvaluationViews(ApplicationLayerTest):
 			found_ntiids = [x.ntiid for x in assignments or ()]
 			assert_that( found_ntiids, contains_inanyorder( *assignment_ntiids ))
 
-	def _test_version_submission(self, href, submission, new_version, old_version=None):
+	def _test_version_submission(self, submit_href, savepoint_href, submission,
+								 new_version, old_version=None):
 		"""
 		Test submissions with versions.
 		"""
 		# We do this by doing the PracticeSubmission with instructor, which does not
-		# persist.
-		# Sends an assignment through the application by posting to the assignment
+		# persist. We savepoint with instructor even though the link is not available.
 		submission = toExternalObject( submission )
+		hrefs = (submit_href, savepoint_href)
 		if old_version:
 			# All 409s if we post no version or old version on an assignment with version.
 			submission.pop( 'version', None )
-			self.testapp.post_json( href, submission, status=409 )
+			for href in hrefs:
+				self.testapp.post_json( href, submission, status=409 )
 			submission['version'] = None
-			self.testapp.post_json( href, submission, status=409 )
+			for href in hrefs:
+				self.testapp.post_json( href, submission, status=409 )
 			submission['version'] = old_version
-			self.testapp.post_json( href, submission, status=409 )
+			for href in hrefs:
+				self.testapp.post_json( href, submission, status=409 )
 		if not new_version:
 			# Assignment has no version, post with nothing is ok too.
 			submission.pop( 'version', None )
-			self.testapp.post_json( href, submission )
+			for href in hrefs:
+				self.testapp.post_json( href, submission )
 		submission['version'] = new_version
 		# XXX: We are not testing assessed results...
-		self.testapp.post_json( href, submission )
+		for href in hrefs:
+			self.testapp.post_json( href, submission )
 
 	@time_monotonically_increases
 	@WithSharedApplicationMockDS(testapp=True, users=True)
@@ -481,6 +487,8 @@ class TestEvaluationViews(ApplicationLayerTest):
 																  ASSESSMENT_PRACTICE_SUBMISSION)
 		assignment_ntiid = res.get('ntiid')
 		assignment_ntiids = (assignment_ntiid,)
+		savepoint_href = '/dataserver2/Objects/%s/AssignmentSavepoints/sjohnson@nextthought.com/%s/Savepoint' % \
+						 (course_oid, assignment_ntiid )
 		assert_that( res.get( 'version' ), none() )
 		old_part = res.get( 'parts' )[0]
 		qset = old_part.get( 'question_set' )
@@ -513,7 +521,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 											  questions=(q_sub,))
 		submission = AssignmentSubmission(assignmentId=assignment_ntiid,
 										  parts=(qs_submission,))
-		self._test_version_submission( assignment_submit_href, submission, None )
+		self._test_version_submission( assignment_submit_href, savepoint_href, submission, None )
 
 		def _check_version( old_version=None, changed=True ):
 			"Validate assignment version has changed and return the new version."
@@ -541,9 +549,9 @@ class TestEvaluationViews(ApplicationLayerTest):
 			question_mime = new_question.get( 'MimeType' )
 			solution = ('0',)
 			if 'matchingpart' in question_mime:
-				solution = {'0': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6}
+				solution = ({'0': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6},)
 			elif 'filepart' in question_mime:
-				solution = upload_submission
+				solution = (upload_submission,)
 			new_submission = QuestionSubmission(questionId=new_question.get( 'NTIID' ),
 								   				parts=solution)
 			question_submissions.append( new_submission )
@@ -552,7 +560,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 											      questions=question_submissions)
 			submission = AssignmentSubmission(assignmentId=assignment_ntiid,
 										  	  parts=(qs_submission,))
-			self._test_version_submission( assignment_submit_href, submission,
+			self._test_version_submission( assignment_submit_href, savepoint_href, submission,
 										   version, old_version )
 			self._validate_assignment_containers( new_question.get( 'ntiid' ),
 												  assignment_ntiids )
@@ -566,20 +574,19 @@ class TestEvaluationViews(ApplicationLayerTest):
 		question_ntiid2 = qset2.get( 'questions' )[0].get( 'NTIID' )
 		version, old_version = _check_version( version )
 		q_sub2 = QuestionSubmission(questionId=question_ntiid2,
-								    parts=(upload_submission,))
+								    parts=(0,))
 		qs_submission2 = QuestionSetSubmission(questionSetId=qset_ntiid2,
 											   questions=(q_sub2,))
 		submission = AssignmentSubmission(assignmentId=assignment_ntiid,
 										  parts=(qs_submission, qs_submission2))
-		# 422 thinks we dont have file submission??
-# 		self._test_version_submission( assignment_submit_href, submission,
-# 									   version, old_version )
+		self._test_version_submission( assignment_submit_href, savepoint_href, submission,
+									   version, old_version )
 
 		new_parts = (old_part,)
 		self.testapp.put_json( assignment_href, {'parts': new_parts})
 		version, old_version = _check_version( version )
 		submission.parts = (qs_submission,)
-		self._test_version_submission( assignment_submit_href, submission,
+		self._test_version_submission( assignment_submit_href, savepoint_href, submission,
 									   version, old_version )
 
 		# Edit questions (parts)
@@ -598,25 +605,25 @@ class TestEvaluationViews(ApplicationLayerTest):
 		multiple_choice['parts'][0]['choices'] = choices
 		self.testapp.put_json( multiple_choice_href, multiple_choice )
 		version, old_version = _check_version( version )
-		self._test_version_submission( assignment_submit_href, submission,
+		self._test_version_submission( assignment_submit_href, savepoint_href, submission,
 									   version, old_version )
 
 		multiple_choice['parts'][0]['choices'] = tuple(reversed( choices ))
 		self.testapp.put_json( multiple_choice_href, multiple_choice )
 		version, old_version = _check_version( version )
-		self._test_version_submission( assignment_submit_href, submission,
+		self._test_version_submission( assignment_submit_href, savepoint_href, submission,
 									   version, old_version )
 
 		multiple_answer['parts'][0]['choices'] = choices
 		self.testapp.put_json( multiple_answer_href, multiple_answer )
 		version, old_version = _check_version( version )
-		self._test_version_submission( assignment_submit_href, submission,
+		self._test_version_submission( assignment_submit_href, savepoint_href, submission,
 									   version, old_version )
 
 		multiple_answer['parts'][0]['choices'] = tuple(reversed( choices ))
 		self.testapp.put_json( multiple_answer_href, multiple_answer )
 		version, old_version = _check_version( version )
-		self._test_version_submission( assignment_submit_href, submission,
+		self._test_version_submission( assignment_submit_href, savepoint_href, submission,
 									   version, old_version )
 
 		# Add/remove question part
@@ -629,8 +636,8 @@ class TestEvaluationViews(ApplicationLayerTest):
 		self.testapp.put_json( multiple_choice_href, multiple_choice )
 		version, old_version = _check_version( version )
 		old_sub_parts = question_submissions[0].parts
-		question_submissions[0].parts = [old_sub_parts, ('0',)]
-		self._test_version_submission( assignment_submit_href, submission,
+		question_submissions[0].parts = old_sub_parts + ('0',)
+		self._test_version_submission( assignment_submit_href, savepoint_href, submission,
 									   version, old_version )
 		question_submissions[0].parts = old_sub_parts
 
@@ -638,7 +645,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		multiple_choice['parts'] = new_parts
 		self.testapp.put_json( multiple_choice_href, multiple_choice )
 		version, old_version = _check_version( version )
-		self._test_version_submission( assignment_submit_href, submission,
+		self._test_version_submission( assignment_submit_href, savepoint_href, submission,
 									   version, old_version )
 
 		# Matching value/label length/reorder changes.
@@ -648,22 +655,22 @@ class TestEvaluationViews(ApplicationLayerTest):
 		matching['parts'][0]['solutions'][0]['value'] = {'0':0,'1':1,'2':2,'3':3}
 		self.testapp.put_json( matching_href, matching )
 		version, old_version = _check_version( version )
-		question_submissions[2].parts = {'0':0,'1':1,'2':2,'3':3}
-		self._test_version_submission( assignment_submit_href, submission,
+		question_submissions[2].parts = ({'0':0,'1':1,'2':2,'3':3},)
+		self._test_version_submission( assignment_submit_href, savepoint_href, submission,
 									   version, old_version )
 
 		matching['parts'][0]['labels'] = tuple(reversed( choices ))
 		matching['parts'][0]['values'] = tuple(reversed( choices ))
 		self.testapp.put_json( matching_href, matching )
 		version, old_version = _check_version( version )
-		self._test_version_submission( assignment_submit_href, submission,
+		self._test_version_submission( assignment_submit_href, savepoint_href, submission,
 									   version, old_version )
 
 		# Move a question
 		move_json = self._get_move_json( question_ntiid, qset_ntiid, 0 )
 		self.testapp.post_json( qset_move_href, move_json )
 		version, old_version = _check_version( version )
-		self._test_version_submission( assignment_submit_href, submission,
+		self._test_version_submission( assignment_submit_href, savepoint_href, submission,
 									   version, old_version )
 
 		# Test randomization (order is important).
@@ -676,24 +683,24 @@ class TestEvaluationViews(ApplicationLayerTest):
 			self.testapp.post( random_link )
 			version, old_version = _check_version( version )
 			# XXX: Same submission works? (not autograded.)
-			self._test_version_submission( assignment_submit_href, submission,
+			self._test_version_submission( assignment_submit_href, savepoint_href, submission,
 									   	   version, old_version )
 
 		# Test version does not change
 		# Content changes do not affect version
 		self.testapp.put_json( assignment_href, {'content': 'new content'} )
 		_check_version( version, changed=False )
-		self._test_version_submission( assignment_submit_href, submission, version )
+		self._test_version_submission( assignment_submit_href, savepoint_href, submission, version )
 
 		self.testapp.put_json( qset_href, {'title': 'new title'} )
 		_check_version( version, changed=False )
-		self._test_version_submission( assignment_submit_href, submission, version )
+		self._test_version_submission( assignment_submit_href, savepoint_href, submission, version )
 
 		for question in questions:
 			self.testapp.put_json( question.get( 'href' ),
 								   {'content': 'blehbleh' })
 			_check_version( version, changed=False )
-			self._test_version_submission( assignment_submit_href, submission, version )
+			self._test_version_submission( assignment_submit_href, savepoint_href, submission, version )
 
 		# Altering choice/labels/values/solutions does not affect version
 		choices = list(reversed( choices ))
@@ -702,13 +709,13 @@ class TestEvaluationViews(ApplicationLayerTest):
 		multiple_choice['parts'][0]['solutions'][0]['value'] = 1
 		self.testapp.put_json( multiple_choice_href, multiple_choice )
 		_check_version( version, changed=False )
-		self._test_version_submission( assignment_submit_href, submission, version )
+		self._test_version_submission( assignment_submit_href, savepoint_href, submission, version )
 
 		multiple_answer['parts'][0]['choices'] = choices
 		multiple_answer['parts'][0]['solutions'][0]['value'] = [0,1]
 		self.testapp.put_json( multiple_answer_href, multiple_answer )
 		_check_version( version, changed=False )
-		self._test_version_submission( assignment_submit_href, submission, version )
+		self._test_version_submission( assignment_submit_href, savepoint_href, submission, version )
 
 		labels = list(choices)
 		matching['parts'][0]['labels'] = labels
@@ -716,7 +723,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		matching['parts'][0]['solutions'][0]['value'] = {'0':1,'1':0,'2':2,'3':3}
 		self.testapp.put_json( matching_href, matching )
 		_check_version( version, changed=False )
-		self._test_version_submission( assignment_submit_href, submission, version )
+		self._test_version_submission( assignment_submit_href, savepoint_href, submission, version )
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_assignment_no_solutions(self):

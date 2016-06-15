@@ -9,6 +9,8 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+import os
+
 from zope import component
 from zope import interface
 from zope import lifecycleevent
@@ -31,6 +33,10 @@ from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 
+from nti.cabinet.filer import transfer_to_native_file
+
+from nti.contentlibrary.interfaces import IFilesystemBucket
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseSectionImporter
 
@@ -45,6 +51,8 @@ ITEMS = StandardExternalFields.ITEMS
 
 @interface.implementer(ICourseSectionImporter)
 class EvaluationsImporter(BaseSectionImporter):
+
+	EVALUATION_INDEX = "evaluation_index.json"
 
 	def is_new(self, obj, course):
 		ntiid = obj.ntiid
@@ -171,13 +179,19 @@ class EvaluationsImporter(BaseSectionImporter):
 			update_from_external_object(theObject, ext_obj, notify=False)
 			self.handle_evaluation(theObject, course, source_filer)
 
-	def process(self, context, filer):
+	def process(self, context, filer, writeout=True):
 		course = ICourseInstance(context)
-		href = self.course_bucket_path(course) + "evaluation_index.json"
+		href = self.course_bucket_path(course) + self.EVALUATION_INDEX
 		source = self.safe_get(filer, href)
 		if source is not None:
 			source = self.load(source)
 			items = source.get(ITEMS)
 			self.handle_course_items(items, course, filer)
+			# save source
+			if writeout and IFilesystemBucket.providedBy(course.root):
+				source = self.safe_get(filer, href) # reload
+				self.makedirs(course.root.absolute_path) # create
+				new_path = os.path.join(course.root.absolute_path, self.EVALUATION_INDEX)
+				transfer_to_native_file(source, new_path)
 			return True
 		return False

@@ -474,7 +474,6 @@ class TestEvaluationViews(ApplicationLayerTest):
 		XXX: AssignmentParts set below are not auto_grade...
 
 		FIXME: Assignment/Q part reorder (need part ntiids?)
-		FIXME: Delete versions fails on test server.
 		"""
 		course_oid = self._get_course_oid()
 		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)

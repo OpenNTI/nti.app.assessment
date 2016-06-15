@@ -231,15 +231,8 @@ def on_course_instance_removed(course, event):
 
 @component.adapter(IQuestion, IQuestionMovedEvent)
 def on_question_moved(question, event):
+	# We should only be moving questions within a question set.
 	ntiid = getattr(question, 'ntiid', None)
-	# Update our index. IPresentationAssets are the only movable
-	# entity that needs to update its index containers.
-	# If no old_parent_ntiid, it was an internal move.
-	# FIXME: Update index?
-# 	if event.old_parent_ntiid:
-# 		catalog = get_library_catalog()
-# 		catalog.remove_containers( question, event.old_parent_ntiid )
-# 		catalog.update_containers( question, question.__parent__.ntiid )
 	if ntiid:
 		record_transaction(question, principal=event.principal,
 						   type_=TRX_QUESTION_MOVE_TYPE)

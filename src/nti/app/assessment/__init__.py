@@ -37,10 +37,10 @@ VIEW_RANDOMIZE = 'Randomize'
 VIEW_UNRANDOMIZE = 'Unrandomize'
 
 #: A view to mark the assessment object as containing randomized parts.
-VIEW_RANDOMIZE_PARTS = 'RandomizeParts'
+VIEW_RANDOMIZE_PARTS = 'RandomizePartsType'
 
 #: A view to mark the assessment object as not containing randomized parts.
-VIEW_UNRANDOMIZE_PARTS = 'UnrandomizeParts'
+VIEW_UNRANDOMIZE_PARTS = 'UnrandomizePartsType'
 
 def get_submission_catalog():
 	return component.queryUtility(IMetadataCatalog, name=SUBMISSION_CATALOG_NAME)

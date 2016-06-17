@@ -125,9 +125,9 @@ def prevent_note_on_assignment_part(note, event):
 			items = (item,)
 			break
 
-	if 	IQPoll.providedBy(item) or \
-		IQuestion.providedBy(item) or \
-		IQuestionSet.providedBy(item):
+	if 		IQPoll.providedBy(item) \
+		or	IQuestion.providedBy(item) \
+		or	IQuestionSet.providedBy(item):
 
 		parent = item.__parent__
 		if parent:

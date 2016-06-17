@@ -67,7 +67,7 @@ class QuestionSetRandomizeView(AbstractRandomizeView):
 	def __call__(self):
 		self._validate()
 		interface.alsoProvides( self.context, IRandomizedQuestionSet )
-		return hexc.HTTPOk()
+		return self.context
 
 @view_config(route_name='objects.generic.traversal',
 			 renderer='rest',
@@ -94,7 +94,7 @@ class QuestionSetUnRandomizeView(AbstractRandomizeView):
 		self._validate()
 		if IRandomizedQuestionSet.providedBy( self.context ):
 			interface.noLongerProvides( self.context, IRandomizedQuestionSet )
-		return hexc.HTTPOk()
+		return self.context
 
 @view_config(route_name='objects.generic.traversal',
 			 renderer='rest',
@@ -115,7 +115,7 @@ class QuestionSetRandomizePartsView(AbstractRandomizeView):
 	def __call__(self):
 		self._validate()
 		interface.alsoProvides( self.context, IRandomizedPartsContainer )
-		return hexc.HTTPOk()
+		return self.context
 
 @view_config(route_name='objects.generic.traversal',
 			 renderer='rest',
@@ -137,4 +137,4 @@ class QuestionSetUnRandomizePartsView(AbstractRandomizeView):
 		self._validate()
 		if IRandomizedPartsContainer.providedBy( self.context ):
 			interface.noLongerProvides( self.context, IRandomizedPartsContainer )
-		return hexc.HTTPOk()
+		return self.context

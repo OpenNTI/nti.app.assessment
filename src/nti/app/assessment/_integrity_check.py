@@ -196,7 +196,7 @@ def check_assessment_integrity(remove_unparented=False):
 					registered.__parent__ = unit
 					if uid is not None:
 						catalog.index_doc(uid, registered)
-			elif remove_unparented and uid is not None:
+			elif remove_unparented and uid is not None and not registered.isLocked():
 				registry = site.getSiteManager()
 				removed.add(ntiid)
 				removeIntId(registered)
@@ -207,8 +207,9 @@ def check_assessment_integrity(remove_unparented=False):
 		elif uid is None:
 			registry = site.getSiteManager()
 			connection = IConnection(registry, None)
-			if connection is not None and IConnection(registered, None) is None:
-				connection.add(registered)
+			if connection is not None:
+				if IConnection(registered, None) is None:
+					connection.add(registered)
 				addIntId(registered)
 				uid = intids.queryId(registered)
 

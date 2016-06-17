@@ -14,12 +14,12 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope import interface
 
-from nti.assessment import ASSESSMENT_INTERFACES
+from nti.assessment.interfaces import IQEvaluation
 
 from nti.ntiids.interfaces import INTIIDResolver
 
 @interface.implementer(INTIIDResolver)
-class _AssessmentResolver(object):
+class _EvaluationResolver(object):
 	"""
 	A resolver for the :const:`nti.assessment.interfaces.NTIID_TYPE`
 	value. This one single type of ntiid is used for questions,
@@ -28,8 +28,6 @@ class _AssessmentResolver(object):
 	"""
 
 	def resolve(self, key):
-		for iface in ASSESSMENT_INTERFACES:
-			result = component.queryUtility(iface, name=key)
-			if result is not None:
-				break
+		result = component.queryUtility(IQEvaluation, name=key)
 		return result
+_AssessmentResolver = _EvaluationResolver

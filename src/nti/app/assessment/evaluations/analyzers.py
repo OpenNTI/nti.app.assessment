@@ -29,6 +29,8 @@ from nti.assessment.interfaces import IQNonGradableMultipleChoiceMultipleAnswerP
 
 from nti.common.sets import OrderedSet
 
+from nti.contentfragments.interfaces import IPlainTextContentFragment
+
 from nti.externalization.externalization import to_external_object
 
 @interface.implementer(IQPartChangeAnalyzer)
@@ -69,6 +71,9 @@ def _check_duplicates( items ):
 	indexes = []
 	seen = set()
 	for idx, item in enumerate( items ):
+		# Clients may include html wrapped choices, we
+		# only want to compare the visible text for dupes.
+		item = IPlainTextContentFragment( item, item )
 		if item in seen:
 			indexes.append( idx )
 		seen.add( item )
@@ -80,6 +85,8 @@ def _check_empty( items ):
 	"""
 	indexes = []
 	for idx, item in enumerate( items ):
+		# Empty rendered html is invalid.
+		item = IPlainTextContentFragment( item, item )
 		if not item:
 			indexes.append( idx )
 	return indexes

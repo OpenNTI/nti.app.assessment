@@ -42,6 +42,24 @@ VIEW_RANDOMIZE_PARTS = 'RandomizePartsType'
 #: A view to mark the assessment object as not containing randomized parts.
 VIEW_UNRANDOMIZE_PARTS = 'UnrandomizePartsType'
 
+#: A marker rel to signify that this evaluation object allows part insertion.
+VIEW_INSERT_PART = 'InsertPart'
+
+#: A marker rel to signify that this evaluation object allows part removal.
+VIEW_REMOVE_PART = 'RemovePart'
+
+#: A marker rel to signify that this evaluation object allows part moves.
+VIEW_MOVE_PART = 'MovePart'
+
+#: A marker rel to signify that this evaluation object allows part option insertion.
+VIEW_INSERT_PART_OPTION = 'InsertPartOption'
+
+#: A marker rel to signify that this evaluation object allows part option removal.
+VIEW_REMOVE_PART_OPTION = 'RemovePartOption'
+
+#: A marker rel to signify that this evaluation object allows part option moves.
+VIEW_MOVE_PART_OPTION = 'MovePartOption'
+
 def get_submission_catalog():
 	return component.queryUtility(IMetadataCatalog, name=SUBMISSION_CATALOG_NAME)
 

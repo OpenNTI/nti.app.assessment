@@ -26,17 +26,27 @@ from urllib import quote
 
 from zope import component
 
+from nti.app.assessment import VIEW_MOVE_PART
 from nti.app.assessment import VIEW_RANDOMIZE
 from nti.app.assessment import VIEW_UNRANDOMIZE
-from nti.app.assessment import VIEW_RANDOMIZE_PARTS
+from nti.app.assessment import VIEW_INSERT_PART
+from nti.app.assessment import VIEW_REMOVE_PART
 from nti.app.assessment import VIEW_ASSESSMENT_MOVE
+from nti.app.assessment import VIEW_RANDOMIZE_PARTS
+from nti.app.assessment import VIEW_MOVE_PART_OPTION
 from nti.app.assessment import VIEW_UNRANDOMIZE_PARTS
+from nti.app.assessment import VIEW_INSERT_PART_OPTION
+from nti.app.assessment import VIEW_REMOVE_PART_OPTION
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
 
 from nti.app.assessment.common import get_assignments_for_evaluation_object
 
 from nti.app.assessment.evaluations.exporter import EvaluationsExporter
+
+from nti.assessment.interfaces import QUESTION_MIME_TYPE
+from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
+from nti.assessment.interfaces import QUESTION_SET_MIME_TYPE
 
 from nti.assessment.interfaces import IQuestion
 
@@ -105,17 +115,48 @@ class TestEvaluationViews(ApplicationLayerTest):
 			found_ntiids = tuple(x.ntiid for x in assignments)
 			assert_that( found_ntiids, is_(assignment_ntiids))
 
-	def _test_external_state(self, ext_obj, available=False, has_savepoints=False, has_submissions=False):
-		# TODO: test with submissions/savepoints.
-		self.require_link_href_with_rel(ext_obj, 'edit')
+	def _test_external_state(self, ext_obj=None, ntiid=None, available=False,
+							 has_savepoints=False, has_submissions=False):
+		"""
+		Test the external state of the given ext_obj or ntiid. We test that
+		status changes based on submissions and other user interaction.
+		"""
+		if not ext_obj:
+			ext_obj = self.testapp.get( '/dataserver2/Objects/%s' % ntiid ).json_body
 		self.require_link_href_with_rel(ext_obj, 'date-edit')
-		self.require_link_href_with_rel(ext_obj, 'schema')
 		limited = has_savepoints or has_submissions or available
 		assert_that( ext_obj.get( 'LimitedEditingCapabilities' ), is_( limited ) )
 		assert_that( ext_obj.get( 'LimitedEditingCapabilitiesSavepoints' ),
 					 is_( has_savepoints ) )
 		assert_that( ext_obj.get( 'LimitedEditingCapabilitiesSubmissions' ),
 					 is_( has_submissions ) )
+
+		# We always have schema and edit rels.
+		for rel in ('schema', 'edit'):
+			self.require_link_href_with_rel(ext_obj, rel)
+
+		# We drive these links based on the submission status of objects.
+		submission_rel_checks = []
+		to_check = self.forbid_link_with_rel if has_submissions else self.require_link_href_with_rel
+		ext_mime = ext_obj.get( 'MimeType' )
+		if ext_mime == QUESTION_MIME_TYPE:
+			submission_rel_checks.extend( (VIEW_MOVE_PART,
+									 	   VIEW_INSERT_PART,
+									 	   VIEW_REMOVE_PART,
+									 	   VIEW_MOVE_PART_OPTION,
+									 	   VIEW_INSERT_PART_OPTION,
+									 	   VIEW_REMOVE_PART_OPTION) )
+		elif ext_mime == ASSIGNMENT_MIME_TYPE:
+			submission_rel_checks.extend( (VIEW_MOVE_PART,
+										   VIEW_INSERT_PART,
+										   VIEW_REMOVE_PART) )
+		elif ext_mime == QUESTION_SET_MIME_TYPE:
+			# Randomize is context sensitive and tested elsewhere.
+			submission_rel_checks.extend( (VIEW_QUESTION_SET_CONTENTS,
+										   VIEW_ASSESSMENT_MOVE) )
+
+		for rel in submission_rel_checks:
+			to_check( ext_obj, rel )
 
 	def _test_qset_ext_state(self, qset, creator, assignment_ntiid, **kwargs):
 		self._test_assignments( qset.get( NTIID ), assignment_ntiids=(assignment_ntiid,) )
@@ -351,11 +392,22 @@ class TestEvaluationViews(ApplicationLayerTest):
 
 		# Multiple choice
 		dupes = ['1','2','3','1']
+		# Clients may have html wrapped dupes
+		html_dupes = ['1', '2',
+					  '<a data-id="data-id111"></a>Choice 1',
+					  '<a data-id="data-id222"></a>Choice 1' ]
 		empties = [ 'test', 'empty', '', 'try']
 		dupe_index = 3
+		html_dupe_index = 3
 		empty_index = 2
 
 		# Multiple choice duplicates
+		multiple_choice['parts'][0]['choices'] = html_dupes
+		res = self.testapp.post_json( qset_contents_href, multiple_choice, status=422 )
+		res = res.json_body
+		assert_that( res.get( 'field' ), is_( 'choices' ))
+		assert_that( res.get( 'index' ), contains( html_dupe_index ))
+
 		multiple_choice['parts'][0]['choices'] = dupes
 		res = self.testapp.post_json( qset_contents_href, multiple_choice, status=422 )
 		res = res.json_body
@@ -464,6 +516,18 @@ class TestEvaluationViews(ApplicationLayerTest):
 		for href in hrefs:
 			self.testapp.post_json( href, submission )
 
+	def _create_and_enroll(self, username):
+		with mock_dataserver.mock_db_trans(self.ds):
+			self._create_user( username=username )
+		environ = self._make_extra_environ( username=username )
+		admin_environ = self._make_extra_environ(username=self.default_username)
+		enroll_url = '/dataserver2/CourseAdmin/UserCourseEnroll'
+		self.testapp.post_json(enroll_url,
+							  {'ntiid': self.entry_ntiid,
+							   'username':username},
+							   extra_environ=admin_environ)
+		return environ
+
 	@time_monotonically_increases
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_assignment_versioning(self):
@@ -475,6 +539,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 
 		FIXME: Assignment/Q part reorder (need part ntiids?)
 		"""
+		# Create base assessment object, enroll student, and set up vars for test.
 		course_oid = self._get_course_oid()
 		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
 		assignment = self._load_assignment()
@@ -723,6 +788,83 @@ class TestEvaluationViews(ApplicationLayerTest):
 		self.testapp.put_json( matching_href, matching )
 		_check_version( version, changed=False )
 		self._test_version_submission( assignment_submit_href, savepoint_href, submission, version )
+
+	@time_monotonically_increases
+	@WithSharedApplicationMockDS(testapp=True, users=True)
+	def test_structural_links(self):
+		"""
+		Validate assignment (structural) links change when students submit.
+		"""
+		# Create base assessment object, enroll student, and set up vars for test.
+		course_oid = self._get_course_oid()
+		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
+		assignment = self._load_assignment()
+		question_set_source = self._load_questionset()
+		res = self.testapp.post_json(href, assignment, status=201)
+		res = res.json_body
+		assignment_href = res.get( 'href' )
+		assignment_ntiid = res.get('ntiid')
+		assignment_ntiids = (assignment_ntiid,)
+		assert_that( res.get( 'version' ), none() )
+		old_part = res.get( 'parts' )[0]
+		qset = old_part.get( 'question_set' )
+		qset_ntiid = qset.get( 'NTIID' )
+		qset_href = qset.get( 'href' )
+		question_ntiid = qset.get( 'questions' )[0].get( 'ntiid' )
+		qset_move_href = self.require_link_href_with_rel(qset, VIEW_ASSESSMENT_MOVE)
+		qset_contents_href = self.require_link_href_with_rel(qset, VIEW_QUESTION_SET_CONTENTS)
+		self._validate_assignment_containers( qset_ntiid, assignment_ntiids )
+		enrolled_student = 'test_student'
+		student_environ = self._create_and_enroll( enrolled_student )
+		restricted_structural_status = 422
+
+		# Student has no such links
+
+		# Create submission
+		upload_submission = QUploadedFile(data=b'1234',
+										  contentType=b'image/gif',
+										  filename='foo.pdf')
+		q_sub = QuestionSubmission(questionId=question_ntiid,
+								   parts=(upload_submission,))
+
+		qs_submission = QuestionSetSubmission(questionSetId=qset_ntiid,
+											  questions=(q_sub,))
+		submission = AssignmentSubmission(assignmentId=assignment_ntiid,
+										  parts=(qs_submission,))
+
+		# Validate edit state of current assignment.
+		self._test_external_state(ntiid=assignment_ntiid,
+								  has_submissions=False)
+
+		# Student submits and the edit state changes
+		submission = toExternalObject( submission )
+		submission['version'] = None
+		self.testapp.post_json( assignment_href, submission, extra_environ=student_environ )
+
+		self._test_external_state(ntiid=assignment_ntiid,
+								  has_submissions=True)
+
+		# Cannot structurally edit assignment anymore.
+		# Cannot add question
+		# FIXME: Currently not indexing submissions by question-set and question.
+# 		questions = question_set_source.get('questions')
+# 		self.testapp.post_json( qset_contents_href, questions[0],
+# 								status=restricted_structural_status )
+#
+# 		# Cannot delete
+# 		delete_suffix = self._get_delete_url_suffix(0, question_ntiid)
+# 		self.testapp.delete(qset_contents_href + delete_suffix,
+# 							status=restricted_structural_status )
+#
+# 		# Cannot randomize
+# 		rel_list = (VIEW_RANDOMIZE, VIEW_RANDOMIZE_PARTS,
+# 					VIEW_UNRANDOMIZE, VIEW_UNRANDOMIZE_PARTS)
+# 		for rel in rel_list:
+# 			random_link = self.require_link_href_with_rel(qset, rel)
+# 			self.testapp.post( random_link, status=restricted_structural_status )
+
+		# FIXME: Add same question to another assignment. Should not be able to
+		# edit that question.
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_assignment_no_solutions(self):

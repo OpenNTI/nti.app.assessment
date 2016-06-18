@@ -16,11 +16,17 @@ from zope import interface
 
 from zope.location.interfaces import ILocation
 
+from nti.app.assessment import VIEW_MOVE_PART
 from nti.app.assessment import VIEW_RANDOMIZE
 from nti.app.assessment import VIEW_UNRANDOMIZE
+from nti.app.assessment import VIEW_INSERT_PART
+from nti.app.assessment import VIEW_REMOVE_PART
 from nti.app.assessment import VIEW_ASSESSMENT_MOVE
 from nti.app.assessment import VIEW_RANDOMIZE_PARTS
+from nti.app.assessment import VIEW_MOVE_PART_OPTION
 from nti.app.assessment import VIEW_UNRANDOMIZE_PARTS
+from nti.app.assessment import VIEW_INSERT_PART_OPTION
+from nti.app.assessment import VIEW_REMOVE_PART_OPTION
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
 
@@ -48,7 +54,7 @@ from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecora
 
 from nti.appserver.pyramid_authorization import has_permission
 
-from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQAssignment, IQuestion
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQTimedAssignment
 
@@ -343,6 +349,10 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	context on whether the evaluation has been savepointed/submitted.
 	"""
 
+	_MARKER_RELS = (VIEW_MOVE_PART, VIEW_INSERT_PART, VIEW_REMOVE_PART,
+					VIEW_MOVE_PART_OPTION, VIEW_INSERT_PART_OPTION,
+					VIEW_REMOVE_PART_OPTION)
+
 	def get_courses(self, context):
 		result = find_interface(context, ICourseInstance, strict=False)
 		return get_courses(result)
@@ -361,10 +371,26 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		return 		self._is_authenticated \
 				and has_permission(ACT_CONTENT_EDIT, context, self.request)
 
+	def _get_question_rels(self):
+		"""
+		Gather any links needed for a non-in-progress editable questions.
+		"""
+		return (VIEW_MOVE_PART,
+				VIEW_INSERT_PART,
+				VIEW_REMOVE_PART,
+				VIEW_MOVE_PART_OPTION,
+				VIEW_INSERT_PART_OPTION,
+				VIEW_REMOVE_PART_OPTION)
+
+	def _get_assignment_rels(self):
+		"""
+		Gather any links needed for a non-in-progress editable assignments.
+		"""
+		return (VIEW_MOVE_PART, VIEW_INSERT_PART, VIEW_REMOVE_PART)
+
 	def _get_question_set_rels(self, context):
 		"""
-		We handle question sets here for performance. Gather any links
-		needed for a non-in-progress editable question sets.
+		Gather any links needed for a non-in-progress editable question sets.
 		"""
 		rels = []
 		rels.append( VIEW_QUESTION_SET_CONTENTS )
@@ -397,13 +423,24 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		# object. Some edits (textual changes) will be allowed no matter what.
 		if not self._has_edit_link(_links):
 			rels.append('edit')
-		# Do not provide insert link if evaluation has submissions.
-		if IQuestionSet.providedBy( context ) and not submissions:
-			qset_rels = self._get_question_set_rels( context )
-			if qset_rels:
-				rels.extend( qset_rels )
+
+		if not submissions:
+			# Do not provide structural links if evaluation has submissions.
+			if IQuestionSet.providedBy( context ):
+				qset_rels = self._get_question_set_rels( context )
+				if qset_rels:
+					rels.extend( qset_rels )
+			elif IQAssignment.providedBy( context ):
+				rels.extend( self._get_assignment_rels() )
+			elif IQuestion.providedBy( context ):
+				rels.extend( self._get_question_rels() )
+
 		for rel in rels:
-			link = Link(context, rel=rel, elements=('@@%s' % rel,))
+			if rel in self._MARKER_RELS:
+				elements = None
+			else:
+				elements = ('@@%s' % rel,)
+			link = Link(context, rel=rel, elements=elements)
 			interface.alsoProvides(link, ILocation)
 			link.__name__ = ''
 			link.__parent__ = context

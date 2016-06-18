@@ -26,8 +26,6 @@ from zope import interface
 
 from zope.intid.interfaces import IIntIds
 
-from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
-
 from nti.app.assessment import get_evaluation_catalog
 
 from nti.app.assessment.index import IX_MIMETYPE

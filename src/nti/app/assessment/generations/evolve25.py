@@ -20,6 +20,7 @@ from zope.component.hooks import site as current_site
 
 from nti.assessment.interfaces import IQPoll 
 from nti.assessment.interfaces import IQuestion 
+from nti.assessment.interfaces import IQAssignment
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 
@@ -48,10 +49,15 @@ def _process_items(registry, seen):
 				seen.add(ntiid)
 			try:
 				for part in item.parts or ():
+					getattr(part, 'ntiid', None) # force set
 					for s in getattr(part, 'solutions', None) or ():
 						s.__parent__ = part
 			except AttributeError:
 				pass
+	for ntiid, item in list(registry.getUtilitiesFor(IQAssignment)):
+		if ntiid not in seen:
+			seen.add(ntiid)
+		[part.ntiid for part in item.parts or ()]  # force set
 
 def do_evolve(context, generation=generation):
 	logger.info("Assessment evolution %s started", generation);

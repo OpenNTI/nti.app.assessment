@@ -40,10 +40,10 @@ class AbstractRandomizeView(AbstractAuthenticatedView,
 							StructuralValidationMixin):
 
 	#: The message returned for an unacceptable assessment type to modify.
-	_TYPE_RANDOMIZE_ERROR_MSG = ''
+	_TYPE_RANDOMIZE_ERROR_MSG = u''
 
 	#: The message returned for an unacceptable assessment state to modify.
-	_STATE_RANDOMIZE_ERROR_MSG = ''
+	_STATE_RANDOMIZE_ERROR_MSG = u''
 
 	def _validate(self):
 		if not IQEditableEvaluation.providedBy(self.context):
@@ -62,11 +62,11 @@ class QuestionSetRandomizeView(AbstractRandomizeView):
 	in random order.
 	"""
 
-	_TYPE_RANDOMIZE_ERROR_MSG = "Cannot randomize legacy object."
+	_TYPE_RANDOMIZE_ERROR_MSG = u"Cannot randomize legacy object."
 
 	def __call__(self):
 		self._validate()
-		interface.alsoProvides( self.context, IRandomizedQuestionSet )
+		interface.alsoProvides(self.context, IRandomizedQuestionSet)
 		return self.context
 
 @view_config(route_name='objects.generic.traversal',
@@ -82,18 +82,18 @@ class QuestionSetUnRandomizeView(AbstractRandomizeView):
 	toggle state.
 	"""
 
-	_TYPE_RANDOMIZE_ERROR_MSG = "Cannot unrandomize legacy object."
+	_TYPE_RANDOMIZE_ERROR_MSG = u"Cannot unrandomize legacy object."
 
 	def _validate(self):
 		super(QuestionSetUnRandomizeView, self)._validate()
-		if isinstance( self.context, QRandomizedQuestionSet ):
+		if isinstance(self.context, QRandomizedQuestionSet):
 			# This should not happen.
 			raise hexc.HTTPUnprocessableEntity(_("Cannot unrandomize concrete implementation."))
 
 	def __call__(self):
 		self._validate()
-		if IRandomizedQuestionSet.providedBy( self.context ):
-			interface.noLongerProvides( self.context, IRandomizedQuestionSet )
+		if IRandomizedQuestionSet.providedBy(self.context):
+			interface.noLongerProvides(self.context, IRandomizedQuestionSet)
 		return self.context
 
 @view_config(route_name='objects.generic.traversal',
@@ -110,11 +110,11 @@ class QuestionSetRandomizePartsView(AbstractRandomizeView):
 	randomization.
 	"""
 
-	_TYPE_RANDOMIZE_ERROR_MSG = "Cannot randomize parts of legacy object."
+	_TYPE_RANDOMIZE_ERROR_MSG = u"Cannot randomize parts of legacy object."
 
 	def __call__(self):
 		self._validate()
-		interface.alsoProvides( self.context, IRandomizedPartsContainer )
+		interface.alsoProvides(self.context, IRandomizedPartsContainer)
 		return self.context
 
 @view_config(route_name='objects.generic.traversal',
@@ -131,10 +131,10 @@ class QuestionSetUnRandomizePartsView(AbstractRandomizeView):
 	randomization.
 	"""
 
-	_TYPE_RANDOMIZE_ERROR_MSG = "Cannot unrandomize parts of legacy object."
+	_TYPE_RANDOMIZE_ERROR_MSG = u"Cannot unrandomize parts of legacy object."
 
 	def __call__(self):
 		self._validate()
-		if IRandomizedPartsContainer.providedBy( self.context ):
-			interface.noLongerProvides( self.context, IRandomizedPartsContainer )
+		if IRandomizedPartsContainer.providedBy(self.context):
+			interface.noLongerProvides(self.context, IRandomizedPartsContainer)
 		return self.context

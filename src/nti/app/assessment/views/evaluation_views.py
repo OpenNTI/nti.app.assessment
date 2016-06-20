@@ -121,6 +121,7 @@ from nti.traversal.traversal import find_interface
 ITEMS = StandardExternalFields.ITEMS
 LINKS = StandardExternalFields.LINKS
 NTIID = StandardExternalFields.NTIID
+ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 
 VERSION = u'Version'
 
@@ -154,7 +155,7 @@ class CourseEvaluationsGetView(AbstractAuthenticatedView, BatchingUtilsMixin):
 
 		result['TotalItemCount'] = len(items)
 		self._batch_items_iterable(result, items)
-		result['ItemCount'] = len(result[ITEMS])
+		result[ITEM_COUNT] = len(result[ITEMS])
 		return result
 
 class EvaluationMixin(StructuralValidationMixin):

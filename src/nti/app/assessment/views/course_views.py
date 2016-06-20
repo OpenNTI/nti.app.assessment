@@ -35,6 +35,8 @@ from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
 ITEMS = StandardExternalFields.ITEMS
+TOTAL = StandardExternalFields.TOTAL
+ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 
 class CourseViewMixin(AbstractAuthenticatedView, BatchingUtilsMixin):
 
@@ -77,8 +79,8 @@ class CourseViewMixin(AbstractAuthenticatedView, BatchingUtilsMixin):
 		if not outline: 
 			self._batch_items_iterable(result, items)
 		else:
-			result['ItemCount'] = count
-		result['Total'] =  count
+			result[ITEM_COUNT] = count
+		result[TOTAL] =  count
 		return result
 
 @view_config(context=ICourseInstance)

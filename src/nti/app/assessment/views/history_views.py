@@ -33,11 +33,11 @@ from pyramid.interfaces import IExceptionResponse
 from pyramid.view import view_config
 from pyramid.view import view_defaults
 
+from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
+
 from nti.app.assessment._submission import get_source
 from nti.app.assessment._submission import check_upload_files
 from nti.app.assessment._submission import read_multipart_sources
-
-from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
 
 from nti.app.assessment.common import get_course_from_assignment
 

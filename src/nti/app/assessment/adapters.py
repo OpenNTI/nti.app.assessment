@@ -165,7 +165,7 @@ def _check_submission_before(course, assignment):
 
 def _validate_submission( submission, course, assignment ):
 	_check_submission_before(course, assignment)
-	check_submission_version( submission, assignment )
+	check_submission_version(submission, assignment)
 
 @component.adapter(IQAssignmentSubmission)
 @interface.implementer(IQAssignmentSubmissionPendingAssessment)
@@ -198,7 +198,7 @@ def _begin_assessment_for_assignment_submission(submission):
 
 	course = get_course_from_assignment(assignment, submission.creator)
 
-	_validate_submission( submission, course, assignment )
+	_validate_submission(submission, course, assignment)
 
 	assignment_history = component.getMultiAdapter((course, submission.creator),
 													IUsersCourseAssignmentHistory)
@@ -226,7 +226,7 @@ def _begin_assessment_for_assignment_submission(submission):
 	pending_assessment.containerId = submission.assignmentId
 	lifecycleevent.created(pending_assessment)
 
-	version = getattr(assignment, 'version', None)
+	version = assignment.version
 	if version is not None: # record version
 		pending_assessment.version = submission.version = version
 

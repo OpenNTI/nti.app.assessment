@@ -111,7 +111,7 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 															externalValue=extValue)
 			submission = read_multipart_sources(submission, self.request)
 
-		check_submission_version( submission, self.context )
+		check_submission_version(submission, self.context)
 		savepoint = component.getMultiAdapter((course, submission.creator),
 											   IUsersCourseAssignmentSavepoint)
 		submission.containerId = submission.assignmentId
@@ -121,7 +121,7 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 											  IUsersCourseAssignmentMetadata)
 		metadata.get_or_create(submission.assignmentId, time.time())
 
-		version = getattr(self.context, 'version', None)
+		version = self.context.version
 		if version is not None: # record version
 			submission.version = version
 

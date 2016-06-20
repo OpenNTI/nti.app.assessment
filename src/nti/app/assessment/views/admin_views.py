@@ -16,6 +16,8 @@ from zope import component
 
 from zope.component.hooks import site as current_site
 
+from zope.intid.interfaces import IIntIds
+
 from zope.security.interfaces import IPrincipal
 
 from pyramid import httpexceptions as hexc
@@ -44,7 +46,10 @@ from nti.app.base.abstract_views import AbstractAuthenticatedView
 from nti.app.externalization.internalization import read_body_as_external_object
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
-from nti.assessment.interfaces import IQInquiry
+from nti.assessment.common import iface_of_assessment
+
+from nti.assessment.interfaces import IQInquiry, IQEditableEvaluation
+from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.common.maps import CaseInsensitiveDict
@@ -67,9 +72,17 @@ from nti.dataserver.users import User
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
+from nti.intid.common import removeIntId
+
 from nti.ntiids.ntiids import find_object_with_ntiid
 
 from nti.site.hostpolicy import get_host_site
+
+from nti.site.interfaces import IHostPolicyFolder
+
+from nti.site.utils import unregisterUtility
+
+from nti.traversal.traversal import find_interface
 
 ITEMS = StandardExternalFields.ITEMS
 
@@ -81,7 +94,7 @@ ITEMS = StandardExternalFields.ITEMS
 			 name='CheckAssessmentIntegrity')
 class CheckAssessmentIntegrityView(AbstractAuthenticatedView,
 							   	   ModeledContentUploadRequestUtilsMixin):
-	
+
 	def readInput(self, value=None):
 		if self.request.body:
 			result = CaseInsensitiveDict(read_body_as_external_object(self.request))
@@ -129,7 +142,7 @@ class RemovedMatchedSavePointsView(AbstractAuthenticatedView,
 														IUsersCourseAssignmentSavepoint)
 				if not savepoint or not history:
 					continue
-				for assignmentId in set(history.keys()): # snapshot
+				for assignmentId in set(history.keys()):  # snapshot
 					if assignmentId in savepoint:
 						savepoint._delitemf(assignmentId, event=False)
 						assignments = items.setdefault(principal.username, [])
@@ -180,7 +193,7 @@ class UnmatchedSavePointsView(AbstractAuthenticatedView):
 				if not savepoint:
 					continue
 
-				for assignmentId in set(savepoint.keys()): # snapshot
+				for assignmentId in set(savepoint.keys()):  # snapshot
 					if assignmentId not in history or ():
 						row_data = [ntiid, principal.username, assignmentId]
 						writer.writerow(row_data)
@@ -189,6 +202,51 @@ class UnmatchedSavePointsView(AbstractAuthenticatedView):
 		stream.seek(0)
 		response.body_file = stream
 		return response
+
+@view_config(route_name='objects.generic.traversal',
+			 renderer='rest',
+			 permission=nauth.ACT_NTI_ADMIN,
+			 context=IDataserverFolder,
+			 name='UnregisterAssessment')
+class UnregisterAssessmentView(AbstractAuthenticatedView,
+							   ModeledContentUploadRequestUtilsMixin):
+
+	def readInput(self, value=None):
+		if self.request.body:
+			values = read_body_as_external_object(self.request)
+		else:
+			values = self.request.params
+		result = CaseInsensitiveDict(values)
+		return result
+
+	def _do_call(self):
+		values = self.readInput()
+		ntiid = values.get('ntiid')
+		if not ntiid:
+			raise hexc.HTTPUnprocessableEntity(_("Invalid content NTIID."))
+
+		force = is_true(values.get('force'))
+		evaluation = find_object_with_ntiid(ntiid)
+		evaluation = IQEvaluation(evaluation, None)
+		if evaluation is None:
+			raise hexc.HTTPUnprocessableEntity(_("Invalid evaluation object."))
+
+		if not force and evaluation.isLocked():
+			raise hexc.HTTPUnprocessableEntity(_("Evaluation object is locked."))
+
+		intids = component.getUtility(IIntIds)
+		folder = find_interface(evaluation, IHostPolicyFolder, strict=False)
+		site = get_host_site(folder.__name__)
+		with current_site(site):
+			registry = site.getSiteManager()
+			provided = iface_of_assessment(evaluation)
+			unregisterUtility(registry, provided=provided, name=ntiid, force=force)
+			if not IQEditableEvaluation.providedBy(evaluation):
+				uid = intids.queryId(evaluation)
+				if uid is not None:
+					removeIntId(evaluation)
+
+		return hexc.HTTPNoContent()
 
 @view_config(route_name='objects.generic.traversal',
 			 renderer='rest',
@@ -212,7 +270,7 @@ class UnregisterAssessmentItemsView(AbstractAuthenticatedView,
 		if not ntiid:
 			raise hexc.HTTPUnprocessableEntity(_("Invalid content package NTIID."))
 
-		force =  is_true(values.get('force'))
+		force = is_true(values.get('force'))
 		package = find_object_with_ntiid(ntiid)
 		package = IContentPackage(package, None)
 		if package is None:
@@ -302,7 +360,7 @@ class ResetInquiryView(AbstractAuthenticatedView,
 
 		# check for a user (inquiry taker)
 		username = values.get('username') or values.get('user') or values.get('taker')
-		
+
 		# if a course was provided, but no taker, delete all entries
 		if course is not None and not username:
 			inquiries = IUsersCourseInquiries(course)
@@ -310,7 +368,7 @@ class ResetInquiryView(AbstractAuthenticatedView,
 				if ntiid in inquiry:
 					del inquiry[ntiid]
 			return hexc.HTTPNoContent()
-		
+
 		if not username:
 			raise hexc.HTTPUnprocessableEntity(_("Must provide a username."))
 			creator = User.get_user(username)

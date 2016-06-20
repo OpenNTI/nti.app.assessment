@@ -137,9 +137,14 @@ class CourseEvaluationsGetView(AbstractAuthenticatedView, BatchingUtilsMixin):
 
 	def _get_mimeTypes(self):
 		params = CaseInsensitiveDict(self.request.params)
-		result = params.get('accept') or params.get('mimeType')
-		result = set(result.split(',')) if result else ()
-		return result or ()
+		accept = params.get('accept') or params.get('mimeTypes') or u''
+		accept = accept.split(',') if accept else ()
+		if accept and '*/*' not in accept:
+			accept = {e.strip().lower() for e in accept if e}
+			accept.discard(u'')
+		else:
+			accept = ()
+		return accept
 
 	def __call__(self):
 		result = LocatedExternalDict()
@@ -210,7 +215,7 @@ class EvaluationMixin(StructuralValidationMixin):
 	def handle_question(self, theObject, course, user, check_solutions=True):
 		if self.is_new(theObject):
 			theObject = self.store_evaluation(theObject, course, user, check_solutions)
-			[p.ntiid for p in theObject.parts or ()] # set auto part  NTIIDs
+			[p.ntiid for p in theObject.parts or ()] # set auto part NTIIDs
 		else:
 			theObject = self.get_registered_evaluation(theObject, course)
 		if theObject is None:
@@ -226,7 +231,7 @@ class EvaluationMixin(StructuralValidationMixin):
 	def handle_poll(self, theObject, course, user):
 		if self.is_new(theObject):
 			theObject = self.store_evaluation(theObject, course, user, False)
-			[p.ntiid for p in theObject.parts or ()] # set auto part  NTIIDs
+			[p.ntiid for p in theObject.parts or ()] # set auto part NTIIDs
 		else:
 			theObject = self.get_registered_evaluation(theObject, course)
 		if theObject is None:

@@ -474,10 +474,10 @@ class EvaluationCopyView(AbstractAuthenticatedView, EvaluationMixin):
 				ext_obj.pop(name, None)
 				ext_obj.pop(name.lower(), None)
 			for value in ext_obj.values():
-				self._ntiid_prunner(value)
+				self._prunner(value)
 		elif isinstance(ext_obj, (list, tuple, set)):
 			for item in ext_obj:
-				self._ntiid_prunner(item)
+				self._prunner(item)
 		return ext_obj
 
 	def __call__(self):

@@ -129,6 +129,7 @@ from nti.site.utils import unregisterUtility
 
 from nti.traversal.traversal import find_interface
 
+OID = StandardExternalFields.OID
 ITEMS = StandardExternalFields.ITEMS
 LINKS = StandardExternalFields.LINKS
 NTIID = StandardExternalFields.NTIID
@@ -465,10 +466,11 @@ class EvaluationCopyView(AbstractAuthenticatedView, EvaluationMixin):
 				result = get_courses_from_assesment(self.context)[0] # fail hard
 		return result
 
-	def _ntiid_prunner(self, ext_obj):
+	def _prunner(self, ext_obj):
 		if isinstance(ext_obj, Mapping):
-			ext_obj.pop(NTIID, None)
-			ext_obj.pop(NTIID.lower(), None)
+			for name in (NTIID, OID):
+				ext_obj.pop(name, None)
+				ext_obj.pop(name.lower(), None)
 			for value in ext_obj.values():
 				self._ntiid_prunner(value)
 		elif isinstance(ext_obj, (list, tuple, set)):
@@ -480,7 +482,7 @@ class EvaluationCopyView(AbstractAuthenticatedView, EvaluationMixin):
 		creator = self.remoteUser
 		source = removeAllProxies(self.context)
 		ext_obj = to_external_object(source, decorate=False)
-		ext_obj = self._ntiid_prunner(ext_obj)
+		ext_obj = self._prunner(ext_obj)
 		evaluation = find_factory_for(ext_obj)()
 		update_from_external_object(evaluation, ext_obj)
 		evaluation.creator = creator.username  # use username

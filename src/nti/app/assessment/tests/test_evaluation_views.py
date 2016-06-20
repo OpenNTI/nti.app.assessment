@@ -245,6 +245,8 @@ class TestEvaluationViews(ApplicationLayerTest):
 		questions = qset['Items'] = [p['ntiid'] for p in posted[1:]]
 		res = self.testapp.post_json(href, qset, status=201)
 		assert_that(res.json_body, has_entry('questions', has_length(len(questions))))
+		qset_href = res.json_body['href']
+		qset_ntiid = res.json_body['NTIID']
 
 		# No submit assignment, without parts/qset.
 		assignment = self._load_assignment()
@@ -257,6 +259,10 @@ class TestEvaluationViews(ApplicationLayerTest):
 			exported = exporter.externalize(entry)
 			assert_that(exported, has_entry('Items', has_length(13)))
 
+		copy_ref = qset_href + '/@@copy'
+		res = self.testapp.post(copy_ref, status=201)
+		assert_that(res.json_body, has_entry('NTIID', is_not(qset_ntiid)) )
+	
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_editing_assignments(self):
 		editor_environ = self._make_extra_environ(username="sjohnson@nextthought.com")

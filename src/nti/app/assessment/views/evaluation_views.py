@@ -302,6 +302,7 @@ class EvaluationMixin(StructuralValidationMixin):
 		theObject.parts = parts
 		if self.is_new(theObject):
 			theObject = self.store_evaluation(theObject, course, user)
+			[p.ntiid for p in theObject.parts or ()] # set auto part NTIIDs
 		else:
 			theObject = self.get_registered_evaluation(theObject, course)
 		if theObject is None:

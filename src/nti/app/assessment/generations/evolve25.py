@@ -45,8 +45,9 @@ class MockDataserver(object):
 def _process_items(registry, seen):
 	for provied in (IQuestion, IQPoll):
 		for ntiid, item in list(registry.getUtilitiesFor(provied)):
-			if ntiid not in seen:
-				seen.add(ntiid)
+			if ntiid in seen:
+				continue
+			seen.add(ntiid)
 			try:
 				for part in item.parts or ():
 					getattr(part, 'ntiid', None) # force set
@@ -55,8 +56,9 @@ def _process_items(registry, seen):
 			except AttributeError:
 				pass
 	for ntiid, item in list(registry.getUtilitiesFor(IQAssignment)):
-		if ntiid not in seen:
-			seen.add(ntiid)
+		if ntiid in seen:
+			continue
+		seen.add(ntiid)
 		[part.ntiid for part in item.parts or ()]  # force set
 
 def do_evolve(context, generation=generation):
@@ -84,6 +86,8 @@ def do_evolve(context, generation=generation):
 			with current_site(site):
 				registry = component.getSiteManager()
 				_process_items(registry, seen)
+				
+		logger.info("%s item(s) processed", len(seen))
 		seen.clear()
 
 	component.getGlobalSiteManager().unregisterUtility(mock_ds, IDataserver)

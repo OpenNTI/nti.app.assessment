@@ -163,7 +163,7 @@ def _check_submission_before(course, assignment):
 			ex.value = available_beginning
 			raise ex
 
-def _validate_submission( submission, course, assignment ):
+def _validate_submission(submission, course, assignment):
 	_check_submission_before(course, assignment)
 	check_submission_version(submission, assignment)
 

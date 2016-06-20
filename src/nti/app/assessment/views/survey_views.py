@@ -26,6 +26,7 @@ from nti.app.assessment.common import can_disclose_inquiry
 from nti.app.assessment.common import aggregate_page_inquiry
 from nti.app.assessment.common import get_course_from_inquiry
 from nti.app.assessment.common import aggregate_course_inquiry
+from nti.app.assessment.common import check_submission_version
 from nti.app.assessment.common import get_available_for_submission_ending
 from nti.app.assessment.common import get_available_for_submission_beginning
 
@@ -135,6 +136,9 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 			ex.field = IQInquiry['closed']
 			raise ex
 
+	def _check_version(self, submission):
+		check_submission_version(submission, self.context)
+
 	def _do_call(self):
 		course = self.course
 		creator = self.remoteUser
@@ -143,6 +147,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 		self._check_submission_ending(course)
 
 		submission = self.readCreateUpdateContentObject(creator)
+		self._check_version(submission)
 
 		# Check that the submission has something for all polls
 		if IQSurveySubmission.providedBy(submission):
@@ -168,6 +173,10 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 			ex.field = IQInquirySubmission['inquiryId']
 			ex.value = submission.inquiryId
 			raise ex
+
+		version = self.context.version
+		if version is not None:  # record version
+			submission.version = version
 
 		# Now record the submission.
 		self.request.response.status_int = 201

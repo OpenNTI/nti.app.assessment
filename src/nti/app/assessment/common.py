@@ -727,13 +727,13 @@ def make_evaluation_ntiid(kind, creator=SYSTEM_USER_ID, base=None, extra=None):
 					   specific=specific)
 	return ntiid
 
-def check_submission_version( submission, assignment ):
+def check_submission_version(submission, evaluation):
 	"""
 	Make sure the submitted version matches our assignment version.
 	If not, the client needs to refresh and re-submit to avoid
 	submitting stale, incorrect data for this assignment.
 	"""
-	assignment_version = assignment.version
-	if 		assignment_version \
-		and assignment_version != getattr( submission, 'version', '' ):
-		raise hexc.HTTPConflict( _('Assignment version has changed.') )
+	evaluation_version = evaluation.version
+	if 		evaluation_version \
+		and evaluation_version != getattr(submission, 'version', ''):
+		raise hexc.HTTPConflict(_('Evaluation version has changed.'))

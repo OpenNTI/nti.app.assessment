@@ -259,7 +259,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 			exported = exporter.externalize(entry)
 			assert_that(exported, has_entry('Items', has_length(13)))
 
-		copy_ref = qset_href + '/@@copy'
+		copy_ref = qset_href + '/@@Copy'
 		res = self.testapp.post(copy_ref, status=201)
 		assert_that(res.json_body, has_entry('NTIID', is_not(qset_ntiid)) )
 	

@@ -475,8 +475,8 @@ class _AssessmentPracticeLinkDecorator(AbstractAuthenticatedRequestAwareDecorato
 		user = self.remoteUser
 		course = _get_course_from_assignment(context, user, request=self.request)
 		return 		self._is_authenticated \
-				and (  has_permission(ACT_CONTENT_EDIT, context, self.request) \
-					or is_course_instructor(course, user))
+				and (	has_permission(ACT_CONTENT_EDIT, context, self.request) \
+					 or is_course_instructor(course, user))
 
 	def _do_decorate_external(self, context, result):
 		_links = result.setdefault(LINKS, [])

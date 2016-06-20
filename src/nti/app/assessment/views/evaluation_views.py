@@ -30,6 +30,7 @@ from pyramid.view import view_defaults
 from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment import VIEW_ASSESSMENT_MOVE
+from nti.app.assessment import VIEW_COPY_EVALUATION
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 
 from nti.app.assessment.common import get_courses
@@ -450,7 +451,7 @@ class CourseEvaluationsPostView(EvaluationMixin, UGDPostView):
 		self.request.response.status_int = 201
 		return evaluation
 
-@view_config(name='copy')
+@view_config(name=VIEW_COPY_EVALUATION)
 @view_defaults(route_name='objects.generic.traversal',
 			   renderer='rest',
 			   request_method='POST',

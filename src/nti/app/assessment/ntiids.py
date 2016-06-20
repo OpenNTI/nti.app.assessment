@@ -14,9 +14,15 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope import interface
 
+from nti.assessment.interfaces import NTIID_TYPE
+
 from nti.assessment.interfaces import IQEvaluation
 
 from nti.ntiids.interfaces import INTIIDResolver
+
+from nti.ntiids.ntiids import get_parts
+from nti.ntiids.ntiids import make_ntiid
+from nti.ntiids.ntiids import find_object_with_ntiid
 
 @interface.implementer(INTIIDResolver)
 class _EvaluationResolver(object):
@@ -27,7 +33,23 @@ class _EvaluationResolver(object):
 	resolve these using the current component registry.
 	"""
 
-	def resolve(self, key):
-		result = component.queryUtility(IQEvaluation, name=key)
+	def resolve(self, ntiid):
+		result = component.queryUtility(IQEvaluation, name=ntiid)
 		return result
 _AssessmentResolver = _EvaluationResolver
+
+@interface.implementer(INTIIDResolver)
+class _EvaluationPartResolver(object):
+
+	def resolve(self, ntiid):
+		parts = get_parts(ntiid)
+		specific = parts.specific[:parts.specific.rfind('.')]
+		parent_ntiid = make_ntiid(date=parts.date, 
+						   		  provider=parts.provider, 
+						  		  nttype=NTIID_TYPE, 
+						   		  specific=specific)
+		parent = find_object_with_ntiid(parent_ntiid)
+		for part in getattr(parent, 'parts', None) or ():
+			if part.ntiid == ntiid:
+				return part
+		return None

@@ -210,6 +210,7 @@ class EvaluationMixin(StructuralValidationMixin):
 	def handle_question(self, theObject, course, user, check_solutions=True):
 		if self.is_new(theObject):
 			theObject = self.store_evaluation(theObject, course, user, check_solutions)
+			[p.ntiid for p in theObject.parts or ()] # set auto part  NTIIDs
 		else:
 			theObject = self.get_registered_evaluation(theObject, course)
 		if theObject is None:
@@ -225,6 +226,7 @@ class EvaluationMixin(StructuralValidationMixin):
 	def handle_poll(self, theObject, course, user):
 		if self.is_new(theObject):
 			theObject = self.store_evaluation(theObject, course, user, False)
+			[p.ntiid for p in theObject.parts or ()] # set auto part  NTIIDs
 		else:
 			theObject = self.get_registered_evaluation(theObject, course)
 		if theObject is None:

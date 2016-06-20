@@ -186,6 +186,7 @@
 
 	<!-- Traversal-ish stuff -->
 	<utility factory=".ntiids._EvaluationResolver" name="NAQ" />
+	<utility factory=".ntiids._EvaluationPartResolver" name="NAQPart" />
 
 	<adapter factory=".adapters._histories_for_course_path_adapter"
 			 for="nti.contenttypes.courses.interfaces.ICourseInstance pyramid.interfaces.IRequest"

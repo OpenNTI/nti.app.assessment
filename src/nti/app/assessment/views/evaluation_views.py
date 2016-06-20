@@ -12,6 +12,7 @@ logger = __import__('logging').getLogger(__name__)
 import six
 import copy
 import uuid
+from collections import Mapping
 
 from zope import component
 from zope import interface
@@ -46,8 +47,12 @@ from nti.app.assessment.evaluations.utils import import_evaluation_content
 from nti.app.assessment.interfaces import ICourseEvaluations
 from nti.app.assessment.interfaces import IQAvoidSolutionCheck
 
+from nti.app.assessment.utils import get_course_from_request 
+
 from nti.app.assessment.views.view_mixins import AssessmentPutView
 from nti.app.assessment.views.view_mixins import StructuralValidationMixin
+
+from nti.app.assessment.views.view_mixins import get_courses_from_assesment
 
 from nti.app.base.abstract_views import get_all_sources
 from nti.app.base.abstract_views import AbstractAuthenticatedView
@@ -101,15 +106,21 @@ from nti.common.maps import CaseInsensitiveDict
 
 from nti.common.property import Lazy
 
+from nti.common.proxy import removeAllProxies
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver import authorization as nauth
 from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
+from nti.externalization.externalization import to_external_object
+
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.externalization.internalization import notifyModified
+from nti.externalization.internalization import find_factory_for 
+from nti.externalization.internalization import update_from_external_object 
 
 from nti.site.hostpolicy import get_host_site
 
@@ -433,6 +444,48 @@ class CourseEvaluationsPostView(EvaluationMixin, UGDPostView):
 		if sources:
 			validate_sources(self.remoteUser, evaluation, sources)
 		evaluation = self.handle_evaluation(evaluation, self.course, sources, creator)
+		self.request.response.status_int = 201
+		return evaluation
+
+@view_config(name='copy')
+@view_defaults(route_name='objects.generic.traversal',
+			   renderer='rest',
+			   request_method='POST',
+			   context=IQEvaluation,
+			   permission=nauth.ACT_CONTENT_EDIT)
+class EvaluationCopyView(AbstractAuthenticatedView, EvaluationMixin):
+
+	@Lazy	
+	def course(self):
+		if IQEditableEvaluation.providedBy(self.context):
+			result = find_interface(self.context, ICourseInstance, strict=False)
+		else:
+			result = get_course_from_request(self.request)
+			if result is None:
+				result = get_courses_from_assesment(self.context)[0] # fail hard
+		return result
+
+	def _ntiid_prunner(self, ext_obj):
+		if isinstance(ext_obj, Mapping):
+			ext_obj.pop(NTIID, None)
+			ext_obj.pop(NTIID.lower(), None)
+			for value in ext_obj.values():
+				self._ntiid_prunner(value)
+		elif isinstance(ext_obj, (list, tuple, set)):
+			for item in ext_obj:
+				self._ntiid_prunner(item)
+		return ext_obj
+
+	def __call__(self):
+		creator = self.remoteUser
+		source = removeAllProxies(self.context)
+		ext_obj = to_external_object(source, decorate=False)
+		ext_obj = self._ntiid_prunner(ext_obj)
+		evaluation = find_factory_for(ext_obj)()
+		update_from_external_object(evaluation, ext_obj)
+		evaluation.creator = creator.username  # use username
+		interface.alsoProvides(evaluation, IQEditableEvaluation)
+		evaluation = self.handle_evaluation(evaluation, self.course, (), creator)
 		self.request.response.status_int = 201
 		return evaluation
 

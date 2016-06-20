@@ -122,6 +122,8 @@ from nti.externalization.internalization import notifyModified
 from nti.externalization.internalization import find_factory_for 
 from nti.externalization.internalization import update_from_external_object 
 
+from nti.mimetype.externalization import decorateMimeType
+
 from nti.site.hostpolicy import get_host_site
 
 from nti.site.utils import registerUtility
@@ -481,8 +483,11 @@ class EvaluationCopyView(AbstractAuthenticatedView, EvaluationMixin):
 	def __call__(self):
 		creator = self.remoteUser
 		source = removeAllProxies(self.context)
+		# export to external, make sure we add the MimeType
 		ext_obj = to_external_object(source, decorate=False)
+		decorateMimeType(source, ext_obj)
 		ext_obj = self._prunner(ext_obj)
+		# create and update
 		evaluation = find_factory_for(ext_obj)()
 		update_from_external_object(evaluation, ext_obj)
 		evaluation.creator = creator.username  # use username

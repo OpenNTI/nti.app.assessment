@@ -85,6 +85,8 @@ from nti.site.utils import unregisterUtility
 from nti.traversal.traversal import find_interface
 
 ITEMS = StandardExternalFields.ITEMS
+TOTAL = StandardExternalFields.TOTAL
+ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 
 @view_config(route_name='objects.generic.traversal',
 			 renderer='rest',
@@ -282,7 +284,7 @@ class UnregisterAssessmentItemsView(AbstractAuthenticatedView,
 			items = _remove_assessment_items_from_oldcontent(package, force=force)
 		result = LocatedExternalDict()
 		result[ITEMS] = sorted(items.keys())
-		result['ItemCount'] = result['Total'] = len(items)
+		result[ITEM_COUNT] = result[TOTAL] = len(items)
 		return result
 
 @view_config(route_name='objects.generic.traversal',
@@ -324,7 +326,7 @@ class RegisterAssessmentItemsView(AbstractAuthenticatedView,
 				main_container.lastModified = key.lastModified
 				result.lastModified = key.lastModified
 		result[ITEMS] = sorted(items)
-		result['ItemCount'] = result['Total'] = len(items)
+		result[ITEM_COUNT] = result[TOTAL] = len(items)
 		return result
 
 @view_config(route_name='objects.generic.traversal',

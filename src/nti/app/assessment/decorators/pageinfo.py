@@ -51,7 +51,7 @@ from nti.externalization.oids import to_external_ntiid_oid
 class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _predicate(self, context, result_map):
-		return (AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result_map)
+		return (	AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result_map)
 				and context.contentUnit is not None)
 
 	def _get_course(self, contentUnit, user):

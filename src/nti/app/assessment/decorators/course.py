@@ -39,11 +39,13 @@ class _CourseEditorLinksDecorator(_AbstractTraversableLinkDecorator):
 	def _predicate(self, context, result):
 		return (super(_CourseEditorLinksDecorator, self)._predicate(context, result)
 				and self._acl_decoration
-				and (is_course_editor(context, self.remoteUser)
+				and (	is_course_editor(context, self.remoteUser)
 					 or has_permission(ACT_CONTENT_EDIT, context, self.request)))
 
 	def _do_decorate_external(self, context, result_map):
 		links = result_map.setdefault(LINKS, [])
 		for name in ('Inquiries', 'Assessments', 'Assignments'):
 			links.append(Link(context, rel=name, elements=('@@%s' % name,)))
-		links.append(Link(context, rel='CourseEvaluations', elements=('CourseEvaluations',)))
+		links.append(Link(context, 
+						  rel='CourseEvaluations', 
+						  elements=('CourseEvaluations',)))

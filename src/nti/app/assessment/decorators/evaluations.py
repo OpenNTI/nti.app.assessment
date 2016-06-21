@@ -44,7 +44,7 @@ class _EvaluationLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	
 		if has_permission(ACT_CONTENT_EDIT, context, self.request):
 			link = Link(context, rel=VIEW_COPY_EVALUATION,
-						elements=(VIEW_COPY_EVALUATION,),
+						elements=('@@' + VIEW_COPY_EVALUATION,),
 						method='POST')
 			interface.alsoProvides(link, ILocation)
 			link.__name__ = ''
@@ -54,10 +54,11 @@ class _EvaluationLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		course = _get_course_from_evaluation(context, 
 											 user=self.remoteUser, 
 											 request=self.request)
-		if 		(course is not None and is_course_instructor(course, self.remoteUser)) \
-			or	has_permission(ACT_NTI_ADMIN, context, self.request):
+		if 	context.is_published() \
+			and (	(course is not None and is_course_instructor(course, self.remoteUser)) \
+			 	 or	has_permission(ACT_NTI_ADMIN, context, self.request) ):
 			link = Link(context, rel=VIEW_RESET_EVALUATION,
-						elements=(VIEW_RESET_EVALUATION,), 
+						elements=('@@' + VIEW_RESET_EVALUATION,), 
 						method='DELETE')
 			interface.alsoProvides(link, ILocation)
 			link.__name__ = ''

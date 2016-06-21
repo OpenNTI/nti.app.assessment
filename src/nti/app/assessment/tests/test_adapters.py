@@ -31,7 +31,8 @@ from nti.testing.matchers import validly_provides
 import fudge
 import datetime
 import urlparse
-from urllib import unquote
+from urllib import quote 
+from urllib import unquote 
 
 from zope import component
 
@@ -406,6 +407,14 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id,
 									  ext_obj)
 		self._check_submission(res, enrollment_history_link, 1234)
+		
+		# The instructor can reset all submission
+		reset_href = '/dataserver2/Objects/%s/@@Reset' % quote(self.assignment_id)
+		self.testapp.post_json(reset_href,
+							   extra_environ=instructor_environ, status=204)
+		res = self.testapp.get(activity_link, extra_environ=instructor_environ)
+		assert_that( res.json_body, has_entry('TotalItemCount', 0) )
+		assert_that( res.json_body, has_entry( 'Items', is_empty() ))
 
 	@WithSharedApplicationMockDS(users=('outest5',),testapp=True,default_authenticate=True)
 	@fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')

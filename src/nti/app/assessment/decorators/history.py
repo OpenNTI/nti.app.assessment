@@ -95,7 +95,7 @@ class _LastViewedAssignmentHistoryDecorator(AbstractAuthenticatedRequestAwareDec
 		links = result.setdefault(LINKS, [])
 		links.append(Link(context,
 						  rel='lastViewed',
-						  elements=('lastViewed',),
+						  elements=('@@lastViewed',),
 						  method='PUT'))
 
 @interface.implementer(IExternalMappingDecorator)

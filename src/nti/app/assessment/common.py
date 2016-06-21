@@ -44,10 +44,13 @@ from nti.app.assessment.index import IX_CONTAINMENT
 from nti.app.assessment.index import IX_ASSESSMENT_ID
 from nti.app.assessment.index import IX_MIMETYPE as IX_ASSESS_MIMETYPE
 
+from nti.app.assessment.interfaces import IUsersCourseInquiries
 from nti.app.assessment.interfaces import IUsersCourseInquiryItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
+from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataContainer
 
 from nti.app.externalization.error import raise_json_error
 
@@ -506,14 +509,6 @@ def get_entry_ntiids(courses=()):
 	ntiids.discard(None)
 	return ntiids
 
-def has_savepoints(context, courses=()):
-	context_ntiid = getattr(context, 'ntiid', context)
-	for course in to_course_list(courses) or ():
-		savepoints = IUsersCourseAssignmentSavepoints(course, None)
-		if savepoints is not None and savepoints.has_assignment(context_ntiid):
-			return True
-	return False
-
 def get_submissions(context, courses=(), index_name=IX_ASSESSMENT_ID):
 	courses = to_course_list(courses)
 	if not courses:
@@ -551,6 +546,47 @@ def inquiry_submissions(context, course, subinstances=True):
 							 courses=get_courses(course, subinstances=subinstances))
 	return result
 
+def _delete_context_contained_data(container_iface, context, course, subinstances=True):
+	result = 0
+	course = ICourseInstance(course)
+	context_ntiid = getattr(context, 'ntiid', context)
+	for course in get_courses(course, subinstances=subinstances):
+		container = container_iface(course, None) or {}
+		for user_data in list(container.values()): # snapshot
+			if context_ntiid in user_data:
+				del user_data[context_ntiid]
+				result += 1
+	return result
+
+def delete_evaluation_submissions(context, course, subinstances=True):
+	result = _delete_context_contained_data(IUsersCourseAssignmentHistories,
+											context,
+											course,
+											subinstances)
+	return result
+
+def delete_inquiry_submissions(context, course, subinstances=True):
+	result = _delete_context_contained_data(IUsersCourseInquiries,
+											context,
+											course,
+											subinstances)
+	return result
+
+def has_savepoints(context, courses=()):
+	context_ntiid = getattr(context, 'ntiid', context)
+	for course in to_course_list(courses) or ():
+		savepoints = IUsersCourseAssignmentSavepoints(course, None)
+		if savepoints is not None and savepoints.has_assignment(context_ntiid):
+			return True
+	return False
+
+def delete_evaluation_savepoints(context, course, subinstances=True):
+	result = _delete_context_contained_data(IUsersCourseAssignmentSavepoints,
+											context,
+											course,
+											subinstances)
+	return result
+
 def aggregate_course_inquiry(inquiry, course, *items):
 	result = None
 	submissions = inquiry_submissions(inquiry, course)
@@ -584,6 +620,13 @@ def aggregate_page_inquiry(containerId, mimeType, *items):
 			result = aggregated
 		else:
 			result += aggregated
+	return result
+
+def delete_evaluation_metadata(context, course, subinstances=True):
+	result = _delete_context_contained_data(IUsersCourseAssignmentMetadataContainer,
+											context,
+											course,
+											subinstances)
 	return result
 
 def get_assignments_for_evaluation_object(context, sites=None):

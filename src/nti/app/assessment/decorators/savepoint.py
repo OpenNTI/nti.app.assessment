@@ -22,7 +22,7 @@ from nti.appserver.pyramid_authorization import has_permission
 
 from nti.assessment.interfaces import IQTimedAssignment
 
-from nti.contenttypes.courses.utils import is_course_instructor
+from nti.contenttypes.courses.utils import is_course_instructor_or_editor
 
 from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
@@ -48,8 +48,8 @@ class _AssignmentSavepointDecorator(AbstractAuthenticatedRequestAwareDecorator):
 											 user=self.remoteUser,
 											 request=self.request)
 		# Instructors/editors do not get savepoint links.
-		result = not(  has_permission(ACT_CONTENT_EDIT, context, self.request) \
-					or is_course_instructor(course, user))
+		result = not(   is_course_instructor_or_editor(course, user) \
+					 or has_permission(ACT_CONTENT_EDIT, context, self.request))
 
 		if 		result \
 			and IQTimedAssignment.providedBy(context) \
@@ -83,7 +83,7 @@ class _AssignmentSavepointItemDecorator(AbstractAuthenticatedRequestAwareDecorat
 
 	def _predicate(self, context, result):
 		creator = context.creator
-		return (AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
+		return (	AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
 				and creator is not None
 				and creator == self.remoteUser)
 

@@ -36,7 +36,7 @@ from nti.assessment.randomized.interfaces import IQRandomizedPart
 from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
 from nti.assessment.randomized.interfaces import IRandomizedPartsContainer
 
-from nti.contenttypes.courses.utils import is_course_instructor
+from nti.contenttypes.courses.utils import is_course_instructor_or_editor
 
 from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
@@ -55,7 +55,7 @@ class _AbstractNonEditorRandomizingDecorator(AbstractAuthenticatedRequestAwareDe
 		user = self.remoteUser
 		course = _get_course_from_assignment(context, user, request=self.request)
 		return 		self._is_authenticated \
-				and not is_course_instructor(course, user) \
+				and not is_course_instructor_or_editor(course, user) \
 				and not has_permission(ACT_CONTENT_EDIT, context, self.request)
 
 class _AbstractNonEditorRandomizingPartDecorator(_AbstractNonEditorRandomizingDecorator):
@@ -64,8 +64,8 @@ class _AbstractNonEditorRandomizingPartDecorator(_AbstractNonEditorRandomizingDe
 	"""
 
 	def _predicate(self, context, result):
-		return 	IQRandomizedPart.providedBy( context ) \
-			and super(_AbstractNonEditorRandomizingPartDecorator, self)._predicate( context, result )
+		return 	IQRandomizedPart.providedBy(context) \
+			and super(_AbstractNonEditorRandomizingPartDecorator, self)._predicate(context, result)
 
 @component.adapter(IQMatchingPart)
 @interface.implementer(IExternalObjectDecorator)
@@ -76,7 +76,7 @@ class _QRandomizedMatchingPartDecorator(_AbstractNonEditorRandomizingPartDecorat
 		if generator is not None:
 			values = list(result['values'])
 			shuffle_list(generator, result['values'])
-			shuffle_matching_part_solutions(randomize(context=context), # new generator
+			shuffle_matching_part_solutions(randomize(context=context),  # new generator
 											values,
 											result['solutions'])
 
@@ -92,8 +92,8 @@ class _QRandomizedMultipleChoicePartDecorator(_AbstractNonEditorRandomizingPartD
 	def _predicate(self, context, result):
 		# Cannot handle these types of IQMultipleChoiceParts
 		# XXX: Should this implement IQMultipleChoicePart then?
-		return 	not IQMultipleChoiceMultipleAnswerPart.providedBy( context ) \
-			and super(_QRandomizedMultipleChoicePartDecorator, self)._predicate( context, result )
+		return 	not IQMultipleChoiceMultipleAnswerPart.providedBy(context) \
+			and super(_QRandomizedMultipleChoicePartDecorator, self)._predicate(context, result)
 
 	def _do_decorate_external(self, context, result):
 		generator = randomize(context=context)
@@ -101,7 +101,7 @@ class _QRandomizedMultipleChoicePartDecorator(_AbstractNonEditorRandomizingPartD
 			solutions = result['solutions']
 			choices = list(result['choices'])
 			shuffle_list(generator, result['choices'])
-			shuffle_multiple_choice_part_solutions(randomize(context=context), #  new generator
+			shuffle_multiple_choice_part_solutions(randomize(context=context),  #  new generator
 												   choices,
 												   solutions)
 
@@ -114,7 +114,7 @@ class _QRandomizedMultipleChoiceMultipleAnswerPartDecorator(_AbstractNonEditorRa
 		if generator is not None:
 			choices = list(result['choices'])
 			shuffle_list(generator, result['choices'])
-			shuffle_multiple_choice_multiple_answer_part_solutions(randomize(context=context), #  new generator
+			shuffle_multiple_choice_multiple_answer_part_solutions(randomize(context=context),  #  new generator
 																   choices,
 																   result['solutions'])
 
@@ -128,9 +128,9 @@ class _QuestionSetRandomizedPartsDecorator(_AbstractNonEditorRandomizingDecorato
 	"""
 
 	def _predicate(self, context, result):
-		return 	IRandomizedPartsContainer.providedBy( context ) \
+		return 	IRandomizedPartsContainer.providedBy(context) \
 			and context.Items \
-			and super(_QuestionSetRandomizedPartsDecorator, self)._predicate( context, result )
+			and super(_QuestionSetRandomizedPartsDecorator, self)._predicate(context, result)
 
 	def _do_decorate_external(self, context, result):
 		questions = context.Items
@@ -138,13 +138,13 @@ class _QuestionSetRandomizedPartsDecorator(_AbstractNonEditorRandomizingDecorato
 		try:
 			for question in questions:
 				for part in question.parts or ():
-					interface.alsoProvides( part, IQRandomizedPart )
-				questions_ext.append( to_external_object( question ) )
+					interface.alsoProvides(part, IQRandomizedPart)
+				questions_ext.append(to_external_object(question))
 		finally:
 			for question in questions:
 				for part in question.parts or ():
 					try:
-						interface.noLongerProvides( part, IQRandomizedPart )
+						interface.noLongerProvides(part, IQRandomizedPart)
 					except ValueError:
 						# Concrete randomized type already.
 						pass

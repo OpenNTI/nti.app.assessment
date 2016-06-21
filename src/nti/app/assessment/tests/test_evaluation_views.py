@@ -247,6 +247,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		assert_that(res.json_body, has_entry('questions', has_length(len(questions))))
 		qset_href = res.json_body['href']
 		qset_ntiid = res.json_body['NTIID']
+		assert_that( qset_ntiid, not_none() )
 
 		# No submit assignment, without parts/qset.
 		assignment = self._load_assignment()

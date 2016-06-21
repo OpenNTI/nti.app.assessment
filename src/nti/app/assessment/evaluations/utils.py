@@ -23,7 +23,7 @@ from persistent.list import PersistentList
 
 from nti.app.assessment import MessageFactory as _
 
-from nti.app.assessment.common import has_submissions
+from nti.app.assessment.common import has_submissions, has_inquiry_submissions
 from nti.app.assessment.common import get_resource_site_name
 
 from nti.app.base.abstract_views import get_safe_source_filename
@@ -44,6 +44,7 @@ from nti.assessment.interfaces import IQHint
 from nti.assessment.interfaces import IQPart
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
+from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
@@ -205,7 +206,11 @@ def register_context(context, site_name=None):
 			register_context(item, site_name)
 
 def validate_submissions(theObject, course, request=None):
-	if has_submissions(theObject, course):
+	if IQInquiry.providedBy(theObject):
+		result = has_inquiry_submissions(theObject, course)
+	else:
+		result = has_submissions(theObject, course)
+	if result:
 		request = request or get_current_request()
 		raise_json_error(request,
 						 hexc.HTTPUnprocessableEntity,

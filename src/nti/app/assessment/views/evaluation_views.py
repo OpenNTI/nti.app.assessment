@@ -125,7 +125,6 @@ from nti.common.string import is_true
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.contenttypes.courses.utils import is_course_instructor
-from nti.contenttypes.courses.utils import is_course_instructor_or_editor
 
 from nti.dataserver import authorization as nauth
 
@@ -886,8 +885,7 @@ class SubmittableDeleteView(EvaluationDeleteView, ModeledContentUploadRequestUti
 		return result
 
 	def _can_delete_contained_data(self, theObject):
-		return 		is_course_instructor_or_editor(self.course, self.remoteUser) \
-			   or	has_permission(ACT_CONTENT_EDIT, theObject, self.request) \
+		return 		is_course_instructor(self.course, self.remoteUser) \
 			   or	has_permission(ACT_NTI_ADMIN, theObject, self.request)
 
 	def _has_submissions(self, theObject):

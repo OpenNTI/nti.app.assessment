@@ -546,6 +546,11 @@ def inquiry_submissions(context, course, subinstances=True):
 							 courses=get_courses(course, subinstances=subinstances))
 	return result
 
+def has_inquiry_submissions(context, course, subinstances=True):
+	for _ in inquiry_submissions(context, get_courses(course, subinstances=subinstances)):
+		return True
+	return False
+
 def _delete_context_contained_data(container_iface, context, course, subinstances=True):
 	result = 0
 	course = ICourseInstance(course)

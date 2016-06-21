@@ -34,10 +34,16 @@ from nti.app.assessment import VIEW_COPY_EVALUATION
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 
 from nti.app.assessment.common import get_courses
+from nti.app.assessment.common import has_submissions 
 from nti.app.assessment.common import validate_auto_grade
 from nti.app.assessment.common import make_evaluation_ntiid
 from nti.app.assessment.common import get_resource_site_name
+from nti.app.assessment.common import has_inquiry_submissions
+from nti.app.assessment.common import delete_evaluation_metadata
+from nti.app.assessment.common import delete_inquiry_submissions
 from nti.app.assessment.common import get_evaluation_containment
+from nti.app.assessment.common import delete_evaluation_savepoints
+from nti.app.assessment.common import delete_evaluation_submissions
 from nti.app.assessment.common import get_assignments_for_evaluation_object
 
 from nti.app.assessment.evaluations.utils import indexed_iter
@@ -59,6 +65,8 @@ from nti.app.base.abstract_views import get_all_sources
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
 from nti.app.externalization.error import raise_json_error
+
+from nti.app.externalization.internalization import read_body_as_external_object
 
 from nti.app.externalization.view_mixins import BatchingUtilsMixin
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
@@ -91,6 +99,7 @@ from nti.assessment.interfaces import TIMED_ASSIGNMENT_MIME_TYPE
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQuestion
+from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQEvaluation
@@ -109,10 +118,16 @@ from nti.common.property import Lazy
 
 from nti.common.proxy import removeAllProxies
 
+from nti.common.string import is_true
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
+from nti.contenttypes.courses.utils import is_course_instructor_or_editor
+
 from nti.dataserver import authorization as nauth
-from nti.dataserver.authorization import ACT_CONTENT_EDIT
+
+from nti.dataserver.authorization import ACT_NTI_ADMIN
+from nti.dataserver.authorization import ACT_CONTENT_EDIT 
 
 from nti.externalization.externalization import to_external_object
 
@@ -122,6 +137,8 @@ from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.internalization import notifyModified
 from nti.externalization.internalization import find_factory_for 
 from nti.externalization.internalization import update_from_external_object 
+
+from nti.links.links import Link
 
 from nti.mimetype.externalization import decorateMimeType
 
@@ -823,11 +840,11 @@ def delete_evaluation(evaluation, course=None):
 class EvaluationDeleteView(UGDDeleteView,
 						   EvaluationMixin):
 
-	def _check_internal(self, theObject):
+	def _check_editable(self, theObject):
 		if not IQEditableEvaluation.providedBy(theObject):
 			raise hexc.HTTPForbidden(_("Cannot delete legacy object."))
-		self._pre_flight_validation( self.context, structural_change=True )
-		# TODO: Need this still?
+
+	def _check_containment(self, theObject):
 		containment = get_evaluation_containment(theObject.ntiid)
 		if containment:
 			raise_json_error(
@@ -839,11 +856,82 @@ class EvaluationDeleteView(UGDDeleteView,
 						},
 						None)
 
+	def _check_internal(self, theObject):
+		self._check_editable(theObject)
+		self._pre_flight_validation(self.context, structural_change=True)
+		self._check_containment(theObject)
+
 	def _do_delete_object(self, theObject):
 		self._check_internal(theObject)
 		delete_evaluation(theObject)
 		return theObject
 
+@view_config(context=IQPoll)
+@view_config(context=IQSurvey)
+@view_config(context=IQAssignment)
+@view_defaults(route_name='objects.generic.traversal',
+			   renderer='rest',
+			   request_method='DELETE',
+			   permission=nauth.ACT_DELETE)
+class SubmittableDeleteView(EvaluationDeleteView, ModeledContentUploadRequestUtilsMixin):
+
+	def readInput(self, value=None):
+		if self.request.body:
+			result = CaseInsensitiveDict(read_body_as_external_object(self.request))
+		else:
+			result = CaseInsensitiveDict(self.request.params)
+		return result
+
+	def _can_delete_contained_data(self, theObject):
+		return 		is_course_instructor_or_editor(self.course, self.remoteUser) \
+			   or	has_permission(ACT_CONTENT_EDIT, theObject, self.request) \
+			   or	has_permission(ACT_NTI_ADMIN, theObject, self.request)
+
+	def _has_submissions(self, theObject):
+		if IQInquiry.providedBy(theObject):
+			result = has_inquiry_submissions(theObject, self.course)
+		else:
+			courses = get_courses(self.course)
+			result = has_submissions(theObject, courses)
+		return result
+		
+	def _delete_contained_data(self, theObject):
+		if IQInquiry.providedBy(theObject):
+			delete_inquiry_submissions(theObject, self.course)
+		else:
+			delete_evaluation_metadata(theObject, self.course)
+			delete_evaluation_savepoints(theObject, self.course)
+			delete_evaluation_submissions(theObject, self.course)
+	
+	def _check_internal(self, theObject):
+		self._check_editable(theObject)
+		self._check_containment(theObject)
+
+	def _do_delete_object(self, theObject):
+		self._check_internal(theObject)
+		if not self._can_delete_contained_data(theObject):
+			self._pre_flight_validation(self.context, structural_change=True)
+		elif self._has_submissions(theObject):
+			values = self.readInput()
+			force = is_true(values.get('force'))
+			if not force:
+				links = (
+					Link(self.request.path, rel='confirm',
+						 params={'force':True}, method='DELETE'),
+				)
+				raise_json_error(
+						self.request,
+						hexc.HTTPUnprocessableEntity,
+						{
+							u'message': _('There are submissions for this evaluation object.'),
+							u'code': 'EvaluationHasSubmissions',
+							LINKS: to_external_object(links)
+						},
+						None)
+		self._delete_contained_data(theObject)
+		delete_evaluation(theObject)
+		return theObject
+	
 @view_config(route_name='objects.generic.traversal',
 			 renderer='rest',
 			 name=VIEW_QUESTION_SET_CONTENTS,
@@ -876,7 +964,7 @@ class QuestionSetDeleteChildView(AbstractAuthenticatedView,
 		notify(QuestionRemovedFromContainerEvent(self.context, item, index))
 
 	def _validate(self):
-		self._pre_flight_validation( self.context, structural_change=True )
+		self._pre_flight_validation( self.context, structural_change=True)
 
 # Publish views
 

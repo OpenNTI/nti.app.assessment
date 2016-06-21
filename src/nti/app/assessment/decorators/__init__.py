@@ -15,7 +15,7 @@ from zope.location.interfaces import ILocationInfo
 
 from pyramid.threadlocal import get_current_request
 
-from nti.app.assessment.common import get_course_from_assignment
+from nti.app.assessment.common import get_course_from_evaluation
 
 from nti.app.assessment.utils import get_course_from_request
 
@@ -58,16 +58,17 @@ class AbstractAssessmentDecoratorPredicate(PreviewCourseAccessPredicateDecorator
 		return 	super(AbstractAssessmentDecoratorPredicate,self)._predicate( context, result ) \
 			and self._is_traversable( context, result )
 
-def _get_course_from_assignment(assignment, user=None, catalog=None, request=None):
+def _get_course_from_evaluation(evaluation, user=None, catalog=None, request=None):
 	result = None
 	request = get_current_request() if request is None else request
 	if request is not None:
 		result = get_course_from_request(request)
 	if result is None:
-		result = get_course_from_assignment(assignment=assignment,
+		result = get_course_from_evaluation(evaluation=evaluation,
 									  		user=user,
 									 		catalog=catalog)
 	return result
+_get_course_from_assignment = _get_course_from_evaluation # BWC
 
 def _root_url(ntiid):
 	library = component.queryUtility(IContentPackageLibrary)

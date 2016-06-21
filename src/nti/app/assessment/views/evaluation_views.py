@@ -31,6 +31,7 @@ from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment import VIEW_ASSESSMENT_MOVE
 from nti.app.assessment import VIEW_COPY_EVALUATION
+from nti.app.assessment import VIEW_RESET_EVALUATION
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 
 from nti.app.assessment.common import get_courses
@@ -42,6 +43,7 @@ from nti.app.assessment.common import has_inquiry_submissions
 from nti.app.assessment.common import delete_evaluation_metadata
 from nti.app.assessment.common import delete_inquiry_submissions
 from nti.app.assessment.common import get_evaluation_containment
+from nti.app.assessment.common import get_course_from_evaluation
 from nti.app.assessment.common import delete_evaluation_savepoints
 from nti.app.assessment.common import delete_evaluation_submissions
 from nti.app.assessment.common import get_assignments_for_evaluation_object
@@ -910,7 +912,7 @@ class SubmittableDeleteView(EvaluationDeleteView, ModeledContentUploadRequestUti
 	def _do_delete_object(self, theObject):
 		self._check_internal(theObject)
 		if not self._can_delete_contained_data(theObject):
-			self._pre_flight_validation(self.context, structural_change=True)
+			self._pre_flight_validation(theObject, structural_change=True)
 		elif self._has_submissions(theObject):
 			values = self.readInput()
 			force = is_true(values.get('force'))
@@ -965,6 +967,68 @@ class QuestionSetDeleteChildView(AbstractAuthenticatedView,
 
 	def _validate(self):
 		self._pre_flight_validation( self.context, structural_change=True)
+
+# Reset views
+
+@view_config(context=IQPoll)
+@view_config(context=IQSurvey)
+@view_config(context=IQAssignment)
+@view_defaults(route_name='objects.generic.traversal',
+			   renderer='rest',
+			   request_method='POST',
+			   name=VIEW_RESET_EVALUATION,
+			   permission=nauth.ACT_UPDATE)
+class EvaluationResetView(AbstractAuthenticatedView, ModeledContentUploadRequestUtilsMixin):
+
+	def readInput(self, value=None):
+		if self.request.body:
+			result = CaseInsensitiveDict(read_body_as_external_object(self.request))
+		else:
+			result = CaseInsensitiveDict(self.request.params)
+		return result
+
+	@Lazy
+	def course(self):
+		if IQEditableEvaluation.providedBy(self.context):
+			result = find_interface(self.context, ICourseInstance, strict=False)
+		else:
+			result = get_course_from_request(self.request)
+			if result is None:
+				result = get_course_from_evaluation(self.context)
+		return result
+
+	def _can_delete_contained_data(self, theObject):
+		return 		is_course_instructor_or_editor(self.course, self.remoteUser) \
+			   or	has_permission(ACT_NTI_ADMIN, theObject, self.request)
+
+	def _has_submissions(self, theObject):
+		if IQInquiry.providedBy(theObject):
+			result = has_inquiry_submissions(theObject, self.course)
+		else:
+			courses = get_courses(self.course)
+			result = has_submissions(theObject, courses)
+		return result
+		
+	def _delete_contained_data(self, theObject):
+		if IQInquiry.providedBy(theObject):
+			delete_inquiry_submissions(theObject, self.course)
+		else:
+			delete_evaluation_metadata(theObject, self.course)
+			delete_evaluation_savepoints(theObject, self.course)
+			delete_evaluation_submissions(theObject, self.course)
+	
+	def __call__(self):
+		if not self._can_delete_contained_data(self.context):
+			raise_json_error(self.request,
+							 hexc.HTTPForbidden,
+							 {
+								u'message': _("Cannot reset evaluation object."),
+								u'code': 'CannotResetEvaluation',
+							 },
+							 None)
+		elif self._has_submissions(self.context):
+			self._delete_contained_data(self.context)
+		return hexc.HTTPNoContent()
 
 # Publish views
 

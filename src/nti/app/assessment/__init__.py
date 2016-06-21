@@ -60,8 +60,11 @@ VIEW_REMOVE_PART_OPTION = 'RemovePartOption'
 #: A marker rel to signify that this evaluation object allows part option moves.
 VIEW_MOVE_PART_OPTION = 'MovePartOption'
 
-#: The ordered-contents (insert) view for QuestionSets
+#: A view to copy an evaluation
 VIEW_COPY_EVALUATION = 'Copy'
+
+#: A view to reset an evaluation
+VIEW_RESET_EVALUATION = 'Reset'
 
 def get_submission_catalog():
 	return component.queryUtility(IMetadataCatalog, name=SUBMISSION_CATALOG_NAME)

@@ -296,15 +296,15 @@ def get_available_for_submission_ending(assesment, context=None):
 
 # assignment
 
-def find_course_for_assignment(assignment, user, exc=True):
+def find_course_for_evaluation(evaluation, user, exc=True):
 	# Check that they're enrolled in the course that has the assignment
-	course = component.queryMultiAdapter((assignment, user), ICourseInstance)
+	course = component.queryMultiAdapter((evaluation, user), ICourseInstance)
 	if course is None:
 		# For BWC, we also check to see if we can just get
 		# one based on the content package of the assignment, not
 		# checking enrollment.
 		# TODO: Drop this
-		package = find_interface(assignment, IContentPackage, strict=False)
+		package = find_interface(evaluation, IContentPackage, strict=False)
 		course = ICourseInstance(package, None)
 		if course is not None:
 			logger.log(loglevels.TRACE,
@@ -316,8 +316,9 @@ def find_course_for_assignment(assignment, user, exc=True):
 		raise RequiredMissing("Course cannot be found")
 
 	return course
+find_course_for_assignment = find_course_for_evaluation # BWC
 
-def get_course_from_assignment(assignment, user=None, catalog=None,
+def get_course_from_evaluation(evaluation, user=None, catalog=None,
 							   registry=component, exc=False):
 	# check if we have the context catalog entry we can use
 	# as reference (.AssessmentItemProxy) this way
@@ -325,7 +326,7 @@ def get_course_from_assignment(assignment, user=None, catalog=None,
 	result = None
 	catalog = catalog if catalog is not None else registry.getUtility(ICourseCatalog)
 	try:
-		ntiid = assignment.CatalogEntryNTIID or u''
+		ntiid = evaluation.CatalogEntryNTIID or u''
 		entry = find_object_with_ntiid(ntiid)
 		if entry is None:
 			entry = catalog.getCatalogEntry(ntiid)
@@ -334,13 +335,14 @@ def get_course_from_assignment(assignment, user=None, catalog=None,
 		pass
 
 	if result is None:
-		courses = get_evaluation_courses(assignment)
+		courses = get_evaluation_courses(evaluation)
 		result = courses[0] if len(courses) == 1 else None
 
 	# could not find a course .. try adapter
 	if result is None and user is not None:
-		result = find_course_for_assignment(assignment, user, exc=exc)
+		result = find_course_for_evaluation(evaluation, user, exc=exc)
 	return result
+get_course_from_assignment = get_course_from_evaluation # BWC
 
 def has_assigments_submitted(context, user):
 	course = ICourseInstance(context, None)

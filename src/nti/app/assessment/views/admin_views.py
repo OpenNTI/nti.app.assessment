@@ -106,8 +106,8 @@ class CheckAssessmentIntegrityView(AbstractAuthenticatedView,
 
 	def _do_call(self):
 		values = self.readInput()
-		unparented = is_true(values.get('unparented'))
-		integrity = check_assessment_integrity(unparented)
+		remove = is_true(values.get('remove'))
+		integrity = check_assessment_integrity(remove)
 		duplicates, removed, reindexed, fixed_lineage, adjusted = integrity
 		result = LocatedExternalDict()
 		result['Duplicates'] = duplicates

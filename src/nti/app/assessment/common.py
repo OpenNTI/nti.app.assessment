@@ -719,7 +719,18 @@ def _get_auto_grade(assignment, course):
 		result = not policy.get( 'disable' )
 	return result
 
-def validate_auto_grade(assignment, course):
+def can_be_auto_graded(assignment):
+	for part in assignment.parts or ():
+			question_set = part.question_set
+			for question in question_set.questions or ():
+				for part in question.parts or ():
+					# Validate every part has grader.
+					if 		not getattr(part, 'grader_interface', None) \
+						and not getattr(part, 'grader_name', None):
+						return False
+	return True
+
+def validate_auto_grade(assignment, course, request=None):
 	"""
 	Validate the assignment has the proper state for auto-grading, if
 	necessary.
@@ -727,21 +738,15 @@ def validate_auto_grade(assignment, course):
 	auto_grade = _get_auto_grade( assignment, course )
 	if auto_grade:
 		# Work to do
-		for part in assignment.parts or ():
-			question_set = part.question_set
-			for question in question_set.questions or ():
-				for part in question.parts or ():
-					# Validate every part has grader.
-					if 		not getattr( part, 'grader_interface', None ) \
-						and not getattr( part, 'grader_name', None ):
-						request = get_current_request()
-						raise_json_error(request,
-										 hexc.HTTPUnprocessableEntity,
-										 {
-											u'message': _("Ungradable item in auto-graded assignment."),
-											u'code': 'UngradableInAutoGradeAssignment',
-										 },
-										 None)
+		if not can_be_auto_graded(assignment):
+			request = request or get_current_request()
+			raise_json_error(request,
+							 hexc.HTTPUnprocessableEntity,
+							 {
+								u'message': _("Ungradable item in auto-graded assignment."),
+								u'code': 'UngradableInAutoGradeAssignment',
+							 },
+							 None)
 
 def make_evaluation_ntiid(kind, creator=SYSTEM_USER_ID, base=None, extra=None):
 	# get kind

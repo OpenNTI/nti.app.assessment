@@ -57,8 +57,9 @@ from nti.app.externalization.error import raise_json_error
 from nti.assessment.interfaces import NTIID_TYPE
 from nti.assessment.interfaces import DISCLOSURE_NEVER
 from nti.assessment.interfaces import DISCLOSURE_ALWAYS
-from nti.assessment.interfaces import ALL_ASSIGNMENT_MIME_TYPES
 from nti.assessment.interfaces import QUESTION_SET_MIME_TYPE
+from nti.assessment.interfaces import QUESTION_BANK_MIME_TYPE
+from nti.assessment.interfaces import ALL_ASSIGNMENT_MIME_TYPES
 
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
@@ -406,7 +407,7 @@ def get_course_self_assessments(context):
 	"""
 	result = list()
 	qsids_to_strip = set()
-	query_types = [QUESTION_SET_MIME_TYPE]
+	query_types = [QUESTION_SET_MIME_TYPE, QUESTION_BANK_MIME_TYPE]
 	query_types.extend(ALL_ASSIGNMENT_MIME_TYPES)
 	items = get_course_evaluations(context,
 								   mimetypes=query_types)

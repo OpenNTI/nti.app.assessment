@@ -114,7 +114,7 @@ def _get_data_item_counts(intids):
 			count[key].append(item)
 	return count
 
-def check_assessment_integrity(remove_unparented=False):
+def check_assessment_integrity(remove=False):
 	intids = component.getUtility(IIntIds)
 	count = _get_data_item_counts(intids)
 	logger.info('%s item(s) counted', len(count))
@@ -132,6 +132,8 @@ def check_assessment_integrity(remove_unparented=False):
 		provided = iface_of_assessment(context)
 		if not things:
 			logger.warn("No registration found for %s", key)
+			if not remove:
+				continue
 			for item in data:
 				iid = intids.queryId(item)
 				if iid is not None:
@@ -159,6 +161,7 @@ def check_assessment_integrity(remove_unparented=False):
 			# update map
 			all_registered[key] = (site, registered)
 
+		# remove duplicates
 		for item in data:
 			doc_id = intids.getId(item)
 			if doc_id != ruid:
@@ -196,7 +199,7 @@ def check_assessment_integrity(remove_unparented=False):
 					registered.__parent__ = unit
 					if uid is not None:
 						catalog.index_doc(uid, registered)
-			elif remove_unparented and uid is not None and not registered.isLocked():
+			elif remove and uid is not None and not registered.isLocked():
 				registry = site.getSiteManager()
 				removed.add(ntiid)
 				removeIntId(registered)

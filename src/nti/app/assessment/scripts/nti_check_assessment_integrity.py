@@ -32,19 +32,19 @@ def main():
 	arg_parser.add_argument('-v', '--verbose', help="Be Verbose", action='store_true',
 							dest='verbose')
 
-	arg_parser.add_argument('-u', '--unparented', 
-							help="Remove Unparented", 
+	arg_parser.add_argument('-r', '--remove',
+							help="Remove invalid or unparented objects",
 							action='store_true',
-							dest='unparented')
-	
+							dest='remove')
+
 	args = arg_parser.parse_args()
 	env_dir = os.getenv('DATASERVER_DIR')
 	if not env_dir or not os.path.exists(env_dir) and not os.path.isdir(env_dir):
 		raise IOError("Invalid dataserver environment root directory")
 
+	remove = args.remove
 	verbose = args.verbose
-	unparented = args.unparented
-	
+
 	context = create_context(env_dir, with_library=True)
 	conf_packages = ('nti.appserver',)
 	run_with_dataserver(environment_dir=env_dir,
@@ -52,7 +52,7 @@ def main():
 						context=context,
 						minimal_ds=True,
 						verbose=verbose,
-						function=lambda: _process_args(unparented))
+						function=lambda: _process_args(remove))
 	sys.exit(0)
 
 if __name__ == '__main__':

@@ -21,6 +21,8 @@ from nti.app.base.abstract_views import AbstractAuthenticatedView
 
 from nti.app.externalization.view_mixins import BatchingUtilsMixin
 
+from nti.assessment.common import get_containerId
+
 from nti.common.maps import CaseInsensitiveDict
 
 from nti.common.string import is_true
@@ -45,10 +47,14 @@ class CourseViewMixin(AbstractAuthenticatedView, BatchingUtilsMixin):
 
 	def _get_mimeTypes(self):
 		params = CaseInsensitiveDict(self.request.params)
-		result = params.get('accept') or params.get('mimeType')
-		if result:
-			result = set(result.split(','))
-		return result or ()
+		accept = params.get('accept') or params.get('mimeType')
+		accept = accept.split(',') if accept else ()
+		if accept and '*/*' not in accept:
+			accept = {e.strip().lower() for e in accept if e}
+			accept.discard(u'')
+		else:
+			accept = ()
+		return accept
 
 	def _byOutline(self):
 		params = CaseInsensitiveDict(self.request.params)
@@ -56,11 +62,11 @@ class CourseViewMixin(AbstractAuthenticatedView, BatchingUtilsMixin):
 		return outline
 
 	def _do_call(self, func):
+		count = 0
 		result = LocatedExternalDict()
 		result.__name__ = self.request.view_name
 		result.__parent__ = self.request.context
 		self.request.acl_decoration = False
-		count = 0
 		outline = self._byOutline()
 		mimeTypes = self._get_mimeTypes()
 		items = result[ITEMS] = dict() if outline else list()
@@ -73,8 +79,7 @@ class CourseViewMixin(AbstractAuthenticatedView, BatchingUtilsMixin):
 			if not outline:
 				items.append(item)
 			else:
-				unit = item.__parent__
-				ntiid = unit.ntiid if unit is not None else 'unparented'
+				ntiid = get_containerId(item) or u'unparented'
 				items.setdefault(ntiid, []).append(item)
 		if not outline: 
 			self._batch_items_iterable(result, items)

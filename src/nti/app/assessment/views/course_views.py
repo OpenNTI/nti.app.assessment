@@ -43,7 +43,7 @@ ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 class CourseViewMixin(AbstractAuthenticatedView, BatchingUtilsMixin):
 
 	_DEFAULT_BATCH_START = 0
-	_DEFAULT_BATCH_SIZE = 50
+	_DEFAULT_BATCH_SIZE = 30
 
 	def _get_mimeTypes(self):
 		params = CaseInsensitiveDict(self.request.params)

@@ -47,6 +47,7 @@ from nti.zope_catalog.catalog import Catalog
 
 from nti.zope_catalog.index import AttributeSetIndex
 from nti.zope_catalog.index import NormalizationWrapper
+from nti.zope_catalog.index import AttributeKeywordIndex
 from nti.zope_catalog.index import IntegerAttributeIndex
 from nti.zope_catalog.index import ValueIndex as RawValueIndex
 from nti.zope_catalog.index import AttributeValueIndex as ValueIndex
@@ -284,6 +285,7 @@ EVALUATION_CATALOG_NAME = 'nti.dataserver.++etc++evaluation-catalog'
 
 IX_NTIID = 'ntiid'
 IX_MIMETYPE = 'mimeType'
+IX_KEYWORDS = 'keyworkds'
 IX_CONTAINERS = 'containers'
 IX_CONTAINMENT = 'containment'
 
@@ -438,6 +440,21 @@ class EvaluationContainerIndex(ExtenedAttributeSetIndex):
 	default_field_name = 'containers'
 	default_interface = ValidatingEvaluationContainers
 
+class ValidatingKeywords(object):
+
+	__slots__ = (b'keywords',)
+
+	def __init__(self, obj, default=None):
+		if IQEvaluation.providedBy(obj):
+			self.keywords = ()
+
+	def __reduce__(self):
+		raise TypeError()
+
+class EvaluationKeywordIndex(AttributeKeywordIndex):
+	default_field_name = 'keywords'
+	default_interface = ValidatingKeywords
+
 class EvaluationCatalog(Catalog):
 
 	family = BTrees.family64
@@ -468,6 +485,7 @@ def create_evaluation_catalog(catalog=None, family=None):
 	catalog = EvaluationCatalog() if catalog is None else catalog
 	for name, clazz in ((IX_SITE, EvaluationSiteIndex),
 						(IX_NTIID, EvaluationNTIIDIndex),
+						(IX_KEYWORDS, EvaluationKeywordIndex),
 						(IX_MIMETYPE, EvaluationMimeTypeIndex),
 						(IX_CONTAINERS, EvaluationContainerIndex),
 						(IX_CONTAINMENT, EvaluationContainmentIndex),):

@@ -82,8 +82,8 @@ from nti.app.products.courseware.views.view_mixins import AbstractChildMoveView
 from nti.app.publishing import VIEW_PUBLISH
 from nti.app.publishing import VIEW_UNPUBLISH
 
-from nti.app.publishing.views import PublishView
-from nti.app.publishing.views import UnpublishView
+from nti.app.publishing.views import CalendarPublishView
+from nti.app.publishing.views import CalendarUnpublishView
 
 from nti.appserver.dataserver_pyramid_views import GenericGetView
 
@@ -1051,7 +1051,7 @@ def publish_context(context, site_name=None):
  			   name=VIEW_PUBLISH,
 			   permission=nauth.ACT_UPDATE,
 			   request_method='POST')
-class EvaluationPublishView(PublishView):
+class EvaluationPublishView(CalendarPublishView):
 
 	def _do_provide(self, context):
 		if IQEditableEvaluation.providedBy(context):
@@ -1065,7 +1065,7 @@ class EvaluationPublishView(PublishView):
  			   name=VIEW_UNPUBLISH,
 			   permission=nauth.ACT_UPDATE,
 			   request_method='POST')
-class EvaluationUnpublishView(UnpublishView):
+class EvaluationUnpublishView(CalendarUnpublishView):
 
 	def _do_provide(self, context):
 		if IQEditableEvaluation.providedBy(context):

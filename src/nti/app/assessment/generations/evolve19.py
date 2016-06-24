@@ -45,7 +45,7 @@ def _process_items(registry, intids, seen):
 		if doc_id is not None and doc_id not in seen:
 			seen.add(doc_id)
 			if IPublishable.providedBy(item) and not item.is_published():
-				item.publish()
+				item.publish(event=False)
 				catalog.index_doc(doc_id, item)
 				interface.alsoProvides(item, INoPublishLink)
 			if 		IQAssignment.providedBy(item) \

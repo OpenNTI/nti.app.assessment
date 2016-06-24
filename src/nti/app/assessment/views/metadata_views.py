@@ -21,6 +21,8 @@ from pyramid import httpexceptions as hexc
 
 from pyramid.view import view_config
 
+from nti.app.assessment import MessageFactory as _
+
 from nti.app.assessment.common import get_max_time_allowed
 from nti.app.assessment.common import get_course_from_assignment
 
@@ -69,13 +71,13 @@ class AssignmentSubmissionMetataPostView(AbstractAuthenticatedView,
 	def _validate(self):
 		creator = self.remoteUser
 		if not creator:
-			raise hexc.HTTPForbidden("Must be Authenticated.")
+			raise hexc.HTTPForbidden(_("Must be Authenticated."))
 		try:
 			course = get_course_from_assignment(self.context, creator)
 			if course is None:
-				raise hexc.HTTPForbidden("Must be enrolled in a course.")
+				raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
 		except RequiredMissing:
-			raise hexc.HTTPForbidden("Must be enrolled in a course.")
+			raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
 
 		return creator, course
 
@@ -146,10 +148,10 @@ class AssignmentSubmissionMetadataGetView(AbstractAuthenticatedView):
 	def _do_call(self):
 		creator = self.remoteUser
 		if not creator:
-			raise hexc.HTTPForbidden("Must be Authenticated.")
+			raise hexc.HTTPForbidden(_("Must be Authenticated."))
 
 		if self.course is None:
-			raise hexc.HTTPForbidden("Must be enrolled in a course.")
+			raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
 
 		container = component.getMultiAdapter((self.course, creator),
 											  IUsersCourseAssignmentMetadata)

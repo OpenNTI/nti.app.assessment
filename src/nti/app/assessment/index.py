@@ -446,7 +446,7 @@ class ValidatingKeywords(object):
 
 	def __init__(self, obj, default=None):
 		if IQEvaluation.providedBy(obj):
-			self.keywords = ()
+			self.keywords = tuple(obj.tags or ())
 
 	def __reduce__(self):
 		raise TypeError()

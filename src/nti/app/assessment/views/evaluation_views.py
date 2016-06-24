@@ -126,6 +126,8 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.contenttypes.courses.utils import is_course_instructor
 
+from nti.coremetadata.interfaces import ICalendarPublishable
+
 from nti.dataserver import authorization as nauth
 
 from nti.dataserver.authorization import ACT_NTI_ADMIN
@@ -1031,19 +1033,22 @@ class EvaluationResetView(AbstractAuthenticatedView, ModeledContentUploadRequest
 
 # Publish views
 
-def publish_context(context, site_name=None):
+def publish_context(context, start=None, end=None, site_name=None):
 	# publish
 	if not context.is_published():
-		context.publish()
+		if ICalendarPublishable.providedBy(context):
+			context.publish(start=start, end=end)
+		else:
+			context.publish()
 	# register utility
 	register_context(context, site_name)
 	# process 'children'
 	if IQEvaluationItemContainer.providedBy(context):
 		for item in context.Items or ():
-			publish_context(item, site_name)
+			publish_context(item, start, end, site_name)
 	elif IQAssignment.providedBy(context):
 		for item in context.iter_question_sets():
-			publish_context(item, site_name)
+			publish_context(item, start, end, site_name)
 
 @view_config(context=IQEvaluation)
 @view_defaults(route_name='objects.generic.traversal',
@@ -1055,7 +1060,8 @@ class EvaluationPublishView(CalendarPublishView):
 
 	def _do_provide(self, context):
 		if IQEditableEvaluation.providedBy(context):
-			publish_context(context)
+			start, end = self._get_dates()
+			publish_context(context, start, end)
 
 # Unublish views
 

@@ -844,6 +844,13 @@ def delete_evaluation(evaluation, course=None):
 class EvaluationDeleteView(UGDDeleteView,
 						   EvaluationMixin):
 
+	def readInput(self, value=None):
+		if self.request.body:
+			result = CaseInsensitiveDict(read_body_as_external_object(self.request))
+		else:
+			result = CaseInsensitiveDict(self.request.params)
+		return result
+
 	def _check_editable(self, theObject):
 		if not IQEditableEvaluation.providedBy(theObject):
 			raise hexc.HTTPForbidden(_("Cannot delete legacy object."))
@@ -870,6 +877,33 @@ class EvaluationDeleteView(UGDDeleteView,
 		delete_evaluation(theObject)
 		return theObject
 
+@view_config(route_name="objects.generic.traversal",
+			 context=IQuestionSet,
+			 renderer='rest',
+			 permission=nauth.ACT_DELETE,
+			 request_method='DELETE')
+class QuestionSetDeleteView(EvaluationDeleteView):
+
+	def _check_containment(self, theObject):
+		containment = get_evaluation_containment(theObject.ntiid)
+		if containment:
+			values = self.readInput()
+			force = is_true(values.get('force'))
+			if not force:
+				links = (
+					Link(self.request.path, rel='confirm',
+						 params={'force':True}, method='DELETE'),
+				)
+				raise_json_error(
+						self.request,
+						hexc.HTTPUnprocessableEntity,
+						{
+							u'message': _('This question set is being referenced by other assignments.'),
+							u'code': 'QuestionSetIsReferenced',
+							LINKS: to_external_object(links)
+						},
+						None)
+
 @view_config(context=IQPoll)
 @view_config(context=IQSurvey)
 @view_config(context=IQAssignment)
@@ -878,13 +912,6 @@ class EvaluationDeleteView(UGDDeleteView,
 			   request_method='DELETE',
 			   permission=nauth.ACT_DELETE)
 class SubmittableDeleteView(EvaluationDeleteView, ModeledContentUploadRequestUtilsMixin):
-
-	def readInput(self, value=None):
-		if self.request.body:
-			result = CaseInsensitiveDict(read_body_as_external_object(self.request))
-		else:
-			result = CaseInsensitiveDict(self.request.params)
-		return result
 
 	def _can_delete_contained_data(self, theObject):
 		return 		is_course_instructor(self.course, self.remoteUser) \

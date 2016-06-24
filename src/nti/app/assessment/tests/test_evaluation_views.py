@@ -16,11 +16,13 @@ from hamcrest import has_entry
 from hamcrest import has_length
 from hamcrest import assert_that
 from hamcrest import greater_than
+from hamcrest import has_property
 from hamcrest import contains_inanyorder
 does_not = is_not
 
 import os
 import json
+import time
 import fudge
 from urllib import quote
 
@@ -49,6 +51,7 @@ from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
 from nti.assessment.interfaces import QUESTION_SET_MIME_TYPE
 
 from nti.assessment.interfaces import IQuestion
+from nti.assessment.interfaces import IQEvaluation
 
 from nti.assessment.response import QUploadedFile
 
@@ -964,7 +967,20 @@ class TestEvaluationViews(ApplicationLayerTest):
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
 			obj = component.queryUtility(IQuestion, name=ntiid)
 			assert_that(obj.is_published(), is_(False))
-
+			
+		assignment = self._load_assignment()
+		res = self.testapp.post_json(href, assignment, status=201)
+		asg_href = res.json_body['href']
+		ntiid = res.json_body['NTIID']
+		data = {'publishBeginning':int(time.time())-10000}
+		publish_href = asg_href + '/@@publish'
+		self.testapp.post_json(publish_href, data, status=200)
+		# check registered
+		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+			obj = component.queryUtility(IQEvaluation, name=ntiid)
+			assert_that(obj.is_published(), is_(True))
+			assert_that(obj, has_property('publishBeginning', is_not(none())))
+		
 	def _get_move_json(self, obj_ntiid, new_parent_ntiid, index=None, old_parent_ntiid=None):
 		result = {  'ObjectNTIID': obj_ntiid,
 					'ParentNTIID': new_parent_ntiid }

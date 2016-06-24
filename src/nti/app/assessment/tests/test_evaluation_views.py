@@ -974,7 +974,8 @@ class TestEvaluationViews(ApplicationLayerTest):
 		ntiid = res.json_body['NTIID']
 		data = {'publishBeginning':int(time.time())-10000}
 		publish_href = asg_href + '/@@publish'
-		self.testapp.post_json(publish_href, data, status=200)
+		res = self.testapp.post_json(publish_href, data, status=200)
+		assert_that(res.json_body, has_entry('publishBeginning', is_not(none())))
 		# check registered
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
 			obj = component.queryUtility(IQEvaluation, name=ntiid)

@@ -42,7 +42,7 @@ class EvaluationsExporter(BaseSectionExporter):
 	def _output(self, course, target_filer=None):
 		evaluations = ICourseEvaluations(course)
 		source_filer = get_course_filer(course)
-		
+
 		order = {i:x for i, x in enumerate(EVALUATION_INTERFACES)}.items()
 		def _get_key(item):
 			for i, iface in order:
@@ -65,16 +65,19 @@ class EvaluationsExporter(BaseSectionExporter):
 	def externalize(self, context, filer=None):
 		result = dict()
 		course = ICourseInstance(context)
-		result[ITEMS] = self._output(course, target_filer=filer)
+		items = self._output(course, target_filer=filer)
+		if items: # check
+			result[ITEMS] = items
 		return result
 
 	def export(self, context, filer):
 		course = ICourseInstance(context)
-		courses = ( course, ) + tuple(get_course_subinstances(course))
+		courses = (course,) + tuple(get_course_subinstances(course))
 		for course in courses:
 			bucket = self.course_bucket(course)
 			result = self.externalize(course, filer)
-			source = self.dump(result)
-			filer.save("evaluation_index.json", source, bucket=bucket,
-				   		contentType="application/json", overwrite=True)
+			if result:  # check
+				source = self.dump(result)
+				filer.save("evaluation_index.json", source, bucket=bucket,
+					   		contentType="application/json", overwrite=True)
 		return result

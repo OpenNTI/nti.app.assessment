@@ -49,7 +49,7 @@ def move_user_assignment_from_course_to_course(user, source, target, verbose=Tru
 def move_assignment_histories_from_course_to_course(source, target, verbose=True):
 	result = {}
 	histories = _histories_for_course(source, False)
-	for username in histories:
+	for username in histories or ():
 		user = User.get_user(username)
 		if user is not None:
 			moves = move_user_assignment_from_course_to_course(user=user,
@@ -69,7 +69,7 @@ def move_user_metadata_from_course_to_course(user, source, target, verbose=True)
 def move_metadata_from_course_to_course(source, target, verbose=True):
 	result = {}
 	histories = _metadatacontainer_for_course(source, False)
-	for username in histories:
+	for username in histories or ():
 		user = User.get_user(username)
 		if user is not None:
 			moves = move_user_metadata_from_course_to_course(user=user,

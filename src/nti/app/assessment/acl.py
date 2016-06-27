@@ -12,8 +12,7 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope import interface
 
-from nti.assessment.interfaces import IQInquiry
-from nti.assessment.interfaces import IQAssessment
+from nti.assessment.interfaces import IQEvaluation
 
 from nti.common.property import Lazy
 
@@ -44,9 +43,14 @@ def get_evaluation_courses(context):
 		result = content_unit_to_courses(package) if package is not None else ()
 	return result
 
+@component.adapter(IQEvaluation)
 @interface.implementer(IACLProvider)
 class EvaluationACLProvider(object):
 
+	"""
+	Provides the basic ACL for an evaluation.
+	"""
+	
 	def __init__(self, context):
 		self.context = context
 
@@ -64,19 +68,3 @@ class EvaluationACLProvider(object):
 		for course in courses or ():
 			result.extend(IACLProvider(course).__acl__)
 		return result
-
-@component.adapter(IQAssessment)
-@interface.implementer(IACLProvider)
-class AssessmentACLProvider(EvaluationACLProvider):
-	"""
-	Provides the basic ACL for an asessment.
-	"""
-	pass
-
-@component.adapter(IQInquiry)
-@interface.implementer(IACLProvider)
-class InquiryACLProvider(EvaluationACLProvider):
-	"""
-	Provides the basic ACL for an inquiry.
-	"""
-	pass

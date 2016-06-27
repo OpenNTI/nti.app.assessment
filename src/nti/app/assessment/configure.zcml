@@ -81,8 +81,7 @@
 	</configure>
 
 	<!-- ACL providers -->
-	<adapter factory=".acl.InquiryACLProvider" />
-	<adapter factory=".acl.AssessmentACLProvider" />
+	<adapter factory=".acl.EvaluationACLProvider" />
 
 	<!-- Populating questions from content -->
 	<adapter factory="._question_map.ContentUnitAssessmentItems" />

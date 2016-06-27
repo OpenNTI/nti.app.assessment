@@ -69,6 +69,8 @@ from nti.contentlibrary.synchronize import ContentPackageSyncResults
 
 from nti.dublincore.time_mixins import PersistentCreatedAndModifiedTimeObject
 
+from nti.externalization.interfaces import StandardExternalFields
+
 from nti.externalization.internalization import find_factory_for
 from nti.externalization.internalization import update_from_external_object
 
@@ -81,6 +83,8 @@ from nti.site.utils import registerUtility
 from nti.site.utils import unregisterUtility
 
 from nti.wref.interfaces import IWeakRef
+
+NTIID = StandardExternalFields.NTIID
 
 deprecated('_AssessmentItemContainer', 'Replaced with a persistent mapping')
 class _AssessmentItemContainer(Persistent):
@@ -402,7 +406,7 @@ class QuestionMap(QuestionIndex):
 
 		things_to_register = set()
 		key_lastModified = key_lastModified or time.time()
-		level_ntiid = index.get('NTIID') or nearest_containing_ntiid
+		level_ntiid = index.get(NTIID) or nearest_containing_ntiid
 		items = self._process_assessments(index.get("AssessmentItems", {}),
 									 	  key_for_this_level,
 									  	  content_package,
@@ -660,7 +664,8 @@ def _remove_assessment_items_from_oldcontent(content_package,
 @component.adapter(IContentPackage, IObjectRemovedEvent)
 def remove_assessment_items_from_oldcontent(content_package, event=None, force=True):
 	sync_results = _get_sync_results(content_package, event)
-	logger.info("Removing assessment items from old content %s %s", content_package, event)
+	logger.info("Removing assessment items from old content %s %s", 
+				content_package, event)
 	result = _remove_assessment_items_from_oldcontent(content_package,
 													  force=force,
 													  sync_results=sync_results)

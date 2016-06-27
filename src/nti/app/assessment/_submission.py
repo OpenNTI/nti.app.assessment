@@ -14,11 +14,11 @@ import sys
 from zope import component
 from zope import interface
 
-from zope.schema.interfaces import ConstraintNotSatisfied
-
 from ZODB.POSException import POSError
 
 from pyramid import httpexceptions as hexc
+
+from nti.app.assessment import MessageFactory as _
 
 from nti.app.base.abstract_views import get_source
 
@@ -46,7 +46,8 @@ def check_max_size(part, max_file_size=None):
 	size = part.size
 	max_file_size = max_file_size or sys.maxint
 	if size > max_file_size:
-		raise ConstraintNotSatisfied(size, 'max_file_size')
+		msg = _('Max file size exceeded.')
+		raise hexc.HTTPUnprocessableEntity(msg)
 	return part
 
 def check_upload_files(submission):

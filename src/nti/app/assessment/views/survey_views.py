@@ -22,7 +22,8 @@ from pyramid import httpexceptions as hexc
 
 from pyramid.view import view_config
 
-from nti.app.assessment.common import can_disclose_inquiry
+from nti.app.assessment.common import inquiry_submissions
+from nti.app.assessment.common import can_disclose_inquiry 
 from nti.app.assessment.common import aggregate_page_inquiry
 from nti.app.assessment.common import get_course_from_inquiry
 from nti.app.assessment.common import aggregate_course_inquiry
@@ -72,6 +73,8 @@ from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.oids import to_external_ntiid_oid
 
 ITEMS = StandardExternalFields.ITEMS
+TOTAL = StandardExternalFields.TOTAL
+ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 
 def allow_to_disclose_inquiry(context, course, user):
 	if not is_course_instructor(course, user):
@@ -215,7 +218,7 @@ class InquirySubmissionGetView(AbstractAuthenticatedView, InquiryViewMixin):
 			 context=IQInquiry,
 			 renderer='rest',
 			 request_method='GET',
-			 permission=nauth.ACT_NTI_ADMIN,
+			 permission=nauth.ACT_READ,
 			 name="Submissions")
 class InquirySubmissionsView(AbstractAuthenticatedView, InquiryViewMixin):
 
@@ -223,14 +226,16 @@ class InquirySubmissionsView(AbstractAuthenticatedView, InquiryViewMixin):
 		course = self.course
 		if course is None:
 			raise hexc.HTTPUnprocessableEntity(_("Course not found."))
+		if not is_course_instructor(course, self.remoteUser):
+			raise hexc.HTTPForbidden(_("Cannot get inquiry submissions."))
 		result = LocatedExternalDict()
-		items = result[ITEMS] = {}
-		inquiries = IUsersCourseInquiries(course)
-		for username, inquiry in list(inquiries.items()):
-			if self.context.ntiid not in inquiry:
-				continue
-			items[username] = inquiry.get(self.context.ntiid)
-		result['Total'] = result['ItemCount'] = len(items)
+		queried = inquiry_submissions(self.context, course)
+		def _key(item):
+			lastModified = item.lastModified
+			creator = getattr(item.creator, 'username', item.creator)
+			return (lastModified, creator or u'')
+		items = result[ITEMS] = [x.Submission for x in sorted(queried, key=_key)]
+		result[TOTAL] = result[ITEM_COUNT] = len(items)
 		return result
 
 @view_config(route_name="objects.generic.traversal",

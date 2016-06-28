@@ -20,8 +20,6 @@ from zope import lifecycleevent
 
 from zope.i18n import translate
 
-from zope.intid.interfaces import IIntIds
-
 from zope.event import notify
 
 from pyramid import httpexceptions as hexc
@@ -709,13 +707,6 @@ class QuestionSetPutView(EvaluationPutView):
 				setattr( target, key, val )
 		copy_transaction_history( source, target )
 		self._update_assignments( source, target )
-
-	def _intid_unregister( self, item ):
-		intids = component.queryUtility(IIntIds)
-		if intids is not None and intids.queryId(item) is not None:
-			lifecycleevent.removed( item )
-			return True
-		return False
 
 	def _create_new_object( self, obj, course ):
 		evaluations = ICourseEvaluations( course )

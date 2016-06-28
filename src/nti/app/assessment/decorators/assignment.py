@@ -50,11 +50,6 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 
 from nti.app.assessment.utils import assignment_download_precondition
 
-from nti.app.publishing import VIEW_PUBLISH
-from nti.app.publishing import VIEW_UNPUBLISH
-
-from nti.app.publishing import get_publish_state
-
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
 from nti.appserver.pyramid_authorization import has_permission
@@ -79,8 +74,6 @@ from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.contenttypes.courses.utils import is_course_instructor
 from nti.contenttypes.courses.utils import is_course_instructor_or_editor
-
-from nti.coremetadata.interfaces import INoPublishLink
 
 from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
@@ -495,37 +488,3 @@ class _AssessmentPracticeLinkDecorator(AbstractAuthenticatedRequestAwareDecorato
 		link.__name__ = ''
 		link.__parent__ = context
 		_links.append(link)
-
-@interface.implementer(IExternalMappingDecorator)
-class AssignmentCalendarPublishStateDecorator(AbstractAuthenticatedRequestAwareDecorator):
-	"""
-	Adds both the `publish` and `unpublish` links to our outbound object.
-
-	Since `ICalendarPublishable` objects have three possible states, the
-	client may call any of these links from any state.
-	"""
-
-	def _acl_decoration( self, request ):
-		result = getattr(request, 'acl_decoration', True)
-		return result
-
-	def _expose_links( self, context, request ):
-		return 		self._acl_decoration(request) \
-				and	getattr(context, '_p_jar', None) \
-				and not INoPublishLink.providedBy(context) \
-				and has_permission(ACT_CONTENT_EDIT, context, request)
-
-	def _do_decorate_external(self, context, result):
-		from IPython.core.debugger import Tracer;Tracer()()
-		if self._expose_links(context, self.request):
-			_links = result.setdefault(LINKS, [])
-			for rel in (VIEW_PUBLISH, VIEW_UNPUBLISH):
-				el = '@@%s' % rel
-				link = Link(context, rel=rel, elements=(el,))
-				interface.alsoProvides(link, ILocation)
-				link.__name__ = ''
-				link.__parent__ = context
-				_links.append(link)
-		result['publishEnding'] = context.publishEnding
-		result['publishBeginning'] = context.publishBeginning
-		result['PublicationState'] = get_publish_state(context)

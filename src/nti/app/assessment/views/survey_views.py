@@ -23,7 +23,7 @@ from pyramid import httpexceptions as hexc
 from pyramid.view import view_config
 
 from nti.app.assessment.common import inquiry_submissions
-from nti.app.assessment.common import can_disclose_inquiry 
+from nti.app.assessment.common import can_disclose_inquiry
 from nti.app.assessment.common import aggregate_page_inquiry
 from nti.app.assessment.common import get_course_from_inquiry
 from nti.app.assessment.common import aggregate_course_inquiry
@@ -74,6 +74,7 @@ from nti.externalization.oids import to_external_ntiid_oid
 
 ITEMS = StandardExternalFields.ITEMS
 TOTAL = StandardExternalFields.TOTAL
+CREATOR = StandardExternalFields.CREATOR
 ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 
 def allow_to_disclose_inquiry(context, course, user):
@@ -230,11 +231,20 @@ class InquirySubmissionsView(AbstractAuthenticatedView, InquiryViewMixin):
 			raise hexc.HTTPForbidden(_("Cannot get inquiry submissions."))
 		result = LocatedExternalDict()
 		queried = inquiry_submissions(self.context, course)
+
 		def _key(item):
 			lastModified = item.lastModified
 			creator = getattr(item.creator, 'username', item.creator)
 			return (lastModified, creator or u'')
-		items = result[ITEMS] = [x.Submission for x in sorted(queried, key=_key)]
+
+		def _ext_obj(item):
+			result = to_external_object(item, decorate=False)
+			result.pop(CREATOR, None)
+			result.pop('questions', None)
+			return result
+
+		items = result[ITEMS] = [_ext_obj(x.Submission) for x in sorted(queried, key=_key)]
+		result['Inquiry'] = to_external_object(self.context, decorate=False)
 		result[TOTAL] = result[ITEM_COUNT] = len(items)
 		return result
 

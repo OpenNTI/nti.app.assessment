@@ -10,6 +10,7 @@ __docformat__ = "restructuredtext en"
 from hamcrest import is_
 from hamcrest import none
 from hamcrest import is_not
+from hamcrest import has_item
 from hamcrest import contains
 from hamcrest import not_none
 from hamcrest import has_entry
@@ -27,6 +28,10 @@ import fudge
 from urllib import quote
 
 from zope import component
+
+from zope.intid.interfaces import IIntIds
+
+from nti.app.assessment import get_evaluation_catalog
 
 from nti.app.assessment import VIEW_MOVE_PART
 from nti.app.assessment import VIEW_RANDOMIZE
@@ -46,18 +51,25 @@ from nti.app.assessment.common import get_assignments_for_evaluation_object
 
 from nti.app.assessment.evaluations.exporter import EvaluationsExporter
 
+from nti.app.assessment.index import IX_NTIID
+from nti.app.assessment.index import IX_MIMETYPE
+
 from nti.assessment.interfaces import QUESTION_MIME_TYPE
 from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
 from nti.assessment.interfaces import QUESTION_SET_MIME_TYPE
+from nti.assessment.interfaces import QUESTION_BANK_MIME_TYPE
 
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQEvaluation
+from nti.assessment.interfaces import IQuestionSet
 
 from nti.assessment.response import QUploadedFile
 
 from nti.assessment.submission import QuestionSubmission
 from nti.assessment.submission import AssignmentSubmission
 from nti.assessment.submission import QuestionSetSubmission
+
+from nti.assessment.randomized.interfaces import IQuestionBank
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
@@ -266,7 +278,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		copy_ref = qset_href + '/@@Copy'
 		res = self.testapp.post(copy_ref, status=201)
 		assert_that(res.json_body, has_entry('NTIID', is_not(qset_ntiid)) )
-	
+
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_editing_assignments(self):
 		editor_environ = self._make_extra_environ(username="sjohnson@nextthought.com")
@@ -383,6 +395,107 @@ class TestEvaluationViews(ApplicationLayerTest):
 							 		 data, extra_environ=editor_environ,
 							 		 status=422)
 		assert_that( res.json_body.get( 'code' ), is_('UngradableInAutoGradeAssignment'))
+
+	@WithSharedApplicationMockDS(testapp=True, users=True)
+	def test_question_bank_toggle(self):
+		"""
+		Test toggling a question set to/from question bank.
+		"""
+		course_oid = self._get_course_oid()
+		assignment = self._load_assignment()
+		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
+		res = self.testapp.post_json(href, assignment, status=201)
+		res = res.json_body
+		assignment_ntiid = res.get( NTIID )
+		original_res = res.get( 'parts' )[0].get( 'question_set' )
+		qset_ntiid = original_res.get( 'ntiid' )
+		qset_href = '/dataserver2/Objects/%s' % qset_ntiid
+		unchanging_keys = ('Creator','CreatedTime', 'title', 'ntiid')
+
+		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+			self._test_transaction_history( qset_ntiid, count=0 )
+
+		# Convert to question bank
+		draw_count = 3
+		data = { 'draw': 3 }
+		res = self.testapp.put_json( qset_href, data )
+
+		res = self.testapp.get( qset_href )
+		res = res.json_body
+		# Class is always question set.
+		assert_that( res.get( 'Class' ), is_( 'QuestionSet' ) )
+		assert_that( res.get( 'MimeType' ), is_( QUESTION_BANK_MIME_TYPE ) )
+		assert_that( res.get( 'draw' ), is_( draw_count ) )
+		assert_that( res.get( 'ranges' ), has_length( 0 ) )
+		for key in unchanging_keys:
+			assert_that( res.get( key ), is_( original_res.get( key )), key )
+
+		def _get_question_banks():
+			cat = get_evaluation_catalog()
+			timed_objs = tuple( cat.apply(
+									{IX_MIMETYPE:
+										{'any_of': (QUESTION_BANK_MIME_TYPE,)}}))
+			return timed_objs
+
+		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+			qset = find_object_with_ntiid( qset_ntiid )
+			obj = component.queryUtility( IQuestionBank, name=qset_ntiid )
+			assert_that( obj, not_none() )
+			assert_that( obj.ntiid, is_( qset_ntiid ))
+			assert_that( obj, is_( qset ))
+			intids = component.getUtility(IIntIds)
+			obj_id = intids.getId( obj )
+			# Validate index
+			catalog = get_evaluation_catalog()
+			rs = catalog.get( IX_NTIID ).values_to_documents.get( qset_ntiid )
+			assert_that( rs, contains( obj_id ))
+
+			question_banks = _get_question_banks()
+			assert_that( question_banks, has_item( obj_id ))
+			# TODO: No create record?
+			self._test_transaction_history( qset_ntiid, count=1 )
+			# Validate assignment ref.
+			assignment = find_object_with_ntiid( assignment_ntiid )
+			assignment_qset = assignment.parts[0].question_set
+			assert_that( intids.getId( assignment_qset ), is_( obj_id ))
+
+		# Convert back to question set
+		data = { 'draw': None }
+		self.testapp.put_json( qset_href, data )
+		res = self.testapp.get( qset_href )
+		res = res.json_body
+		assert_that( res.get( 'Class' ), is_( 'QuestionSet' ) )
+		assert_that( res.get( 'MimeType' ), is_( QUESTION_SET_MIME_TYPE ) )
+		assert_that( res.get( 'draw' ), none() )
+		assert_that( res.get( 'ranges' ), none() )
+		for key in unchanging_keys:
+			assert_that( res.get( key ), is_( original_res.get( key )), key )
+
+		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+			qset = find_object_with_ntiid( qset_ntiid )
+			obj = component.queryUtility( IQuestionBank, name=qset_ntiid )
+			assert_that( obj, none() )
+			obj = component.queryUtility( IQuestionSet, name=qset_ntiid )
+			assert_that( obj, not_none() )
+			assert_that( obj.ntiid, is_( qset_ntiid ))
+			assert_that( obj, is_( qset ))
+			intids = component.getUtility(IIntIds)
+			obj_id = intids.getId( obj )
+
+			# Validate index
+			catalog = get_evaluation_catalog()
+			rs = catalog.get( IX_NTIID ).values_to_documents.get( qset_ntiid )
+			assert_that( rs, contains( obj_id ))
+
+			question_banks = _get_question_banks()
+			assert_that( question_banks, does_not( has_item( obj_id )))
+
+			self._test_transaction_history( qset_ntiid, count=2 )
+
+			# Validate assignment ref.
+			assignment = find_object_with_ntiid( assignment_ntiid )
+			assignment_qset = assignment.parts[0].question_set
+			assert_that( intids.getId( assignment_qset ), is_( obj_id ))
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_part_validation(self):
@@ -967,7 +1080,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
 			obj = component.queryUtility(IQuestion, name=ntiid)
 			assert_that(obj.is_published(), is_(False))
-			
+
 		assignment = self._load_assignment()
 		res = self.testapp.post_json(href, assignment, status=201)
 		asg_href = res.json_body['href']
@@ -981,7 +1094,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 			obj = component.queryUtility(IQEvaluation, name=ntiid)
 			assert_that(obj.is_published(), is_(True))
 			assert_that(obj, has_property('publishBeginning', is_not(none())))
-		
+
 	def _get_move_json(self, obj_ntiid, new_parent_ntiid, index=None, old_parent_ntiid=None):
 		result = {  'ObjectNTIID': obj_ntiid,
 					'ParentNTIID': new_parent_ntiid }

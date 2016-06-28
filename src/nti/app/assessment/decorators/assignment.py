@@ -55,7 +55,7 @@ from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecora
 from nti.appserver.pyramid_authorization import has_permission
 
 from nti.assessment.interfaces import IQuestion
-from nti.assessment.interfaces import IQAssignment 
+from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQTimedAssignment
 
@@ -346,8 +346,8 @@ class _QuestionSetDecorator(object):
 @interface.implementer(IExternalMappingDecorator)
 class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
-	Give editors edit and schema links. These should only be available for
-	IQEditableEvaluations that are unpublished or unavailable. Also provide
+	Give editors editing links. A subset of links should only be available for
+	IQEditableEvaluations that do not have submissions. Also provide
 	context on whether the evaluation has been savepointed/submitted.
 	"""
 

@@ -20,6 +20,8 @@ from zope import lifecycleevent
 
 from zope.i18n import translate
 
+from zope.intid.interfaces import IIntIds
+
 from zope.event import notify
 
 from pyramid import httpexceptions as hexc
@@ -35,7 +37,7 @@ from nti.app.assessment import VIEW_RESET_EVALUATION
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 
 from nti.app.assessment.common import get_courses
-from nti.app.assessment.common import has_submissions 
+from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import validate_auto_grade
 from nti.app.assessment.common import make_evaluation_ntiid
 from nti.app.assessment.common import get_resource_site_name
@@ -56,7 +58,7 @@ from nti.app.assessment.evaluations.utils import import_evaluation_content
 from nti.app.assessment.interfaces import ICourseEvaluations
 from nti.app.assessment.interfaces import IQAvoidSolutionCheck
 
-from nti.app.assessment.utils import get_course_from_request 
+from nti.app.assessment.utils import get_course_from_request
 
 from nti.app.assessment.views.view_mixins import AssessmentPutView
 from nti.app.assessment.views.view_mixins import StructuralValidationMixin
@@ -96,6 +98,8 @@ from nti.appserver.ugd_edit_views import UGDDeleteView
 from nti.assessment.common import iface_of_assessment
 
 from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
+from nti.assessment.interfaces import QUESTION_SET_MIME_TYPE
+from nti.assessment.interfaces import QUESTION_BANK_MIME_TYPE
 from nti.assessment.interfaces import TIMED_ASSIGNMENT_MIME_TYPE
 
 from nti.assessment.interfaces import IQPoll
@@ -114,6 +118,12 @@ from nti.assessment.interfaces import QuestionRemovedFromContainerEvent
 
 from nti.assessment.interfaces import QuestionMovedEvent
 
+from nti.assessment.question import QQuestionSet
+
+from nti.assessment.randomized.interfaces import IQuestionBank
+
+from nti.assessment.randomized.question import QQuestionBank
+
 from nti.common.maps import CaseInsensitiveDict
 
 from nti.common.property import Lazy
@@ -131,7 +141,7 @@ from nti.coremetadata.interfaces import ICalendarPublishable
 from nti.dataserver import authorization as nauth
 
 from nti.dataserver.authorization import ACT_NTI_ADMIN
-from nti.dataserver.authorization import ACT_CONTENT_EDIT 
+from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
 from nti.externalization.externalization import to_external_object
 
@@ -139,12 +149,16 @@ from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.externalization.internalization import notifyModified
-from nti.externalization.internalization import find_factory_for 
-from nti.externalization.internalization import update_from_external_object 
+from nti.externalization.internalization import find_factory_for
+from nti.externalization.internalization import update_from_external_object
+
+from nti.intid.common import removeIntId
 
 from nti.links.links import Link
 
 from nti.mimetype.externalization import decorateMimeType
+
+from nti.recorder.record import copy_transaction_history
 
 from nti.site.hostpolicy import get_host_site
 
@@ -211,6 +225,22 @@ class EvaluationMixin(StructuralValidationMixin):
 		else:
 			result = getattr(context, 'ntiid', None)
 		return result
+
+	def _index(self, item):
+		lifecycleevent.modified(item)
+
+	def _re_register(self, context, old_iface, new_iface):
+		"""
+		Unregister the context under the given old interface and register
+		under the given new interface.
+		"""
+		ntiid = context.ntiid
+		site_name = get_resource_site_name(context)
+		registry = get_host_site(site_name).getSiteManager()
+		registerUtility(registry, context, provided=new_iface, name=ntiid, event=False)
+		unregisterUtility(registry, provided=old_iface, name=ntiid, event=False)
+		# Make sure we re-index.
+		self._index(context)
 
 	def store_evaluation(self, obj, course, user, check_solutions=True):
 		"""
@@ -480,7 +510,7 @@ class CourseEvaluationsPostView(EvaluationMixin, UGDPostView):
 			   permission=nauth.ACT_CONTENT_EDIT)
 class EvaluationCopyView(AbstractAuthenticatedView, EvaluationMixin):
 
-	@Lazy	
+	@Lazy
 	def course(self):
 		if IQEditableEvaluation.providedBy(self.context):
 			result = find_interface(self.context, ICourseInstance, strict=False)
@@ -661,6 +691,101 @@ class QuestionSetPutView(EvaluationPutView):
 				contentObject.questions = indexed_iter()  # reset
 				self.auto_complete_questionset(contentObject, originalSource)
 
+	def _update_assignments( self, old_obj, new_obj ):
+		"""
+		Update all assignments pointing to our question set.
+		Any refs in lessons should still work (since we point to ntiid).
+		"""
+		assignments = get_assignments_for_evaluation_object( old_obj )
+		for assignment in assignments:
+			for part in assignment.parts or ():
+				if part.question_set.ntiid == old_obj.ntiid:
+					part.question_set = new_obj
+
+	def _copy_question_set(self, source, target):
+		"""
+		Copy fields from one question set to the other, also
+		copying transaction history and updating assignment refs.
+		"""
+		target.__parent__ = source.__parent__
+		for key, val in source.__dict__.items():
+			if not key.startswith('_'):
+				setattr( target, key, val )
+		copy_transaction_history( source, target )
+		self._update_assignments( source, target )
+
+	def _intid_unregister( self, item ):
+		intids = component.queryUtility(IIntIds)
+		if intids is not None and intids.queryId(item) is not None:
+			removeIntId( item )
+			return True
+		return False
+
+	def _create_new_object( self, obj, course ):
+		evaluations = ICourseEvaluations( course )
+		lifecycleevent.created(obj)
+		# XXX mark as editable before storing so proper validation is done
+		interface.alsoProvides(obj, IQEditableEvaluation)
+		evaluations[obj.ntiid] = obj  # gain intid
+
+	def _copy_to_new_type( self, old_obj, new_obj ):
+		# XXX: Important to get course here before we mangle context.
+		course = self.course
+		self._copy_question_set( old_obj, new_obj )
+		delete_evaluation( old_obj )
+		self._create_new_object( new_obj, course )
+
+	def _transform_to_bank(self, contentObject, draw, ranges):
+		"""
+		Transform from a question set to a question bank.
+		"""
+		result = QQuestionBank()
+		result.draw = draw
+		result.ranges = ranges
+		self._copy_to_new_type( contentObject, result )
+		self._re_register( result, IQuestionSet, IQuestionBank )
+		return result
+
+	def _transform_to_non_bank(self, contentObject):
+		"""
+		Transform from a question bank to a regular question set.
+		"""
+		result = QQuestionSet()
+		self._copy_to_new_type( contentObject, result )
+		self._re_register( result, IQuestionBank, IQuestionSet )
+		return result
+
+	def _update_bank_status(self, externalValue, contentObject):
+		"""
+		Determine if our object is transitioning to/from a question bank.
+		"""
+		if 'draw' in externalValue:
+			# The client passed us something; see if we are going to/from question bank.
+			draw = externalValue.get('draw')
+			if 		draw \
+				and not IQuestionBank.providedBy(contentObject):
+				ranges = externalValue.get('ranges', ())
+				contentObject = self._transform_to_bank(contentObject, draw, ranges)
+			elif	draw is None \
+				and IQuestionBank.providedBy(contentObject):
+				contentObject = self._transform_to_non_bank(contentObject)
+			# Update our context
+			self.context = contentObject
+		return self.context
+
+	def updateContentObject(self, contentObject, externalValue, **kwargs):
+		# Must do this first to get the actual object we are creating/updating.
+		new_contentObject = self._update_bank_status( externalValue, contentObject )
+
+		result = super(QuestionSetPutView, self).updateContentObject(new_contentObject, externalValue,
+																	 **kwargs)
+		return result
+
+	def __call__(self):
+		# Override to control what is returned.
+		super(QuestionSetPutView, self).__call__()
+		return self.context
+
 class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):
 
 	OBJ_DEF_CHANGE_MSG = _("Cannot change the object definition.")
@@ -768,22 +893,6 @@ class AssignmentPutView(NewAndLegacyPutView):
 					qset.questions = indexed_iter()
 				self.auto_complete_assignment(contentObject, originalSource)
 
-	def _index(self, item):
-		lifecycleevent.modified(item)
-
-	def _re_register(self, context, old_iface, new_iface):
-		"""
-		Unregister the context under the given old interface and register
-		under the given new interface.
-		"""
-		ntiid = context.ntiid
-		site_name = get_resource_site_name(context)
-		registry = get_host_site(site_name).getSiteManager()
-		registerUtility(registry, context, provided=new_iface, name=ntiid, event=False)
-		unregisterUtility(registry, provided=old_iface, name=ntiid, event=False)
-		# Make sure we re-index.
-		self._index(context)
-
 	def _transform_to_timed(self, contentObject, max_time_allowed):
 		"""
 		Transform from a regular assignment to a timed assignment.
@@ -802,9 +911,10 @@ class AssignmentPutView(NewAndLegacyPutView):
 		contentObject.maximum_time_allowed = None
 		self._re_register(contentObject, IQTimedAssignment, IQAssignment)
 
-	def updateContentObject(self, contentObject, externalValue, set_id=False, notify=True):
-		# Must toggle types first (if necessary) before calling super; so
-		# everything validates.
+	def _update_timed_status(self, externalValue, contentObject):
+		"""
+		Determine if our object is transitioning to/from a timed assignment.
+		"""
 		if 'maximum_time_allowed' in externalValue:
 			# The client passed us something; see if we are going to/from timed assignment.
 			max_time_allowed = externalValue.get('maximum_time_allowed')
@@ -814,6 +924,11 @@ class AssignmentPutView(NewAndLegacyPutView):
 			elif	max_time_allowed is None \
 				and IQTimedAssignment.providedBy(contentObject):
 				self._transform_to_untimed(contentObject)
+
+	def updateContentObject(self, contentObject, externalValue, set_id=False, notify=True):
+		# Must toggle types first (if necessary) before calling super; so
+		# everything validates.
+		self._update_timed_status( externalValue, contentObject )
 
 		result = super(AssignmentPutView, self).updateContentObject(contentObject, externalValue,
 																	   set_id, notify)
@@ -924,7 +1039,7 @@ class SubmittableDeleteView(EvaluationDeleteView, ModeledContentUploadRequestUti
 			courses = get_courses(self.course)
 			result = has_submissions(theObject, courses)
 		return result
-		
+
 	def _delete_contained_data(self, theObject):
 		if IQInquiry.providedBy(theObject):
 			delete_inquiry_submissions(theObject, self.course)
@@ -932,7 +1047,7 @@ class SubmittableDeleteView(EvaluationDeleteView, ModeledContentUploadRequestUti
 			delete_evaluation_metadata(theObject, self.course)
 			delete_evaluation_savepoints(theObject, self.course)
 			delete_evaluation_submissions(theObject, self.course)
-	
+
 	def _check_internal(self, theObject):
 		self._check_editable(theObject)
 		self._check_containment(theObject)
@@ -961,7 +1076,7 @@ class SubmittableDeleteView(EvaluationDeleteView, ModeledContentUploadRequestUti
 		self._delete_contained_data(theObject)
 		delete_evaluation(theObject)
 		return theObject
-	
+
 @view_config(route_name='objects.generic.traversal',
 			 renderer='rest',
 			 name=VIEW_QUESTION_SET_CONTENTS,
@@ -1036,7 +1151,7 @@ class EvaluationResetView(AbstractAuthenticatedView, ModeledContentUploadRequest
 			courses = get_courses(self.course)
 			result = has_submissions(theObject, courses)
 		return result
-		
+
 	def _delete_contained_data(self, theObject):
 		if IQInquiry.providedBy(theObject):
 			delete_inquiry_submissions(theObject, self.course)
@@ -1044,7 +1159,7 @@ class EvaluationResetView(AbstractAuthenticatedView, ModeledContentUploadRequest
 			delete_evaluation_metadata(theObject, self.course)
 			delete_evaluation_savepoints(theObject, self.course)
 			delete_evaluation_submissions(theObject, self.course)
-	
+
 	def __call__(self):
 		if not self._can_delete_contained_data(self.context):
 			raise_json_error(self.request,

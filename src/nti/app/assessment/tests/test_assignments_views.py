@@ -168,7 +168,7 @@ class TestAssignmentViews(ApplicationLayerTest):
 			cat = get_evaluation_catalog()
 			timed_objs = tuple( cat.apply(
 									{IX_MIMETYPE:
-									{'any_of': (TIMED_ASSIGNMENT_MIME_TYPE,)}}))
+										{'any_of': (TIMED_ASSIGNMENT_MIME_TYPE,)}}))
 			return timed_objs
 
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):

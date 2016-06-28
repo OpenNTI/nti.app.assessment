@@ -23,7 +23,8 @@ from persistent.list import PersistentList
 
 from nti.app.assessment import MessageFactory as _
 
-from nti.app.assessment.common import has_submissions, has_inquiry_submissions
+from nti.app.assessment.common import has_submissions
+from nti.app.assessment.common import has_inquiry_submissions
 from nti.app.assessment.common import get_resource_site_name
 
 from nti.app.base.abstract_views import get_safe_source_filename
@@ -223,5 +224,6 @@ def validate_submissions(theObject, course, request=None):
 def validate_structural_edits(theObject, course, request=None):
 	"""
 	Validate that we can structurally edit the given evaluation object.
+	We can as long as there are no submissions.
 	"""
 	validate_submissions(theObject, course, request)

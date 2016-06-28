@@ -54,6 +54,9 @@ from nti.app.assessment.evaluations.exporter import EvaluationsExporter
 from nti.app.assessment.index import IX_NTIID
 from nti.app.assessment.index import IX_MIMETYPE
 
+from nti.app.publishing import VIEW_PUBLISH
+from nti.app.publishing import VIEW_UNPUBLISH
+
 from nti.assessment.interfaces import QUESTION_MIME_TYPE
 from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
 from nti.assessment.interfaces import QUESTION_SET_MIME_TYPE
@@ -1049,9 +1052,13 @@ class TestEvaluationViews(ApplicationLayerTest):
 		self.testapp.delete(link_ref, status=204)
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
-	@fudge.patch('nti.app.assessment.evaluations.utils.has_submissions')
-	def test_publish_unpublish(self, mock_vhs):
-		mock_vhs.is_callable().with_args().returns(False)
+	@fudge.patch('nti.app.assessment.evaluations.utils.has_submissions',
+				 'nti.app.assessment.decorators.evaluations.has_savepoints',
+				 'nti.app.assessment.decorators.evaluations.has_submissions')
+	def test_publish_unpublish(self, mock_vhs, mock_savepoints, mock_submissions):
+		mock_vhs.is_callable().returns( False )
+		mock_savepoints.is_callable().returns( False )
+		mock_submissions.is_callable().returns( False )
 		course_oid = self._get_course_oid()
 		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
 		qset = self._load_questionset()
@@ -1072,28 +1079,38 @@ class TestEvaluationViews(ApplicationLayerTest):
 			assert_that(obj.is_published(), is_(True))
 		# cannot unpublish w/ submissions
 		unpublish_href = q_href + '/@@unpublish'
-		mock_vhs.is_callable().with_args().returns(True)
+		mock_vhs.is_callable().returns(True)
 		self.testapp.post(unpublish_href, status=422)
+
 		# try w/o submissions
-		mock_vhs.is_callable().with_args().returns(False)
+		mock_vhs.is_callable().returns(False)
 		self.testapp.post(unpublish_href, status=200)
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
 			obj = component.queryUtility(IQuestion, name=ntiid)
 			assert_that(obj.is_published(), is_(False))
 
+		# Assignment
 		assignment = self._load_assignment()
 		res = self.testapp.post_json(href, assignment, status=201)
-		asg_href = res.json_body['href']
-		ntiid = res.json_body['NTIID']
-		data = {'publishBeginning':int(time.time())-10000}
-		publish_href = asg_href + '/@@publish'
+		res = res.json_body
+		assignment_href = res['href']
+		assignment_ntiid = res['NTIID']
+		publish_href = self.require_link_href_with_rel( res, VIEW_PUBLISH )
+		self.require_link_href_with_rel( res, VIEW_UNPUBLISH )
+		data = {'publishBeginning':int(time.time()) - 10000}
 		res = self.testapp.post_json(publish_href, data, status=200)
 		assert_that(res.json_body, has_entry('publishBeginning', is_not(none())))
-		# check registered
+		# Check registered
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
-			obj = component.queryUtility(IQEvaluation, name=ntiid)
+			obj = component.queryUtility(IQEvaluation, name=assignment_ntiid)
 			assert_that(obj.is_published(), is_(True))
-			assert_that(obj, has_property('publishBeginning', is_not(none())))
+			assert_that(obj, has_property('publishBeginning', not_none()))
+
+		# Savepoints/submissions; no publish links.
+		mock_submissions.is_callable().with_args().returns( True )
+		assignment = self.testapp.get( assignment_href )
+		self.forbid_link_with_rel( assignment.json_body, VIEW_PUBLISH )
+		self.forbid_link_with_rel( assignment.json_body, VIEW_UNPUBLISH )
 
 	def _get_move_json(self, obj_ntiid, new_parent_ntiid, index=None, old_parent_ntiid=None):
 		result = {  'ObjectNTIID': obj_ntiid,

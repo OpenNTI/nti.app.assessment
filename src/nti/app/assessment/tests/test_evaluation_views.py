@@ -1202,6 +1202,14 @@ class TestEvaluationViews(ApplicationLayerTest):
 		question_ntiids = self._get_question_ntiids( qset_ntiid )
 		assert_that( question_ntiids, is_([new_question_ntiid2] + original_question_ntiids + [new_question_ntiid]) )
 
+		# Inserting questions with blank/empty content is now allowed.
+		empty_question = dict( ext_question )
+		empty_question.pop( 'content' )
+		self.testapp.post_json(contents_href, empty_question)
+
+		empty_question['content'] = ''
+		self.testapp.post_json(contents_href, empty_question)
+
 	def _get_delete_url_suffix(self, index, ntiid):
 		return '/ntiid/%s?index=%s' % (ntiid, index)
 

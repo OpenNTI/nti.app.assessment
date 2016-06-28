@@ -98,8 +98,6 @@ from nti.appserver.ugd_edit_views import UGDDeleteView
 from nti.assessment.common import iface_of_assessment
 
 from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
-from nti.assessment.interfaces import QUESTION_SET_MIME_TYPE
-from nti.assessment.interfaces import QUESTION_BANK_MIME_TYPE
 from nti.assessment.interfaces import TIMED_ASSIGNMENT_MIME_TYPE
 
 from nti.assessment.interfaces import IQPoll
@@ -151,8 +149,6 @@ from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.internalization import notifyModified
 from nti.externalization.internalization import find_factory_for
 from nti.externalization.internalization import update_from_external_object
-
-from nti.intid.common import removeIntId
 
 from nti.links.links import Link
 
@@ -717,7 +713,7 @@ class QuestionSetPutView(EvaluationPutView):
 	def _intid_unregister( self, item ):
 		intids = component.queryUtility(IIntIds)
 		if intids is not None and intids.queryId(item) is not None:
-			removeIntId( item )
+			lifecycleevent.removed( item )
 			return True
 		return False
 

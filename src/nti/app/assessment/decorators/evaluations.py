@@ -30,6 +30,9 @@ from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecora
 from nti.appserver.pyramid_authorization import has_permission
 
 from nti.assessment.interfaces import IQInquiry
+from nti.assessment.interfaces import IQEditableEvaluation
+
+from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.contenttypes.courses.utils import is_course_instructor
 
@@ -41,6 +44,8 @@ from nti.externalization.interfaces import IExternalObjectDecorator
 from nti.externalization.interfaces import IExternalMappingDecorator
 
 from nti.links.links import Link
+
+from nti.traversal.traversal import find_interface
 
 LINKS = StandardExternalFields.LINKS
 
@@ -83,17 +88,19 @@ class _EvaluationCalendarPublishStateDecorator(AbstractAuthenticatedRequestAware
 	"""
 
 	def _get_course(self, context):
-		result = _get_course_from_evaluation(context,
-											 user=self.remoteUser,
-											 request=self.request)
-		return result
+		course = find_interface(context, ICourseInstance, strict=False)
+		return course
 
 	def _predicate(self, context, result):
+		# For content-backed items, make sure we do not provide pub/unpub links.
+		if not IQEditableEvaluation.providedBy( context ):
+			return True
 		course = self._get_course(context)
 		if IQInquiry.providedBy(context):
-			submissions = has_inquiry_submissions(context, course)
+			submissions = has_inquiry_submissions( context, course )
 		else:
-			submissions = has_submissions(context, get_courses(course))
+			courses = get_courses( course )
+			submissions = has_submissions( context, courses )
 		return submissions
 
 	def _do_decorate_external(self, context, result):

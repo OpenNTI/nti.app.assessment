@@ -536,14 +536,14 @@ def has_submissions(context, courses=()):
 	return False
 
 def evaluation_submissions(context, course, subinstances=True):
-	course = ICourseInstance(course)
+	course = ICourseInstance(course, None)
 	result = get_submissions(context,
 							 index_name=IX_SUBMITTED,
 							 courses=get_courses(course, subinstances=subinstances))
 	return result
 
 def inquiry_submissions(context, course, subinstances=True):
-	course = ICourseInstance(course)
+	course = ICourseInstance(course, None)
 	result = get_submissions(context,
 							 index_name=IX_ASSESSMENT_ID,
 							 courses=get_courses(course, subinstances=subinstances))

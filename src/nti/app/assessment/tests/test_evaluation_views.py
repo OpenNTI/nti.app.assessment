@@ -1205,25 +1205,43 @@ class TestEvaluationViews(ApplicationLayerTest):
 		qset_ntiid = qset.get( 'NTIID' )
 		original_question_ntiids = self._get_question_ntiids(ext_obj=qset)
 
+		# Add a question
+		new_question = self.testapp.post_json(evaluations_href, ext_question, status=201)
+		question_ntiid1 = new_question.json_body.get( 'NTIID' )
+
+		# Append just ntiid
+		self.testapp.post_json( contents_href, {'ntiid': question_ntiid1} )
+		original_question_ntiids.append( question_ntiid1 )
+		question_ntiids = self._get_question_ntiids( qset_ntiid )
+		assert_that( question_ntiids, is_( original_question_ntiids ))
+
 		# Insert/append
 		inserted_question = self.testapp.post_json(contents_href, ext_question)
 		new_question_ntiid = inserted_question.json_body.get( 'NTIID' )
+		original_question_ntiids.append( new_question_ntiid )
 		question_ntiids = self._get_question_ntiids( qset_ntiid )
-		assert_that( question_ntiids, is_(original_question_ntiids + [new_question_ntiid]) )
+		assert_that( question_ntiids, is_( original_question_ntiids ))
 
 		# Prepend
 		inserted_question = self.testapp.post_json(contents_href + '/index/0', ext_question)
 		new_question_ntiid2 = inserted_question.json_body.get( 'NTIID' )
+		original_question_ntiids = [new_question_ntiid2] + original_question_ntiids
 		question_ntiids = self._get_question_ntiids( qset_ntiid )
-		assert_that( question_ntiids, is_([new_question_ntiid2] + original_question_ntiids + [new_question_ntiid]) )
+		assert_that( question_ntiids, is_( original_question_ntiids ))
 
-		# Inserting questions with blank/empty content is now allowed.
+		# Inserting questions with blank/empty content is allowed.
 		empty_question = dict( ext_question )
 		empty_question.pop( 'content' )
 		self.testapp.post_json(contents_href, empty_question)
 
 		empty_question['content'] = ''
 		self.testapp.post_json(contents_href, empty_question)
+
+		# Invalid ntiid
+		self.testapp.post_json( contents_href,
+								{'ntiid': question_ntiid1 + 'xxx'},
+								status=422 )
+
 
 	def _get_delete_url_suffix(self, index, ntiid):
 		return '/ntiid/%s?index=%s' % (ntiid, index)

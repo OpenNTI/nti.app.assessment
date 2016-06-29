@@ -165,6 +165,7 @@ OID = StandardExternalFields.OID
 ITEMS = StandardExternalFields.ITEMS
 LINKS = StandardExternalFields.LINKS
 NTIID = StandardExternalFields.NTIID
+MIMETYPE = StandardExternalFields.MIMETYPE
 ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 
 VERSION = u'Version'
@@ -400,23 +401,30 @@ class EvaluationMixin(StructuralValidationMixin):
 	def post_update_check(self, contentObject, externalValue):
 		pass
 
+	def _get_required_question(self, item):
+		"""
+		Fetch and validate we are given a question object or the ntiid
+		of an existing question object.
+		"""
+		question = self.get_registered_evaluation(item, self.course)
+		if not IQuestion.providedBy(question):
+			msg = translate(_("Question ${ntiid} does not exists.",
+							mapping={'ntiid': item}))
+			raise_json_error(self.request,
+							 hexc.HTTPUnprocessableEntity,
+							 {
+								u'message': msg,
+								u'code': 'QuestionDoesNotExists',
+							 },
+							 None)
+		return question
+
 	def auto_complete_questionset(self, context, externalValue):
 		questions = indexed_iter() if not context.questions else context.questions
 		items = externalValue.get(ITEMS)
 		for item in items or ():
-			question = self.get_registered_evaluation(item, self.course)
-			if not IQuestion.providedBy(question):
-				msg = translate(_("Question ${ntiid} does not exists.",
-								mapping={'ntiid': item}))
-				raise_json_error(self.request,
-								 hexc.HTTPUnprocessableEntity,
-								 {
-									u'message': msg,
-									u'code': 'QuestionDoesNotExists',
-								 },
-								 None)
-			else:
-				questions.append(question)
+			question = self._get_required_question( item )
+			questions.append(question)
 		context.questions = questions
 
 	def auto_complete_survey(self, context, externalValue):
@@ -575,10 +583,17 @@ class QuestionSetInsertView(AbstractAuthenticatedView,
 
 	def _get_new_question(self):
 		creator = self.remoteUser
-		new_question, sources = self.readCreateUpdateContentObject(creator, search_owner=False)
-		if sources:
-			validate_sources(self.remoteUser, new_question, sources)
-		new_question = self.handle_evaluation(new_question, self.course, sources, creator)
+		externalValue = self.readInput()
+		if isinstance(externalValue, Mapping) and MIMETYPE not in externalValue:
+			# They're giving us an NTIID, find the question object.
+			ntiid = externalValue.get('ntiid') or externalValue.get(NTIID)
+			new_question = self._get_required_question( ntiid )
+		else:
+			# Else, read in the question.
+			new_question, sources = self.readCreateUpdateContentObject(creator, search_owner=False)
+			if sources:
+				validate_sources(self.remoteUser, new_question, sources)
+			new_question = self.handle_evaluation(new_question, self.course, sources, creator)
 		return new_question
 
 	def _get_courses(self, context):

@@ -5,6 +5,7 @@
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
+from nti.coremetadata.interfaces import ICalendarPublishable
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -164,7 +165,7 @@ class EvaluationsImporter(BaseSectionImporter):
 			result = theObject
 
 		# course is the evaluation home
-		theObject.__home__ = course
+		result.__home__ = course
 		remoteUser = get_remote_user()
 		target_filer = get_course_filer(course, remoteUser)
 		# parse content fields and load sources
@@ -172,6 +173,14 @@ class EvaluationsImporter(BaseSectionImporter):
 								  target_filer=target_filer)
 		# always register
 		register_context(result)
+		# always publish
+		if not result.is_published():
+			if ICalendarPublishable.providedBy(result):
+				result.publish(start=result.publishBeginning,
+							   end=result.publishEnding,
+							   event=False)
+			else:
+				result.publish(event=False)
 		return result
 
 	def handle_course_items(self, items, course, source_filer):

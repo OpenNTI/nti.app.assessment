@@ -1013,7 +1013,7 @@ class QuestionSetDeleteView(EvaluationDeleteView):
 				)
 				raise_json_error(
 						self.request,
-						hexc.HTTPUnprocessableEntity,
+						hexc.HTTPConflict,
 						{
 							u'message': _('This question set is being referenced by other assignments.'),
 							u'code': 'QuestionSetIsReferenced',
@@ -1068,7 +1068,7 @@ class SubmittableDeleteView(EvaluationDeleteView, ModeledContentUploadRequestUti
 				)
 				raise_json_error(
 						self.request,
-						hexc.HTTPUnprocessableEntity,
+						hexc.HTTPConflict,
 						{
 							u'message': _('There are submissions for this evaluation object.'),
 							u'code': 'EvaluationHasSubmissions',

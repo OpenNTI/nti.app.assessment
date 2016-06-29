@@ -1052,7 +1052,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		asg_href = res.json_body['href']
 
 		mock_vhs.is_callable().with_args().returns(True)
-		res = self.testapp.delete(asg_href, status=422)
+		res = self.testapp.delete(asg_href, status=409)
 		assert_that(res.json_body, has_entry('Links', has_length(1)))
 		link_ref = res.json_body['Links'][0]['href']
 		self.testapp.delete(link_ref, status=204)

@@ -5,7 +5,6 @@
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
-from nti.coremetadata.interfaces import ICalendarPublishable
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -44,6 +43,8 @@ from nti.contenttypes.courses.interfaces import ICourseSectionImporter
 from nti.contenttypes.courses.importer import BaseSectionImporter
 
 from nti.contenttypes.courses.utils import get_course_subinstances
+
+from nti.coremetadata.interfaces import ICalendarPublishable
 
 from nti.externalization.interfaces import StandardExternalFields
 

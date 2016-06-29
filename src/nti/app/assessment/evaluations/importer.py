@@ -42,6 +42,8 @@ from nti.contenttypes.courses.interfaces import ICourseSectionImporter
 
 from nti.contenttypes.courses.importer import BaseSectionImporter
 
+from nti.contenttypes.courses.utils import get_course_subinstances
+
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.externalization.internalization import find_factory_for
@@ -179,8 +181,7 @@ class EvaluationsImporter(BaseSectionImporter):
 			update_from_external_object(theObject, ext_obj, notify=False)
 			self.handle_evaluation(theObject, course, source_filer)
 
-	def process(self, context, filer, writeout=True):
-		course = ICourseInstance(context)
+	def do_import(self, course, filer, writeout=True):
 		href = self.course_bucket_path(course) + self.EVALUATION_INDEX
 		source = self.safe_get(filer, href)
 		if source is not None:
@@ -195,3 +196,10 @@ class EvaluationsImporter(BaseSectionImporter):
 				transfer_to_native_file(source, new_path)
 			return True
 		return False
+
+	def process(self, context, filer, writeout=True):
+		course = ICourseInstance(context)
+		result = self.do_import(course, filer, writeout)
+		for subinstance in get_course_subinstances(course):
+			result = self.do_import(subinstance, filer, writeout) or result
+		return result

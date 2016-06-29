@@ -88,7 +88,8 @@ class _EvaluationCalendarPublishStateDecorator(AbstractAuthenticatedRequestAware
 	"""
 
 	def _get_course(self, context):
-		course = find_interface(context, ICourseInstance, strict=False)
+		# IQEditableEvaluations must have courses.
+		course = find_interface(context, ICourseInstance, strict=True)
 		return course
 
 	def _predicate(self, context, result):

@@ -490,11 +490,11 @@ def can_disclose_inquiry(inquiry, context=None):
 	return result
 
 def get_courses(context, subinstances=True):
-	course = ICourseInstance(context)
+	course = ICourseInstance(context, None)
 	if subinstances:
-		courses = get_course_hierarchy(course)
+		courses = get_course_hierarchy(course) if course is not None else ()
 	else:
-		courses = (course,)
+		courses = (course,) if course is not None else ()
 	return courses
 
 def to_course_list(courses=()):

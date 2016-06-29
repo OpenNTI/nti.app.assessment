@@ -106,6 +106,7 @@ def import_evaluation_content(model, context=None, user=None, sources=None,
 		target_filer = source_filer
 	sources = sources if sources is not None else {}
 	for obj, name in get_html_content_fields(model):
+		name = str( name )
 		value = getattr(obj, name, None)
 		if value and source_filer != None:
 			modified = False

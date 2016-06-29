@@ -1019,8 +1019,8 @@ class TestEvaluationViews(ApplicationLayerTest):
 		mock_ehs.is_callable().with_args().returns(True)
 		mock_vhs.is_callable().with_args().returns(True)
 
-		#url = question.pop('href')
-		#self.testapp.put_json(url, question, status=200)
+		url = question.pop('href')
+		self.testapp.put_json(url, question, status=200)
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_delete_containment(self):

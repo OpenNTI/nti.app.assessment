@@ -31,8 +31,6 @@ from nti.appserver.pyramid_authorization import has_permission
 
 from nti.assessment.interfaces import IQInquiry
 
-from nti.contenttypes.courses.interfaces import ICourseInstance
-
 from nti.contenttypes.courses.utils import is_course_instructor
 
 from nti.dataserver.authorization import ACT_NTI_ADMIN
@@ -43,8 +41,6 @@ from nti.externalization.interfaces import IExternalObjectDecorator
 from nti.externalization.interfaces import IExternalMappingDecorator
 
 from nti.links.links import Link
-
-from nti.traversal.traversal import find_interface
 
 LINKS = StandardExternalFields.LINKS
 
@@ -70,8 +66,8 @@ class _EvaluationLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 											 user=self.remoteUser,
 											 request=self.request)
 		if 	context.is_published() \
-			and (	(course is not None and is_course_instructor(course, self.remoteUser)) \
-			 	 or	has_permission(ACT_NTI_ADMIN, context, self.request) ):
+			and ((course is not None and is_course_instructor(course, self.remoteUser)) \
+			 	 or	has_permission(ACT_NTI_ADMIN, context, self.request)):
 			link = Link(context, rel=VIEW_RESET_EVALUATION,
 						elements=('@@' + VIEW_RESET_EVALUATION,),
 						method='DELETE')
@@ -86,16 +82,18 @@ class _EvaluationCalendarPublishStateDecorator(AbstractAuthenticatedRequestAware
 	Removes publish links from the evaluation if we have any submissions.
 	"""
 
-	def _get_courses(self, context):
-		result = find_interface(context, ICourseInstance, strict=False)
-		return get_courses(result)
+	def _get_course(self, context):
+		result = _get_course_from_evaluation(context,
+											 user=self.remoteUser,
+											 request=self.request)
+		return result
 
 	def _predicate(self, context, result):
-		courses = self._get_courses( context )
-		if IQInquiry.providedBy( context ):
-			submissions = has_inquiry_submissions( context, courses )
+		course = self._get_course(context)
+		if IQInquiry.providedBy(context):
+			submissions = has_inquiry_submissions(context, course)
 		else:
-			submissions = has_submissions( context, courses )
+			submissions = has_submissions(context, get_courses(course))
 		return submissions
 
 	def _do_decorate_external(self, context, result):
@@ -110,10 +108,9 @@ class _EvaluationCalendarPublishStateDecorator(AbstractAuthenticatedRequestAware
 				rel = link.rel
 			except AttributeError:
 				try:
-					rel = link.get( 'rel' )
+					rel = link.get('rel')
 				except AttributeError:
 					pass
 			if rel not in publish_rels:
-				new_links.append( link )
+				new_links.append(link)
 		result[LINKS] = new_links
-

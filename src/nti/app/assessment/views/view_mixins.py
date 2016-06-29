@@ -21,6 +21,7 @@ from zope.event import notify as event_notify
 
 from zope.interface.common.idatetime import IDateTime
 
+from nti.app.assessment.common import get_courses
 from nti.app.assessment.common import validate_auto_grade
 from nti.app.assessment.common import get_available_for_submission_ending
 from nti.app.assessment.common import get_assignments_for_evaluation_object
@@ -384,8 +385,8 @@ class StructuralValidationMixin(object):
 
 	@Lazy
 	def course(self):
-		# XXX: Evaluation has lineage access to its course
-		result = find_interface(self.context, ICourseInstance, strict=False)
+		# XXX: Evaluation has lineage access to its course.
+		result = find_interface(self.context, ICourseInstance, strict=True)
 		return result
 
 	def _check_part_structure(self, context, externalValue):
@@ -490,7 +491,10 @@ class StructuralValidationMixin(object):
 		structural state.
 		"""
 		context = context if context is not None else self.context
-		validate_structural_edits(context, self.course)
+		# Validate for all possible courses.
+		courses = get_courses( self.course )
+		for course in courses:
+			validate_structural_edits( context, course )
 
 	def _pre_flight_validation(self, context, externalValue=None, structural_change=False):
 		"""

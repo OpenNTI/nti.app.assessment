@@ -639,8 +639,11 @@ class TestEvaluationViews(ApplicationLayerTest):
 				self.testapp.post_json( href, submission )
 		submission['version'] = new_version
 		# XXX: We are not testing assessed results...
-		for href in hrefs:
-			self.testapp.post_json( href, submission )
+		self.testapp.post_json( submit_href, submission )
+		res = self.testapp.post_json( savepoint_href, submission )
+		res = res.json_body
+		# Cleanup savepoint for future tests
+		self.testapp.delete( res.get( 'href' ) )
 
 	def _create_and_enroll(self, username):
 		with mock_dataserver.mock_db_trans(self.ds):
@@ -658,8 +661,8 @@ class TestEvaluationViews(ApplicationLayerTest):
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_assignment_versioning(self):
 		"""
-		Validate various edits bump an assignments version and
-		may not be allowed if there are submissions.
+		Validate various edits bump an assignment's version and
+		may not be allowed if there are savepoints or submissions.
 
 		XXX: AssignmentParts set below are not auto_grade...
 
@@ -925,7 +928,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		course_oid = self._get_course_oid()
 		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
 		assignment = self._load_assignment()
-#		question_set_source = self._load_questionset()
+		question_set_source = self._load_questionset()
 		res = self.testapp.post_json(href, assignment, status=201)
 		res = res.json_body
 		assignment_href = res.get( 'href' )
@@ -935,14 +938,14 @@ class TestEvaluationViews(ApplicationLayerTest):
 		old_part = res.get( 'parts' )[0]
 		qset = old_part.get( 'question_set' )
 		qset_ntiid = qset.get( 'NTIID' )
-#		qset_href = qset.get( 'href' )
+		qset_href = qset.get( 'href' )
 		question_ntiid = qset.get( 'questions' )[0].get( 'ntiid' )
-#		qset_move_href = self.require_link_href_with_rel(qset, VIEW_ASSESSMENT_MOVE)
-#		qset_contents_href = self.require_link_href_with_rel(qset, VIEW_QUESTION_SET_CONTENTS)
+		qset_move_href = self.require_link_href_with_rel(qset, VIEW_ASSESSMENT_MOVE)
+		qset_contents_href = self.require_link_href_with_rel(qset, VIEW_QUESTION_SET_CONTENTS)
 		self._validate_assignment_containers( qset_ntiid, assignment_ntiids )
 		enrolled_student = 'test_student'
 		student_environ = self._create_and_enroll( enrolled_student )
-#		restricted_structural_status = 422
+		restricted_structural_status = 422
 
 		# Student has no such links
 
@@ -1015,6 +1018,9 @@ class TestEvaluationViews(ApplicationLayerTest):
 
 		mock_ehs.is_callable().with_args().returns(True)
 		mock_vhs.is_callable().with_args().returns(True)
+
+		#url = question.pop('href')
+		#self.testapp.put_json(url, question, status=200)
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_delete_containment(self):

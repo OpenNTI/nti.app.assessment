@@ -23,6 +23,7 @@ from persistent.list import PersistentList
 
 from nti.app.assessment import MessageFactory as _
 
+from nti.app.assessment.common import has_savepoints
 from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import has_inquiry_submissions
 from nti.app.assessment.common import get_resource_site_name
@@ -222,9 +223,21 @@ def validate_submissions(theObject, course, request=None):
 						 },
 						 None)
 
+def validate_savepoints(theObject, course, request=None):
+	if has_savepoints(theObject, course):
+		request = request or get_current_request()
+		raise_json_error(request,
+						 hexc.HTTPUnprocessableEntity,
+						 {
+							u'message': _("Object has savepoints"),
+							u'code': 'ObjectHasSavepoints',
+						 },
+						 None)
+
 def validate_structural_edits(theObject, course, request=None):
 	"""
 	Validate that we can structurally edit the given evaluation object.
-	We can as long as there are no submissions.
+	We can as long as there are no savepoints or submissions.
 	"""
+	validate_savepoints(theObject, course, request)
 	validate_submissions(theObject, course, request)

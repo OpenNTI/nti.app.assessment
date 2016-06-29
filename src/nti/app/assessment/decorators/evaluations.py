@@ -17,6 +17,7 @@ from nti.app.assessment import VIEW_COPY_EVALUATION
 from nti.app.assessment import VIEW_RESET_EVALUATION
 
 from nti.app.assessment.common import get_courses
+from nti.app.assessment.common import has_savepoints
 from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import has_inquiry_submissions
 
@@ -84,7 +85,8 @@ class _EvaluationLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 @interface.implementer(IExternalObjectDecorator)
 class _EvaluationCalendarPublishStateDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
-	Removes publish links from the evaluation if we have any submissions.
+	Removes publish links from the evaluation if we have any savepoints
+	or submissions.
 	"""
 
 	def _get_course(self, context):
@@ -102,7 +104,7 @@ class _EvaluationCalendarPublishStateDecorator(AbstractAuthenticatedRequestAware
 		else:
 			courses = get_courses( course )
 			submissions = has_submissions( context, courses )
-		return submissions
+		return submissions or has_savepoints( context, courses )
 
 	def _do_decorate_external(self, context, result):
 		# Remove any publish/unpublish links.

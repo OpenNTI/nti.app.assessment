@@ -550,7 +550,7 @@ def inquiry_submissions(context, course, subinstances=True):
 	return result
 
 def has_inquiry_submissions(context, course, subinstances=True):
-	for _ in inquiry_submissions(context, get_courses(course, subinstances=subinstances)):
+	for _ in inquiry_submissions(context, course, subinstances=True):
 		return True
 	return False
 

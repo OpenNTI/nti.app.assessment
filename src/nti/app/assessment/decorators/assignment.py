@@ -427,7 +427,8 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			rels.append('edit')
 
 		if not submissions and not savepoints:
-			# Do not provide structural links if evaluation has submissions.
+			# Do not provide structural links if evaluation has savepoints
+			# or submissions.
 			if IQuestionSet.providedBy( context ):
 				qset_rels = self._get_question_set_rels( context )
 				if qset_rels:

@@ -396,7 +396,6 @@ class StructuralValidationMixin(object):
 		result = False
 		ext_part_ntiid = externalValue.get( 'NTIID',
 							externalValue.get( 'ntiid', '' ))
-		# FIXME: Need part ntiids to test part order changes?
 		obj_ntiid = getattr( context, 'ntiid', '' )
 		if ext_part_ntiid and obj_ntiid and obj_ntiid != ext_part_ntiid:
 			result = True
@@ -453,6 +452,23 @@ class StructuralValidationMixin(object):
 					break
 		return result
 
+	def _check_assignment_part_structure(self, context, externalValue):
+		"""
+		Determines whether this assignment part has structural changes.
+		"""
+		result = False
+		ext_part_ntiid = externalValue.get( 'NTIID',
+								externalValue.get( 'ntiid', '' ))
+		if	 	ext_part_ntiid \
+			and context.ntiid != ext_part_ntiid:
+			result = True
+		else:
+			ext_set = externalValue.get( 'question_set' )
+			if ext_set is not None:
+				result = self._check_question_set_structure( context.question_set,
+															 ext_set )
+		return result
+
 	def _check_assignment_structure(self, context, externalValue):
 		"""
 		Determines whether this assignment has structural changes.
@@ -463,9 +479,8 @@ class StructuralValidationMixin(object):
 			result = len( context.parts or () ) != len( ext_parts )
 			if not result:
 				for idx, part in enumerate( context.parts or () ):
-					ext_set = externalValue.get( 'parts' )[idx].get( 'question_set' )
-					if ext_set is not None:
-						result = self._check_question_set_structure( part.question_set, ext_set )
+					ext_part = externalValue.get( 'parts' )[idx]
+					result = self._check_assignment_part_structure( part, ext_part )
 					if result:
 						break
 		return result

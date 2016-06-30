@@ -665,8 +665,6 @@ class TestEvaluationViews(ApplicationLayerTest):
 		may not be allowed if there are savepoints or submissions.
 
 		XXX: AssignmentParts set below are not auto_grade...
-
-		FIXME: Assignment/Q part reorder (need part ntiids?)
 		"""
 		# Create base assessment object, enroll student, and set up vars for test.
 		course_oid = self._get_course_oid()
@@ -758,11 +756,12 @@ class TestEvaluationViews(ApplicationLayerTest):
 			self._validate_assignment_containers( new_question.get( 'ntiid' ),
 												  assignment_ntiids )
 
-		# Add/remove assignment part
+		# Add assignment part
 		new_parts = (old_part, new_part)
 		res = self.testapp.put_json( assignment_href, {'parts': new_parts})
 		res = res.json_body
-		qset2 = res.get( 'parts' )[1].get( 'question_set' )
+		new_part = res.get( 'parts' )[1]
+		qset2 = new_part.get( 'question_set' )
 		qset_ntiid2 = qset2.get( "NTIID" )
 		question_ntiid2 = qset2.get( 'questions' )[0].get( 'NTIID' )
 		version, old_version = _check_version( version )
@@ -775,6 +774,15 @@ class TestEvaluationViews(ApplicationLayerTest):
 		self._test_version_submission( assignment_submit_href, savepoint_href, submission,
 									   version, old_version )
 
+		# Re-order assignment parts
+		new_parts = (new_part, old_part)
+		self.testapp.put_json( assignment_href, {'parts': new_parts})
+		version, old_version = _check_version( version )
+		submission.parts = (qs_submission2, qs_submission)
+		self._test_version_submission( assignment_submit_href, savepoint_href, submission,
+									   version, old_version )
+
+		# Remove assignment part
 		new_parts = (old_part,)
 		self.testapp.put_json( assignment_href, {'parts': new_parts})
 		version, old_version = _check_version( version )
@@ -819,21 +827,33 @@ class TestEvaluationViews(ApplicationLayerTest):
 		self._test_version_submission( assignment_submit_href, savepoint_href, submission,
 									   version, old_version )
 
-		# Add/remove question part
+		# Add question part
 		old_part = multiple_choice['parts'][0]
 		new_part = dict(old_part)
 		new_part.pop( 'NTIID', None )
 		new_part.pop( 'ntiid', None )
 		new_parts = (old_part, new_part)
 		multiple_choice['parts'] = new_parts
-		self.testapp.put_json( multiple_choice_href, multiple_choice )
+		res = self.testapp.put_json( multiple_choice_href, multiple_choice )
+		res = res.json_body
+		new_part = res.get( 'parts' )[1]
 		version, old_version = _check_version( version )
 		old_sub_parts = question_submissions[0].parts
 		question_submissions[0].parts = old_sub_parts + ('0',)
 		self._test_version_submission( assignment_submit_href, savepoint_href, submission,
 									   version, old_version )
-		question_submissions[0].parts = old_sub_parts
 
+		# Re-order question parts
+		question_submissions[0].parts = ('0',) + old_sub_parts
+		new_parts = (new_part, old_part)
+		multiple_choice['parts'] = new_parts
+		self.testapp.put_json( multiple_choice_href, multiple_choice )
+		version, old_version = _check_version( version )
+		self._test_version_submission( assignment_submit_href, savepoint_href, submission,
+									   version, old_version )
+
+		# Remove question part
+		question_submissions[0].parts = old_sub_parts
 		new_parts = (old_part,)
 		multiple_choice['parts'] = new_parts
 		self.testapp.put_json( multiple_choice_href, multiple_choice )

@@ -276,9 +276,9 @@ class EvaluationMixin(StructuralValidationMixin):
 	def handle_question(self, theObject, course, user, check_solutions=True):
 		if self.is_new(theObject):
 			theObject = self.store_evaluation(theObject, course, user, check_solutions)
-			[p.ntiid for p in theObject.parts or ()] # set auto part NTIIDs
 		else:
 			theObject = self.get_registered_evaluation(theObject, course)
+		[p.ntiid for p in theObject.parts or ()] # set auto part NTIIDs
 		if theObject is None:
 			raise_json_error(self.request,
 							 hexc.HTTPUnprocessableEntity,
@@ -292,9 +292,9 @@ class EvaluationMixin(StructuralValidationMixin):
 	def handle_poll(self, theObject, course, user):
 		if self.is_new(theObject):
 			theObject = self.store_evaluation(theObject, course, user, False)
-			[p.ntiid for p in theObject.parts or ()] # set auto part NTIIDs
 		else:
 			theObject = self.get_registered_evaluation(theObject, course)
+		[p.ntiid for p in theObject.parts or ()] # set auto part NTIIDs
 		if theObject is None:
 			raise_json_error(self.request,
 							 hexc.HTTPUnprocessableEntity,

@@ -50,7 +50,7 @@ from nti.app.assessment.common import get_assignments_for_evaluation_object
 
 from nti.app.assessment.evaluations.utils import indexed_iter
 from nti.app.assessment.evaluations.utils import register_context
-from nti.app.assessment.evaluations.utils import validate_submissions
+from nti.app.assessment.evaluations.utils import validate_structural_edits
 from nti.app.assessment.evaluations.utils import import_evaluation_content
 
 from nti.app.assessment.interfaces import ICourseEvaluations
@@ -1217,8 +1217,11 @@ class EvaluationUnpublishView(CalendarUnpublishView):
 
 	def _do_provide(self, context):
 		if IQEditableEvaluation.providedBy(context):
-			course = find_interface(context, ICourseInstance, strict=False)
-			validate_submissions(context, course, self.request)
+			course = find_interface(context, ICourseInstance, strict=True)
+			courses = get_courses( course )
+			for course in courses:
+				# Not allowed to unpublish if we have submissions/savepoints.
+				validate_structural_edits( context, course )
 			# unpublish
 			super(EvaluationUnpublishView, self)._do_provide(context)
 

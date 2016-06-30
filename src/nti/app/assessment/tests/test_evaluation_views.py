@@ -1082,11 +1082,9 @@ class TestEvaluationViews(ApplicationLayerTest):
 		self.testapp.delete(link_ref, status=204)
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
-	@fudge.patch('nti.app.assessment.evaluations.utils.has_submissions',
-				 'nti.app.assessment.decorators.evaluations.has_submissions')
-	def test_publish_unpublish(self, mock_vhs, mock_submissions):
-		mock_vhs.is_callable().returns( False )
-		mock_submissions.is_callable().returns( False )
+	def test_publish_unpublish(self):
+		enrolled_student = 'test_student'
+		student_environ = self._create_and_enroll( enrolled_student )
 		course_oid = self._get_course_oid()
 		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
 		qset = self._load_questionset()
@@ -1105,13 +1103,10 @@ class TestEvaluationViews(ApplicationLayerTest):
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
 			obj = component.queryUtility(IQuestion, name=ntiid)
 			assert_that(obj.is_published(), is_(True))
-		# cannot unpublish w/ submissions
+
 		unpublish_href = q_href + '/@@unpublish'
-		mock_vhs.is_callable().returns(True)
-		self.testapp.post(unpublish_href, status=422)
 
 		# try w/o submissions
-		mock_vhs.is_callable().returns(False)
 		self.testapp.post(unpublish_href, status=200)
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
 			obj = component.queryUtility(IQuestion, name=ntiid)
@@ -1124,21 +1119,47 @@ class TestEvaluationViews(ApplicationLayerTest):
 		assignment_href = res['href']
 		assignment_ntiid = res['NTIID']
 		publish_href = self.require_link_href_with_rel( res, VIEW_PUBLISH )
-		self.require_link_href_with_rel( res, VIEW_UNPUBLISH )
+		unpublish_href = self.require_link_href_with_rel( res, VIEW_UNPUBLISH )
 		data = {'publishBeginning':int(time.time()) - 10000}
-		res = self.testapp.post_json(publish_href, data, status=200)
-		assert_that(res.json_body, has_entry('publishBeginning', is_not(none())))
+		publish_res = self.testapp.post_json(publish_href, data, status=200)
+		assert_that(publish_res.json_body, has_entry('publishBeginning', not_none()))
 		# Check registered
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
 			obj = component.queryUtility(IQEvaluation, name=assignment_ntiid)
 			assert_that(obj.is_published(), is_(True))
 			assert_that(obj, has_property('publishBeginning', not_none()))
 
-		# Savepoints/submissions; no publish links.
-		mock_submissions.is_callable().with_args().returns( True )
+		# Savepoints/submissions; no publish links and cannot unpublish.
+		upload_submission = QUploadedFile(data=b'1234',
+										  contentType=b'image/gif',
+										  filename='foo.pdf')
+		qset = res.get( 'parts' )[0].get( 'question_set' )
+		qset_ntiid = qset.get( 'ntiid' )
+		question_ntiid = qset.get('questions')[0].get( 'ntiid' )
+		q_sub = QuestionSubmission(questionId=question_ntiid,
+								   parts=(upload_submission,))
+		qs_submission = QuestionSetSubmission(questionSetId=qset_ntiid,
+											  questions=(q_sub,))
+		submission = AssignmentSubmission(assignmentId=assignment_ntiid,
+										  parts=(qs_submission,))
+
+		submission = toExternalObject( submission )
+		savepoint_href = '/dataserver2/Objects/%s/AssignmentSavepoints/sjohnson@nextthought.com/%s/Savepoint' % \
+						 (course_oid, assignment_ntiid )
+		savepoint = self.testapp.post_json( savepoint_href, submission )
 		assignment = self.testapp.get( assignment_href )
 		self.forbid_link_with_rel( assignment.json_body, VIEW_PUBLISH )
 		self.forbid_link_with_rel( assignment.json_body, VIEW_UNPUBLISH )
+		self.testapp.post(unpublish_href, status=422)
+
+		# Submission
+		self.testapp.delete( savepoint.json_body.get( 'href' ) )
+		self.testapp.post_json( assignment_href, submission,
+								extra_environ=student_environ )
+		assignment = self.testapp.get( assignment_href )
+		self.forbid_link_with_rel( assignment.json_body, VIEW_PUBLISH )
+		self.forbid_link_with_rel( assignment.json_body, VIEW_UNPUBLISH )
+		self.testapp.post( unpublish_href, status=422 )
 
 	def _get_move_json(self, obj_ntiid, new_parent_ntiid, index=None, old_parent_ntiid=None):
 		result = {  'ObjectNTIID': obj_ntiid,

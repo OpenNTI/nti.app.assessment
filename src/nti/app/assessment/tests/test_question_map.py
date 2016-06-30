@@ -75,7 +75,8 @@ ASSM_ITEMS = {
 				'content': 'Arbitrary content goes here.',
 				'explanation': '',
 				'hints': [],
-				'solutions': [{'Class': 'LatexSymbolicMathSolution', 'MimeType': 'application/vnd.nextthought.assessment.mathsolution',
+				'solutions': [{'Class': 'LatexSymbolicMathSolution',
+							   'MimeType': 'application/vnd.nextthought.assessment.latexsymbolicmathsolution',
 							   'value': 'Some solution','weight': 1.0}]}]},
 	'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.set.testset':
 	{'Class': 'QuestionSet',
@@ -90,7 +91,8 @@ ASSM_ITEMS = {
 							   'content': 'Arbitrary content goes here.',
 							   'explanation': '',
 							   'hints': [],
-							   'solutions': [{'Class': 'LatexSymbolicMathSolution', 'MimeType': 'application/vnd.nextthought.assessment.mathsolution',
+							   'solutions': [{'Class': 'LatexSymbolicMathSolution',
+											  'MimeType': 'application/vnd.nextthought.assessment.latexsymbolicmathsolution',
 											  'value': 'Some solution', 'weight': 1.0}]}]}]},
 	'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testpoll':
 	{'Class': 'Poll',

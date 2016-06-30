@@ -737,13 +737,11 @@ class QuestionSetPutView(EvaluationPutView):
 		delete_evaluation( old_obj )
 		self._create_new_object( new_obj, course )
 
-	def _transform_to_bank(self, contentObject, draw, ranges):
+	def _transform_to_bank(self, contentObject):
 		"""
 		Transform from a question set to a question bank.
 		"""
 		result = QQuestionBank()
-		result.draw = draw
-		result.ranges = ranges
 		self._copy_to_new_type( contentObject, result )
 		self._re_register( result, IQuestionSet, IQuestionBank )
 		return result
@@ -766,8 +764,7 @@ class QuestionSetPutView(EvaluationPutView):
 			draw = externalValue.get('draw')
 			if 		draw \
 				and not IQuestionBank.providedBy(contentObject):
-				ranges = externalValue.get('ranges', ())
-				contentObject = self._transform_to_bank(contentObject, draw, ranges)
+				contentObject = self._transform_to_bank(contentObject)
 			elif	draw is None \
 				and IQuestionBank.providedBy(contentObject):
 				contentObject = self._transform_to_non_bank(contentObject)
@@ -779,7 +776,8 @@ class QuestionSetPutView(EvaluationPutView):
 		# Must do this first to get the actual object we are creating/updating.
 		new_contentObject = self._update_bank_status( externalValue, contentObject )
 
-		result = super(QuestionSetPutView, self).updateContentObject(new_contentObject, externalValue,
+		result = super(QuestionSetPutView, self).updateContentObject(new_contentObject,
+																	 externalValue,
 																	 **kwargs)
 		return result
 
@@ -895,12 +893,12 @@ class AssignmentPutView(NewAndLegacyPutView):
 					qset.questions = indexed_iter()
 				self.auto_complete_assignment(contentObject, originalSource)
 
-	def _transform_to_timed(self, contentObject, max_time_allowed):
+	def _transform_to_timed(self, contentObject):
 		"""
 		Transform from a regular assignment to a timed assignment.
 		"""
 		interface.alsoProvides(contentObject, IQTimedAssignment)
-		contentObject.maximum_time_allowed = max_time_allowed
+		#contentObject.maximum_time_allowed = max_time_allowed
 		contentObject.mimeType = contentObject.mime_type = TIMED_ASSIGNMENT_MIME_TYPE
 		self._re_register(contentObject, IQAssignment, IQTimedAssignment)
 
@@ -922,7 +920,7 @@ class AssignmentPutView(NewAndLegacyPutView):
 			max_time_allowed = externalValue.get('maximum_time_allowed')
 			if 		max_time_allowed \
 				and not IQTimedAssignment.providedBy(contentObject):
-				self._transform_to_timed(contentObject, max_time_allowed)
+				self._transform_to_timed(contentObject)
 			elif	max_time_allowed is None \
 				and IQTimedAssignment.providedBy(contentObject):
 				self._transform_to_untimed(contentObject)

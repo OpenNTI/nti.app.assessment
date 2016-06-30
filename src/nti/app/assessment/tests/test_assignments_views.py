@@ -150,8 +150,15 @@ class TestAssignmentViews(ApplicationLayerTest):
 			history = ITransactionRecordHistory(asg)
 			assert_that(history, has_length(3))
 
+		# Invalid timed assignment
+		data = { 'maximum_time_allowed': -1 }
+		self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,
+							  data, extra_environ=editor_environ,
+							  status=422)
+
 		# Change to timed assignment
-		data = { 'maximum_time_allowed': 30 }
+		max_time = 300
+		data = { 'maximum_time_allowed': max_time }
 		self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,
 							  data, extra_environ=editor_environ)
 
@@ -161,7 +168,7 @@ class TestAssignmentViews(ApplicationLayerTest):
 		assert_that( res.get( 'Class' ), is_( 'TimedAssignment' ) )
 		assert_that( res.get( 'MimeType' ), is_( TIMED_ASSIGNMENT_MIME_TYPE ) )
 		assert_that( res.get( 'IsTimedAssignment' ), is_( True ) )
-		assert_that( res.get( 'MaximumTimeAllowed' ), is_( 30 ) )
+		assert_that( res.get( 'MaximumTimeAllowed' ), is_( max_time ) )
 		assert_that( res.get( 'NTIID' ), is_( self.assignment_id ) )
 
 		def _get_timed():
@@ -194,7 +201,7 @@ class TestAssignmentViews(ApplicationLayerTest):
 		assert_that( res.get( 'Class' ), is_( 'TimedAssignment' ) )
 		assert_that( res.get( 'MimeType' ), is_( TIMED_ASSIGNMENT_MIME_TYPE ) )
 		assert_that( res.get( 'IsTimedAssignment' ), is_( True ) )
-		assert_that( res.get( 'MaximumTimeAllowed' ), is_( 30 ) )
+		assert_that( res.get( 'MaximumTimeAllowed' ), is_( max_time ) )
 		assert_that( res.get( 'NTIID' ), is_( self.assignment_id ) )
 
 		# Change to untimed assignment

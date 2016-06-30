@@ -418,6 +418,10 @@ class TestEvaluationViews(ApplicationLayerTest):
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
 			self._test_transaction_history( qset_ntiid, count=0 )
 
+		# Invalid draw
+		data = { 'draw': -1 }
+		self.testapp.put_json( qset_href, data, status=422 )
+
 		# Convert to question bank
 		draw_count = 3
 		data = { 'draw': 3 }

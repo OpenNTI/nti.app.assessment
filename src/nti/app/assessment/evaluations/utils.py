@@ -32,7 +32,10 @@ from nti.app.base.abstract_views import get_safe_source_filename
 
 from nti.app.externalization.error import raise_json_error
 
-from nti.app.products.courseware import ASSETS_FOLDER
+from nti.app.products.courseware import IMAGES_FOLDER
+from nti.app.products.courseware import DOCUMENTS_FOLDER
+
+from nti.app.products.courseware.resources.filer import is_image
 
 from nti.app.products.courseware.resources.interfaces import ICourseContentResource
 
@@ -138,9 +141,10 @@ def import_evaluation_content(model, context=None, user=None, sources=None,
 							logger.error("Missing source %s", href)
 							continue
 					if source is not None and save_in_filer:
-						path = path or ASSETS_FOLDER
+						structure = bool(not path)
 						key = get_safe_source_filename(source, name)
 						location = target_filer.save(key, source, overwrite=False,
+													 structure=structure,
 											  		 bucket=path, context=model)
 					# change href
 					attrib['href'] = location
@@ -168,14 +172,15 @@ def export_evaluation_content(model, source_filer, target_filer):
 				continue
 			elif is_internal_file_link(href):
 				resource = get_file_from_external_link(href)
+				rsrc_name = resource.name
 				contentType = resource.contentType
-				ICourseContentResource
+
 				if ICourseContentResource.providedBy(resource) and hasattr(resource, 'path'):
 					path = resource.path
 					path = os.path.split(path)[0]  # remove resource name
 					path = path[1:] if path.startswith('/') else path
 				else:
-					path = ASSETS_FOLDER
+					path = IMAGES_FOLDER if is_image(rsrc_name, contentType) else DOCUMENTS_FOLDER
 				# save resource
 				target_filer.save(resource.name,
 								  resource,

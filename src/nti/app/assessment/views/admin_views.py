@@ -32,10 +32,7 @@ from nti.app.assessment._question_map import _add_assessment_items_from_new_cont
 from nti.app.assessment._question_map import _remove_assessment_items_from_oldcontent
 
 from nti.app.assessment.common import get_resource_site_name
-from nti.app.assessment.common import get_course_from_inquiry
 
-from nti.app.assessment.interfaces import IUsersCourseInquiry
-from nti.app.assessment.interfaces import IUsersCourseInquiries
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
 
@@ -48,8 +45,8 @@ from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtils
 
 from nti.assessment.common import iface_of_assessment
 
-from nti.assessment.interfaces import IQInquiry, IQEditableEvaluation
 from nti.assessment.interfaces import IQEvaluation
+from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.common.maps import CaseInsensitiveDict
@@ -64,10 +61,7 @@ from nti.contenttypes.courses.interfaces import ICourseEnrollments
 
 from nti.dataserver import authorization as nauth
 
-from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import IDataserverFolder
-
-from nti.dataserver.users import User
 
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
@@ -328,63 +322,3 @@ class RegisterAssessmentItemsView(AbstractAuthenticatedView,
 		result[ITEMS] = sorted(items)
 		result[ITEM_COUNT] = result[TOTAL] = len(items)
 		return result
-
-@view_config(route_name='objects.generic.traversal',
-			 renderer='rest',
-			 permission=nauth.ACT_NTI_ADMIN,
-			 context=IDataserverFolder,
-			 name='ResetInquiry')
-class ResetInquiryView(AbstractAuthenticatedView,
-					   ModeledContentUploadRequestUtilsMixin):
-
-	def readInput(self, value=None):
-		values = super(ResetInquiryView, self).readInput(value=value)
-		result = CaseInsensitiveDict(values)
-		return result
-
-	def _do_call(self):
-		creator = None
-		values = self.readInput()
-
-		ntiid = values.get('ntiid') or values.get('inquiry')
-		if not ntiid:
-			raise hexc.HTTPUnprocessableEntity(_("Must provide an inquiry ntiid."))
-		inquiry = component.getUtility(IQInquiry, name=ntiid)
-		if inquiry is None:
-			raise hexc.HTTPUnprocessableEntity(_("Must provide a valid inquiry."))
-
-		course = values.get('entry') or values.get('course')
-		if course:
-			course = find_object_with_ntiid(course)
-			course = ICourseInstance(course, None)
-			if course is None:
-				raise hexc.HTTPUnprocessableEntity(_("Must provide a valid course ntiid."))
-
-		# check for a user (inquiry taker)
-		username = values.get('username') or values.get('user') or values.get('taker')
-
-		# if a course was provided, but no taker, delete all entries
-		if course is not None and not username:
-			inquiries = IUsersCourseInquiries(course)
-			for inquiry in inquiries.values():
-				if ntiid in inquiry:
-					del inquiry[ntiid]
-			return hexc.HTTPNoContent()
-
-		if not username:
-			raise hexc.HTTPUnprocessableEntity(_("Must provide a username."))
-			creator = User.get_user(username)
-		if creator is None or not IUser.providedBy(creator):
-			raise hexc.HTTPUnprocessableEntity(_("Must provide a valid user."))
-
-		course = get_course_from_inquiry(inquiry, creator) if course is None else course
-		if course is None:
-			raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
-
-		course_inquiry = component.queryMultiAdapter((course, creator),
-													 IUsersCourseInquiry)
-		if course_inquiry and ntiid in course_inquiry:
-			del course_inquiry[ntiid]
-			return hexc.HTTPNoContent()
-		else:
-			raise hexc.HTTPUnprocessableEntity(_("User has not taken inquiry."))

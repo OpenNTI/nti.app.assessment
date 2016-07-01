@@ -1191,7 +1191,6 @@ class EvaluationResetView(AbstractAuthenticatedView,
 @view_config(context=IQAssignment)
 @view_defaults(route_name='objects.generic.traversal',
 			   renderer='rest',
-			   request_method='POST',
 			   name=VIEW_USER_RESET_EVALUATION,
 			   permission=nauth.ACT_UPDATE)
 class UserEvaluationResetView(AbstractAuthenticatedView,
@@ -1230,7 +1229,10 @@ class UserEvaluationResetView(AbstractAuthenticatedView,
 							 },
 							 None)
 
-		usernames = values.get('username') or values.get('usernames')
+		usernames = 	values.get('user') \
+					or	values.get('users') \
+					or	values.get('username') \
+					or	values.get('usernames')
 		if isinstance(usernames, six.string_types):
 			usernames = usernames.split()
 		if not usernames:

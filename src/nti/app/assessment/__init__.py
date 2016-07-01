@@ -66,6 +66,9 @@ VIEW_COPY_EVALUATION = 'Copy'
 #: A view to reset an evaluation
 VIEW_RESET_EVALUATION = 'Reset'
 
+#: A view to reset an evaluation for user
+VIEW_USER_RESET_EVALUATION = 'UserReset'
+
 def get_submission_catalog():
 	return component.queryUtility(IMetadataCatalog, name=SUBMISSION_CATALOG_NAME)
 

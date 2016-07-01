@@ -33,6 +33,7 @@ from nti.app.assessment import VIEW_ASSESSMENT_MOVE
 from nti.app.assessment import VIEW_COPY_EVALUATION
 from nti.app.assessment import VIEW_RESET_EVALUATION
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
+from nti.app.assessment import VIEW_USER_RESET_EVALUATION
 
 from nti.app.assessment.common import get_courses
 from nti.app.assessment.common import has_submissions
@@ -54,7 +55,11 @@ from nti.app.assessment.evaluations.utils import validate_structural_edits
 from nti.app.assessment.evaluations.utils import import_evaluation_content
 
 from nti.app.assessment.interfaces import ICourseEvaluations
+from nti.app.assessment.interfaces import IUsersCourseInquiry
 from nti.app.assessment.interfaces import IQAvoidSolutionCheck
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
+from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
+from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
 
 from nti.app.assessment.utils import get_course_from_request
 
@@ -139,6 +144,10 @@ from nti.dataserver import authorization as nauth
 from nti.dataserver.authorization import ACT_NTI_ADMIN
 from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
+from nti.dataserver.interfaces import IUser
+
+from nti.dataserver.users import User
+
 from nti.externalization.externalization import to_external_object
 
 from nti.externalization.interfaces import LocatedExternalDict
@@ -165,6 +174,7 @@ OID = StandardExternalFields.OID
 ITEMS = StandardExternalFields.ITEMS
 LINKS = StandardExternalFields.LINKS
 NTIID = StandardExternalFields.NTIID
+TOTAL = StandardExternalFields.TOTAL
 MIMETYPE = StandardExternalFields.MIMETYPE
 ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 
@@ -1113,16 +1123,8 @@ class QuestionSetDeleteChildView(AbstractAuthenticatedView,
 
 # Reset views
 
-@view_config(context=IQPoll)
-@view_config(context=IQSurvey)
-@view_config(context=IQAssignment)
-@view_defaults(route_name='objects.generic.traversal',
-			   renderer='rest',
-			   request_method='POST',
-			   name=VIEW_RESET_EVALUATION,
-			   permission=nauth.ACT_UPDATE)
-class EvaluationResetView(AbstractAuthenticatedView, ModeledContentUploadRequestUtilsMixin):
-
+class EvaluationResetMixin(ModeledContentUploadRequestUtilsMixin):
+	
 	def readInput(self, value=None):
 		if self.request.body:
 			result = CaseInsensitiveDict(read_body_as_external_object(self.request))
@@ -1139,10 +1141,21 @@ class EvaluationResetView(AbstractAuthenticatedView, ModeledContentUploadRequest
 			if result is None:
 				result = get_course_from_evaluation(self.context, self.remoteUser)
 		return result
-
+	
 	def _can_delete_contained_data(self, theObject):
 		return 		is_course_instructor(self.course, self.remoteUser) \
 			   or	has_permission(ACT_NTI_ADMIN, theObject, self.request)
+
+@view_config(context=IQPoll)
+@view_config(context=IQSurvey)
+@view_config(context=IQAssignment)
+@view_defaults(route_name='objects.generic.traversal',
+			   renderer='rest',
+			   request_method='POST',
+			   name=VIEW_RESET_EVALUATION,
+			   permission=nauth.ACT_UPDATE)
+class EvaluationResetView(AbstractAuthenticatedView,
+						  EvaluationResetMixin):
 
 	def _has_submissions(self, theObject):
 		if IQInquiry.providedBy(theObject):
@@ -1173,6 +1186,68 @@ class EvaluationResetView(AbstractAuthenticatedView, ModeledContentUploadRequest
 			self._delete_contained_data(self.context)
 		return hexc.HTTPNoContent()
 
+@view_config(context=IQPoll)
+@view_config(context=IQSurvey)
+@view_config(context=IQAssignment)
+@view_defaults(route_name='objects.generic.traversal',
+			   renderer='rest',
+			   request_method='POST',
+			   name=VIEW_USER_RESET_EVALUATION,
+			   permission=nauth.ACT_UPDATE)
+class UserEvaluationResetView(AbstractAuthenticatedView,
+							  EvaluationResetMixin):
+
+	def _delete_contained_data(self, course, theObject, usernames):
+		result = set()
+		ntiid = theObject.ntiid
+		if IQInquiry.providedBy(theObject):
+			container_interfaces = (IUsersCourseInquiry,)
+		else:
+			container_interfaces = (IUsersCourseAssignmentHistory,
+									IUsersCourseAssignmentMetadata,
+									IUsersCourseAssignmentSavepoint)
+
+		for username in usernames or ():
+			user = User.get_user(username)
+			if not IUser.providedBy(user):
+				continue
+			for provided in container_interfaces:
+				container = component.queryMultiAdapter((course, user), provided)
+				if container and ntiid in container:
+					del container[ntiid]
+					result.add(username)
+
+		return sorted(result)
+
+	def __call__(self):
+		values = self.readInput()
+		if not self._can_delete_contained_data(self.context):
+			raise_json_error(self.request,
+							 hexc.HTTPForbidden,
+							 {
+								u'message': _("Cannot reset evaluation object."),
+								u'code': 'CannotResetEvaluation',
+							 },
+							 None)
+
+		usernames = values.get('username') or values.get('usernames')
+		if isinstance(usernames, six.string_types):
+			usernames = usernames.split()
+		if not usernames:
+			raise_json_error(self.request,
+							 hexc.HTTPUnprocessableEntity,
+							 {
+								u'message': _("Must specify a username."),
+								u'code': 'MustSpecifyUsername',
+							 },
+							 None)
+		
+		items = self._delete_contained_data(self.course, self.context, usernames)
+		result = LocatedExternalDict()
+		result[ITEMS] = items
+		result[TOTAL] = result[ITEM_COUNT] = len(items)
+		return result
+	
 # Publish views
 
 def publish_context(context, start=None, end=None, site_name=None):

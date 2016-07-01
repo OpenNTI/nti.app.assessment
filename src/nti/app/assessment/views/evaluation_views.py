@@ -929,9 +929,9 @@ class AssignmentPutView(NewAndLegacyPutView):
 		# Must toggle types first (if necessary) before calling super; so
 		# everything validates.
 		self._update_timed_status( externalValue, contentObject )
-
-		result = super(AssignmentPutView, self).updateContentObject(contentObject, externalValue,
-																	   set_id, notify)
+		result = super(AssignmentPutView, self).updateContentObject(contentObject,
+																	externalValue,
+																	set_id, notify)
 		return result
 
 # DELETE views

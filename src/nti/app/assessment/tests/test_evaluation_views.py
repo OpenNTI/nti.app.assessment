@@ -400,6 +400,30 @@ class TestEvaluationViews(ApplicationLayerTest):
 		assert_that( res.json_body.get( 'code' ), is_('UngradableInAutoGradeAssignment'))
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
+	def test_create_timed(self):
+		"""
+		Test creating timed assignment.
+		"""
+		course_oid = self._get_course_oid()
+		assignment = self._load_assignment()
+		old_parts = assignment['parts']
+		assignment['parts'] = []
+		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
+		res = self.testapp.post_json(href, assignment, status=201)
+		res = res.json_body
+		assignment_href = res.get( 'href' )
+
+		# Make timed
+		max_time = 300
+		data = { 'maximum_time_allowed': max_time }
+		self.testapp.put_json( assignment_href, data )
+
+		data = { 'parts' : old_parts }
+		res = self.testapp.put_json( assignment_href, data )
+		res = res.json_body
+		assert_that( res.get( 'parts' ), has_length( 1 ))
+
+	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_question_bank_toggle(self):
 		"""
 		Test toggling a question set to/from question bank.
@@ -439,10 +463,10 @@ class TestEvaluationViews(ApplicationLayerTest):
 
 		def _get_question_banks():
 			cat = get_evaluation_catalog()
-			timed_objs = tuple( cat.apply(
-									{IX_MIMETYPE:
-										{'any_of': (QUESTION_BANK_MIME_TYPE,)}}))
-			return timed_objs
+			bank_objs = tuple( cat.apply(
+								{IX_MIMETYPE:
+									{'any_of': (QUESTION_BANK_MIME_TYPE,)}}))
+			return bank_objs
 
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
 			qset = find_object_with_ntiid( qset_ntiid )

@@ -206,7 +206,10 @@ class _TimedAssignmentPartStripperDecorator(AbstractAuthenticatedRequestAwareDec
 		course = _get_course_from_assignment(context,
 											 user=self.remoteUser,
 											 request=self.request)
-		if course is None or is_course_instructor(course, self.remoteUser):
+
+		if 	   course is None \
+			or is_course_instructor( course, self.remoteUser ) \
+			or has_permission(ACT_CONTENT_EDIT, course, self.request):
 			return
 		item = get_assessment_metadata_item(course, self.remoteUser, context.ntiid)
 		if item is None or not item.StartTime:
@@ -218,9 +221,9 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		course = _get_course_from_assignment(context,
 											 user=self.remoteUser,
 											 request=self.request)
-		if course is None:
-			return
-		if is_course_instructor(course, self.remoteUser):
+		if 	   course is None \
+			or is_course_instructor( course, self.remoteUser ) \
+			or has_permission(ACT_CONTENT_EDIT, course, self.request):
 			return
 		item = get_assessment_metadata_item(course, self.remoteUser, context.ntiid)
 		if item is not None:
@@ -248,9 +251,9 @@ class _AssignmentQuestionContentRootURLAdder(AbstractAuthenticatedRequestAwareDe
 
 class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAwareDecorator):
 	"""
-	When anyone besides the instructor requests an assignment
-	that has a due date, and we are before the due date,
-	do not release the answers.
+	When anyone besides the instructor or an editor requests an assignment
+	that has a due date, and we are before the due date, do not release
+	the answers.
 
 	.. note:: This is currently incomplete. We are also sending these
 		question set items back 'standalone'. Depending on the UI, we
@@ -265,16 +268,22 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 		else:
 			course = None
 
+		if course is None:
+			logger.warn("Could not adapt %s to course", context)
+			return False
+
+		if 	   has_permission(ACT_VIEW_SOLUTIONS, course, request) \
+			or has_permission(ACT_CONTENT_EDIT, course, request):
+			# The instructor or an editor, nothing to do
+			return False
+
 		if context is not None:
 			due_date = get_available_for_submission_ending(context, course)
 
 		if not due_date or due_date <= datetime.utcnow():
 
-			if course is not None and is_course_instructor(course, remoteUser):
-				return False
-
-			# if student check if there is a submission for the assignment
-			if course is not None and IQAssignment.providedBy(context):
+			# If student check if there is a submission for the assignment
+			if IQAssignment.providedBy(context):
 				history = component.queryMultiAdapter((course, remoteUser),
 											  		  IUsersCourseAssignmentHistory)
 				if history and context.ntiid in history:  # there is a submission
@@ -282,14 +291,6 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 
 			# Nothing done always strip
 			return True
-
-		if course is None:
-			logger.warn("could not adapt %s to course", context)
-			return False
-
-		if has_permission(ACT_VIEW_SOLUTIONS, course, request):
-			# The instructor, nothing to do
-			return False
 
 		return True
 

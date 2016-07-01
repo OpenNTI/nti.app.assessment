@@ -170,6 +170,7 @@ class TestAssignmentViews(ApplicationLayerTest):
 		assert_that( res.get( 'IsTimedAssignment' ), is_( True ) )
 		assert_that( res.get( 'MaximumTimeAllowed' ), is_( max_time ) )
 		assert_that( res.get( 'NTIID' ), is_( self.assignment_id ) )
+		assert_that( res.get( 'parts' ), has_length( 1 ))
 
 		def _get_timed():
 			cat = get_evaluation_catalog()

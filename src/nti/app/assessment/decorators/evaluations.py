@@ -76,7 +76,7 @@ class _EvaluationLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			 	 or	has_permission(ACT_NTI_ADMIN, context, self.request)):
 			link = Link(context, rel=VIEW_RESET_EVALUATION,
 						elements=('@@' + VIEW_RESET_EVALUATION,),
-						method='DELETE')
+						method='POST')
 			interface.alsoProvides(link, ILocation)
 			link.__name__ = ''
 			link.__parent__ = context

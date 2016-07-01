@@ -269,21 +269,22 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 
 			# Hmm, if they don't submit or submit in different orders,
 			# numbers won't work. We need to canonicalize this to the assignment order.
-			for sub_num, sub_part in enumerate(history_item.Submission.parts):
-				for q_num, q_part in enumerate(sub_part.questions):
-					for qp_num, qp_part in enumerate(q_part.parts):
+			for sub_num, sub_part in enumerate(history_item.Submission.parts or ()):
+				for q_num, q_part in enumerate(sub_part.questions or ()):
+					for qp_num, qp_part in enumerate(q_part.parts or ()):
 						if IQResponse.providedBy(qp_part):
 							qp_part = qp_part.value
 
 						if IQUploadedFile.providedBy(qp_part):
-
 							user_filename_part = self._get_username_filename_part( principal )
-							full_filename = "%s-%s-%s-%s-%s" % (user_filename_part, sub_num, q_num,
-																qp_num, qp_part.filename)
+							full_filename = "%s-%s-%s-%s-%s" % (user_filename_part, 
+																sub_num, 
+																q_num,
+																qp_num,
+																qp_part.filename)
 
 							date_time = datetime.utcfromtimestamp(qp_part.lastModified)
 							info = ZipInfo(full_filename, date_time=date_time.timetuple())
-
 							zipfile.writestr(info, qp_part.data)
 		zipfile.close()
 		buf.reset()

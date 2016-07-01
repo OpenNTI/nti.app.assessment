@@ -449,6 +449,10 @@ def get_course_from_inquiry(inquiry, user=None, registry=component, exc=False):
 	except (KeyError, AttributeError):
 		pass
 
+	if result is None:
+		courses = get_evaluation_courses(inquiry)
+		result = courses[0] if len(courses) == 1 else None
+		
 	# could not find a course .. try adapter
 	if result is None and user is not None:
 		result = find_course_for_inquiry(inquiry, user, exc=exc)

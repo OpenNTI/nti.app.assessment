@@ -47,6 +47,8 @@ from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtils
 
 from nti.app.renderers.interfaces import INoHrefInResponse
 
+from nti.appserver.pyramid_authorization import has_permission
+
 from nti.appserver.ugd_edit_views import UGDPutView
 from nti.appserver.ugd_edit_views import UGDPostView
 from nti.appserver.ugd_edit_views import UGDDeleteView
@@ -227,7 +229,8 @@ class InquirySubmissionsView(AbstractAuthenticatedView, InquiryViewMixin):
 		course = self.course
 		if course is None:
 			raise hexc.HTTPUnprocessableEntity(_("Course not found."))
-		if not is_course_instructor(course, self.remoteUser):
+		if not (	is_course_instructor(course, self.remoteUser) 
+				or	has_permission(nauth.ACT_NTI_ADMIN, course, self.request)):
 			raise hexc.HTTPForbidden(_("Cannot get inquiry submissions."))
 		result = LocatedExternalDict()
 		queried = inquiry_submissions(self.context, course)

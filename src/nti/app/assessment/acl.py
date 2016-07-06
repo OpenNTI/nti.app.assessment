@@ -36,9 +36,9 @@ from nti.traversal.traversal import find_interface
 
 def get_evaluation_courses(context):
 	course = find_interface(context, ICourseInstance, strict=False)
-	if course is not None:
+	if course is not None: # editable evals
 		result = (course,)
-	else:
+	else: # legacy
 		package = find_interface(context, IContentPackage, strict=False)
 		result = content_unit_to_courses(package) if package is not None else ()
 	return result

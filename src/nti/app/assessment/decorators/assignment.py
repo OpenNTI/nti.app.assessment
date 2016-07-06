@@ -262,7 +262,6 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 
 	@classmethod
 	def needs_stripped(cls, context, request, remoteUser):
-		due_date = None
 		if context is not None:
 			course = _get_course_from_assignment(context, remoteUser, request=request)
 		else:
@@ -277,8 +276,7 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 			# The instructor or an editor, nothing to do
 			return False
 
-		if context is not None:
-			due_date = get_available_for_submission_ending(context, course)
+		due_date = get_available_for_submission_ending(context, course)
 
 		if not due_date or due_date <= datetime.utcnow():
 
@@ -296,14 +294,14 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 
 	@classmethod
 	def strip(cls, item):
-		clazz = item.get('Class')
-		if clazz in ('Question', 'AssessedQuestion'):
-			for part in item['parts']:
-				part['solutions'] = None
-				part['explanation'] = None
-		elif clazz in ('QuestionSet', 'AssessedQuestionSet'):
-			for q in item['questions']:
-				cls.strip(q)
+		for part in item['parts']:
+			part['solutions'] = None
+			part['explanation'] = None
+
+	@classmethod
+	def strip_qset(cls, item):
+		for q in item['questions']:
+			cls.strip(q)
 
 	def _predicate(self, context, result):
 		if AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result):
@@ -312,7 +310,7 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 	def _do_decorate_external(self, context, result):
 		for part in result['parts']:
 			question_set = part['question_set']
-			self.strip(question_set)
+			self.strip_qset(question_set)
 
 class _AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAwareDecorator):
 	"""

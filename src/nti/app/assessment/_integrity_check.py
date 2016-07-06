@@ -34,6 +34,7 @@ from nti.assessment.common import iface_of_assessment
 from nti.assessment.interfaces import ALL_EVALUATION_MIME_TYPES
 
 from nti.assessment.interfaces import IQEvaluation
+from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.contentlibrary.indexed_data import get_library_catalog
@@ -107,11 +108,12 @@ def _get_data_item_counts(intids):
 	}
 	for uid in catalog.apply(query) or ():
 		item = intids.queryObject(uid)
-		if IQEvaluation.providedBy(item):
-			folder = find_interface(item, IHostPolicyFolder, strict=False)
-			name = getattr(folder, '__name__', None)
-			key = (item.ntiid, name)
-			count[key].append(item)
+		if not IQEvaluation.providedBy(item):
+			continue
+		folder = find_interface(item, IHostPolicyFolder, strict=False)
+		name = getattr(folder, '__name__', None)
+		key = (item.ntiid, name)
+		count[key].append(item)
 	return count
 
 def check_assessment_integrity(remove=False):
@@ -141,7 +143,7 @@ def check_assessment_integrity(remove=False):
 					removed.add(ntiid)
 			continue
 
-		if len(data) <= 1:
+		if len(data) <= 1 or IQEditableEvaluation.providedBy(context):
 			continue
 		duplicates[ntiid] = len(data) - 1
 		logger.warn("%s has %s duplicate(s)", key, len(data) - 1)
@@ -189,6 +191,14 @@ def check_assessment_integrity(remove=False):
 		uid = intids.queryId(registered)
 		containers = all_containers.get(key)
 
+		if uid is not None and not catalog.get_containers(registered):
+			logger.warn("Reindexing %s", ntiid)
+			reindexed.add(ntiid)
+			catalog.index_doc(uid, registered)
+
+		if IQEditableEvaluation.providedBy(registered):
+			continue
+
 		# fix lineage
 		if registered.__parent__ is None:
 			if containers:
@@ -227,11 +237,6 @@ def check_assessment_integrity(remove=False):
 				container.pop(ntiid, None)
 				container[ntiid] = registered
 				adjusted_container.add(ntiid)
-
-		if uid is not None and not catalog.get_containers(registered):
-			logger.warn("Reindexing %s", ntiid)
-			reindexed.add(ntiid)
-			catalog.index_doc(uid, registered)
 
 	count_set = set(count.keys())
 	reg_set = set(all_registered.keys())

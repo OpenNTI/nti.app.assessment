@@ -114,8 +114,8 @@ from nti.zope_catalog.catalog import ResultSet
 
 NAQ = NTIID_TYPE
 
-def get_resource_site_name(context):
-	folder = find_interface(context, IHostPolicyFolder, strict=False)
+def get_resource_site_name(context, strict=False):
+	folder = find_interface(context, IHostPolicyFolder, strict=strict)
 	return folder.__name__ if folder is not None else None
 get_course_site = get_resource_site_name
 

@@ -201,7 +201,7 @@ def export_evaluation_content(model, source_filer, target_filer):
 def register_context(context, site_name=None):
 	ntiid = context.ntiid
 	provided = iface_of_assessment(context)
-	site_name = get_resource_site_name(context) if not site_name else site_name
+	site_name = get_resource_site_name(context, True) if not site_name else site_name
 	registry = get_host_site(site_name).getSiteManager()
 	if registry.queryUtility(provided, name=ntiid) is None:
 		registerUtility(registry, context, provided, name=ntiid)

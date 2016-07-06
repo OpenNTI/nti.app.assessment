@@ -9,6 +9,8 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+from collections import Mapping
+
 from datetime import datetime
 
 from zope import component
@@ -295,8 +297,10 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 	@classmethod
 	def strip(cls, item):
 		for part in item['parts']:
-			part['solutions'] = None
-			part['explanation'] = None
+			if isinstance( part, Mapping ):
+				for key in ('solutions', 'explanation'):
+					if key in part:
+						part[key] = None
 
 	@classmethod
 	def strip_qset(cls, item):
@@ -330,7 +334,7 @@ class _AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper(Abstra
 
 	def _do_decorate_external(self, context, result):
 		for part in result['parts']:
-			_AssignmentBeforeDueDateSolutionStripper.strip(part)
+			_AssignmentBeforeDueDateSolutionStripper.strip_qset(part)
 
 @interface.implementer(IExternalObjectDecorator)
 class _QuestionSetDecorator(object):

@@ -64,6 +64,8 @@ from nti.contentfragments.interfaces import IHTMLContentFragment
 
 from nti.contenttypes.courses.interfaces import NTI_COURSE_FILE_SCHEME
 
+from nti.coremetadata.interfaces import IPublishable
+
 from nti.site.hostpolicy import get_host_site
 
 from nti.site.utils import registerUtility
@@ -239,6 +241,17 @@ def validate_savepoints(theObject, course, request=None):
 						 },
 						 None)
 
+def validate_published(theObject, course=None, request=None):
+	if IPublishable.providedBy(theObject) and theObject.isPublished():
+		request = request or get_current_request()
+		raise_json_error(request,
+						 hexc.HTTPUnprocessableEntity,
+						 {
+							u'message': _("Object has been published"),
+							u'code': 'ObjectIsPublished',
+						 },
+						 None)
+		
 def validate_structural_edits(theObject, course, request=None):
 	"""
 	Validate that we can structurally edit the given evaluation object.

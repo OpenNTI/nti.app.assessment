@@ -377,9 +377,21 @@ def assignment_comparator(a, b):
 def get_all_course_assignments(context):
 	"""
 	Get all un-proxied, non-filtered course assignments for the given context.
+	This is a relatively expensive call, because we fetch assignments in
+	content packages (necessary for new content backed assignments) and then
+	look for all API-created assignments to merge with.
 	"""
-	items = get_course_assessment_items(context)
-	return [x for x in items if IQAssignment.providedBy(x)]
+	package_items = get_course_assessment_items(context)
+	course_items = get_course_assignments(context, sort=False, do_filtering=False)
+	seen = set()
+	results = []
+	for item in itertools.chain( package_items, course_items ):
+		if 		not IQAssignment.providedBy( item ) \
+			or  item.ntiid in seen:
+			continue
+		seen.add( item.ntiid )
+		results.append( item )
+	return results
 
 def get_course_assignments(context, sort=True, reverse=False, do_filtering=True):
 	items = get_course_evaluations(context, mimetypes=ALL_ASSIGNMENT_MIME_TYPES)
@@ -452,7 +464,7 @@ def get_course_from_inquiry(inquiry, user=None, registry=component, exc=False):
 	if result is None:
 		courses = get_evaluation_courses(inquiry)
 		result = courses[0] if len(courses) == 1 else None
-		
+
 	# could not find a course .. try adapter
 	if result is None and user is not None:
 		result = find_course_for_inquiry(inquiry, user, exc=exc)

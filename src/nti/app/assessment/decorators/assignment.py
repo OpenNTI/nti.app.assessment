@@ -61,6 +61,7 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQTimedAssignment
 
+from nti.assessment.randomized.interfaces import IQuestionBank,
 from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
 from nti.assessment.randomized.interfaces import IRandomizedPartsContainer
 
@@ -400,10 +401,14 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		rels = []
 		rels.append( VIEW_QUESTION_SET_CONTENTS )
 		rels.append( VIEW_ASSESSMENT_MOVE )
-		if IRandomizedQuestionSet.providedBy( context ):
-			rels.append( VIEW_UNRANDOMIZE )
-		else:
-			rels.append( VIEW_RANDOMIZE )
+
+		# Question banks cannot be (un)randomized since we may
+		# support ranges.
+		if not IQuestionBank.providedBy( context ):
+			if IRandomizedQuestionSet.providedBy( context ):
+				rels.append( VIEW_UNRANDOMIZE )
+			else:
+				rels.append( VIEW_RANDOMIZE )
 
 		if IRandomizedPartsContainer.providedBy( context ):
 			rels.append( VIEW_UNRANDOMIZE_PARTS )

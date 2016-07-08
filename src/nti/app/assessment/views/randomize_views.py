@@ -29,6 +29,7 @@ from nti.app.base.abstract_views import AbstractAuthenticatedView
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQEditableEvaluation
 
+from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
 from nti.assessment.randomized.interfaces import IRandomizedPartsContainer
 
@@ -63,6 +64,11 @@ class QuestionSetRandomizeView(AbstractRandomizeView):
 	"""
 
 	_TYPE_RANDOMIZE_ERROR_MSG = u"Cannot randomize legacy object."
+
+	def _validate(self):
+		super( QuestionSetRandomizeView, self )._validate()
+		if IQuestionBank.providedBy( self.context ):
+			raise hexc.HTTPUnprocessableEntity(_('Cannot randomize question bank.'))
 
 	def __call__(self):
 		self._validate()

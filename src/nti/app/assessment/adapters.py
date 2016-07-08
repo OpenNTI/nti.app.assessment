@@ -42,6 +42,7 @@ from nti.app.assessment.common import get_evaluation_courses
 from nti.app.assessment.common import check_submission_version
 from nti.app.assessment.common import get_course_from_assignment
 from nti.app.assessment.common import get_course_self_assessments
+from nti.app.assessment.common import get_auto_grade_policy_state
 from nti.app.assessment.common import get_available_for_submission_beginning
 
 from nti.app.assessment.history import UsersCourseAssignmentHistory
@@ -217,7 +218,10 @@ def _begin_assessment_for_assignment_submission(submission):
 	for submission_part in submission.parts:
 		assignment_part, = [p for p in assignment.parts \
 							if p.question_set.ntiid == submission_part.questionSetId]
-		if assignment_part.auto_grade:
+		# If either the part is auto_grade (content-backed) or the
+		# policy is auto_grade, make sure we assess.
+		if 		assignment_part.auto_grade \
+			or  get_auto_grade_policy_state( assignment, course ):
 			__traceback_info__ = submission_part
 			submission_part = IQAssessedQuestionSet(submission_part)
 		new_parts.append(submission_part)

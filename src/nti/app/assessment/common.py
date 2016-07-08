@@ -718,15 +718,16 @@ def get_max_time_allowed(assignment, course):
 
 def get_auto_grade_policy(assignment, course):
 	"""
-	For a given assignment, return the autograde policy for the given course.
+	For a given assignment (or ntiid), return the autograde policy for the given course.
 	"""
-	policy = IQAssignmentPolicies(course)
-	result = policy.get(assignment.ntiid, 'auto_grade')
+	policy = IQAssignmentPolicies(course, None)
+	assignment_ntiid = getattr( assignment, 'ntiid', assignment )
+	result = policy and policy.get(assignment_ntiid, 'auto_grade')
 	return result
 
-def _get_auto_grade(assignment, course):
+def get_auto_grade_policy_state(assignment, course):
 	"""
-	For a given assignment, return the autograde for the given course.
+	For a given assignment (or ntiid), return the autograde state for the given course.
 	"""
 	policy = get_auto_grade_policy(assignment, course)
 	result = False
@@ -751,7 +752,7 @@ def validate_auto_grade(assignment, course, request=None):
 	Validate the assignment has the proper state for auto-grading, if
 	necessary.
 	"""
-	auto_grade = _get_auto_grade( assignment, course )
+	auto_grade = get_auto_grade_policy_state( assignment, course )
 	if auto_grade:
 		# Work to do
 		if not can_be_auto_graded(assignment):

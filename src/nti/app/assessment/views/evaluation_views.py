@@ -751,6 +751,7 @@ class QuestionSetPutView(EvaluationPutView):
 		"""
 		Transform from a question set to a question bank.
 		"""
+		self._validate_structural_edits( contentObject )
 		result = QQuestionBank()
 		self._copy_to_new_type( contentObject, result )
 		self._re_register( result, IQuestionSet, IQuestionBank )
@@ -760,6 +761,7 @@ class QuestionSetPutView(EvaluationPutView):
 		"""
 		Transform from a question bank to a regular question set.
 		"""
+		self._validate_structural_edits( contentObject )
 		result = QQuestionSet()
 		self._copy_to_new_type( contentObject, result )
 		self._re_register( result, IQuestionBank, IQuestionSet )
@@ -907,8 +909,8 @@ class AssignmentPutView(NewAndLegacyPutView):
 		"""
 		Transform from a regular assignment to a timed assignment.
 		"""
+		self._validate_structural_edits( contentObject )
 		interface.alsoProvides(contentObject, IQTimedAssignment)
-		#contentObject.maximum_time_allowed = max_time_allowed
 		contentObject.mimeType = contentObject.mime_type = TIMED_ASSIGNMENT_MIME_TYPE
 		self._re_register(contentObject, IQAssignment, IQTimedAssignment)
 
@@ -916,9 +918,9 @@ class AssignmentPutView(NewAndLegacyPutView):
 		"""
 		Transform from a timed assignment to a regular assignment.
 		"""
+		self._validate_structural_edits( contentObject )
 		interface.noLongerProvides(contentObject, IQTimedAssignment)
 		contentObject.mimeType = contentObject.mime_type = ASSIGNMENT_MIME_TYPE
-		contentObject.maximum_time_allowed = None
 		self._re_register(contentObject, IQTimedAssignment, IQAssignment)
 
 	def _update_timed_status(self, externalValue, contentObject):
@@ -1124,7 +1126,7 @@ class QuestionSetDeleteChildView(AbstractAuthenticatedView,
 # Reset views
 
 class EvaluationResetMixin(ModeledContentUploadRequestUtilsMixin):
-	
+
 	def readInput(self, value=None):
 		if self.request.body:
 			result = CaseInsensitiveDict(read_body_as_external_object(self.request))
@@ -1141,7 +1143,7 @@ class EvaluationResetMixin(ModeledContentUploadRequestUtilsMixin):
 			if result is None:
 				result = get_course_from_evaluation(self.context, self.remoteUser)
 		return result
-	
+
 	def _can_delete_contained_data(self, theObject):
 		return 		is_course_instructor(self.course, self.remoteUser) \
 			   or	has_permission(ACT_NTI_ADMIN, theObject, self.request)
@@ -1243,13 +1245,13 @@ class UserEvaluationResetView(AbstractAuthenticatedView,
 								u'code': 'MustSpecifyUsername',
 							 },
 							 None)
-		
+
 		items = self._delete_contained_data(self.course, self.context, usernames)
 		result = LocatedExternalDict()
 		result[ITEMS] = items
 		result[TOTAL] = result[ITEM_COUNT] = len(items)
 		return result
-	
+
 # Publish views
 
 def publish_context(context, start=None, end=None, site_name=None):

@@ -82,14 +82,9 @@ def _check_duplicates( items ):
 def _check_empty( items ):
 	"""
 	Check for empties, returning the index(es) of empty items.
+	Note: empty choices/labels/values and now valid.
 	"""
-	indexes = []
-	for idx, item in enumerate( items ):
-		# Empty rendered html is invalid.
-		item = IPlainTextContentFragment( item, item )
-		if not item:
-			indexes.append( idx )
-	return indexes
+	return None
 
 @interface.implementer(IQPartChangeAnalyzer)
 @component.adapter(IQNonGradableMultipleChoicePart)

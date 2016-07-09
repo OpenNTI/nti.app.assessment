@@ -139,10 +139,11 @@ class TestEvaluationViews(ApplicationLayerTest):
 		Test the external state of the given ext_obj or ntiid. We test that
 		status changes based on submissions and other user interaction.
 		"""
+		# Available not used to limit editing.
 		if not ext_obj:
 			ext_obj = self.testapp.get( '/dataserver2/Objects/%s' % ntiid ).json_body
 		self.require_link_href_with_rel(ext_obj, 'date-edit')
-		limited = has_savepoints or has_submissions or available
+		limited = has_savepoints or has_submissions
 		assert_that( ext_obj.get( 'LimitedEditingCapabilities' ), is_( limited ) )
 		assert_that( ext_obj.get( 'LimitedEditingCapabilitiesSavepoints' ),
 					 is_( has_savepoints ) )
@@ -550,10 +551,11 @@ class TestEvaluationViews(ApplicationLayerTest):
 		html_dupes = ['1', '2',
 					  '<a data-id="data-id111"></a>Choice 1',
 					  '<a data-id="data-id222"></a>Choice 1' ]
+		# Empties are now allowed in choices/labels/values.
 		empties = [ 'test', 'empty', '', 'try']
 		dupe_index = 3
 		html_dupe_index = 3
-		empty_index = 2
+		empty_choice_status = 201
 
 		# Multiple choice duplicates
 		multiple_choice['parts'][0]['choices'] = html_dupes
@@ -570,10 +572,8 @@ class TestEvaluationViews(ApplicationLayerTest):
 
 		# Multiple choice empty
 		multiple_choice['parts'][0]['choices'] = empties
-		res = self.testapp.post_json( qset_contents_href, multiple_choice, status=422 )
-		res = res.json_body
-		assert_that( res.get( 'field' ), is_( 'choices' ))
-		assert_that( res.get( 'index' ), contains( empty_index ))
+		res = self.testapp.post_json( qset_contents_href, multiple_choice,
+									  status=empty_choice_status )
 
 		# Multiple answer duplicates
 		multiple_answer['parts'][0]['choices'] = dupes
@@ -584,10 +584,8 @@ class TestEvaluationViews(ApplicationLayerTest):
 
 		# Multiple answer empty
 		multiple_answer['parts'][0]['choices'] = empties
-		res = self.testapp.post_json( qset_contents_href, multiple_answer, status=422 )
-		res = res.json_body
-		assert_that( res.get( 'field' ), is_( 'choices' ))
-		assert_that( res.get( 'index' ), contains( empty_index ))
+		res = self.testapp.post_json( qset_contents_href, multiple_answer,
+									  status=empty_choice_status )
 
 		# Matching duplicate labels
 		old_labels = matching['parts'][0]['labels']
@@ -598,11 +596,9 @@ class TestEvaluationViews(ApplicationLayerTest):
 		assert_that( res.get( 'index' ), contains( dupe_index ))
 
 		# Matching empty labels
-		matching['parts'][0]['labels'] = empties
-		res = self.testapp.post_json( qset_contents_href, matching, status=422 )
-		res = res.json_body
-		assert_that( res.get( 'field' ), is_( 'labels' ))
-		assert_that( res.get( 'index' ), contains( empty_index ))
+		matching['parts'][0]['labels'] = empties + ['11', '12', '13']
+		res = self.testapp.post_json( qset_contents_href, matching,
+									  status=empty_choice_status )
 
 		# Matching duplicate values
 		matching['parts'][0]['labels'] = old_labels
@@ -613,11 +609,9 @@ class TestEvaluationViews(ApplicationLayerTest):
 		assert_that( res.get( 'index' ), contains( dupe_index ))
 
 		# Matching empty values
-		matching['parts'][0]['values'] = empties
-		res = self.testapp.post_json( qset_contents_href, matching, status=422 )
-		res = res.json_body
-		assert_that( res.get( 'field' ), is_( 'values' ))
-		assert_that( res.get( 'index' ), contains( empty_index ))
+		matching['parts'][0]['values'] = empties + ['11', '12', '13']
+		res = self.testapp.post_json( qset_contents_href, matching,
+									  status=empty_choice_status )
 
 		# Matching multiple duplicates
 		matching['parts'][0]['values'] = ['1','2','1','3','3','1']
@@ -995,7 +989,8 @@ class TestEvaluationViews(ApplicationLayerTest):
 		student_environ = self._create_and_enroll( enrolled_student )
 		restricted_structural_status = 422
 
-		# Student has no such links
+		# TODO: Student has no such links
+		# TODO: Test move
 
 		# Create submission
 		upload_submission = QUploadedFile(data=b'1234',
@@ -1023,24 +1018,23 @@ class TestEvaluationViews(ApplicationLayerTest):
 
 		# Cannot structurally edit assignment anymore.
 		# Cannot add question
-		# FIXME: Currently not indexing submissions by question-set and question.
-# 		questions = question_set_source.get('questions')
-# 		self.testapp.post_json( qset_contents_href, questions[0],
-# 								status=restricted_structural_status )
-#
-# 		# Cannot delete
-# 		delete_suffix = self._get_delete_url_suffix(0, question_ntiid)
-# 		self.testapp.delete(qset_contents_href + delete_suffix,
-# 							status=restricted_structural_status )
-#
-# 		# Cannot randomize
-# 		rel_list = (VIEW_RANDOMIZE, VIEW_RANDOMIZE_PARTS,
-# 					VIEW_UNRANDOMIZE, VIEW_UNRANDOMIZE_PARTS)
-# 		for rel in rel_list:
-# 			random_link = self.require_link_href_with_rel(qset, rel)
-# 			self.testapp.post( random_link, status=restricted_structural_status )
+		questions = question_set_source.get('questions')
+		self.testapp.post_json( qset_contents_href, questions[0],
+								status=restricted_structural_status )
 
-		# FIXME: Add same question to another assignment. Should not be able to
+		# Cannot delete question set.
+		delete_suffix = self._get_delete_url_suffix(0, question_ntiid)
+		self.testapp.delete(qset_contents_href + delete_suffix,
+							status=restricted_structural_status )
+
+		# Cannot randomize
+		rel_list = (VIEW_RANDOMIZE, VIEW_RANDOMIZE_PARTS,
+					VIEW_UNRANDOMIZE, VIEW_UNRANDOMIZE_PARTS)
+		for rel in rel_list:
+			random_link = '%s/%s' % ( qset_href, rel )
+			self.testapp.post( random_link, status=restricted_structural_status )
+
+		# TODO: Add same question to another assignment. Should not be able to
 		# edit that question.
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)

@@ -25,8 +25,9 @@ from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment.common import has_savepoints
 from nti.app.assessment.common import has_submissions
-from nti.app.assessment.common import has_inquiry_submissions
 from nti.app.assessment.common import get_resource_site_name
+from nti.app.assessment.common import has_inquiry_submissions
+from nti.app.assessment.common import get_assignments_for_evaluation_object
 
 from nti.app.base.abstract_views import get_safe_source_filename
 
@@ -251,11 +252,13 @@ def validate_published(theObject, course=None, request=None):
 							u'code': 'ObjectIsPublished',
 						 },
 						 None)
-		
+
 def validate_structural_edits(theObject, course, request=None):
 	"""
 	Validate that we can structurally edit the given evaluation object.
 	We can as long as there are no savepoints or submissions.
 	"""
-	validate_savepoints(theObject, course, request)
-	validate_submissions(theObject, course, request)
+	assignments = get_assignments_for_evaluation_object( theObject )
+	for assignment in assignments:
+		validate_savepoints(assignment, course, request)
+		validate_submissions(assignment, course, request)

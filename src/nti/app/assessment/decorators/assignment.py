@@ -10,6 +10,7 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 from collections import Mapping
+from collections import namedtuple
 
 from datetime import datetime
 
@@ -39,6 +40,7 @@ from nti.app.assessment.common import get_max_time_allowed
 from nti.app.assessment.common import get_auto_grade_policy
 from nti.app.assessment.common import get_assessment_metadata_item
 from nti.app.assessment.common import get_available_for_submission_ending
+from nti.app.assessment.common import get_assignments_for_evaluation_object
 from nti.app.assessment.common import get_available_for_submission_beginning
 from nti.app.assessment.common import get_available_assignments_for_evaluation_object
 
@@ -347,6 +349,9 @@ class _QuestionSetDecorator(object):
 		if oid and OID not in external:
 			external[OID] = oid
 
+_ContextStatus = namedtuple( "_ContextStatus",
+							 ("has_savepoints", "has_submissions", "is_available"))
+
 @interface.implementer(IExternalMappingDecorator)
 class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
@@ -416,17 +421,27 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			rels.append( VIEW_RANDOMIZE_PARTS )
 		return rels
 
+	def _get_context_status( self, context ):
+		courses = self.get_courses(context)
+		# We need to check assignments for our context for submissions.
+		assignments = get_assignments_for_evaluation_object(context)
+		savepoints = submissions = is_available = False
+		for assignment in assignments:
+			savepoints = savepoints or has_savepoints( assignment, courses )
+			submissions = submissions or has_submissions( assignment, courses )
+			is_available = is_available or self._is_available( assignment )
+		return _ContextStatus( has_savepoints=savepoints,
+							   has_submissions=submissions,
+							   is_available=is_available )
+
 	def _do_decorate_external(self, context, result):
 		_links = result.setdefault(LINKS, [])
 
-		courses = self.get_courses(context)
-		savepoints = has_savepoints(context, courses)
-		submissions = has_submissions(context, courses)
-		is_available = self._is_available( context )
-		in_progress = savepoints or submissions or is_available
+		context_status = self._get_context_status( context )
+		in_progress = context_status.has_savepoints or context_status.has_submissions
 		result['LimitedEditingCapabilities'] = in_progress
-		result['LimitedEditingCapabilitiesSavepoints'] = savepoints
-		result['LimitedEditingCapabilitiesSubmissions'] = submissions
+		result['LimitedEditingCapabilitiesSavepoints'] = context_status.has_savepoints
+		result['LimitedEditingCapabilitiesSubmissions'] = context_status.has_submissions
 
 		rels = ['schema',]
 		# We provide the edit link no matter the status of the assessment
@@ -434,7 +449,7 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		if not self._has_edit_link(_links):
 			rels.append('edit')
 
-		if not submissions and not savepoints:
+		if not in_progress:
 			# Do not provide structural links if evaluation has savepoints
 			# or submissions.
 			if IQuestionSet.providedBy( context ):

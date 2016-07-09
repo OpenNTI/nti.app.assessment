@@ -685,7 +685,7 @@ def get_assignments_for_evaluation_object(context, sites=None):
 	return tuple(result)
 
 def _is_published(context):
-	return not IPublishable.providedBy(context) or	context.is_published()
+	return not IPublishable.providedBy(context) or context.is_published()
 
 def get_available_assignments_for_evaluation_object(context):
 	"""

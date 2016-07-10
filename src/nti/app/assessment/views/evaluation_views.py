@@ -141,9 +141,6 @@ from nti.coremetadata.interfaces import ICalendarPublishable
 
 from nti.dataserver import authorization as nauth
 
-from nti.dataserver.authorization import ACT_NTI_ADMIN
-from nti.dataserver.authorization import ACT_CONTENT_EDIT
-
 from nti.dataserver.interfaces import IUser
 
 from nti.dataserver.users import User
@@ -1042,7 +1039,7 @@ class SubmittableDeleteView(EvaluationDeleteView, ModeledContentUploadRequestUti
 
 	def _can_delete_contained_data(self, theObject):
 		return 		is_course_instructor(self.course, self.remoteUser) \
-			   or	has_permission(ACT_NTI_ADMIN, theObject, self.request)
+			   or	has_permission(nauth.ACT_NTI_ADMIN, theObject, self.request)
 
 	def _has_submissions(self, theObject):
 		if IQInquiry.providedBy(theObject):
@@ -1146,7 +1143,7 @@ class EvaluationResetMixin(ModeledContentUploadRequestUtilsMixin):
 
 	def _can_delete_contained_data(self, theObject):
 		return 		is_course_instructor(self.course, self.remoteUser) \
-			   or	has_permission(ACT_NTI_ADMIN, theObject, self.request)
+			   or	has_permission(nauth.ACT_NTI_ADMIN, theObject, self.request)
 
 @view_config(context=IQPoll)
 @view_config(context=IQSurvey)
@@ -1319,7 +1316,7 @@ class EvaluationGetView(GenericGetView):
 		# to unpublished evaluations.
 		if 		IQEditableEvaluation.providedBy(result) \
 			and not result.is_published() \
-			and not has_permission(ACT_CONTENT_EDIT, result, self.request):
+			and not has_permission(nauth.ACT_CONTENT_EDIT, result, self.request):
 			raise hexc.HTTPForbidden()
 		return result
 

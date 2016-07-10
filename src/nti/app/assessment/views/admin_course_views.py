@@ -41,6 +41,8 @@ from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
 ITEMS = StandardExternalFields.ITEMS
+TOTAL = StandardExternalFields.TOTAL
+ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 
 @view_config(context=IDataserverFolder)
 @view_config(context=CourseAdminPathAdapter)
@@ -88,5 +90,5 @@ class MoveUserAssignmentsView(AbstractAuthenticatedView,
 				continue
 			moved = move_user_assignment_from_course_to_course(user, source, target)
 			items[username] = sorted(moved)
-		result['ItemCount'] = result['Total'] = len(items)
+		result[ITEM_COUNT] = result[TOTAL] = len(items)
 		return result

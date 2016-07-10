@@ -6,7 +6,6 @@
 
 	<include package="pyramid_zcml" />
 
-	<pyramid:scan package=".admin_views" />
 	<pyramid:scan package=".course_views" />
 	<pyramid:scan package=".survey_views" />
 	<pyramid:scan package=".history_views" />
@@ -16,6 +15,7 @@
 	<pyramid:scan package=".randomize_views" />
 	<pyramid:scan package=".assessment_views" />
 	<pyramid:scan package=".evaluation_views" />
-	<pyramid:scan package=".course_admin_views" />
+	<pyramid:scan package=".admin_course_views" />
+	<pyramid:scan package=".admin_general_views" />
 
 </configure>

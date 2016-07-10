@@ -68,7 +68,6 @@ def _get_course_from_evaluation(evaluation, user=None, catalog=None, request=Non
 									  		user=user,
 									 		catalog=catalog)
 	return result
-_get_course_from_assignment = _get_course_from_evaluation # BWC
 
 def _root_url(ntiid):
 	library = component.queryUtility(IContentPackageLibrary)

@@ -5,6 +5,7 @@
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
+from pyramid.threadlocal import get_current_request
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -191,7 +192,8 @@ def _on_survey_event(context, event):
 
 @component.adapter(IQuestion, IRegradeQuestionEvent)
 def _on_regrade_question_event(context, event):
-	course = get_course_from_request()
+	request = get_current_request()
+	course = get_course_from_request(request) if request else None
 	if course is None:
 		course = get_course_from_evaluation(context, user=get_remote_user())
 	if course is not None:

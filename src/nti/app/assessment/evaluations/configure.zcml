@@ -51,9 +51,7 @@
 					 nti.externalization.interfaces.IObjectModifiedFromExternalEvent" />
 
 	<subscriber handler=".subscribers._on_regrade_question_event" />
-	<!--
 	<subscriber handler=".subscribers._on_assessment_policies_modified_event" />
-	-->
 
 	<!-- Analyzers -->
 	<adapter factory=".analyzers._FilePartChangeAnalyzer" />

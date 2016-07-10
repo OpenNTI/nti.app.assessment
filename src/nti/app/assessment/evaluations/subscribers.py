@@ -9,6 +9,8 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+import six
+
 from zope import component
 from zope import lifecycleevent
 
@@ -51,9 +53,11 @@ from nti.app.authentication import get_remote_user
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQuestion
+from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQEvaluationItemContainer
+from nti.assessment.interfaces import IQAssessmentPoliciesModified
 from nti.assessment.interfaces import IQuestionInsertedInContainerEvent
 from nti.assessment.interfaces import IQuestionRemovedFromContainerEvent
 
@@ -63,6 +67,8 @@ from nti.coremetadata.interfaces import IRecordable
 from nti.coremetadata.interfaces import IRecordableContainer
 
 from nti.externalization.interfaces import IObjectModifiedFromExternalEvent
+
+from nti.ntiids.ntiids import find_object_with_ntiid
 
 from nti.recorder.interfaces import TRX_TYPE_CREATE
 
@@ -191,6 +197,20 @@ def _on_survey_event(context, event):
 						u'code': 'EmptyQuestionSet',
 					})
 
+def _regrade_assesment(context, course):
+	seen = set()
+	result = []
+	for item in evaluation_submissions(context, course):
+		if not IUsersCourseAssignmentHistoryItem.providedBy(item):
+			continue
+		assignmentId = item.__name__ # by def
+		if assignmentId in seen: # safety
+			continue
+		result.append(item)
+		seen.add(assignmentId)
+		notify(ObjectRegradeEvent(item))
+	return result
+
 @component.adapter(IQuestion, IRegradeQuestionEvent)
 def _on_regrade_question_event(context, event):
 	request = get_current_request()
@@ -198,12 +218,12 @@ def _on_regrade_question_event(context, event):
 	if course is None:
 		course = get_course_from_evaluation(context, user=get_remote_user())
 	if course is not None:
-		seen = set()
-		for item in evaluation_submissions(context, course):
-			if not IUsersCourseAssignmentHistoryItem.providedBy(item):
-				continue
-			assignmentId = item.__name__ # by def
-			if assignmentId in seen: # safety
-				continue
-			seen.add(assignmentId)
-			notify(ObjectRegradeEvent(item))
+		_regrade_assesment(context, course)
+
+@component.adapter(ICourseInstance, IQAssessmentPoliciesModified)
+def _on_assessment_policies_modified_event(course, event):
+	assesment = event.assesment
+	if isinstance(assesment, six.string_types):
+		assesment = find_object_with_ntiid(assesment)
+	if IQAssignment.providedBy(assesment) and 'total_points' in event.descriptions:
+		_regrade_assesment(assesment, course)

@@ -24,6 +24,7 @@ from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import evaluation_submissions
+from nti.app.assessment.common import get_course_from_evaluation
 from nti.app.assessment.common import get_evaluation_containment
 from nti.app.assessment.common import get_assignments_for_evaluation_object
 
@@ -40,6 +41,10 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 
 from nti.app.assessment.interfaces import ObjectRegradeEvent
 from nti.app.assessment.interfaces import RegradeQuestionEvent
+
+from nti.app.assessment.utils import get_course_from_request
+
+from nti.app.authentication import get_remote_user
 
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
@@ -186,7 +191,9 @@ def _on_survey_event(context, event):
 
 @component.adapter(IQuestion, IRegradeQuestionEvent)
 def _on_regrade_question_event(context, event):
-	course = ICourseInstance(context, None)
+	course = get_course_from_request()
+	if course is None:
+		course = get_course_from_evaluation(context, user=get_remote_user())
 	if course is not None:
 		seen = set()
 		for item in evaluation_submissions(context, course):

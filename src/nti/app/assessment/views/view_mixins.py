@@ -296,6 +296,9 @@ class AssessmentPutView(UGDPutView):
 							  	  _('Value is invalid.'),
 							  	  field=field)
 		elif value_type == float:
+			if not value:
+				# Empty/None is acceptable.
+				return None
 			try:
 				result = float(value)
 				if result < 0:

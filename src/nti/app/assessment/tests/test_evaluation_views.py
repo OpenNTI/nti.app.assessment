@@ -283,6 +283,35 @@ class TestEvaluationViews(ApplicationLayerTest):
 		res = self.testapp.post(copy_ref, status=201)
 		assert_that(res.json_body, has_entry('NTIID', is_not(qset_ntiid)) )
 
+# 	@WithSharedApplicationMockDS(testapp=True, users=True)
+# 	def test_create_qset_with_existing_question(self):
+# 		course_oid = self._get_course_oid()
+# 		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
+# 		qset = self._load_questionset()
+# 		assignment = self._load_assignment()
+# 		assignment_parts = assignment.pop( 'parts' )
+# 		# Create assignment
+# 		res = self.testapp.post_json( href, assignment )
+# 		assignment_href = res.json_body.get( 'href' )
+#
+# 		# Create question and question ntiid
+# 		res = self.testapp.post_json( href, qset )
+# 		res = res.json_body
+# 		res = res['questions'][0]
+# 		question_ntiid1 = res.get( 'NTIID' )
+#
+# 		# Now post assignment with one question with only ntiid
+# 		assignment_parts[0]['question_set']['questions'] = ({'ntiid':question_ntiid1,
+# 															 'MimeType': res.get( 'MimeType' )},)
+# 		from IPython.core.debugger import Tracer;Tracer()()
+# 		res = self.testapp.put_json( assignment_href, {'parts': assignment_parts} )
+# 		res = res.json_body
+# 		from IPython.core.debugger import Tracer;Tracer()()
+# 		assert_that( res.get( 'NTIID' ), not_none() )
+# 		questions = res.get( 'questions' )
+# 		assert_that( questions, has_length( 1 ))
+# 		assert_that( questions[0].get( 'NTIID' ), is_( question_ntiid1 ))
+
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_editing_assignments(self):
 		editor_environ = self._make_extra_environ(username="sjohnson@nextthought.com")
@@ -335,6 +364,16 @@ class TestEvaluationViews(ApplicationLayerTest):
 		res = res.json_body
 		assert_that(res.get('auto_grade'), is_(False))
 		assert_that(res.get('total_points'), is_(2.5))
+
+		# Empty points
+		data = { 'total_points': None }
+		self.testapp.put_json('/dataserver2/Objects/%s' % assignment_ntiid,
+							  data, extra_environ=editor_environ)
+		res = self.testapp.get('/dataserver2/Objects/' + assignment_ntiid,
+							   extra_environ=editor_environ)
+		res = res.json_body
+		assert_that(res.get('auto_grade'), is_(False))
+		assert_that(res.get('total_points'), none())
 
 		# Errors
 		data = { 'auto_grade': 'what', 'total_points': 2.5 }

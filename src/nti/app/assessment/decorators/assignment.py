@@ -45,7 +45,7 @@ from nti.app.assessment.common import get_available_for_submission_beginning
 from nti.app.assessment.common import get_available_assignments_for_evaluation_object
 
 from nti.app.assessment.decorators import _root_url
-from nti.app.assessment.decorators import _get_course_from_assignment
+from nti.app.assessment.decorators import _get_course_from_evaluation
 from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
 
 from nti.app.assessment.interfaces import ACT_VIEW_SOLUTIONS
@@ -155,7 +155,7 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
 	def _do_decorate_external(self, context, result):
 		# TODO: It would be better to have the course context in our link,
 		# but for now, we'll just have a course param.
-		course = _get_course_from_assignment(context, self.remoteUser, request=self.request)
+		course = _get_course_from_evaluation(context, self.remoteUser, request=self.request)
 		catalog_entry = ICourseCatalogEntry(course, None)
 		if catalog_entry is not None:
 			parameters = { 'course' : catalog_entry.ntiid }
@@ -178,7 +178,7 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		return result
 
 	def _do_decorate_external(self, assignment, result):
-		course = _get_course_from_assignment(assignment,
+		course = _get_course_from_evaluation(assignment,
 											 self.remoteUser,
 											 self._catalog,
 											 request=self.request)
@@ -208,7 +208,7 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
 class _TimedAssignmentPartStripperDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _do_decorate_external(self, context, result):
-		course = _get_course_from_assignment(context,
+		course = _get_course_from_evaluation(context,
 											 user=self.remoteUser,
 											 request=self.request)
 
@@ -223,7 +223,7 @@ class _TimedAssignmentPartStripperDecorator(AbstractAuthenticatedRequestAwareDec
 class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _do_decorate_external(self, context, result):
-		course = _get_course_from_assignment(context,
+		course = _get_course_from_evaluation(context,
 											 user=self.remoteUser,
 											 request=self.request)
 		if 	   course is None \
@@ -268,7 +268,7 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 	@classmethod
 	def needs_stripped(cls, context, request, remoteUser):
 		if context is not None:
-			course = _get_course_from_assignment(context, remoteUser, request=request)
+			course = _get_course_from_evaluation(context, remoteUser, request=request)
 		else:
 			course = None
 
@@ -499,7 +499,7 @@ class _AssessmentPracticeLinkDecorator(AbstractAuthenticatedRequestAwareDecorato
 
 	def _predicate(self, context, result):
 		user = self.remoteUser
-		course = _get_course_from_assignment(context, user, request=self.request)
+		course = _get_course_from_evaluation(context, user, request=self.request)
 		return 		self._is_authenticated \
 				and (	is_course_instructor_or_editor(course, user) \
 					 or has_permission(ACT_CONTENT_EDIT, context, self.request))

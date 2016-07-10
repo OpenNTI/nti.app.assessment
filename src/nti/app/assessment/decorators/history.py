@@ -14,7 +14,7 @@ from zope import interface
 
 from nti.app.assessment.common import get_assessment_metadata_item
 
-from nti.app.assessment.decorators import _get_course_from_assignment
+from nti.app.assessment.decorators import _get_course_from_evaluation
 from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
 from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
 
@@ -108,7 +108,7 @@ class _AssignmentHistoryLinkDecorator(_AbstractTraversableLinkDecorator):
 
 	def _do_decorate_external(self, context, result_map):
 		user = self.remoteUser
-		course = _get_course_from_assignment(context,
+		course = _get_course_from_evaluation(context,
 											 user,
 											 self._catalog,
 											 request=self.request)

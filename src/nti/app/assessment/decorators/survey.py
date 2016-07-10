@@ -23,7 +23,7 @@ from nti.app.assessment.common import get_available_for_submission_ending
 from nti.app.assessment.common import get_available_for_submission_beginning
 
 from nti.app.assessment.decorators import _root_url
-from nti.app.assessment.decorators import _get_course_from_assignment
+from nti.app.assessment.decorators import _get_course_from_evaluation
 from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
 from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
 
@@ -134,7 +134,7 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 
 		user = self.remoteUser
 		links = result_map.setdefault(LINKS, [])
-		course = _get_course_from_assignment(context, 
+		course = _get_course_from_evaluation(context, 
 											 user,
 											 self._catalog,
 											 request=self.request)

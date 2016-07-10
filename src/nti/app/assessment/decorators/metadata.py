@@ -13,7 +13,7 @@ from zope import interface
 
 from nti.app.assessment.common import get_assessment_metadata_item
 
-from nti.app.assessment.decorators import _get_course_from_assignment
+from nti.app.assessment.decorators import _get_course_from_evaluation
 from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
@@ -35,7 +35,7 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _do_decorate_external(self, assignment, result):
 		user = self.remoteUser
-		course = _get_course_from_assignment(assignment, user, request=self.request)
+		course = _get_course_from_evaluation(assignment, user, request=self.request)
 		if course is None:
 			return
 

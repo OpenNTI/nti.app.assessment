@@ -736,14 +736,17 @@ def get_auto_grade_policy_state(assignment, course):
 		result = not policy.get( 'disable' )
 	return result
 
+def is_part_auto_gradable( part ):
+	# Validate every part has grader.
+	return getattr(part, 'grader_interface', None) \
+		or getattr(part, 'grader_name', None )
+
 def can_be_auto_graded(assignment):
 	for part in assignment.parts or ():
 			question_set = part.question_set
 			for question in question_set.questions or ():
 				for part in question.parts or ():
-					# Validate every part has grader.
-					if 		not getattr(part, 'grader_interface', None) \
-						and not getattr(part, 'grader_name', None):
+					if not is_part_auto_gradable( part ):
 						return False
 	return True
 

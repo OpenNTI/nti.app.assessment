@@ -21,6 +21,7 @@ from zope.location.interfaces import ILocation
 
 from nti.app.assessment import VIEW_MOVE_PART
 from nti.app.assessment import VIEW_RANDOMIZE
+from nti.app.assessment import VIEW_AUTO_GRADE
 from nti.app.assessment import VIEW_UNRANDOMIZE
 from nti.app.assessment import VIEW_INSERT_PART
 from nti.app.assessment import VIEW_REMOVE_PART
@@ -36,7 +37,9 @@ from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
 from nti.app.assessment.common import get_courses
 from nti.app.assessment.common import has_savepoints
 from nti.app.assessment.common import has_submissions
+from nti.app.assessment.common import can_be_auto_graded
 from nti.app.assessment.common import get_max_time_allowed
+from nti.app.assessment.common import is_part_auto_gradable
 from nti.app.assessment.common import get_auto_grade_policy
 from nti.app.assessment.common import get_assessment_metadata_item
 from nti.app.assessment.common import get_available_for_submission_ending
@@ -58,10 +61,12 @@ from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecora
 
 from nti.appserver.pyramid_authorization import has_permission
 
+from nti.assessment.interfaces import IQPart
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQTimedAssignment
+from nti.assessment.interfaces import IQEditableEvaluation
 
 from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
@@ -471,6 +476,40 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			link.__name__ = ''
 			link.__parent__ = context
 			_links.append(link)
+
+@interface.implementer(IExternalMappingDecorator)
+class _PartAutoGradeStatus(AbstractAuthenticatedRequestAwareDecorator):
+	"""
+	Mark question parts as auto-gradable.
+	"""
+
+	def _predicate(self, context, result):
+		return 		self._is_authenticated \
+				and IQEditableEvaluation.providedBy( context ) \
+				and has_permission(ACT_CONTENT_EDIT, context, self.request) \
+
+	def _do_decorate_external(self, context, result):
+		result['AutoGradable'] = is_part_auto_gradable( context )
+
+@interface.implementer(IExternalMappingDecorator)
+class _AssignmentAutoGradeLinkProvider(AbstractAuthenticatedRequestAwareDecorator):
+	"""
+	Give editors auto_grade link, if auto-gradable.
+	"""
+
+	def _predicate(self, context, result):
+		return 		self._is_authenticated \
+				and IQEditableEvaluation.providedBy( context ) \
+				and has_permission(ACT_CONTENT_EDIT, context, self.request) \
+				and can_be_auto_graded( context )
+
+	def _do_decorate_external(self, context, result):
+		_links = result.setdefault(LINKS, [])
+		link = Link(context, rel=VIEW_AUTO_GRADE, elements=None)
+		interface.alsoProvides(link, ILocation)
+		link.__name__ = ''
+		link.__parent__ = context
+		_links.append(link)
 
 @interface.implementer(IExternalMappingDecorator)
 class _AssessmentDateEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):

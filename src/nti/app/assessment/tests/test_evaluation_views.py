@@ -35,6 +35,7 @@ from nti.app.assessment import get_evaluation_catalog
 
 from nti.app.assessment import VIEW_MOVE_PART
 from nti.app.assessment import VIEW_RANDOMIZE
+from nti.app.assessment import VIEW_AUTO_GRADE
 from nti.app.assessment import VIEW_UNRANDOMIZE
 from nti.app.assessment import VIEW_INSERT_PART
 from nti.app.assessment import VIEW_REMOVE_PART
@@ -65,6 +66,8 @@ from nti.assessment.interfaces import QUESTION_BANK_MIME_TYPE
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQuestionSet
+
+from nti.assessment.parts import QFilePart
 
 from nti.assessment.response import QUploadedFile
 
@@ -176,6 +179,19 @@ class TestEvaluationViews(ApplicationLayerTest):
 
 		for rel in submission_rel_checks:
 			to_check( ext_obj, rel )
+
+		# If assignment, check auto_grade ref matches auto_grade status of parts.
+		if ext_mime == ASSIGNMENT_MIME_TYPE:
+			to_check = self.require_link_href_with_rel
+			for part in ext_obj.get( 'parts' ) or ():
+				qset = part.get( 'question_set' )
+				for question in qset.get( 'questions' ) or ():
+					for part in question.get( 'parts' ) or ():
+						auto_gradable = part.get( 'AutoGradable' )
+						if not auto_gradable:
+							to_check = self.forbid_link_with_rel
+							assert_that( part.get( 'MimeType' ), is_( QFilePart.mime_type ) )
+			to_check( ext_obj, VIEW_AUTO_GRADE )
 
 	def _test_qset_ext_state(self, qset, creator, assignment_ntiid, **kwargs):
 		self._test_assignments( qset.get( NTIID ), assignment_ntiids=(assignment_ntiid,) )

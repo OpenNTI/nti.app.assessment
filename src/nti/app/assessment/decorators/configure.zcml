@@ -21,6 +21,16 @@
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"/>
 
 	<!-- assignment -->
+	<subscriber factory=".assignment._PartAutoGradeStatus"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="nti.assessment.interfaces.IQPart
+					 pyramid.interfaces.IRequest" />
+
+	<subscriber factory=".assignment._AssignmentAutoGradeLinkProvider"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="nti.assessment.interfaces.IQAssignment
+					 pyramid.interfaces.IRequest" />
+
 	<subscriber factory=".assignment._AssignmentsByOutlineNodeDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.contenttypes.courses.interfaces.ICourseInstance

@@ -60,6 +60,9 @@ VIEW_REMOVE_PART_OPTION = 'RemovePartOption'
 #: A marker rel to signify that this evaluation object allows part option moves.
 VIEW_MOVE_PART_OPTION = 'MovePartOption'
 
+#: A marker rel to signify that this assignment can be auto_graded.
+VIEW_AUTO_GRADE = 'AutoGrade'
+
 #: A view to copy an evaluation
 VIEW_COPY_EVALUATION = 'Copy'
 

@@ -89,6 +89,7 @@ class EvaluationsImporter(BaseSectionImporter):
 			theObject = self.get_registered_evaluation(theObject, course)
 		if theObject is None:
 			raise KeyError("Question %s does not exists." % ntiid)
+		[p.ntiid for p in theObject.parts or ()] # set auto part NTIIDs
 		return theObject
 
 	def handle_poll(self, theObject, course):
@@ -99,6 +100,7 @@ class EvaluationsImporter(BaseSectionImporter):
 			theObject = self.get_registered_evaluation(theObject, course)
 		if theObject is None:
 			raise KeyError("Poll %s does not exists." % ntiid)
+		[p.ntiid for p in theObject.parts or ()] # set auto part NTIIDs
 		return theObject
 
 	def handle_question_set(self, theObject, course):
@@ -149,6 +151,7 @@ class EvaluationsImporter(BaseSectionImporter):
 			theObject = self.get_registered_evaluation(theObject, course)
 		if theObject is None:
 			raise KeyError("Assignment %s does not exists." % ntiid)
+		[p.ntiid for p in theObject.parts or ()] # set auto part NTIIDs
 		return theObject
 
 	def handle_evaluation(self, theObject, course, source_filer):

@@ -5,7 +5,6 @@
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
-from pyramid.threadlocal import get_current_request
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -20,6 +19,8 @@ from zope.intid.interfaces import IIntIdAddedEvent
 from zope.lifecycleevent import ObjectModifiedEvent
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
 from zope.lifecycleevent.interfaces import IObjectRemovedEvent
+
+from pyramid.threadlocal import get_current_request
 
 from nti.app.assessment import MessageFactory as _
 

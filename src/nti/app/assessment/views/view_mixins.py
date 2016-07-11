@@ -335,7 +335,7 @@ class AssessmentPutView(UGDPutView):
 		for course in courses or ():
 			policy = self._get_or_create_policy_part(course, ntiid, part)
 			policy[key] = value
-			event_notify(QAssessmentPoliciesModified(course, ntiid, key))
+			event_notify(QAssessmentPoliciesModified(course, ntiid, key, value))
 
 	def updateContentObject(self, contentObject, externalValue, set_id=False,
 							notify=True, pre_hook=None):

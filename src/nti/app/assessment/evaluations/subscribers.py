@@ -225,5 +225,6 @@ def _on_assessment_policies_modified_event(course, event):
 	assesment = event.assesment
 	if isinstance(assesment, six.string_types):
 		assesment = find_object_with_ntiid(assesment)
-	if IQAssignment.providedBy(assesment) and 'total_points' in event.descriptions:
-		_regrade_assesment(assesment, course)
+	if IQAssignment.providedBy(assesment) and 'total_points' == event.key:
+		if event.value:
+			_regrade_assesment(assesment, course)

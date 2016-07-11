@@ -55,6 +55,17 @@ def to_int(value):
 		raise raise_error({ u'message': _("Invalid integer value."),
 							u'code': 'ValueError'})
 
+def to_positive_int(value, zero=False):
+	try:
+		value = to_int(value)
+		if zero:
+			assert value >= 0
+		else:
+			assert value > 0
+	except AssertionError:
+		raise raise_error({ u'message': _("Invalid positive integer value."),
+							u'code': 'ValueError'})
+
 def to_external(obj):
 	if not isinstance(obj, Mapping):
 		return to_external_object(obj, decorate=False)

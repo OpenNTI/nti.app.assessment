@@ -145,9 +145,11 @@ class AssessmentPutView(UGDPutView):
 		"""
 		Returns if we are currently within a possibly open-ended date range.
 		"""
+		# Must have at least one date to be considered in-range.
 		result = 	(not start_date or start_date < now) \
-				and (not end_date or now < end_date)
-		return result
+				and (not end_date or now < end_date) \
+				and (start_date or end_date)
+		return bool( result )
 
 	@classmethod
 	def _start_date_available_change(cls, old_start_date, new_start_date, now):

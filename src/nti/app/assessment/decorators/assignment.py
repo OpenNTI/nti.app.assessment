@@ -461,7 +461,7 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 				# For question sets, we also want to decorate our randomized state.
 				if not IQuestionBank.providedBy( context ):
 					result['Randomized'] = IRandomizedQuestionSet.providedBy( context )
-				result['RandomizedParts'] = IRandomizedPartsContainer.providedBy( context )
+				result['RandomizedPartsType'] = IRandomizedPartsContainer.providedBy( context )
 			elif IQAssignment.providedBy( context ):
 				rels.extend( self._get_assignment_rels() )
 			elif IQuestion.providedBy( context ):
@@ -486,8 +486,9 @@ class _PartAutoGradeStatus(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _predicate(self, context, result):
 		# IQParts are not IQEditableEvaluations (we can check lineage if needed).
-		return 		self._is_authenticated \
-				and has_permission(ACT_CONTENT_EDIT, context, self.request) \
+		return False
+# 		return 		self._is_authenticated \
+# 				and has_permission(ACT_CONTENT_EDIT, context, self.request) \
 
 	def _do_decorate_external(self, context, result):
 		result['AutoGradable'] = is_part_auto_gradable( context )

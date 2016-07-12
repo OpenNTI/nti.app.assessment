@@ -109,7 +109,7 @@ class AssessmentPutView(UGDPutView):
 
 	TO_AVAILABLE_MSG = None
 	TO_UNAVAILABLE_MSG = None
-	DUE_DATE_CONFIRM_MSG = _('Are you sure you want to change the due date?')
+	AVAILABLE_DATE_CONFIRM_MSG = _('Are you sure you want to change the available date?')
 
 	POLICY_KEYS = ("auto_grade", 'total_points')
 
@@ -147,8 +147,7 @@ class AssessmentPutView(UGDPutView):
 		"""
 		# Must have at least one date to be considered in-range.
 		result = 	(not start_date or start_date < now) \
-				and (not end_date or now < end_date) \
-				and (start_date or end_date)
+				and (not end_date or now < end_date)
 		return bool( result )
 
 	@classmethod
@@ -168,6 +167,10 @@ class AssessmentPutView(UGDPutView):
 		"""
 		Validates that the assessment does not change availability states. If
 		so, we throw a 409 with an available `confirm` link for user overrides.
+
+		The webapp first publishes the assignment and passes in the availability
+		dates if scheduled. If no dates are passed in (and the assignment is
+		published), it is considered available.
 		"""
 		_marker = object()
 		new_end_date = externalValue.get('available_for_submission_ending', _marker)
@@ -205,7 +208,10 @@ class AssessmentPutView(UGDPutView):
 
 				start_date_available_change = self._start_date_available_change(old_start_date,
 																				start_date_to_check, now)
-				old_available = self._is_date_in_range(old_start_date,
+				# It's currently available if published or if its
+				# dates are in range.
+				old_available = contentObject.isPublished() \
+							and	self._is_date_in_range(old_start_date,
 													   old_end_date, now)
 				new_available = self._is_date_in_range(start_date_to_check,
 													   end_date_to_check, now)
@@ -228,7 +234,7 @@ class AssessmentPutView(UGDPutView):
 					# State change but not due to the start date. Give a
 					# general confirmation message.
 					self._raise_conflict_error(self.CONFIRM_CODE,
-											   self.DUE_DATE_CONFIRM_MSG,
+											   self.AVAILABLE_DATE_CONFIRM_MSG,
 											   course,
 											   contentObject.ntiid)
 

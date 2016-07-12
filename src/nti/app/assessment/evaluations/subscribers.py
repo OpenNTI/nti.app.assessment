@@ -192,6 +192,13 @@ def _reassess_submission( item, question_updated ):
 				assessed_question = IQAssessedQuestion(question)
 				break
 
+	if assessed_question is None:
+		logger.warn( 'Cannot find question in submission to re-assess (assignment=%s) (user=%s) (question=%s)',
+					 submission.assignmentId,
+					 submission.creator,
+					 item.ntiid )
+		return
+
 	for part in assessment.parts or ():
 		new_questions = []
 		for question in part.questions or ():
@@ -200,6 +207,11 @@ def _reassess_submission( item, question_updated ):
 			new_questions.append( question )
 		part.questions = new_questions
 		return
+
+	logger.warn( 'Cannot find question in assessment (assignment=%s) (user=%s) (question=%s)',
+				 submission.assignmentId,
+				 submission.creator,
+				 item.ntiid )
 
 def _regrade_assesment(context, course):
 	result = []

@@ -486,9 +486,8 @@ class _PartAutoGradeStatus(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _predicate(self, context, result):
 		# IQParts are not IQEditableEvaluations (we can check lineage if needed).
-		return False
-# 		return 		self._is_authenticated \
-# 				and has_permission(ACT_CONTENT_EDIT, context, self.request) \
+		return 		self._is_authenticated \
+				and has_permission(ACT_CONTENT_EDIT, context, self.request) \
 
 	def _do_decorate_external(self, context, result):
 		result['AutoGradable'] = is_part_auto_gradable( context )

@@ -752,8 +752,9 @@ def get_auto_grade_policy_state(assignment, course):
 
 def is_part_auto_gradable( part ):
 	# Validate every part has grader.
-	return getattr(part, 'grader_interface', None) \
-		or getattr(part, 'grader_name', None )
+	result = 	getattr(part, 'grader_interface', None) \
+			or  getattr(part, 'grader_name', None )
+	return bool( result )
 
 def can_be_auto_graded(assignment):
 	for part in assignment.parts or ():

@@ -136,7 +136,8 @@ class TestEvaluationViews(ApplicationLayerTest):
 			assert_that( found_ntiids, is_(assignment_ntiids))
 
 	def _test_external_state(self, ext_obj=None, ntiid=None, available=False,
-							 has_savepoints=False, has_submissions=False):
+							 has_savepoints=False, has_submissions=False,
+							 randomized=False, randomized_parts=False):
 		"""
 		Test the external state of the given ext_obj or ntiid. We test that
 		status changes based on submissions and other user interaction.
@@ -175,6 +176,8 @@ class TestEvaluationViews(ApplicationLayerTest):
 			# Randomize is context sensitive and tested elsewhere.
 			submission_rel_checks.extend( (VIEW_QUESTION_SET_CONTENTS,
 										   VIEW_ASSESSMENT_MOVE) )
+			assert_that( ext_obj.get( 'Randomized' ), is_( randomized ))
+			assert_that( ext_obj.get( 'RandomizedPartsType' ), is_( randomized_parts ))
 
 		for rel in submission_rel_checks:
 			to_check( ext_obj, rel )
@@ -186,7 +189,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 				for question in qset.get( 'questions' ) or ():
 					for part in question.get( 'parts' ) or ():
 						auto_gradable = part.get( 'AutoGradable' )
-						assert_that( auto_gradable, not_none())
+						assert_that( auto_gradable, not_none() )
 						if not auto_gradable:
 							assert_that( part.get( 'MimeType' ), is_( QFilePart.mime_type ) )
 

@@ -186,6 +186,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 				for question in qset.get( 'questions' ) or ():
 					for part in question.get( 'parts' ) or ():
 						auto_gradable = part.get( 'AutoGradable' )
+						assert_that( auto_gradable, not_none())
 						if not auto_gradable:
 							assert_that( part.get( 'MimeType' ), is_( QFilePart.mime_type ) )
 

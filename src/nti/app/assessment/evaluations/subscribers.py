@@ -201,12 +201,15 @@ def _reassess_submission( item, question_updated ):
 
 	for part in assessment.parts or ():
 		new_questions = []
+		updated = False
 		for question in part.questions or ():
 			if question.questionId == question_updated.ntiid:
 				question = assessed_question
+				updated = True
 			new_questions.append( question )
-		part.questions = new_questions
-		return
+		if updated:
+			part.questions = new_questions
+			return
 
 	logger.warn( 'Cannot find question in assessment (assignment=%s) (user=%s) (question=%s)',
 				 submission.assignmentId,

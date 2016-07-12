@@ -44,7 +44,6 @@ from nti.dataserver.interfaces import IShouldHaveTraversablePath
 from nti.dataserver.interfaces import ExtendedCompoundModeledContentBody
 
 from nti.namedfile.interfaces import IFileConstrained
-from nti.namedfile.interfaces import IFileConstraints
 
 from nti.schema.field import Int
 from nti.schema.field import Dict
@@ -205,7 +204,7 @@ class IUsersCourseAssignmentHistoryItemFeedbackContainer(IContainerNamesContaine
 				 			 "inline them for externalization.",
 				 readonly=True)
 
-class IUsersCourseAssignmentHistoryItem(ICreated, 
+class IUsersCourseAssignmentHistoryItem(ICreated,
 										IContained,
 										ILastModified,
 										IShouldHaveTraversablePath):

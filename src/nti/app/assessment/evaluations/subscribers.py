@@ -44,7 +44,6 @@ from nti.app.assessment.interfaces import IRegradeQuestionEvent
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 
 from nti.app.assessment.interfaces import ObjectRegradeEvent
-from nti.app.assessment.interfaces import RegradeQuestionEvent
 
 from nti.app.assessment.utils import get_course_from_request
 
@@ -55,6 +54,7 @@ from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
+from nti.assessment.interfaces import IQAssessedQuestion
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQEvaluationItemContainer
 from nti.assessment.interfaces import IQAssessmentPoliciesModified
@@ -106,26 +106,6 @@ def _validate_part_resource(resource):
 		if analyzer is not None:
 			analyzer.validate(check_solutions=check_solutions)
 
-def _allow_question_change(question, externalValue):
-	parts = externalValue.get('parts')
-	check_solutions = not IQAvoidSolutionCheck.providedBy(question)
-	course = find_interface(question, ICourseInstance, strict=False)
-	if parts and has_submissions(question, course):
-		regrade = []
-		for part, change in zip(question.parts, parts):
-			analyzer = IQPartChangeAnalyzer(part, None)
-			if analyzer is not None:
-				if not analyzer.allow(change, check_solutions=check_solutions):
-					raise_error(
-						{
-							u'message': _("Question has submissions. It cannot be updated."),
-							u'code': 'CannotChangeObjectDefinition',
-						})
-				if analyzer.regrade(change):
-					regrade.append(part)
-		if regrade:
-			notify(RegradeQuestionEvent(question, regrade))
-
 def _allow_poll_change(question, externalValue):
 	parts = externalValue.get('parts')
 	course = find_interface(question, ICourseInstance, strict=False)
@@ -149,7 +129,6 @@ def _on_question_added(question, event):
 def _on_question_modified(question, event):
 	if IQEditableEvaluation.providedBy(question):
 		_validate_part_resource(question)
-		_allow_question_change(question, event.external_value)
 
 @component.adapter(IQEditableEvaluation, IQuestionInsertedInContainerEvent)
 def _on_question_inserted_in_container(container, event):
@@ -197,17 +176,39 @@ def _on_survey_event(context, event):
 						u'code': 'EmptyQuestionSet',
 					})
 
+def _reassess_submission( item, question_updated ):
+	"""
+	Update our submission by re-assessing the changed question.
+	"""
+	submission = item.Submission
+	assessment = item.pendingAssessment
+	if submission is None or assessment is None:
+		return
+
+	assessed_question = None
+	for part in submission.parts or ():
+		for question in part.questions or ():
+			if question.questionId == question_updated.ntiid:
+				assessed_question = IQAssessedQuestion(question)
+				break
+
+	for part in assessment.parts or ():
+		new_questions = []
+		for question in part.questions or ():
+			if question.questionId == question_updated.ntiid:
+				question = assessed_question
+			new_questions.append( question )
+		part.questions = new_questions
+		return
+
 def _regrade_assesment(context, course):
-	seen = set()
 	result = []
 	for item in evaluation_submissions(context, course):
 		if not IUsersCourseAssignmentHistoryItem.providedBy(item):
 			continue
-		assignmentId = item.__name__ # by def
-		if assignmentId in seen: # safety
-			continue
 		result.append(item)
-		seen.add(assignmentId)
+		_reassess_submission( item, context )
+		# Now broadcast we need a new grade
 		notify(ObjectRegradeEvent(item))
 	return result
 

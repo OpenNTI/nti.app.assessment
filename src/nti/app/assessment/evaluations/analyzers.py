@@ -176,6 +176,8 @@ class _MultipleChoicePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 		new_sols = change.get('solutions')
 		if new_sols is not None and is_gradable(self.part):
 			old_sols = self.part.solutions
+			if len( old_sols or () ) != len( new_sols ):
+				return True
 			for old, new in zip(old_sols, new_sols):
 				# change solution order/value - # int or array of ints
 				if self.homogenize(old.value) != self.homogenize(new.get('value')):
@@ -246,6 +248,8 @@ class _FreeResponsePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 		new_sols = change.get('solutions')
 		if new_sols is not None and is_gradable(self.part):
 			old_sols = self.part.solutions
+			if len( old_sols or () ) != len( new_sols ):
+				return True
 			for old, new in zip(old_sols, new_sols):
 				# change solution order/value
 				if self.homogenize(old.value) != self.homogenize(new.get('value')):
@@ -389,6 +393,8 @@ class _ConnectingPartChangeAnalyzer(_BasicPartChangeAnalyzer):
 		new_sols = change.get('solutions')
 		if new_sols is not None and is_gradable(self.part):
 			old_sols = self.part.solutions
+			if len( old_sols or () ) != len( new_sols ):
+				return True
 			for old, new in zip(old_sols, new_sols):
 				# change solution order/value
 				if self.homogenize(old.value) != self.homogenize(new.get('value')):  # map of ints

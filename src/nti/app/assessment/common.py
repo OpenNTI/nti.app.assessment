@@ -36,6 +36,8 @@ from nti.app.assessment import get_submission_catalog
 
 from nti.app.assessment.assignment_filters import AssessmentPolicyExclusionFilter
 
+from nti.app.assessment.evaluations import raise_error
+
 from nti.app.assessment.index import IX_SITE
 from nti.app.assessment.index import IX_COURSE
 from nti.app.assessment.index import IX_SUBMITTED
@@ -44,6 +46,8 @@ from nti.app.assessment.index import IX_CONTAINMENT
 from nti.app.assessment.index import IX_ASSESSMENT_ID
 from nti.app.assessment.index import IX_MIMETYPE as IX_ASSESS_MIMETYPE
 
+from nti.app.assessment.interfaces import IQAvoidSolutionCheck
+from nti.app.assessment.interfaces import IQPartChangeAnalyzer
 from nti.app.assessment.interfaces import IUsersCourseInquiries
 from nti.app.assessment.interfaces import IUsersCourseInquiryItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
@@ -533,15 +537,21 @@ def get_submissions(context, courses=(), index_name=IX_ASSESSMENT_ID):
 	if not courses:
 		return ()
 	else:
+		assignments = get_assignments_for_evaluation_object(context)
+		if assignments:
+			context_ntiids = [x.ntiid for x in assignments]
+		else:
+			context_ntiid = getattr(context, 'ntiid', context)
+			context_ntiids = (context_ntiid,)
+
 		catalog = get_submission_catalog()
 		intids = component.getUtility(IIntIds)
 		entry_ntiids = get_entry_ntiids(courses)
 		sites = {get_resource_site_name(x) for x in courses}
-		context_ntiid = getattr(context, 'ntiid', context)
 		query = {
 		 	IX_SITE: {'any_of':sites},
 			IX_COURSE: {'any_of':entry_ntiids},
-		 	index_name: {'any_of':(context_ntiid,)}
+		 	index_name: {'any_of':context_ntiids}
 		}
 		uids = catalog.apply(query) or ()
 		return ResultSet(uids, intids, True)
@@ -813,3 +823,26 @@ def check_submission_version(submission, evaluation):
 	if 		evaluation_version \
 		and evaluation_version != getattr(submission, 'version', ''):
 		raise hexc.HTTPConflict(_('Evaluation version has changed.'))
+
+def pre_validate_question_change(question, externalValue):
+	"""
+	Validate the proposed changes with the current question state
+	(before modification), returning the parts that changed.
+	"""
+	parts = externalValue.get('parts')
+	check_solutions = not IQAvoidSolutionCheck.providedBy(question)
+	course = find_interface(question, ICourseInstance, strict=False)
+	regrade_parts = []
+	if parts and has_submissions(question, course):
+		for part, change in zip(question.parts, parts):
+			analyzer = IQPartChangeAnalyzer(part, None)
+			if analyzer is not None:
+				if not analyzer.allow(change, check_solutions=check_solutions):
+					raise_error(
+						{
+							u'message': _("Question has submissions. It cannot be updated."),
+							u'code': 'CannotChangeObjectDefinition',
+						})
+				if analyzer.regrade(change):
+					regrade_parts.append(part)
+	return regrade_parts

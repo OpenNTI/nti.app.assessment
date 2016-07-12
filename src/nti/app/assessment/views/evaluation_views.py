@@ -45,6 +45,7 @@ from nti.app.assessment.common import delete_evaluation_metadata
 from nti.app.assessment.common import delete_inquiry_submissions
 from nti.app.assessment.common import get_evaluation_containment
 from nti.app.assessment.common import get_course_from_evaluation
+from nti.app.assessment.common import pre_validate_question_change
 from nti.app.assessment.common import delete_evaluation_savepoints
 from nti.app.assessment.common import delete_evaluation_submissions
 from nti.app.assessment.common import get_assignments_for_evaluation_object
@@ -57,6 +58,7 @@ from nti.app.assessment.evaluations.utils import import_evaluation_content
 from nti.app.assessment.interfaces import ICourseEvaluations
 from nti.app.assessment.interfaces import IUsersCourseInquiry
 from nti.app.assessment.interfaces import IQAvoidSolutionCheck
+from nti.app.assessment.interfaces import RegradeQuestionEvent
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
@@ -686,6 +688,15 @@ class QuestionPutView(EvaluationPutView):
 	def _check_object_constraints(self, obj, externalValue):
 		super(QuestionPutView, self)._check_object_constraints(obj, externalValue)
 		self._pre_flight_validation( obj, externalValue )
+
+	def updateContentObject(self, contentObject, externalValue, **kwargs):
+		# We need to check our question part changes before we update our content object.
+		part_regrades = pre_validate_question_change( contentObject, externalValue )
+		result = super( QuestionPutView, self ).updateContentObject(contentObject, externalValue, **kwargs)
+		# Only regrade after our content object is updated.
+		if part_regrades:
+			notify(RegradeQuestionEvent(result, part_regrades))
+		return result
 
 @view_config(route_name='objects.generic.traversal',
 			 context=IQuestionSet,

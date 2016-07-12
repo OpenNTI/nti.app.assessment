@@ -533,10 +533,14 @@ def get_entry_ntiids(courses=()):
 	return ntiids
 
 def get_submissions(context, courses=(), index_name=IX_ASSESSMENT_ID):
+	"""
+	Return all submissions for the given evaluation object.
+	"""
 	courses = to_course_list(courses)
 	if not courses:
 		return ()
 	else:
+		# We only index by assignment, so fetch all assignments for our context.
 		assignments = get_assignments_for_evaluation_object(context)
 		if assignments:
 			context_ntiids = [x.ntiid for x in assignments]

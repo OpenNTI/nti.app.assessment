@@ -261,4 +261,4 @@ def validate_structural_edits(theObject, course, request=None):
 	assignments = get_assignments_for_evaluation_object( theObject )
 	for assignment in assignments:
 		validate_savepoints(assignment, course, request)
-		validate_submissions(assignment, course, request)
+	validate_submissions(theObject, course, request)

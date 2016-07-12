@@ -430,8 +430,8 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		savepoints = submissions = is_available = False
 		for assignment in assignments:
 			savepoints = savepoints or has_savepoints( assignment, courses )
-			submissions = submissions or has_submissions( assignment, courses )
 			is_available = is_available or self._is_available( assignment )
+		submissions = has_submissions( context, courses )
 		return _ContextStatus( has_savepoints=savepoints,
 							   has_submissions=submissions,
 							   is_available=is_available )

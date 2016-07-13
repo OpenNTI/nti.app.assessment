@@ -36,6 +36,7 @@ from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 from nti.app.assessment import VIEW_USER_RESET_EVALUATION
 
 from nti.app.assessment.common import get_courses
+from nti.app.assessment.common import has_savepoints
 from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import validate_auto_grade
 from nti.app.assessment.common import make_evaluation_ntiid
@@ -1172,7 +1173,8 @@ class EvaluationResetView(AbstractAuthenticatedView,
 			result = has_inquiry_submissions(theObject, self.course)
 		else:
 			courses = get_courses(self.course)
-			result = has_submissions(theObject, courses)
+			result = 	has_submissions(theObject, courses) \
+					or  has_savepoints( theObject, courses )
 		return result
 
 	def _delete_contained_data(self, theObject):

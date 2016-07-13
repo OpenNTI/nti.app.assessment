@@ -63,7 +63,6 @@ from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQTimedAssignment
-from nti.assessment.interfaces import IQEditableEvaluation
 
 from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
@@ -351,6 +350,20 @@ class _QuestionSetDecorator(object):
 		if oid and OID not in external:
 			external[OID] = oid
 
+@interface.implementer(IExternalObjectDecorator)
+class _QuestionSetRandomizedDecorator(object):
+	"""
+	Decorate the randomized state o question sets,
+	since links may not be present.
+	"""
+
+	__metaclass__ = SingletonDecorator
+
+	def decorateExternalObject(self, original, external):
+		external['Randomized'] = not IQuestionBank.providedBy( original ) \
+							and IRandomizedQuestionSet.providedBy( original )
+		external['RandomizedPartsType'] = IRandomizedPartsContainer.providedBy( original )
+
 _ContextStatus = namedtuple( "_ContextStatus",
 							 ("has_savepoints", "has_submissions", "is_available"))
 
@@ -458,10 +471,6 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 				qset_rels = self._get_question_set_rels( context )
 				if qset_rels:
 					rels.extend( qset_rels )
-				# For question sets, we also want to decorate our randomized state.
-				if not IQuestionBank.providedBy( context ):
-					result['Randomized'] = IRandomizedQuestionSet.providedBy( context )
-				result['RandomizedPartsType'] = IRandomizedPartsContainer.providedBy( context )
 			elif IQAssignment.providedBy( context ):
 				rels.extend( self._get_assignment_rels() )
 			elif IQuestion.providedBy( context ):

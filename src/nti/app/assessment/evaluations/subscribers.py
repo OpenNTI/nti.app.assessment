@@ -196,7 +196,7 @@ def _reassess_submission( item, question_updated ):
 		logger.warn( 'Cannot find question in submission to re-assess (assignment=%s) (user=%s) (question=%s)',
 					 submission.assignmentId,
 					 submission.creator,
-					 item.ntiid )
+					 question_updated.ntiid )
 		return
 
 	for part in assessment.parts or ():
@@ -214,7 +214,7 @@ def _reassess_submission( item, question_updated ):
 	logger.warn( 'Cannot find question in assessment (assignment=%s) (user=%s) (question=%s)',
 				 submission.assignmentId,
 				 submission.creator,
-				 item.ntiid )
+				 question_updated.ntiid )
 
 def _regrade_assesment(context, course):
 	result = []

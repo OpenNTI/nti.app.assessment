@@ -1194,7 +1194,7 @@ class EvaluationResetView(AbstractAuthenticatedView,
 							 None)
 		elif self._has_submissions(self.context):
 			self._delete_contained_data(self.context)
-		return hexc.HTTPNoContent()
+		return self.context
 
 @view_config(context=IQPoll)
 @view_config(context=IQSurvey)

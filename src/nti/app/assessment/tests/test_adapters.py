@@ -410,8 +410,10 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		
 		# The instructor can reset all submission
 		reset_href = '/dataserver2/Objects/%s/@@Reset' % quote(self.assignment_id)
-		self.testapp.post_json(reset_href,
-							   extra_environ=instructor_environ, status=204)
+		res = self.testapp.post_json(reset_href,
+							   extra_environ=instructor_environ, status=200)
+		assert_that( res.json_body['NTIID'] == self.assignment_id)
+
 		res = self.testapp.get(activity_link, extra_environ=instructor_environ)
 		assert_that( res.json_body, has_entry('TotalItemCount', 0) )
 		assert_that( res.json_body, has_entry( 'Items', is_empty() ))

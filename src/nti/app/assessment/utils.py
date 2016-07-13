@@ -26,9 +26,9 @@ from zope.security.interfaces import IPrincipal
 
 from pyramid.threadlocal import get_current_request
 
-from nti.app.assessment.common import proxy, get_course_from_evaluation
+from nti.app.assessment.common import proxy
 from nti.app.assessment.common import AssessmentItemProxy
-from nti.app.assessment.common import get_course_from_assignment
+from nti.app.assessment.common import get_course_from_evaluation
 
 from nti.app.assessment.interfaces import ACT_DOWNLOAD_GRADES
 
@@ -165,7 +165,7 @@ def copy_evaluation(context, is_instructor=True):
 	if IQAssignment.providedBy(context):
 		result = copy_assignment(context)
 	elif IQuestionBank.providedBy(context):
-		result = copy_questionbank(context, is_instructor=is_instructor) # all questions
+		result = copy_questionbank(context, is_instructor=is_instructor)  # all questions
 	elif IQuestionSet.providedBy(context):
 		result = copy_questionset(context)
 	elif IQuestion.providedBy(context):
@@ -200,7 +200,7 @@ def assignment_download_precondition(context, request=None, remoteUser=None):
 	if not username:
 		return False
 
-	course = get_course_from_assignment(context, remoteUser)
+	course = get_course_from_evaluation(context, remoteUser)
 	if course is None or not has_permission(ACT_DOWNLOAD_GRADES, course, request):
 		return False
 
@@ -263,7 +263,7 @@ class EvaluationContainerIdGetter(object):
 			if IContentUnit.providedBy(parent):
 				return parent.ntiid
 			elif ICourseInstance.providedBy(parent):
-				entry = ICourseCatalogEntry(parent) # annotation
+				entry = ICourseCatalogEntry(parent)  # annotation
 				return entry.ntiid
 			elif ICourseCatalogEntry.providedBy(parent):
 				return entry.ntiid
@@ -277,14 +277,14 @@ class RandomizedPartGraderUnshuffleValidator(object):
 		Default to needs unshuffling. If we have a course or editor,
 		we should not unshuffle.
 		"""
+		result = True
 		# Need to have at least a question here for this to work
 		# XXX: This only returns a single course.
-		course = get_course_from_evaluation( context )
-		result = True
+		course = get_course_from_evaluation(context)
 		if course is not None:
 			user = get_remote_user()
-			username = getattr( user, 'username', user )
-			creator = getattr( creator, 'username', creator )
+			username = getattr(user, 'username', user)
+			creator = getattr(creator, 'username', creator)
 			# If we have a creator, it probably means we're decorating.
 			# If we don't have a creator, the remote user is the creator.
 			if creator and creator != username:
@@ -292,7 +292,8 @@ class RandomizedPartGraderUnshuffleValidator(object):
 				result = True
 			else:
 				# If not, return if submitter is and editor/instructor.
-				is_editor = has_permission( ACT_CONTENT_EDIT, course ) \
-						or  is_course_instructor_or_editor( course, user )
+				is_editor = has_permission(ACT_CONTENT_EDIT, course) \
+						or  is_course_instructor_or_editor(course, user)
 				result = not is_editor
 		return result
+	needsUnshuffled = needs_unshuffled

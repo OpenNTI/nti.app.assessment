@@ -324,6 +324,7 @@
 	<!-- Utilities -->
 	<utility factory=".utils.PrincipalSeedSelector" />
 	<utility factory=".utils.EvaluationContainerIdGetter" />
+	<utility factory=".utils.RandomizedPartGraderUnshuffleValidator"/>
 
 	<!-- Exporter -->
 	<utility factory=".exporter.AssessmentsExporter" name="010:Assessments" />

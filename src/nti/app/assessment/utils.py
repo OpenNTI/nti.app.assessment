@@ -26,7 +26,7 @@ from zope.security.interfaces import IPrincipal
 
 from pyramid.threadlocal import get_current_request
 
-from nti.app.assessment.common import proxy
+from nti.app.assessment.common import proxy, get_course_from_evaluation
 from nti.app.assessment.common import AssessmentItemProxy
 from nti.app.assessment.common import get_course_from_assignment
 
@@ -48,6 +48,7 @@ from nti.assessment.randomized import questionbank_question_chooser
 
 from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.randomized.interfaces import IPrincipalSeedSelector
+from nti.assessment.randomized.interfaces import IRandomizedPartGraderUnshuffleValidator
 
 from nti.common.proxy import removeAllProxies
 
@@ -55,6 +56,10 @@ from nti.contentlibrary.interfaces import IContentUnit
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
+
+from nti.contenttypes.courses.utils import is_course_instructor_or_editor
+
+from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import IUsernameSubstitutionPolicy
@@ -107,7 +112,7 @@ def do_copy(source):
 	else:
 		result = copy.copy(source)
 	return result
-	
+
 def copy_part(part):
 	result = do_copy(part)
 	return result
@@ -263,3 +268,22 @@ class EvaluationContainerIdGetter(object):
 			elif ICourseCatalogEntry.providedBy(parent):
 				return entry.ntiid
 		return None
+
+@interface.implementer(IRandomizedPartGraderUnshuffleValidator)
+class RandomizedPartGraderUnshuffleValidator(object):
+
+	def needs_unshuffled(self, context):
+		"""
+		Default to needs unshuffling. If we have a course or editor,
+		we should not unshuffle.
+		"""
+		# Need to have at least a question here for this to work
+		# XXX: This only returns a single course.
+		course = get_course_from_evaluation( context )
+		result = True
+		if course is not None:
+			user = get_remote_user()
+			is_editor = has_permission( ACT_CONTENT_EDIT, course ) \
+					or  is_course_instructor_or_editor( course, user )
+			result = not is_editor
+		return result

@@ -127,8 +127,8 @@ class _QuestionSubmissionDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		if len(question.parts) != len(context.parts):
 			logger.warn("Not all question parts were submitted")
 
-		# CS: We need the user that submitted the question
-		# in order to unshuffle the response
+		# CS: We need the user that submitted the question in
+		# order to unshuffle the response
 		creator = uca_history.creator
 		parts = result_map['parts'] = []
 		for question_part, sub_part in zip(question.parts, context.parts):

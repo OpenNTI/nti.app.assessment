@@ -272,7 +272,7 @@ class EvaluationContainerIdGetter(object):
 @interface.implementer(IRandomizedPartGraderUnshuffleValidator)
 class RandomizedPartGraderUnshuffleValidator(object):
 
-	def needs_unshuffled(self, context):
+	def needs_unshuffled(self, context, creator):
 		"""
 		Default to needs unshuffling. If we have a course or editor,
 		we should not unshuffle.
@@ -283,7 +283,16 @@ class RandomizedPartGraderUnshuffleValidator(object):
 		result = True
 		if course is not None:
 			user = get_remote_user()
-			is_editor = has_permission( ACT_CONTENT_EDIT, course ) \
-					or  is_course_instructor_or_editor( course, user )
-			result = not is_editor
+			username = getattr( user, 'username', user )
+			creator = getattr( creator, 'username', creator )
+			# If we have a creator, it probably means we're decorating.
+			# If we don't have a creator, the remote user is the creator.
+			if creator and creator != username:
+				# Someone else (instructor) viewing something that needs unshuffling.
+				result = True
+			else:
+				# If not, return if submitter is and editor/instructor.
+				is_editor = has_permission( ACT_CONTENT_EDIT, course ) \
+						or  is_course_instructor_or_editor( course, user )
+				result = not is_editor
 		return result

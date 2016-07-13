@@ -239,12 +239,16 @@ class AssessmentPutView(UGDPutView):
 											   contentObject.ntiid)
 
 	def preflight(self, contentObject, externalValue, courses=()):
-		if not self.request.params.get('force', False):
-			# We do this during pre-flight because we want to compare our old
-			# state versus the new.
-			self.validate_date_boundaries(contentObject,
-										  externalValue,
-										  courses=courses)
+		if 	   'available_for_submission_ending' in externalValue \
+			or 'available_for_submission_beginning' in externalValue:
+			if not self.request.params.get('force', False):
+				# We do this during pre-flight because we want to compare our old
+				# state versus the new.
+				self.validate_date_boundaries(contentObject,
+											  externalValue,
+											  courses=courses)
+			# Update our publish modification time since dates may be changing...
+ 			contentObject._update_publish_last_mod()
 
 	def validate(self, contentObject, externalValue, courses=()):
 		# We could validate edits based on the unused submission/savepoint

@@ -176,45 +176,46 @@ def _on_survey_event(context, event):
 						u'code': 'EmptyQuestionSet',
 					})
 
-def _reassess_submission( item, question_updated ):
+def _reassess_submission(item, question_updated):
 	"""
 	Update our submission by re-assessing the changed question.
 	"""
-	submission = item.Submission
-	assessment = item.pendingAssessment
-	if submission is None or assessment is None:
+	assignment_submission = item.Submission
+	pending_assessment = item.pendingAssessment
+	if assignment_submission is None or pending_assessment is None:
 		return
 
 	assessed_question = None
-	for part in submission.parts or ():
-		for question in part.questions or ():
-			if question.questionId == question_updated.ntiid:
-				assessed_question = IQAssessedQuestion(question)
+	for part in assignment_submission.parts or ():
+		for question_submission in part.questions or ():
+			if question_submission.questionId == question_updated.ntiid:
+				assessed_question = IQAssessedQuestion(question_submission)
 				break
 
 	if assessed_question is None:
-		logger.warn( 'Cannot find question in submission to re-assess (assignment=%s) (user=%s) (question=%s)',
-					 submission.assignmentId,
-					 submission.creator,
-					 question_updated.ntiid )
+		logger.warn(
+			'Cannot find question in submission to re-assess (assignment=%s) (user=%s) (question=%s)',
+			assignment_submission.assignmentId,
+			assignment_submission.creator,
+			question_updated.ntiid )
 		return
 
-	for part in assessment.parts or ():
-		new_questions = []
+	for part in pending_assessment.parts or ():
 		updated = False
-		for question in part.questions or ():
-			if question.questionId == question_updated.ntiid:
-				question = assessed_question
+		new_questions = []
+		for asub_question in part.questions or ():
+			if asub_question.questionId == question_updated.ntiid:
+				asub_question = assessed_question
 				updated = True
-			new_questions.append( question )
+			new_questions.append(asub_question)
 		if updated:
 			part.questions = new_questions
 			return
 
-	logger.warn( 'Cannot find question in assessment (assignment=%s) (user=%s) (question=%s)',
-				 submission.assignmentId,
-				 submission.creator,
-				 question_updated.ntiid )
+	logger.warn('Cannot find question in assessment (assignment=%s) (user=%s) (question=%s)',
+				assignment_submission.assignmentId,
+				assignment_submission.creator,
+				question_updated.ntiid )
 
 def _regrade_assesment(context, course):
 	result = []

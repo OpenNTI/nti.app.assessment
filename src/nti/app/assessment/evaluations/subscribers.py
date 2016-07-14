@@ -205,7 +205,7 @@ def _regrade_assesment(context, course):
 	for item in evaluation_submissions(context, course):
 		if IUsersCourseAssignmentHistoryItem.providedBy(item):
 			result.append(item)
-			_reassess_assignment_history_item(item, context)
+			_reassess_assignment_history_item(item)
 			# Now broadcast we need a new grade
 			notify(ObjectRegradeEvent(item))
 	return result

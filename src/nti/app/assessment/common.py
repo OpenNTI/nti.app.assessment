@@ -321,7 +321,7 @@ def find_course_for_evaluation(evaluation, user, exc=True):
 		raise RequiredMissing("Course cannot be found")
 
 	return course
-find_course_for_assignment = find_course_for_evaluation # BWC
+find_course_for_assignment = find_course_for_evaluation  # BWC
 
 def get_course_from_evaluation(evaluation, user=None, catalog=None,
 							   registry=component, exc=False):
@@ -347,7 +347,7 @@ def get_course_from_evaluation(evaluation, user=None, catalog=None,
 	if result is None and user is not None:
 		result = find_course_for_evaluation(evaluation, user, exc=exc)
 	return result
-get_course_from_assignment = get_course_from_evaluation # BWC
+get_course_from_assignment = get_course_from_evaluation  # BWC
 
 def has_assigments_submitted(context, user):
 	course = ICourseInstance(context, None)
@@ -385,16 +385,16 @@ def get_all_course_assignments(context):
 	content packages (necessary for new content backed assignments) and then
 	look for all API-created assignments to merge with.
 	"""
-	package_items = get_course_assessment_items(context)
-	course_items = get_course_assignments(context, sort=False, do_filtering=False)
 	seen = set()
 	results = []
-	for item in itertools.chain( package_items, course_items ):
-		if 		not IQAssignment.providedBy( item ) \
+	package_items = get_course_assessment_items(context)
+	course_items = get_course_assignments(context, sort=False, do_filtering=False)
+	for item in itertools.chain(package_items, course_items):
+		if 		not IQAssignment.providedBy(item) \
 			or  item.ntiid in seen:
 			continue
-		seen.add( item.ntiid )
-		results.append( item )
+		seen.add(item.ntiid)
+		results.append(item)
 	return results
 
 def get_course_assignments(context, sort=True, reverse=False, do_filtering=True):
@@ -590,7 +590,7 @@ def _delete_context_contained_data(container_iface, context, course, subinstance
 	context_ntiid = getattr(context, 'ntiid', context)
 	for course in get_courses(course, subinstances=subinstances):
 		container = container_iface(course, None) or {}
-		for user_data in list(container.values()): # snapshot
+		for user_data in list(container.values()):  # snapshot
 			if context_ntiid in user_data:
 				del user_data[context_ntiid]
 				result += 1
@@ -672,7 +672,7 @@ def get_assignments_for_evaluation_object(context, sites=None):
 	For the given evaluation object, fetch all assignments which
 	contain it.
 	"""
-	if IQAssignment.providedBy( context ):
+	if IQAssignment.providedBy(context): # check itself
 		return (context,)
 
 	if isinstance(context, six.string_types):
@@ -735,7 +735,7 @@ def get_auto_grade_policy(assignment, course):
 	For a given assignment (or ntiid), return the autograde policy for the given course.
 	"""
 	policy = IQAssignmentPolicies(course, None)
-	assignment_ntiid = getattr( assignment, 'ntiid', assignment )
+	assignment_ntiid = getattr(assignment, 'ntiid', assignment)
 	result = policy and policy.get(assignment_ntiid, 'auto_grade')
 	return result
 
@@ -745,24 +745,24 @@ def get_auto_grade_policy_state(assignment, course):
 	"""
 	policy = get_auto_grade_policy(assignment, course)
 	result = False
-	if policy and policy.get( 'disable' ) is not None:
+	if policy and policy.get('disable') is not None:
 		# Only allow auto_grading if disable is explicitly set to False.
-		result = not policy.get( 'disable' )
+		result = not policy.get('disable')
 	return result
 
-def is_part_auto_gradable( part ):
+def is_part_auto_gradable(part):
 	# Validate every part has grader.
 	result = 	getattr(part, 'grader_interface', None) \
-			or  getattr(part, 'grader_name', None )
-	return bool( result )
+			or  getattr(part, 'grader_name', None)
+	return bool(result)
 
 def can_be_auto_graded(assignment):
 	for part in assignment.parts or ():
-			question_set = part.question_set
-			for question in question_set.questions or ():
-				for part in question.parts or ():
-					if not is_part_auto_gradable( part ):
-						return False
+		question_set = part.question_set
+		for question in question_set.questions or ():
+			for part in question.parts or ():
+				if not is_part_auto_gradable(part):
+					return False
 	return True
 
 def validate_auto_grade(assignment, course, request=None):
@@ -770,7 +770,7 @@ def validate_auto_grade(assignment, course, request=None):
 	Validate the assignment has the proper state for auto-grading, if
 	necessary.
 	"""
-	auto_grade = get_auto_grade_policy_state( assignment, course )
+	auto_grade = get_auto_grade_policy_state(assignment, course)
 	if auto_grade:
 		# Work to do
 		if not can_be_auto_graded(assignment):

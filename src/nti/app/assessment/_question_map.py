@@ -393,8 +393,8 @@ class QuestionMap(QuestionIndex):
 		key_for_this_level = nearest_containing_key
 		index_key = index.get('filename')
 		if index_key:
-			key_for_this_level = content_package.make_sibling_key(index_key)
 			factory = list
+			key_for_this_level = content_package.make_sibling_key(index_key)
 			if key_for_this_level in by_file:
 				# Across all indexes, every filename key should be unique.
 				# We rely on this property when we lookup the objects to return
@@ -404,7 +404,7 @@ class QuestionMap(QuestionIndex):
 					factory = tuple
 					logger.warn("Duplicate 'index.html' entry in %s; update content",
 								content_package)
-				else:  # pragma: no cover
+				else:  # TODO: Do we need this anymore?
 					logger.warn("Second entry for the same file %s,%s",
 								index_key, key_for_this_level)
 					__traceback_info__ = index_key, key_for_this_level
@@ -551,12 +551,13 @@ def _populate_question_map_from_text(question_map,
 									  content_package=content_package,
 									  key_lastModified=key_lastModified)
 
-def _add_assessment_items_from_new_content(content_package, key, sync_results=None):
+def _add_assessment_items_from_new_content(content_package, key=None, sync_results=None):
 	if sync_results is None:
 		sync_results = _new_sync_results(content_package)
 
-	key = content_package.does_sibling_entry_exist('assessment_index.json')
-	key_lastModified = key.lastModified if key else None
+	if key is None:
+		key = content_package.does_sibling_entry_exist('assessment_index.json')
+	key_lastModified = key.lastModified if key is not None else None
 
 	question_map = QuestionMap()
 	asm_index_text = key.readContentsAsText()

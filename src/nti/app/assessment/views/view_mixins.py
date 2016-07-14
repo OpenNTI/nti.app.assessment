@@ -103,9 +103,9 @@ def get_courses_from_assesment(assesment):
 
 class AssessmentPutView(UGDPutView):
 
+	CONFIRM_CODE = 'AssessmentDateConfirm'
 	TO_AVAILABLE_CODE = 'UnAvailableToAvailable'
 	TO_UNAVAILABLE_CODE = 'AvailableToUnavailable'
-	CONFIRM_CODE = 'AssessmentDateConfirm'
 
 	TO_AVAILABLE_MSG = None
 	TO_UNAVAILABLE_MSG = None
@@ -248,7 +248,7 @@ class AssessmentPutView(UGDPutView):
 											  externalValue,
 											  courses=courses)
 			# Update our publish modification time since dates may be changing...
- 			contentObject._update_publish_last_mod()
+			contentObject._update_publish_last_mod()
 
 	def validate(self, contentObject, externalValue, courses=()):
 		# We could validate edits based on the unused submission/savepoint

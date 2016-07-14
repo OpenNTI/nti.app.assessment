@@ -22,6 +22,8 @@ from zope.lifecycleevent import ObjectModifiedEvent
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
 from zope.lifecycleevent.interfaces import IObjectRemovedEvent
 
+from persistent.list import PersistentList
+
 from pyramid.threadlocal import get_current_request
 
 from nti.app.assessment import MessageFactory as _
@@ -202,7 +204,7 @@ def _reassess_submission(item, question_updated):
 
 	for part in pending_assessment.parts or ():
 		updated = False
-		new_questions = []
+		new_questions = PersistentList()
 		for asub_question in part.questions or ():
 			if asub_question.questionId == question_updated.ntiid:
 				asub_question = assessed_question

@@ -156,6 +156,36 @@ def _get_sync_results(content_package, event):
 		result = all_results[-1]
 	return result
 
+def _get_assess_item_dict(base):
+	"""
+	Make sure we iterate through our assessment dict in a
+	deterministic order. This ensures everything is registered
+	the same way (including the correct containers) every time.
+	"""
+	def _get_mime( obj ):
+		# Except either an assessment object here
+		# or an incoming assessment dict.
+		try:
+			result = obj.mime_type
+		except AttributeError:
+			result = obj.get( 'MimeType' )
+		return result
+
+	result = OrderedDict()
+	for mime_type in (ASSIGNMENT_MIME_TYPE,
+					  SURVEY_MIME_TYPE,
+					  QUESTION_SET_MIME_TYPE,
+					  None):
+		for key, item in base.items():
+			if key in result:
+				continue
+			elif mime_type == None:
+				# Everything else
+				result[key] = item
+			elif _get_mime( item ) == mime_type:
+				result[key] = item
+	return result
+
 @NoPickle
 class QuestionMap(QuestionIndex):
 	"""
@@ -222,27 +252,6 @@ class QuestionMap(QuestionIndex):
 			return True
 		return False
 
-	def _get_assess_item_dict(self, base):
-		"""
-		Make sure we iterate through our assessment dict in a
-		deterministic order. This ensures everything is registered
-		the same way (including the correct containers) every time.
-		"""
-		result = OrderedDict()
-		for mime_type in (ASSIGNMENT_MIME_TYPE,
-						  SURVEY_MIME_TYPE,
-						  QUESTION_SET_MIME_TYPE,
-						  None):
-			for key, assess_dict in base.items():
-				if key in result:
-					continue
-				elif mime_type == None:
-					# Everything else
-					result[key] = assess_dict
-				elif assess_dict.get('MimeType') == mime_type:
-					result[key] = assess_dict
-		return result
-
 	def _process_assessments(self,
 							 assessment_item_dict,
 							 containing_hierarchy_key,
@@ -278,7 +287,7 @@ class QuestionMap(QuestionIndex):
 		registry = self._get_registry(registry)
 		key_lastModified = key_lastModified or time.time()
 
-		assess_dict = self._get_assess_item_dict(assessment_item_dict)
+		assess_dict = _get_assess_item_dict(assessment_item_dict)
 		for ntiid, v in assess_dict.items():
 			__traceback_info__ = ntiid, v
 
@@ -634,10 +643,11 @@ def _remove_assessment_items_from_oldcontent(content_package,
 		container.pop(name, None)
 
 	def _unregister(unit):
-		items = IQAssessmentItemContainer(unit)
-		for name, item in tuple(items.items()):  # mutating
-			if can_be_removed(item, force):
-				_remove(items, name, item)
+		unit_items = IQAssessmentItemContainer(unit)
+		items = _get_assess_item_dict( unit_items )
+		for name, item in items.items():
+			if can_be_removed(item, force) and name not in ignore:
+				_remove(unit_items, name, item)
 			else:
 				provided = _iface_to_register(item)
 				logger.warn("Object (%s,%s) is locked cannot be removed during sync",
@@ -648,7 +658,7 @@ def _remove_assessment_items_from_oldcontent(content_package,
 				ignore.update(x.ntiid for x in exploded or ())
 
 		# reset dates
-		items.lastModified = items.createdTime = -1
+		unit_items.lastModified = unit_items.createdTime = -1
 
 		for child in unit.children or ():
 			_unregister(child)
@@ -664,7 +674,7 @@ def _remove_assessment_items_from_oldcontent(content_package,
 @component.adapter(IContentPackage, IObjectRemovedEvent)
 def remove_assessment_items_from_oldcontent(content_package, event=None, force=True):
 	sync_results = _get_sync_results(content_package, event)
-	logger.info("Removing assessment items from old content %s %s", 
+	logger.info("Removing assessment items from old content %s %s",
 				content_package, event)
 	result = _remove_assessment_items_from_oldcontent(content_package,
 													  force=force,

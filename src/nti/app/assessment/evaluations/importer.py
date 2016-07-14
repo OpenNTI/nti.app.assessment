@@ -89,7 +89,7 @@ class EvaluationsImporter(BaseSectionImporter):
 			theObject = self.get_registered_evaluation(theObject, course)
 		if theObject is None:
 			raise KeyError("Question %s does not exists." % ntiid)
-		[p.ntiid for p in theObject.parts or ()] # set auto part NTIIDs
+		[p.ntiid for p in theObject.parts or ()]  # set auto part NTIIDs
 		return theObject
 
 	def handle_poll(self, theObject, course):
@@ -100,7 +100,7 @@ class EvaluationsImporter(BaseSectionImporter):
 			theObject = self.get_registered_evaluation(theObject, course)
 		if theObject is None:
 			raise KeyError("Poll %s does not exists." % ntiid)
-		[p.ntiid for p in theObject.parts or ()] # set auto part NTIIDs
+		[p.ntiid for p in theObject.parts or ()]  # set auto part NTIIDs
 		return theObject
 
 	def handle_question_set(self, theObject, course):
@@ -151,7 +151,7 @@ class EvaluationsImporter(BaseSectionImporter):
 			theObject = self.get_registered_evaluation(theObject, course)
 		if theObject is None:
 			raise KeyError("Assignment %s does not exists." % ntiid)
-		[p.ntiid for p in theObject.parts or ()] # set auto part NTIIDs
+		[p.ntiid for p in theObject.parts or ()]  # set auto part NTIIDs
 		return theObject
 
 	def handle_evaluation(self, theObject, course, source_filer):
@@ -172,11 +172,14 @@ class EvaluationsImporter(BaseSectionImporter):
 		result.__home__ = course
 		remoteUser = get_remote_user()
 		target_filer = get_course_filer(course, remoteUser)
+
 		# parse content fields and load sources
 		import_evaluation_content(result, source_filer=source_filer,
 								  target_filer=target_filer)
+
 		# always register
 		register_context(result)
+
 		# always publish
 		if not result.is_published():
 			if ICalendarPublishable.providedBy(result):
@@ -203,8 +206,8 @@ class EvaluationsImporter(BaseSectionImporter):
 			self.handle_course_items(items, course, filer)
 			# save source
 			if writeout and IFilesystemBucket.providedBy(course.root):
-				source = self.safe_get(filer, href) # reload
-				self.makedirs(course.root.absolute_path) # create
+				source = self.safe_get(filer, href)  # reload
+				self.makedirs(course.root.absolute_path)  # create
 				new_path = os.path.join(course.root.absolute_path, self.EVALUATION_INDEX)
 				transfer_to_native_file(source, new_path)
 			return True

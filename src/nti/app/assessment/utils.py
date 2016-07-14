@@ -275,7 +275,7 @@ class RandomizedPartGraderUnshuffleValidator(object):
 	def needs_unshuffled(self, context, creator):
 		"""
 		Default to needs unshuffling. If we have a course or editor,
-		we should not unshuffle.
+		we should not unshuffle (and our user is the submitter).
 		"""
 		result = True
 		# Need to have at least a question here for this to work

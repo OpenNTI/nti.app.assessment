@@ -208,12 +208,12 @@ class AssessmentPutView(UGDPutView):
 
 				start_date_available_change = self._start_date_available_change(old_start_date,
 																				start_date_to_check, now)
-				# It's currently available if published or if its
-				# dates are in range.
+				# It's available if published and its dates are in range.
 				old_available = contentObject.isPublished() \
 							and	self._is_date_in_range(old_start_date,
 													   old_end_date, now)
-				new_available = self._is_date_in_range(start_date_to_check,
+				new_available = contentObject.isPublished() \
+							and self._is_date_in_range(start_date_to_check,
 													   end_date_to_check, now)
 
 				# Note: we allow state to move from closed in past to

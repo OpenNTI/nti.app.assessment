@@ -30,6 +30,8 @@ from zope.schema.interfaces import RequiredMissing
 
 from ZODB import loglevels
 
+from persistent.list import PersistentList
+
 from nti.app.assessment import MessageFactory as _
 from nti.app.assessment import get_evaluation_catalog
 from nti.app.assessment import get_submission_catalog
@@ -58,6 +60,8 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataContaine
 
 from nti.app.externalization.error import raise_json_error
 
+from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
+
 from nti.assessment.interfaces import NTIID_TYPE
 from nti.assessment.interfaces import DISCLOSURE_NEVER
 from nti.assessment.interfaces import DISCLOSURE_ALWAYS
@@ -76,6 +80,7 @@ from nti.assessment.interfaces import IQAggregatedInquiry
 from nti.assessment.interfaces import IQInquirySubmission
 from nti.assessment.interfaces import IQAssignmentPolicies
 from nti.assessment.interfaces import IQAssessmentPolicies
+from nti.assessment.interfaces import IQAssessedQuestionSet
 from nti.assessment.interfaces import IQAssessmentDateContext
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
@@ -851,3 +856,24 @@ def pre_validate_question_change(question, externalValue):
 				if analyzer.regrade(change):
 					regrade_parts.append(part)
 	return regrade_parts
+
+def assess_assignment_submission(course, assignment, submission):
+	# Ok, now for each part that can be auto graded, do so, leaving all the others
+	# as-they-are
+	new_parts = PersistentList()
+	for submission_part in submission.parts:
+		assignment_part, = [p for p in assignment.parts \
+							if p.question_set.ntiid == submission_part.questionSetId]
+		# If either the part is auto_grade (content-backed) or the
+		# policy is auto_grade, make sure we assess.
+		if 		assignment_part.auto_grade \
+			or  get_auto_grade_policy_state( assignment, course ):
+			__traceback_info__ = submission_part
+			submission_part = IQAssessedQuestionSet(submission_part)
+		new_parts.append(submission_part)
+
+	# create a pending assessment object
+	pending_assessment = QAssignmentSubmissionPendingAssessment(assignmentId=submission.assignmentId,
+																parts=new_parts)
+	pending_assessment.containerId = submission.assignmentId
+	return pending_assessment

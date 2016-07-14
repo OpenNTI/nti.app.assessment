@@ -30,8 +30,6 @@ from pyramid import httpexceptions as hexc
 from pyramid.interfaces import IRequest
 from pyramid.interfaces import IExceptionResponse
 
-from persistent.list import PersistentList
-
 from zope.location.interfaces import LocationError
 
 from nti.app.assessment._submission import set_submission_lineage
@@ -42,7 +40,7 @@ from nti.app.assessment.common import get_evaluation_courses
 from nti.app.assessment.common import check_submission_version
 from nti.app.assessment.common import get_course_from_assignment
 from nti.app.assessment.common import get_course_self_assessments
-from nti.app.assessment.common import get_auto_grade_policy_state
+from nti.app.assessment.common import assess_assignment_submission
 from nti.app.assessment.common import get_available_for_submission_beginning
 
 from nti.app.assessment.history import UsersCourseAssignmentHistory
@@ -63,8 +61,6 @@ from nti.appserver.interfaces import IJoinableContextProvider
 from nti.appserver.interfaces import IHierarchicalContextProvider
 from nti.appserver.interfaces import ITopLevelContainerContextProvider
 from nti.appserver.interfaces import ITrustedTopLevelContainerContextProvider
-
-from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
 
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssessment
@@ -212,22 +208,7 @@ def _begin_assessment_for_assignment_submission(submission):
 	set_submission_lineage(submission)
 	submission.containerId = submission.assignmentId
 
-	# Ok, now for each part that can be auto graded, do so, leaving all the others
-	# as-they-are
-	new_parts = PersistentList()
-	for submission_part in submission.parts:
-		assignment_part, = [p for p in assignment.parts \
-							if p.question_set.ntiid == submission_part.questionSetId]
-		# If either the part is auto_grade (content-backed) or the
-		# policy is auto_grade, make sure we assess.
-		if 		assignment_part.auto_grade \
-			or  get_auto_grade_policy_state( assignment, course ):
-			__traceback_info__ = submission_part
-			submission_part = IQAssessedQuestionSet(submission_part)
-		new_parts.append(submission_part)
-	pending_assessment = QAssignmentSubmissionPendingAssessment(assignmentId=submission.assignmentId,
-																parts=new_parts)
-	pending_assessment.containerId = submission.assignmentId
+	pending_assessment = assess_assignment_submission(course, assignment, submission)
 	lifecycleevent.created(pending_assessment)
 
 	version = assignment.version

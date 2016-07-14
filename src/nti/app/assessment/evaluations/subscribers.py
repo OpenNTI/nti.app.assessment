@@ -22,8 +22,6 @@ from zope.lifecycleevent import ObjectModifiedEvent
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
 from zope.lifecycleevent.interfaces import IObjectRemovedEvent
 
-from persistent.list import PersistentList
-
 from pyramid.threadlocal import get_current_request
 
 from nti.app.assessment import MessageFactory as _
@@ -32,6 +30,7 @@ from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import evaluation_submissions
 from nti.app.assessment.common import get_course_from_evaluation
 from nti.app.assessment.common import get_evaluation_containment
+from nti.app.assessment.common import assess_assignment_submission
 from nti.app.assessment.common import get_assignments_for_evaluation_object
 
 from nti.app.assessment.evaluations import raise_error
@@ -56,7 +55,6 @@ from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
-from nti.assessment.interfaces import IQAssessedQuestion
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQEvaluationItemContainer
 from nti.assessment.interfaces import IQAssessmentPoliciesModified
@@ -178,56 +176,38 @@ def _on_survey_event(context, event):
 						u'code': 'EmptyQuestionSet',
 					})
 
-def _reassess_submission(item, question_updated):
+def _reassess_assignment_history_item(item):
 	"""
 	Update our submission by re-assessing the changed question.
 	"""
-	assignment_submission = item.Submission
-	pending_assessment = item.pendingAssessment
-	if assignment_submission is None or pending_assessment is None:
+	submission = item.Submission
+	old_pending_assessment = item.pendingAssessment
+	if submission is None or old_pending_assessment is None:
 		return
 
-	assessed_question = None
-	for part in assignment_submission.parts or ():
-		for question_submission in part.questions or ():
-			if question_submission.questionId == question_updated.ntiid:
-				assessed_question = IQAssessedQuestion(question_submission)
-				break
+	# mark old pending assessment as removed
+	lifecycleevent.removed(old_pending_assessment)
+	old_pending_assessment.__parent__ = None # ground
+	
+	assignment = item.Assignment
+	course = find_interface(item, ICourseInstance, strict=False)
+	new_pending_assessment = assess_assignment_submission(course, assignment, submission)
 
-	if assessed_question is None:
-		logger.warn(
-			'Cannot find question in submission to re-assess (assignment=%s) (user=%s) (question=%s)',
-			assignment_submission.assignmentId,
-			assignment_submission.creator,
-			question_updated.ntiid )
-		return
-
-	for part in pending_assessment.parts or ():
-		updated = False
-		new_questions = PersistentList()
-		for asub_question in part.questions or ():
-			if asub_question.questionId == question_updated.ntiid:
-				asub_question = assessed_question
-				updated = True
-			new_questions.append(asub_question)
-		if updated:
-			part.questions = new_questions
-			return
-
-	logger.warn('Cannot find question in assessment (assignment=%s) (user=%s) (question=%s)',
-				assignment_submission.assignmentId,
-				assignment_submission.creator,
-				question_updated.ntiid )
+	item.pendingAssessment = new_pending_assessment
+	new_pending_assessment.__parent__ = item
+	lifecycleevent.created(new_pending_assessment)
+	
+	# dispatch to sublocations
+	lifecycleevent.modified(item) 
 
 def _regrade_assesment(context, course):
 	result = []
 	for item in evaluation_submissions(context, course):
-		if not IUsersCourseAssignmentHistoryItem.providedBy(item):
-			continue
-		result.append(item)
-		_reassess_submission( item, context )
-		# Now broadcast we need a new grade
-		notify(ObjectRegradeEvent(item))
+		if IUsersCourseAssignmentHistoryItem.providedBy(item):
+			result.append(item)
+			_reassess_assignment_history_item(item, context)
+			# Now broadcast we need a new grade
+			notify(ObjectRegradeEvent(item))
 	return result
 
 @component.adapter(IQuestion, IRegradeQuestionEvent)

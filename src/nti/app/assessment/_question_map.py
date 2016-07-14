@@ -404,12 +404,10 @@ class QuestionMap(QuestionIndex):
 					factory = tuple
 					logger.warn("Duplicate 'index.html' entry in %s; update content",
 								content_package)
-				else:  # TODO: Do we need this anymore?
+				else:
+					__traceback_info__ = index_key, key_for_this_level
 					logger.warn("Second entry for the same file %s,%s",
 								index_key, key_for_this_level)
-					__traceback_info__ = index_key, key_for_this_level
-					raise ValueError(key_for_this_level,
-									 "Found a second entry for the same file")
 
 			by_file[key_for_this_level] = factory()
 
@@ -479,13 +477,15 @@ class QuestionMap(QuestionIndex):
 			# cannot contain  assessment items. The condition of a missing/bad filename
 			# has been seen in jacked-up content that abuses the section hierarchy
 			# (skips levels) and/or jacked-up themes/configurations  that split incorrectly.
-			if 'filename' not in child_index or not child_index['filename'] or \
-				child_index['filename'].startswith('index.html#'):
+			if 	   'filename' not in child_index \
+				or not child_index['filename'] \
+				or child_index['filename'].startswith('index.html#'):
 				logger.warn("Ignoring invalid child with invalid filename '%s'; cannot contain assessments: %s",
 							child_index.get('filename', ''),
 							child_index)
 				continue
-
+			
+			# TODO: Do we need this check?
 			assert 	child_index.get('filename'), \
 					'Child must contain valid filename to contain assessments'
 

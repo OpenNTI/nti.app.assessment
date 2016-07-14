@@ -237,7 +237,7 @@ def validate_savepoints(theObject, course, request=None):
 		raise_json_error(request,
 						 hexc.HTTPUnprocessableEntity,
 						 {
-							u'message': _("Object has savepoints"),
+							u'message': _("Object has savepoints."),
 							u'code': 'ObjectHasSavepoints',
 						 },
 						 None)
@@ -248,7 +248,7 @@ def validate_published(theObject, course=None, request=None):
 		raise_json_error(request,
 						 hexc.HTTPUnprocessableEntity,
 						 {
-							u'message': _("Object has been published"),
+							u'message': _("Object has been published."),
 							u'code': 'ObjectIsPublished',
 						 },
 						 None)

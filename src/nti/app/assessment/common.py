@@ -341,7 +341,7 @@ def get_course_from_evaluation(evaluation, user=None, catalog=None,
 
 	if result is None:
 		courses = get_evaluation_courses(evaluation)
-		result = courses[0] if len(courses) == 1 else None
+		result = courses[0] if courses else None
 
 	# could not find a course .. try adapter
 	if result is None and user is not None:

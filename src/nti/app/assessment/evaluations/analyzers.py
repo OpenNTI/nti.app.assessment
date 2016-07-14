@@ -46,7 +46,7 @@ class _BasicPartChangeAnalyzer(object):
 		raise NotImplementedError()
 
 	def regrade(self, change):
-		raise False
+		return False
 
 def to_int(value):
 	try:

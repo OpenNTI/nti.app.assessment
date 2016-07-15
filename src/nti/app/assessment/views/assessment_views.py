@@ -24,6 +24,8 @@ from nti.assessment.interfaces import IQAssessment
 
 from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
 
+from nti.app.assessment.interfaces import ICourseEvaluations
+
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
 from nti.app.contentlibrary.utils import PAGE_INFO_MT
@@ -45,9 +47,12 @@ from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.common.property import Lazy
 from nti.common.proxy import removeAllProxies
+
+from nti.contenttypes.courses.common import get_course_packages
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseAssignmentCatalog
@@ -67,6 +72,7 @@ from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
 ITEMS = StandardExternalFields.ITEMS
+LAST_MODIFIED = StandardExternalFields.LAST_MODIFIED
 
 # In pyramid 1.4, there is some minor wonkiness with the accept= request predicate.
 # Your view can get called even if no Accept header is present if all the defined
@@ -164,6 +170,12 @@ class AssignmentsByOutlineNodeMixin(AbstractAuthenticatedView):
 					result = True
 					break
 		return result
+	
+	def _lastModified(self, course):
+		result = ICourseEvaluations(course).lastModified or 0
+		for package in get_course_packages(course):
+			result = max(result, IQAssessmentItemContainer(package).lastModified or 0)
+		return result 
 
 @view_config(context=ICourseInstance)
 @view_config(context=ICourseInstanceEnrollment)
@@ -229,11 +241,11 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 		catalog = ICourseAssignmentCatalog(instance)
 		uber_filter = get_course_assessment_predicate_for_user(self.remoteUser, instance)
 		for asg in (x for x in catalog.iter_assignments() if self._is_editor or uber_filter(x)):
-			parent_ntiid = get_containerId(asg)
-			if parent_ntiid:
-				result.setdefault(parent_ntiid, []).append(asg)
+			containerId = get_containerId(asg)
+			if containerId:
+				result.setdefault(containerId, []).append(asg)
 			else:
-				logger.error("%s is an assignment without parent unit", asg.ntiid)
+				logger.error("%s is an assignment without parent container", asg.ntiid)
 		return result
 
 	def __call__(self):
@@ -243,6 +255,8 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 		self.request.acl_decoration = self._is_editor
 
 		instance = ICourseInstance(self.request.context)
+		result[LAST_MODIFIED] = result.lastModified = self._lastModified(instance)
+
 		if self.is_ipad_legacy:
 			self._do_catalog(instance, result)
 		else:
@@ -299,11 +313,11 @@ class NonAssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 				# CS: We can remove proxies since the items are neither assignments
 				# nor survey, so no course lookup is necesary
 				item = removeAllProxies(item)
-				unit_ntiid = get_containerId(item)
-				if unit_ntiid:
-					data[unit_ntiid][item.ntiid] = item
+				containerId = get_containerId(item)
+				if containerId:
+					data[containerId][item.ntiid] = item
 				else:
-					logger.error("%s is an item without parent unit", item.ntiid)
+					logger.error("%s is an item without container", item.ntiid)
 
 		# Now remove the forbidden
 		for ntiid, items in data.items():
@@ -317,8 +331,11 @@ class NonAssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 		result = LocatedExternalDict()
 		result.__name__ = self.request.view_name
 		result.__parent__ = self.request.context
+		self.request.acl_decoration = self._is_editor
 
 		instance = ICourseInstance(self.request.context)
+		result[LAST_MODIFIED] = result.lastModified = self._lastModified(instance)
+
 		if self.is_ipad_legacy:
 			self._do_catalog(instance, result)
 		else:

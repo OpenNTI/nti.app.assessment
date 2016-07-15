@@ -141,6 +141,10 @@ def check_assessment_integrity(remove=False):
 				if iid is not None:
 					removeIntId(item)
 					removed.add(ntiid)
+					
+			for container in all_containers.get(key) or ():
+				container.pop(ntiid, None)
+
 			continue
 
 		if len(data) <= 1 or IQEditableEvaluation.providedBy(context):

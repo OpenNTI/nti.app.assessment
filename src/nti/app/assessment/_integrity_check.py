@@ -136,15 +136,15 @@ def check_assessment_integrity(remove=False):
 			logger.warn("No registration found for %s", key)
 			if not remove:
 				continue
+			# remove from  intid facility
 			for item in data:
 				iid = intids.queryId(item)
 				if iid is not None:
 					removeIntId(item)
 					removed.add(ntiid)
-					
+			# remove from containers
 			for container in all_containers.get(key) or ():
 				container.pop(ntiid, None)
-
 			continue
 
 		if len(data) <= 1 or IQEditableEvaluation.providedBy(context):

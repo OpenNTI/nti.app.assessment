@@ -109,7 +109,7 @@ class AssessmentPutView(UGDPutView):
 
 	TO_AVAILABLE_MSG = None
 	TO_UNAVAILABLE_MSG = None
-	AVAILABLE_DATE_CONFIRM_MSG = _('Are you sure you want to change the available date?')
+	DUE_DATE_CONFIRM_MSG = _('Are you sure you want to change the due date?')
 
 	POLICY_KEYS = ("auto_grade", 'total_points')
 
@@ -232,9 +232,9 @@ class AssessmentPutView(UGDPutView):
 											   contentObject.ntiid)
 				elif old_available != new_available:
 					# State change but not due to the start date. Give a
-					# general confirmation message.
+					# due date confirmation message.
 					self._raise_conflict_error(self.CONFIRM_CODE,
-											   self.AVAILABLE_DATE_CONFIRM_MSG,
+											   self.DUE_DATE_CONFIRM_MSG,
 											   course,
 											   contentObject.ntiid)
 

@@ -17,7 +17,7 @@ from zope import component
 
 from nti.app.assessment._submission import transfer_submission_file_data
 
-from nti.app.assessment.common import get_course_from_assignment
+from nti.app.assessment.common import get_course_from_evaluation
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
@@ -32,9 +32,9 @@ from nti.dataserver.utils.base_script import create_context
 
 def _migrator(creator, assignmentId, delete=False):
 	assignment = component.getUtility(IQAssignment, assignmentId)
-	course = get_course_from_assignment(assignment, creator)
+	course = get_course_from_evaluation(assignment, creator, exc=False)
 	if course is None:
-		logger.error("User not enrolled in course (invalid  assignment/creator pair?)")
+		logger.error("User not enrolled in course")
 		return
 
 	assignment_history = component.getMultiAdapter((course, creator),

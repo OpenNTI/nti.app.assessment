@@ -15,8 +15,6 @@ from zope import component
 from zope import interface
 from zope import lifecycleevent
 
-from zope.schema.interfaces import RequiredMissing
-
 from pyramid import httpexceptions as hexc
 
 from pyramid.view import view_config
@@ -24,7 +22,7 @@ from pyramid.view import view_config
 from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment.common import get_max_time_allowed
-from nti.app.assessment.common import get_course_from_assignment
+from nti.app.assessment.common import get_course_from_evaluation
 
 from nti.app.assessment.views import get_ds2
 
@@ -45,6 +43,8 @@ from nti.appserver.ugd_edit_views import UGDDeleteView
 
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQTimedAssignment
+
+from nti.common.property import Lazy
 
 from nti.dataserver import authorization as nauth
 
@@ -72,13 +72,9 @@ class AssignmentSubmissionMetataPostView(AbstractAuthenticatedView,
 		creator = self.remoteUser
 		if not creator:
 			raise hexc.HTTPForbidden(_("Must be Authenticated."))
-		try:
-			course = get_course_from_assignment(self.context, creator)
-			if course is None:
-				raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
-		except RequiredMissing:
+		course = get_course_from_evaluation(self.context, creator, exc=False)
+		if course is None:
 			raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
-
 		return creator, course
 
 	def _process(self, creator=None, course=None, item=None):
@@ -136,13 +132,9 @@ class AssignmentSubmissionStartPostView(AssignmentSubmissionMetataPostView):
 			 name="Metadata")
 class AssignmentSubmissionMetadataGetView(AbstractAuthenticatedView):
 
-	@property
+	@Lazy
 	def course(self):
-		course = None
-		try:
-			course = get_course_from_assignment(self.context, self.remoteUser)
-		except RequiredMissing:
-			pass
+		course = get_course_from_evaluation(self.context, self.remoteUser, exc=False)
 		return course
 
 	def _do_call(self):

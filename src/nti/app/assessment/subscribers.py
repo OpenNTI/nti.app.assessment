@@ -27,7 +27,7 @@ from nti.app.assessment import get_submission_catalog
 
 from nti.app.assessment.common import get_unit_assessments
 from nti.app.assessment.common import get_resource_site_name
-from nti.app.assessment.common import get_course_from_assignment
+from nti.app.assessment.common import get_course_from_evaluation
 from nti.app.assessment.common import get_available_for_submission_ending
 
 from nti.app.assessment.index import IX_SITE
@@ -155,10 +155,10 @@ def prevent_note_on_assignment_part(note, event):
 
 	for asg in items:
 		if IQAssignment.providedBy(asg):
-			course = get_course_from_assignment(asg, remoteUser)
+			course = get_course_from_evaluation(asg, remoteUser)
 			available_for_submission_ending = get_available_for_submission_ending(asg, course)
-			if 	available_for_submission_ending and \
-				available_for_submission_ending >= datetime.utcnow():
+			if 		available_for_submission_ending \
+				and available_for_submission_ending >= datetime.utcnow():
 				e = HTTPUnprocessableEntity()
 				e.text = simplejson.dumps(
 						{'message': _("You cannot make notes on an assignment before the due date."),

@@ -39,7 +39,7 @@ from nti.app.assessment._submission import get_source
 from nti.app.assessment._submission import check_upload_files
 from nti.app.assessment._submission import read_multipart_sources
 
-from nti.app.assessment.common import get_course_from_assignment
+from nti.app.assessment.common import get_course_from_evaluation
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
@@ -198,7 +198,7 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 			result = ICourseInstance(result, None)
 		if result is None:
 			# Ok, pick the first course we find.
-			result = get_course_from_assignment(context, self.remoteUser, exc=True)
+			result = get_course_from_evaluation(context, self.remoteUser, exc=True)
 		return result
 
 	def _string(self, val, sub=''):

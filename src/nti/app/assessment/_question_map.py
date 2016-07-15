@@ -44,7 +44,7 @@ from nti.assessment._question_index import QuestionIndex
 from nti.assessment._question_index import _ntiid_object_hook
 from nti.assessment._question_index import _load_question_map_json
 
-from nti.assessment.common import iface_of_assessment as _iface_to_register
+from nti.assessment.common import iface_of_assessment
 
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
@@ -295,7 +295,7 @@ class QuestionMap(QuestionIndex):
 			assert factory is not None
 
 			obj = factory()
-			provided = _iface_to_register(obj)
+			provided = iface_of_assessment(obj)
 			registered = registry.queryUtility(provided, name=ntiid)
 			if registered is None:
 				update_from_external_object(obj, v, require_updater=True,
@@ -315,7 +315,7 @@ class QuestionMap(QuestionIndex):
 
 					# check registry
 					ntiid = thing_to_register.ntiid
-					provided = _iface_to_register(thing_to_register)
+					provided = iface_of_assessment(thing_to_register)
 					if ntiid and registry.queryUtility(provided, name=ntiid) is None:
 						result.add(thing_to_register)
 
@@ -631,7 +631,7 @@ def _remove_assessment_items_from_oldcontent(content_package,
 	def _remove(container, name, item):
 		if name not in result:
 			result[name] = item
-			provided = _iface_to_register(item)
+			provided = iface_of_assessment(item)
 			# unregister utility
 			if not unregisterUtility(sm, provided=provided, name=name):
 				logger.warn("Could not unregister %s from %s", name, sm)
@@ -650,7 +650,7 @@ def _remove_assessment_items_from_oldcontent(content_package,
 			if can_be_removed(item, force) and name not in ignore:
 				_remove(unit_items, name, item)
 			else:
-				provided = _iface_to_register(item)
+				provided = iface_of_assessment(item)
 				logger.warn("Object (%s,%s) is locked cannot be removed during sync",
 							provided.__name__, name)
 				# XXX: Make sure we add to the ignore list all items that are exploded

@@ -161,6 +161,11 @@ class AssignmentsByOutlineNodeMixin(AbstractAuthenticatedView):
 	)
 
 	@Lazy
+	def _is_editor(self):
+		instance = ICourseInstance(self.context)
+		return has_permission(nauth.ACT_CONTENT_EDIT, instance)
+
+	@Lazy
 	def is_ipad_legacy(self):
 		result = False
 		ua = self.request.environ.get('HTTP_USER_AGENT', '')
@@ -171,9 +176,11 @@ class AssignmentsByOutlineNodeMixin(AbstractAuthenticatedView):
 					break
 		return result
 	
-	def _lastModified(self, course):
-		result = ICourseEvaluations(course).lastModified or 0
-		for package in get_course_packages(course):
+	@Lazy
+	def _lastModified(self):
+		instance = ICourseInstance(self.context)
+		result = ICourseEvaluations(instance).lastModified or 0
+		for package in get_course_packages(instance):
 			result = max(result, IQAssessmentItemContainer(package).lastModified or 0)
 		return result 
 
@@ -198,11 +205,6 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 	at the lowest level, so a client may need to walk \"up\" the tree
 	to identify the corresponding level it wishes to display.
 	"""
-
-	@Lazy
-	def _is_editor(self):
-		instance = ICourseInstance(self.context)
-		return has_permission(nauth.ACT_CONTENT_EDIT, instance)
 
 	def _do_outline(self, instance, items, outline):
 		# reverse question set map
@@ -255,7 +257,7 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 		self.request.acl_decoration = self._is_editor
 
 		instance = ICourseInstance(self.request.context)
-		result[LAST_MODIFIED] = result.lastModified = self._lastModified(instance)
+		result[LAST_MODIFIED] = result.lastModified = self._lastModified
 
 		if self.is_ipad_legacy:
 			self._do_catalog(instance, result)
@@ -334,7 +336,7 @@ class NonAssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 		self.request.acl_decoration = self._is_editor
 
 		instance = ICourseInstance(self.request.context)
-		result[LAST_MODIFIED] = result.lastModified = self._lastModified(instance)
+		result[LAST_MODIFIED] = result.lastModified = self._lastModified
 
 		if self.is_ipad_legacy:
 			self._do_catalog(instance, result)

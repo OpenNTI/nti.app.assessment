@@ -71,7 +71,7 @@ class _EvaluationLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		course = _get_course_from_evaluation(context,
 											 user=self.remoteUser,
 											 request=self.request)
-		if 	context.is_published() \
+		if 		context.is_published() \
 			and ((course is not None and is_course_instructor(course, self.remoteUser)) \
 			 	 or	has_permission(ACT_NTI_ADMIN, context, self.request)):
 			link = Link(context, rel=VIEW_RESET_EVALUATION,

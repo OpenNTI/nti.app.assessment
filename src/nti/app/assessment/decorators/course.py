@@ -37,7 +37,7 @@ class _CourseEditorLinksDecorator(_AbstractTraversableLinkDecorator):
 		return result
 
 	def _predicate(self, context, result):
-		return (super(_CourseEditorLinksDecorator, self)._predicate(context, result)
+		return (	super(_CourseEditorLinksDecorator, self)._predicate(context, result)
 				and self._acl_decoration
 				and (	is_course_editor(context, self.remoteUser)
 					 or has_permission(ACT_CONTENT_EDIT, context, self.request)))

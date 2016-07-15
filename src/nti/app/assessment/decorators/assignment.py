@@ -9,10 +9,9 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+from datetime import datetime
 from collections import Mapping
 from collections import namedtuple
-
-from datetime import datetime
 
 from zope import component
 from zope import interface
@@ -128,7 +127,7 @@ class _AssignmentsByOutlineNodeDecorator(AbstractAssessmentDecoratorPredicate):
 	def _link_with_rel(self, course, rel):
 		link = Link(course,
 					rel=rel,
-					elements=(rel,),
+					elements=('@@'+rel,),
 					# We'd get the wrong type/ntiid values if we
 					# didn't ignore them.
 					ignore_properties_of_target=True)
@@ -493,9 +492,15 @@ class _PartAutoGradeStatus(AbstractAuthenticatedRequestAwareDecorator):
 	Mark question parts as auto-gradable.
 	"""
 
+	@Lazy
+	def _acl_decoration(self):
+		result = getattr(self.request, 'acl_decoration', True)
+		return result
+
 	def _predicate(self, context, result):
 		# IQParts are not IQEditableEvaluations (we can check lineage if needed).
-		return 		self._is_authenticated \
+		return 		self._acl_decoration \
+				and self._is_authenticated \
 				and has_permission(ACT_CONTENT_EDIT, context, self.request) \
 
 	def _do_decorate_external(self, context, result):
@@ -508,8 +513,14 @@ class _AssessmentDateEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorato
 	assignments/inquiries.
 	"""
 
+	@Lazy
+	def _acl_decoration(self):
+		result = getattr(self.request, 'acl_decoration', True)
+		return result
+
 	def _predicate(self, context, result):
-		return 		self._is_authenticated \
+		return 		self._acl_decoration \
+				and self._is_authenticated \
 				and has_permission(ACT_CONTENT_EDIT, context, self.request)
 
 	def _do_decorate_external(self, context, result):

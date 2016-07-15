@@ -52,13 +52,13 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 				links.append(Link(course,
 								  method='POST',
 								  rel='Commence',
-								  elements=elements + ('Commence',)))
+								  elements=elements + ('@@Commence',)))
 			else:
 				for rel in ('StartTime', 'TimeRemaining'):
 					links.append(Link(course,
 								  	  method='GET',
 								  	  rel=rel,
-								  	  elements=elements + (rel,)))
+								  	  elements=elements + ('@@' + rel,)))
 
 @interface.implementer(IExternalMappingDecorator)
 class _AssignmentMetadataContainerDecorator(AbstractAssessmentDecoratorPredicate):
@@ -75,7 +75,7 @@ class _AssignmentMetadataItemDecorator(AbstractAuthenticatedRequestAwareDecorato
 
 	def _predicate(self, context, result):
 		creator = context.creator
-		return (AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
+		return (	AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
 				and creator is not None
 				and creator == self.remoteUser)
 

@@ -14,8 +14,6 @@ import time
 from zope import component
 from zope import interface
 
-from zope.schema.interfaces import RequiredMissing
-
 from pyramid import httpexceptions as hexc
 
 from pyramid.view import view_config
@@ -27,7 +25,7 @@ from nti.app.assessment._submission import check_upload_files
 from nti.app.assessment._submission import read_multipart_sources
 
 from nti.app.assessment.common import check_submission_version
-from nti.app.assessment.common import get_course_from_assignment
+from nti.app.assessment.common import get_course_from_evaluation
 from nti.app.assessment.common import get_assessment_metadata_item
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
@@ -70,8 +68,8 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 	Students can POST to the assignment to create their save point
 	"""
 
-	_EXTRA_INPUT_ERRORS = \
-			ModeledContentUploadRequestUtilsMixin._EXTRA_INPUT_ERRORS + (AttributeError,)
+	_EXTRA_INPUT_ERRORS = ModeledContentUploadRequestUtilsMixin._EXTRA_INPUT_ERRORS + \
+						  (AttributeError,)
 
 	content_predicate = IQAssignmentSubmission.providedBy
 
@@ -79,11 +77,9 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 		creator = self.remoteUser
 		if not creator:
 			raise hexc.HTTPForbidden(_("Must be Authenticated."))
-		try:
-			course = get_course_from_assignment(self.context, creator)
-			if course is None:
-				raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
-		except RequiredMissing:
+
+		course = get_course_from_evaluation(self.context, creator, exc=False)
+		if course is None:
 			raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
 
 		# No savepoints unless the timed assignment has been started
@@ -146,13 +142,12 @@ class AssignmentSubmissionSavepointGetView(AbstractAuthenticatedView):
 		creator = self.remoteUser
 		if not creator:
 			raise hexc.HTTPForbidden(_("Must be Authenticated."))
-		try:
-			course = get_course_from_assignment(self.context, creator)
-			if course is None:
-				raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
-		except RequiredMissing:
+
+		course = get_course_from_evaluation(self.context, creator, exc=False)
+		if course is None:
 			raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
 
+		__traceback_info__ = creator, course
 		savepoint = component.getMultiAdapter((course, creator),
 											  IUsersCourseAssignmentSavepoint)
 		try:

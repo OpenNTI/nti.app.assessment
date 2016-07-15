@@ -324,7 +324,6 @@ def find_course_for_evaluation(evaluation, user, exc=True):
 	# to dispatch to.
 	if course is None and exc:
 		raise RequiredMissing("Course cannot be found")
-
 	return course
 find_course_for_assignment = find_course_for_evaluation  # BWC
 

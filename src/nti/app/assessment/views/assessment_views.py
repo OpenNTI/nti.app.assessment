@@ -136,8 +136,8 @@ def get_question_view_link(request):
 	# Not supported.
 	return hexc.HTTPBadRequest()
 
-@view_config(accept=str(''),  	# explicit empty accept, else we get a ConfigurationConflict
-			 ** _question_view)	# and/or no-Accept header goes to the wrong place
+@view_config(accept=str(''),  # explicit empty accept, else we get a ConfigurationConflict
+			 ** _question_view)  # and/or no-Accept header goes to the wrong place
 @view_config(**_question_view)
 @view_config(accept=str(''),
 			 **_question_set_view)
@@ -181,14 +181,14 @@ class AssignmentsByOutlineNodeMixin(AbstractAuthenticatedView):
 					result = True
 					break
 		return result
-	
+
 	@Lazy
 	def _lastModified(self):
 		instance = ICourseInstance(self.context)
 		result = ICourseEvaluations(instance).lastModified or 0
 		for package in get_course_packages(instance):
 			result = max(result, IQAssessmentItemContainer(package).lastModified or 0)
-		return result 
+		return result
 
 @view_config(context=ICourseInstance)
 @view_config(context=ICourseInstanceEnrollment)
@@ -237,7 +237,7 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 			if node is None or not node.ContentNTIID:
 				continue
 			key = node.ContentNTIID
-			
+
 			# start if possible with collected items
 			assgs = items.get(key)
 			if assgs and key not in seen:
@@ -253,16 +253,16 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 				if ntiid:
 					outline.setdefault(key, [])
 					outline[key].append(ntiid)
-		
+
 		return outline
 
 	def _do_catalog(self, instance, result):
 		catalog = ICourseAssignmentCatalog(instance)
 		uber_filter = get_course_assessment_predicate_for_user(self.remoteUser, instance)
 		for asg in (x for x in catalog.iter_assignments() if self._is_editor or uber_filter(x)):
-			containerId = get_containerId(asg)
-			if containerId:
-				result.setdefault(containerId, []).append(asg)
+			container_id = get_containerId(asg)
+			if container_id:
+				result.setdefault(container_id, []).append(asg)
 			else:
 				logger.error("%s is an assignment without parent container", asg.ntiid)
 		return result
@@ -332,9 +332,9 @@ class NonAssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 				# CS: We can remove proxies since the items are neither assignments
 				# nor survey, so no course lookup is necesary
 				item = removeAllProxies(item)
-				containerId = get_containerId(item)
-				if containerId:
-					data[containerId][item.ntiid] = item
+				container_id = get_containerId(item)
+				if container_id:
+					data[container_id][item.ntiid] = item
 				else:
 					logger.error("%s is an item without container", item.ntiid)
 

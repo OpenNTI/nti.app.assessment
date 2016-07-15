@@ -52,9 +52,12 @@ from nti.assessment.interfaces import IQAssessmentItemContainer
 from nti.common.property import Lazy
 from nti.common.proxy import removeAllProxies
 
+from nti.contentlibrary.indexed_data import get_library_catalog
+
 from nti.contenttypes.courses.common import get_course_packages
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 from nti.contenttypes.courses.interfaces import ICourseAssignmentCatalog
 from nti.contenttypes.courses.interfaces import ICourseOutlineContentNode
 from nti.contenttypes.courses.interfaces import ICourseAssessmentItemCatalog
@@ -64,12 +67,15 @@ from nti.contenttypes.courses.utils import is_course_instructor_or_editor
 
 from nti.contenttypes.presentation.interfaces import INTIAssignmentRef
 from nti.contenttypes.presentation.interfaces import INTIQuestionSetRef
-from nti.contenttypes.presentation.interfaces import INTILessonOverview
 
 from nti.dataserver import authorization as nauth
 
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
+
+from nti.site.site import get_component_hierarchy_names
+
+from nti.traversal.traversal import find_interface
 
 ITEMS = StandardExternalFields.ITEMS
 LAST_MODIFIED = StandardExternalFields.LAST_MODIFIED
@@ -216,27 +222,38 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 				for part in asg.parts:
 					reverse_qset[part.question_set.ntiid] = asg.ntiid
 
-		def _recur(node):
-			if ICourseOutlineContentNode.providedBy(node) and node.ContentNTIID:
-				key = node.ContentNTIID
-				assgs = items.get(key)
-				if assgs:
-					outline[key] = [x.ntiid for x in assgs]
-				name = node.LessonOverviewNTIID
-				lesson = component.queryUtility(INTILessonOverview, name=name or u'')
-				for group in lesson or ():
-					for item in group:
-						if INTIAssignmentRef.providedBy(item):
-							outline.setdefault(key, [])
-							outline[key].append(item.target or item.ntiid)
-						elif INTIQuestionSetRef.providedBy(item):
-							ntiid = reverse_qset.get(item.target)
-							if ntiid:
-								outline.setdefault(key, [])
-								outline[key].append(ntiid)
-			for child in node.values():
-				_recur(child)
-		_recur(instance.Outline)
+		# use library catalog to find
+		# all assignment and question-set refs
+		seen = set()
+		catalog = get_library_catalog()
+		sites = get_component_hierarchy_names()
+		ntiid = ICourseCatalogEntry(instance).ntiid
+		provided = (INTIAssignmentRef, INTIQuestionSetRef)
+		for obj in catalog.search_objects(provided=provided,
+										  container_ntiids=ntiid,
+										  sites=sites):
+			# find property content node
+			node = find_interface(obj, ICourseOutlineContentNode, strict=False)
+			if node is None or not node.ContentNTIID:
+				continue
+			key = node.ContentNTIID
+			
+			# start if possible with collected items
+			assgs = items.get(key)
+			if assgs and key not in seen:
+				seen.add(key)
+				outline[key] = [x.ntiid for x in assgs]
+
+			# add target to outline key
+			if INTIAssignmentRef.providedBy(obj):
+				outline.setdefault(key, [])
+				outline[key].append(obj.target or obj.ntiid)
+			elif INTIQuestionSetRef.providedBy(obj):
+				ntiid = reverse_qset.get(obj.target)
+				if ntiid:
+					outline.setdefault(key, [])
+					outline[key].append(ntiid)
+		
 		return outline
 
 	def _do_catalog(self, instance, result):

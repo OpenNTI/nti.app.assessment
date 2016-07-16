@@ -709,7 +709,9 @@ def _qset_with_ntiids_only( qset_ext ):
 	Check if our question set *only* has question ntiids.
 	"""
 	def _ntiid_only(question_ext):
-		"Only contains NTIID and no other keys."
+		"""
+		Only contains NTIID and no other keys.
+		"""
 		if not question_ext:
 			return False
 		if isinstance(question_ext, six.string_types):
@@ -952,7 +954,7 @@ class AssignmentPutView(NewAndLegacyPutView):
 		# Assuming one part per assignment.
 		for part in externalValue.get( 'parts' ) or ():
 			qset = part.get( 'question_set' )
-			ntiids_only = _qset_with_ntiids_only( qset )
+			ntiids_only = _qset_with_ntiids_only( qset ) if qset else None
 			if ntiids_only:
 				result[ITEMS] = qset.pop( 'questions' )
 		return externalValue, result

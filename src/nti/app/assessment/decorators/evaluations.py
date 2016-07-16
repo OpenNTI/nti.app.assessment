@@ -29,6 +29,7 @@ from nti.app.publishing import VIEW_UNPUBLISH
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
 from nti.appserver.pyramid_authorization import has_permission
+from nti.appserver.pyramid_renderers_edit_link_decorator import LinkRemoverDecorator
 
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQEditableEvaluation
@@ -83,11 +84,13 @@ class _EvaluationLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			_links.append(link)
 
 @interface.implementer(IExternalObjectDecorator)
-class _EvaluationCalendarPublishStateDecorator(AbstractAuthenticatedRequestAwareDecorator):
+class _EvaluationCalendarPublishStateDecorator(LinkRemoverDecorator):
 	"""
 	Removes publish links from the evaluation if we have any savepoints
 	or submissions.
 	"""
+
+	links_to_remove = (VIEW_PUBLISH, VIEW_UNPUBLISH)
 
 	def _get_course(self, context):
 		# IQEditableEvaluations must have courses.
@@ -96,31 +99,12 @@ class _EvaluationCalendarPublishStateDecorator(AbstractAuthenticatedRequestAware
 
 	def _predicate(self, context, result):
 		# For content-backed items, make sure we do not provide pub/unpub links.
-		if not IQEditableEvaluation.providedBy( context ):
+		if not IQEditableEvaluation.providedBy(context):
 			return True
 		course = self._get_course(context)
 		if IQInquiry.providedBy(context):
-			submissions = has_inquiry_submissions( context, course )
+			submissions = has_inquiry_submissions(context, course)
 		else:
-			courses = get_courses( course )
-			submissions = has_submissions( context, courses )
-		return submissions or has_savepoints( context, courses )
-
-	def _do_decorate_external(self, context, result):
-		# Remove any publish/unpublish links.
-		publish_rels = (VIEW_PUBLISH, VIEW_UNPUBLISH)
-		_links = result.setdefault(LINKS, [])
-		new_links = []
-		for link in _links:
-			# Some links may be externalized already.
-			rel = ''
-			try:
-				rel = link.rel
-			except AttributeError:
-				try:
-					rel = link.get('rel')
-				except AttributeError:
-					pass
-			if rel not in publish_rels:
-				new_links.append(link)
-		result[LINKS] = new_links
+			courses = get_courses(course)
+			submissions = has_submissions(context, courses)
+		return submissions or has_savepoints(context, courses)

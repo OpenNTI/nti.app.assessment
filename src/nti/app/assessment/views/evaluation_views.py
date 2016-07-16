@@ -285,7 +285,8 @@ class EvaluationMixin(StructuralValidationMixin):
 
 	def handle_question(self, theObject, course, user, check_solutions=True):
 		if self.is_new(theObject):
-			theObject = self.store_evaluation(theObject, course, user, check_solutions)
+			theObject = self.store_evaluation(theObject, course, user,
+											  check_solutions)
 		else:
 			theObject = self.get_registered_evaluation(theObject, course)
 		[p.ntiid for p in theObject.parts or ()] # set auto part NTIIDs
@@ -660,14 +661,18 @@ class EvaluationPutView(EvaluationMixin, UGDPutView):
 							 },
 							 None)
 
+	def _get_post_update_source(self, externalValue):
+		return externalValue, copy.deepcopy(externalValue)
+
 	def updateContentObject(self, contentObject, externalValue, set_id=False, notify=True):
 		originalSource = copy.deepcopy(externalValue)
+		externalValue, update_source = self._get_post_update_source( externalValue )
 		result = UGDPutView.updateContentObject(self,
 												contentObject,
 												externalValue,
 												set_id=set_id,
 												notify=False)
-		self.post_update_check(contentObject, originalSource)
+		self.post_update_check(contentObject, update_source)
 		sources = get_all_sources(self.request)
 		if sources:
 			validate_sources(self.remoteUser, result.model, sources)
@@ -699,6 +704,23 @@ class QuestionPutView(EvaluationPutView):
 			notify(RegradeQuestionEvent(result, part_regrades))
 		return result
 
+def _qset_with_ntiids_only( qset_ext ):
+	"""
+	Check if our question set *only* has question ntiids.
+	"""
+	def _ntiid_only(question_ext):
+		"Only contains NTIID and no other keys."
+		if not question_ext:
+			return False
+		if isinstance(question_ext, six.string_types):
+			return True
+		ntiid = question_ext.get('ntiid') or question_ext.get(NTIID)
+		return ntiid and len( question_ext ) == 1
+
+	questions = qset_ext.get( 'questions' )
+	result = questions and all( _ntiid_only(x) for x in questions )
+	return result
+
 @view_config(route_name='objects.generic.traversal',
 			 context=IQuestionSet,
 			 request_method='PUT',
@@ -718,6 +740,17 @@ class QuestionSetPutView(EvaluationPutView):
 			if items:  # list of ntiids
 				contentObject.questions = indexed_iter()  # reset
 				self.auto_complete_questionset(contentObject, originalSource)
+
+	def _get_post_update_source(self, externalValue):
+		"""
+		If our question set just has ntiids, pop from original (in order
+		to update without 422ing) and return items for postUpdate.
+		"""
+		result = dict()
+		ntiids_only = _qset_with_ntiids_only( externalValue )
+		if ntiids_only:
+			result[ITEMS] = externalValue.pop( 'questions' )
+		return externalValue, result
 
 	def _update_assignments( self, old_obj, new_obj ):
 		"""
@@ -836,14 +869,18 @@ class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):
 			result.pop(key.lower(), None)
 		return result
 
+	def _get_post_update_source(self, externalValue):
+		return externalValue, copy.deepcopy(externalValue)
+
 	def updateContentObject(self, contentObject, externalValue, set_id=False, notify=True):
 		originalSource = copy.deepcopy(externalValue)
+		externalValue, update_source = self._get_post_update_source( externalValue )
 		result = AssessmentPutView.updateContentObject(self,
 													   contentObject,
 													   externalValue,
 													   set_id=set_id,
 													   notify=False)
-		self.post_update_check(contentObject, originalSource)
+		self.post_update_check(contentObject, update_source)
 		sources = get_all_sources(self.request)
 		if sources:
 			validate_sources(self.remoteUser, result.model, sources)
@@ -905,6 +942,20 @@ class AssignmentPutView(NewAndLegacyPutView):
 		parts = externalValue.get('parts')
 		if parts:
 			self._validate_structural_edits()
+
+	def _get_post_update_source(self, externalValue):
+		"""
+		If our question set just has ntiids, pop from original (in order
+		to update without 422ing) and return items for postUpdate.
+		"""
+		result = dict()
+		# Assuming one part per assignment.
+		for part in externalValue.get( 'parts' ) or ():
+			qset = part.get( 'question_set' )
+			ntiids_only = _qset_with_ntiids_only( qset )
+			if ntiids_only:
+				result[ITEMS] = qset.pop( 'questions' )
+		return externalValue, result
 
 	def post_update_check(self, contentObject, originalSource):
 		if IQEditableEvaluation.providedBy(contentObject):

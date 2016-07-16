@@ -206,6 +206,45 @@ class TestEvaluationViews(ApplicationLayerTest):
 			self._test_external_state( question, **kwargs )
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
+	def test_qset_with_question_ntiids(self):
+		"""
+		Post to an assignment with a question set with ntiids only.
+		"""
+		course_oid = self._get_course_oid()
+		evaluation_href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
+		qset = self._load_questionset()
+		res = self.testapp.post_json(evaluation_href, qset, status=201)
+		res = res.json_body
+		question_ntiid = res.get( 'questions' )[0].get( 'NTIID' )
+
+		# Create an assignment
+		assignment = self._load_assignment()
+		res = self.testapp.post_json(evaluation_href, assignment, status=201)
+		res = res.json_body
+		assignment_href = res.get( 'href' )
+		old_parts = res.get( 'parts' )
+		question_set = old_parts[0]['question_set']
+		question_set.pop( NTIID )
+		question_set.pop( 'ntiid' )
+		question_set['questions'] = (question_ntiid,)
+
+		# Now empty the parts
+		res = self.testapp.put_json( assignment_href, {'parts': []})
+		res = res.json_body
+		assert_that( res.get( 'parts' ), has_length( 0 ) )
+
+		# Insert with question_ntiid in questions
+		res = self.testapp.put_json( assignment_href, {'parts': old_parts})
+		res = res.json_body
+		parts = res.get( 'parts' )
+		assert_that( parts, has_length( 1 ))
+		qset = parts[0].get( 'question_set' )
+		assert_that( qset, not_none() )
+		questions = qset.get( 'questions' )
+		assert_that( questions, has_length( 1 ))
+		assert_that( questions[0].get( NTIID ), is_( question_ntiid ))
+
+	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_creating_assessments(self):
 		course_oid = self._get_course_oid()
 		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)

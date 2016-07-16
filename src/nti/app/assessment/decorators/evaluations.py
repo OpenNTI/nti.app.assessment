@@ -92,16 +92,11 @@ class _EvaluationCalendarPublishStateDecorator(LinkRemoverDecorator):
 
 	links_to_remove = (VIEW_PUBLISH, VIEW_UNPUBLISH)
 
-	def _get_course(self, context):
-		# IQEditableEvaluations must have courses.
-		course = find_interface(context, ICourseInstance, strict=True)
-		return course
-
 	def _predicate(self, context, result):
 		# For content-backed items, make sure we do not provide pub/unpub links.
 		if not IQEditableEvaluation.providedBy(context):
 			return True
-		course = self._get_course(context)
+		course = find_interface(context, ICourseInstance, strict=True)
 		if IQInquiry.providedBy(context):
 			submissions = has_inquiry_submissions(context, course)
 		else:

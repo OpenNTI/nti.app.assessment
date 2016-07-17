@@ -343,13 +343,20 @@ def get_course_from_evaluation(evaluation, user=None, catalog=None,
 	except (KeyError, AttributeError):
 		pass
 
+	# Try catalog first for speed; only return if single course found.
+	catalog_courses = None
 	if result is None:
-		courses = get_evaluation_courses(evaluation)
-		result = courses[0] if courses else None
+		catalog_courses = get_evaluation_courses(evaluation)
+		result = catalog_courses[0] if len( catalog_courses ) == 1 else None
 
-	# could not find a course .. try adapter
+	# could not find a course .. try adapter; this validates enrollment...
 	if result is None and user is not None:
 		result = find_course_for_evaluation(evaluation, user, exc=exc)
+
+	# If nothing, fall back to whatever randomly comes up in catalog first.
+	# Needed when determining if user is instructor of evaluation course.
+	if result is None:
+		result = catalog_courses[0] if catalog_courses else None
 	return result
 get_course_from_assignment = get_course_from_evaluation  # BWC
 

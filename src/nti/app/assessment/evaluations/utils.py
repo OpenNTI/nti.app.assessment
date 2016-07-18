@@ -185,7 +185,9 @@ def export_evaluation_content(model, source_filer, target_filer):
 					path = path[1:] if path.startswith('/') else path
 				else:
 					path = IMAGES_FOLDER if is_image(rsrc_name, contentType) else DOCUMENTS_FOLDER
-				path = os.path.join(ASSETS_FOLDER, path) # under assets folder
+				if 		not path.startswith(IMAGES_FOLDER) \
+					and not path.startswith(DOCUMENTS_FOLDER):
+					path = os.path.join(ASSETS_FOLDER, path) # under assets folder
 				# save resource
 				target_filer.save(resource.name,
 								  resource,

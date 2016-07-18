@@ -188,7 +188,7 @@ def _reassess_assignment_history_item(item):
 	# mark old pending assessment as removed
 	lifecycleevent.removed(old_pending_assessment)
 	old_pending_assessment.__parent__ = None # ground
-	
+
 	assignment = item.Assignment
 	course = find_interface(item, ICourseInstance, strict=False)
 	new_pending_assessment = assess_assignment_submission(course, assignment, submission)
@@ -196,9 +196,9 @@ def _reassess_assignment_history_item(item):
 	item.pendingAssessment = new_pending_assessment
 	new_pending_assessment.__parent__ = item
 	lifecycleevent.created(new_pending_assessment)
-	
+
 	# dispatch to sublocations
-	lifecycleevent.modified(item) 
+	lifecycleevent.modified(item)
 
 def _regrade_assesment(context, course):
 	result = []

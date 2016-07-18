@@ -106,11 +106,14 @@ def set_submission_lineage(submission):
 	# The constituent parts of these things need parents as well.
 	# It would be nice if externalization took care of this,
 	# but that would be a bigger change
+	creator = submission.creator
 	for submission_set in submission.parts:
 		# submission_part e.g. assessed question set
 		_set_parent_(submission_set, submission)
+		submission_set.creator = creator
 		for submitted_question in submission_set.questions:
 			_set_parent_(submitted_question, submission_set)
+			submitted_question.creator = creator
 			for submitted_question_part in submitted_question.parts:
 				_set_parent_(submitted_question_part, submitted_question)
 				_set_part_value_lineage(submitted_question_part)

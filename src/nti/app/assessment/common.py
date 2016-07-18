@@ -870,10 +870,8 @@ def assess_assignment_submission(course, assignment, submission):
 	for submission_part in submission.parts:
 		assignment_part, = [p for p in assignment.parts \
 							if p.question_set.ntiid == submission_part.questionSetId]
-		# If either the part is auto_grade (content-backed) or the
-		# policy is auto_grade, make sure we assess.
-		if 		assignment_part.auto_grade \
-			or  get_auto_grade_policy_state( assignment, course ):
+		# Only assess if the part is set to auto_grade.
+		if 	assignment_part.auto_grade:
 			__traceback_info__ = submission_part
 			submission_part = IQAssessedQuestionSet(submission_part)
 		new_parts.append(submission_part)

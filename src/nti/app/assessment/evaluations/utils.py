@@ -33,6 +33,7 @@ from nti.app.base.abstract_views import get_safe_source_filename
 
 from nti.app.externalization.error import raise_json_error
 
+from nti.app.products.courseware import ASSETS_FOLDER
 from nti.app.products.courseware import IMAGES_FOLDER
 from nti.app.products.courseware import DOCUMENTS_FOLDER
 
@@ -184,6 +185,7 @@ def export_evaluation_content(model, source_filer, target_filer):
 					path = path[1:] if path.startswith('/') else path
 				else:
 					path = IMAGES_FOLDER if is_image(rsrc_name, contentType) else DOCUMENTS_FOLDER
+				path = os.path.join(ASSETS_FOLDER, path) # under assets folder
 				# save resource
 				target_filer.save(resource.name,
 								  resource,

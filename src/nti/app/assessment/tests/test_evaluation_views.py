@@ -383,6 +383,23 @@ class TestEvaluationViews(ApplicationLayerTest):
 		delete_suffix = self._get_delete_url_suffix(0, question_ntiid)
 		self.testapp.delete(qset_contents_href + delete_suffix)
 
+		# Test auto_assess (starts out False)
+		data = { 'auto_assess': True }
+		self.testapp.put_json('/dataserver2/Objects/%s' % assignment_ntiid,
+							  data, extra_environ=editor_environ)
+		res = self.testapp.get('/dataserver2/Objects/' + assignment_ntiid,
+							   extra_environ=editor_environ)
+		res = res.json_body
+		assert_that( res.get( 'parts' )[0].get( 'auto_grade' ), is_( True ))
+
+		data = { 'AutoAssess': False }
+		self.testapp.put_json('/dataserver2/Objects/%s' % assignment_ntiid,
+							  data, extra_environ=editor_environ)
+		res = self.testapp.get('/dataserver2/Objects/' + assignment_ntiid,
+							   extra_environ=editor_environ)
+		res = res.json_body
+		assert_that( res.get( 'parts' )[0].get( 'auto_grade' ), is_( False ))
+
 		# Test editing auto_grade/points.
 		data = { 'total_points': 100 }
 		self.testapp.put_json('/dataserver2/Objects/%s' % assignment_ntiid,

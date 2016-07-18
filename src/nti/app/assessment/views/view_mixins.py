@@ -349,6 +349,16 @@ class AssessmentPutView(UGDPutView):
 			policy[key] = value
 			event_notify(QAssessmentPoliciesModified(course, ntiid, key, value))
 
+	def _update_auto_assess(self, contentObject, auto_assess):
+		"""
+		Update the auto_grade (assess) field on parts.
+		"""
+		# TODO: Regrade event?
+		if auto_assess is not None:
+			value = self._get_value(bool, auto_assess, 'auto_assess')
+			for part in contentObject.parts or ():
+				part.auto_grade = value
+
 	def updateContentObject(self, contentObject, externalValue, set_id=False,
 							notify=True, pre_hook=None):
 		# find all courses if context is not provided
@@ -360,9 +370,14 @@ class AssessmentPutView(UGDPutView):
 
 		self.preflight(contentObject, externalValue, courses)
 
+		auto_assess = None
+		for key in ('auto_assess', 'AutoAssess'):
+			assess_val = externalValue.pop( key, None )
+			if assess_val is not None:
+				auto_assess = assess_val
+
 		if context is not None:
-			# Remove policy keys to avoid updating
-			# fields in the actual assessment object
+			# Remove policy keys to avoid updating fields in the actual assessment object
 			backupData = copy.deepcopy(externalValue)
 			for key in self.policy_keys:
 				externalValue.pop(key, None)
@@ -382,6 +397,8 @@ class AssessmentPutView(UGDPutView):
 				notifyModified(contentObject, copied)
 		else:
 			result = contentObject
+
+		self._update_auto_assess( contentObject, auto_assess )
 
 		# update course policy
 		ntiid = contentObject.ntiid

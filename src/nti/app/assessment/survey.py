@@ -246,7 +246,7 @@ class _UsersCourseInquiryTraversable(ContainerAdapterTraversable):
 		assesment = component.queryUtility(IQInquiry, name=key)
 		if assesment is not None:
 			return assesment
-		raise
+		raise LocationError(self.context, key)
 
 @interface.implementer(ICourseInquiryCatalog)
 @component.adapter(ICourseInstance)

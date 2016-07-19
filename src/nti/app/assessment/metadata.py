@@ -278,7 +278,7 @@ class _UsersCourseMetadataTraversable(ContainerAdapterTraversable):
 		assesment = component.queryUtility(IQAssessment, name=key)
 		if assesment is not None:
 			return assesment
-		raise
+		raise LocationError(self.context, key)
 
 @component.adapter(ICourseInstance, IObjectAddedEvent)
 def _on_course_added(course, event):

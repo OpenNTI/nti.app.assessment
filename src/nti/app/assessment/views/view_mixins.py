@@ -274,6 +274,10 @@ class AssessmentPutView(UGDPutView):
 			if not result:
 				result = {}
 				policy.set(ntiid, part, result)
+				if part == 'auto_grade':
+					# Creating a new auto_grade policy part; default
+					# to auto_grade off.
+					result['disable'] = True
 		return result
 
 	def _raise_error(self, code, message, field=None):

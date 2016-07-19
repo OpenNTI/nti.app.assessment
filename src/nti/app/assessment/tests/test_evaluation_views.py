@@ -400,14 +400,14 @@ class TestEvaluationViews(ApplicationLayerTest):
 		res = res.json_body
 		assert_that( res.get( 'parts' )[0].get( 'auto_grade' ), is_( False ))
 
-		# Test editing auto_grade/points.
+		# Test editing auto_grade/points. total_points can be set without auto_grade.
 		data = { 'total_points': 100 }
 		self.testapp.put_json('/dataserver2/Objects/%s' % assignment_ntiid,
 							  data, extra_environ=editor_environ)
 		res = self.testapp.get('/dataserver2/Objects/' + assignment_ntiid,
 							   extra_environ=editor_environ)
 		res = res.json_body
-		assert_that(res.get('auto_grade'), none())
+		assert_that(res.get('auto_grade'), is_( False ))
 		assert_that(res.get('total_points'), is_(100))
 
 		data = { 'auto_grade': False, 'total_points': 5 }

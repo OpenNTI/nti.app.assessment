@@ -244,7 +244,7 @@ def get_assessment_items_from_unit(contentUnit):
 		if same_content_unit_file(unit, contentUnit):
 			qs = get_unit_assessments(unit)
 			accum.update({q.ntiid: q for q in qs or ()})
-			for child in unit.children:
+			for child in unit.children or ():
 				recur(child, accum)
 
 	result = dict()

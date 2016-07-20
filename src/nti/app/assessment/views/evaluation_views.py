@@ -1229,8 +1229,7 @@ class EvaluationResetMixin(ModeledContentUploadRequestUtilsMixin):
 		return result
 
 	def _can_delete_contained_data(self, theObject):
-		return 		is_course_instructor(self.course, self.remoteUser) \
-			   or	has_permission(nauth.ACT_NTI_ADMIN, theObject, self.request)
+		return is_course_instructor(self.course, self.remoteUser)
 
 @view_config(context=IQPoll)
 @view_config(context=IQSurvey)

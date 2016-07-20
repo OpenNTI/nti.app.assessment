@@ -38,7 +38,6 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.contenttypes.courses.utils import is_course_instructor
 
-from nti.dataserver.authorization import ACT_NTI_ADMIN
 from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
 from nti.externalization.interfaces import StandardExternalFields
@@ -73,8 +72,8 @@ class _EvaluationLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 											 user=self.remoteUser,
 											 request=self.request)
 		if 		context.is_published() \
-			and ((course is not None and is_course_instructor(course, self.remoteUser)) \
-			 	 or	has_permission(ACT_NTI_ADMIN, context, self.request)):
+			and course is not None \
+			and is_course_instructor(course, self.remoteUser):
 			link = Link(context, rel=VIEW_RESET_EVALUATION,
 						elements=('@@' + VIEW_RESET_EVALUATION,),
 						method='POST')

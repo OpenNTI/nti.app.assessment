@@ -26,9 +26,11 @@ from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssessedPart
 from nti.assessment.interfaces import IQAssessedQuestion
 from nti.assessment.interfaces import IQuestionSubmission
+from nti.assessment.interfaces import IQAssessedQuestionSet
 from nti.assessment.interfaces import IQPartSolutionsExternalizer
 
 from nti.assessment.randomized.interfaces import IQRandomizedPart
+from nti.assessment.randomized.interfaces import IRandomizedPartsContainer
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.utils import is_course_instructor
@@ -38,6 +40,8 @@ from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.externalization import to_external_object
 
 from nti.links.links import Link
+
+from nti.ntiids.ntiids import find_object_with_ntiid
 
 from nti.traversal.traversal import find_interface
 
@@ -167,6 +171,31 @@ class _QAssessedQuestionExplanationSolutionAdder(object):
 
 	__metaclass__ = SingletonDecorator
 
+	def _is_randomized_question_set(self, context):
+		"""
+		See if our contextual submission is a randomized parts container. If so
+		we need to shuffle our solutions.
+		"""
+		result = False
+		assessed_qset = find_interface( context, IQAssessedQuestionSet, strict=False )
+		if assessed_qset is not None:
+			qset = find_object_with_ntiid( assessed_qset.questionSetId )
+			if qset is not None:
+				result = IRandomizedPartsContainer.providedBy( qset )
+		return result
+
+	def _get_externalizer(self, question_part, is_randomized_qset):
+		externalizer = None
+		if is_randomized_qset or IQRandomizedPart.providedBy( question_part ):
+			# Look for named random adapter first, if necessary.
+			externalizer = component.queryAdapter(question_part,
+												  IQPartSolutionsExternalizer,
+												  name="random")
+		if externalizer is None:
+			# For non-random parts, and actual random part types.
+			externalizer = IQPartSolutionsExternalizer(question_part)
+		return externalizer
+
 	def decorateExternalObject(self, context, mapping):
 		question_id = context.questionId
 		question = component.queryUtility(IQuestion, name=question_id)
@@ -176,10 +205,11 @@ class _QAssessedQuestionExplanationSolutionAdder(object):
 		remoteUser = get_remote_user()
 		course = find_interface(context, ICourseInstance, strict=False)
 		is_instructor = remoteUser and course and is_course_instructor(course, remoteUser)
+		is_randomized_qset = self._is_randomized_question_set( context )
 
 		for question_part, external_part in zip(question.parts, mapping['parts']):
 			if not is_instructor:
-				externalizer = IQPartSolutionsExternalizer(question_part)
+				externalizer = self._get_externalizer( question_part, is_randomized_qset )
 				external_part['solutions'] = externalizer.to_external_object()
 			else:
 				external_part['solutions'] = to_external_object(question_part.solutions)

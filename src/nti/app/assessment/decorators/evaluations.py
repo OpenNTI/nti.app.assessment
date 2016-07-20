@@ -50,11 +50,11 @@ from nti.traversal.traversal import find_interface
 
 LINKS = StandardExternalFields.LINKS
 
-def _has_any_submissions( context, course ):
+def _has_any_submissions(context, course):
+	courses = get_courses(course)
 	if IQInquiry.providedBy(context):
 		submissions = has_inquiry_submissions(context, course)
 	else:
-		courses = get_courses(course)
 		submissions = has_submissions(context, courses)
 	return submissions or has_savepoints(context, courses)
 
@@ -82,7 +82,7 @@ class _EvaluationLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		if 		course is not None \
 			and context.is_published() \
 			and is_course_instructor(course, self.remoteUser) \
-			and _has_any_submissions( context, course ):
+			and _has_any_submissions(context, course):
 			link = Link(context, rel=VIEW_RESET_EVALUATION,
 						elements=('@@' + VIEW_RESET_EVALUATION,),
 						method='POST')
@@ -105,4 +105,4 @@ class _EvaluationCalendarPublishStateDecorator(LinkRemoverDecorator):
 		if not IQEditableEvaluation.providedBy(context):
 			return True
 		course = find_interface(context, ICourseInstance, strict=True)
-		return _has_any_submissions( context, course )
+		return _has_any_submissions(context, course)

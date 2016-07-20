@@ -288,7 +288,7 @@ class RandomizedPartGraderUnshuffleValidator(object):
 			# If we have a creator, it probably means we're decorating.
 			# If we don't have a creator, the remote user is the creator.
 			if creator and creator != username:
-				# Someone else (instructor) viewing something that needs unshuffling.
+				# Someone else (instructor) viewing/assessing something that needs unshuffling.
 				result = True
 			else:
 				# If not, return if submitter is and editor/instructor.

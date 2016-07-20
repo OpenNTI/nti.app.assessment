@@ -422,16 +422,34 @@ class EvaluationMixin(StructuralValidationMixin):
 		"""
 		question = self.get_registered_evaluation(item, self.course)
 		if not IQuestion.providedBy(question):
-			msg = translate(_("Question ${ntiid} does not exists.",
+			msg = translate(_("Question ${ntiid} does not exist.",
 							mapping={'ntiid': item}))
 			raise_json_error(self.request,
 							 hexc.HTTPUnprocessableEntity,
 							 {
 								u'message': msg,
-								u'code': 'QuestionDoesNotExists',
+								u'code': 'QuestionDoesNotExist',
 							 },
 							 None)
 		return question
+
+	def _get_required_question_set(self, item):
+		"""
+		Fetch and validate we are given a question_set object or the ntiid
+		of an existing question_set object.
+		"""
+		question_set = self.get_registered_evaluation(item, self.course)
+		if not IQuestionSet.providedBy(question_set):
+			msg = translate(_("QuestionSet ${ntiid} does not exist.",
+							mapping={'ntiid': item}))
+			raise_json_error(self.request,
+							 hexc.HTTPUnprocessableEntity,
+							 {
+								u'message': msg,
+								u'code': 'QuestionSetDoesNotExist',
+							 },
+							 None)
+		return question_set
 
 	def auto_complete_questionset(self, context, externalValue):
 		questions = indexed_iter() if not context.questions else context.questions
@@ -453,7 +471,7 @@ class EvaluationMixin(StructuralValidationMixin):
 								 hexc.HTTPUnprocessableEntity,
 								 {
 									u'message': msg,
-									u'code': 'QuestionDoesNotExists',
+									u'code': 'QuestionDoesNotExist',
 								 },
 								 None)
 			else:
@@ -464,6 +482,10 @@ class EvaluationMixin(StructuralValidationMixin):
 		# Clients are expected to create parts/qsets as needed.
 		parts = indexed_iter() if not context.parts else context.parts
 		for part in parts:
+			# Assuming one part.
+			qset = externalValue.get( 'question_set' )
+			if qset:
+				part.question_set = self._get_required_question_set( qset )
 			if part.question_set is not None:
 				self.auto_complete_questionset(part.question_set, externalValue)
 		context.parts = parts
@@ -725,24 +747,31 @@ class QuestionPutView(EvaluationPutView):
 			event_notify(RegradeQuestionEvent(result, part_regrades))
 		return result
 
+def _ntiid_only( ext_obj ):
+	"""
+	Only contains NTIID and no other keys.
+	"""
+	if not ext_obj:
+		return False
+	if isinstance(ext_obj, six.string_types):
+		return True
+	ntiid = ext_obj.get('ntiid') or ext_obj.get(NTIID)
+	return ntiid and len( ext_obj ) == 1
+
 def _qset_with_ntiids_only( qset_ext ):
 	"""
 	Check if our question set *only* has question ntiids.
 	"""
-	def _ntiid_only(question_ext):
-		"""
-		Only contains NTIID and no other keys.
-		"""
-		if not question_ext:
-			return False
-		if isinstance(question_ext, six.string_types):
-			return True
-		ntiid = question_ext.get('ntiid') or question_ext.get(NTIID)
-		return ntiid and len( question_ext ) == 1
-
 	questions = qset_ext.get( 'questions' )
 	result = questions and all( _ntiid_only(x) for x in questions )
 	return result
+
+def _assignment_part_with_question_set_ntiid_only( part_ext ):
+	"""
+	Check if our assignment part has *only* an ntiid for the question set.
+	"""
+	qset = part_ext.get( 'question_set' )
+	return _ntiid_only( qset )
 
 @view_config(route_name='objects.generic.traversal',
 			 context=IQuestionSet,
@@ -975,15 +1004,21 @@ class AssignmentPutView(NewAndLegacyPutView):
 		# Assuming one part per assignment.
 		for part in externalValue.get( 'parts' ) or ():
 			qset = part.get( 'question_set' )
-			ntiids_only = _qset_with_ntiids_only( qset ) if qset else None
-			if ntiids_only:
-				result[ITEMS] = qset.pop( 'questions' )
+			if _assignment_part_with_question_set_ntiid_only( part ):
+				# Populate a placeholder question set to pass validation.
+				# We'll fill in this with the question set corresponding
+				# to this ntiid after update.
+				result['question_set'] = part.pop( 'question_set' )
+				part['question_set'] = {'MimeType': QQuestionSet.mime_type}
+			else:
+				ntiids_only = _qset_with_ntiids_only( qset ) if qset else None
+				if ntiids_only:
+					result[ITEMS] = qset.pop( 'questions' )
 		return externalValue, result
 
 	def post_update_check(self, contentObject, originalSource):
 		if IQEditableEvaluation.providedBy(contentObject):
-			items = originalSource.get(ITEMS)
-			if items:  # list of ntiids
+			if originalSource:  # list of ntiids
 				for qset in contentObject.iter_question_sets():  # reset
 					qset.questions = indexed_iter()
 				self.auto_complete_assignment(contentObject, originalSource)

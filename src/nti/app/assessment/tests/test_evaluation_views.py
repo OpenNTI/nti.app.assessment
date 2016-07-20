@@ -215,6 +215,8 @@ class TestEvaluationViews(ApplicationLayerTest):
 		qset = self._load_questionset()
 		res = self.testapp.post_json(evaluation_href, qset, status=201)
 		res = res.json_body
+		qset_ntiid = res.get( 'NTIID' )
+		question_count = len(res.get( 'questions' ))
 		question_ntiid = res.get( 'questions' )[0].get( 'NTIID' )
 
 		# Create an assignment
@@ -243,6 +245,21 @@ class TestEvaluationViews(ApplicationLayerTest):
 		questions = qset.get( 'questions' )
 		assert_that( questions, has_length( 1 ))
 		assert_that( questions[0].get( NTIID ), is_( question_ntiid ))
+
+		# Empty parts and post question set ntiid
+		res = self.testapp.put_json( assignment_href, {'parts': []})
+		res = res.json_body
+		assert_that( res.get( 'parts' ), has_length( 0 ) )
+
+		old_parts[0]['question_set'] = qset_ntiid
+		res = self.testapp.put_json( assignment_href, {'parts': old_parts})
+		res = res.json_body
+		parts = res.get( 'parts' )
+		assert_that( parts, has_length( 1 ))
+		qset = parts[0].get( 'question_set' )
+		assert_that( qset, not_none() )
+		questions = qset.get( 'questions' )
+		assert_that( questions, has_length( question_count ))
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_creating_assessments(self):
@@ -337,35 +354,6 @@ class TestEvaluationViews(ApplicationLayerTest):
 		copy_ref = qset_href + '/@@Copy'
 		res = self.testapp.post(copy_ref, status=201)
 		assert_that(res.json_body, has_entry('NTIID', is_not(qset_ntiid)) )
-
-# 	@WithSharedApplicationMockDS(testapp=True, users=True)
-# 	def test_create_qset_with_existing_question(self):
-# 		course_oid = self._get_course_oid()
-# 		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
-# 		qset = self._load_questionset()
-# 		assignment = self._load_assignment()
-# 		assignment_parts = assignment.pop( 'parts' )
-# 		# Create assignment
-# 		res = self.testapp.post_json( href, assignment )
-# 		assignment_href = res.json_body.get( 'href' )
-#
-# 		# Create question and question ntiid
-# 		res = self.testapp.post_json( href, qset )
-# 		res = res.json_body
-# 		res = res['questions'][0]
-# 		question_ntiid1 = res.get( 'NTIID' )
-#
-# 		# Now post assignment with one question with only ntiid
-# 		assignment_parts[0]['question_set']['questions'] = ({'ntiid':question_ntiid1,
-# 															 'MimeType': res.get( 'MimeType' )},)
-# 		from IPython.core.debugger import Tracer;Tracer()()
-# 		res = self.testapp.put_json( assignment_href, {'parts': assignment_parts} )
-# 		res = res.json_body
-# 		from IPython.core.debugger import Tracer;Tracer()()
-# 		assert_that( res.get( 'NTIID' ), not_none() )
-# 		questions = res.get( 'questions' )
-# 		assert_that( questions, has_length( 1 ))
-# 		assert_that( questions[0].get( 'NTIID' ), is_( question_ntiid1 ))
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_editing_assignments(self):

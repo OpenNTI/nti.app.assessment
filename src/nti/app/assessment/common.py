@@ -105,6 +105,11 @@ from nti.coremetadata.interfaces import IPublishable
 from nti.dataserver.metadata_index import IX_MIMETYPE
 from nti.dataserver.metadata_index import IX_CONTAINERID
 
+from nti.externalization.externalization import to_external_object
+from nti.externalization.externalization import StandardExternalFields
+
+from nti.links.links import Link
+
 from nti.metadata import dataserver_metadata_catalog
 
 from nti.ntiids.ntiids import make_ntiid
@@ -122,6 +127,13 @@ from nti.traversal.traversal import find_interface
 from nti.zope_catalog.catalog import ResultSet
 
 NAQ = NTIID_TYPE
+
+CLASS = StandardExternalFields.CLASS
+LINKS = StandardExternalFields.LINKS
+MIME_TYPE = StandardExternalFields.MIMETYPE
+
+UNGRADABLE_MSG = _("Ungradable item in auto-graded assignment."),
+UNGRADABLE_CODE = 'UngradableInAutoGradeAssignment'
 
 def get_resource_site_name(context, strict=False):
 	folder = find_interface(context, IHostPolicyFolder, strict=strict)
@@ -776,23 +788,44 @@ def can_be_auto_graded(assignment):
 					return False
 	return True
 
-def validate_auto_grade(assignment, course, request=None):
+def validate_auto_grade(assignment, course, request=None, challenge=False, raise_exc=True):
 	"""
 	Validate the assignment has the proper state for auto-grading, if
-	necessary.
+	necessary. If not raising/challenging, returns a bool indicating
+	whether this assignment is auto-gradable.
 	"""
 	auto_grade = get_auto_grade_policy_state(assignment, course)
+	valid_auto_grade = True
 	if auto_grade:
 		# Work to do
-		if not can_be_auto_graded(assignment):
-			request = request or get_current_request()
+		valid_auto_grade = can_be_auto_graded(assignment)
+		if not valid_auto_grade and raise_exc:
+			# Probably toggling auto_grade on assignment with essays (e.g).
+			if not challenge:
+				request = request or get_current_request()
+				raise_json_error(request,
+								 hexc.HTTPUnprocessableEntity,
+								 {
+									u'message': UNGRADABLE_MSG,
+									u'code': UNGRADABLE_CODE,
+								 },
+								 None)
+			# No, so inserting essay (e.g.) into autogradable.
+			links = (
+				Link(request.path, rel='confirm',
+					 params={'overrideAutoGrade':True}, method='POST'),
+			)
 			raise_json_error(request,
-							 hexc.HTTPUnprocessableEntity,
+							 hexc.HTTPConflict,
 							 {
-								u'message': _("Ungradable item in auto-graded assignment."),
-								u'code': 'UngradableInAutoGradeAssignment',
+							 	CLASS: 'DestructiveChallenge',
+								u'message': UNGRADABLE_MSG,
+								u'code': UNGRADABLE_CODE,
+								LINKS: to_external_object(links),
+								MIME_TYPE: 'application/vnd.nextthought.destructivechallenge'
 							 },
 							 None)
+	return valid_auto_grade
 
 def make_evaluation_ntiid(kind, creator=SYSTEM_USER_ID, base=None, extra=None):
 	# get kind

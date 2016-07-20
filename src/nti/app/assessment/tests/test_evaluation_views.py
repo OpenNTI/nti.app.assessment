@@ -495,8 +495,22 @@ class TestEvaluationViews(ApplicationLayerTest):
 							   'hints': [],
 							   'max_file_size': None,
 							   'solutions': []}]}
-		res = self.testapp.post_json(qset_contents_href, file_question, status=422)
-		assert_that( res.json_body.get( 'code' ), is_('UngradableInAutoGradeAssignment'))
+		res = self.testapp.post_json(qset_contents_href + '/index/0', file_question, status=409)
+		res = res.json_body
+		force_link = self.require_link_href_with_rel( res, 'confirm' )
+		assert_that( res.get( 'code' ), is_('UngradableInAutoGradeAssignment'))
+		# Auto_grade still enabled
+		res = self.testapp.get('/dataserver2/Objects/' + assignment_ntiid,
+							   extra_environ=editor_environ)
+		res = res.json_body
+		assert_that(res.get('auto_grade'), is_( True ))
+
+		# Until they are forced; auto_grade is then disabled.
+		self.testapp.post_json(force_link, file_question)
+		res = self.testapp.get('/dataserver2/Objects/' + assignment_ntiid,
+							   extra_environ=editor_environ)
+		res = res.json_body
+		assert_that(res.get('auto_grade'), is_( False ))
 
 		# Turn off auto-grade and add file part
 		data = { 'auto_grade': 'False' }

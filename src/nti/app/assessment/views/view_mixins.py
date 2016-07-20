@@ -261,7 +261,7 @@ class AssessmentPutView(UGDPutView):
 				self._raise_error('AssessmentDueDateBeforeStartDate',
 								  _('Due date cannot come before start date.'))
 			# Validate auto_grade
-			validate_auto_grade(contentObject, course)
+			validate_auto_grade(contentObject, course, self.request)
 
 	@property
 	def policy_keys(self):

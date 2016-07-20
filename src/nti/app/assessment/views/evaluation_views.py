@@ -18,6 +18,8 @@ from zope import component
 from zope import interface
 from zope import lifecycleevent
 
+from zope.event import notify as event_notify
+
 from zope.i18n import translate
 
 from zope.event import notify
@@ -40,6 +42,7 @@ from nti.app.assessment.common import has_savepoints
 from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import validate_auto_grade
 from nti.app.assessment.common import make_evaluation_ntiid
+from nti.app.assessment.common import get_auto_grade_policy
 from nti.app.assessment.common import get_resource_site_name
 from nti.app.assessment.common import has_inquiry_submissions
 from nti.app.assessment.common import delete_evaluation_metadata
@@ -117,6 +120,7 @@ from nti.assessment.interfaces import IQTimedAssignment
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQEvaluationItemContainer
 
+from nti.assessment.interfaces import QAssessmentPoliciesModified
 from nti.assessment.interfaces import QuestionInsertedInContainerEvent
 from nti.assessment.interfaces import QuestionRemovedFromContainerEvent
 
@@ -611,23 +615,41 @@ class QuestionSetInsertView(AbstractAuthenticatedView,
 		result = find_interface(context, ICourseInstance, strict=False)
 		return get_courses(result)
 
-	def _validate(self):
+	def _disable_auto_grade(self, assignment, course):
+		policy = get_auto_grade_policy(assignment, course)
+		policy['disable'] = True
+		event_notify(QAssessmentPoliciesModified(course, assignment.ntiid, 'auto_grade', False))
+
+	def _validate(self, params):
+		"""
+		Will validate and raise a challenge if the user wants to disable auto-grading
+		and add the non-auto-gradable question to this question set. If overridden,
+		we will insert the question and disable auto-grade for all assignments
+		referencing this question set.
+		"""
 		# Make sure our auto_grade status still holds.
 		courses = self._get_courses( self.context )
 		assignments = get_assignments_for_evaluation_object( self.context )
+		override_auto_grade = params.get( 'overrideAutoGrade' ) if params else False
+		override_auto_grade = is_true(override_auto_grade)
+		is_valid = None
 		for course in courses or ():
 			for assignment in assignments or ():
-				validate_auto_grade(assignment, course)
+				is_valid = validate_auto_grade(assignment, course, self.request,
+											   challenge=True, raise_exc=not override_auto_grade)
+				if not is_valid and override_auto_grade:
+					self._disable_auto_grade( assignment, course )
 
 	def __call__(self):
 		self._pre_flight_validation( self.context, structural_change=True )
+		params = CaseInsensitiveDict(self.request.params)
 		index = self._get_index()
 		question = self._get_new_question()
 		self.context.insert(index, question)
 		notify(QuestionInsertedInContainerEvent(self.context, question, index))
 		logger.info('Inserted new question (%s)', question.ntiid)
 		# validate changes
-		self._validate()
+		self._validate( params )
 		self.request.response.status_int = 201
 		return question
 

@@ -35,7 +35,9 @@ from nti.assessment.randomized.interfaces import IQRandomizedPart
 from nti.assessment.randomized.interfaces import IRandomizedPartsContainer
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+
 from nti.contenttypes.courses.utils import is_course_instructor
+from nti.contenttypes.courses.utils import is_course_instructor_or_editor
 
 from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
@@ -65,8 +67,8 @@ def _question_from_context(context, questionId):
 
 def _is_instructor_or_editor( course, user ):
 	return 	   	(user is not None and course is not None) \
-			and ( 	is_course_instructor( course, user ) \
-				or 	has_permission(ACT_CONTENT_EDIT, course))
+			and ( 	is_course_instructor_or_editor( course, user ) \
+				 or has_permission(ACT_CONTENT_EDIT, course) )
 
 def _is_randomized_question_set(context):
 	"""

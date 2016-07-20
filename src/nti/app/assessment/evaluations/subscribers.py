@@ -41,7 +41,7 @@ from nti.app.assessment.evaluations.utils import validate_structural_edits
 
 from nti.app.assessment.interfaces import IQAvoidSolutionCheck
 from nti.app.assessment.interfaces import IQPartChangeAnalyzer
-from nti.app.assessment.interfaces import IRegradeQuestionEvent
+from nti.app.assessment.interfaces import IRegradeEvaluationEvent
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 
 from nti.app.assessment.interfaces import ObjectRegradeEvent
@@ -54,6 +54,7 @@ from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQEvaluationItemContainer
@@ -210,8 +211,8 @@ def _regrade_assesment(context, course):
 			notify(ObjectRegradeEvent(item))
 	return result
 
-@component.adapter(IQuestion, IRegradeQuestionEvent)
-def _on_regrade_question_event(context, event):
+@component.adapter(IQEvaluation, IRegradeEvaluationEvent)
+def _on_regrade_evaluation_event(context, event):
 	request = get_current_request()
 	course = get_course_from_request(request) if request else None
 	if course is None:

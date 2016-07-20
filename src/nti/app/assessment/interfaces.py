@@ -463,12 +463,14 @@ class IObjectRegradeEvent(IObjectEvent):
 class ObjectRegradeEvent(ObjectEvent):
 	pass
 
-class IRegradeQuestionEvent(IObjectRegradeEvent):
+class IRegradeEvaluationEvent(IObjectRegradeEvent):
 	parts = interface.Attribute("Change parts")
+IRegradeQuestionEvent = IRegradeEvaluationEvent
 
-@interface.implementer(IRegradeQuestionEvent)
-class RegradeQuestionEvent(ObjectRegradeEvent):
+@interface.implementer(IRegradeEvaluationEvent)
+class RegradeEvaluationEvent(ObjectRegradeEvent):
 
 	def __init__(self, obj, parts=()):
-		super(RegradeQuestionEvent, self).__init__(obj)
+		super(RegradeEvaluationEvent, self).__init__(obj)
 		self.parts = parts or ()
+RegradeQuestionEvent = RegradeEvaluationEvent

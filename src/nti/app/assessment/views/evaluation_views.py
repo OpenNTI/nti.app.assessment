@@ -34,6 +34,7 @@ from nti.app.assessment import MessageFactory as _
 from nti.app.assessment import VIEW_ASSESSMENT_MOVE
 from nti.app.assessment import VIEW_COPY_EVALUATION
 from nti.app.assessment import VIEW_RESET_EVALUATION
+from nti.app.assessment import VIEW_REGRADE_EVALUATION
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 from nti.app.assessment import VIEW_USER_RESET_EVALUATION
 
@@ -66,6 +67,8 @@ from nti.app.assessment.interfaces import RegradeQuestionEvent
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
+
+from nti.app.assessment.interfaces import RegradeEvaluationEvent
 
 from nti.app.assessment.utils import get_course_from_request
 
@@ -1438,3 +1441,47 @@ class QuestionSetMoveView(AbstractChildMoveView,
 							u'code': 'CannotMoveEvaluations',
 						},
 						None)
+
+@view_config(context=IQuestion)
+@view_config(context=IQAssignment)
+@view_defaults(route_name='objects.generic.traversal',
+			   renderer='rest',
+			   name=VIEW_REGRADE_EVALUATION,
+			   permission=nauth.ACT_UPDATE)
+class RegradeEvaluationView(AbstractAuthenticatedView):
+
+	def _get_course_from_evaluation(self, theObject):
+		result = get_course_from_request(self.request)
+		if result is None:
+			result = get_course_from_evaluation(evaluation=theObject,
+										  		user=self.remoteUser)
+		return result
+
+	def _has_submissions(self, theObject):
+		course = self._get_course_from_evaluation(theObject)
+		result = has_submissions(theObject, course)
+		return result
+
+	def _can_regrade_evaluation(self, theObject):
+		course = self._get_course_from_evaluation(theObject)
+		if course is None:
+			raise_json_error(self.request,
+							 hexc.HTTPForbidden,
+							 {
+								u'message': _("Cannot find evaluation course."),
+								u'code': 'CannotFindEvaluationCourse',
+							 },
+							 None)
+		if not is_course_instructor(course, self.remoteUser):
+			raise_json_error(self.request,
+							 hexc.HTTPForbidden,
+							 {
+								u'message': _("Cannot regrade evaluation."),
+								u'code': 'CannotRegradeEvaluation',
+							 },
+							 None)
+
+	def __call__(self):
+		self._can_regrade_evaluation(self.context)
+		notify(RegradeEvaluationEvent(self.context))
+		return self.context

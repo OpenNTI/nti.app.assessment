@@ -20,6 +20,8 @@ from nti.app.authentication import get_remote_user
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
+from nti.appserver.pyramid_authorization import has_permission
+
 from nti.assessment.common import grader_for_response
 
 from nti.assessment.interfaces import IQuestion
@@ -34,6 +36,8 @@ from nti.assessment.randomized.interfaces import IRandomizedPartsContainer
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.utils import is_course_instructor
+
+from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
 from nti.externalization.singleton import SingletonDecorator
 from nti.externalization.interfaces import StandardExternalFields
@@ -58,6 +62,11 @@ def _question_from_context(context, questionId):
 				if question.ntiid == questionId:
 					return question
 		return result
+
+def _is_instructor_or_editor( course, user ):
+	return 	   	(user is not None and course is not None) \
+			and ( 	is_course_instructor( course, user ) \
+				or 	has_permission(ACT_CONTENT_EDIT, course))
 
 def _is_randomized_question_set(context):
 	"""
@@ -205,7 +214,7 @@ class _QAssessedQuestionExplanationSolutionAdder(object):
 
 		remoteUser = get_remote_user()
 		course = find_interface(context, ICourseInstance, strict=False)
-		is_instructor = remoteUser and course and is_course_instructor(course, remoteUser)
+		is_instructor = _is_instructor_or_editor( course, remoteUser )
 		is_randomized_qset = _is_randomized_question_set( context )
 
 		for question_part, external_part in zip(question.parts, mapping['parts']):
@@ -213,6 +222,7 @@ class _QAssessedQuestionExplanationSolutionAdder(object):
 				externalizer = self._get_externalizer( question_part, is_randomized_qset )
 				external_part['solutions'] = externalizer.to_external_object()
 			else:
+				# Instructors/editors get non-randomized solutions.
 				external_part['solutions'] = to_external_object(question_part.solutions)
 			external_part['explanation'] = to_external_object(question_part.explanation)
 

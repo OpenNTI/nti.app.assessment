@@ -937,6 +937,7 @@ def reassess_assignment_history_item(item):
 	assignment = item.Assignment
 	course = find_interface(item, ICourseInstance, strict=False)
 	new_pending_assessment = assess_assignment_submission(course, assignment, submission)
+	new_pending_assessment.CreatorRecordedEffortDuration = old_pending_assessment.CreatorRecordedEffortDuration
 
 	item.pendingAssessment = new_pending_assessment
 	new_pending_assessment.__parent__ = item

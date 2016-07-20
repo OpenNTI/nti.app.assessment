@@ -1511,8 +1511,9 @@ class RegradeEvaluationView(AbstractAuthenticatedView):
 								u'code': 'CannotRegradeEvaluation',
 							 },
 							 None)
+		return course
 
 	def __call__(self):
-		self._can_regrade_evaluation(self.context)
-		regrade_evaluation(self.context)
+		course = self._can_regrade_evaluation(self.context)
+		regrade_evaluation(self.context, course)
 		return self.context

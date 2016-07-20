@@ -132,7 +132,7 @@ CLASS = StandardExternalFields.CLASS
 LINKS = StandardExternalFields.LINKS
 MIME_TYPE = StandardExternalFields.MIMETYPE
 
-UNGRADABLE_MSG = _("Ungradable item in auto-graded assignment."),
+UNGRADABLE_MSG = _("Ungradable item in auto-graded assignment.")
 UNGRADABLE_CODE = 'UngradableInAutoGradeAssignment'
 
 def get_resource_site_name(context, strict=False):

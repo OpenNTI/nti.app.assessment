@@ -181,11 +181,11 @@ def transfer_submission_file_data(source, target,  force=False):
 						break
 					# check if the uploaded file has been internalized empty
 					# this is tightly coupled w/ the way IQUploadedFile are updated.
-					if 		INamedFile.providedBy(old_part_value) \
-						and _is_internal(part_value):
+					if INamedFile.providedBy(old_part_value) and _is_internal(part_value):
 						part_value.data = old_part_value.data
 						part_value.filename = old_part_value.filename
 						part_value.contentType = old_part_value.contentType
+						part_value.name = getattr(old_part_value, 'name', None)
 						interface.noLongerProvides(part_value, IInternalUploadedFileRef)
 		except POSError:
 			logger.exception("Failed to transfer data from savepoints")

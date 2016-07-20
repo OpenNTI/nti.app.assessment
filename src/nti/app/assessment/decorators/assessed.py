@@ -59,6 +59,19 @@ def _question_from_context(context, questionId):
 					return question
 		return result
 
+def _is_randomized_question_set(context):
+	"""
+	See if our contextual submission is a randomized parts container. If so
+	we need to shuffle our solutions.
+	"""
+	result = False
+	assessed_qset = find_interface( context, IQAssessedQuestionSet, strict=False )
+	if assessed_qset is not None:
+		qset = find_object_with_ntiid( assessed_qset.questionSetId )
+		if qset is not None:
+			result = IRandomizedPartsContainer.providedBy( qset )
+	return result
+
 @component.adapter(IQAssessedPart)
 class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
@@ -89,7 +102,8 @@ class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		# CS: for instructors we no longer randomized the questions
 		# since the submittedResponse is stored randomized
 		# we unshuffle it, so the instructor can see the correct answer
-		if IQRandomizedPart.providedBy(question_part):
+		if 		IQRandomizedPart.providedBy(question_part) \
+			or  _is_randomized_question_set(context):
 			response = context.submittedResponse
 			if response is not None:
 				__traceback_info__ = type(response), response, question_part
@@ -171,19 +185,6 @@ class _QAssessedQuestionExplanationSolutionAdder(object):
 
 	__metaclass__ = SingletonDecorator
 
-	def _is_randomized_question_set(self, context):
-		"""
-		See if our contextual submission is a randomized parts container. If so
-		we need to shuffle our solutions.
-		"""
-		result = False
-		assessed_qset = find_interface( context, IQAssessedQuestionSet, strict=False )
-		if assessed_qset is not None:
-			qset = find_object_with_ntiid( assessed_qset.questionSetId )
-			if qset is not None:
-				result = IRandomizedPartsContainer.providedBy( qset )
-		return result
-
 	def _get_externalizer(self, question_part, is_randomized_qset):
 		externalizer = None
 		if is_randomized_qset or IQRandomizedPart.providedBy( question_part ):
@@ -205,7 +206,7 @@ class _QAssessedQuestionExplanationSolutionAdder(object):
 		remoteUser = get_remote_user()
 		course = find_interface(context, ICourseInstance, strict=False)
 		is_instructor = remoteUser and course and is_course_instructor(course, remoteUser)
-		is_randomized_qset = self._is_randomized_question_set( context )
+		is_randomized_qset = _is_randomized_question_set( context )
 
 		for question_part, external_part in zip(question.parts, mapping['parts']):
 			if not is_instructor:

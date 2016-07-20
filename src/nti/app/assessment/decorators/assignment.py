@@ -18,6 +18,7 @@ from zope import interface
 
 from zope.location.interfaces import ILocation
 
+from nti.app.assessment import VIEW_DELETE
 from nti.app.assessment import VIEW_MOVE_PART
 from nti.app.assessment import VIEW_RANDOMIZE
 from nti.app.assessment import VIEW_UNRANDOMIZE
@@ -376,7 +377,7 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 	_MARKER_RELS = (VIEW_MOVE_PART, VIEW_INSERT_PART, VIEW_REMOVE_PART,
 					VIEW_MOVE_PART_OPTION, VIEW_INSERT_PART_OPTION,
-					VIEW_REMOVE_PART_OPTION)
+					VIEW_REMOVE_PART_OPTION, VIEW_DELETE)
 
 	def get_courses(self, context):
 		result = find_interface(context, ICourseInstance, strict=False)
@@ -405,19 +406,21 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 				VIEW_REMOVE_PART,
 				VIEW_MOVE_PART_OPTION,
 				VIEW_INSERT_PART_OPTION,
-				VIEW_REMOVE_PART_OPTION)
+				VIEW_REMOVE_PART_OPTION,
+				VIEW_DELETE)
 
 	def _get_assignment_rels(self):
 		"""
 		Gather any links needed for a non-in-progress editable assignments.
 		"""
-		return (VIEW_MOVE_PART, VIEW_INSERT_PART, VIEW_REMOVE_PART)
+		return (VIEW_MOVE_PART, VIEW_INSERT_PART, VIEW_REMOVE_PART, VIEW_DELETE)
 
 	def _get_question_set_rels(self, context):
 		"""
 		Gather any links needed for a non-in-progress editable question sets.
 		"""
 		rels = []
+		rels.append( VIEW_DELETE )
 		rels.append( VIEW_QUESTION_SET_CONTENTS )
 		rels.append( VIEW_ASSESSMENT_MOVE )
 

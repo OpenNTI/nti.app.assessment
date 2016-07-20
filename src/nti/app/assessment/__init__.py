@@ -51,6 +51,9 @@ VIEW_REMOVE_PART = 'RemovePart'
 #: A marker rel to signify that this evaluation object allows part moves.
 VIEW_MOVE_PART = 'MovePart'
 
+#: A marker rel to signify that this evaluation object can be deleted.
+VIEW_DELETE = 'Delete'
+
 #: A marker rel to signify that this evaluation object allows part option insertion.
 VIEW_INSERT_PART_OPTION = 'InsertPartOption'
 

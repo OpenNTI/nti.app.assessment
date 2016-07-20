@@ -204,8 +204,7 @@ class UsersCourseAssignmentSavepointItem(PersistentCreatedModDateTrackingObject,
 
 	@property
 	def __acl__(self):
-		aces = [ace_allowing(self.owner, ALL_PERMISSIONS,
-							 UsersCourseAssignmentSavepointItem)]
+		aces = [ace_allowing(self.owner, ALL_PERMISSIONS, type(self))]
 		aces.append(ACE_DENY_ALL)
 		return acl_from_aces(aces)
 

@@ -27,10 +27,9 @@ from pyramid.threadlocal import get_current_request
 from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment.common import has_submissions
-from nti.app.assessment.common import evaluation_submissions
+from nti.app.assessment.common import regrade_evaluation
 from nti.app.assessment.common import get_course_from_evaluation
 from nti.app.assessment.common import get_evaluation_containment
-from nti.app.assessment.common import assess_assignment_submission
 from nti.app.assessment.common import get_assignments_for_evaluation_object
 
 from nti.app.assessment.evaluations import raise_error
@@ -42,9 +41,6 @@ from nti.app.assessment.evaluations.utils import validate_structural_edits
 from nti.app.assessment.interfaces import IQAvoidSolutionCheck
 from nti.app.assessment.interfaces import IQPartChangeAnalyzer
 from nti.app.assessment.interfaces import IRegradeEvaluationEvent
-from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
-
-from nti.app.assessment.interfaces import ObjectRegradeEvent
 
 from nti.app.assessment.utils import get_course_from_request
 
@@ -177,40 +173,6 @@ def _on_survey_event(context, event):
 						u'code': 'EmptyQuestionSet',
 					})
 
-def _reassess_assignment_history_item(item):
-	"""
-	Update our submission by re-assessing the changed question.
-	"""
-	submission = item.Submission
-	old_pending_assessment = item.pendingAssessment
-	if submission is None or old_pending_assessment is None:
-		return
-
-	# mark old pending assessment as removed
-	lifecycleevent.removed(old_pending_assessment)
-	old_pending_assessment.__parent__ = None # ground
-
-	assignment = item.Assignment
-	course = find_interface(item, ICourseInstance, strict=False)
-	new_pending_assessment = assess_assignment_submission(course, assignment, submission)
-
-	item.pendingAssessment = new_pending_assessment
-	new_pending_assessment.__parent__ = item
-	lifecycleevent.created(new_pending_assessment)
-
-	# dispatch to sublocations
-	lifecycleevent.modified(item)
-
-def _regrade_assesment(context, course):
-	result = []
-	for item in evaluation_submissions(context, course):
-		if IUsersCourseAssignmentHistoryItem.providedBy(item):
-			result.append(item)
-			_reassess_assignment_history_item(item)
-			# Now broadcast we need a new grade
-			notify(ObjectRegradeEvent(item))
-	return result
-
 @component.adapter(IQEvaluation, IRegradeEvaluationEvent)
 def _on_regrade_evaluation_event(context, event):
 	request = get_current_request()
@@ -218,7 +180,7 @@ def _on_regrade_evaluation_event(context, event):
 	if course is None:
 		course = get_course_from_evaluation(context, user=get_remote_user())
 	if course is not None:
-		_regrade_assesment(context, course)
+		regrade_evaluation(context, course)
 
 @component.adapter(ICourseInstance, IQAssessmentPoliciesModified)
 def _on_assessment_policies_modified_event(course, event):
@@ -227,4 +189,4 @@ def _on_assessment_policies_modified_event(course, event):
 		assesment = find_object_with_ntiid(assesment)
 	if IQAssignment.providedBy(assesment) and 'total_points' == event.key:
 		if event.value:
-			_regrade_assesment(assesment, course)
+			regrade_evaluation(assesment, course)

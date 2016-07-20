@@ -22,8 +22,6 @@ from zope.event import notify as event_notify
 
 from zope.i18n import translate
 
-from zope.event import notify
-
 from pyramid import httpexceptions as hexc
 
 from pyramid.view import view_config
@@ -38,7 +36,7 @@ from nti.app.assessment import VIEW_REGRADE_EVALUATION
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 from nti.app.assessment import VIEW_USER_RESET_EVALUATION
 
-from nti.app.assessment.common import get_courses
+from nti.app.assessment.common import get_courses, regrade_evaluation
 from nti.app.assessment.common import has_savepoints
 from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import validate_auto_grade
@@ -67,8 +65,6 @@ from nti.app.assessment.interfaces import RegradeQuestionEvent
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
-
-from nti.app.assessment.interfaces import RegradeEvaluationEvent
 
 from nti.app.assessment.utils import get_course_from_request
 
@@ -649,7 +645,7 @@ class QuestionSetInsertView(AbstractAuthenticatedView,
 		index = self._get_index()
 		question = self._get_new_question()
 		self.context.insert(index, question)
-		notify(QuestionInsertedInContainerEvent(self.context, question, index))
+		event_notify(QuestionInsertedInContainerEvent(self.context, question, index))
 		logger.info('Inserted new question (%s)', question.ntiid)
 		# validate changes
 		self._validate( params )
@@ -726,7 +722,7 @@ class QuestionPutView(EvaluationPutView):
 		result = super( QuestionPutView, self ).updateContentObject(contentObject, externalValue, **kwargs)
 		# Only regrade after our content object is updated.
 		if part_regrades:
-			notify(RegradeQuestionEvent(result, part_regrades))
+			event_notify(RegradeQuestionEvent(result, part_regrades))
 		return result
 
 def _qset_with_ntiids_only( qset_ext ):
@@ -1205,7 +1201,7 @@ class QuestionSetDeleteChildView(AbstractAuthenticatedView,
 			self.context.remove(item)
 		else:
 			self.context.pop(index)
-		notify(QuestionRemovedFromContainerEvent(self.context, item, index))
+		event_notify(QuestionRemovedFromContainerEvent(self.context, item, index))
 
 	def _validate(self):
 		self._pre_flight_validation( self.context, structural_change=True)
@@ -1447,7 +1443,7 @@ class QuestionSetMoveView(AbstractChildMoveView,
 @view_defaults(route_name='objects.generic.traversal',
 			   renderer='rest',
 			   name=VIEW_REGRADE_EVALUATION,
-			   permission=nauth.ACT_UPDATE)
+			   permission=nauth.ACT_READ)
 class RegradeEvaluationView(AbstractAuthenticatedView):
 
 	def _get_course_from_evaluation(self, theObject):
@@ -1483,5 +1479,5 @@ class RegradeEvaluationView(AbstractAuthenticatedView):
 
 	def __call__(self):
 		self._can_regrade_evaluation(self.context)
-		notify(RegradeEvaluationEvent(self.context))
+		regrade_evaluation(self.context)
 		return self.context

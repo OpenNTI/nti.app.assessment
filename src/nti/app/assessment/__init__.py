@@ -69,7 +69,7 @@ VIEW_RESET_EVALUATION = 'Reset'
 #: A view to reset an evaluation for user
 VIEW_USER_RESET_EVALUATION = 'UserReset'
 
-#: A view to regrade an evaluation
+#: A view to reasses an evaluation
 VIEW_REGRADE_EVALUATION = 'Regrade'
 
 def get_submission_catalog():

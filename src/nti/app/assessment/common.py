@@ -20,6 +20,9 @@ from pyramid import httpexceptions as hexc
 from pyramid.threadlocal import get_current_request
 
 from zope import component
+from zope import lifecycleevent
+
+from zope.event import notify
 
 from zope.intid.interfaces import IIntIds
 
@@ -56,7 +59,10 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataContainer
+
+from nti.app.assessment.interfaces import ObjectRegradeEvent
 
 from nti.app.externalization.error import raise_json_error
 
@@ -914,3 +920,37 @@ def assess_assignment_submission(course, assignment, submission):
 																parts=new_parts)
 	pending_assessment.containerId = submission.assignmentId
 	return pending_assessment
+
+def reassess_assignment_history_item(item):
+	"""
+	Update our submission by re-assessing the changed question.
+	"""
+	submission = item.Submission
+	old_pending_assessment = item.pendingAssessment
+	if submission is None or old_pending_assessment is None:
+		return
+
+	# mark old pending assessment as removed
+	lifecycleevent.removed(old_pending_assessment)
+	old_pending_assessment.__parent__ = None # ground
+
+	assignment = item.Assignment
+	course = find_interface(item, ICourseInstance, strict=False)
+	new_pending_assessment = assess_assignment_submission(course, assignment, submission)
+
+	item.pendingAssessment = new_pending_assessment
+	new_pending_assessment.__parent__ = item
+	lifecycleevent.created(new_pending_assessment)
+
+	# dispatch to sublocations
+	lifecycleevent.modified(item)
+
+def regrade_evaluation(context, course):
+	result = []
+	for item in evaluation_submissions(context, course):
+		if IUsersCourseAssignmentHistoryItem.providedBy(item):
+			result.append(item)
+			reassess_assignment_history_item(item)
+			# Now broadcast we need a new grade
+			notify(ObjectRegradeEvent(item))
+	return result

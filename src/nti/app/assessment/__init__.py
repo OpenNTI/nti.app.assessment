@@ -70,7 +70,7 @@ VIEW_RESET_EVALUATION = 'Reset'
 VIEW_USER_RESET_EVALUATION = 'UserReset'
 
 #: A view to regrade an evaluation
-VIEW_REGRADE_EVALUATION = 'Regreade'
+VIEW_REGRADE_EVALUATION = 'Regrade'
 
 def get_submission_catalog():
 	return component.queryUtility(IMetadataCatalog, name=SUBMISSION_CATALOG_NAME)

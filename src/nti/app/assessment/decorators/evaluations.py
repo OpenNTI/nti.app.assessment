@@ -50,6 +50,14 @@ from nti.traversal.traversal import find_interface
 
 LINKS = StandardExternalFields.LINKS
 
+def _has_any_submissions( context, course ):
+	if IQInquiry.providedBy(context):
+		submissions = has_inquiry_submissions(context, course)
+	else:
+		courses = get_courses(course)
+		submissions = has_submissions(context, courses)
+	return submissions or has_savepoints(context, courses)
+
 @interface.implementer(IExternalMappingDecorator)
 class _EvaluationLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
@@ -71,9 +79,10 @@ class _EvaluationLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		course = _get_course_from_evaluation(context,
 											 user=self.remoteUser,
 											 request=self.request)
-		if 		context.is_published() \
-			and course is not None \
-			and is_course_instructor(course, self.remoteUser):
+		if 		course is not None \
+			and context.is_published() \
+			and is_course_instructor(course, self.remoteUser) \
+			and _has_any_submissions( context, course ):
 			link = Link(context, rel=VIEW_RESET_EVALUATION,
 						elements=('@@' + VIEW_RESET_EVALUATION,),
 						method='POST')
@@ -96,9 +105,4 @@ class _EvaluationCalendarPublishStateDecorator(LinkRemoverDecorator):
 		if not IQEditableEvaluation.providedBy(context):
 			return True
 		course = find_interface(context, ICourseInstance, strict=True)
-		if IQInquiry.providedBy(context):
-			submissions = has_inquiry_submissions(context, course)
-		else:
-			courses = get_courses(course)
-			submissions = has_submissions(context, courses)
-		return submissions or has_savepoints(context, courses)
+		return _has_any_submissions( context, course )

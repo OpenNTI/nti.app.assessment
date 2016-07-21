@@ -124,21 +124,19 @@ class UsersCourseAssignmentHistoryItemFeedback(PersistentCreatedModDateTrackingO
 		# give all permissions to the owner
 		creator = self.creator
 		if creator is not None:
-			aces.append(ace_allowing(creator, ALL_PERMISSIONS,
-									 UsersCourseAssignmentHistoryItemFeedback))
+			aces.append(ace_allowing(creator, ALL_PERMISSIONS, type(self)))
 
 		# read access for the instructors
 		course = ICourseInstance(self, None)
 		if course is not None:
-			aces.extend(ace_allowing(i, ACT_READ, UsersCourseAssignmentHistoryItemFeedback)
-				 		for i in course.instructors)
+			aces.extend(ace_allowing(i, ACT_READ, type(self))
+				 		for i in course.instructors or ())
 
 		# read access to the container feedback owner
 		if self.__parent__ is not None:
 			container_owner = IUser(self.__parent__.__parent__, None)
 			if container_owner is not None and container_owner != creator:
-				aces.append(ace_allowing(container_owner, ACT_READ,
-										 UsersCourseAssignmentHistoryItemFeedback))
+				aces.append(ace_allowing(container_owner, ACT_READ, type(self)))
 		aces.append(ACE_DENY_ALL)
 		return acl_from_aces(aces)
 

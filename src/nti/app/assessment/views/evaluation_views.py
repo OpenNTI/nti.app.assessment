@@ -1061,8 +1061,8 @@ class AssignmentPutView(NewAndLegacyPutView):
 				self._transform_to_untimed(contentObject)
 			elif	max_time_allowed is not None \
 				and contentObject.maximum_time_allowed is not None \
-				and (	 IQTimedAssignment.providedBy(contentObject)
-					 and max_time_allowed != contentObject.maximum_time_allowed):
+				and IQTimedAssignment.providedBy(contentObject) \
+				and max_time_allowed != contentObject.maximum_time_allowed:
 				# Changing times; validate structurally.
 				self._pre_flight_validation(self.context, structural_change=True)
 

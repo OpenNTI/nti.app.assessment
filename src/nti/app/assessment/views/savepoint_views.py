@@ -82,14 +82,6 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 		if course is None:
 			raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
 
-		# No savepoints unless the timed assignment has been started
-		if IQTimedAssignment.providedBy(self.context):
-			item = get_assessment_metadata_item(course,
-												self.remoteUser,
-												self.context.ntiid)
-			if item is None or not item.StartTime:
-				raise hexc.HTTPClientError(_("Cannot savepoint timed assignment unless started."))
-
 		if not self.request.POST:
 			submission = self.readCreateUpdateContentObject(creator)
 			check_upload_files(submission)
@@ -107,7 +99,17 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 															externalValue=extValue)
 			submission = read_multipart_sources(submission, self.request)
 
+		# Must check version before checking timed commence status.
 		check_submission_version(submission, self.context)
+
+		# No savepoints unless the timed assignment has been started
+		if IQTimedAssignment.providedBy(self.context):
+			item = get_assessment_metadata_item(course,
+												self.remoteUser,
+												self.context.ntiid)
+			if item is None or not item.StartTime:
+				raise hexc.HTTPClientError(_("Cannot savepoint timed assignment unless started."))
+
 		savepoint = component.getMultiAdapter((course, submission.creator),
 											   IUsersCourseAssignmentSavepoint)
 		submission.containerId = submission.assignmentId

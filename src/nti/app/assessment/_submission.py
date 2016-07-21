@@ -21,6 +21,7 @@ from pyramid import httpexceptions as hexc
 from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment.common import set_parent
+from nti.app.assessment.common import get_part_value
 
 from nti.app.base.abstract_views import get_source
 
@@ -28,17 +29,11 @@ from nti.app.contentfile import transfer_data
 
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQFilePart
-from nti.assessment.interfaces import IQResponse
 from nti.assessment.interfaces import IQPollSubmission
 from nti.assessment.interfaces import IQSurveySubmission
 from nti.assessment.interfaces import IInternalUploadedFileRef
 
 from nti.namedfile.interfaces import INamedFile
-
-def get_part_value(part):
-	if IQResponse.providedBy(part):
-		part = part.value
-	return part
 
 def check_max_size(part, max_file_size=None):
 	size = part.size

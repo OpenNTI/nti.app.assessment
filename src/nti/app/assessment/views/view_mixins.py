@@ -179,6 +179,11 @@ class AssessmentPutView(UGDPutView):
 		_marker = object()
 		new_end_date = externalValue.get('available_for_submission_ending', _marker)
 		new_start_date = externalValue.get('available_for_submission_beginning', _marker)
+		if new_start_date is None and new_end_date is None:
+			# Both incoming dates empty generally means they are explicitly
+			# publishing or drafting; so we do not want to warn about anything.
+			return
+
 		if new_start_date is not _marker or new_end_date is not _marker:
 			now = datetime.utcnow()
 
@@ -217,7 +222,7 @@ class AssessmentPutView(UGDPutView):
 							and	self._is_date_in_range(old_start_date,
 													   old_end_date, now)
 				new_available = contentObject.isPublished() \
-							and self._is_date_in_range(start_date_to_check,
+							and	self._is_date_in_range(start_date_to_check,
 													   end_date_to_check, now)
 
 				# Note: we allow state to move from closed in past to

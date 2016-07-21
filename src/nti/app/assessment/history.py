@@ -27,8 +27,7 @@ from zope.container.contained import Contained
 
 from zope.location.interfaces import ISublocations
 
-from nti.app.assessment._submission import set_submission_lineage
-
+from nti.app.assessment.common import set_submission_lineage
 from nti.app.assessment.common import get_policy_for_assessment
 from nti.app.assessment.common import get_available_for_submission_ending
 

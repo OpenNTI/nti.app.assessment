@@ -20,6 +20,8 @@ from pyramid import httpexceptions as hexc
 
 from nti.app.assessment import MessageFactory as _
 
+from nti.app.assessment.common import set_parent
+
 from nti.app.base.abstract_views import get_source
 
 from nti.app.contentfile import transfer_data
@@ -32,10 +34,6 @@ from nti.assessment.interfaces import IQSurveySubmission
 from nti.assessment.interfaces import IInternalUploadedFileRef
 
 from nti.namedfile.interfaces import INamedFile
-
-def _set_parent_(child, parent):
-	if hasattr(child, '__parent__') and child.__parent__ is None:
-		child.__parent__ = parent
 
 def get_part_value(part):
 	if IQResponse.providedBy(part):
@@ -97,36 +95,14 @@ def read_multipart_sources(submission, request):
 				transfer_data(source, part_value)
 	return submission
 
-def _set_part_value_lineage(part):
-	part_value = get_part_value(part)
-	if part_value is not part and INamedFile.providedBy(part_value):
-		_set_parent_(part_value, part)
-
-def set_submission_lineage(submission):
-	# The constituent parts of these things need parents as well.
-	# It would be nice if externalization took care of this,
-	# but that would be a bigger change
-	creator = submission.creator
-	for submission_set in submission.parts:
-		# submission_part e.g. assessed question set
-		_set_parent_(submission_set, submission)
-		submission_set.creator = creator
-		for submitted_question in submission_set.questions:
-			_set_parent_(submitted_question, submission_set)
-			submitted_question.creator = creator
-			for submitted_question_part in submitted_question.parts:
-				_set_parent_(submitted_question_part, submitted_question)
-				_set_part_value_lineage(submitted_question_part)
-	return submission
-
 def set_poll_submission_lineage(submission):
 	for submitted_question_part in submission.parts:
-		_set_parent_(submitted_question_part, submission)
+		set_parent(submitted_question_part, submission)
 	return submission
 
 def set_survey_submission_lineage(submission):
 	for submitted_question in submission.questions:
-		_set_parent_(submitted_question, submission)
+		set_parent(submitted_question, submission)
 		set_poll_submission_lineage(submitted_question)
 	return submission
 

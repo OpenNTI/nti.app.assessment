@@ -29,10 +29,11 @@ from ZODB.interfaces import IConnection
 
 from pyramid.interfaces import IRequest
 
-from nti.app.assessment._submission import set_submission_lineage
 from nti.app.assessment._submission import transfer_submission_file_data
 
 from nti.app.assessment.adapters import course_from_context_lineage
+
+from nti.app.assessment.common import set_submission_lineage
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints

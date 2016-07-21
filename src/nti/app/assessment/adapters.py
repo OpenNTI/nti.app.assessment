@@ -32,8 +32,7 @@ from pyramid.interfaces import IExceptionResponse
 
 from zope.location.interfaces import LocationError
 
-from nti.app.assessment._submission import set_submission_lineage
-
+from nti.app.assessment.common import set_assessed_lineage
 from nti.app.assessment.common import get_course_assignments
 from nti.app.assessment.common import get_course_evaluations
 from nti.app.assessment.common import get_evaluation_courses
@@ -205,12 +204,12 @@ def _begin_assessment_for_assignment_submission(submission):
 		ex.value = submission.assignmentId
 		raise ex
 
-	set_submission_lineage(submission)
+	set_assessed_lineage(submission)
 	submission.containerId = submission.assignmentId
 
 	pending_assessment = assess_assignment_submission(course, assignment, submission)
+	set_assessed_lineage(pending_assessment)
 	lifecycleevent.created(pending_assessment)
-	set_submission_lineage(pending_assessment)
 
 	version = assignment.version
 	if version is not None: # record version

@@ -68,7 +68,7 @@ from nti.app.externalization.error import raise_json_error
 
 from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
 
-from nti.assessment.interfaces import NTIID_TYPE
+from nti.assessment.interfaces import NTIID_TYPE 
 from nti.assessment.interfaces import DISCLOSURE_NEVER
 from nti.assessment.interfaces import DISCLOSURE_ALWAYS
 from nti.assessment.interfaces import QUESTION_SET_MIME_TYPE
@@ -79,6 +79,7 @@ from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQuestion
+from nti.assessment.interfaces import IQResponse
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQEvaluation
@@ -117,6 +118,8 @@ from nti.externalization.externalization import StandardExternalFields
 from nti.links.links import Link
 
 from nti.metadata import dataserver_metadata_catalog
+
+from nti.namedfile.interfaces import INamedFile
 
 from nti.ntiids.ntiids import make_ntiid
 from nti.ntiids.ntiids import get_provider
@@ -902,6 +905,38 @@ def pre_validate_question_change(question, externalValue):
 					regrade_parts.append(part)
 	return regrade_parts
 
+def set_parent(child, parent):
+	if hasattr(child, '__parent__') and child.__parent__ is None:
+		child.__parent__ = parent
+
+def get_part_value(part):
+	if IQResponse.providedBy(part):
+		part = part.value
+	return part
+
+def set_part_value_lineage(part):
+	part_value = get_part_value(part)
+	if part_value is not part and INamedFile.providedBy(part_value):
+		set_parent(part_value, part)
+
+def set_assessed_lineage(assessed):
+	# The constituent parts of these things need parents as well.
+	# It would be nice if externalization took care of this,
+	# but that would be a bigger change
+	creator = getattr(assessed, 'creator', None)
+	for assessed_set in assessed.parts or ():
+		# submission_part e.g. assessed question set
+		set_parent(assessed_set, assessed)
+		assessed_set.creator = creator
+		for assessed_question in assessed_set.questions or ():
+			assessed_question.creator = creator
+			set_parent(assessed_question, assessed_set)
+			for assessed_question_part in assessed_question.parts or ():
+				set_parent(assessed_question_part, assessed_question)
+				set_part_value_lineage(assessed_question_part)
+	return assessed
+set_submission_lineage = set_assessed_lineage # BWC
+
 def assess_assignment_submission(course, assignment, submission):
 	# Ok, now for each part that can be auto graded, do so, leaving all the others
 	# as-they-are
@@ -941,6 +976,7 @@ def reassess_assignment_history_item(item):
 
 	item.pendingAssessment = new_pending_assessment
 	new_pending_assessment.__parent__ = item
+	set_assessed_lineage(new_pending_assessment)
 	lifecycleevent.created(new_pending_assessment)
 
 	# dispatch to sublocations

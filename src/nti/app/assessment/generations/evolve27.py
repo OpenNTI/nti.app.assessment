@@ -73,6 +73,7 @@ def do_evolve(context, generation=generation):
 			if IUsersCourseAssignmentHistoryItem.providedBy(item):
 				pending = item.pendingAssessment
 				if pending is not None:
+					total += 1
 					set_assessed_lineage(pending)
 
 	component.getGlobalSiteManager().unregisterUtility(mock_ds, IDataserver)

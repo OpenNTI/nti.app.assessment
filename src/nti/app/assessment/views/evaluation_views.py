@@ -845,7 +845,7 @@ class QuestionSetPutView(EvaluationPutView):
 		"""
 		Transform from a question set to a question bank.
 		"""
-		self._validate_structural_edits( contentObject )
+		self._pre_flight_validation(contentObject, structural_change=True)
 		result = QQuestionBank()
 		self._copy_to_new_type( contentObject, result )
 		self._re_register( result, IQuestionSet, IQuestionBank )
@@ -855,7 +855,7 @@ class QuestionSetPutView(EvaluationPutView):
 		"""
 		Transform from a question bank to a regular question set.
 		"""
-		self._validate_structural_edits( contentObject )
+		self._pre_flight_validation(contentObject, structural_change=True)
 		result = QQuestionSet()
 		self._copy_to_new_type( contentObject, result )
 		self._re_register( result, IQuestionBank, IQuestionSet )
@@ -878,7 +878,7 @@ class QuestionSetPutView(EvaluationPutView):
 				and contentObject.draw is not None \
 				and contentObject.draw != draw:
 				# Changing draw counts; validate structurally.
-				self._validate_structural_edits( contentObject )
+				self._pre_flight_validation(contentObject, structural_change=True)
 			# Update our context
 			self.context = contentObject
 		return self.context
@@ -1032,7 +1032,7 @@ class AssignmentPutView(NewAndLegacyPutView):
 		"""
 		Transform from a regular assignment to a timed assignment.
 		"""
-		self._validate_structural_edits( contentObject )
+		self._pre_flight_validation(self.context, structural_change=True)
 		interface.alsoProvides(contentObject, IQTimedAssignment)
 		contentObject.mimeType = contentObject.mime_type = TIMED_ASSIGNMENT_MIME_TYPE
 		self._re_register(contentObject, IQAssignment, IQTimedAssignment)
@@ -1041,7 +1041,7 @@ class AssignmentPutView(NewAndLegacyPutView):
 		"""
 		Transform from a timed assignment to a regular assignment.
 		"""
-		self._validate_structural_edits( contentObject )
+		self._pre_flight_validation(self.context, structural_change=True)
 		interface.noLongerProvides(contentObject, IQTimedAssignment)
 		contentObject.mimeType = contentObject.mime_type = ASSIGNMENT_MIME_TYPE
 		self._re_register(contentObject, IQTimedAssignment, IQAssignment)
@@ -1059,6 +1059,11 @@ class AssignmentPutView(NewAndLegacyPutView):
 			elif	max_time_allowed is None \
 				and IQTimedAssignment.providedBy(contentObject):
 				self._transform_to_untimed(contentObject)
+			elif	max_time_allowed is not None \
+				and contentObject.maximum_time_allowed is not None \
+				and max_time_allowed != contentObject.maximum_time_allowed:
+				# Changing times; validate structurally.
+				self._pre_flight_validation(self.context, structural_change=True)
 
 	def updateContentObject(self, contentObject, externalValue, set_id=False, notify=True):
 		# Must toggle types first (if necessary) before calling super; so

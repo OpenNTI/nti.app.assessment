@@ -12,7 +12,8 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope import interface
 
-from nti.assessment.interfaces import IQEvaluation, IQEditableEvaluation
+from nti.assessment.interfaces import IQEvaluation
+from nti.assessment.interfaces import IQEditableEvaluation
 
 from nti.common.property import Lazy
 
@@ -23,7 +24,8 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.utils import get_course_editors
 from nti.contenttypes.courses.utils import content_unit_to_courses
 
-from nti.dataserver.authorization import ROLE_ADMIN, ACT_DELETE
+from nti.dataserver.authorization import ACT_DELETE 
+from nti.dataserver.authorization import ROLE_ADMIN 
 from nti.dataserver.authorization import ROLE_CONTENT_ADMIN
 
 from nti.dataserver.authorization_acl import ace_allowing

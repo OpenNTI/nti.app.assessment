@@ -119,7 +119,8 @@ class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			if response is not None:
 				__traceback_info__ = type(response), response, question_part
 				grader = grader_for_response(question_part, response)
-				assert grader is not None
+				if grader is None:
+					return
 
 				# CS: We need the user that submitted the question
 				# in order to unshuffle the response

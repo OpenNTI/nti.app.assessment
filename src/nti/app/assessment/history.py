@@ -147,10 +147,9 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 		# (in fact we do)
 		course = ICourseInstance(self, None)
 		instructors = getattr(course, 'instructors', ())  # already principals
-		aces = [ace_allowing(self.owner, ACT_READ, UsersCourseAssignmentHistory)]
+		aces = [ace_allowing(self.owner, ACT_READ, type(self))]
 		for instructor in instructors:
-			aces.append(ace_allowing(instructor, ALL_PERMISSIONS,
-									 UsersCourseAssignmentHistory))
+			aces.append(ace_allowing(instructor, ALL_PERMISSIONS, type(self)))
 		aces.append(ACE_DENY_ALL)
 		return acl_from_aces(aces)
 
@@ -285,13 +284,12 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 		"""
 		course = ICourseInstance(self, None)
 		instructors = getattr(course, 'instructors', ())  # already principals
-		aces = [ace_allowing(self.creator, ACT_READ, UsersCourseAssignmentHistoryItem)]
+		aces = [ace_allowing(self.creator, ACT_READ, type(self))]
 		if self._student_nuclear_reset_capable:
 			aces.append(ace_allowing(self.creator, ACT_DELETE,
 									 UsersCourseAssignmentHistoryItem))
 		for instructor in instructors:
-			aces.append(ace_allowing(instructor, ALL_PERMISSIONS,
-									 UsersCourseAssignmentHistoryItem))
+			aces.append(ace_allowing(instructor, ALL_PERMISSIONS, type(self)))
 		aces.append(ACE_DENY_ALL)
 		return acl_from_aces(aces)
 

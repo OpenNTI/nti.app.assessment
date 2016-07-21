@@ -272,8 +272,7 @@ class CourseAggregatedSurveys(CheckingLastModifiedBTreeContainer):
 	def __acl__(self):
 		course = ICourseInstance(self, None)
 		instructors = getattr(course, 'instructors', ())  # already principals
-		aces = [ace_allowing(i, ALL_PERMISSIONS, CourseAggregatedSurveys)
-				for i in instructors]
+		aces = [ace_allowing(i, ALL_PERMISSIONS, type(self)) for i in instructors]
 		aces.append(ace_allowing(EVERYONE_USER_NAME, ACT_READ))
 		return acl_from_aces(aces)
 

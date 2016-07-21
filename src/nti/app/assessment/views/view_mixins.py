@@ -11,6 +11,9 @@ logger = __import__('logging').getLogger(__name__)
 
 import six
 import copy
+
+from collections import Mapping
+
 from datetime import datetime
 
 from pyramid import httpexceptions as hexc
@@ -449,6 +452,8 @@ class StructuralValidationMixin(object):
 		Determines whether this question has structural changes.
 		"""
 		result = False
+		if not isinstance( externalValue, Mapping ):
+			return result
 		ext_question_ntiid = externalValue.get( 'NTIID',
 								externalValue.get( 'ntiid', '' ))
 		parts = context.parts or ()
@@ -472,6 +477,8 @@ class StructuralValidationMixin(object):
 		Determines whether this question set has structural changes.
 		"""
 		result = False
+		if not isinstance( externalValue, Mapping ):
+			return result
 		questions = context.questions or ()
 		ext_questions = externalValue.get( 'questions' )
 		ext_question_set_ntiid = externalValue.get( 'NTIID',

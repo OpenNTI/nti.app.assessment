@@ -65,10 +65,10 @@ def _question_from_context(context, questionId):
 					return question
 		return result
 
-def _is_instructor_or_editor( context, course, user ):
+def _is_instructor_or_editor( course, user ):
 	return 	   	(user is not None and course is not None) \
 			and ( 	is_course_instructor_or_editor( course, user ) \
-				 or has_permission(ACT_CONTENT_EDIT, context) )
+				 or has_permission(ACT_CONTENT_EDIT, course) )
 
 def _is_randomized_question_set(context):
 	"""
@@ -217,7 +217,7 @@ class _QAssessedQuestionExplanationSolutionAdder(object):
 
 		remoteUser = get_remote_user()
 		course = find_interface(context, ICourseInstance, strict=False)
-		is_instructor = _is_instructor_or_editor( context, course, remoteUser )
+		is_instructor = _is_instructor_or_editor( course, remoteUser )
 		is_randomized_qset = _is_randomized_question_set( context )
 
 		for question_part, external_part in zip(question.parts, mapping['parts']):

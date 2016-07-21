@@ -389,4 +389,9 @@
 				for="nti.assessment.interfaces.IQInquiry
 					 nti.dataserver.interfaces.IUser"/>
 
+	<!-- Wref -->
+	<adapter factory="nti.intid.wref.NoCachingArbitraryOrderableWeakRef"
+			 provides="nti.wref.interfaces.IWeakRef"
+			 for="nti.assessment.interfaces.IQEvaluation" />
+
 </configure>

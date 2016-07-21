@@ -20,8 +20,6 @@ from pyramid import httpexceptions as hexc
 from pyramid.view import view_config
 from pyramid.view import view_defaults
 
-from nti.assessment.interfaces import IQAssessment
-
 from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
 
 from nti.app.assessment.interfaces import ICourseEvaluations
@@ -47,6 +45,8 @@ from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQAssessment
+from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.common.property import Lazy
@@ -328,6 +328,8 @@ class NonAssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 					qsids_to_strip.update(q.ntiid for q in question_set.questions)
 			elif IQSurvey.providedBy(item):
 				qsids_to_strip.update(p.ntiid for p in item.questions or ())
+			elif IQEditableEvaluation.providedBy(item):
+				qsids_to_strip.add(item.ntiid)
 			else:
 				# CS: We can remove proxies since the items are neither assignments
 				# nor survey, so no course lookup is necesary

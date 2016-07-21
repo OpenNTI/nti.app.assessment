@@ -30,6 +30,7 @@ from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecora
 
 from nti.appserver.pyramid_authorization import has_permission
 from nti.appserver.pyramid_renderers_edit_link_decorator import LinkRemoverDecorator
+from nti.appserver.pyramid_renderers_edit_link_decorator import EditLinkRemoverDecorator
 
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQEditableEvaluation
@@ -106,3 +107,12 @@ class _EvaluationCalendarPublishStateDecorator(LinkRemoverDecorator):
 			return True
 		course = find_interface(context, ICourseInstance, strict=True)
 		return _has_any_submissions(context, course)
+
+@interface.implementer(IExternalObjectDecorator)
+class _ContentBackedAssignmentEditLinkRemover(EditLinkRemoverDecorator):
+	"""
+	Removes edit links from content backed assignments.
+	"""
+
+	def _predicate(self, context, result):
+		return not IQEditableEvaluation.providedBy(context)

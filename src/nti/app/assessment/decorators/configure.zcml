@@ -330,6 +330,11 @@
 				for="nti.assessment.interfaces.IQAssignment
 					 pyramid.interfaces.IRequest"/>
 
+	<subscriber factory=".evaluations._ContentBackedAssignmentEditLinkRemover"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator"
+				for="nti.assessment.interfaces.IQAssignment
+					 pyramid.interfaces.IRequest"/>
+
 	<subscriber factory=".evaluations._EvaluationCalendarPublishStateDecorator"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.assessment.interfaces.IQInquiry

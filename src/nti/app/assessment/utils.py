@@ -292,7 +292,7 @@ class RandomizedPartGraderUnshuffleValidator(object):
 				result = True
 			else:
 				# If not, return if submitter is and editor/instructor.
-				is_editor = has_permission(ACT_CONTENT_EDIT, course) \
+				is_editor = has_permission(ACT_CONTENT_EDIT, context) \
 						or  is_course_instructor_or_editor(course, user)
 				result = not is_editor
 		return result

@@ -553,6 +553,8 @@ class StructuralValidationMixin(object):
 		"""
 		Validate whether the incoming changes are 'structural' changes that
 		require submission validation or a version bump of containing assignments.
+		This must be performed before the content object is updated since we are
+		comparing states.
 		"""
 		# Only validate editable items.
 		if not IQEditableEvaluation.providedBy(context):

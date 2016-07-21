@@ -588,6 +588,9 @@ def get_submissions(context, courses=(), index_name=IX_ASSESSMENT_ID):
 		intids = component.getUtility(IIntIds)
 		entry_ntiids = get_entry_ntiids(courses)
 		sites = {get_resource_site_name(x) for x in courses}
+		sites.discard(None) # tests
+		if not sites: # tests
+			return ()
 		query = {
 		 	IX_SITE: {'any_of':sites},
 			IX_COURSE: {'any_of':entry_ntiids},

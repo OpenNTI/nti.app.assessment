@@ -874,6 +874,11 @@ class QuestionSetPutView(EvaluationPutView):
 			elif	draw is None \
 				and IQuestionBank.providedBy(contentObject):
 				contentObject = self._transform_to_non_bank(contentObject)
+			elif 	draw \
+				and contentObject.draw is not None \
+				and contentObject.draw != draw:
+				# Changing draw counts; validate structurally.
+				self._validate_structural_edits( contentObject )
 			# Update our context
 			self.context = contentObject
 		return self.context

@@ -23,6 +23,7 @@ from zope.interface.common.idatetime import IDateTime
 
 from nti.app.assessment.common import get_courses
 from nti.app.assessment.common import validate_auto_grade
+from nti.app.assessment.common import validate_auto_grade_points
 from nti.app.assessment.common import get_available_for_submission_ending
 from nti.app.assessment.common import get_assignments_for_evaluation_object
 from nti.app.assessment.common import get_available_for_submission_beginning
@@ -262,6 +263,7 @@ class AssessmentPutView(UGDPutView):
 								  _('Due date cannot come before start date.'))
 			# Validate auto_grade
 			validate_auto_grade(contentObject, course, self.request)
+			validate_auto_grade_points(contentObject, course, self.request, externalValue)
 
 	@property
 	def policy_keys(self):

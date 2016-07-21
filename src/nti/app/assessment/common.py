@@ -68,7 +68,7 @@ from nti.app.externalization.error import raise_json_error
 
 from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
 
-from nti.assessment.interfaces import NTIID_TYPE 
+from nti.assessment.interfaces import NTIID_TYPE
 from nti.assessment.interfaces import DISCLOSURE_NEVER
 from nti.assessment.interfaces import DISCLOSURE_ALWAYS
 from nti.assessment.interfaces import QUESTION_SET_MIME_TYPE
@@ -90,6 +90,8 @@ from nti.assessment.interfaces import IQAssessmentPolicies
 from nti.assessment.interfaces import IQAssessedQuestionSet
 from nti.assessment.interfaces import IQAssessmentDateContext
 from nti.assessment.interfaces import IQAssessmentItemContainer
+
+from nti.common.maps import CaseInsensitiveDict
 
 from nti.common.time import time_to_64bit_int
 
@@ -143,6 +145,8 @@ MIME_TYPE = StandardExternalFields.MIMETYPE
 
 UNGRADABLE_MSG = _("Ungradable item in auto-graded assignment.")
 UNGRADABLE_CODE = 'UngradableInAutoGradeAssignment'
+DISABLE_AUTO_GRADE_MSG = _("Removing points to auto-gradable assignment. Do you want to disable auto-grading?")
+AUTO_GRADE_NO_POINTS_MSG = _("Cannot enable auto-grading without setting a point value.")
 
 def get_resource_site_name(context, strict=False):
 	folder = find_interface(context, IHostPolicyFolder, strict=strict)
@@ -835,6 +839,47 @@ def validate_auto_grade(assignment, course, request=None, challenge=False, raise
 							 },
 							 None)
 	return valid_auto_grade
+
+def validate_auto_grade_points( assignment, course, request, externalValue ):
+	"""
+	Validate the assignment has the proper state with auto_grading and
+	total_points. If removing points from auto-gradable, we challenge the
+	user, disabling auto_grade upon override. If setting auto_grade without
+	points, we 422.
+	"""
+	auto_grade = get_auto_grade_policy_state(assignment, course)
+	if auto_grade:
+		auto_grade_policy = get_auto_grade_policy(assignment, course)
+		total_points = auto_grade_policy.get( 'total_points' )
+		params = CaseInsensitiveDict( request.params )
+		# Removing points while auto_grade on; challenge.
+		if not total_points and 'total_points' in externalValue:
+			if not params.get( 'disableAutoGrade' ):
+				links = (
+					Link(request.path, rel='confirm',
+						 params={'disableAutoGrade':True}, method='POST'),
+				)
+				raise_json_error(request,
+								 hexc.HTTPConflict,
+								 {
+								 	CLASS: 'DestructiveChallenge',
+									u'message': DISABLE_AUTO_GRADE_MSG,
+									u'code': 'RemovingAutoGradePoints',
+									LINKS: to_external_object(links),
+									MIME_TYPE: 'application/vnd.nextthought.destructivechallenge'
+								 },
+								 None)
+			# Disable auto grade
+			auto_grade_policy['disable'] = True
+		# Trying to enable auto_grade without points; 422.
+		if not total_points and 'auto_grade' in externalValue:
+			raise_json_error(request,
+							 hexc.HTTPUnprocessableEntity,
+							 {
+								u'message': AUTO_GRADE_NO_POINTS_MSG,
+								u'code': 'AutoGradeWithoutPoints',
+							 },
+							 None)
 
 def make_evaluation_ntiid(kind, creator=SYSTEM_USER_ID, base=None, extra=None):
 	# get kind

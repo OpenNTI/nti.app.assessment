@@ -460,8 +460,38 @@ class TestEvaluationViews(ApplicationLayerTest):
 							  		status=422)
 		assert_that( res.json_body.get( 'field' ), is_( 'total_points' ))
 
-		# Validated auto-grading state.
+		# Auto-grade challenges
+		# auto-grade without points, 422.
 		data = { 'auto_grade': 'True' }
+		self.testapp.put_json('/dataserver2/Objects/%s' % assignment_ntiid,
+							  data, extra_environ=editor_environ, status=422)
+
+		# Auto_grade with points
+		data = { 'auto_grade': 'True', 'total_points': 10 }
+		self.testapp.put_json('/dataserver2/Objects/%s' % assignment_ntiid,
+							  data, extra_environ=editor_environ)
+		res = self.testapp.get('/dataserver2/Objects/' + assignment_ntiid,
+							   extra_environ=editor_environ)
+		res = res.json_body
+		assert_that(res.get('auto_grade'), is_(True))
+		assert_that(res.get('total_points'), is_( 10 ))
+
+		# Setting points to empty with auto_grade on; challenge.
+		data = { 'total_points': None }
+		res = self.testapp.put_json('/dataserver2/Objects/%s' % assignment_ntiid,
+							  		data, extra_environ=editor_environ, status=409)
+		confirm_link = self.require_link_href_with_rel(res.json_body, 'confirm')
+		# Now override and disable
+		self.testapp.put_json( confirm_link, data, extra_environ=editor_environ )
+
+		res = self.testapp.get('/dataserver2/Objects/' + assignment_ntiid,
+							   extra_environ=editor_environ)
+		res = res.json_body
+		assert_that(res.get('auto_grade'), is_(False))
+		assert_that(res.get('total_points'), none())
+
+		# Validated auto-grading state.
+		data = { 'auto_grade': 'True', 'total_points': 10 }
 		self.testapp.put_json('/dataserver2/Objects/%s' % assignment_ntiid,
 							  data, extra_environ=editor_environ)
 

@@ -210,6 +210,7 @@ def _begin_assessment_for_assignment_submission(submission):
 
 	pending_assessment = assess_assignment_submission(course, assignment, submission)
 	lifecycleevent.created(pending_assessment)
+	set_submission_lineage(pending_assessment)
 
 	version = assignment.version
 	if version is not None: # record version

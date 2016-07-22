@@ -68,7 +68,7 @@ from nti.app.externalization.error import raise_json_error
 
 from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
 
-from nti.assessment.interfaces import NTIID_TYPE
+from nti.assessment.interfaces import NTIID_TYPE, IQEditableEvaluation
 from nti.assessment.interfaces import DISCLOSURE_NEVER
 from nti.assessment.interfaces import DISCLOSURE_ALWAYS
 from nti.assessment.interfaces import QUESTION_SET_MIME_TYPE
@@ -473,6 +473,9 @@ def get_course_self_assessments(context):
 				for question in question_set.questions:
 					qsids_to_strip.add(question.ntiid)
 		elif not IQuestionSet.providedBy(item):
+			qsids_to_strip.add(item.ntiid)
+		elif IQEditableEvaluation.providedBy( item ):
+			# XXX: Seems like eventually we'll want to return these.
 			qsids_to_strip.add(item.ntiid)
 		else:
 			result.append(item)

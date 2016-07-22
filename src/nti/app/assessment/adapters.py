@@ -61,6 +61,8 @@ from nti.appserver.interfaces import IHierarchicalContextProvider
 from nti.appserver.interfaces import ITopLevelContainerContextProvider
 from nti.appserver.interfaces import ITrustedTopLevelContainerContextProvider
 
+from nti.appserver.pyramid_authorization import has_permission
+
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssessment
 from nti.assessment.interfaces import IQAssignment
@@ -86,6 +88,8 @@ from nti.contenttypes.courses.utils import is_enrolled
 from nti.contenttypes.courses.utils import get_enrollments
 from nti.contenttypes.courses.utils import get_courses_for_packages
 from nti.contenttypes.courses.utils import is_course_instructor_or_editor
+
+from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
 from nti.dataserver.interfaces import IUser
 
@@ -146,11 +150,18 @@ def _assignment_submission_transformer(request, obj):
 		renderers.render_to_response('rest', pending, request)
 	raise result
 
-def _check_submission_before(course, assignment):
+def _is_instructor_or_editor( course, user ):
+	return 	   	(user is not None and course is not None) \
+			and ( 	is_course_instructor_or_editor( course, user ) \
+				 or has_permission(ACT_CONTENT_EDIT, course) )
+
+def _check_submission_before(submission, course, assignment):
 	# We only need to check that the submission is not too early;
-	# if it is late, we still allow it at this level, leaving
+	# If it is late, we still allow it at this level, leaving
 	# it to the instructor to handle it.
 	# Allow for the course to handle adjusting the dates
+	if _is_instructor_or_editor( course, submission.creator ):
+		return
 	available_beginning = get_available_for_submission_beginning(assignment, course)
 	if available_beginning is not None:
 		if datetime.datetime.utcnow() < available_beginning:
@@ -160,7 +171,7 @@ def _check_submission_before(course, assignment):
 			raise ex
 
 def _validate_submission(submission, course, assignment):
-	_check_submission_before(course, assignment)
+	_check_submission_before(submission, course, assignment)
 	check_submission_version(submission, assignment)
 
 @component.adapter(IQAssignmentSubmission)

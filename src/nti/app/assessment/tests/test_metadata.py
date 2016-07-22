@@ -48,7 +48,7 @@ class TestMetadata(AssessmentLayerTest):
 		# Set an owner; use a python wref instead of the default
 		# adapter to wref as it requires an intid utility
 		metadata.owner = weakref.ref(User.create_user(username='sjohnson@nextthought.com'))
-		item = UsersCourseAssignmentMetadataItem()
+		item = UsersCourseAssignmentMetadataItem(StartTime=100.0)
 		item.creator = 'foo'
 		item.__parent__ = metadata
 		assert_that(item,

@@ -49,9 +49,9 @@ from nti.dataserver.interfaces import ACE_DENY_ALL
 from nti.dataserver.interfaces import ALL_PERMISSIONS
 
 from nti.dataserver.authorization import ACT_READ
-from nti.dataserver.authorization import ROLE_ADMIN
 from nti.dataserver.authorization import ACT_CREATE
 from nti.dataserver.authorization import ACT_UPDATE
+from nti.dataserver.authorization import ROLE_ADMIN
 
 from nti.dataserver.interfaces import IACLProvider
 
@@ -150,8 +150,8 @@ class UsersCourseAssignmentMetadata(CheckingLastModifiedBTreeContainer):
 @interface.implementer(IUsersCourseAssignmentMetadataItem,
 					   IACLProvider)
 class UsersCourseAssignmentMetadataItem(PersistentCreatedModDateTrackingObject,
-										Contained,
-										SchemaConfigured):
+										SchemaConfigured,
+										Contained):
 
 	createDirectFieldProperties(IUsersCourseAssignmentMetadataItem)
 

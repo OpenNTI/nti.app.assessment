@@ -372,7 +372,7 @@ def get_course_from_evaluation(evaluation, user=None, catalog=None,
 	catalog_courses = None
 	if result is None:
 		catalog_courses = get_evaluation_courses(evaluation)
-		result = catalog_courses[0] if len( catalog_courses ) == 1 else None
+		result = catalog_courses[0] if len(catalog_courses) == 1 else None
 
 	# could not find a course .. try adapter; this validates enrollment...
 	if result is None and user is not None:
@@ -450,12 +450,14 @@ def get_course_assignments(context, sort=True, reverse=False, do_filtering=True)
 		assignments = sorted(assignments, cmp=assignment_comparator, reverse=reverse)
 	return assignments
 
-def get_course_self_assessments(context):
+def get_course_self_assessments(context, exclude_editable=True):
 	"""
 	Given an :class:`.ICourseInstance`, return a list of all
 	the \"self assessments\" in the course. Self-assessments are
 	defined as top-level question sets that are not used within an assignment
 	in the course.
+
+	:param exclude_editable Exclude editable evaluations
 	"""
 	result = list()
 	qsids_to_strip = set()
@@ -474,7 +476,7 @@ def get_course_self_assessments(context):
 					qsids_to_strip.add(question.ntiid)
 		elif not IQuestionSet.providedBy(item):
 			qsids_to_strip.add(item.ntiid)
-		elif IQEditableEvaluation.providedBy( item ):
+		elif exclude_editable and IQEditableEvaluation.providedBy(item):
 			# XXX: Seems like eventually we'll want to return these.
 			qsids_to_strip.add(item.ntiid)
 		else:
@@ -591,8 +593,8 @@ def get_submissions(context, courses=(), index_name=IX_ASSESSMENT_ID):
 		intids = component.getUtility(IIntIds)
 		entry_ntiids = get_entry_ntiids(courses)
 		sites = {get_resource_site_name(x) for x in courses}
-		sites.discard(None) # tests
-		if not sites: # tests
+		sites.discard(None)  # tests
+		if not sites:  # tests
 			return ()
 		query = {
 		 	IX_SITE: {'any_of':sites},
@@ -714,7 +716,7 @@ def get_assignments_for_evaluation_object(context, sites=None):
 	For the given evaluation object, fetch all assignments which
 	contain it.
 	"""
-	if IQAssignment.providedBy(context): # check itself
+	if IQAssignment.providedBy(context):  # check itself
 		return (context,)
 
 	if isinstance(context, six.string_types):
@@ -846,7 +848,7 @@ def validate_auto_grade(assignment, course, request=None, challenge=False, raise
 							 None)
 	return valid_auto_grade
 
-def validate_auto_grade_points( assignment, course, request, externalValue ):
+def validate_auto_grade_points(assignment, course, request, externalValue):
 	"""
 	Validate the assignment has the proper state with auto_grading and
 	total_points. If removing points from auto-gradable, we challenge the
@@ -856,11 +858,11 @@ def validate_auto_grade_points( assignment, course, request, externalValue ):
 	auto_grade = get_auto_grade_policy_state(assignment, course)
 	if auto_grade:
 		auto_grade_policy = get_auto_grade_policy(assignment, course)
-		total_points = auto_grade_policy.get( 'total_points' )
-		params = CaseInsensitiveDict( request.params )
+		total_points = auto_grade_policy.get('total_points')
+		params = CaseInsensitiveDict(request.params)
 		# Removing points while auto_grade on; challenge.
 		if not total_points and 'total_points' in externalValue:
-			if not params.get( 'disableAutoGrade' ):
+			if not params.get('disableAutoGrade'):
 				links = (
 					Link(request.path, rel='confirm',
 						 params={'disableAutoGrade':True}, method='POST'),
@@ -986,7 +988,7 @@ def set_assessed_lineage(assessed):
 				set_parent(assessed_question_part, assessed_question)
 				set_part_value_lineage(assessed_question_part)
 	return assessed
-set_submission_lineage = set_assessed_lineage # BWC
+set_submission_lineage = set_assessed_lineage  # BWC
 
 def assess_assignment_submission(course, assignment, submission):
 	# Ok, now for each part that can be auto graded, do so, leaving all the others
@@ -1018,7 +1020,7 @@ def reassess_assignment_history_item(item):
 
 	# mark old pending assessment as removed
 	lifecycleevent.removed(old_pending_assessment)
-	old_pending_assessment.__parent__ = None # ground
+	old_pending_assessment.__parent__ = None  # ground
 
 	assignment = item.Assignment
 	course = find_interface(item, ICourseInstance, strict=False)

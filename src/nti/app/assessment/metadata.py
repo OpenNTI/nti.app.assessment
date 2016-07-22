@@ -142,8 +142,8 @@ class UsersCourseAssignmentMetadata(CheckingLastModifiedBTreeContainer):
 	@property
 	def __acl__(self):
 		creator = self.creator
-		aces = [ace_allowing(creator, ACT_READ, UsersCourseAssignmentMetadata),
-				ace_allowing(creator, ACT_CREATE, UsersCourseAssignmentMetadata)]
+		aces = [ace_allowing(creator, ACT_READ, type(self)),
+				ace_allowing(creator, ACT_CREATE, type(self))]
 		aces.append(ACE_DENY_ALL)
 		return acl_from_aces(aces)
 

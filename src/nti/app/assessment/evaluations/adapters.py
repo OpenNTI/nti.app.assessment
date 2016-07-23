@@ -9,12 +9,12 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-from ZODB.interfaces import IConnection
-
 from zope import component
 from zope import interface
 
 from zope.annotation.interfaces import IAnnotations
+
+from ZODB.interfaces import IConnection
 
 from pyramid.interfaces import IRequest
 
@@ -48,7 +48,7 @@ def evaluations_for_course(course, create=True):
 			# Deterministically add to our course db.
 			# Sectioned courses would give us multiple
 			# db error for some reason.
-			IConnection(course).add( result )
+			IConnection(course).add(result)
 	return result
 
 @interface.implementer(ICourseInstance)

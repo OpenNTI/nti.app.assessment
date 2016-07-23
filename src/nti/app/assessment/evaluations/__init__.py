@@ -15,8 +15,8 @@ from pyramid.threadlocal import get_current_request
 
 from nti.app.externalization.error import raise_json_error
 
-def raise_error(v, tb=None, factory=hexc.HTTPUnprocessableEntity):
-	request = get_current_request()
+def raise_error(v, tb=None, factory=hexc.HTTPUnprocessableEntity, request=None):
+	request = request or get_current_request()
 	raise_json_error(request, factory, v, tb)
 
 import zope.deferredimport

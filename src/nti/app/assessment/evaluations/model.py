@@ -10,6 +10,11 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 from zope import interface
+from zope import lifecycleevent
+
+from zope.location.location import locate
+
+from ZODB.interfaces import IConnection
 
 from nti.app.assessment.interfaces import ICourseEvaluations
 
@@ -42,6 +47,26 @@ class CourseEvaluations(CaseInsensitiveCheckingLastModifiedBTreeContainer):
 	def Items(self):
 		return dict(self)
 
+	def _save(self, key, value):
+		self._setitemf(key, value)
+		locate(value, parent=self, name=key)
+		if IConnection(value, None) is None:
+			IConnection(self).add(value)
+		lifecycleevent.added(value, self, key)
+		self.updateLastMod()
+		self._p_changed = True
+
+	def __setitem__(self, key, value):
+		self._save(key, value)
+
+	def _eject(self, key):
+		self._delitemf(key)
+		self.updateLastMod()
+		self._p_changed = True
+
+	def __delitem__(self, key):
+		self._eject(key)
+
 	@property
 	def __acl__(self):
 		aces = [ ace_allowing(ROLE_ADMIN, ALL_PERMISSIONS, self),
@@ -49,7 +74,7 @@ class CourseEvaluations(CaseInsensitiveCheckingLastModifiedBTreeContainer):
 		course = find_interface(self.context, ICourseInstance, strict=False)
 		if course is not None:
 			aces.extend(ace_allowing(i, ALL_PERMISSIONS, type(self))
-						for i in course.instructors)
+						for i in course.instructors or ())
 			aces.extend(ace_allowing(i, ALL_PERMISSIONS, type(self))
 						for i in get_course_editors(course))
 		aces.append(ACE_DENY_ALL)

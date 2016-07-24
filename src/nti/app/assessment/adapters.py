@@ -322,8 +322,9 @@ class _DefaultCourseSelfAssessmentItemCatalog(object):
 	def __init__(self, context):
 		self.context = context
 
-	def iter_assessment_items(self):
-		result = get_course_self_assessments(self.context)
+	def iter_assessment_items(self, exclude_editable=True):
+		result = get_course_self_assessments(self.context,
+											 exclude_editable=exclude_editable)
 		return result
 
 @component.adapter(ICourseInstance)

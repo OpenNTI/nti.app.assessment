@@ -450,7 +450,7 @@ def get_course_assignments(context, sort=True, reverse=False, do_filtering=True)
 		assignments = sorted(assignments, cmp=assignment_comparator, reverse=reverse)
 	return assignments
 
-def get_course_self_assessments(context, exclude_editable=True):
+def get_course_self_assessments(context, exclude_editable=False):
 	"""
 	Given an :class:`.ICourseInstance`, return a list of all
 	the \"self assessments\" in the course. Self-assessments are

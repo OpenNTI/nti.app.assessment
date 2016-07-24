@@ -328,7 +328,8 @@ class NonAssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 					qsids_to_strip.update(q.ntiid for q in question_set.questions)
 			elif IQSurvey.providedBy(item):
 				qsids_to_strip.update(p.ntiid for p in item.questions or ())
-			elif IQEditableEvaluation.providedBy(item):
+			elif 	IQEditableEvaluation.providedBy(item) \
+				and not (self._is_editor or self.is_course_instructor):
 				qsids_to_strip.add(item.ntiid)
 			else:
 				# CS: We can remove proxies since the items are neither assignments

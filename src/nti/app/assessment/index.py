@@ -446,7 +446,11 @@ class ValidatingKeywords(object):
 
 	def __init__(self, obj, default=None):
 		if IQEvaluation.providedBy(obj):
-			self.keywords = tuple(obj.tags or ()) or None
+			keywords = set(obj.tags or ())
+			if IQAssignment.providedBy(obj) and obj.category_name:
+				keywords.add(obj.category_name)
+			if keywords:
+				self.keywords = sorted(keywords)
 
 	def __reduce__(self):
 		raise TypeError()

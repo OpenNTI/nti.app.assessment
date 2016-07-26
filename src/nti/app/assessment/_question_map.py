@@ -52,8 +52,6 @@ from nti.assessment.interfaces import SURVEY_MIME_TYPE
 from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
 from nti.assessment.interfaces import QUESTION_SET_MIME_TYPE
 
-from nti.common.proxy import removeAllProxies
-
 from nti.coremetadata.interfaces import IRecordable
 from nti.coremetadata.interfaces import IPublishable
 from nti.coremetadata.interfaces import INoPublishLink
@@ -75,6 +73,8 @@ from nti.externalization.internalization import find_factory_for
 from nti.externalization.internalization import update_from_external_object
 
 from nti.externalization.persistence import NoPickle
+
+from nti.externalization.proxy import removeAllProxies
 
 from nti.intid.common import addIntId
 from nti.intid.common import removeIntId

@@ -24,14 +24,14 @@ from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
-from nti.common.proxy import removeAllProxies
-
 from nti.contentlibrary.interfaces import IContentPackage
 from nti.contentlibrary.interfaces import IGlobalContentPackage
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 
 from nti.dataserver.interfaces import IDataserver
 from nti.dataserver.interfaces import IOIDResolver
+
+from nti.externalization.proxy import removeAllProxies
 
 from nti.metadata import get_uid
 from nti.metadata.interfaces import IMetadataQueue

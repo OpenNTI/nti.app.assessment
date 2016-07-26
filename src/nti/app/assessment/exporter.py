@@ -17,8 +17,6 @@ from nti.assessment.interfaces import IQEditableEvaluation
 
 from nti.common.file import safe_filename
 
-from nti.common.proxy import removeAllProxies
-
 from nti.contenttypes.courses.common import get_course_packages
 
 from nti.contenttypes.courses.exporter import BaseSectionExporter
@@ -29,6 +27,8 @@ from nti.contenttypes.courses.interfaces import ICourseSectionExporter
 from nti.contenttypes.courses.utils import get_parent_course
 
 from nti.externalization.externalization import to_external_object
+
+from nti.externalization.proxy import removeAllProxies
 
 from nti.externalization.interfaces import StandardExternalFields
 

@@ -135,8 +135,6 @@ from nti.common.maps import CaseInsensitiveDict
 
 from nti.common.property import Lazy
 
-from nti.common.proxy import removeAllProxies
-
 from nti.common.string import is_true
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -159,6 +157,8 @@ from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.internalization import notifyModified
 from nti.externalization.internalization import find_factory_for
 from nti.externalization.internalization import update_from_external_object
+
+from nti.externalization.proxy import removeAllProxies
 
 from nti.links.links import Link
 

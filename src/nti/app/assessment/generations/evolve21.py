@@ -24,7 +24,7 @@ from nti.app.assessment import get_evaluation_catalog
 
 from nti.assessment.interfaces import IQEvaluation
 
-from nti.common.proxy import removeAllProxies
+from nti.externalization.proxy import removeAllProxies
 
 from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.interfaces import IContentPackageLibrary

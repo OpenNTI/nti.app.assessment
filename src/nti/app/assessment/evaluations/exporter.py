@@ -21,7 +21,7 @@ from nti.app.products.courseware.resources.utils import get_course_filer
 
 from nti.assessment import EVALUATION_INTERFACES
 
-from nti.common.proxy import removeAllProxies
+from nti.externalization.proxy import removeAllProxies
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseSectionExporter

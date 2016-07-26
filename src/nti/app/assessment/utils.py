@@ -50,8 +50,6 @@ from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.randomized.interfaces import IPrincipalSeedSelector
 from nti.assessment.randomized.interfaces import IRandomizedPartGraderUnshuffleValidator
 
-from nti.common.proxy import removeAllProxies
-
 from nti.contentlibrary.interfaces import IContentUnit
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -65,6 +63,8 @@ from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import IUsernameSubstitutionPolicy
 
 from nti.dataserver.users import User
+
+from nti.externalization.proxy import removeAllProxies
 
 from nti.ntiids.ntiids import is_valid_ntiid_string
 from nti.ntiids.ntiids import find_object_with_ntiid

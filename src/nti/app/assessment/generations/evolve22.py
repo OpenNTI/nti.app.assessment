@@ -37,10 +37,10 @@ from nti.assessment.randomized.parts import QRandomizedOrderingPart
 from nti.assessment.randomized.parts import QRandomizedMultipleChoicePart
 from nti.assessment.randomized.parts import QRandomizedMultipleChoiceMultipleAnswerPart
 
-from nti.common.proxy import removeAllProxies
-
 from nti.dataserver.interfaces import IDataserver
 from nti.dataserver.interfaces import IOIDResolver
+
+from nti.externalization.proxy import removeAllProxies
 
 from nti.schema.interfaces import find_most_derived_interface
 

@@ -297,12 +297,12 @@ from pyramid.location import lineage
 
 from nti.common._compat import integer_types
 
-from nti.common.proxy import removeAllProxies
-
 from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.interfaces import IContentPackage
 
 from nti.contenttypes.courses.utils import get_courses_for_packages
+
+from nti.externalization.proxy import removeAllProxies
 
 def to_iterable(value):
 	if isinstance(value, (list, tuple, set)):

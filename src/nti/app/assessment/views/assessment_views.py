@@ -50,7 +50,6 @@ from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.common.property import Lazy
-from nti.common.proxy import removeAllProxies
 
 from nti.contentlibrary.indexed_data import get_library_catalog
 
@@ -72,6 +71,8 @@ from nti.dataserver import authorization as nauth
 
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
+
+from nti.externalization.proxy import removeAllProxies
 
 from nti.site.site import get_component_hierarchy_names
 

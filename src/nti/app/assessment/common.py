@@ -93,8 +93,6 @@ from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.common.maps import CaseInsensitiveDict
 
-from nti.common.time import time_to_64bit_int
-
 from nti.contentlibrary.interfaces import IContentPackage
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
@@ -134,6 +132,8 @@ from nti.site.interfaces import IHostPolicyFolder
 from nti.site.site import get_component_hierarchy_names
 
 from nti.traversal.traversal import find_interface
+
+from nti.zodb.containers import time_to_64bit_int
 
 from nti.zope_catalog.catalog import ResultSet
 

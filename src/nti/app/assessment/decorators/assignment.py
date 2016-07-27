@@ -534,7 +534,7 @@ class _AssessmentDateEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorato
 		_links = result.setdefault(LINKS, [])
 		courses = self._get_courses(context)
 		savepoints = has_savepoints(context, courses)
-		names = ('date-edit-end',)
+		names = ('date-edit-end', 'date-edit')
 		if not savepoints:
 			names += ('date-edit-start',)
 		for name in names:

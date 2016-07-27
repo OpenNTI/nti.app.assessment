@@ -230,7 +230,7 @@ def validate_submissions(theObject, course, request=None):
 		raise_json_error(request,
 						 hexc.HTTPUnprocessableEntity,
 						 {
-							u'message': _("Object has submissions."),
+							u'message': _("Evaluation has submissions."),
 							u'code': 'ObjectHasSubmissions',
 						 },
 						 None)
@@ -241,7 +241,7 @@ def validate_savepoints(theObject, course, request=None):
 		raise_json_error(request,
 						 hexc.HTTPUnprocessableEntity,
 						 {
-							u'message': _("Object has savepoints."),
+							u'message': _("Evaluation has savepoints."),
 							u'code': 'ObjectHasSavepoints',
 						 },
 						 None)
@@ -252,7 +252,7 @@ def validate_published(theObject, course=None, request=None):
 		raise_json_error(request,
 						 hexc.HTTPUnprocessableEntity,
 						 {
-							u'message': _("Object has been published."),
+							u'message': _("Evaluation has been published."),
 							u'code': 'ObjectIsPublished',
 						 },
 						 None)

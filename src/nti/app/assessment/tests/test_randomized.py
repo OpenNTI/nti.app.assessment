@@ -81,8 +81,9 @@ class TestRandomized(ApplicationLayerTest):
 
 	def _test_external_state(self, ext_obj, has_savepoints=False, has_submissions=False):
 		self.require_link_href_with_rel(ext_obj, 'edit')
-		self.require_link_href_with_rel(ext_obj, 'date-edit')
 		self.require_link_href_with_rel(ext_obj, 'schema')
+		self.require_link_href_with_rel(ext_obj, 'date-edit-end')
+		self.require_link_href_with_rel(ext_obj, 'date-edit-start')
 		limited = has_savepoints or has_submissions
 		assert_that( ext_obj.get( 'LimitedEditingCapabilities' ), is_( limited ) )
 		assert_that( ext_obj.get( 'LimitedEditingCapabilitiesSavepoints' ),

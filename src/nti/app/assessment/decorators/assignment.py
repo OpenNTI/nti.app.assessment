@@ -128,7 +128,7 @@ class _AssignmentsByOutlineNodeDecorator(AbstractAssessmentDecoratorPredicate):
 	def _link_with_rel(self, course, rel):
 		link = Link(course,
 					rel=rel,
-					elements=('@@'+rel,),
+					elements=('@@' + rel,),
 					# We'd get the wrong type/ntiid values if we
 					# didn't ignore them.
 					ignore_properties_of_target=True)
@@ -200,11 +200,11 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			result['IsTimedAssignment'] = False
 
 		# auto_grade/total_points
-		auto_grade = get_auto_grade_policy( assignment, course )
+		auto_grade = get_auto_grade_policy(assignment, course)
 		if auto_grade:
-			disabled = auto_grade.get( 'disable' )
+			disabled = auto_grade.get('disable')
 			result['auto_grade'] = not disabled if disabled is not None else None
-			result['total_points'] = auto_grade.get( 'total_points' )
+			result['total_points'] = auto_grade.get('total_points')
 
 class _TimedAssignmentPartStripperDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
@@ -214,7 +214,7 @@ class _TimedAssignmentPartStripperDecorator(AbstractAuthenticatedRequestAwareDec
 											 request=self.request)
 
 		if 	   course is None \
-			or is_course_instructor( course, self.remoteUser ) \
+			or is_course_instructor(course, self.remoteUser) \
 			or has_permission(ACT_CONTENT_EDIT, course, self.request):
 			return
 		item = get_assessment_metadata_item(course, self.remoteUser, context.ntiid)
@@ -228,7 +228,7 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 											 user=self.remoteUser,
 											 request=self.request)
 		if 	   course is None \
-			or is_course_instructor( course, self.remoteUser ) \
+			or is_course_instructor(course, self.remoteUser) \
 			or has_permission(ACT_CONTENT_EDIT, course, self.request):
 			return
 		item = get_assessment_metadata_item(course, self.remoteUser, context.ntiid)
@@ -301,7 +301,7 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 	@classmethod
 	def strip(cls, item):
 		for part in item['parts']:
-			if isinstance( part, Mapping ):
+			if isinstance(part, Mapping):
 				for key in ('solutions', 'explanation'):
 					if key in part:
 						part[key] = None
@@ -360,11 +360,11 @@ class _QuestionSetRandomizedDecorator(object):
 	__metaclass__ = SingletonDecorator
 
 	def decorateExternalObject(self, original, external):
-		external['Randomized'] = not IQuestionBank.providedBy( original ) \
-							and IRandomizedQuestionSet.providedBy( original )
-		external['RandomizedPartsType'] = IRandomizedPartsContainer.providedBy( original )
+		external['Randomized'] = not IQuestionBank.providedBy(original) \
+							and IRandomizedQuestionSet.providedBy(original)
+		external['RandomizedPartsType'] = IRandomizedPartsContainer.providedBy(original)
 
-_ContextStatus = namedtuple( "_ContextStatus",
+_ContextStatus = namedtuple("_ContextStatus",
 							 ("has_savepoints", "has_submissions", "is_available"))
 
 @interface.implementer(IExternalMappingDecorator)
@@ -391,7 +391,7 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 	def _is_available(self, context):
 		assignments = get_available_assignments_for_evaluation_object(context)
-		return bool( assignments )
+		return bool(assignments)
 
 	def _predicate(self, context, result):
 		return 		self._is_authenticated \
@@ -420,47 +420,47 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		Gather any links needed for a non-in-progress editable question sets.
 		"""
 		rels = []
-		rels.append( VIEW_DELETE )
-		rels.append( VIEW_QUESTION_SET_CONTENTS )
-		rels.append( VIEW_ASSESSMENT_MOVE )
+		rels.append(VIEW_DELETE)
+		rels.append(VIEW_QUESTION_SET_CONTENTS)
+		rels.append(VIEW_ASSESSMENT_MOVE)
 
 		# Question banks cannot be (un)randomized since we may
 		# support ranges.
-		if not IQuestionBank.providedBy( context ):
-			if IRandomizedQuestionSet.providedBy( context ):
-				rels.append( VIEW_UNRANDOMIZE )
+		if not IQuestionBank.providedBy(context):
+			if IRandomizedQuestionSet.providedBy(context):
+				rels.append(VIEW_UNRANDOMIZE)
 			else:
-				rels.append( VIEW_RANDOMIZE )
+				rels.append(VIEW_RANDOMIZE)
 
-		if IRandomizedPartsContainer.providedBy( context ):
-			rels.append( VIEW_UNRANDOMIZE_PARTS )
+		if IRandomizedPartsContainer.providedBy(context):
+			rels.append(VIEW_UNRANDOMIZE_PARTS)
 		else:
-			rels.append( VIEW_RANDOMIZE_PARTS )
+			rels.append(VIEW_RANDOMIZE_PARTS)
 		return rels
 
-	def _get_context_status( self, context ):
+	def _get_context_status(self, context):
 		courses = self.get_courses(context)
 		# We need to check assignments for our context for submissions.
 		assignments = get_assignments_for_evaluation_object(context)
 		savepoints = is_available = False
 		for assignment in assignments:
-			savepoints = savepoints or has_savepoints( assignment, courses )
-			is_available = is_available or self._is_available( assignment )
-		submissions = has_submissions( context, courses )
-		return _ContextStatus( has_savepoints=savepoints,
+			savepoints = savepoints or has_savepoints(assignment, courses)
+			is_available = is_available or self._is_available(assignment)
+		submissions = has_submissions(context, courses)
+		return _ContextStatus(has_savepoints=savepoints,
 							   has_submissions=submissions,
-							   is_available=is_available )
+							   is_available=is_available)
 
 	def _do_decorate_external(self, context, result):
 		_links = result.setdefault(LINKS, [])
 
-		context_status = self._get_context_status( context )
+		context_status = self._get_context_status(context)
 		in_progress = context_status.has_savepoints or context_status.has_submissions
 		result['LimitedEditingCapabilities'] = in_progress
 		result['LimitedEditingCapabilitiesSavepoints'] = context_status.has_savepoints
 		result['LimitedEditingCapabilitiesSubmissions'] = context_status.has_submissions
 
-		rels = ['schema',]
+		rels = ['schema', ]
 		# We provide the edit link no matter the status of the assessment
 		# object. Some edits (textual changes) will be allowed no matter what.
 		if not self._has_edit_link(_links):
@@ -469,14 +469,14 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		if not in_progress:
 			# Do not provide structural links if evaluation has savepoints
 			# or submissions.
-			if IQuestionSet.providedBy( context ):
-				qset_rels = self._get_question_set_rels( context )
+			if IQuestionSet.providedBy(context):
+				qset_rels = self._get_question_set_rels(context)
 				if qset_rels:
-					rels.extend( qset_rels )
-			elif IQAssignment.providedBy( context ):
-				rels.extend( self._get_assignment_rels() )
-			elif IQuestion.providedBy( context ):
-				rels.extend( self._get_question_rels() )
+					rels.extend(qset_rels)
+			elif IQAssignment.providedBy(context):
+				rels.extend(self._get_assignment_rels())
+			elif IQuestion.providedBy(context):
+				rels.extend(self._get_question_rels())
 
 		for rel in rels:
 			if rel in self._MARKER_RELS:
@@ -507,12 +507,12 @@ class _PartAutoGradeStatus(AbstractAuthenticatedRequestAwareDecorator):
 				and has_permission(ACT_CONTENT_EDIT, context, self.request) \
 
 	def _do_decorate_external(self, context, result):
-		result['AutoGradable'] = is_part_auto_gradable( context )
+		result['AutoGradable'] = is_part_auto_gradable(context)
 
 @interface.implementer(IExternalMappingDecorator)
 class _AssessmentDateEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
-	Give editors a date-edit link. This should be available on all
+	Give editors a date-edit links. This should be available on all
 	assignments/inquiries.
 	"""
 
@@ -521,6 +521,10 @@ class _AssessmentDateEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorato
 		result = getattr(self.request, 'acl_decoration', True)
 		return result
 
+	def _get_courses(self, context):
+		result = find_interface(context, ICourseInstance, strict=False)
+		return get_courses(result)
+
 	def _predicate(self, context, result):
 		return 		self._acl_decoration \
 				and self._is_authenticated \
@@ -528,11 +532,17 @@ class _AssessmentDateEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorato
 
 	def _do_decorate_external(self, context, result):
 		_links = result.setdefault(LINKS, [])
-		link = Link(context, rel='date-edit')
-		interface.alsoProvides(link, ILocation)
-		link.__name__ = ''
-		link.__parent__ = context
-		_links.append(link)
+		courses = self._get_courses(context)
+		savepoints = has_savepoints(context, courses)
+		names = ('date-edit-end',)
+		if not savepoints:
+			names += ('date-edit-start',)
+		for name in names:
+			link = Link(context, rel=name)
+			interface.alsoProvides(link, ILocation)
+			link.__name__ = ''
+			link.__parent__ = context
+			_links.append(link)
 
 @interface.implementer(IExternalMappingDecorator)
 class _AssessmentPracticeLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):

@@ -145,7 +145,8 @@ class TestEvaluationViews(ApplicationLayerTest):
 		# Available not used to limit editing.
 		if not ext_obj:
 			ext_obj = self.testapp.get( '/dataserver2/Objects/%s' % ntiid ).json_body
-		self.require_link_href_with_rel(ext_obj, 'date-edit')
+		self.require_link_href_with_rel(ext_obj, 'date-edit-start')
+		self.require_link_href_with_rel(ext_obj, 'date-edit-end')
 		limited = has_savepoints or has_submissions
 		assert_that( ext_obj.get( 'LimitedEditingCapabilities' ), is_( limited ) )
 		assert_that( ext_obj.get( 'LimitedEditingCapabilitiesSavepoints' ),

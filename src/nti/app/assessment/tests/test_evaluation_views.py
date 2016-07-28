@@ -57,6 +57,12 @@ from nti.app.assessment.index import IX_MIMETYPE
 from nti.app.publishing import VIEW_PUBLISH
 from nti.app.publishing import VIEW_UNPUBLISH
 
+from nti.appserver.context_providers import get_joinable_contexts
+from nti.appserver.context_providers import get_top_level_contexts
+from nti.appserver.context_providers import get_top_level_contexts_for_user
+
+from nti.appserver.interfaces import IHierarchicalContextProvider
+
 from nti.assessment.interfaces import QUESTION_MIME_TYPE
 from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
 from nti.assessment.interfaces import QUESTION_SET_MIME_TYPE
@@ -77,6 +83,8 @@ from nti.assessment.submission import QuestionSetSubmission
 from nti.assessment.randomized.interfaces import IQuestionBank
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+
+from nti.dataserver.users import User
 
 from nti.externalization.externalization import toExternalObject
 from nti.externalization.externalization import to_external_ntiid_oid
@@ -122,9 +130,10 @@ class TestEvaluationViews(ApplicationLayerTest):
 	def _load_assignment_no_solutions(self):
 		return self._load_json_resource("assignment_no_solutions.json")
 
-	def _get_course_oid(self):
+	def _get_course_oid(self, entry_ntiid=None):
+		entry_ntiid = entry_ntiid if entry_ntiid else self.entry_ntiid
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
-			entry = find_object_with_ntiid(self.entry_ntiid)
+			entry = find_object_with_ntiid( entry_ntiid )
 			course = ICourseInstance(entry)
 			return to_external_ntiid_oid(course)
 
@@ -811,14 +820,15 @@ class TestEvaluationViews(ApplicationLayerTest):
 		# Cleanup savepoint for future tests
 		self.testapp.delete( res.get( 'href' ) )
 
-	def _create_and_enroll(self, username):
+	def _create_and_enroll(self, username, entry_ntiid=None):
+		entry_ntiid = entry_ntiid if entry_ntiid else self.entry_ntiid
 		with mock_dataserver.mock_db_trans(self.ds):
 			self._create_user( username=username )
 		environ = self._make_extra_environ( username=username )
 		admin_environ = self._make_extra_environ(username=self.default_username)
 		enroll_url = '/dataserver2/CourseAdmin/UserCourseEnroll'
 		self.testapp.post_json(enroll_url,
-							  {'ntiid': self.entry_ntiid,
+							  {'ntiid': entry_ntiid,
 							   'username':username},
 							   extra_environ=admin_environ)
 		return environ
@@ -1495,3 +1505,30 @@ class TestEvaluationViews(ApplicationLayerTest):
 		delete_suffix = self._get_delete_url_suffix(0, original_question_ntiids[0])
 		self.testapp.delete(contents_href + delete_suffix)
 		assert_that( self._get_question_ntiids( qset_ntiid ), is_(original_question_ntiids[1:]) )
+
+	@WithSharedApplicationMockDS(testapp=True, users=True)
+	def test_library_path_adapters(self):
+		"""
+		Validate context provider adapters with API created assignments.
+		"""
+		# Create base assessment object, enroll student, and set up vars for test.
+		course_ntiid = 'tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice'
+		course_oid = self._get_course_oid( course_ntiid )
+		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
+		assignment = self._load_assignment()
+		res = self.testapp.post_json(href, assignment, status=201)
+		res = res.json_body
+		assignment_ntiid = res.get('ntiid')
+		enrolled_student = 'test_student'
+		student_environ = self._create_and_enroll( enrolled_student, course_ntiid )
+		self.testapp.get( '/dataserver2/LibraryPath?objectId=%s' % assignment_ntiid,
+						  extra_environ=student_environ)
+
+		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+			# TODO: need to fudge public access or enrollment here
+			user = User.get_user( enrolled_student )
+			assignment = find_object_with_ntiid( assignment_ntiid )
+			get_joinable_contexts( assignment )
+			get_top_level_contexts( assignment )
+			get_top_level_contexts_for_user( assignment, user )
+			IHierarchicalContextProvider( assignment, user )

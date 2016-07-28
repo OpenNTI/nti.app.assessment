@@ -419,17 +419,24 @@ def course_from_submittable_lineage(assesment, user):
 			return course
 	return _legacy_course_from_submittable_lineage(assesment, user)
 
-def _get_assessment_item_lineage_obj(obj):
-	return find_interface(obj, IContentUnit, strict=False)
+def _get_hierarchy_context_for_context(obj, top_level_context):
+	results = component.queryMultiAdapter(
+									(top_level_context, obj),
+									IHierarchicalContextProvider)
+	return results or (top_level_context,)
+
+def _get_assessment_container(obj):
+	return find_interface(obj, ICourseInstance, strict=False) \
+		or find_interface(obj, IContentUnit, strict=False)
 
 @interface.implementer(ITopLevelContainerContextProvider)
 @component.adapter(IQInquiry)
 @component.adapter(IQAssessment)
 def _courses_from_obj(obj):
 	results = ()
-	unit = _get_assessment_item_lineage_obj(obj)
-	if unit is not None:
-		results = get_top_level_contexts(unit.__parent__)
+	container = _get_assessment_container(obj)
+	if container is not None:
+		results = get_top_level_contexts( container )
 	return results
 
 @interface.implementer(ITopLevelContainerContextProvider)
@@ -437,9 +444,9 @@ def _courses_from_obj(obj):
 @component.adapter(IQAssessment, IUser)
 def _courses_from_obj_and_user(obj, user):
 	results = ()
-	unit = _get_assessment_item_lineage_obj(obj)
-	if unit is not None:
-		results = get_top_level_contexts_for_user(unit, user)
+	container = _get_assessment_container(obj)
+	if container is not None:
+		results = get_top_level_contexts_for_user(container, user)
 	return results
 
 @interface.implementer(IHierarchicalContextProvider)
@@ -447,17 +454,20 @@ def _courses_from_obj_and_user(obj, user):
 @component.adapter(IQAssessment, IUser)
 def _hierarchy_from_obj_and_user(obj, user):
 	results = ()
-	unit = _get_assessment_item_lineage_obj(obj)
-	if unit is not None:
-		results = get_hierarchy_context(unit, user)
+	container = _get_assessment_container(obj)
+	if container is not None:
+		if IContentUnit.providedBy( container ):
+			results = get_hierarchy_context( container, user )
+		else:
+			results = _get_hierarchy_context_for_context( obj, container )
 	return results
 
 @interface.implementer(IJoinableContextProvider)
 @component.adapter(IQInquiry)
 @component.adapter(IQAssessment)
 def _joinable_courses_from_obj(obj):
-	unit = _get_assessment_item_lineage_obj(obj)
-	return get_joinable_contexts(unit)
+	container = _get_assessment_container(obj)
+	return get_joinable_contexts( container )
 
 @interface.implementer(ITrustedTopLevelContainerContextProvider)
 @component.adapter(IUsersCourseAssignmentHistoryItemFeedback)

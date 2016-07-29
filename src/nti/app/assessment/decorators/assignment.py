@@ -353,7 +353,7 @@ class _QuestionSetDecorator(object):
 @interface.implementer(IExternalObjectDecorator)
 class _QuestionSetRandomizedDecorator(object):
 	"""
-	Decorate the randomized state o question sets,
+	Decorate the randomized state of question sets,
 	since links may not be present.
 	"""
 

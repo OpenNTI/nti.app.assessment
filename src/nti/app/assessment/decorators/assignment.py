@@ -55,6 +55,8 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 
 from nti.app.assessment.utils import assignment_download_precondition
 
+from nti.app.contentlibrary import LIBRARY_PATH_GET_VIEW
+
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
 from nti.appserver.pyramid_authorization import has_permission
@@ -62,6 +64,7 @@ from nti.appserver.pyramid_authorization import has_permission
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
+from nti.assessment.interfaces import IQAssessment
 from nti.assessment.interfaces import IQTimedAssignment
 
 from nti.assessment.randomized.interfaces import IQuestionBank
@@ -84,6 +87,7 @@ from nti.contenttypes.courses.utils import is_course_instructor_or_editor
 from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
 from nti.externalization.externalization import to_external_object
+from nti.externalization.externalization import to_external_ntiid_oid
 
 from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import IExternalObjectDecorator
@@ -565,3 +569,25 @@ class _AssessmentPracticeLinkDecorator(AbstractAuthenticatedRequestAwareDecorato
 		link.__name__ = ''
 		link.__parent__ = context
 		_links.append(link)
+
+@interface.implementer(IExternalMappingDecorator)
+@component.adapter(IQAssessment)
+class _AssessmentLibraryPathLinkDecorator(object):
+	"""
+	Create a `LibraryPath` link to our container id.
+	"""
+
+	__metaclass__ = SingletonDecorator
+
+	def decorateExternalMapping(self, context, result):
+		external_ntiid = to_external_ntiid_oid(context)
+
+		if external_ntiid is not None:
+			path = '/dataserver2/%s' % LIBRARY_PATH_GET_VIEW
+			link = Link(path, rel=LIBRARY_PATH_GET_VIEW, method='GET',
+						params={'objectId': external_ntiid})
+			_links = result.setdefault(LINKS, [])
+			interface.alsoProvides(link, ILocation)
+			link.__name__ = ''
+			link.__parent__ = context
+			_links.append(link)

@@ -344,40 +344,28 @@ class TestAssignmentViews(ApplicationLayerTest):
 		assert_that(new_end_field, none())
 		last_mod = _check_publish_last_mod( last_mod )
 
-		# 6. No dates set (open) to end_date in past.
+		# 6. No dates set to end_date in past.
 		data = { end_field: past_date_str }
 		res = self.testapp.put_json(assignment_url,
-									data, extra_environ=editor_environ,
-									status=409)
-		force_url = _validate_conflict(res, confirm_code=True)
-		# Now force it.
-		self.testapp.put_json(force_url, data, extra_environ=editor_environ)
+									data, extra_environ=editor_environ)
 		new_start_field, new_end_field = _get_date_fields()
 		assert_that(new_start_field, none())
 		assert_that(new_end_field, is_(past_date_str))
 		last_mod = _check_publish_last_mod( last_mod )
 
-		# 7. Currently closed with no open date to empty end date.
+		# 7. Now empty dates.
 		data = { end_field: None }
 		res = self.testapp.put_json(assignment_url,
-									data, extra_environ=editor_environ,
-									status=409)
-		force_url = _validate_conflict(res, confirm_code=True)
-		# Now force it.
-		self.testapp.put_json(force_url, data, extra_environ=editor_environ)
+									data, extra_environ=editor_environ)
 		new_start_field, new_end_field = _get_date_fields()
 		assert_that(new_start_field, none())
 		assert_that(new_end_field, none())
 		last_mod = _check_publish_last_mod( last_mod )
 
-		# 8. No dates set (open) to start_date in future.
+		# 8. No dates set to start_date in future.
 		data = { start_field: future_date_str }
 		res = self.testapp.put_json(assignment_url,
-									data, extra_environ=editor_environ,
-									status=409)
-		force_url = _validate_conflict(res)
-		# Now force it.
-		self.testapp.put_json(force_url, data, extra_environ=editor_environ)
+									data, extra_environ=editor_environ)
 		new_start_field, new_end_field = _get_date_fields()
 		assert_that(new_start_field, is_(future_date_str))
 		assert_that(new_end_field, none())

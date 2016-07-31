@@ -179,73 +179,71 @@ class AssessmentPutView(UGDPutView):
 		_marker = object()
 		new_end_date = externalValue.get('available_for_submission_ending', _marker)
 		new_start_date = externalValue.get('available_for_submission_beginning', _marker)
-		if new_start_date is None and new_end_date is None:
+		if 		(new_start_date == None and new_end_date == None) \
+			or  (new_start_date == _marker and new_end_date == _marker):
 			# Both incoming dates empty generally means they are explicitly
 			# publishing or drafting; so we do not want to warn about anything.
 			return
 
-		if new_start_date is not _marker or new_end_date is not _marker:
-			now = datetime.utcnow()
+		now = datetime.utcnow()
 
-			try:
-				if new_start_date and new_start_date is not _marker:
-					new_start_date = IDateTime(new_start_date)
-				if new_end_date and new_end_date is not _marker:
-					new_end_date = IDateTime(new_end_date)
-			except (ValueError, InvalidValue):
-				# Ok, they gave us something invalid. Let our schema
-				# validation handle it.
-				return
+		try:
+			if new_start_date and new_start_date is not _marker:
+				new_start_date = IDateTime(new_start_date)
+			if new_end_date and new_end_date is not _marker:
+				new_end_date = IDateTime(new_end_date)
+		except (ValueError, InvalidValue):
+			# Ok, they gave us something invalid. Let our schema
+			# validation handle it.
+			return
 
-			for course in courses:
-				old_end_date = get_available_for_submission_ending(contentObject,
-																   course)
+		for course in courses:
+			old_end_date = get_available_for_submission_ending(contentObject,
+															   course)
 
-				old_start_date = get_available_for_submission_beginning(contentObject,
-																		course)
+			old_start_date = get_available_for_submission_beginning(contentObject,
+																	course)
 
-				# Use old dates if the dates are not being edited.
-				if new_start_date is _marker:
-					start_date_to_check = old_start_date
-				else:
-					start_date_to_check = new_start_date
+			# Use old dates if the dates are not being edited.
+			start_date_to_check = old_start_date if new_start_date is _marker else new_start_date
+			end_date_to_check = old_end_date if new_end_date is _marker else new_end_date
 
-				if new_end_date is _marker:
-					end_date_to_check = old_end_date
-				else:
-					end_date_to_check = new_end_date
+			# If we're going to/from empty state (undefined), skip.
+			if 		(not old_end_date and not old_start_date) \
+				or 	(not end_date_to_check and not start_date_to_check):
+				continue
 
-				start_date_available_change = self._start_date_available_change(old_start_date,
-																				start_date_to_check, now)
-				# It's available if published and its dates are in range.
-				old_available = contentObject.isPublished() \
-							and	self._is_date_in_range(old_start_date,
-													   old_end_date, now)
-				new_available = contentObject.isPublished() \
-							and	self._is_date_in_range(start_date_to_check,
-													   end_date_to_check, now)
+			start_date_available_change = self._start_date_available_change(old_start_date,
+																			start_date_to_check, now)
+			# It's available if published and its dates are in range.
+			old_available = contentObject.isPublished() \
+						and	self._is_date_in_range(old_start_date,
+												   old_end_date, now)
+			new_available = contentObject.isPublished() \
+						and	self._is_date_in_range(start_date_to_check,
+												   end_date_to_check, now)
 
-				# Note: we allow state to move from closed in past to
-				# closed but will reopen in the future unchecked (edge case).
-				if old_available and not new_available and start_date_available_change:
-					# Start date made unavailable
-					self._raise_conflict_error(self.TO_UNAVAILABLE_CODE,
-											   self.TO_UNAVAILABLE_MSG,
-											   course,
-											   contentObject.ntiid)
-				elif not old_available and new_available and start_date_available_change:
-					# Start date made available
-					self._raise_conflict_error(self.TO_AVAILABLE_CODE,
-											   self.TO_AVAILABLE_MSG,
-											   course,
-											   contentObject.ntiid)
-				elif old_available != new_available:
-					# State change but not due to the start date. Give a
-					# due date confirmation message.
-					self._raise_conflict_error(self.CONFIRM_CODE,
-											   self.DUE_DATE_CONFIRM_MSG,
-											   course,
-											   contentObject.ntiid)
+			# Note: we allow state to move from closed in past to
+			# closed but will reopen in the future unchecked (edge case).
+			if old_available and not new_available and start_date_available_change:
+				# Start date made unavailable
+				self._raise_conflict_error(self.TO_UNAVAILABLE_CODE,
+										   self.TO_UNAVAILABLE_MSG,
+										   course,
+										   contentObject.ntiid)
+			elif not old_available and new_available and start_date_available_change:
+				# Start date made available
+				self._raise_conflict_error(self.TO_AVAILABLE_CODE,
+										   self.TO_AVAILABLE_MSG,
+										   course,
+										   contentObject.ntiid)
+			elif old_available != new_available:
+				# State change but not due to the start date. Give a
+				# due date confirmation message.
+				self._raise_conflict_error(self.CONFIRM_CODE,
+										   self.DUE_DATE_CONFIRM_MSG,
+										   course,
+										   contentObject.ntiid)
 
 	def preflight(self, contentObject, externalValue, courses=()):
 		if 	   'available_for_submission_ending' in externalValue \

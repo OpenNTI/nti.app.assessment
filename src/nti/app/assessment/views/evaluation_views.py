@@ -246,7 +246,7 @@ class EvaluationMixin(StructuralValidationMixin):
 		site_name = get_resource_site_name(context)
 		registry = get_host_site(site_name).getSiteManager()
 		registerUtility(registry, context, provided=new_iface, name=ntiid, event=False)
-		unregisterUtility(registry, provided=old_iface, name=ntiid, event=False)
+		unregisterUtility(registry, provided=old_iface, name=ntiid)
 		# Make sure we re-index.
 		self._index(context)
 

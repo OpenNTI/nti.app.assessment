@@ -484,7 +484,7 @@ class QuestionMap(QuestionIndex):
 							child_index.get('filename', ''),
 							child_index)
 				continue
-			
+
 			# TODO: Do we need this check?
 			assert 	child_index.get('filename'), \
 					'Child must contain valid filename to contain assessments'

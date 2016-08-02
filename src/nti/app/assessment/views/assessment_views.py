@@ -59,7 +59,7 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 from nti.contenttypes.courses.interfaces import ICourseAssignmentCatalog
 from nti.contenttypes.courses.interfaces import ICourseOutlineContentNode
-from nti.contenttypes.courses.interfaces import ICourseAssessmentItemCatalog
+from nti.contenttypes.courses.interfaces import ICourseSelfAssessmentItemCatalog
 from nti.contenttypes.courses.interfaces import get_course_assessment_predicate_for_user
 
 from nti.contenttypes.courses.utils import is_course_instructor_or_editor
@@ -313,23 +313,13 @@ class NonAssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 		return is_course_instructor_or_editor(self.context, self.remoteUser)
 
 	def _do_catalog(self, instance, result):
-		# Not only must we filter out assignments, we must filter out
-		# the question sets that they refer to if they are not allowed
-		# by the filter; we assume such sets are only used by the
-		# assignment.
-
 		qsids_to_strip = set()
 		data = defaultdict(dict)
-		catalog = ICourseAssessmentItemCatalog(instance)
+		catalog = ICourseSelfAssessmentItemCatalog(instance)
 		for item in catalog.iter_assessment_items():
-			if IQAssignment.providedBy(item):
-				for assignment_part in item.parts or ():
-					question_set = assignment_part.question_set
-					qsids_to_strip.add(question_set.ntiid)
-					qsids_to_strip.update(q.ntiid for q in question_set.questions)
-			elif IQSurvey.providedBy(item):
-				qsids_to_strip.update(p.ntiid for p in item.questions or ())
-			elif 	IQEditableEvaluation.providedBy(item) \
+			# Filter out user-created items (since these may be orphaned
+			# from now-deleted assignments, probably in alpha).
+			if 		IQEditableEvaluation.providedBy(item) \
 				and not (self._is_editor or self.is_course_instructor):
 				qsids_to_strip.add(item.ntiid)
 			else:

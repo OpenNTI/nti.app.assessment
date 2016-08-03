@@ -36,9 +36,10 @@ from nti.app.assessment import VIEW_REGRADE_EVALUATION
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 from nti.app.assessment import VIEW_USER_RESET_EVALUATION
 
-from nti.app.assessment.common import get_courses, regrade_evaluation
+from nti.app.assessment.common import get_courses
 from nti.app.assessment.common import has_savepoints
 from nti.app.assessment.common import has_submissions
+from nti.app.assessment.common import regrade_evaluation
 from nti.app.assessment.common import validate_auto_grade
 from nti.app.assessment.common import make_evaluation_ntiid
 from nti.app.assessment.common import get_auto_grade_policy
@@ -51,6 +52,7 @@ from nti.app.assessment.common import get_course_from_evaluation
 from nti.app.assessment.common import pre_validate_question_change
 from nti.app.assessment.common import delete_evaluation_savepoints
 from nti.app.assessment.common import delete_evaluation_submissions
+from nti.app.assessment.common import is_assignment_non_public_only
 from nti.app.assessment.common import get_assignments_for_evaluation_object
 
 from nti.app.assessment.evaluations.utils import indexed_iter
@@ -478,6 +480,15 @@ class EvaluationMixin(StructuralValidationMixin):
 				questions.append(poll)
 		context.questions = questions
 
+	def _default_assignment_public_status(self, context):
+		"""
+		For the given assignment, set our default public status based
+		on whether or not all courses contained by this assignment
+		are non-public.
+		"""
+		is_non_public = is_assignment_non_public_only( context, self.course )
+		context.is_non_public = is_non_public
+
 	def auto_complete_assignment(self, context, externalValue):
 		# Clients are expected to create parts/qsets as needed.
 		parts = indexed_iter() if not context.parts else context.parts
@@ -489,6 +500,7 @@ class EvaluationMixin(StructuralValidationMixin):
 			if part.question_set is not None:
 				self.auto_complete_questionset(part.question_set, externalValue)
 		context.parts = parts
+		self._default_assignment_public_status( context )
 
 # POST views
 

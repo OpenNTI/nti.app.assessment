@@ -40,7 +40,6 @@ from nti.appserver.ugd_edit_views import UGDPostView
 
 from nti.assessment.common import get_containerId
 
-from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet

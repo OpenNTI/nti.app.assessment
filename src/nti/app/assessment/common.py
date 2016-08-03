@@ -98,6 +98,9 @@ from nti.contentlibrary.interfaces import IContentPackage
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
+from nti.contenttypes.courses.interfaces import IDenyOpenEnrollment
+from nti.contenttypes.courses.interfaces import INonPublicCourseInstance
+
 from nti.contenttypes.courses.legacy_catalog import ILegacyCourseInstance
 
 from nti.contenttypes.courses.common import get_course_packages
@@ -1044,3 +1047,20 @@ def regrade_evaluation(context, course):
 			# Now broadcast we need a new grade
 			notify(ObjectRegradeEvent(item))
 	return result
+
+def is_assignment_non_public_only( context, courses=None ):
+	"""
+	For the given assignment, return if its courses are only
+	non-public courses.
+	"""
+	if ICourseInstance.providedBy( courses ):
+		courses = (courses,)
+	if courses is None:
+		course = get_course_from_evaluation( context )
+		courses = get_courses( course )
+	def _is_non_public( course ):
+		return 	INonPublicCourseInstance.providedBy( course ) \
+			or 	IDenyOpenEnrollment.providedBy( course )
+
+	is_non_public_only = courses and all(_is_non_public(x) for x in courses)
+	return is_non_public_only

@@ -40,6 +40,7 @@ from nti.app.assessment.common import get_max_time_allowed
 from nti.app.assessment.common import is_part_auto_gradable
 from nti.app.assessment.common import get_auto_grade_policy
 from nti.app.assessment.common import get_assessment_metadata_item
+from nti.app.assessment.common import is_assignment_non_public_only
 from nti.app.assessment.common import get_available_for_submission_ending
 from nti.app.assessment.common import get_assignments_for_evaluation_object
 from nti.app.assessment.common import get_available_for_submission_beginning
@@ -442,8 +443,11 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			rels.append(VIEW_RANDOMIZE_PARTS)
 		return rels
 
-	def _get_context_status(self, context):
-		courses = self.get_courses(context)
+	def _get_context_status(self, context, courses):
+		"""
+		Retrieve our contextual status regarding student visiblity,
+		savepoints, and submissions.
+		"""
 		# We need to check assignments for our context for submissions.
 		assignments = get_assignments_for_evaluation_object(context)
 		savepoints = is_available = False
@@ -455,16 +459,31 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 							   has_submissions=submissions,
 							   is_available=is_available)
 
+	def _decorate_non_public_toggle( self, context, courses, in_progress, result ):
+		"""
+		Set `CanToggleAssignmentIsNonPublic` to indicate this assignment can toggle
+		between available for everyone or just for-credit students. It can be toggled
+		only if it is not in progress and all of its contained courses are not
+		ForCredit only. We don't yet have a way to determine if a course is Public
+		only.
+		"""
+		if IQAssignment.providedBy( context ):
+			can_toggle = not in_progress
+			if can_toggle:
+				can_toggle = not is_assignment_non_public_only(context, courses)
+			result['CanToggleAssignmentIsNonPublic'] = can_toggle
+
 	def _do_decorate_external(self, context, result):
 		_links = result.setdefault(LINKS, [])
 
-		context_status = self._get_context_status(context)
+		courses = self.get_courses(context)
+		context_status = self._get_context_status(context, courses)
 		in_progress = context_status.has_savepoints or context_status.has_submissions
 		result['LimitedEditingCapabilities'] = in_progress
 		result['LimitedEditingCapabilitiesSavepoints'] = context_status.has_savepoints
 		result['LimitedEditingCapabilitiesSubmissions'] = context_status.has_submissions
 
-		rels = ['schema', ]
+		rels = ['schema',]
 		# We provide the edit link no matter the status of the assessment
 		# object. Some edits (textual changes) will be allowed no matter what.
 		if not self._has_edit_link(_links):
@@ -481,6 +500,8 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 				rels.extend(self._get_assignment_rels())
 			elif IQuestion.providedBy(context):
 				rels.extend(self._get_question_rels())
+
+		self._decorate_non_public_toggle( context, courses, in_progress, result )
 
 		for rel in rels:
 			if rel in self._MARKER_RELS:

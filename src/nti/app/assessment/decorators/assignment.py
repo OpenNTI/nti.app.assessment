@@ -24,6 +24,7 @@ from nti.app.assessment import VIEW_RANDOMIZE
 from nti.app.assessment import VIEW_UNRANDOMIZE
 from nti.app.assessment import VIEW_INSERT_PART
 from nti.app.assessment import VIEW_REMOVE_PART
+from nti.app.assessment import VIEW_IS_NON_PUBLIC
 from nti.app.assessment import VIEW_ASSESSMENT_MOVE
 from nti.app.assessment import VIEW_RANDOMIZE_PARTS
 from nti.app.assessment import VIEW_MOVE_PART_OPTION
@@ -414,11 +415,14 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 				VIEW_REMOVE_PART_OPTION,
 				VIEW_DELETE)
 
-	def _get_assignment_rels(self):
+	def _get_assignment_rels(self, context, courses):
 		"""
 		Gather any links needed for a non-in-progress editable assignments.
 		"""
-		return (VIEW_MOVE_PART, VIEW_INSERT_PART, VIEW_REMOVE_PART, VIEW_DELETE)
+		result = [VIEW_MOVE_PART, VIEW_INSERT_PART, VIEW_REMOVE_PART, VIEW_DELETE]
+		if self._can_toggle_is_non_public( context, courses ):
+			result.append( VIEW_IS_NON_PUBLIC )
+		return result
 
 	def _get_question_set_rels(self, context):
 		"""
@@ -459,19 +463,13 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 							   has_submissions=submissions,
 							   is_available=is_available)
 
-	def _decorate_non_public_toggle( self, context, courses, in_progress, result ):
+	def _can_toggle_is_non_public( self, context, courses ):
 		"""
-		Set `CanToggleAssignmentIsNonPublic` to indicate this assignment can toggle
-		between available for everyone or just for-credit students. It can be toggled
-		only if it is not in progress and all of its contained courses are not
-		ForCredit only. We don't yet have a way to determine if a course is Public
+		It can be toggled only if it is not in progress and all of its contained courses
+		are not ForCredit only. We don't yet have a way to determine if a course is Public
 		only.
 		"""
-		if IQAssignment.providedBy( context ):
-			can_toggle = not in_progress
-			if can_toggle:
-				can_toggle = not is_assignment_non_public_only(context, courses)
-			result['CanToggleAssignmentIsNonPublic'] = can_toggle
+		return not is_assignment_non_public_only(context, courses)
 
 	def _do_decorate_external(self, context, result):
 		_links = result.setdefault(LINKS, [])
@@ -497,11 +495,9 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 				if qset_rels:
 					rels.extend(qset_rels)
 			elif IQAssignment.providedBy(context):
-				rels.extend(self._get_assignment_rels())
+				rels.extend(self._get_assignment_rels( context, courses ))
 			elif IQuestion.providedBy(context):
 				rels.extend(self._get_question_rels())
-
-		self._decorate_non_public_toggle( context, courses, in_progress, result )
 
 		for rel in rels:
 			if rel in self._MARKER_RELS:

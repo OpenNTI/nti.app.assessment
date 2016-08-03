@@ -38,6 +38,7 @@ from nti.app.assessment import VIEW_RANDOMIZE
 from nti.app.assessment import VIEW_UNRANDOMIZE
 from nti.app.assessment import VIEW_INSERT_PART
 from nti.app.assessment import VIEW_REMOVE_PART
+from nti.app.assessment import VIEW_IS_NON_PUBLIC
 from nti.app.assessment import VIEW_ASSESSMENT_MOVE
 from nti.app.assessment import VIEW_RANDOMIZE_PARTS
 from nti.app.assessment import VIEW_MOVE_PART_OPTION
@@ -167,9 +168,8 @@ class TestEvaluationViews(ApplicationLayerTest):
 		for rel in ('schema', 'edit'):
 			self.require_link_href_with_rel(ext_obj, rel)
 
-		# We drive these links based on the submission status of objects.
+		# We drive these links based on the submission/savepoint status.
 		submission_rel_checks = []
-		to_check = self.forbid_link_with_rel if has_submissions else self.require_link_href_with_rel
 		ext_mime = ext_obj.get( 'MimeType' )
 		if ext_mime == QUESTION_MIME_TYPE:
 			submission_rel_checks.extend( (VIEW_MOVE_PART,
@@ -181,7 +181,9 @@ class TestEvaluationViews(ApplicationLayerTest):
 		elif ext_mime == ASSIGNMENT_MIME_TYPE:
 			submission_rel_checks.extend( (VIEW_MOVE_PART,
 										   VIEW_INSERT_PART,
-										   VIEW_REMOVE_PART) )
+										   VIEW_REMOVE_PART ) )
+			# Our course is non-public, so this should not be togglable.
+			self.forbid_link_with_rel( ext_obj, VIEW_IS_NON_PUBLIC )
 		elif ext_mime == QUESTION_SET_MIME_TYPE:
 			# Randomize is context sensitive and tested elsewhere.
 			submission_rel_checks.extend( (VIEW_QUESTION_SET_CONTENTS,
@@ -189,8 +191,9 @@ class TestEvaluationViews(ApplicationLayerTest):
 			assert_that( ext_obj.get( 'Randomized' ), is_( randomized ))
 			assert_that( ext_obj.get( 'RandomizedPartsType' ), is_( randomized_parts ))
 
+		link_to_check = self.forbid_link_with_rel if limited else self.require_link_href_with_rel
 		for rel in submission_rel_checks:
-			to_check( ext_obj, rel )
+			link_to_check( ext_obj, rel )
 
 		# If assignment, check auto_grade ref matches auto_grade status of parts.
 		if ext_mime == ASSIGNMENT_MIME_TYPE:
@@ -1464,7 +1467,6 @@ class TestEvaluationViews(ApplicationLayerTest):
 		self.testapp.post_json( contents_href,
 								{'ntiid': question_ntiid1 + 'xxx'},
 								status=422 )
-
 
 	def _get_delete_url_suffix(self, index, ntiid):
 		return '/ntiid/%s?index=%s' % (ntiid, index)

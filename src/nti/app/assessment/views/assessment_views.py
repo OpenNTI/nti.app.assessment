@@ -45,7 +45,6 @@ from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssessment
-from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.common.property import Lazy
@@ -60,8 +59,6 @@ from nti.contenttypes.courses.interfaces import ICourseAssignmentCatalog
 from nti.contenttypes.courses.interfaces import ICourseOutlineContentNode
 from nti.contenttypes.courses.interfaces import ICourseSelfAssessmentItemCatalog
 from nti.contenttypes.courses.interfaces import get_course_assessment_predicate_for_user
-
-from nti.contenttypes.courses.utils import is_course_instructor_or_editor
 
 from nti.contenttypes.presentation.interfaces import INTIAssignmentRef
 from nti.contenttypes.presentation.interfaces import INTIQuestionSetRef
@@ -307,29 +304,19 @@ class NonAssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 	to identify the corresponding level it wishes to display.
 	"""
 
-	@Lazy
-	def is_course_instructor(self):
-		return is_course_instructor_or_editor(self.context, self.remoteUser)
-
 	def _do_catalog(self, instance, result):
 		qsids_to_strip = set()
 		data = defaultdict(dict)
 		catalog = ICourseSelfAssessmentItemCatalog(instance)
-		for item in catalog.iter_assessment_items():
-			# Filter out user-created items (since these may be orphaned
-			# from now-deleted assignments, probably in alpha).
-			if 		IQEditableEvaluation.providedBy(item) \
-				and not (self._is_editor or self.is_course_instructor):
-				qsids_to_strip.add(item.ntiid)
+		for item in catalog.iter_assessment_items( exclude_editable=True ):
+			# CS: We can remove proxies since the items are neither assignments
+			# nor survey, so no course lookup is necesary
+			item = removeAllProxies(item)
+			container_id = get_containerId(item)
+			if container_id:
+				data[container_id][item.ntiid] = item
 			else:
-				# CS: We can remove proxies since the items are neither assignments
-				# nor survey, so no course lookup is necesary
-				item = removeAllProxies(item)
-				container_id = get_containerId(item)
-				if container_id:
-					data[container_id][item.ntiid] = item
-				else:
-					logger.error("%s is an item without container", item.ntiid)
+				logger.error("%s is an item without container", item.ntiid)
 
 		# Now remove the forbidden
 		for ntiid, items in data.items():

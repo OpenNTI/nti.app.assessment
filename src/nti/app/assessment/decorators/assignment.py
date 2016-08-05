@@ -543,7 +543,9 @@ class _AssessmentDateEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorato
 		return result
 
 	def _get_courses(self, context):
-		result = find_interface(context, ICourseInstance, strict=False)
+		result = _get_course_from_evaluation(context,
+											 user=self.remoteUser,
+											 request=self.request)
 		return get_courses(result)
 
 	def _predicate(self, context, result):

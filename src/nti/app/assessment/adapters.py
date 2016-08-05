@@ -345,7 +345,7 @@ class _DefaultCourseAssignmentCatalog(object):
 		# We're gathering parent courses; make sure we exclude duplicates.
 		if len( courses ) > 1:
 			result = []
-			seen = {}
+			seen = set()
 			for course in courses:
 				course_assignments = get_course_assignments(course, sort=False)
 				for assignment in course_assignments or ():

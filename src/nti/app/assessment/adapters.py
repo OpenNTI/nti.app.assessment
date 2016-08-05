@@ -33,9 +33,9 @@ from pyramid.interfaces import IExceptionResponse
 from zope.location.interfaces import LocationError
 
 from nti.app.assessment.common import set_assessed_lineage
-from nti.app.assessment.common import get_course_assignments
 from nti.app.assessment.common import get_course_evaluations
 from nti.app.assessment.common import get_evaluation_courses
+from nti.app.assessment.common import get_course_assignments
 from nti.app.assessment.common import check_submission_version
 from nti.app.assessment.common import get_course_from_assignment
 from nti.app.assessment.common import get_course_self_assessments
@@ -49,6 +49,8 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedback
+
+from nti.app.products.courseware.utils import get_course_and_parent
 
 from nti.appserver.context_providers import get_hierarchy_context
 from nti.appserver.context_providers import get_joinable_contexts
@@ -334,8 +336,24 @@ class _DefaultCourseAssignmentCatalog(object):
 	def __init__(self, context):
 		self.context = context
 
-	def iter_assignments(self):
-		result = get_course_assignments(self.context, sort=False)
+	def iter_assignments(self, course_lineage=False):
+		if course_lineage:
+			courses = get_course_and_parent( self.context )
+		else:
+			courses = (self.context,)
+
+		# We're gathering parent courses; make sure we exclude duplicates.
+		if len( courses ) > 1:
+			result = []
+			seen = {}
+			for course in courses:
+				course_assignments = get_course_assignments(course, sort=False)
+				for assignment in course_assignments or ():
+					if assignment.ntiid not in seen:
+						seen.add( assignment.ntiid )
+						result.append( assignment )
+		else:
+			result = get_course_assignments(courses[0], sort=False)
 		return result
 
 @interface.implementer(ICourseInstance)

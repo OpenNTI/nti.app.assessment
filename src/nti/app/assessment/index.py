@@ -467,7 +467,7 @@ class ValidatingEditable(object):
 
 	def __init__(self, obj, default=None):
 		if IQEvaluation.providedBy(obj):
-			self.editable = IQEditableEvaluation.providedBy(obj)
+			self.editable = bool(IQEditableEvaluation.providedBy(obj))
 
 	def __reduce__(self):
 		raise TypeError()

@@ -472,7 +472,7 @@ class ValidatingEditable(object):
 	def __reduce__(self):
 		raise TypeError()
 
-class EvaluationEditableIndex(AttributeKeywordIndex):
+class EvaluationEditableIndex(ValueIndex):
 	default_field_name = 'editable'
 	default_interface = ValidatingEditable
 

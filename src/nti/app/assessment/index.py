@@ -31,6 +31,7 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQPollSubmission
 from nti.assessment.interfaces import IQSurveySubmission
+from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQAssignmentSubmission
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -72,7 +73,7 @@ class ExtenedAttributeSetIndex(AttributeSetIndex):
 		else:
 			super(ExtenedAttributeSetIndex, self).unindex_doc(doc_id)
 
-# submission / assesed catalog
+# Submission / Assesed catalog
 
 SUBMISSION_CATALOG_NAME = 'nti.dataserver.++etc++assesment-catalog'  # Not a very good name
 
@@ -279,11 +280,12 @@ def install_submission_catalog(site_manager_container, intids=None):
 		catalog[name] = index
 	return catalog
 
-# containment catalog
+# Evaluation / Containment catalog
 
 EVALUATION_CATALOG_NAME = 'nti.dataserver.++etc++evaluation-catalog'
 
 IX_NTIID = 'ntiid'
+IX_EDITABLE = 'editable'
 IX_MIMETYPE = 'mimeType'
 IX_KEYWORDS = 'keyworkds'
 IX_CONTAINERS = 'containers'
@@ -459,6 +461,21 @@ class EvaluationKeywordIndex(AttributeKeywordIndex):
 	default_field_name = 'keywords'
 	default_interface = ValidatingKeywords
 
+class ValidatingEditable(object):
+
+	__slots__ = (b'editable',)
+
+	def __init__(self, obj, default=None):
+		if IQEvaluation.providedBy(obj):
+			self.editable = IQEditableEvaluation.providedBy(obj)
+
+	def __reduce__(self):
+		raise TypeError()
+
+class EvaluationEditableIndex(AttributeKeywordIndex):
+	default_field_name = 'editable'
+	default_interface = ValidatingEditable
+
 class EvaluationCatalog(Catalog):
 
 	family = BTrees.family64
@@ -490,6 +507,7 @@ def create_evaluation_catalog(catalog=None, family=None):
 	for name, clazz in ((IX_SITE, EvaluationSiteIndex),
 						(IX_NTIID, EvaluationNTIIDIndex),
 						(IX_KEYWORDS, EvaluationKeywordIndex),
+						(IX_EDITABLE, EvaluationEditableIndex),
 						(IX_MIMETYPE, EvaluationMimeTypeIndex),
 						(IX_CONTAINERS, EvaluationContainerIndex),
 						(IX_CONTAINMENT, EvaluationContainmentIndex),):

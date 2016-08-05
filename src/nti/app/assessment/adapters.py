@@ -353,7 +353,7 @@ class _DefaultCourseAssignmentCatalog(object):
 						seen.add( assignment.ntiid )
 						result.append( assignment )
 		else:
-			result = get_course_assignments(courses[0], sort=False)
+			result = get_course_assignments( tuple(courses)[0], sort=False)
 		return result
 
 @interface.implementer(ICourseInstance)

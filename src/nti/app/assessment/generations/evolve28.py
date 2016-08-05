@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
+generation 27.
+
 .. $Id$
 """
 
@@ -9,12 +11,11 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-generation = 25
+generation = 28
 
 from zope import component
 from zope import interface
 
-from zope.component.hooks import site
 from zope.component.hooks import setHooks
 from zope.component.hooks import site as current_site
 
@@ -24,17 +25,14 @@ from zope.location.location import locate
 
 from nti.app.assessment import get_evaluation_catalog
 
-from nti.app.assessment.index import IX_KEYWORDS
-from nti.app.assessment.index import EvaluationKeywordIndex
+from nti.app.assessment.index import IX_NTIID
+from nti.app.assessment.index import IX_EDITABLE
+from nti.app.assessment.index import EvaluationEditableIndex
 
 from nti.assessment.interfaces import IQEvaluation 
 
-from nti.contentlibrary.interfaces import IContentPackageLibrary
-
 from nti.dataserver.interfaces import IDataserver
 from nti.dataserver.interfaces import IOIDResolver
-
-from nti.site.hostpolicy import get_all_host_sites
 
 @interface.implementer(IDataserver)
 class MockDataserver(object):
@@ -48,15 +46,6 @@ class MockDataserver(object):
 		else:
 			return resolver.get_object_by_oid(oid, ignore_creator=ignore_creator)
 		return None
-
-def _process_items(registry, index, intids, seen):
-	for ntiid, item in list(registry.getUtilitiesFor(IQEvaluation)):
-		if ntiid in seen:
-			continue
-		doc_id = intids.queryId(item)
-		if doc_id is not None:
-			index.index_doc(doc_id, item)
-		seen.add(ntiid)
 
 def do_evolve(context, generation=generation):
 	logger.info("Assessment evolution %s started", generation);
@@ -76,31 +65,26 @@ def do_evolve(context, generation=generation):
 				"Hooks not installed?"
 
 		catalog = get_evaluation_catalog()
-		if not IX_KEYWORDS in catalog:
-			index = EvaluationKeywordIndex()
+		if not IX_EDITABLE in catalog:
+			index = EvaluationEditableIndex()
 			intids.register(index)
-			locate(index, catalog, IX_KEYWORDS)
-			catalog[IX_KEYWORDS] = index
+			locate(index, catalog, IX_EDITABLE)
+			catalog[IX_EDITABLE] = index
 			
-			# Load library
-			library = component.queryUtility(IContentPackageLibrary)
-			if library is not None:
-				library.syncContentPackages()
-	
-			seen = set()
-			for site in get_all_host_sites():
-				with current_site(site):
-					registry = component.getSiteManager()
-					_process_items(registry, index, intids, seen)
-					
-			logger.info("%s item(s) processed", len(seen))
-			seen.clear()
+			count = 0
+			ntiid_index = catalog[IX_NTIID]
+			for doc_id in ntiid_index.ids():
+				obj = intids.queryObject(doc_id)
+				if IQEvaluation.providedBy(obj):
+					count += 1
+					index.index_doc(doc_id, obj)
+			logger.info("%s item(s) processed", count)
 
 	component.getGlobalSiteManager().unregisterUtility(mock_ds, IDataserver)
 	logger.info('Assessment evolution %s done.', generation)
 
 def evolve(context):
 	"""
-	Evolve to generation 26 by registering the keyword catalog index
+	Evolve to generation 28 by registering the editable catalog index
 	"""
 	do_evolve(context)

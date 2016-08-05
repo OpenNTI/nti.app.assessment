@@ -551,7 +551,7 @@ class _AssessmentDateEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorato
 				and self._is_authenticated \
 				and has_permission(ACT_CONTENT_EDIT, context, self.request)
 
-	def _add_data_edit_start(self, context, courses):
+	def _has_submitted_data(self, context, courses):
 		result = has_savepoints(context, courses) or has_submissions(context, courses)
 		return result
 
@@ -559,7 +559,7 @@ class _AssessmentDateEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorato
 		_links = result.setdefault(LINKS, [])
 		courses = self._get_courses(context)
 		names = ('date-edit-end', 'date-edit')
-		if not self._add_data_edit_start(context, courses):
+		if not self._has_submitted_data(context, courses):
 			names += ('date-edit-start',)
 		for name in names:
 			link = Link(context, rel=name)

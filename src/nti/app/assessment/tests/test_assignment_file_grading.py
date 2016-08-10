@@ -31,8 +31,13 @@ from zope import component
 
 import ZODB
 
+from nti.assessment import parts
 from nti.assessment import response
 from nti.assessment import submission
+from nti.assessment.question import QQuestion
+from nti.assessment.question import QQuestionSet
+from nti.assessment.interfaces import IQuestion
+from nti.assessment.interfaces import IQuestionSet
 from nti.assessment import interfaces as asm_interfaces
 
 from nti.assessment.submission import AssignmentSubmission
@@ -68,12 +73,6 @@ class _RegisterFileAssignmentLayer(InstructedCourseApplicationTestLayer):
 		cls.question_set_id = question_set_id
 		cls.assignment_id = assignment_ntiid
 
-		from nti.assessment import parts
-		from nti.assessment.question import QQuestion
-		from nti.assessment.question import QQuestionSet
-		from nti.assessment.interfaces import IQuestion
-		from nti.assessment.interfaces import IQuestionSet
-
 		def install_questions():
 			lib = component.getUtility(IContentPackageLibrary)
 
@@ -90,9 +89,17 @@ class _RegisterFileAssignmentLayer(InstructedCourseApplicationTestLayer):
 
 			# Works with auto_grade true or false.
 			assignment_part = QAssignmentPart(question_set=question_set, auto_grade=False)
-			assignment = QAssignment(parts=(assignment_part,), title='Assignment title')
+			assignment = QAssignment(parts=(assignment_part,))
+			cls.assignment = assignment
 			assignment.__name__ = assignment.ntiid = cls.assignment_id
 
+			old_assignment = component.getSiteManager().queryUtility( asm_interfaces.IQAssignment,
+																	  name=cls.assignment_id )
+			cls.old_assignment = old_assignment
+			if old_assignment is not None:
+				component.getSiteManager().unregisterUtility( old_assignment,
+															  provided=asm_interfaces.IQAssignment,
+															  name=cls.assignment_id )
 			component.getSiteManager().registerUtility(assignment,
 													   provided=asm_interfaces.IQAssignment,
 													   name=cls.assignment_id)
@@ -105,9 +112,9 @@ class _RegisterFileAssignmentLayer(InstructedCourseApplicationTestLayer):
 			assignment.__parent__ = lesson
 			IQAssessmentItemContainer(lesson).append(assignment)
 
-		database = ZODB.DB(ApplicationTestLayer._storage_base, database_name='Users')
+		cls.database = ZODB.DB(ApplicationTestLayer._storage_base, database_name='Users')
 
-		@mock_dataserver.WithMockDS(database=database)
+		@mock_dataserver.WithMockDS(database=cls.database)
 		def _sync():
 			with mock_dataserver.mock_db_trans(site_name='platform.ou.edu'):
 				install_questions()
@@ -116,6 +123,7 @@ class _RegisterFileAssignmentLayer(InstructedCourseApplicationTestLayer):
 	@classmethod
 	def tearDown(cls):
 		# MUST implement
+		# Re setUp super class?
 		pass
 
 	@classmethod

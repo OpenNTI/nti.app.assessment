@@ -152,12 +152,10 @@ class TestEvaluationViews(ApplicationLayerTest):
 		Test the external state of the given ext_obj or ntiid. We test that
 		status changes based on submissions and other user interaction.
 		"""
-		# Available not used to limit editing.
+		# 'available' not used to limit editing.
 		if not ext_obj:
 			ext_obj = self.testapp.get( '/dataserver2/Objects/%s' % ntiid ).json_body
-		if not has_submissions:
-			self.require_link_href_with_rel(ext_obj, 'date-edit-start')
-		self.require_link_href_with_rel(ext_obj, 'date-edit-end')
+
 		limited = has_savepoints or has_submissions
 		assert_that( ext_obj.get( 'LimitedEditingCapabilities' ), is_( limited ) )
 		assert_that( ext_obj.get( 'LimitedEditingCapabilitiesSavepoints' ),
@@ -182,7 +180,9 @@ class TestEvaluationViews(ApplicationLayerTest):
 		elif ext_mime == ASSIGNMENT_MIME_TYPE:
 			submission_rel_checks.extend( (VIEW_MOVE_PART,
 										   VIEW_INSERT_PART,
-										   VIEW_REMOVE_PART ) )
+										   VIEW_REMOVE_PART,
+										   'date-edit-start') )
+			self.require_link_href_with_rel(ext_obj, 'date-edit-end')
 			# Our course is non-public, so this should not be togglable.
 			self.forbid_link_with_rel( ext_obj, VIEW_IS_NON_PUBLIC )
 		elif ext_mime == QUESTION_SET_MIME_TYPE:
@@ -1140,7 +1140,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		qset_ntiid = qset.get( 'NTIID' )
 		qset_href = qset.get( 'href' )
 		question_ntiid = qset.get( 'questions' )[0].get( 'ntiid' )
-		
+
 		self.require_link_href_with_rel(qset, VIEW_ASSESSMENT_MOVE)
 		qset_contents_href = self.require_link_href_with_rel(qset, VIEW_QUESTION_SET_CONTENTS)
 		self._validate_assignment_containers( qset_ntiid, assignment_ntiids )

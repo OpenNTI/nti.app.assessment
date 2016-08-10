@@ -25,6 +25,8 @@ from nti.app.assessment import VIEW_UNRANDOMIZE
 from nti.app.assessment import VIEW_RANDOMIZE_PARTS
 from nti.app.assessment import VIEW_UNRANDOMIZE_PARTS
 
+from nti.assessment.assignment import QAssignment
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.externalization.externalization import to_external_ntiid_oid
@@ -82,8 +84,9 @@ class TestRandomized(ApplicationLayerTest):
 	def _test_external_state(self, ext_obj, has_savepoints=False, has_submissions=False):
 		self.require_link_href_with_rel(ext_obj, 'edit')
 		self.require_link_href_with_rel(ext_obj, 'schema')
-		self.require_link_href_with_rel(ext_obj, 'date-edit-end')
-		self.require_link_href_with_rel(ext_obj, 'date-edit-start')
+		if ext_obj.get( 'MimeType' ) == QAssignment.mime_type:
+			self.require_link_href_with_rel(ext_obj, 'date-edit-end')
+			self.require_link_href_with_rel(ext_obj, 'date-edit-start')
 		limited = has_savepoints or has_submissions
 		assert_that( ext_obj.get( 'LimitedEditingCapabilities' ), is_( limited ) )
 		assert_that( ext_obj.get( 'LimitedEditingCapabilitiesSavepoints' ),

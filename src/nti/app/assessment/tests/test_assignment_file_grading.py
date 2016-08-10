@@ -90,7 +90,7 @@ class _RegisterFileAssignmentLayer(InstructedCourseApplicationTestLayer):
 
 			# Works with auto_grade true or false.
 			assignment_part = QAssignmentPart(question_set=question_set, auto_grade=False)
-			assignment = QAssignment(parts=(assignment_part,))
+			assignment = QAssignment(parts=(assignment_part,), title='Assignment title')
 			assignment.__name__ = assignment.ntiid = cls.assignment_id
 
 			component.getSiteManager().registerUtility(assignment,

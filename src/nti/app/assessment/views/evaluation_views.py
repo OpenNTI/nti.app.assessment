@@ -913,7 +913,8 @@ class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):
 
 	OBJ_DEF_CHANGE_MSG = _("Cannot change the object definition.")
 	LEGACY_EDITABLE_FIELDS = ('available_for_submission_beginning',
-							  'available_for_submission_ending')
+							  'available_for_submission_ending',
+							  'is_non_public')
 
 	def _check_object_constraints(self, obj, externalValue):
 		editing_keys = set( externalValue.keys() )

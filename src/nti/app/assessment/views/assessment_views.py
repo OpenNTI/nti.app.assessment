@@ -256,9 +256,9 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 	def _do_catalog(self, instance, result):
 		catalog = ICourseAssignmentCatalog(instance)
 		uber_filter = get_course_assessment_predicate_for_user(self.remoteUser, instance)
-		# Must grab all assigments in our parent (since they may be
-		# referenced in shared lessons).
-		for asg in (x for x in catalog.iter_assignments( course_lineage=True ) if self._is_editor or uber_filter(x)):
+		# Must grab all assigments in our parent (since they may be referenced in shared lessons.
+		assignments = catalog.iter_assignments(course_lineage=True)
+		for asg in (x for x in assignments if self._is_editor or uber_filter(x)):
 			container_id = get_containerId(asg)
 			if container_id:
 				result.setdefault(container_id, []).append(asg)
@@ -310,7 +310,7 @@ class NonAssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 		qsids_to_strip = set()
 		data = defaultdict(dict)
 		catalog = ICourseSelfAssessmentItemCatalog(instance)
-		for item in catalog.iter_assessment_items( exclude_editable=True ):
+		for item in catalog.iter_assessment_items(exclude_editable=True):
 			# CS: We can remove proxies since the items are neither assignments
 			# nor survey, so no course lookup is necesary
 			item = removeAllProxies(item)

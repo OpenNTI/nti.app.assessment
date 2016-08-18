@@ -78,6 +78,9 @@ VIEW_USER_RESET_EVALUATION = 'UserReset'
 #: A view to reasses an evaluation
 VIEW_REGRADE_EVALUATION = 'Regrade'
 
+#: A view to unlock assignment policies
+VIEW_UNLOCK_POLICIES = 'UnlockPolicies'
+
 def get_submission_catalog():
 	return component.queryUtility(IMetadataCatalog, name=SUBMISSION_CATALOG_NAME)
 

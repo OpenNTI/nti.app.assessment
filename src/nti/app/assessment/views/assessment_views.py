@@ -15,12 +15,17 @@ from collections import defaultdict
 
 from zope import component
 
+from zope.event import notify
+
 from pyramid import httpexceptions as hexc
 
 from pyramid.view import view_config
 from pyramid.view import view_defaults
 
+from nti.app.assessment import VIEW_UNLOCK_POLICIES
 from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
+
+from nti.app.assessment.common import get_evaluation_courses
 
 from nti.app.assessment.interfaces import ICourseEvaluations
 
@@ -46,6 +51,8 @@ from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssessment
 from nti.assessment.interfaces import IQAssessmentItemContainer
+
+from nti.assessment.interfaces import UnlockQAssessmentPolicies 
 
 from nti.common.property import Lazy
 
@@ -385,3 +392,17 @@ class AssessmentSchemaView(AbstractAuthenticatedView):
 	def __call__(self):
 		result = self.context.schema()
 		return result
+
+@view_config(route_name='objects.generic.traversal',
+			 renderer='rest',
+			 context=IQAssignment,
+			 permission=nauth.ACT_CONTENT_EDIT,
+			 request_method='POST',
+			 name=VIEW_UNLOCK_POLICIES)
+class UnlockAssignmenPoliciesView(AbstractAuthenticatedView):
+
+	def __call__(self):
+		context = self.context
+		courses = get_evaluation_courses(context)
+		notify(UnlockQAssessmentPolicies(context, courses))
+		return hexc.HTTPNoContent()

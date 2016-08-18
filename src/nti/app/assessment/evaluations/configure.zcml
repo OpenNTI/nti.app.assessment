@@ -50,6 +50,7 @@
 				for="nti.assessment.interfaces.IQSurvey
 					 nti.externalization.interfaces.IObjectModifiedFromExternalEvent" />
 
+	<subscriber handler=".subscribers._on_assignment_unlock_event" />
 	<subscriber handler=".subscribers._on_regrade_evaluation_event" />
 	<subscriber handler=".subscribers._on_assessment_policies_modified_event" />
 

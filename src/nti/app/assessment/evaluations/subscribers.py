@@ -28,6 +28,7 @@ from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import regrade_evaluation
+from nti.app.assessment.common import get_evaluation_courses
 from nti.app.assessment.common import get_course_from_evaluation
 from nti.app.assessment.common import get_evaluation_containment
 from nti.app.assessment.common import get_assignments_for_evaluation_object
@@ -46,7 +47,7 @@ from nti.app.assessment.utils import get_course_from_request
 
 from nti.app.authentication import get_remote_user
 
-from nti.assessment.interfaces import IQPoll
+from nti.assessment.interfaces import IQPoll 
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
@@ -58,9 +59,12 @@ from nti.assessment.interfaces import IQAssessmentPoliciesModified
 from nti.assessment.interfaces import IQuestionInsertedInContainerEvent
 from nti.assessment.interfaces import IQuestionRemovedFromContainerEvent
 
+from nti.assessment.interfaces import UnlockQAssessmentPolicies 
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.coremetadata.interfaces import IRecordable
+from nti.coremetadata.interfaces import IObjectUnlockedEvent
 from nti.coremetadata.interfaces import IRecordableContainer
 
 from nti.externalization.interfaces import IObjectModifiedFromExternalEvent
@@ -190,3 +194,8 @@ def _on_assessment_policies_modified_event(course, event):
 	if IQAssignment.providedBy(assesment) and 'total_points' == event.key:
 		if event.value:
 			regrade_evaluation(assesment, course)
+
+@component.adapter(IQAssignment, IObjectUnlockedEvent)
+def _on_assignment_unlock_event(context, event):
+	courses = get_evaluation_courses(context)
+	notify(UnlockQAssessmentPolicies(context, courses))

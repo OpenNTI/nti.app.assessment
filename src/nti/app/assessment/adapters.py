@@ -152,17 +152,17 @@ def _assignment_submission_transformer(request, obj):
 		renderers.render_to_response('rest', pending, request)
 	raise result
 
-def _is_instructor_or_editor( course, user ):
+def _is_instructor_or_editor(course, user):
 	return 	   	(user is not None and course is not None) \
-			and ( 	is_course_instructor_or_editor( course, user ) \
-				 or has_permission(ACT_CONTENT_EDIT, course) )
+			and (is_course_instructor_or_editor(course, user) \
+				 or has_permission(ACT_CONTENT_EDIT, course))
 
 def _check_submission_before(submission, course, assignment):
 	# We only need to check that the submission is not too early;
 	# If it is late, we still allow it at this level, leaving
 	# it to the instructor to handle it.
 	# Allow for the course to handle adjusting the dates
-	if _is_instructor_or_editor( course, submission.creator ):
+	if _is_instructor_or_editor(course, submission.creator):
 		return
 	available_beginning = get_available_for_submission_beginning(assignment, course)
 	if available_beginning is not None:
@@ -225,7 +225,7 @@ def _begin_assessment_for_assignment_submission(submission):
 	lifecycleevent.created(pending_assessment)
 
 	version = assignment.version
-	if version is not None: # record version
+	if version is not None:  # record version
 		pending_assessment.version = submission.version = version
 
 	# Now record the submission. This will broadcast created and
@@ -338,22 +338,22 @@ class _DefaultCourseAssignmentCatalog(object):
 
 	def iter_assignments(self, course_lineage=False):
 		if course_lineage:
-			courses = get_course_and_parent( self.context )
+			courses = get_course_and_parent(self.context)
 		else:
 			courses = (self.context,)
 
 		# We're gathering parent courses; make sure we exclude duplicates.
-		if len( courses ) > 1:
+		if len(courses) > 1:
 			result = []
 			seen = set()
 			for course in courses:
 				course_assignments = get_course_assignments(course, sort=False)
 				for assignment in course_assignments or ():
 					if assignment.ntiid not in seen:
-						seen.add( assignment.ntiid )
-						result.append( assignment )
+						seen.add(assignment.ntiid)
+						result.append(assignment)
 		else:
-			result = get_course_assignments( tuple(courses)[0], sort=False)
+			result = get_course_assignments(courses[0], sort=False)
 		return result
 
 @interface.implementer(ICourseInstance)
@@ -363,13 +363,13 @@ def course_from_context_lineage(context, validate=False):
 		__traceback_info__ = context
 		raise component.ComponentLookupError("Unable to find course")
 	return course
-_course_from_context_lineage = course_from_context_lineage # BWC
+_course_from_context_lineage = course_from_context_lineage  # BWC
 
 @interface.implementer(ICourseInstance)
 @component.adapter(IUsersCourseAssignmentHistoryItem)
 def course_from_history_item_lineage(item):
 	return course_from_context_lineage(item)
-_course_from_history_item_lineage = course_from_history_item_lineage # BWC
+_course_from_history_item_lineage = course_from_history_item_lineage  # BWC
 
 def _legacy_course_from_submittable_lineage(assesment, user):
 	"""
@@ -438,14 +438,13 @@ def course_from_submittable_lineage(assesment, user):
 	return _legacy_course_from_submittable_lineage(assesment, user)
 
 def _get_hierarchy_context_for_context(obj, top_level_context):
-	results = component.queryMultiAdapter(
-									(top_level_context, obj),
-									IHierarchicalContextProvider)
+	results = component.queryMultiAdapter((top_level_context, obj),
+										  IHierarchicalContextProvider)
 	return results or (top_level_context,)
 
 def _get_assessment_container(obj):
-	return find_interface(obj, ICourseInstance, strict=False) \
-		or find_interface(obj, IContentUnit, strict=False)
+	return 		find_interface(obj, ICourseInstance, strict=False) \
+			or	find_interface(obj, IContentUnit, strict=False)
 
 @interface.implementer(ITopLevelContainerContextProvider)
 @component.adapter(IQInquiry)
@@ -454,7 +453,7 @@ def _courses_from_obj(obj):
 	results = ()
 	container = _get_assessment_container(obj)
 	if container is not None:
-		results = get_top_level_contexts( container )
+		results = get_top_level_contexts(container)
 	return results
 
 @interface.implementer(ITopLevelContainerContextProvider)
@@ -474,10 +473,10 @@ def _hierarchy_from_obj_and_user(obj, user):
 	results = ()
 	container = _get_assessment_container(obj)
 	if container is not None:
-		if IContentUnit.providedBy( container ):
-			results = get_hierarchy_context( container, user )
+		if IContentUnit.providedBy(container):
+			results = get_hierarchy_context(container, user)
 		else:
-			results = _get_hierarchy_context_for_context( obj, container )
+			results = _get_hierarchy_context_for_context(obj, container)
 	return results
 
 @interface.implementer(IJoinableContextProvider)
@@ -485,7 +484,7 @@ def _hierarchy_from_obj_and_user(obj, user):
 @component.adapter(IQAssessment)
 def _joinable_courses_from_obj(obj):
 	container = _get_assessment_container(obj)
-	return get_joinable_contexts( container )
+	return get_joinable_contexts(container)
 
 @interface.implementer(ITrustedTopLevelContainerContextProvider)
 @component.adapter(IUsersCourseAssignmentHistoryItemFeedback)

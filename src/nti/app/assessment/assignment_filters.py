@@ -16,8 +16,6 @@ from zope import interface
 
 from nti.assessment.interfaces import IQAssessmentPolicies
 
-from nti.common.property import Lazy
-
 from nti.contenttypes.courses.interfaces import ES_PUBLIC
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseAssessmentUserFilter
@@ -26,6 +24,8 @@ from nti.contenttypes.courses.utils import get_enrollment_in_hierarchy
 from nti.contenttypes.courses.utils import is_instructed_or_edited_by_name
 
 from nti.dataserver.interfaces import IUser
+
+from nti.property.property import Lazy
 
 # ACLs
 # Notice that everything based on enrollment *could* be done

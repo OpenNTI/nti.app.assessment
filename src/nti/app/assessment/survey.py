@@ -39,9 +39,6 @@ from nti.app.assessment.interfaces import IUsersCourseInquiryItemResponse
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAggregatedSurvey
 
-from nti.common.property import alias
-from nti.common.property import readproperty
-
 from nti.containers.containers import CheckingLastModifiedBTreeContainer
 from nti.containers.containers import CaseInsensitiveCheckingLastModifiedBTreeContainer
 
@@ -63,6 +60,9 @@ from nti.dataserver.users import User
 from nti.dublincore.datastructures import PersistentCreatedModDateTrackingObject
 
 from nti.externalization.interfaces import StandardExternalFields
+
+from nti.property.property import alias
+from nti.property.property import readproperty
 
 from nti.schema.field import SchemaConfigured
 from nti.schema.fieldproperty import createDirectFieldProperties

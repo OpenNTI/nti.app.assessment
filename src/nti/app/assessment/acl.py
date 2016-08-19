@@ -15,8 +15,6 @@ from zope import interface
 from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQEditableEvaluation
 
-from nti.common.property import Lazy
-
 from nti.contentlibrary.interfaces import IContentPackage
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -34,6 +32,8 @@ from nti.dataserver.authorization_acl import acl_from_aces
 from nti.dataserver.interfaces import ALL_PERMISSIONS
 
 from nti.dataserver.interfaces import IACLProvider
+
+from nti.property.property import Lazy
 
 from nti.traversal.traversal import find_interface
 

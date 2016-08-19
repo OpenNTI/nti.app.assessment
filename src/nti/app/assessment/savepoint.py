@@ -42,8 +42,6 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepointItem
 
 from nti.assessment.interfaces import IQAssessment
 
-from nti.common.property import alias
-
 from nti.containers.containers import CheckingLastModifiedBTreeContainer
 from nti.containers.containers import CaseInsensitiveCheckingLastModifiedBTreeContainer
 
@@ -65,6 +63,8 @@ from nti.dataserver.users import User
 from nti.dublincore.datastructures import PersistentCreatedModDateTrackingObject
 
 from nti.externalization.interfaces import StandardExternalFields
+
+from nti.property.property import alias
 
 from nti.schema.field import SchemaConfigured
 from nti.schema.fieldproperty import createDirectFieldProperties

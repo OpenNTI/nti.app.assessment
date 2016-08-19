@@ -40,10 +40,6 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemSumma
 
 from nti.assessment.interfaces import IQAssignment
 
-from nti.common.property import alias
-from nti.common.property import readproperty
-from nti.common.property import CachedProperty
-
 from nti.containers.containers import CheckingLastModifiedBTreeContainer
 from nti.containers.containers import CaseInsensitiveCheckingLastModifiedBTreeContainer
 
@@ -65,6 +61,10 @@ from nti.dublincore.datastructures import PersistentCreatedModDateTrackingObject
 from nti.externalization.oids import to_external_ntiid_oid
 
 from nti.links.links import Link
+
+from nti.property.property import alias
+from nti.property.property import readproperty
+from nti.property.property import CachedProperty
 
 from nti.schema.field import SchemaConfigured
 from nti.schema.fieldproperty import createDirectFieldProperties

@@ -37,8 +37,6 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataContaine
 
 from nti.assessment.interfaces import IQAssessment
 
-from nti.common.property import alias
-
 from nti.containers.containers import CheckingLastModifiedBTreeContainer
 from nti.containers.containers import CaseInsensitiveCheckingLastModifiedBTreeContainer
 
@@ -68,6 +66,8 @@ from nti.externalization.externalization import to_external_ntiid_oid
 
 from nti.externalization.interfaces import IInternalObjectUpdater
 from nti.externalization.interfaces import StandardExternalFields
+
+from nti.property.property import alias
 
 from nti.schema.field import SchemaConfigured
 from nti.schema.fieldproperty import createDirectFieldProperties

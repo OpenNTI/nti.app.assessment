@@ -338,7 +338,7 @@ class _DefaultCourseAssignmentCatalog(object):
 
 	def iter_assignments(self, course_lineage=False):
 		if course_lineage:
-			courses = get_course_and_parent(self.context)
+			courses = tuple(get_course_and_parent(self.context))
 		else:
 			courses = (self.context,)
 

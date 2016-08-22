@@ -215,33 +215,67 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
 		result = CaseInsensitiveDict(values)
 		return result
 
+	def removeIntId(self, evaluation=None):
+		intids = component.getUtility(IIntIds)
+		uid = intids.queryId(evaluation)
+		if uid is not None:
+			removeIntId(evaluation)
+
+	def removeFromPackage(self, package, ntiid):
+		def _recur(unit):
+			container = IQAssessmentItemContainer(unit)
+			if ntiid in container:
+				evaluation = container[ntiid]
+				container.pop(ntiid, None)
+				self.removeIntId(evaluation)
+			for child in unit.children or ():
+				_recur(child)
+		_recur(package)
+
 	def _do_call(self):
 		values = self.readInput()
 		ntiid = values.get('ntiid')
 		if not ntiid:
-			raise hexc.HTTPUnprocessableEntity(_("Invalid content NTIID."))
+			raise hexc.HTTPUnprocessableEntity(_("Invalid Object NTIID."))
 
 		force = is_true(values.get('force'))
 		evaluation = find_object_with_ntiid(ntiid)
 		evaluation = IQEvaluation(evaluation, None)
 		if evaluation is None:
-			raise hexc.HTTPUnprocessableEntity(_("Invalid evaluation object."))
+			raise hexc.HTTPUnprocessableEntity(_("Invalid Evaluation object."))
 
 		if not force and evaluation.isLocked():
 			raise hexc.HTTPUnprocessableEntity(_("Evaluation object is locked."))
 
-		intids = component.getUtility(IIntIds)
 		folder = find_interface(evaluation, IHostPolicyFolder, strict=False)
-		site = get_host_site(folder.__name__)
+		if folder is None:
+			site = values.get('site')
+			site = get_host_site(site) if site else None
+		else:
+			site = get_host_site(folder.__name__)
+		
+		if site is None:
+			raise hexc.HTTPUnprocessableEntity(_("Invalid Evaluation site."))
+		
+		# unregister the evaluation object
 		with current_site(site):
 			registry = site.getSiteManager()
 			provided = iface_of_assessment(evaluation)
-			unregisterUtility(registry, provided=provided, name=ntiid, force=force)
+			if unregisterUtility(registry, provided=provided, name=evaluation.ntiid, force=force):
+				logger.warn("%s has been unregistered", evaluation.ntiid)
 			if not IQEditableEvaluation.providedBy(evaluation):
-				uid = intids.queryId(evaluation)
-				if uid is not None:
-					removeIntId(evaluation)
-
+				self.removeIntId(evaluation)
+		
+		package = evaluation.__parent__
+		package = find_interface(package, IContentPackage, strict=False)
+		if package is None:
+			package = values.get('package')
+			package = find_object_with_ntiid(ntiid) if package is not None else None
+			
+		package = IContentPackage(package, None)
+		if package is not None and not IQEditableEvaluation.providedBy(evaluation):
+			self.removeFromPackage(package, ntiid)
+		
 		return hexc.HTTPNoContent()
 
 @view_config(route_name='objects.generic.traversal',

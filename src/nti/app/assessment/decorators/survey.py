@@ -35,8 +35,6 @@ from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssessmentDateContext
 
-from nti.common.property import Lazy
-
 from nti.contentlibrary.interfaces import IContentUnit
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
@@ -53,6 +51,8 @@ from nti.externalization.interfaces import IExternalMappingDecorator
 from nti.links.externalization import render_link
 
 from nti.links.links import Link
+
+from nti.property.property import Lazy
 
 from nti.traversal.traversal import find_interface
 

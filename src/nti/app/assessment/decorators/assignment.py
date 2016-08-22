@@ -73,8 +73,6 @@ from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
 from nti.assessment.randomized.interfaces import IRandomizedPartsContainer
 
-from nti.common.property import Lazy
-
 from nti.contentlibrary.interfaces import IContentUnit
 
 from nti.contenttypes.courses import get_course_vendor_info
@@ -98,6 +96,8 @@ from nti.externalization.interfaces import IExternalMappingDecorator
 from nti.externalization.singleton import SingletonDecorator
 
 from nti.links.links import Link
+
+from nti.property.property import Lazy
 
 from nti.traversal.traversal import find_interface
 

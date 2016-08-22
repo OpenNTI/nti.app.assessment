@@ -22,8 +22,6 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
-from nti.common.property import Lazy
-
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseAssignmentCatalog
@@ -39,6 +37,8 @@ from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import IExternalMappingDecorator
 
 from nti.links.links import Link
+
+from nti.property.property import Lazy
 
 from nti.traversal.traversal import find_interface
 

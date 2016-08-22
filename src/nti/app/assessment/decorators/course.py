@@ -15,8 +15,6 @@ from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
 
 from nti.appserver.pyramid_authorization import has_permission
 
-from nti.common.property import Lazy
-
 from nti.contenttypes.courses.utils import is_course_editor
 
 from nti.dataserver.authorization import ACT_CONTENT_EDIT
@@ -25,6 +23,8 @@ from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import IExternalMappingDecorator
 
 from nti.links.links import Link
+
+from nti.property.property import Lazy
 
 LINKS = StandardExternalFields.LINKS
 

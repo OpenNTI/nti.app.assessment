@@ -52,8 +52,6 @@ from nti.assessment.interfaces import IQAssessmentDateContext
 from nti.assessment.interfaces import QAssessmentPoliciesModified
 from nti.assessment.interfaces import QAssessmentDateContextModified
 
-from nti.common.property import Lazy
-
 from nti.common.string import is_true
 from nti.common.string import is_false
 
@@ -72,6 +70,8 @@ from nti.externalization.externalization import StandardExternalFields
 from nti.externalization.internalization import notifyModified
 
 from nti.links.links import Link
+
+from nti.property.property import Lazy
 
 from nti.schema.interfaces import InvalidValue
 

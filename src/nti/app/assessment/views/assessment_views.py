@@ -27,6 +27,8 @@ from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
 
 from nti.app.assessment.common import get_evaluation_courses
 
+from nti.app.assessment.utils import get_course_from_request
+
 from nti.app.assessment.interfaces import ICourseEvaluations
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
@@ -54,7 +56,7 @@ from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.assessment.interfaces import UnlockQAssessmentPolicies 
 
-from nti.common.property import Lazy
+from nti.property.property import Lazy
 
 from nti.contentlibrary.indexed_data import get_library_catalog
 
@@ -403,6 +405,10 @@ class UnlockAssignmenPoliciesView(AbstractAuthenticatedView):
 
 	def __call__(self):
 		context = self.context
-		courses = get_evaluation_courses(context)
+		courses = get_course_from_request(self.request)
+		if not courses:
+			courses = get_evaluation_courses(context)
+		else:
+			courses = (courses,)
 		notify(UnlockQAssessmentPolicies(context, courses))
 		return hexc.HTTPNoContent()

@@ -56,8 +56,6 @@ from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.assessment.interfaces import UnlockQAssessmentPolicies 
 
-from nti.property.property import Lazy
-
 from nti.contentlibrary.indexed_data import get_library_catalog
 
 from nti.contenttypes.courses.common import get_course_packages
@@ -78,6 +76,8 @@ from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.externalization.proxy import removeAllProxies
+
+from nti.property.property import Lazy
 
 from nti.site.site import get_component_hierarchy_names
 

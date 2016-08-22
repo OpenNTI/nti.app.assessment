@@ -38,8 +38,9 @@ from nti.app.assessment.interfaces import ICourseAggregatedInquiries
 
 from nti.app.assessment.survey import UsersCourseInquiryItemResponse
 
-from nti.app.assessment.views import get_ds2
 from nti.app.assessment.views import MessageFactory as _
+
+from nti.app.assessment.views import get_ds2
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
@@ -61,8 +62,6 @@ from nti.assessment.interfaces import IQPollSubmission
 from nti.assessment.interfaces import IQSurveySubmission
 from nti.assessment.interfaces import IQInquirySubmission
 
-from nti.common.property import Lazy
-
 from nti.contenttypes.courses.utils import is_course_instructor
 
 from nti.dataserver import authorization as nauth
@@ -73,6 +72,8 @@ from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.externalization.oids import to_external_ntiid_oid
+
+from nti.property.property import Lazy
 
 ITEMS = StandardExternalFields.ITEMS
 TOTAL = StandardExternalFields.TOTAL

@@ -135,8 +135,6 @@ from nti.assessment.randomized.question import QQuestionBank
 
 from nti.common.maps import CaseInsensitiveDict
 
-from nti.common.property import Lazy
-
 from nti.common.string import is_true
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -167,6 +165,8 @@ from nti.links.links import Link
 from nti.mimetype.externalization import decorateMimeType
 
 from nti.recorder.record import copy_transaction_history
+
+from nti.property.property import Lazy
 
 from nti.site.hostpolicy import get_host_site
 

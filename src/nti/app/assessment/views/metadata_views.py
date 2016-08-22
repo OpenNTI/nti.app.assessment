@@ -44,8 +44,6 @@ from nti.appserver.ugd_edit_views import UGDDeleteView
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQTimedAssignment
 
-from nti.common.property import Lazy
-
 from nti.dataserver import authorization as nauth
 
 from nti.externalization.externalization import to_external_object
@@ -53,6 +51,8 @@ from nti.externalization.externalization import to_external_object
 from nti.externalization.interfaces import LocatedExternalDict
 
 from nti.externalization.oids import to_external_ntiid_oid
+
+from nti.property.property import Lazy
 
 @view_config(route_name="objects.generic.traversal",
 			 context=IQAssignment,

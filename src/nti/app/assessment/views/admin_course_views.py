@@ -112,16 +112,16 @@ class MoveUserAssignmentsView(AbstractAuthenticatedView,
 			   renderer='rest',
 			   request_method='POST',
 			   permission=nauth.ACT_NTI_ADMIN,
-			   name='SetDatePolicy')
-class SetDatePolicyView(AbstractAuthenticatedView,
-						ModeledContentUploadRequestUtilsMixin):
+			   name='SetCourseDatePolicy')
+class SetCourseDatePolicy(AbstractAuthenticatedView,
+						  ModeledContentUploadRequestUtilsMixin):
 
 	def readInput(self, value=None):
 		result = ModeledContentUploadRequestUtilsMixin.readInput(self, value=value)
 		return CaseInsensitiveDict(result)
 
 	def _get_datetime(self, x=None):
-		for func in (int, float):
+		for func in (float, int):
 			try:
 				value = func(x)
 				return datetime.fromtimestamp(value)

@@ -363,7 +363,7 @@ def find_course_for_evaluation(evaluation, user, exc=True):
 	return course
 find_course_for_assignment = find_course_for_evaluation  # BWC
 
-def _get_course_catalog_entry(evaluation, catalog=None, registry=component):
+def _get_evaluation_catalog_entry(evaluation, catalog=None, registry=component):
 	# check if we have the context catalog entry we can use
 	# as reference (.AssessmentItemProxy) this way
 	# instructor can find the correct course when they are looking at a section.
@@ -378,7 +378,7 @@ def _get_course_catalog_entry(evaluation, catalog=None, registry=component):
 
 def get_course_from_evaluation(evaluation, user=None, catalog=None,
 							   registry=component, exc=False):
-	entry = _get_course_catalog_entry(evaluation, catalog, registry)
+	entry = _get_evaluation_catalog_entry(evaluation, catalog, registry)
 	result = ICourseInstance(entry, None)
 
 	# Try catalog first for speed; only return if single course found.
@@ -515,15 +515,8 @@ def find_course_for_inquiry(inquiry, user, exc=True):
 	return course
 
 def get_course_from_inquiry(inquiry, user=None, registry=component, exc=False):
-	# check if we have the context catalog entry we can use
-	# as reference (.AssessmentItemProxy)
-	result = None
-	try:
-		ntiid = inquiry.CatalogEntryNTIID
-		context = find_object_with_ntiid(ntiid or u'')
-		result = ICourseInstance(context, None)
-	except (KeyError, AttributeError):
-		pass
+	result = _get_evaluation_catalog_entry(inquiry, registry=registry)
+	result = ICourseInstance(result, None)
 
 	if result is None:
 		courses = get_evaluation_courses(inquiry)

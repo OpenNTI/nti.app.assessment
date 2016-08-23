@@ -9,23 +9,21 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+from urllib import unquote
+
 from zope import component
 from zope import interface
 
 from zope.container.contained import Contained
 
-from zope.location.interfaces import LocationError
-
 from zope.traversing.interfaces import IPathAdapter
 
-from pyramid.interfaces import IRequest
+from pyramid import httpexceptions as hexc
 
 from nti.assessment.interfaces import IQAssessment
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
-
-from nti.traversal.traversal import ContainerAdapterTraversable
 
 @interface.implementer(IPathAdapter)
 class _CourseAssessmentsPathAdapter(Contained):
@@ -37,12 +35,13 @@ class _CourseAssessmentsPathAdapter(Contained):
 		self.__parent__ = context
 		self.context = ICourseInstance(context, None)
 
-@component.adapter(_CourseAssessmentsPathAdapter, IRequest)
-class _CourseAssessmentsTraversable(ContainerAdapterTraversable):
-
-	def traverse(self, key, remaining_path):
+	def __getitem__(self, key):
+		if not key:
+			raise hexc.HTTPNotFound()
+		ntiid = unquote(key)
 		container = IQAssessmentItemContainer(self.context)
-		assesment = component.queryUtility(IQAssessment, name=key)
-		if key in container and assesment is not None:
+		assesment = component.queryUtility(IQAssessment, name=ntiid)
+		if ntiid in container and assesment is not None:
 			return assesment
-		raise LocationError(self.context, key)
+		raise KeyError(ntiid)
+

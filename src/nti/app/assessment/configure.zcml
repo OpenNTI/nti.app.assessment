@@ -63,6 +63,7 @@
 		role="nti.roles.course_ta" />
 
 	<configure zcml:condition="have testmode">
+
 		<!--
 			Manually grant some accounts access to these roles for now,
 			pending better group integration.
@@ -78,6 +79,7 @@
 
 		<sp:grant principal="sjohnson@nextthought.com"
 				  permission="nti.actions.assessment.download_grades" />
+
 	</configure>
 
 	<!-- ACL providers -->
@@ -209,6 +211,17 @@
 
 	<!-- Views -->
 	<include package=".views" />
+
+	<!-- Courses -->
+	<adapter name="Assessments"
+			 for="nti.contenttypes.courses.interfaces.ICourseInstance pyramid.interfaces.IRequest"
+			 factory=".courses._CourseAssessmentsPathAdapter"
+			 provides="zope.traversing.interfaces.IPathAdapter" />
+
+	<adapter name="Assessments"
+			 for="nti.contenttypes.courses.interfaces.ICourseCatalogEntry pyramid.interfaces.IRequest"
+			 factory=".courses._CourseAssessmentsPathAdapter"
+			 provides="zope.traversing.interfaces.IPathAdapter" />
 
 	<!-- Savepoints -->
 	<adapter factory=".savepoint._savepoints_for_course_path_adapter"

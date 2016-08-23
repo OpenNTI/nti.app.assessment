@@ -94,8 +94,8 @@ class CourseViewMixin(AbstractAuthenticatedView, BatchingUtilsMixin):
 			   renderer='rest',
 			   permission=nauth.ACT_CONTENT_EDIT,
 			   request_method='GET',
-			   name='Assessments')
-class CourseAssessmentCatalogView(CourseViewMixin):
+			   name='AssessmentItems')
+class CourseAssessmentItemsCatalogView(CourseViewMixin):
 
 	def __call__(self):
 		instance = ICourseInstance(self.request.context)

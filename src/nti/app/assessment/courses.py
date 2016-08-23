@@ -20,8 +20,9 @@ from zope.traversing.interfaces import IPathAdapter
 
 from pyramid import httpexceptions as hexc
 
-from nti.assessment.interfaces import IQAssessment
-from nti.assessment.interfaces import IQAssessmentItemContainer
+from nti.app.assessment.common import get_evaluation_courses
+
+from nti.assessment.interfaces import IQEvaluation
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
@@ -39,9 +40,9 @@ class _CourseAssessmentsPathAdapter(Contained):
 		if not key:
 			raise hexc.HTTPNotFound()
 		ntiid = unquote(key)
-		container = IQAssessmentItemContainer(self.context)
-		assesment = component.queryUtility(IQAssessment, name=ntiid)
-		if ntiid in container and assesment is not None:
+		assesment = component.queryUtility(IQEvaluation, name=ntiid)
+		courses = get_evaluation_courses(assesment) if assesment else ()
+		if assesment is not None and self.context in courses:
 			return assesment
 		raise KeyError(ntiid)
 

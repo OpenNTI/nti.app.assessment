@@ -57,7 +57,8 @@ from nti.app.assessment.interfaces import ACT_VIEW_SOLUTIONS
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 
-from nti.app.assessment.utils import assignment_download_precondition
+from nti.app.assessment.utils import assignment_download_precondition,\
+	get_course_from_request
 
 from nti.app.contentlibrary import LIBRARY_PATH_GET_VIEW
 
@@ -500,15 +501,21 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			elif IQuestion.providedBy(context):
 				rels.extend(self._get_question_rels())
 
+		# chose link context according to the presence of a course
+		course = get_course_from_request(self.request)
+		link_context = context if course is None else course
+		start_elements = () if course is None else ('Assessments', context.ntiid)
+
+		# loop through rels and create links
 		for rel in rels:
 			if rel in self._MARKER_RELS:
-				elements = None
+				elements = None if not start_elements else start_elements
 			else:
-				elements = ('@@%s' % rel,)
-			link = Link(context, rel=rel, elements=elements)
+				elements = start_elements + ('@@%s' % rel,)
+			link = Link(link_context, rel=rel, elements=elements)
 			interface.alsoProvides(link, ILocation)
 			link.__name__ = ''
-			link.__parent__ = context
+			link.__parent__ = link_context
 			_links.append(link)
 
 @interface.implementer(IExternalMappingDecorator)
@@ -564,11 +571,18 @@ class _AssessmentDateEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorato
 		names = ('date-edit-end', 'date-edit')
 		if not self._has_submitted_data(context, courses):
 			names += ('date-edit-start',)
+			
+		# set correct context and elements if request comes from a course
+		course = get_course_from_request(self.request)
+		link_context = context if course is None else course
+		elements = None if course is None else ('Assessments', context.ntiid)
+
+		# loop through name and create links
 		for name in names:
-			link = Link(context, rel=name)
+			link = Link(link_context, rel=name, elements=elements)
 			interface.alsoProvides(link, ILocation)
 			link.__name__ = ''
-			link.__parent__ = context
+			link.__parent__ = link_context
 			_links.append(link)
 
 @interface.implementer(IExternalMappingDecorator)
@@ -586,15 +600,25 @@ class _AssessmentPracticeLinkDecorator(AbstractAuthenticatedRequestAwareDecorato
 
 	def _do_decorate_external(self, context, result):
 		_links = result.setdefault(LINKS, [])
-		link = Link(context, rel=ASSESSMENT_PRACTICE_SUBMISSION,
-					elements=(ASSESSMENT_PRACTICE_SUBMISSION,))
+		
+		# set correct context and elements if request comes from a course
+		course = get_course_from_request(self.request)
+		if course is not None:
+			link_context = course
+			elements = ('Assessments', context.ntiid, ASSESSMENT_PRACTICE_SUBMISSION)
+		else:
+			link_context = context
+			elements = (ASSESSMENT_PRACTICE_SUBMISSION,)
+
+		link = Link(link_context, rel=ASSESSMENT_PRACTICE_SUBMISSION,
+					elements=elements)
 		interface.alsoProvides(link, ILocation)
 		link.__name__ = ''
-		link.__parent__ = context
+		link.__parent__ = link_context
 		_links.append(link)
 
-@interface.implementer(IExternalMappingDecorator)
 @component.adapter(IQAssessment)
+@interface.implementer(IExternalMappingDecorator)
 class _AssessmentLibraryPathLinkDecorator(object):
 	"""
 	Create a `LibraryPath` link to our container id.
@@ -604,7 +628,6 @@ class _AssessmentLibraryPathLinkDecorator(object):
 
 	def decorateExternalMapping(self, context, result):
 		external_ntiid = to_external_ntiid_oid(context)
-
 		if external_ntiid is not None:
 			path = '/dataserver2/%s' % LIBRARY_PATH_GET_VIEW
 			link = Link(path, rel=LIBRARY_PATH_GET_VIEW, method='GET',

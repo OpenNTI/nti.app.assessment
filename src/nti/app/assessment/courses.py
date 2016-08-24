@@ -16,11 +16,11 @@ from zope import interface
 
 from zope.container.contained import Contained
 
+from zope.interface.interfaces import ComponentLookupError
+
 from zope.traversing.interfaces import IPathAdapter
 
 from pyramid import httpexceptions as hexc
-
-from nti.app.assessment.common import get_evaluation_courses
 
 from nti.assessment.interfaces import IQEvaluation
 
@@ -34,15 +34,18 @@ class _CourseAssessmentsPathAdapter(Contained):
 	def __init__(self, context, request=None):
 		self.request = request
 		self.__parent__ = context
-		self.context = ICourseInstance(context, None)
+		self.context = ICourseInstance(context)
 
 	def __getitem__(self, key):
 		if not key:
 			raise hexc.HTTPNotFound()
 		ntiid = unquote(key)
-		assesment = component.queryUtility(IQEvaluation, name=ntiid)
-		courses = get_evaluation_courses(assesment) if assesment else ()
-		if assesment is not None and self.context in courses:
-			return assesment
+		for registry in (self.context, component):
+			try:
+				registry = registry.getSiteManager()
+				assesment = registry.queryUtility(IQEvaluation, name=ntiid)
+				if assesment is not None:
+					return assesment
+			except (TypeError, ComponentLookupError):
+				pass
 		raise KeyError(ntiid)
-

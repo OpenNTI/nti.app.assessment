@@ -99,6 +99,10 @@
 	<adapter factory=".history.UsersCourseAssignmentHistoryItemSummary"
 			 provides=".interfaces.IUsersCourseAssignmentHistoryItemSummary"/>
 
+	<adapter factory=".renderers.AssesmentEditLinkMaker"
+			 provides="nti.appserver.interfaces.IEditLinkMaker"
+			 for="nti.assessment.interfaces.IQEvaluation" />
+
 	<!-- Externalization -->
 	<include package="nti.externalization" file="meta.zcml" />
 	<ext:registerAutoPackageIO

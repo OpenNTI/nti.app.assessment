@@ -430,6 +430,7 @@ def _legacy_course_from_submittable_lineage(assesment, user):
 @interface.implementer(ICourseInstance)
 @component.adapter(IQSubmittable, IUser)
 def course_from_submittable_lineage(assesment, user):
+	# FIXME: Course from request
 	courses = get_evaluation_courses(assesment)
 	for course in courses or ():
 		if 		is_course_instructor_or_editor(course, user) \

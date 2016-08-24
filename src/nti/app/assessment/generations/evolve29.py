@@ -83,8 +83,8 @@ def _update_policy_dates(registry, seen):
 				if changed:
 					entry = ICourseCatalogEntry( course, None )
 					entry_ntiid = getattr( entry, 'ntiid', '' )
-					logger.info( 'Updating assignment dates in course policy (%s) (old_start=%s) (new_start=%s) (old_end=%s) (new_end=%s)',
-								 entry_ntiid, old_start, new_start, old_end, new_end )
+					logger.info( 'Updating assignment dates in course policy (%s) (course=%s) (old_start=%s) (new_start=%s) (old_end=%s) (new_end=%s)',
+								 ntiid, entry_ntiid, old_start, new_start, old_end, new_end )
 		else:
 			logger.warn( 'No courses found for assignment (%s)', ntiid )
 
@@ -114,7 +114,6 @@ def do_evolve(context, generation=generation):
 				registry = component.getSiteManager()
 				_update_policy_dates(registry, seen)
 
-		logger.info("%s item(s) processed", len(seen))
 		seen.clear()
 
 	component.getGlobalSiteManager().unregisterUtility(mock_ds, IDataserver)

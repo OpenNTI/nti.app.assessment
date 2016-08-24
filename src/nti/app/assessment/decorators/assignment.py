@@ -192,7 +192,6 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		if course is None:
 			return
 
-		# Do not override dates if locked.
 		start_date = get_available_for_submission_beginning(assignment, course)
 		end_date = get_available_for_submission_ending(assignment, course)
 		result['available_for_submission_beginning'] = to_external_object(start_date)

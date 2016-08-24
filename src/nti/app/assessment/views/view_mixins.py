@@ -167,6 +167,18 @@ class AssessmentPutView(UGDPutView):
 					or 	(	 old_start_date \
 						 and cls._is_date_in_range(new_start_date, old_start_date, now)))
 
+	def _get_date_object(self, new_date, default, field ):
+		result = default
+		try:
+			if new_date and new_date is not default:
+				result = IDateTime(new_date)
+		except (ValueError, InvalidValue):
+			# Now that all dates go into policy, we raise here.
+			self._raise_error('InvalidType',
+							  _('Assessment date is invalid.'),
+							  field=field)
+		return result
+
 	def validate_date_boundaries(self, contentObject, externalValue, courses=()):
 		"""
 		Validates that the assessment does not change availability states. If
@@ -186,16 +198,8 @@ class AssessmentPutView(UGDPutView):
 			return
 
 		now = datetime.utcnow()
-
-		try:
-			if new_start_date and new_start_date is not _marker:
-				new_start_date = IDateTime(new_start_date)
-			if new_end_date and new_end_date is not _marker:
-				new_end_date = IDateTime(new_end_date)
-		except (ValueError, InvalidValue):
-			# Ok, they gave us something invalid. Let our schema
-			# validation handle it.
-			return
+		new_start_date = self._get_date_object( new_start_date, _marker, 'available_for_submission_beginning' )
+		new_end_date = self._get_date_object( new_end_date, _marker, 'available_for_submission_ending' )
 
 		for course in courses:
 			old_end_date = get_available_for_submission_ending(contentObject,
@@ -373,11 +377,16 @@ class AssessmentPutView(UGDPutView):
 
 	def updateContentObject(self, contentObject, externalValue, set_id=False,
 							notify=True, pre_hook=None):
-		# find all courses if context is not provided
 		context = get_course_from_request(self.request)
 		if context is None:
 			courses = get_courses_from_assesment(contentObject)
+			# We want to require a course context when editing an assignment,
+			# mainly to ensure we update the assignment policies of the correct
+			# courses, versus all courses.
+			# raise hexc.HTTPUnprocessableEntity(_("Cannot edit assessment without course context."))
 		else:
+			# XXX: We'll eventually look for a flag that allows us to
+			# update all courses in hierarchy.
 			courses = (context,)
 
 		self.preflight(contentObject, externalValue, courses)
@@ -388,13 +397,10 @@ class AssessmentPutView(UGDPutView):
 			if assess_val is not None:
 				auto_assess = assess_val
 
-		if context is not None:
-			# Remove policy keys to avoid updating fields in the actual assessment object
-			backupData = copy.deepcopy(externalValue)
-			for key in self.policy_keys:
-				externalValue.pop(key, None)
-		else:
-			backupData = externalValue
+		# Remove policy keys to avoid updating fields in the actual assessment object.
+		backupData = copy.deepcopy(externalValue)
+		for key in self.policy_keys:
+			externalValue.pop(key, None)
 
 		if externalValue:
 			copied = copy.deepcopy(externalValue)
@@ -419,7 +425,7 @@ class AssessmentPutView(UGDPutView):
 				self.update_policy(courses, ntiid, key, backupData[key])
 
 		# Validate once we have policy updated.
-		self.validate(result, externalValue, courses)
+		self.validate(result, backupData, courses)
 		return result
 
 class StructuralValidationMixin(object):

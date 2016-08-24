@@ -115,7 +115,6 @@ from nti.contenttypes.courses.utils import is_course_instructor_or_editor
 
 from nti.coremetadata.interfaces import SYSTEM_USER_ID
 
-from nti.coremetadata.interfaces import IRecordable
 from nti.coremetadata.interfaces import IPublishable
 
 from nti.dataserver import authorization as nauth
@@ -317,26 +316,23 @@ def get_policy_for_assessment(asm_id, context):
 	policy = policies.getPolicyForAssessment(asm_id)
 	return policy
 
-def is_locked(assesment):
-	return IRecordable.providedBy(assesment) and assesment.locked
-
 def get_available_for_submission_beginning(assesment, context=None):
 	course = ICourseInstance(context, None)
-	# Use our assignment policy if not locked.
-	if course is not None and not is_locked(assesment):
-		dates = IQAssessmentDateContext(course)
+	dates = IQAssessmentDateContext(course, None)
+	if dates is not None:
 		result = dates.of(assesment).available_for_submission_beginning
 	else:
+		# No policy, pull from object.
 		result = assesment.available_for_submission_beginning
 	return result
 
 def get_available_for_submission_ending(assesment, context=None):
 	course = ICourseInstance(context, None)
-	# Use our assignment policy if not locked.
-	if course is not None and not is_locked(assesment):
-		dates = IQAssessmentDateContext(course)
+	dates = IQAssessmentDateContext(course, None)
+	if dates is not None:
 		result = dates.of(assesment).available_for_submission_ending
 	else:
+		# No policy, pull from object.
 		result = assesment.available_for_submission_ending
 	return result
 

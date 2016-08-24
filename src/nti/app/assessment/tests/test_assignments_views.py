@@ -394,8 +394,9 @@ class TestAssignmentViews(ApplicationLayerTest):
 			ending = datetime_from_string('2015-11-30T05:00:00Z')
 			beginning = datetime_from_string('2015-11-25T05:00:00Z')
 
-			assert_that(asg, has_property('available_for_submission_ending', is_(ending)))
-			assert_that(asg, has_property('available_for_submission_beginning', is_(beginning)))
+			# Our assignment dates will not/cannot change.
+			assert_that(asg, has_property('available_for_submission_ending', is_not(ending)))
+			assert_that(asg, has_property('available_for_submission_beginning', is_not(beginning)))
 
 			history = ITransactionRecordHistory(asg)
 			assert_that(history, has_length(1))
@@ -403,6 +404,7 @@ class TestAssignmentViews(ApplicationLayerTest):
 			entry = find_object_with_ntiid(self.course_ntiid)
 			course = ICourseInstance(entry)
 			subs = get_course_subinstances(course)
+			# But the dates in the policy do change.
 			for course in chain((course,), subs):
 				policies = IQAssessmentPolicies(course)
 				data = policies[self.assignment_id]

@@ -83,8 +83,9 @@ def _update_policy_dates(registry, seen):
 				if changed:
 					entry = ICourseCatalogEntry( course, None )
 					entry_ntiid = getattr( entry, 'ntiid', '' )
-					logger.info( 'Updating assignment dates in course policy (%s) (course=%s) (old_start=%s) (new_start=%s) (old_end=%s) (new_end=%s)',
-								 ntiid, entry_ntiid, old_start, new_start, old_end, new_end )
+					title = getattr( item, 'title', '' )
+					logger.info( 'Updating assignment dates in course policy (%s) (%s) (course=%s) (old_start=%s) (new_start=%s) (old_end=%s) (new_end=%s)',
+								 ntiid, title, entry_ntiid, old_start, new_start, old_end, new_end )
 		else:
 			logger.warn( 'No courses found for assignment (%s)', ntiid )
 

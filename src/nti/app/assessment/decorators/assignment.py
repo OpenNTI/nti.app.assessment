@@ -18,6 +18,8 @@ from zope import interface
 
 from zope.location.interfaces import ILocation
 
+from pyramid.interfaces import IRequest
+
 from nti.app.assessment import VIEW_DELETE
 from nti.app.assessment import VIEW_MOVE_PART
 from nti.app.assessment import VIEW_RANDOMIZE
@@ -79,7 +81,6 @@ from nti.contenttypes.courses import get_course_vendor_info
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
-from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.contenttypes.courses.utils import is_course_instructor
 from nti.contenttypes.courses.utils import is_course_instructor_or_editor
@@ -149,6 +150,8 @@ class _AssignmentsByOutlineNodeDecorator(AbstractAssessmentDecoratorPredicate):
 		if self.show_assignments_by_outline_link(course):
 			links.append(self._link_with_rel(course, 'AssignmentsByOutlineNode'))
 
+@component.adapter(IQAssignment, IRequest)
+@interface.implementer(IExternalMappingDecorator)
 class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
 	When an instructor fetches an assignment that contains a file part
@@ -160,19 +163,18 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
 			return assignment_download_precondition(context, self.request, self.remoteUser)  # XXX Hack
 
 	def _do_decorate_external(self, context, result):
-		# TODO: It would be better to have the course context in our link,
-		# but for now, we'll just have a course param.
-		course = _get_course_from_evaluation(context, self.remoteUser, request=self.request)
-		catalog_entry = ICourseCatalogEntry(course, None)
-		if catalog_entry is not None:
-			parameters = { 'course' : catalog_entry.ntiid }
-		else:
-			parameters = None
 		links = result.setdefault(LINKS, [])
-		links.append(Link(context,
-						  rel='ExportFiles',
-						  elements=('BulkFilePartDownload',),
-						  params=parameters))
+		course = _get_course_from_evaluation(context, self.remoteUser, request=self.request)
+		if course is not None:
+			ntiid = context.ntiid
+			link = Link(course,
+						rel='ExportFiles',
+						elements=('Assessments', ntiid, 'BulkFilePartDownload'))
+		else:
+			link = Link(context,
+						rel='ExportFiles',
+						elements=('BulkFilePartDownload',))
+		links.append(link)
 
 class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""

@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
@@ -11,6 +12,10 @@ logger = __import__('logging').getLogger(__name__)
 
 from functools import partial
 
+from zope import component, lifecycleevent
+
+from pyramid import httpexceptions as hexc
+
 from pyramid.view import view_config
 from pyramid.view import view_defaults
 
@@ -22,6 +27,8 @@ from nti.app.base.abstract_views import AbstractAuthenticatedView
 from nti.app.externalization.view_mixins import BatchingUtilsMixin
 
 from nti.assessment.common import get_containerId
+
+from nti.assessment.interfaces import IQAssignment
 
 from nti.common.maps import CaseInsensitiveDict
 
@@ -131,3 +138,39 @@ class CourseInquiriesView(CourseViewMixin):
 		instance = ICourseInstance(self.request.context)
 		func = partial(get_course_inquiries, instance, do_filtering=False)
 		return self._do_call(func)
+
+@view_config(context=ICourseInstance)
+@view_config(context=ICourseCatalogEntry)
+@view_defaults(route_name='objects.generic.traversal',
+			   renderer='rest',
+			   permission=nauth.ACT_CONTENT_EDIT,
+			   request_method='POST',
+			   name='LockAllAssignments')
+class LockAllAssignmentsView(CourseViewMixin):
+
+	def __call__(self):
+		course = ICourseInstance(self.context)
+		for item in get_course_assignments(course, False):
+			assesment = component.queryUtility(IQAssignment, name=item.ntiid)
+			if assesment is not None and not assesment.isLocked():
+				assesment.lock()
+				lifecycleevent.modified(assesment)
+		return hexc.HTTPNoContent()
+
+@view_config(context=ICourseInstance)
+@view_config(context=ICourseCatalogEntry)
+@view_defaults(route_name='objects.generic.traversal',
+			   renderer='rest',
+			   permission=nauth.ACT_CONTENT_EDIT,
+			   request_method='POST',
+			   name='UnlockAllAssignments')
+class UnlockAllAssignmentsView(CourseViewMixin):
+
+	def __call__(self):
+		course = ICourseInstance(self.context)
+		for item in get_course_assignments(course, False):
+			assesment = component.queryUtility(IQAssignment, name=item.ntiid)
+			if assesment is not None and assesment.isLocked():
+				assesment.unlock()
+				lifecycleevent.modified(assesment)
+		return hexc.HTTPNoContent()

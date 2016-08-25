@@ -50,6 +50,8 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedback
 
+from nti.app.assessment.utils import get_course_from_request
+
 from nti.app.products.courseware.utils import get_course_and_parent
 
 from nti.appserver.context_providers import get_hierarchy_context
@@ -373,19 +375,18 @@ _course_from_history_item_lineage = course_from_history_item_lineage  # BWC
 
 def _legacy_course_from_submittable_lineage(assesment, user):
 	"""
-	Given a generic assesment and a user, we
-	attempt to associate the assesment with the most
-	specific course instance relevant for the user.
+	Given a generic assessment and a user, we attempt to associate
+	the assessment with the most specific course instance relevant
+	for the user.
 
 	In legacy-style courses, the parent of the assesment will be a
-	IContentUnit, and eventually an
-	ILegacyCourseConflatedContentPackage which can become the course
-	directly. (However, these may not be within an IRoot, so using
-	ILocationInfo may not be safe; in that case, fall back to
-	straightforward lineage)
+	IContentUnit, and eventually an ILegacyCourseConflatedContentPackage
+	which can become the course directly. (However, these may not be
+	within an IRoot, so using ILocationInfo may not be safe; in that
+	case, fall back to straightforward lineage).
 
 	In more sophisticated cases involving sections, the assumption
-	that a course instance is one-to-one with a contentpackage
+	that a course instance is one-to-one with a content package
 	is broken. In that case, it's better to try to look through
 	the things the user is enrolled in and try to match the content
 	package to the first course.
@@ -429,14 +430,26 @@ def _legacy_course_from_submittable_lineage(assesment, user):
 
 @interface.implementer(ICourseInstance)
 @component.adapter(IQSubmittable, IUser)
-def course_from_submittable_lineage(assesment, user):
-	# FIXME: Course from request
-	courses = get_evaluation_courses(assesment)
-	for course in courses or ():
-		if 		is_course_instructor_or_editor(course, user) \
-			or	is_enrolled(course, user):
-			return course
-	return _legacy_course_from_submittable_lineage(assesment, user)
+def course_from_submittable(assesment, user):
+	"""
+	For a submittable, try to fetch the user enrolled/instructed context.
+	We prefer to have a course in our request context so that submittables
+	that exist in multiple courses have a deterministic course to submit to.
+	Otherwise, we fall back to guessing.
+	"""
+	result = get_course_from_request()
+	if result is None:
+		logger.warn( 'Submission for assessment without course context (%s) (user=%s)',
+					 assesment.ntiid, user)
+		courses = get_evaluation_courses(assesment)
+		for course in courses or ():
+			if 		is_course_instructor_or_editor(course, user) \
+				or	is_enrolled(course, user):
+				result = course
+				break
+		if result is None:
+			result = _legacy_course_from_submittable_lineage(assesment, user)
+	return result
 
 def _get_hierarchy_context_for_context(obj, top_level_context):
 	results = component.queryMultiAdapter((top_level_context, obj),

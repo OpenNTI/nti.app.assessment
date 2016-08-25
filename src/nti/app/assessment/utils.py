@@ -220,6 +220,7 @@ def replace_username(username):
 	return username
 
 def get_course_from_request(request=None, params=None):
+	request = get_current_request() if request is None else request
 	course = getattr(request, 'course_traversal_context', None)
 	if course is not None:
 		return course

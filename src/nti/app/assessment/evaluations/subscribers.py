@@ -22,8 +22,6 @@ from zope.lifecycleevent import ObjectModifiedEvent
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
 from zope.lifecycleevent.interfaces import IObjectRemovedEvent
 
-from pyramid.threadlocal import get_current_request
-
 from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment.common import has_submissions
@@ -47,7 +45,7 @@ from nti.app.assessment.utils import get_course_from_request
 
 from nti.app.authentication import get_remote_user
 
-from nti.assessment.interfaces import IQPoll 
+from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
@@ -59,7 +57,7 @@ from nti.assessment.interfaces import IQAssessmentPoliciesModified
 from nti.assessment.interfaces import IQuestionInsertedInContainerEvent
 from nti.assessment.interfaces import IQuestionRemovedFromContainerEvent
 
-from nti.assessment.interfaces import UnlockQAssessmentPolicies 
+from nti.assessment.interfaces import UnlockQAssessmentPolicies
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
@@ -179,8 +177,7 @@ def _on_survey_event(context, event):
 
 @component.adapter(IQEvaluation, IRegradeEvaluationEvent)
 def _on_regrade_evaluation_event(context, event):
-	request = get_current_request()
-	course = get_course_from_request(request) if request else None
+	course = get_course_from_request()
 	if course is None:
 		course = get_course_from_evaluation(context, user=get_remote_user())
 	if course is not None:

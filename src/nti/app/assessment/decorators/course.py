@@ -44,8 +44,9 @@ class _CourseEditorLinksDecorator(_AbstractTraversableLinkDecorator):
 
 	def _do_decorate_external(self, context, result_map):
 		links = result_map.setdefault(LINKS, [])
-		for name in ('Assessments', 'Assignments', 'Inquiries', 'AssessmentItems', ):
+		for name in ('Assignments', 'Inquiries', 'AssessmentItems', ):
 			links.append(Link(context, rel=name, elements=('@@%s' % name,)))
-		links.append(Link(context, 
-						  rel='CourseEvaluations', 
-						  elements=('CourseEvaluations',)))
+		for name in ('Assessments', 'CourseEvaluations'):
+			links.append(Link(context, 
+							  rel=name, 
+						 	  elements=(name,)))

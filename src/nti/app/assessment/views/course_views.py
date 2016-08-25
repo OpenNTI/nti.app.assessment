@@ -68,6 +68,10 @@ class CourseViewMixin(AbstractAuthenticatedView, BatchingUtilsMixin):
 		outline = is_true(params.get('byOutline') or params.get('outline'))
 		return outline
 
+	def _filterBy(self, item, mimeTypes=()):
+		mt = getattr(item, 'mimeType', None) or	getattr(item, 'mime_type', None)
+		return bool(not mimeTypes or mt in mimeTypes)
+
 	def _do_call(self, func):
 		count = 0
 		result = LocatedExternalDict()
@@ -78,10 +82,8 @@ class CourseViewMixin(AbstractAuthenticatedView, BatchingUtilsMixin):
 		mimeTypes = self._get_mimeTypes()
 		items = result[ITEMS] = dict() if outline else list()
 		for item in func():
-			if mimeTypes:  # filter by
-				mt = getattr(item, 'mimeType', None) or	getattr(item, 'mime_type', None)
-				if mt not in mimeTypes:
-					continue
+			if not self._filterBy(item, mimeTypes):  # filter by
+				continue
 			count += 1
 			if not outline:
 				items.append(item)
@@ -144,9 +146,27 @@ class CourseInquiriesView(CourseViewMixin):
 @view_defaults(route_name='objects.generic.traversal',
 			   renderer='rest',
 			   permission=nauth.ACT_CONTENT_EDIT,
+			   request_method='GET',
+			   name='GetLockAssignments')
+class GetLockAssignmentsView(CourseViewMixin):
+
+	def _filterBy(self, item, mimeTypes=()):
+		result = CourseViewMixin._filterBy(self, item, mimeTypes=mimeTypes)
+		return result and item.isLocked()
+	
+	def __call__(self):
+		instance = ICourseInstance(self.request.context)
+		func = partial(get_course_assignments, instance, do_filtering=False)
+		return self._do_call(func)
+	
+@view_config(context=ICourseInstance)
+@view_config(context=ICourseCatalogEntry)
+@view_defaults(route_name='objects.generic.traversal',
+			   renderer='rest',
+			   permission=nauth.ACT_CONTENT_EDIT,
 			   request_method='POST',
 			   name='LockAllAssignments')
-class LockAllAssignmentsView(CourseViewMixin):
+class LockAllAssignmentsView(AbstractAuthenticatedView):
 
 	def __call__(self):
 		course = ICourseInstance(self.context)
@@ -164,7 +184,7 @@ class LockAllAssignmentsView(CourseViewMixin):
 			   permission=nauth.ACT_CONTENT_EDIT,
 			   request_method='POST',
 			   name='UnlockAllAssignments')
-class UnlockAllAssignmentsView(CourseViewMixin):
+class UnlockAllAssignmentsView(AbstractAuthenticatedView):
 
 	def __call__(self):
 		course = ICourseInstance(self.context)

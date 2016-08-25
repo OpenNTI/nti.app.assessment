@@ -14,8 +14,6 @@ from functools import partial
 
 from zope import component, lifecycleevent
 
-from pyramid import httpexceptions as hexc
-
 from pyramid.view import view_config
 from pyramid.view import view_defaults
 
@@ -169,13 +167,17 @@ class GetLockAssignmentsView(CourseViewMixin):
 class LockAllAssignmentsView(AbstractAuthenticatedView):
 
 	def __call__(self):
+		result = LocatedExternalDict()
+		items = result[ITEMS] = []
 		course = ICourseInstance(self.context)
 		for item in get_course_assignments(course, False):
 			assesment = component.queryUtility(IQAssignment, name=item.ntiid)
 			if assesment is not None and not assesment.isLocked():
 				assesment.lock()
+				items.append(assesment.ntiid)
 				lifecycleevent.modified(assesment)
-		return hexc.HTTPNoContent()
+		result[ITEM_COUNT] = result[TOTAL] = len(items)
+		return result
 
 @view_config(context=ICourseInstance)
 @view_config(context=ICourseCatalogEntry)
@@ -187,10 +189,14 @@ class LockAllAssignmentsView(AbstractAuthenticatedView):
 class UnlockAllAssignmentsView(AbstractAuthenticatedView):
 
 	def __call__(self):
+		result = LocatedExternalDict()
+		items = result[ITEMS] = []
 		course = ICourseInstance(self.context)
 		for item in get_course_assignments(course, False):
 			assesment = component.queryUtility(IQAssignment, name=item.ntiid)
 			if assesment is not None and assesment.isLocked():
 				assesment.unlock()
+				items.append(assesment.ntiid)
 				lifecycleevent.modified(assesment)
-		return hexc.HTTPNoContent()
+		result[ITEM_COUNT] = result[TOTAL] = len(items)
+		return result

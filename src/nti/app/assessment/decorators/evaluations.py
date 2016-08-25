@@ -68,24 +68,28 @@ class _EvaluationLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	def _do_decorate_external(self, context, result):
 		_links = result.setdefault(LINKS, [])
 
+		course = _get_course_from_evaluation(context,
+											 user=self.remoteUser,
+											 request=self.request)
+
+		link_context = context if course is None else course
+		pre_elements = () if course is None else ('Assessments', context.ntiid)
+		
 		if has_permission(ACT_CONTENT_EDIT, context, self.request):
-			link = Link(context, rel=VIEW_COPY_EVALUATION,
-						elements=('@@' + VIEW_COPY_EVALUATION,),
+			link = Link(link_context, rel=VIEW_COPY_EVALUATION,
+						elements=pre_elements + ('@@' + VIEW_COPY_EVALUATION,),
 						method='POST')
 			interface.alsoProvides(link, ILocation)
 			link.__name__ = ''
 			link.__parent__ = context
 			_links.append(link)
 
-		course = _get_course_from_evaluation(context,
-											 user=self.remoteUser,
-											 request=self.request)
 		if 		course is not None \
 			and context.is_published() \
 			and is_course_instructor(course, self.remoteUser) \
 			and _has_any_submissions(context, course):
-			link = Link(context, rel=VIEW_RESET_EVALUATION,
-						elements=('@@' + VIEW_RESET_EVALUATION,),
+			link = Link(link_context, rel=VIEW_RESET_EVALUATION,
+						elements=pre_elements + ('@@' + VIEW_RESET_EVALUATION,),
 						method='POST')
 			interface.alsoProvides(link, ILocation)
 			link.__name__ = ''

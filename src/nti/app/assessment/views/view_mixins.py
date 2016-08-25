@@ -366,7 +366,10 @@ class AssessmentPutView(UGDPutView):
 
 	def updateContentObject(self, contentObject, externalValue, set_id=False,
 							notify=True, pre_hook=None):
-		context = get_course_from_request(self.request)
+		if IQEditableEvaluation.providedBy(contentObject):
+			context = find_interface(contentObject, ICourseInstance, strict=False)
+		else:
+			context = get_course_from_request(self.request)
 		if context is None:
 			# We want to require a course context when editing an assignment,
 			# mainly to ensure we update the assignment policies of the correct

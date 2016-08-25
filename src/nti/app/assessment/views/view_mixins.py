@@ -18,8 +18,6 @@ from datetime import datetime
 
 from pyramid import httpexceptions as hexc
 
-from zope import component
-
 from zope.event import notify as event_notify
 
 from zope.interface.common.idatetime import IDateTime
@@ -82,17 +80,6 @@ LINKS = StandardExternalFields.LINKS
 NTIID = StandardExternalFields.NTIID
 MIME_TYPE = StandardExternalFields.MIMETYPE
 
-def canonicalize_question_set(self, obj, registry=component):
-	obj.questions = [registry.getUtility(IQuestion, name=x.ntiid)
-					 for x
-					 in obj.Items]
-
-def canonicalize_assignment(obj, registry=component):
-	for part in obj.parts:
-		ntiid = part.question_set.ntiid
-		part.question_set = registry.getUtility(IQuestionSet, name=ntiid)
-		canonicalize_question_set(part.question_set, registry)
-
 def get_courses_from_assesment(assesment):
 	course = find_interface(assesment, ICourseInstance, strict=False)
 	if course is not None:
@@ -129,9 +116,11 @@ class AssessmentPutView(UGDPutView):
 					code,
 					ntiid,
 					entry.ntiid)
+		params = dict( self.request.params )
+		params['force'] = True
 		links = (
 			Link(self.request.path, rel='confirm',
-				 params={'force':True}, method='PUT'),
+				 params=params, method='PUT'),
 		)
 		raise_json_error(self.request,
 						 hexc.HTTPConflict,
@@ -379,15 +368,13 @@ class AssessmentPutView(UGDPutView):
 							notify=True, pre_hook=None):
 		context = get_course_from_request(self.request)
 		if context is None:
-			courses = get_courses_from_assesment(contentObject)
 			# We want to require a course context when editing an assignment,
 			# mainly to ensure we update the assignment policies of the correct
 			# courses, versus all courses.
-			# raise hexc.HTTPUnprocessableEntity(_("Cannot edit assessment without course context."))
-		else:
-			# XXX: We'll eventually look for a flag that allows us to
-			# update all courses in hierarchy.
-			courses = (context,)
+			raise hexc.HTTPUnprocessableEntity(_("Cannot edit assessment without course context."))
+		# XXX: We'll eventually look for a flag that allows us to
+		# update all courses in hierarchy.
+		courses = (context,)
 
 		self.preflight(contentObject, externalValue, courses)
 

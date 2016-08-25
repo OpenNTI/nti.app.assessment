@@ -19,9 +19,6 @@ from hamcrest import assert_that
 from hamcrest import greater_than
 does_not = is_not
 
-from urllib import quote
-from itertools import chain
-
 from zope import component
 from zope import interface
 
@@ -71,6 +68,7 @@ class TestAssignmentViews(ApplicationLayerTest):
 	course_ntiid = 'tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2015_CS_1323'
 	course_url = '/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2015/CS%201323'
 	assignment_id = 'tag:nextthought.com,2011-10:OU-NAQ-CS1323_F_2015_Intro_to_Computer_Programming.naq.asg.assignment:Project_1'
+	assignment_url = '/dataserver2/Objects/%s?course=%s' % (assignment_id, course_ntiid)
 
 	@WithSharedApplicationMockDS(users=True, testapp=True)
 	def test_content_assignment_date_editing(self):
@@ -80,9 +78,10 @@ class TestAssignmentViews(ApplicationLayerTest):
 		start_field = 'available_for_submission_beginning'
 		end_field = 'available_for_submission_ending'
 		public_field = 'is_non_public'
+		assignment_url = self.assignment_url
 
 		# Base cases
-		res = self.testapp.get('/dataserver2/Objects/' + self.assignment_id,
+		res = self.testapp.get(assignment_url,
 								extra_environ=editor_environ)
 
 		res = res.json_body
@@ -108,10 +107,10 @@ class TestAssignmentViews(ApplicationLayerTest):
 
 		# Test editing dates
 		data = { start_field: new_start_date }
-		self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,
+		self.testapp.put_json(assignment_url,
 							  data, extra_environ=editor_environ)
 
-		res = self.testapp.get('/dataserver2/Objects/' + self.assignment_id,
+		res = self.testapp.get(assignment_url,
 							   extra_environ=editor_environ)
 		res = res.json_body
 		assert_that(res.get(start_field), is_(new_start_date))
@@ -123,10 +122,10 @@ class TestAssignmentViews(ApplicationLayerTest):
 			assert_that(history, has_length(1))
 
 		data = { end_field: new_end_date }
-		self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,
+		self.testapp.put_json(assignment_url,
 							  data, extra_environ=editor_environ)
 
-		res = self.testapp.get('/dataserver2/Objects/' + self.assignment_id,
+		res = self.testapp.get(assignment_url,
 							   extra_environ=editor_environ)
 		res = res.json_body
 		assert_that(res.get(end_field), is_(new_end_date))
@@ -139,10 +138,10 @@ class TestAssignmentViews(ApplicationLayerTest):
 
 		# Edit is_non_public
 		data = { public_field: 'False' }
-		self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,
+		self.testapp.put_json(assignment_url,
 							  data, extra_environ=editor_environ)
 
-		res = self.testapp.get('/dataserver2/Objects/' + self.assignment_id,
+		res = self.testapp.get(assignment_url,
 							   extra_environ=editor_environ)
 		res = res.json_body
 		assert_that(res.get(public_field), is_(False))
@@ -155,17 +154,17 @@ class TestAssignmentViews(ApplicationLayerTest):
 
 		# Invalid timed assignment
 		data = { 'maximum_time_allowed': -1 }
-		self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,
+		self.testapp.put_json(assignment_url,
 							  data, extra_environ=editor_environ,
 							  status=422)
 
 		# Change to timed assignment
 		max_time = 300
 		data = { 'maximum_time_allowed': max_time }
-		self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,
+		self.testapp.put_json(assignment_url,
 							  data, extra_environ=editor_environ)
 
-		res = self.testapp.get('/dataserver2/Objects/' + self.assignment_id,
+		res = self.testapp.get(assignment_url,
 							   extra_environ=editor_environ)
 		res = res.json_body
 		assert_that( res.get( 'Class' ), is_( 'TimedAssignment' ) )
@@ -196,10 +195,10 @@ class TestAssignmentViews(ApplicationLayerTest):
 		# Change fields but retain timed status
 		data =  {'available_for_submission_beginning': 1471010400,
 				 'available_for_submission_ending': 1471017600}
-		self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,
+		self.testapp.put_json(assignment_url,
 							  data, extra_environ=editor_environ)
 
-		res = self.testapp.get('/dataserver2/Objects/' + self.assignment_id,
+		res = self.testapp.get(assignment_url,
 							   extra_environ=editor_environ)
 		res = res.json_body
 		assert_that( res.get( 'Class' ), is_( 'TimedAssignment' ) )
@@ -210,10 +209,10 @@ class TestAssignmentViews(ApplicationLayerTest):
 
 		# Change to untimed assignment
 		data = { 'maximum_time_allowed': None }
-		self.testapp.put_json('/dataserver2/Objects/%s' % self.assignment_id,
+		self.testapp.put_json(assignment_url,
 							  data, extra_environ=editor_environ)
 
-		res = self.testapp.get('/dataserver2/Objects/' + self.assignment_id,
+		res = self.testapp.get(assignment_url,
 							   extra_environ=editor_environ)
 		res = res.json_body
 		assert_that( res.get( 'Class' ), is_( 'Assignment' ) )
@@ -247,7 +246,7 @@ class TestAssignmentViews(ApplicationLayerTest):
 		future_date_str = "2215-09-10T05:00:00Z"
 		start_field = 'available_for_submission_beginning'
 		end_field = 'available_for_submission_ending'
-		assignment_url = '/dataserver2/Objects/%s' % self.assignment_id
+		assignment_url = self.assignment_url
 		confirm_rel = 'confirm'
 		conflict_class = 'DestructiveChallenge'
 		conflict_mime = 'application/vnd.nextthought.destructivechallenge'
@@ -277,7 +276,7 @@ class TestAssignmentViews(ApplicationLayerTest):
 		# Note: we allow state to move from closed in past to
 		# closed, but will reopen in the future unchecked (edge case).
 		# Move our end date to make us currently open.
-		self.testapp.put_json(assignment_url + '?force=True',
+		self.testapp.put_json(assignment_url + '&force=True',
 							  {end_field: future_date_str},
 							  extra_environ=editor_environ)
 		last_mod = _check_publish_last_mod( -1 )
@@ -385,7 +384,7 @@ class TestAssignmentViews(ApplicationLayerTest):
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_no_context(self):
-		url = '/dataserver2/Objects/' + self.assignment_id
+		url = self.assignment_url
 		data = {'available_for_submission_beginning':'2015-11-25T05:00:00Z',
 				'available_for_submission_ending':'2015-11-30T05:00:00Z'}
 		self.testapp.put_json(url, data, status=200)
@@ -404,20 +403,30 @@ class TestAssignmentViews(ApplicationLayerTest):
 			entry = find_object_with_ntiid(self.course_ntiid)
 			course = ICourseInstance(entry)
 			subs = get_course_subinstances(course)
-			# But the dates in the policy do change.
-			for course in chain((course,), subs):
-				policies = IQAssessmentPolicies(course)
-				data = policies[self.assignment_id]
-				assert_that(data, has_entry('locked', is_(True)))
+			# But the dates in the course policy do change.
+			policies = IQAssessmentPolicies(course)
+			data = policies[self.assignment_id]
+			assert_that(data, has_entry('locked', is_(True)))
 
-				dates = IQAssessmentDateContext(course)
+			dates = IQAssessmentDateContext(course)
+			data = dates[self.assignment_id]
+			assert_that(data, has_entry('available_for_submission_ending', is_(ending)))
+			assert_that(data, has_entry('available_for_submission_beginning', is_(beginning)))
+
+			# ...and the subinstances do not.
+			for subinstance in subs:
+				policies = IQAssessmentPolicies(subinstance)
+				data = policies[self.assignment_id]
+				assert_that(data, does_not( has_item( 'locked' )))
+
+				dates = IQAssessmentDateContext(subinstance)
 				data = dates[self.assignment_id]
-				assert_that(data, has_entry('available_for_submission_ending', is_(ending)))
-				assert_that(data, has_entry('available_for_submission_beginning', is_(beginning)))
+				assert_that(data, has_entry('available_for_submission_ending', is_not(ending)))
+				assert_that(data, has_entry('available_for_submission_beginning', is_not(beginning)))
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_with_context(self):
-		url = '/dataserver2/Objects/' + self.assignment_id + "?course=%s" % quote(self.course_ntiid)
+		url = self.assignment_url
 		data = {'available_for_submission_beginning':'2015-11-25T05:00:00Z',
 				'available_for_submission_ending':'2015-11-30T05:00:00Z',
 				'title':'ProjectOne'}

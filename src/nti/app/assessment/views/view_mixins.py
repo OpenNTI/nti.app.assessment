@@ -366,10 +366,11 @@ class AssessmentPutView(UGDPutView):
 
 	def updateContentObject(self, contentObject, externalValue, set_id=False,
 							notify=True, pre_hook=None):
-		if IQEditableEvaluation.providedBy(contentObject):
+		context = get_course_from_request(self.request)
+
+		if context is None and IQEditableEvaluation.providedBy(contentObject):
 			context = find_interface(contentObject, ICourseInstance, strict=False)
-		else:
-			context = get_course_from_request(self.request)
+
 		if context is None:
 			# We want to require a course context when editing an assignment,
 			# mainly to ensure we update the assignment policies of the correct
@@ -381,6 +382,7 @@ class AssessmentPutView(UGDPutView):
 								u'code': 'CannotEditAssessment',
 							 },
 							 None)
+
 		# XXX: We'll eventually look for a flag that allows us to
 		# update all courses in hierarchy.
 		courses = (context,)

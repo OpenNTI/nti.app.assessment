@@ -269,6 +269,11 @@
 				for="nti.contenttypes.courses.interfaces.ICourseInstance
 					 pyramid.interfaces.IRequest" />
 
+	<subscriber factory=".course._CourseAssessmentsLinksDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="nti.contenttypes.courses.interfaces.ICourseInstance
+					 pyramid.interfaces.IRequest" />
+
 	<subscriber factory=".course._CourseEditorLinksDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.contenttypes.courses.interfaces.ICourseCatalogEntry

@@ -57,8 +57,8 @@ from nti.app.assessment.interfaces import ACT_VIEW_SOLUTIONS
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 
-from nti.app.assessment.utils import assignment_download_precondition,\
-	get_course_from_request
+from nti.app.assessment.utils import get_course_from_request
+from nti.app.assessment.utils import assignment_download_precondition
 
 from nti.app.contentlibrary import LIBRARY_PATH_GET_VIEW
 
@@ -571,7 +571,7 @@ class _AssessmentDateEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorato
 		names = ('date-edit-end', 'date-edit')
 		if not self._has_submitted_data(context, courses):
 			names += ('date-edit-start',)
-			
+
 		# set correct context and elements if request comes from a course
 		course = get_course_from_request(self.request)
 		link_context = context if course is None else course
@@ -600,7 +600,7 @@ class _AssessmentPracticeLinkDecorator(AbstractAuthenticatedRequestAwareDecorato
 
 	def _do_decorate_external(self, context, result):
 		_links = result.setdefault(LINKS, [])
-		
+
 		# set correct context and elements if request comes from a course
 		course = get_course_from_request(self.request)
 		if course is not None:

@@ -59,10 +59,7 @@ class AbstractAssessmentDecoratorPredicate(PreviewCourseAccessPredicateDecorator
 			and self._is_traversable( context, result )
 
 def _get_course_from_evaluation(evaluation, user=None, catalog=None, request=None):
-	result = None
-	request = get_current_request() if request is None else request
-	if request is not None:
-		result = get_course_from_request(request)
+	result = get_course_from_request(request)
 	if result is None:
 		result = get_course_from_evaluation(evaluation=evaluation,
 									  		user=user,

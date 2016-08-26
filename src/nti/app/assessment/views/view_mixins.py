@@ -374,7 +374,13 @@ class AssessmentPutView(UGDPutView):
 			# We want to require a course context when editing an assignment,
 			# mainly to ensure we update the assignment policies of the correct
 			# courses, versus all courses.
-			raise hexc.HTTPUnprocessableEntity(_("Cannot edit assessment without course context."))
+			raise_json_error(self.request,
+							 hexc.HTTPUnprocessableEntity,
+							 {
+								u'message': _("Cannot edit assessment without course context."),
+								u'code': 'CannotEditAssessment',
+							 },
+							 None)
 		# XXX: We'll eventually look for a flag that allows us to
 		# update all courses in hierarchy.
 		courses = (context,)

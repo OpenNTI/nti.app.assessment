@@ -170,11 +170,11 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
 			ntiid = context.ntiid
 			link = Link(course,
 						rel='ExportFiles',
-						elements=('Assessments', ntiid, 'BulkFilePartDownload'))
+						elements=('Assessments', ntiid, '@@BulkFilePartDownload'))
 		else:
 			link = Link(context,
 						rel='ExportFiles',
-						elements=('BulkFilePartDownload',))
+						elements=('@@BulkFilePartDownload',))
 		links.append(link)
 
 class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
@@ -605,10 +605,11 @@ class _AssessmentPracticeLinkDecorator(AbstractAuthenticatedRequestAwareDecorato
 		course = get_course_from_request(self.request)
 		if course is not None:
 			link_context = course
-			elements = ('Assessments', context.ntiid, ASSESSMENT_PRACTICE_SUBMISSION)
+			elements = ('Assessments', context.ntiid, 
+						'@@'+ASSESSMENT_PRACTICE_SUBMISSION)
 		else:
 			link_context = context
-			elements = (ASSESSMENT_PRACTICE_SUBMISSION,)
+			elements = ('@@'+ASSESSMENT_PRACTICE_SUBMISSION,)
 
 		link = Link(link_context, rel=ASSESSMENT_PRACTICE_SUBMISSION,
 					elements=elements)

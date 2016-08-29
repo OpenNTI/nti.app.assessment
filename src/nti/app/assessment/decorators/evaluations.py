@@ -57,7 +57,7 @@ def _has_any_submissions(context, course):
 		submissions = has_inquiry_submissions(context, course)
 	else:
 		submissions = has_submissions(context, courses)
-	return submissions or has_savepoints(context, courses)
+	return bool(submissions or has_savepoints(context, courses))
 
 @interface.implementer(IExternalMappingDecorator)
 class _EvaluationLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):

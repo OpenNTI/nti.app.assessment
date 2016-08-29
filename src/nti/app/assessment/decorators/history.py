@@ -87,7 +87,7 @@ class _LastViewedAssignmentHistoryDecorator(AbstractAuthenticatedRequestAwareDec
 	"""
 
 	def _predicate(self, context, result):
-		return (self._is_authenticated
+		return (	self._is_authenticated
 				and context.owner is not None
 				and context.owner == self.remoteUser)
 

@@ -21,6 +21,7 @@ from zope.schema.interfaces import ConstraintNotSatisfied
 from pyramid import httpexceptions as hexc
 
 from pyramid.view import view_config
+from pyramid.view import view_defaults
 
 from nti.app.assessment.common import inquiry_submissions
 from nti.app.assessment.common import can_disclose_inquiry
@@ -277,12 +278,13 @@ class InquiryItemDeleteView(UGDDeleteView):
 		del theObject.__parent__[theObject.__name__]
 		return theObject
 
-@view_config(route_name="objects.generic.traversal",
-			 context=IQInquiry,
-			 renderer='rest',
-			 request_method='POST',
-			 permission=nauth.ACT_READ,
-			 name="close")
+@view_config(name='close')
+@view_config(name='Close')
+@view_defaults(route_name="objects.generic.traversal",
+			   context=IQInquiry,
+			   renderer='rest',
+			   request_method='POST',
+			   permission=nauth.ACT_READ)
 class InquiryCloseView(AbstractAuthenticatedView, InquiryViewMixin):
 
 	def __call__(self):
@@ -295,12 +297,13 @@ class InquiryCloseView(AbstractAuthenticatedView, InquiryViewMixin):
 		container[self.context.ntiid] = result
 		return result
 
-@view_config(route_name="objects.generic.traversal",
-			 context=IQInquiry,
-			 renderer='rest',
-			 request_method='POST',
-			 permission=nauth.ACT_READ,
-			 name="open")
+@view_config(name='open')
+@view_config(name='Open')
+@view_defaults(route_name="objects.generic.traversal",
+			   context=IQInquiry,
+			   renderer='rest',
+			   request_method='POST',
+			   permission=nauth.ACT_READ)
 class InquiryOpenView(AbstractAuthenticatedView, InquiryViewMixin):
 
 	def __call__(self):

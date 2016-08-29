@@ -185,10 +185,10 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 				 or can_disclose_inquiry(context, course)):
 			links.append(Link(course,
 							  rel='Aggregated',
-							  elements=elements + ('Aggregated',)))
+							  elements=elements + ('@@Aggregated',)))
 			links.append(Link(course,
 							  rel='Submissions',
-							  elements=elements + ('Submissions',)))
+							  elements=elements + ('@@Submissions',)))
 
 		# close/open
 		if course is not None and is_course_instructor(course, user):
@@ -196,9 +196,9 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 				links.append(Link(course,
 								  rel='close',
 								  method='POST',
-								  elements=elements + ('close',)))
+								  elements=elements + ('@@close',)))
 			else:
 				links.append(Link(course,
 								  rel='open',
 								  method='POST',
-								  elements=elements + ('open',)))
+								  elements=elements + ('@@open',)))

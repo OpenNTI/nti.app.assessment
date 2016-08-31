@@ -24,13 +24,15 @@ from nti.app.assessment import MessageFactory as _
 from nti.app.assessment.common import get_max_time_allowed
 from nti.app.assessment.common import get_course_from_evaluation
 
-from nti.app.assessment.views import get_ds2
-
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataContainer
 
 from nti.app.assessment.metadata import UsersCourseAssignmentMetadataItem
+
+from nti.app.assessment.utils import get_course_from_request
+
+from nti.app.assessment.views import get_ds2
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
@@ -72,7 +74,9 @@ class AssignmentSubmissionMetataPostView(AbstractAuthenticatedView,
 		creator = self.remoteUser
 		if not creator:
 			raise hexc.HTTPForbidden(_("Must be Authenticated."))
-		course = get_course_from_evaluation(self.context, creator, exc=False)
+		course = get_course_from_request(self.request)
+		if course is None:
+			course = get_course_from_evaluation(self.context, creator, exc=False)
 		if course is None:
 			raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
 		return creator, course
@@ -134,7 +138,9 @@ class AssignmentSubmissionMetadataGetView(AbstractAuthenticatedView):
 
 	@Lazy
 	def course(self):
-		course = get_course_from_evaluation(self.context, self.remoteUser, exc=False)
+		course = get_course_from_request(self.request)
+		if course is None:
+			course = get_course_from_evaluation(self.context, self.remoteUser, exc=False)
 		return course
 
 	def _do_call(self):

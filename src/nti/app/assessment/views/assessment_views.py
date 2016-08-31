@@ -197,6 +197,7 @@ class AssignmentsByOutlineNodeMixin(AbstractAuthenticatedView):
 		return result
 
 @view_config(context=ICourseInstance)
+@view_config(context=ICourseCatalogEntry)
 @view_config(context=ICourseInstanceEnrollment)
 @view_defaults(route_name='objects.generic.traversal',
 			   renderer='rest',
@@ -294,6 +295,7 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 		return result
 
 @view_config(context=ICourseInstance)
+@view_config(context=ICourseCatalogEntry)
 @view_config(context=ICourseInstanceEnrollment)
 @view_defaults(route_name='objects.generic.traversal',
 			   renderer='rest',

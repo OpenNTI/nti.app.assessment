@@ -15,7 +15,6 @@ from zope import component
 from zope import interface
 
 from zope.schema.interfaces import NotUnique
-from zope.schema.interfaces import RequiredMissing
 from zope.schema.interfaces import ConstraintNotSatisfied
 
 from pyramid import httpexceptions as hexc
@@ -97,14 +96,11 @@ class InquiryViewMixin(object):
 		if not creator:
 			raise hexc.HTTPForbidden(_("Must be Authenticated."))
 		course = get_course_from_request(self.request)
-		try:
-			if course is None:
-				course = get_course_from_inquiry(self.context, creator)
-			if course is None:
-				raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
-			return course
-		except RequiredMissing:
+		if course is None:
+			course = get_course_from_inquiry(self.context, creator, exc=False)
+		if course is None:
 			raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
+		return course
 
 @view_config(route_name="objects.generic.traversal",
 			 context=IQInquiry,
@@ -233,8 +229,6 @@ class InquirySubmissionsView(AbstractAuthenticatedView, InquiryViewMixin):
 
 	def __call__(self):
 		course = self.course
-		if course is None:
-			raise hexc.HTTPUnprocessableEntity(_("Course not found."))
 		if not (	is_course_instructor(course, self.remoteUser) 
 				or	has_permission(nauth.ACT_NTI_ADMIN, course, self.request)):
 			raise hexc.HTTPForbidden(_("Cannot get inquiry submissions."))

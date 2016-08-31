@@ -207,7 +207,9 @@ def _begin_assessment_for_assignment_submission(submission):
 		ex.field = IQAssignmentSubmission['parts']
 		raise ex
 
-	course = get_course_from_assignment(assignment, submission.creator, exc=True)
+	course = get_course_from_request()
+	if course is None:
+		course = get_course_from_assignment(assignment, submission.creator, exc=True)
 
 	_validate_submission(submission, course, assignment)
 

@@ -45,6 +45,7 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 
 from nti.app.assessment.utils import replace_username
+from nti.app.assessment.utils import get_course_from_request
 from nti.app.assessment.utils import assignment_download_precondition
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
@@ -110,8 +111,10 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 
 	def _validate_submission(self):
 		creator = self.remoteUser
-		course = component.queryMultiAdapter((self.context, creator),
-											  ICourseInstance)
+		course = get_course_from_request(self.request)
+		if course is None:
+			course = component.queryMultiAdapter((self.context, creator),
+											  	 ICourseInstance)
 		if course is None:
 			raise hexc.HTTPForbidden("Must be enrolled in a course.")
 

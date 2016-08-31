@@ -33,6 +33,8 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepointItem
 
+from nti.app.assessment.utils import get_course_from_request
+
 from nti.app.assessment.views import get_ds2
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
@@ -78,7 +80,9 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 		if not creator:
 			raise hexc.HTTPForbidden(_("Must be Authenticated."))
 
-		course = get_course_from_evaluation(self.context, creator, exc=False)
+		course = get_course_from_request(self.request)
+		if course is None:
+			course = get_course_from_evaluation(self.context, creator, exc=False)
 		if course is None:
 			raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
 
@@ -145,7 +149,9 @@ class AssignmentSubmissionSavepointGetView(AbstractAuthenticatedView):
 		if not creator:
 			raise hexc.HTTPForbidden(_("Must be Authenticated."))
 
-		course = get_course_from_evaluation(self.context, creator, exc=False)
+		course = get_course_from_request(self.request)
+		if course is None:
+			course = get_course_from_evaluation(self.context, creator, exc=False)
 		if course is None:
 			raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
 

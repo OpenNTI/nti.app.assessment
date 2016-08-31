@@ -39,6 +39,8 @@ from nti.app.assessment.interfaces import ICourseAggregatedInquiries
 
 from nti.app.assessment.survey import UsersCourseInquiryItemResponse
 
+from nti.app.assessment.utils import get_course_from_request
+
 from nti.app.assessment.views import MessageFactory as _
 
 from nti.app.assessment.views import get_ds2
@@ -94,8 +96,10 @@ class InquiryViewMixin(object):
 		creator = self.remoteUser
 		if not creator:
 			raise hexc.HTTPForbidden(_("Must be Authenticated."))
+		course = get_course_from_request(self.request)
 		try:
-			course = get_course_from_inquiry(self.context, creator)
+			if course is None:
+				course = get_course_from_inquiry(self.context, creator)
 			if course is None:
 				raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
 			return course

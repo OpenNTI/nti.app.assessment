@@ -64,11 +64,7 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataContaine
 
 from nti.app.assessment.interfaces import ObjectRegradeEvent
 
-from nti.app.authentication import get_remote_user
-
 from nti.app.externalization.error import raise_json_error
-
-from nti.appserver.pyramid_authorization import has_permission
 
 from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
 
@@ -111,13 +107,10 @@ from nti.contenttypes.courses.legacy_catalog import ILegacyCourseInstance
 from nti.contenttypes.courses.common import get_course_packages
 
 from nti.contenttypes.courses.utils import get_course_hierarchy
-from nti.contenttypes.courses.utils import is_course_instructor_or_editor
 
 from nti.coremetadata.interfaces import SYSTEM_USER_ID
 
 from nti.coremetadata.interfaces import IPublishable
-
-from nti.dataserver import authorization as nauth
 
 from nti.dataserver.metadata_index import IX_MIMETYPE
 from nti.dataserver.metadata_index import IX_CONTAINERID
@@ -474,10 +467,6 @@ def get_course_self_assessments(context, exclude_editable=False):
 	query_types.extend(ALL_ASSIGNMENT_MIME_TYPES)
 	items = get_course_evaluations(context,
 								   mimetypes=query_types)
-	user = get_remote_user()
-	can_edit = 	user \
-			and (  has_permission(nauth.ACT_CONTENT_EDIT, context) \
-				or is_course_instructor_or_editor( context, user ))
 
 	for item in items:
 		if IQAssignment.providedBy(item):
@@ -490,7 +479,6 @@ def get_course_self_assessments(context, exclude_editable=False):
 		elif not IQuestionSet.providedBy(item):
 			qsids_to_strip.add(item.ntiid)
 		elif 	exclude_editable \
-			and not can_edit \
 			and IQEditableEvaluation.providedBy(item):
 			# XXX: Seems like eventually we'll want to return these.
 			qsids_to_strip.add(item.ntiid)

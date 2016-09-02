@@ -37,9 +37,11 @@ from nti.app.assessment.common import get_course_evaluations
 from nti.app.assessment.common import get_evaluation_courses
 from nti.app.assessment.common import get_course_assignments
 from nti.app.assessment.common import check_submission_version
+from nti.app.assessment.common import get_course_from_evaluation
 from nti.app.assessment.common import get_course_from_assignment
 from nti.app.assessment.common import get_course_self_assessments
 from nti.app.assessment.common import assess_assignment_submission
+from nti.app.assessment.common import get_assignments_for_evaluation_object
 from nti.app.assessment.common import get_available_for_submission_beginning
 
 from nti.app.assessment.history import UsersCourseAssignmentHistory
@@ -52,9 +54,10 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedb
 
 from nti.app.assessment.utils import get_course_from_request
 
+from nti.app.authentication import get_remote_user
+
 from nti.app.products.courseware.utils import get_course_and_parent
 
-from nti.appserver.context_providers import get_hierarchy_context
 from nti.appserver.context_providers import get_joinable_contexts
 from nti.appserver.context_providers import get_top_level_contexts
 from nti.appserver.context_providers import get_top_level_contexts_for_user
@@ -78,7 +81,6 @@ from nti.assessment.interfaces import IQAssignmentSubmission
 from nti.assessment.interfaces import IQuestionSetSubmission
 from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 
-from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.interfaces import IContentPackage
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
@@ -458,49 +460,55 @@ def _get_hierarchy_context_for_context(obj, top_level_context):
 										  IHierarchicalContextProvider)
 	return results or (top_level_context,)
 
-def _get_assessment_container(obj):
-	return 		find_interface(obj, ICourseInstance, strict=False) \
-			or	find_interface(obj, IContentUnit, strict=False)
+def _get_course_context( evaluation ):
+	user = get_remote_user()
+	course = get_course_from_evaluation( evaluation, user )
+	return course
+
+def _get_evaluation_containers( obj ):
+	# TODO: Should we also get question sets?
+	results = get_assignments_for_evaluation_object( obj )
+	return results
 
 @interface.implementer(ITopLevelContainerContextProvider)
 @component.adapter(IQInquiry)
 @component.adapter(IQAssessment)
 def _courses_from_obj(obj):
-	results = ()
-	container = _get_assessment_container(obj)
-	if container is not None:
-		results = get_top_level_contexts(container)
+	course = _get_course_context( obj )
+	results = get_top_level_contexts(course)
 	return results
 
 @interface.implementer(ITopLevelContainerContextProvider)
 @component.adapter(IQInquiry, IUser)
 @component.adapter(IQAssessment, IUser)
 def _courses_from_obj_and_user(obj, user):
-	results = ()
-	container = _get_assessment_container(obj)
-	if container is not None:
-		results = get_top_level_contexts_for_user(container, user)
+	course = _get_course_context( obj )
+	results = get_top_level_contexts_for_user(course, user)
 	return results
 
 @interface.implementer(IHierarchicalContextProvider)
 @component.adapter(IQInquiry, IUser)
 @component.adapter(IQAssessment, IUser)
 def _hierarchy_from_obj_and_user(obj, user):
-	results = ()
-	container = _get_assessment_container(obj)
-	if container is not None:
-		if IContentUnit.providedBy(container):
-			results = get_hierarchy_context(container, user)
-		else:
-			results = _get_hierarchy_context_for_context(obj, container)
+	results = []
+	course = _get_course_context( obj )
+	for container in _get_evaluation_containers( obj ) or (obj,):
+		hierarchy_context = _get_hierarchy_context_for_context( container, course )
+		results.extend( hierarchy_context )
 	return results
 
 @interface.implementer(IJoinableContextProvider)
 @component.adapter(IQInquiry)
 @component.adapter(IQAssessment)
 def _joinable_courses_from_obj(obj):
-	container = _get_assessment_container(obj)
-	return get_joinable_contexts(container)
+	courses = get_evaluation_courses( obj )
+	results = set()
+	for course in courses or ():
+		joinable = get_joinable_contexts(course)
+		if joinable:
+			results.update( joinable )
+	results.discard( None )
+	return results
 
 @interface.implementer(ITrustedTopLevelContainerContextProvider)
 @component.adapter(IUsersCourseAssignmentHistoryItemFeedback)

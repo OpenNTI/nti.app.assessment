@@ -29,6 +29,7 @@ from zope.location.interfaces import LocationError
 from pyramid import httpexceptions as hexc
 
 from pyramid.httpexceptions import HTTPCreated
+from pyramid.httpexceptions import HTTPException
 
 from pyramid.interfaces import IRequest
 from pyramid.interfaces import IExceptionResponse
@@ -143,7 +144,10 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 			result = component.getMultiAdapter((self.request, submission), 
 												IExceptionResponse)
 		except HTTPCreated as e:
-			result = e
+			result = e # valid response
+		except HTTPException as e:
+			logger.error("%s", e)
+			raise
 		except Exception as e:
 			logger.exception("Error while submitting assignment")
 			exc_info = sys.exc_info()

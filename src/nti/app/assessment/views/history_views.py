@@ -11,6 +11,7 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+import sys
 from numbers import Number
 from urllib import unquote
 from datetime import datetime
@@ -50,6 +51,7 @@ from nti.app.assessment.utils import assignment_download_precondition
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
+from nti.app.externalization.error import raise_json_error
 from nti.app.externalization.internalization import read_input_data
 
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
@@ -120,22 +122,33 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 
 	def _do_call(self):
 		creator = self.remoteUser
-		self._validate_submission()
+		try:
+			self._validate_submission()
+			if not self.request.POST:
+				submission = self.readCreateUpdateContentObject(creator)
+				check_upload_files(submission)
+			else:
+				extValue = get_source(self.request, 'json', 'input', 'submission')
+				if not extValue:
+					raise hexc.HTTPUnprocessableEntity("No submission source was specified")
+				extValue = extValue.read()
+				extValue = read_input_data(extValue, self.request)
+				submission = self.readCreateUpdateContentObject(creator, 
+																externalValue=extValue)
+				submission = read_multipart_sources(submission, self.request)
 
-		if not self.request.POST:
-			submission = self.readCreateUpdateContentObject(creator)
-			check_upload_files(submission)
-		else:
-			extValue = get_source(self.request, 'json', 'input', 'submission')
-			if not extValue:
-				raise hexc.HTTPUnprocessableEntity("No submission source was specified")
-			extValue = extValue.read()
-			extValue = read_input_data(extValue, self.request)
-			submission = self.readCreateUpdateContentObject(creator, externalValue=extValue)
-			submission = read_multipart_sources(submission, self.request)
-
-		# Re-use the same code for putting to a user
-		result = component.getMultiAdapter((self.request, submission), IExceptionResponse)
+			result = component.getMultiAdapter((self.request, submission), 
+												IExceptionResponse)
+		except Exception as e:
+			logger.exception("Error while submitting assignment")
+			exc_info = sys.exc_info()
+			raise_json_error(self.request,
+							 hexc.HTTPUnprocessableEntity,
+							 {
+								u'message': str(e),
+							 	u'code': e.__class__.__name__
+							 },
+							 exc_info[2])
 		return result
 
 @view_config(route_name="objects.generic.traversal",

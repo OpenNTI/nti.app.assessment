@@ -12,13 +12,13 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 import sys
+from io import StringIO
 from numbers import Number
 from urllib import unquote
 from datetime import datetime
-from cStringIO import StringIO
 
-from zipfile import ZipInfo
 from zipfile import ZipFile
+from zipfile import ZipInfo
 
 from zope import component
 

@@ -465,7 +465,11 @@ def _get_course_context( evaluation ):
 	course = get_course_from_evaluation( evaluation, user )
 	return course
 
-def _get_evaluation_containers( obj ):
+def _get_outline_evaluation_containers( obj ):
+	"""
+	For the given evaluation, return any unique containers which might
+	be found in a course outline.
+	"""
 	# TODO: Should we also get question sets?
 	results = get_assignments_for_evaluation_object( obj )
 	return results
@@ -491,10 +495,13 @@ def _courses_from_obj_and_user(obj, user):
 @component.adapter(IQAssessment, IUser)
 def _hierarchy_from_obj_and_user(obj, user):
 	results = []
-	course = _get_course_context( obj )
-	for container in _get_evaluation_containers( obj ) or (obj,):
-		hierarchy_context = _get_hierarchy_context_for_context( container, course )
-		results.extend( hierarchy_context )
+	# Get our top level courses for this object and user
+	courses = get_top_level_contexts_for_user(obj, user)
+	for course in courses:
+		for container in _get_outline_evaluation_containers( obj ) or (obj,):
+			hierarchy_context = _get_hierarchy_context_for_context( container, course )
+			if hierarchy_context:
+				results.extend( hierarchy_context )
 	return results
 
 @interface.implementer(IJoinableContextProvider)

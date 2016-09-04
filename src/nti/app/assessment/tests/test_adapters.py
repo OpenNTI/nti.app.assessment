@@ -31,8 +31,8 @@ from nti.testing.matchers import validly_provides
 import fudge
 import datetime
 import urlparse
-from urllib import quote 
-from urllib import unquote 
+from urllib import quote
+from urllib import unquote
 
 from zope import component
 
@@ -102,7 +102,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 						 raises(ConstraintNotSatisfied, 'parts') )
 
 	@WithSharedApplicationMockDS(users=True,testapp=True)
-	@fudge.patch('nti.app.assessment.adapters.get_course_from_assignment')
+	@fudge.patch('nti.app.assessment.adapters.get_course_from_request')
 	def test_before_open(self, mock_find):
 		from nti.contenttypes.courses.assignment import EmptyAssignmentDateContext
 		mock_find.is_callable().returns(EmptyAssignmentDateContext(None))
@@ -159,7 +159,8 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		# to anything)
 		ext_obj['ContainerId'] = 'tag:nextthought.com,2011-10:mathcounts-HTML-MN.2012.0'
 
-		res = self.post_user_data( ext_obj )
+		res = self.testapp.post_json( '/dataserver2/Objects/%s?course=%s' % (self.assignment_id, COURSE_NTIID ),
+									  ext_obj)
 
 		self._check_submission(res)
 
@@ -272,8 +273,8 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 			history_res = self.testapp.get(link)
 			assert_that( history_res.json_body, has_entry('Items', has_length(0)))
 
-		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id,
-									  ext_obj)
+		assignment_submit_rel = '%s/%s/%s' % (course_instance_link, 'Assessments', self.assignment_id)
+		res = self.testapp.post_json( assignment_submit_rel, ext_obj)
 		self._check_submission(res, enrollment_history_link)
 
 		history_res = self._check_submission( res, course_history_link )
@@ -404,10 +405,9 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		assert_that( res.json_body, has_entry( 'Items', is_empty() ))
 
 		# Whereupon we can submit again
-		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id,
-									  ext_obj)
+		res = self.testapp.post_json( assignment_submit_rel, ext_obj )
 		self._check_submission(res, enrollment_history_link, 1234)
-		
+
 		# The instructor can reset all submission
 		reset_href = '/dataserver2/Objects/%s/@@Reset' % quote(self.assignment_id)
 		res = self.testapp.post_json(reset_href,
@@ -439,7 +439,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		self.testapp.get( history_href, extra_environ=instructor_environ, status=404)
 
 		# Practice assignment
-		assignment = self.testapp.get( '/dataserver2/Objects/%s' % self.assignment_id,
+		assignment = self.testapp.get( '/dataserver2/Objects/%s?course=%s' % (self.assignment_id, COURSE_NTIID),
 										extra_environ=instructor_environ )
 		practice_href = self.require_link_href_with_rel( assignment.json_body, ASSESSMENT_PRACTICE_SUBMISSION )
 
@@ -500,6 +500,8 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		res = self.testapp.get(enrollment_assignments, extra_environ=instructor_environ)
 		assg = res.json_body['Items'][self.lesson_page_id][0]
 
+		assg_href = assg.get( 'href' )
+		assert_that( assg_href, not_none() )
 		for part in assg['parts']:
 			question_set = part['question_set']
 			for question in question_set['questions']:
@@ -515,8 +517,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		submission = AssignmentSubmission(assignmentId=self.assignment_id, parts=(qs_submission,))
 
 		ext_obj = to_external_object( submission )
-		res = self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id,
-									  ext_obj)
+		res = self.testapp.post_json( assg_href, ext_obj)
 
 		def _check_pending(pending):
 			for assessed_qset in pending['parts']:

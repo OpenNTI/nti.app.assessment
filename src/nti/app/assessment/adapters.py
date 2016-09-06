@@ -471,7 +471,6 @@ def _get_outline_evaluation_containers( obj ):
 	be found in a course outline (question sets, question banks, and
 	assignments).
 	"""
-	results = []
 	containers = get_containers_for_evaluation_object( obj,
 													   include_question_sets=True )
 	assigment_question_sets = set()
@@ -485,9 +484,12 @@ def _get_outline_evaluation_containers( obj ):
 					assigment_question_sets.add( qset_ntiid )
 
 	if assigment_question_sets and containers:
+		results = []
 		for container in containers:
 			if container.ntiid not in assigment_question_sets:
 				results.append( container )
+	else:
+		results = containers
 	return results
 
 @interface.implementer(ITopLevelContainerContextProvider)

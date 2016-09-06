@@ -211,7 +211,8 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		auto_grade = get_auto_grade_policy(assignment, course)
 		if auto_grade:
 			disabled = auto_grade.get('disable')
-			result['auto_grade'] = not disabled if disabled is not None else None
+			# If we have policy but no disabled flag, default to True.
+			result['auto_grade'] = not disabled if disabled is not None else True
 			result['total_points'] = auto_grade.get('total_points')
 
 class _TimedAssignmentPartStripperDecorator(AbstractAuthenticatedRequestAwareDecorator):
@@ -605,7 +606,7 @@ class _AssessmentPracticeLinkDecorator(AbstractAuthenticatedRequestAwareDecorato
 		course = get_course_from_request(self.request)
 		if course is not None:
 			link_context = course
-			elements = ('Assessments', context.ntiid, 
+			elements = ('Assessments', context.ntiid,
 						'@@'+ASSESSMENT_PRACTICE_SUBMISSION)
 		else:
 			link_context = context

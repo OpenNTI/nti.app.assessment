@@ -41,7 +41,7 @@ from nti.app.assessment.common import get_course_from_evaluation
 from nti.app.assessment.common import get_course_from_assignment
 from nti.app.assessment.common import get_course_self_assessments
 from nti.app.assessment.common import assess_assignment_submission
-from nti.app.assessment.common import get_assignments_for_evaluation_object
+from nti.app.assessment.common import get_containers_for_evaluation_object
 from nti.app.assessment.common import get_available_for_submission_beginning
 
 from nti.app.assessment.history import UsersCourseAssignmentHistory
@@ -468,10 +468,26 @@ def _get_course_context( evaluation ):
 def _get_outline_evaluation_containers( obj ):
 	"""
 	For the given evaluation, return any unique containers which might
-	be found in a course outline.
+	be found in a course outline (question sets, question banks, and
+	assignments).
 	"""
-	# TODO: Should we also get question sets?
-	results = get_assignments_for_evaluation_object( obj )
+	results = []
+	containers = get_containers_for_evaluation_object( obj,
+													   include_question_sets=True )
+	assigment_question_sets = set()
+
+	# Gather assignment question sets and remove them.
+	for container in containers or ():
+		if IQAssignment.providedBy( container ):
+			for part in container.parts or ():
+				if part.question_set is not None:
+					qset_ntiid = part.question_set.ntiid
+					assigment_question_sets.add( qset_ntiid )
+
+	if assigment_question_sets and containers:
+		for container in containers:
+			if container.ntiid not in assigment_question_sets:
+				results.append( container )
 	return results
 
 @interface.implementer(ITopLevelContainerContextProvider)

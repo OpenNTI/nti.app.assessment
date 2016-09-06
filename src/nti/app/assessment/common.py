@@ -707,10 +707,11 @@ def delete_evaluation_metadata(context, course, subinstances=True):
 											subinstances)
 	return result
 
-def get_assignments_for_evaluation_object(context, sites=None):
+def get_containers_for_evaluation_object(context, sites=None, include_question_sets=False):
 	"""
 	For the given evaluation object, fetch all assignments which
-	contain it.
+	contain it. `question_sets` toggles whether containing question sets are
+	also returned. We do not exclude question sets included in assignments.
 	"""
 	if IQAssignment.providedBy(context):  # check itself
 		return (context,)
@@ -721,12 +722,16 @@ def get_assignments_for_evaluation_object(context, sites=None):
 		ntiid = context.ntiid
 	contained = (ntiid,)
 
+	mime_types = ALL_ASSIGNMENT_MIME_TYPES
+	if include_question_sets:
+		mime_types = ALL_ASSIGNMENT_MIME_TYPES + (QUESTION_SET_MIME_TYPE, QUESTION_BANK_MIME_TYPE)
+
 	sites = get_component_hierarchy_names() if not sites else sites
 	sites = sites.split() if isinstance(sites, six.string_types) else sites
 	query = {
 		IX_SITE: {'any_of': sites},
 		IX_CONTAINMENT: {'any_of': contained},
-		IX_ASSESS_MIMETYPE: {'any_of': ALL_ASSIGNMENT_MIME_TYPES}
+		IX_ASSESS_MIMETYPE: {'any_of': mime_types}
 	}
 
 	result = []
@@ -737,6 +742,8 @@ def get_assignments_for_evaluation_object(context, sites=None):
 		if IQEvaluation.providedBy(evaluation):  # extra check
 			result.append(evaluation)
 	return tuple(result)
+
+get_assignments_for_evaluation_object = get_containers_for_evaluation_object
 
 def _is_published(context):
 	return not IPublishable.providedBy(context) or context.is_published()

@@ -423,6 +423,11 @@ class ICourseEvaluations(IContainer,
 	"""
 	contains(IQEvaluation)
 
+	def replace(old, new):
+		""""
+		replace the old evalutation object with the new one
+		"""
+		
 class IQPartChangeAnalyzer(interface.Interface):
 	"""
 	Marker interface for a question part adapter to analyze an update to it

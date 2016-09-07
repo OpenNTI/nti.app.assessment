@@ -33,6 +33,8 @@ from nti.dataserver.authorization import ROLE_CONTENT_ADMIN
 from nti.dataserver.authorization_acl import ace_allowing
 from nti.dataserver.authorization_acl import acl_from_aces
 
+from nti.intid.common import removeIntId
+
 from nti.traversal.traversal import find_interface
 
 @interface.implementer(ICourseEvaluations)
@@ -59,18 +61,20 @@ class CourseEvaluations(CaseInsensitiveCheckingLastModifiedBTreeContainer):
 	def __setitem__(self, key, value):
 		self._save(key, value)
 
-	def _eject(self, key):
-		self._delitemf(key)
+	def _eject(self, key, event=True):
+		self._delitemf(key, event=event)
 		self.updateLastMod()
 		self._p_changed = True
 
 	def __delitem__(self, key):
 		self._eject(key)
 
-	def replace(self, old, new):
+	def replace(self, old, new, event=False):
 		assert old.ntiid == new.ntiid
 		ntiid = old.ntiid
-		self._eject(ntiid)
+		self._eject(ntiid, event=event)
+		if not event:
+			removeIntId(old)
 		self._save(ntiid, new)
 		return new
 

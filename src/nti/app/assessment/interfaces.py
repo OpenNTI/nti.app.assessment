@@ -423,7 +423,7 @@ class ICourseEvaluations(IContainer,
 	"""
 	contains(IQEvaluation)
 
-	def replace(old, new):
+	def replace(old, new, event=False):
 		""""
 		replace the old evalutation object with the new one
 		"""

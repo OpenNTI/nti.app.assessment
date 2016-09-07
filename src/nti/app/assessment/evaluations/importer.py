@@ -10,10 +10,18 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 import os
+import uuid
 
 from zope import component
 from zope import interface
 from zope import lifecycleevent
+
+from zope.security.interfaces import NoInteraction, IPrincipal
+from zope.security.management import getInteraction
+
+from zope.security.management import system_user
+
+from nti.app.assessment.common import make_evaluation_ntiid
 
 from nti.app.assessment.evaluations.utils import indexed_iter
 from nti.app.assessment.evaluations.utils import register_context
@@ -58,14 +66,37 @@ class EvaluationsImporter(BaseSectionImporter):
 
 	EVALUATION_INDEX = "evaluation_index.json"
 
+	@property
+	def _extra(self):
+		return str(uuid.uuid4()).split('-')[0].upper()
+	
+	def current_principal(self):
+		remoteUser = IPrincipal(get_remote_user(), None)
+		if remoteUser is None:
+			try:
+				remoteUser = getInteraction().participations[0].principal
+			except (NoInteraction, IndexError, AttributeError):
+				remoteUser = system_user
+		return remoteUser
+
+	def get_ntiid(self, obj):
+		return getattr(obj, 'ntiid', None)
+
 	def is_new(self, obj, course):
-		ntiid = obj.ntiid
+		ntiid = self.get_ntiid(obj)
 		provided = iface_of_assessment(obj)
 		evaluations = ICourseEvaluations(course)
-		return	  ntiid not in evaluations \
-				and component.queryUtility(provided, name=ntiid) is None
+		return		not ntiid \
+				or (	ntiid not in evaluations \
+					and component.queryUtility(provided, name=ntiid) is None)
 
 	def store_evaluation(self, obj, course):
+		principal = self.current_principal()
+		ntiid = getattr(obj, 'ntiid', None)
+		if not ntiid:
+			provided = iface_of_assessment(obj)
+			obj.ntiid = make_evaluation_ntiid(provided, principal.id, extra=self._extra)
+			obj.creator = principal.id
 		evaluations = ICourseEvaluations(course)
 		lifecycleevent.created(obj)
 		evaluations[obj.ntiid] = obj  # gain intid

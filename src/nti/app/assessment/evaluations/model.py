@@ -75,6 +75,7 @@ class CourseEvaluations(CaseInsensitiveCheckingLastModifiedBTreeContainer):
 		self._eject(ntiid)
 		removeIntId(old)
 		self._save(ntiid, new)
+		return new
 
 	@property
 	def __acl__(self):

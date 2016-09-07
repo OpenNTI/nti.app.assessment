@@ -397,6 +397,9 @@ class TestAssignmentViews(ApplicationLayerTest):
 			assert_that(asg, has_property('available_for_submission_ending', is_not(ending)))
 			assert_that(asg, has_property('available_for_submission_beginning', is_not(beginning)))
 
+			# Out assignment is not locked
+			assert_that(asg.isLocked(), is_(False))
+
 			history = ITransactionRecordHistory(asg)
 			assert_that(history, has_length(1))
 
@@ -450,6 +453,9 @@ class TestAssignmentViews(ApplicationLayerTest):
 			assert_that(asg, has_property('title', is_('ProjectOne')))
 			assert_that(asg, has_property('available_for_submission_ending', is_not(ending)))
 			assert_that(asg, has_property('available_for_submission_beginning', is_not(beginning)))
+
+			# Out assignment is locked since we edited title.
+			assert_that(asg.isLocked(), is_(True))
 
 			history = ITransactionRecordHistory(asg)
 			assert_that(history, has_length(1))

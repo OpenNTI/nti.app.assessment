@@ -958,7 +958,8 @@ class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):
 		if IQEditableEvaluation.providedBy(contentObject):
 			self.handle_evaluation(contentObject, self.course, sources, self.remoteUser)
 		# validate changes, subscribers
-		notifyModified(contentObject, originalSource)
+		if notify:
+			self.notify_and_record( contentObject, originalSource )
 		return result
 
 @view_config(route_name='objects.generic.traversal',

@@ -71,6 +71,8 @@ from nti.links.links import Link
 
 from nti.property.property import Lazy
 
+from nti.recorder.utils import record_transaction
+
 from nti.schema.interfaces import InvalidValue
 
 from nti.traversal.traversal import find_interface
@@ -364,6 +366,24 @@ class AssessmentPutView(UGDPutView):
 			for part in contentObject.parts or ():
 				part.auto_grade = value
 
+	def notify_and_record(self, contentObject, externalValue):
+		"""
+		Broadcast and notify if our object changes; if we only have
+		policy changes, just record the changes themselves without
+		locking our object.
+		"""
+		non_policy_changes = set( externalValue ) - set( self.policy_keys )
+		if non_policy_changes:
+			# Auto-assess changes should notify.
+			notifyModified(contentObject, externalValue)
+		else:
+			# If only policy changes, we want to record the change and
+			# make sure we remain unlocked.
+			record_transaction(contentObject,
+							   descriptions=externalValue.keys(),
+							   ext_value=externalValue,
+							   lock=False)
+
 	def updateContentObject(self, contentObject, externalValue, set_id=False,
 							notify=True, pre_hook=None):
 		context = get_course_from_request(self.request)
@@ -408,12 +428,13 @@ class AssessmentPutView(UGDPutView):
 													pre_hook=pre_hook,
 													externalValue=externalValue,
 													contentObject=contentObject)
-
-			if notify:
-				notifyModified(contentObject, copied)
+			externalValue = copied
 		else:
 			result = contentObject
+			externalValue = backupData
 
+		if notify:
+			self.notify_and_record( contentObject, externalValue )
 		self._update_auto_assess( contentObject, auto_assess )
 
 		# update course policy

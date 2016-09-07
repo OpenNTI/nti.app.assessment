@@ -16,7 +16,8 @@ from zope import component
 from zope import interface
 from zope import lifecycleevent
 
-from zope.security.interfaces import NoInteraction, IPrincipal
+from zope.security.interfaces import IPrincipal
+from zope.security.interfaces import NoInteraction 
 from zope.security.management import getInteraction
 
 from zope.security.management import system_user

@@ -10,6 +10,7 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 import os
+import copy
 import uuid
 
 from zope import component
@@ -53,6 +54,7 @@ from nti.contenttypes.courses.importer import BaseSectionImporter
 
 from nti.contenttypes.courses.utils import get_course_subinstances
 
+from nti.coremetadata.interfaces import IRecordable
 from nti.coremetadata.interfaces import ICalendarPublishable
 
 from nti.externalization.interfaces import StandardExternalFields
@@ -186,7 +188,7 @@ class EvaluationsImporter(BaseSectionImporter):
 		[p.ntiid for p in theObject.parts or ()]  # set auto part NTIIDs
 		return theObject
 
-	def handle_evaluation(self, theObject, course, source_filer):
+	def handle_evaluation(self, theObject, source, course, source_filer):
 		if IQuestion.providedBy(theObject):
 			result = self.handle_question(theObject, course)
 		elif IQPoll.providedBy(theObject):
@@ -212,22 +214,28 @@ class EvaluationsImporter(BaseSectionImporter):
 		# always register
 		register_context(result)
 
-		# always publish
-		if not result.is_published():
+		isPublished = source.get('isPublished')
+		if isPublished:
 			if ICalendarPublishable.providedBy(result):
 				result.publish(start=result.publishBeginning,
 							   end=result.publishEnding,
 							   event=False)
 			else:
 				result.publish(event=False)
+				
+		locked = source.get('isLocked')
+		if locked and IRecordable.providedBy(theObject):
+			theObject.lock(event=False)
+			lifecycleevent.modified(theObject)
 		return result
 
 	def handle_course_items(self, items, course, source_filer):
 		for ext_obj in items or ():
+			source = copy.deepcopy(ext_obj)
 			factory = find_factory_for(ext_obj)
 			theObject = factory()
 			update_from_external_object(theObject, ext_obj, notify=False)
-			self.handle_evaluation(theObject, course, source_filer)
+			self.handle_evaluation(theObject, source, course, source_filer)
 
 	def do_import(self, course, filer, writeout=True):
 		href = self.course_bucket_path(course) + self.EVALUATION_INDEX

@@ -64,4 +64,7 @@
 	<!-- Exporter -->
 	<utility factory=".exporter.EvaluationsExporter" name="012:Evaluations" />
 	
+	<!-- Importer -->
+	<utility factory=".importer.EvaluationsImporter" name="012:Evaluations" />
+	
 </configure>

@@ -95,7 +95,7 @@ class EvaluationsImporter(BaseSectionImporter):
 
 	def store_evaluation(self, obj, course):
 		principal = self.current_principal()
-		ntiid = getattr(obj, 'ntiid', None)
+		ntiid = self.get_ntiid(obj)
 		if not ntiid:
 			provided = iface_of_assessment(obj)
 			obj.ntiid = make_evaluation_ntiid(provided, principal.id, extra=self._extra)
@@ -106,7 +106,7 @@ class EvaluationsImporter(BaseSectionImporter):
 		return obj
 
 	def get_registered_evaluation(self, obj, course):
-		ntiid = obj.ntiid
+		ntiid = self.get_ntiid(obj)
 		evaluations = ICourseEvaluations(course)
 		if ntiid in evaluations:  # replace
 			obj = evaluations[ntiid]
@@ -116,7 +116,7 @@ class EvaluationsImporter(BaseSectionImporter):
 		return obj
 
 	def handle_question(self, theObject, course):
-		ntiid = theObject.ntiid
+		ntiid = self.get_ntiid(theObject)
 		if self.is_new(theObject, course):
 			theObject = self.store_evaluation(theObject, course)
 		else:
@@ -127,7 +127,7 @@ class EvaluationsImporter(BaseSectionImporter):
 		return theObject
 
 	def handle_poll(self, theObject, course):
-		ntiid = theObject.ntiid
+		ntiid = self.get_ntiid(theObject)
 		if self.is_new(theObject, course):
 			theObject = self.store_evaluation(theObject, course)
 		else:
@@ -138,7 +138,7 @@ class EvaluationsImporter(BaseSectionImporter):
 		return theObject
 
 	def handle_question_set(self, theObject, course):
-		ntiid = theObject.ntiid
+		ntiid = self.get_ntiid(theObject)
 		if self.is_new(theObject, course):
 			questions = indexed_iter()
 			for question in theObject.questions or ():
@@ -153,7 +153,7 @@ class EvaluationsImporter(BaseSectionImporter):
 		return theObject
 
 	def handle_survey(self, theObject, course):
-		ntiid = theObject.ntiid
+		ntiid = self.get_ntiid(theObject)
 		if self.is_new(theObject, course):
 			questions = indexed_iter()
 			for poll in theObject.questions or ():
@@ -173,7 +173,7 @@ class EvaluationsImporter(BaseSectionImporter):
 		return part
 
 	def handle_assignment(self, theObject, course):
-		ntiid = theObject.ntiid
+		ntiid = self.get_ntiid(theObject)
 		if self.is_new(theObject, course):
 			parts = indexed_iter()
 			for part in theObject.parts or ():

@@ -62,6 +62,8 @@ from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.internalization import find_factory_for
 from nti.externalization.internalization import update_from_external_object
 
+from nti.property.property import Lazy
+
 ITEMS = StandardExternalFields.ITEMS
 
 @interface.implementer(ICourseSectionImporter)
@@ -73,6 +75,7 @@ class EvaluationsImporter(BaseSectionImporter):
 	def _extra(self):
 		return str(uuid.uuid4()).split('-')[0].upper()
 	
+	@Lazy
 	def current_principal(self):
 		remoteUser = IPrincipal(get_remote_user(), None)
 		if remoteUser is None:
@@ -94,7 +97,7 @@ class EvaluationsImporter(BaseSectionImporter):
 					and component.queryUtility(provided, name=ntiid) is None)
 
 	def store_evaluation(self, obj, course):
-		principal = self.current_principal()
+		principal = self.current_principal
 		ntiid = self.get_ntiid(obj)
 		if not ntiid:
 			provided = iface_of_assessment(obj)

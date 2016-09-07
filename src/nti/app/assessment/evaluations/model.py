@@ -33,8 +33,6 @@ from nti.dataserver.authorization import ROLE_CONTENT_ADMIN
 from nti.dataserver.authorization_acl import ace_allowing
 from nti.dataserver.authorization_acl import acl_from_aces
 
-from nti.intid.common import removeIntId
-
 from nti.traversal.traversal import find_interface
 
 @interface.implementer(ICourseEvaluations)
@@ -73,7 +71,6 @@ class CourseEvaluations(CaseInsensitiveCheckingLastModifiedBTreeContainer):
 		assert old.ntiid == new.ntiid
 		ntiid = old.ntiid
 		self._eject(ntiid)
-		removeIntId(old)
 		self._save(ntiid, new)
 		return new
 

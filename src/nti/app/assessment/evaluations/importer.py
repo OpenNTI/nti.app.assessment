@@ -112,7 +112,8 @@ class EvaluationsImporter(BaseSectionImporter):
 		ntiid = self.get_ntiid(obj)
 		evaluations = ICourseEvaluations(course)
 		if ntiid in evaluations:  # replace
-			obj = evaluations[ntiid]
+			old = evaluations[ntiid]
+			obj = evaluations.replace(old, obj, event=False)
 		else:
 			provided = iface_of_assessment(obj)
 			obj = component.queryUtility(provided, name=ntiid)

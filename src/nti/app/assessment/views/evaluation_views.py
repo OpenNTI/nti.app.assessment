@@ -227,7 +227,7 @@ class EvaluationMixin(StructuralValidationMixin):
 
 	@Lazy
 	def _extra(self):
-		return str(uuid.uuid4()).split('-')[0]
+		return str(uuid.uuid4()).split('-')[0].upper()
 
 	def get_ntiid(self, context):
 		if isinstance(context, six.string_types):

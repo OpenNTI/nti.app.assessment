@@ -88,7 +88,7 @@ class CourseViewMixin(AbstractAuthenticatedView, BatchingUtilsMixin):
 			else:
 				ntiid = get_containerId(item) or u'unparented'
 				items.setdefault(ntiid, []).append(item)
-		if not outline: 
+		if not outline:
 			self._batch_items_iterable(result, items)
 		else:
 			result[ITEM_COUNT] = count
@@ -151,12 +151,12 @@ class GetLockAssignmentsView(CourseViewMixin):
 	def _filterBy(self, item, mimeTypes=()):
 		result = CourseViewMixin._filterBy(self, item, mimeTypes=mimeTypes)
 		return result and item.isLocked()
-	
+
 	def __call__(self):
 		instance = ICourseInstance(self.request.context)
 		func = partial(get_course_assignments, instance, do_filtering=False)
 		return self._do_call(func)
-	
+
 @view_config(context=ICourseInstance)
 @view_config(context=ICourseCatalogEntry)
 @view_defaults(route_name='objects.generic.traversal',
@@ -192,7 +192,7 @@ class UnlockAllAssignmentsView(AbstractAuthenticatedView):
 		result = LocatedExternalDict()
 		items = result[ITEMS] = []
 		course = ICourseInstance(self.context)
-		for item in get_course_assignments(course, False):
+		for item in get_course_assignments(course, sort=False, do_filtering=False):
 			assesment = component.queryUtility(IQAssignment, name=item.ntiid)
 			if assesment is not None and assesment.isLocked():
 				assesment.unlock()

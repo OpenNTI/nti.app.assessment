@@ -79,6 +79,8 @@ from nti.externalization.proxy import removeAllProxies
 from nti.intid.common import addIntId
 from nti.intid.common import removeIntId
 
+from nti.ntiids.ntiids import find_object_with_ntiid
+
 from nti.site.utils import registerUtility
 from nti.site.utils import unregisterUtility
 
@@ -273,6 +275,7 @@ class QuestionMap(QuestionIndex):
 		library = component.queryUtility(IContentPackageLibrary)
 		parents_questions = IQAssessmentItemContainer(content_package)
 
+		# XXX: remove
 		hierarchy_ntiids = set()
 		hierarchy_ntiids.add(content_package.ntiid)
 
@@ -670,17 +673,34 @@ def _remove_assessment_items_from_oldcontent(content_package,
 	for ntiid in ignore:
 		sync_results.add_assessment(ntiid, locked=True)
 
-	return result
+	return result, ignore
 
 @component.adapter(IContentPackage, IObjectRemovedEvent)
 def remove_assessment_items_from_oldcontent(content_package, event=None, force=True):
 	sync_results = _get_sync_results(content_package, event)
 	logger.info("Removing assessment items from old content %s %s",
 				content_package, event)
-	result = _remove_assessment_items_from_oldcontent(content_package,
+	result, locked_ntiids = _remove_assessment_items_from_oldcontent(content_package,
 													  force=force,
 													  sync_results=sync_results)
-	return set(result.keys())
+	return set(result.keys()), set( locked_ntiids )
+
+def _transfer_locked_items_to_content_package( content_package, added_items, locked_ntiids ):
+	"""
+	If we have locked items, but they do not exist in the added items, add
+	them to our content package so that it's possible to remove them if
+	they are ever unlocked.
+	"""
+	added_ntiids = set( x.ntiid for x in added_items or () )
+	missing_ntiids = set( locked_ntiids ) - set( added_ntiids )
+	parents_questions = IQAssessmentItemContainer(content_package)
+	for ntiid in missing_ntiids:
+		logger.info( 'Attempting to remove item (%s) from content, but item is locked' % ntiid )
+		missing_item = find_object_with_ntiid( ntiid )
+		# XXX: We store these orphans on the package, should we try to store
+		# on the old unit it was under?
+		parents_questions.append( missing_item )
+		missing_item.__parent__ = content_package
 
 @component.adapter(IContentPackage, IObjectModifiedEvent)
 def update_assessment_items_when_modified(content_package, event=None):
@@ -701,15 +721,23 @@ def update_assessment_items_when_modified(content_package, event=None):
 	logger.info("Updating assessment items from modified content %s %s",
 				content_package, event)
 
-	removed = remove_assessment_items_from_oldcontent(original, event, force=False)
+	removed, locked_ntiids = remove_assessment_items_from_oldcontent(original, event, force=False)
 	logger.info("%s assessment item(s) have been removed from content %s",
 				len(removed), original)
 
-	registered = add_assessment_items_from_new_content(updated, event, key=update_key)
+	registered = add_assessment_items_from_new_content(updated, event,
+													   key=update_key)
 	logger.info("%s assessment item(s) have been registered for content %s",
 				len(registered), updated)
 
+	# Transfer locked items (now gone from content) to the new package.
 	assesment_items = get_content_packages_assessment_items(updated)
+
+	if locked_ntiids:
+		_transfer_locked_items_to_content_package( content_package,
+												   assesment_items,
+												   locked_ntiids )
+
 	if len(assesment_items) < len(registered):
 		raise AssertionError("[%s] Item(s) in content package %s are less that in the registry %s" %
 							(content_package.ntiid, len(assesment_items), len(registered)))

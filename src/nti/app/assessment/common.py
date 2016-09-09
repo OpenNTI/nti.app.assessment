@@ -1078,10 +1078,9 @@ def get_outline_evaluation_containers( obj ):
 	# Gather assignment question sets and remove them.
 	for container in containers or ():
 		if IQAssignment.providedBy( container ):
-			for part in container.parts or ():
-				if part.question_set is not None:
-					qset_ntiid = part.question_set.ntiid
-					assigment_question_sets.add( qset_ntiid )
+			for question_set in container.iter_question_sets():
+				qset_ntiid = question_set.ntiid
+				assigment_question_sets.add( qset_ntiid )
 
 	if assigment_question_sets and containers:
 		results = []

@@ -12,6 +12,7 @@
 	<pyramid:scan package=".feedback_views" />
 	<pyramid:scan package=".metadata_views" />
 	<pyramid:scan package=".savepoint_views" />
+	<pyramid:scan package=".container_views" />
 	<pyramid:scan package=".randomize_views" />
 	<pyramid:scan package=".assessment_views" />
 	<pyramid:scan package=".evaluation_views" />

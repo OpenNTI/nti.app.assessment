@@ -41,7 +41,7 @@ from nti.app.assessment.common import get_course_from_evaluation
 from nti.app.assessment.common import get_course_from_assignment
 from nti.app.assessment.common import get_course_self_assessments
 from nti.app.assessment.common import assess_assignment_submission
-from nti.app.assessment.common import get_containers_for_evaluation_object
+from nti.app.assessment.common import get_outline_evaluation_containers
 from nti.app.assessment.common import get_available_for_submission_beginning
 
 from nti.app.assessment.history import UsersCourseAssignmentHistory
@@ -465,33 +465,6 @@ def _get_course_context( evaluation ):
 	course = get_course_from_evaluation( evaluation, user )
 	return course
 
-def _get_outline_evaluation_containers( obj ):
-	"""
-	For the given evaluation, return any unique containers which might
-	be found in a course outline (question sets, question banks, and
-	assignments).
-	"""
-	containers = get_containers_for_evaluation_object( obj,
-													   include_question_sets=True )
-	assigment_question_sets = set()
-
-	# Gather assignment question sets and remove them.
-	for container in containers or ():
-		if IQAssignment.providedBy( container ):
-			for part in container.parts or ():
-				if part.question_set is not None:
-					qset_ntiid = part.question_set.ntiid
-					assigment_question_sets.add( qset_ntiid )
-
-	if assigment_question_sets and containers:
-		results = []
-		for container in containers:
-			if container.ntiid not in assigment_question_sets:
-				results.append( container )
-	else:
-		results = containers
-	return results
-
 @interface.implementer(ITopLevelContainerContextProvider)
 @component.adapter(IQInquiry)
 @component.adapter(IQAssessment)
@@ -516,7 +489,7 @@ def _hierarchy_from_obj_and_user(obj, user):
 	# Get our top level courses for this object and user
 	courses = get_top_level_contexts_for_user(obj, user)
 	for course in courses:
-		for container in _get_outline_evaluation_containers( obj ) or (obj,):
+		for container in get_outline_evaluation_containers( obj ) or (obj,):
 			hierarchy_context = _get_hierarchy_context_for_context( container, course )
 			if hierarchy_context:
 				results.extend( hierarchy_context )

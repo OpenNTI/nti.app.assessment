@@ -1064,3 +1064,30 @@ def is_assignment_non_public_only( context, courses=None ):
 
 	is_non_public_only = courses and all(_is_non_public(x) for x in courses)
 	return is_non_public_only
+
+def get_outline_evaluation_containers( obj ):
+	"""
+	For the given evaluation, return any unique containers which might
+	be found in a course outline (question sets, question banks, and
+	assignments).
+	"""
+	containers = get_containers_for_evaluation_object( obj,
+													   include_question_sets=True )
+	assigment_question_sets = set()
+
+	# Gather assignment question sets and remove them.
+	for container in containers or ():
+		if IQAssignment.providedBy( container ):
+			for part in container.parts or ():
+				if part.question_set is not None:
+					qset_ntiid = part.question_set.ntiid
+					assigment_question_sets.add( qset_ntiid )
+
+	if assigment_question_sets and containers:
+		results = []
+		for container in containers:
+			if container.ntiid not in assigment_question_sets:
+				results.append( container )
+	else:
+		results = containers
+	return results

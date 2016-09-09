@@ -81,6 +81,9 @@ VIEW_REGRADE_EVALUATION = 'Regrade'
 #: A view to unlock assignment policies
 VIEW_UNLOCK_POLICIES = 'UnlockPolicies'
 
+#: A view to fetch all question containers.
+VIEW_QUESTION_CONTAINERS = 'Assessments'
+
 def get_submission_catalog():
 	return component.queryUtility(IMetadataCatalog, name=SUBMISSION_CATALOG_NAME)
 

@@ -285,7 +285,9 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 		buf = StringIO()
 		zipfile = ZipFile(buf, 'w')
 		for record in enrollments.iter_enrollments():
-			principal = IUser(record)
+			principal = IUser(record, None)
+			if principal is None: # dup enrollment ?
+				continue
 			assignment_history = component.getMultiAdapter((course, principal),
 															IUsersCourseAssignmentHistory)
 			history_item = assignment_history.get(assignment_id)

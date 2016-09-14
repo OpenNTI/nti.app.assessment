@@ -188,8 +188,11 @@ def _on_assessment_policies_modified_event(course, event):
 	assesment = event.assesment
 	if isinstance(assesment, six.string_types):
 		assesment = find_object_with_ntiid(assesment)
-	if IQAssignment.providedBy(assesment) and 'total_points' == event.key:
-		if event.value:
+	if IQAssignment.providedBy(assesment):
+		# If they're enabling auto_grade or specifying a new
+		# total points value, trigger a regrade.
+		if 		event.key.lower() in ('total_points', 'auto_grade') \
+			and event.value:
 			regrade_evaluation(assesment, course)
 
 @component.adapter(IQAssignment, IObjectUnlockedEvent)

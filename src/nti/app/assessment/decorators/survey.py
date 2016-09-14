@@ -38,6 +38,7 @@ from nti.assessment.interfaces import IQAssessmentDateContext
 from nti.contentlibrary.interfaces import IContentUnit
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
+from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.contenttypes.courses.utils import is_course_instructor
 
@@ -123,6 +124,19 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 			return super(_InquiryDecorator, self)._predicate(context, result)
 		return False
 
+	def _get_course(self, context, user):
+		# We may have survey in multiple courses (if decorating survey ref), use our
+		# ref lineage to distinguish between multiple courses. Ideally, we'll want
+		# to make sure we have a course context wherever this ref is being accessed
+		# (lesson overview) to handle subinstances correctly.
+		course = find_interface( context, ICourseInstance, strict=False )
+		if course is None:
+			course = _get_course_from_evaluation(context,
+												 user,
+												 self._catalog,
+												 request=self.request)
+		return course
+
 	def _do_decorate_external(self, context, result_map):
 		source = context
 		context = IQInquiry(source, None)
@@ -134,15 +148,12 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 
 		user = self.remoteUser
 		links = result_map.setdefault(LINKS, [])
-		course = _get_course_from_evaluation(context, 
-											 user,
-											 self._catalog,
-											 request=self.request)
-
-		submissions = self._submissions(course, context) if course is not None else 0
+		course = self._get_course( context, user )
+		submission_count = 0
 
 		# overrides
 		if course is not None:
+			submission_count = self._submissions(course, context)
 			available = []
 			now = datetime.utcnow()
 			dates = IQAssessmentDateContext(course).of(context)
@@ -166,7 +177,7 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 			if policy and 'disclosure' in policy:
 				result_map['disclosure'] = policy['disclosure']
 
-			result_map['submissions'] = submissions
+			result_map['submissions'] = submission_count
 
 		elements = ('Inquiries', user.username, context.ntiid)
 
@@ -180,7 +191,7 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 
 		# aggregated
 		if 		course is not None \
-			and submissions \
+			and submission_count \
 			and (	is_course_instructor(course, user)
 				 or can_disclose_inquiry(context, course)):
 			links.append(Link(course,

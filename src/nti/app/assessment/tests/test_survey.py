@@ -163,7 +163,9 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 									  status=201)
 
 		enrollment_inquiries_link = self.require_link_href_with_rel(res.json_body, 'InquiryHistory')
-		course_inquiries_link = self.require_link_href_with_rel(res.json_body['CourseInstance'], 'InquiryHistory')
+		course_inquiries_history_link = self.require_link_href_with_rel(res.json_body['CourseInstance'], 'InquiryHistory')
+		course_inquiries_link = self.require_link_href_with_rel(res.json_body['CourseInstance'], 'CourseInquiries')
+		submission_href = '%s/%s' % (course_inquiries_link, item_id)
 		_ = res.json_body['CourseInstance']['href']
 
 		assert_that(enrollment_inquiries_link,
@@ -172,33 +174,32 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 						 '/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/Inquiries/' +
 						 self.default_username))
 
-		assert_that(course_inquiries_link,
+		assert_that(course_inquiries_history_link,
 					 is_('/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice/Inquiries/' +
 						 self.default_username))
 
 		# Both survey links are equivalent and work; and both are empty before I submit
-		for link in course_inquiries_link, enrollment_inquiries_link:
+		for link in course_inquiries_history_link, enrollment_inquiries_link:
 			survey_res = self.testapp.get(link)
 			assert_that(survey_res.json_body, has_entry('Items', has_length(0)))
 
-		href = '/dataserver2/Objects/' + item_id
-		self.testapp.get(href + '/Submission', status=404)
+		self.testapp.get(submission_href + '/Submission', status=404)
 
-		res = self.testapp.post_json(href, ext_obj)
+		res = self.testapp.post_json(submission_href, ext_obj)
 		survey_item_href = res.json_body['href']
 		assert_that(survey_item_href, is_not(none()))
 
 		self._check_submission(res, enrollment_inquiries_link, item_id)
-		
+
 		res = self.testapp.get(survey_item_href)
 		assert_that(res.json_body, has_entry('href', is_not(none())))
 
-		res = self.testapp.get(href)
+		res = self.testapp.get(submission_href)
 		assert_that(res.json_body, has_entry('href', is_not(none())))
 		assert_that(res.json_body, has_entry('submissions', is_(1)))
-		
+
 		# Both survey links are equivalent and work
-		for link in course_inquiries_link, enrollment_inquiries_link:
+		for link in course_inquiries_history_link, enrollment_inquiries_link:
 			surveys_res = self.testapp.get(link)
 			assert_that(surveys_res.json_body, has_entry('Items', has_length(1)))
 			assert_that(surveys_res.json_body, has_entry('Items', has_key(item_id)))

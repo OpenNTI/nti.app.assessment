@@ -26,10 +26,7 @@ from nti.assessment.interfaces import IQEvaluation
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
-@interface.implementer(IPathAdapter)
-class _CourseAssessmentsPathAdapter(Contained):
-
-	__name__ = 'Assessments'
+class _BaseCourseEvaluationPathAdapter(Contained):
 
 	def __init__(self, context, request=None):
 		self.request = request
@@ -49,3 +46,13 @@ class _CourseAssessmentsPathAdapter(Contained):
 			except (TypeError, ComponentLookupError):
 				pass
 		raise KeyError(ntiid)
+
+@interface.implementer(IPathAdapter)
+class _CourseAssessmentsPathAdapter(_BaseCourseEvaluationPathAdapter):
+
+	__name__ = 'Assessments'
+
+@interface.implementer(IPathAdapter)
+class _CourseInquiriesPathAdapter(_BaseCourseEvaluationPathAdapter):
+
+	__name__ = 'CourseInquiries'

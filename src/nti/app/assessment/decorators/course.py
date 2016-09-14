@@ -51,10 +51,12 @@ class _CourseEditorLinksDecorator(_AbstractTraversableLinkDecorator):
 					 	  elements=('CourseEvaluations',)))
 
 @interface.implementer(IExternalMappingDecorator)
-class _CourseAssessmentsLinksDecorator(_AbstractTraversableLinkDecorator):
+class _CourseEvaluationSubmissionLinksDecorator(_AbstractTraversableLinkDecorator):
 
 	def _do_decorate_external(self, context, result_map):
-		links = result_map.setdefault(LINKS, [])
-		links.append(Link(context,
-						  rel='Assessments',
-					 	  elements=('Assessments',)))
+		for rel in ('Assessments', 'CourseInquiries'):
+			links = result_map.setdefault(LINKS, [])
+			links.append(Link(context,
+							  rel=rel,
+						 	  elements=(rel,)))
+

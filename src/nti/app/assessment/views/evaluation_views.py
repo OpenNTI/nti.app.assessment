@@ -1514,11 +1514,6 @@ class RegradeEvaluationView(AbstractAuthenticatedView):
 										  		user=self.remoteUser)
 		return result
 
-	def _has_submissions(self, theObject):
-		course = self._get_course_from_evaluation(theObject)
-		result = has_submissions(theObject, course)
-		return result
-
 	def _can_regrade_evaluation(self, theObject):
 		course = self._get_course_from_evaluation(theObject)
 		if course is None:

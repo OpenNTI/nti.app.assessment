@@ -341,20 +341,22 @@ class AssessmentPutView(UGDPutView):
 			return
 
 		part = None
+		notify_key = key
+		notify_value = value
 		if key == 'auto_grade':
 			# If auto_grade set to 'false', set 'disable' to true in auto_grade section.
-			value = self._get_value(bool, value, key)
+			notify_value = value = self._get_value(bool, value, key)
 			part = 'auto_grade'
 			value = not value
 			key = 'disable'
 		elif key == 'total_points':
-			value = self._get_value(float, value, key)
+			notify_value = value = self._get_value(float, value, key)
 			part = 'auto_grade'
 
 		for course in courses or ():
 			policy = self._get_or_create_policy_part(course, ntiid, part)
 			policy[key] = value
-			event_notify(QAssessmentPoliciesModified(course, ntiid, key, value))
+			event_notify(QAssessmentPoliciesModified(course, ntiid, notify_key, notify_value))
 
 	def _update_auto_assess(self, contentObject, auto_assess):
 		"""

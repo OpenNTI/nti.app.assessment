@@ -18,6 +18,7 @@ from zope.component.hooks import site
 from zope.component.hooks import setHooks
 from zope.component.hooks import site as current_site
 
+from nti.app.assessment.common import get_courses
 from nti.app.assessment.common import regrade_evaluation
 from nti.app.assessment.common import evaluation_submissions
 from nti.app.assessment.common import get_resource_site_name
@@ -81,6 +82,17 @@ def check_registry( registry, evaluation, site_name, entry_ntiid ):
 def _is_obj_locked(context):
 	return IRecordable.providedBy(context) and context.isLocked()
 
+def _get_assignment_courses( assignment ):
+	"""
+	Get all courses and subinstances for our assignment.
+	"""
+	courses = get_evaluation_courses( assignment )
+	result = set()
+	for course in courses or ():
+		all_courses = get_courses( course, subinstances=True )
+		result.update( all_courses )
+	return tuple( result )
+
 def _update_registered_objects(site_registry, seen, site_name):
 	"""
 	Loop through all locked assignments making sure underlying
@@ -93,10 +105,10 @@ def _update_registered_objects(site_registry, seen, site_name):
 		seen.add(ntiid)
 		if not _is_obj_locked( item ):
 			continue
-		# XXX: Subinstances?
-		courses = get_evaluation_courses( item )
-		needs_regrade = False
+
+		courses = _get_assignment_courses( item )
 		if courses:
+			needs_regrade = False
 			# Arbitrary course for site registry and logging
 			course = courses[0]
 			course_site_name = get_resource_site_name(course)

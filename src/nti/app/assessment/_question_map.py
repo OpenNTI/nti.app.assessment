@@ -627,7 +627,6 @@ def _remove_assessment_items_from_oldcontent(content_package,
 		logger.warn("Removing assessment items from wrong site %s should be %s; may not work",
 					sm, component.getSiteManager(content_package))
 
-	ignore = set()
 	result = dict()
 	intids = component.queryUtility(IIntIds)  # test mode
 
@@ -646,34 +645,46 @@ def _remove_assessment_items_from_oldcontent(content_package,
 		# always remove from container
 		container.pop(name, None)
 
-	def _unregister(unit):
+	def _unregister(unit, ntiids_to_ignore):
 		unit_items = IQAssessmentItemContainer(unit)
 		items = _get_assess_item_dict( unit_items )
 		for name, item in items.items():
-			if can_be_removed(item, force) and name not in ignore:
+			if name not in ntiids_to_ignore:
 				_remove(unit_items, name, item)
-			else:
+		# reset dates
+		unit_items.lastModified = unit_items.createdTime = -1
+
+		for child in unit.children or ():
+			_unregister(child, ntiids_to_ignore)
+
+	def _gather_to_ignore(unit, to_ignore_accum):
+		unit_items = IQAssessmentItemContainer(unit)
+		items = _get_assess_item_dict( unit_items )
+		for name, item in items.items():
+			if not can_be_removed(item, force):
 				provided = iface_of_assessment(item)
 				logger.warn("Object (%s,%s) is locked cannot be removed during sync",
 							provided.__name__, name)
 				# XXX: Make sure we add to the ignore list all items that are exploded
 				# so they are not processed
 				exploded = QuestionMap.explode_object_to_register(item)
-				ignore.update(x.ntiid for x in exploded or ())
-
-		# reset dates
-		unit_items.lastModified = unit_items.createdTime = -1
-
+				to_ignore_accum.update(x.ntiid for x in exploded or ())
 		for child in unit.children or ():
-			_unregister(child)
+			_gather_to_ignore(child, to_ignore_accum)
 
-	_unregister(content_package)
+	# We make a first pass to gather all things to be ignored, this
+	# is to ensure, if for example, a question is in multiple content
+	# units (and in a locked assignment), we do not overwrite (register)
+	# its state, leaving the item in the assignment stale.
+	ntiids_to_ignore = set()
+	_gather_to_ignore( content_package, ntiids_to_ignore )
+	_unregister(content_package, ntiids_to_ignore)
 
 	# register locked
-	for ntiid in ignore:
+	for ntiid in ntiids_to_ignore:
 		sync_results.add_assessment(ntiid, locked=True)
 
-	return result, ignore
+	return result, ntiids_to_ignore
 
 @component.adapter(IContentPackage, IObjectRemovedEvent)
 def remove_assessment_items_from_oldcontent(content_package, event=None, force=True):

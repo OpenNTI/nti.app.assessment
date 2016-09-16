@@ -489,6 +489,7 @@ def _hierarchy_from_obj_and_user(obj, user):
 	# Get our top level courses for this object and user
 	courses = get_top_level_contexts_for_user(obj, user)
 	for course in courses:
+		# Get assignments/question sets so that we can find in outline.
 		for container in get_outline_evaluation_containers( obj ) or (obj,):
 			hierarchy_context = _get_hierarchy_context_for_context( container, course )
 			if hierarchy_context:

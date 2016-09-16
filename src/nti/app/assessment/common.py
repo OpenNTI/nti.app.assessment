@@ -69,6 +69,7 @@ from nti.app.externalization.error import raise_json_error
 from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
 
 from nti.assessment.interfaces import NTIID_TYPE
+from nti.assessment.interfaces import SURVEY_MIME_TYPE
 from nti.assessment.interfaces import DISCLOSURE_NEVER
 from nti.assessment.interfaces import DISCLOSURE_ALWAYS
 from nti.assessment.interfaces import QUESTION_SET_MIME_TYPE
@@ -709,7 +710,7 @@ def delete_evaluation_metadata(context, course, subinstances=True):
 
 def get_containers_for_evaluation_object(context, sites=None, include_question_sets=False):
 	"""
-	For the given evaluation object, fetch all assignments which
+	For the given evaluation object, fetch all assignments/surveys which
 	contain it. `question_sets` toggles whether containing question sets are
 	also returned. We do not exclude question sets included in assignments.
 	"""
@@ -722,9 +723,10 @@ def get_containers_for_evaluation_object(context, sites=None, include_question_s
 		ntiid = context.ntiid
 	contained = (ntiid,)
 
-	mime_types = ALL_ASSIGNMENT_MIME_TYPES
+	mime_types = list( ALL_ASSIGNMENT_MIME_TYPES )
+	mime_types.append( SURVEY_MIME_TYPE )
 	if include_question_sets:
-		mime_types = ALL_ASSIGNMENT_MIME_TYPES + (QUESTION_SET_MIME_TYPE, QUESTION_BANK_MIME_TYPE)
+		mime_types.extend( (QUESTION_SET_MIME_TYPE, QUESTION_BANK_MIME_TYPE) )
 
 	sites = get_component_hierarchy_names() if not sites else sites
 	sites = sites.split() if isinstance(sites, six.string_types) else sites
@@ -1070,8 +1072,8 @@ def is_assignment_non_public_only( context, courses=None ):
 def get_outline_evaluation_containers( obj ):
 	"""
 	For the given evaluation, return any unique containers which might
-	be found in a course outline (question sets, question banks, and
-	assignments).
+	be found in a course outline (question sets, question banks,
+	assignments, and surveys.).
 	"""
 	containers = get_containers_for_evaluation_object( obj,
 													   include_question_sets=True )

@@ -1042,6 +1042,8 @@ def regrade_evaluation(context, course):
 	result = []
 	for item in evaluation_submissions(context, course):
 		if IUsersCourseAssignmentHistoryItem.providedBy(item):
+			logger.info( 'Regrading (%s) (user=%s)',
+						 item.Submission.assignmentId, item.creator)
 			result.append(item)
 			reassess_assignment_history_item(item)
 			# Now broadcast we need a new grade

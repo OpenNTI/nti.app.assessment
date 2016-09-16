@@ -26,6 +26,8 @@ from nti.app.assessment.views.view_mixins import StructuralValidationMixin
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
+from nti.app.externalization.error import raise_json_error
+
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQEditableEvaluation
 
@@ -68,7 +70,14 @@ class QuestionSetRandomizeView(AbstractRandomizeView):
 	def _validate(self):
 		super( QuestionSetRandomizeView, self )._validate()
 		if IQuestionBank.providedBy( self.context ):
-			raise hexc.HTTPUnprocessableEntity(_('Cannot randomize question bank.'))
+			msg = _("Cannot randomize question bank.")
+			raise_json_error(self.request,
+							 hexc.HTTPUnprocessableEntity,
+							 {
+								u'message': msg,
+							 	u'code': "CannotRandomizeQuestionBank"
+							 },
+							 None)
 
 	def __call__(self):
 		self._validate()
@@ -94,7 +103,14 @@ class QuestionSetUnRandomizeView(AbstractRandomizeView):
 		super(QuestionSetUnRandomizeView, self)._validate()
 		if isinstance(self.context, QRandomizedQuestionSet):
 			# This should not happen.
-			raise hexc.HTTPUnprocessableEntity(_("Cannot unrandomize concrete implementation."))
+			msg = _("Cannot unrandomize concrete implementation.")
+			raise_json_error(self.request,
+							 hexc.HTTPUnprocessableEntity,
+							 {
+								u'message': msg,
+							 	u'code': "CannotUnrandomizeObject"
+							 },
+							 None)
 
 	def __call__(self):
 		self._validate()

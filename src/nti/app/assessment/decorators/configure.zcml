@@ -152,6 +152,12 @@
 				for="nti.assessment.interfaces.IQAssignment
 					 pyramid.interfaces.IRequest" />
 
+	<!-- question -->
+	<subscriber factory=".question.QuestionContainerDecorator"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator"
+				for="nti.assessment.interfaces.IQuestion
+					 pyramid.interfaces.IRequest" />
+
 	<!-- savepoint -->
 	<subscriber factory=".savepoint._AssignmentSavepointDecorator"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"

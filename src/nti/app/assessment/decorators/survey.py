@@ -139,6 +139,7 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 
 	def _do_decorate_external(self, context, result_map):
 		source = context
+		user = self.remoteUser
 		context = IQInquiry(source, None)
 		if context is None:
 			return
@@ -146,14 +147,15 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 		isClosed = bool(context.closed)
 		result_map['isClosed'] = isClosed
 
-		user = self.remoteUser
 		links = result_map.setdefault(LINKS, [])
+		# See note above on why we get course for inquiry ref.
+		ref_course = self._get_course( source, user )
 		course = self._get_course( context, user )
 		submission_count = 0
 
 		# overrides
 		if course is not None:
-			submission_count = self._submissions(course, context)
+			submission_count = self._submissions(ref_course, context)
 			available = []
 			now = datetime.utcnow()
 			dates = IQAssessmentDateContext(course).of(context)

@@ -1075,6 +1075,9 @@ def get_outline_evaluation_containers( obj ):
 	be found in a course outline (question sets, question banks,
 	assignments, and surveys.).
 	"""
+	if obj.ntiid is None:
+		# Tests
+		return
 	containers = get_containers_for_evaluation_object( obj,
 													   include_question_sets=True )
 	assigment_question_sets = set()

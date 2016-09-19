@@ -18,6 +18,8 @@ from nti.app.assessment import VIEW_QUESTION_CONTAINERS
 
 from nti.app.assessment.common import get_outline_evaluation_containers
 
+from nti.app.assessment.decorators import _get_course_from_evaluation
+
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
 from nti.appserver.pyramid_authorization import has_permission
@@ -49,11 +51,18 @@ class QuestionContainerDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		containers = get_outline_evaluation_containers( context )
 		result['AssessmentContainerCount'] = len( containers or () )
 
+		course = _get_course_from_evaluation(context,
+											 user=self.remoteUser,
+											 request=self.request)
+
+		link_context = context if course is None else course
+		pre_elements = () if course is None else ('Assessments', context.ntiid)
+
 		_links = result.setdefault(LINKS, [])
-		link = Link(context,
+		link = Link(link_context,
 					rel=VIEW_QUESTION_CONTAINERS,
-					elements=('@@%s' % VIEW_QUESTION_CONTAINERS,))
+					elements=pre_elements + ('@@%s' % VIEW_QUESTION_CONTAINERS,))
 		interface.alsoProvides(link, ILocation)
 		link.__name__ = ''
-		link.__parent__ = context
+		link.__parent__ = link_context
 		_links.append(link)

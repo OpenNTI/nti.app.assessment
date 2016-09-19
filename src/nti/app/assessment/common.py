@@ -588,15 +588,18 @@ def get_submissions(context, courses=(), index_name=IX_ASSESSMENT_ID):
 		catalog = get_submission_catalog()
 		intids = component.getUtility(IIntIds)
 		entry_ntiids = get_entry_ntiids(courses)
-		sites = {get_resource_site_name(x) for x in courses}
-		sites.discard(None)  # tests
-		if not sites:  # tests
-			return ()
+
 		query = {
-		 	IX_SITE: {'any_of':sites},
 			IX_COURSE: {'any_of':entry_ntiids},
 		 	index_name: {'any_of':context_ntiids}
 		}
+
+		# May not have sites for community based courses (tests?).
+		sites = {get_resource_site_name(x) for x in courses}
+		sites.discard(None)  # tests
+		if sites:
+			query[IX_SITE] = {'any_of':sites}
+
 		uids = catalog.apply(query) or ()
 		return ResultSet(uids, intids, True)
 

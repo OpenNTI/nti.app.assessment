@@ -70,8 +70,10 @@ class _RegisterFileAssignmentLayer(InstructedCourseApplicationTestLayer):
 	def setUp(cls):
 		question_set_id = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.set.qset:QUIZ1_aristotle"
 		assignment_ntiid = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.asg:QUIZ1_aristotle"
+		question_id = 'tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.1'
 		cls.question_set_id = question_set_id
 		cls.assignment_id = assignment_ntiid
+		cls.question_id = question_id
 
 		def install_questions():
 			lib = component.getUtility(IContentPackageLibrary)
@@ -80,8 +82,9 @@ class _RegisterFileAssignmentLayer(InstructedCourseApplicationTestLayer):
 			part.allowed_mime_types = ('*/*',)
 			part.allowed_extensions = '*'
 			question = QQuestion(parts=[part])
+			question.ntiid = cls.question_id
 
-			component.getSiteManager().registerUtility(question, provided=IQuestion, name="1")
+			component.getSiteManager().registerUtility(question, provided=IQuestion, name=question_id)
 
 			question_set = QQuestionSet(questions=(question,))
 			question_set.ntiid = cls.question_set_id
@@ -138,6 +141,7 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 
 	layer = _RegisterFileAssignmentLayer
 
+	question_id = None
 	assignment_id = None
 	question_set_id = None
 	lesson_page_id = None
@@ -148,6 +152,7 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 		self.assignment_id = _RegisterFileAssignmentLayer.assignment_id
 		self.lesson_page_id = _RegisterFileAssignmentLayer.lesson_page_id
 		self.question_set_id = _RegisterFileAssignmentLayer.question_set_id
+		self.question_id = _RegisterFileAssignmentLayer.question_id
 
 	def _check_submission(self, res, history=None):
 		assert_that(res.status_int, is_(201))
@@ -176,7 +181,7 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 		return res
 
 	def _create_and_enroll(self, course_id='tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice'):
-		q_sub = submission.QuestionSubmission(questionId="1", parts=(response.QUploadedFile(data=b'1234',
+		q_sub = submission.QuestionSubmission(questionId=self.question_id, parts=(response.QUploadedFile(data=b'1234',
 																							contentType=b'image/gif',
 																							filename='foo.gif'),))
 
@@ -195,16 +200,17 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 									  status=201)
 		enrollment_history_link = self.require_link_href_with_rel(res.json_body, 'AssignmentHistory')
 		self.require_link_href_with_rel(res.json_body['CourseInstance'], 'AssignmentHistory')
+		assessments_rel = self.require_link_href_with_rel(res.json_body['CourseInstance'], 'Assessments')
 
-		res = self.testapp.post_json('/dataserver2/Objects/' + self.assignment_id,
+		res = self.testapp.post_json( '%s/%s' % (assessments_rel, self.assignment_id),
 									  ext_obj)
 		history_res = self._check_submission(res, enrollment_history_link)
 
-		return history_res
+		return history_res, assessments_rel
 
 	@WithSharedApplicationMockDS(users=True, testapp=True)
 	def test_posting_and_bulk_downloading_file(self):
-		history_res = self._create_and_enroll()
+		history_res, assessments_rel = self._create_and_enroll()
 
 		# Now we should be able to find and download our data
 		submission = history_res.json_body['Items'].values()[0]['Submission']
@@ -234,7 +240,7 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 			assert_that(download_res, has_property('content_disposition', not_none()))
 
 		# Our default user happens to have admin perms to fetch the files
-		res = self.testapp.get('/dataserver2/Objects/' + self.assignment_id)
+		res = self.testapp.get('%s/%s' % (assessments_rel, self.assignment_id))
 		bulk_href = self.require_link_href_with_rel(res.json_body, 'ExportFiles')
 
 		res = self.testapp.get(bulk_href)
@@ -260,7 +266,7 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 
 		# Enroll in section 1, which lets this happen for this object
 		cid = 'tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice_SubInstances_01'
-		history_res = self._create_and_enroll(course_id=cid)
+		history_res, _ = self._create_and_enroll(course_id=cid)
 
 		item = history_res.json_body['Items'][self.assignment_id]
 		item_href = item['href']

@@ -578,13 +578,12 @@ def get_submissions(context, courses=(), index_name=IX_ASSESSMENT_ID):
 	if not courses:
 		return ()
 	else:
-		# We only index by assignment, so fetch all assignments for our context.
+		# We only index by assignment, so fetch all assignments/surveys for
+		# our context; plus by our context ntiid.
 		assignments = get_assignments_for_evaluation_object(context)
-		if assignments:
-			context_ntiids = [x.ntiid for x in assignments]
-		else:
-			context_ntiid = getattr(context, 'ntiid', context)
-			context_ntiids = (context_ntiid,)
+		context_ntiids = [x.ntiid for x in assignments] if assignments else []
+		context_ntiid = getattr(context, 'ntiid', context)
+		context_ntiids.append( context_ntiid )
 
 		catalog = get_submission_catalog()
 		intids = component.getUtility(IIntIds)

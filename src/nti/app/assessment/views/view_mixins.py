@@ -23,6 +23,7 @@ from zope.event import notify as event_notify
 from zope.interface.common.idatetime import IDateTime
 
 from nti.app.assessment.common import get_courses
+from nti.app.assessment.common import regrade_evaluation
 from nti.app.assessment.common import validate_auto_grade
 from nti.app.assessment.common import validate_auto_grade_points
 from nti.app.assessment.common import get_available_for_submission_ending
@@ -358,15 +359,18 @@ class AssessmentPutView(UGDPutView):
 			policy[key] = value
 			event_notify(QAssessmentPoliciesModified(course, ntiid, notify_key, notify_value))
 
-	def _update_auto_assess(self, contentObject, auto_assess):
+	def _update_auto_assess(self, contentObject, auto_assess, courses):
 		"""
 		Update the auto_grade (assess) field on parts.
 		"""
-		# TODO: Regrade event?
 		if auto_assess is not None:
 			value = self._get_value(bool, auto_assess, 'auto_assess')
 			for part in contentObject.parts or ():
 				part.auto_grade = value
+			if value:
+				# Auto-assess is enabled, go ahead and regrade.
+				for course in courses or ():
+					regrade_evaluation( contentObject, course )
 
 	def notify_and_record(self, contentObject, externalValue):
 		"""
@@ -437,7 +441,7 @@ class AssessmentPutView(UGDPutView):
 
 		if notify:
 			self.notify_and_record( contentObject, externalValue )
-		self._update_auto_assess( contentObject, auto_assess )
+		self._update_auto_assess( contentObject, auto_assess, courses )
 
 		# update course policy
 		ntiid = contentObject.ntiid

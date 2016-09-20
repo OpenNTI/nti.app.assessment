@@ -145,7 +145,10 @@ from nti.coremetadata.interfaces import ICalendarPublishable
 
 from nti.dataserver import authorization as nauth
 
+from nti.dataserver.authorization import ROLE_ADMIN
+
 from nti.dataserver.interfaces import IUser
+from nti.dataserver.interfaces import IGroupMember
 
 from nti.dataserver.users import User
 
@@ -1513,7 +1516,10 @@ class RegradeEvaluationView(AbstractAuthenticatedView):
 
 	@property
 	def _admin_user(self):
-		return self.remoteUser.username.endswith('@nextthought.com')
+		result = set()
+		for _, adapter in component.getAdapters((self.remoteUser,), IGroupMember):
+			result.update(adapter.groups)
+		return ROLE_ADMIN in result
 
 	def _get_instructor(self):
 		params = CaseInsensitiveDict(self.request.params)

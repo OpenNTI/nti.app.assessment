@@ -1506,9 +1506,30 @@ class QuestionSetMoveView(AbstractChildMoveView,
 @view_config(context=IQAssignment)
 @view_defaults(route_name='objects.generic.traversal',
 			   renderer='rest',
+			   request_method='POST',
 			   name=VIEW_REGRADE_EVALUATION,
 			   permission=nauth.ACT_READ)
 class RegradeEvaluationView(AbstractAuthenticatedView):
+
+	@property
+	def _admin_user(self):
+		return self.remoteUser.username.endswith('@nextthought.com')
+
+	def _get_instructor(self):
+		params = CaseInsensitiveDict(self.request.params)
+		username = params.get( 'user' ) \
+				or params.get( 'username' ) \
+				or params.get( 'instructor' )
+		result = User.get_user( username )
+		if result is None:
+			raise_json_error(self.request,
+							 hexc.HTTPForbidden,
+							 {
+								u'message': _("No instructor found."),
+								u'code': 'CannotFindInstructor',
+							 },
+							 None)
+		return result
 
 	def _get_course_from_evaluation(self, theObject):
 		result = get_course_from_request(self.request)
@@ -1517,7 +1538,7 @@ class RegradeEvaluationView(AbstractAuthenticatedView):
 										  		user=self.remoteUser)
 		return result
 
-	def _can_regrade_evaluation(self, theObject):
+	def _can_regrade_evaluation(self, theObject, user):
 		course = self._get_course_from_evaluation(theObject)
 		if course is None:
 			raise_json_error(self.request,
@@ -1527,7 +1548,7 @@ class RegradeEvaluationView(AbstractAuthenticatedView):
 								u'code': 'CannotFindEvaluationCourse',
 							 },
 							 None)
-		if not is_course_instructor(course, self.remoteUser):
+		if not is_course_instructor(course, user):
 			raise_json_error(self.request,
 							 hexc.HTTPForbidden,
 							 {
@@ -1538,6 +1559,12 @@ class RegradeEvaluationView(AbstractAuthenticatedView):
 		return course
 
 	def __call__(self):
-		course = self._can_regrade_evaluation(self.context)
+		user = self.remoteUser
+		if self._admin_user:
+			# We allow admin users to regrade as instructors.
+			user = self._get_instructor()
+		course = self._can_regrade_evaluation(self.context, user)
+		logger.info( '%s regrading %s (%s)',
+					 user.username, self.context.ntiid, self.remoteUser.username)
 		regrade_evaluation(self.context, course)
 		return self.context

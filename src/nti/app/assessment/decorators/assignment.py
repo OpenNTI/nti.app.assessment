@@ -39,6 +39,7 @@ from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
 from nti.app.assessment.common import get_courses
 from nti.app.assessment.common import has_savepoints
 from nti.app.assessment.common import has_submissions
+from nti.app.assessment.common import get_policy_locked
 from nti.app.assessment.common import get_max_time_allowed
 from nti.app.assessment.common import is_part_auto_gradable
 from nti.app.assessment.common import get_auto_grade_policy
@@ -214,6 +215,10 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			# If we have policy but no disabled flag, default to True.
 			result['auto_grade'] = not disabled if disabled is not None else True
 			result['total_points'] = auto_grade.get('total_points')
+		else:
+			result['auto_grade'] = False
+			result['total_points'] = None
+		result['policy_locked'] = get_policy_locked( assignment, course )
 
 class _TimedAssignmentPartStripperDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
@@ -379,9 +384,10 @@ _ContextStatus = namedtuple("_ContextStatus",
 @interface.implementer(IExternalMappingDecorator)
 class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
-	Give editors editing links. A subset of links should only be available for
-	IQEditableEvaluations that do not have submissions. Also provide
-	context on whether the evaluation has been savepointed/submitted.
+	Give editors editing links on IQEditableEvaluations. A subset of
+	links should only be available for IQEditableEvaluations that do
+	not have submissions. Also provide context on whether the evaluation
+	has been savepointed/submitted.
 	"""
 
 	_MARKER_RELS = (VIEW_MOVE_PART, VIEW_INSERT_PART, VIEW_REMOVE_PART,
@@ -540,9 +546,9 @@ class _PartAutoGradeStatus(AbstractAuthenticatedRequestAwareDecorator):
 		result['AutoGradable'] = is_part_auto_gradable(context)
 
 @interface.implementer(IExternalMappingDecorator)
-class _AssessmentDateEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
+class _AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
-	Give editors a date-edit links. This should be available on all
+	Give editors a policy edit links. This should be available on all
 	assignments/inquiries.
 	"""
 
@@ -569,7 +575,7 @@ class _AssessmentDateEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorato
 	def _do_decorate_external(self, context, result):
 		_links = result.setdefault(LINKS, [])
 		courses = self._get_courses(context)
-		names = ('date-edit-end', 'date-edit')
+		names = ('date-edit-end', 'date-edit', 'auto-grade', 'total-points')
 		if not self._has_submitted_data(context, courses):
 			names += ('date-edit-start',)
 

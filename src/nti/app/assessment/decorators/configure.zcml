@@ -308,11 +308,11 @@
 	<!-- We want only editable evaluations (created through API) to be edited
 		(as far as questions/content/etc), but any assessment can have dates edited.
 	-->
-	<subscriber factory=".assignment._AssessmentDateEditLinkDecorator"
+	<subscriber factory=".assignment._AssessmentPolicyEditLinkDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.assessment.interfaces.IQSurvey pyramid.interfaces.IRequest" />
 
-	<subscriber factory=".assignment._AssessmentDateEditLinkDecorator"
+	<subscriber factory=".assignment._AssessmentPolicyEditLinkDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.assessment.interfaces.IQAssignment pyramid.interfaces.IRequest" />
 

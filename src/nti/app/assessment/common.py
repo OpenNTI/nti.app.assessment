@@ -790,6 +790,16 @@ def get_auto_grade_policy(assignment, course):
 	result = policy and policy.get(assignment_ntiid, 'auto_grade')
 	return result
 
+def get_policy_locked(assignment, course):
+	"""
+	For a given assignment (or ntiid), return the policy locked state for the given
+	course.
+	"""
+	policy = IQAssignmentPolicies(course, None)
+	assignment_ntiid = getattr(assignment, 'ntiid', assignment)
+	locked = policy.get(assignment_ntiid, 'locked', False)
+	return locked
+
 def get_auto_grade_policy_state(assignment, course):
 	"""
 	For a given assignment (or ntiid), return the autograde state for the given course.

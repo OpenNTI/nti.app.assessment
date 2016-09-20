@@ -105,7 +105,7 @@ class AssessmentPutView(UGDPutView):
 	TO_UNAVAILABLE_MSG = None
 	DUE_DATE_CONFIRM_MSG = _('Are you sure you want to change the due date?')
 
-	POLICY_KEYS = ("auto_grade", 'total_points')
+	NON_DATE_POLICY_KEYS = ("auto_grade", 'total_points')
 
 	def readInput(self, value=None):
 		result = UGDPutView.readInput(self, value=value)
@@ -269,7 +269,7 @@ class AssessmentPutView(UGDPutView):
 
 	@property
 	def policy_keys(self):
-		return SUPPORTED_DATE_KEYS + self.POLICY_KEYS
+		return SUPPORTED_DATE_KEYS + self.NON_DATE_POLICY_KEYS
 
 	def _get_or_create_policy_part(self, course, ntiid, part=None):
 		policy = result = IQAssessmentPolicies(course)

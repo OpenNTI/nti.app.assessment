@@ -912,16 +912,19 @@ class QuestionSetPutView(EvaluationPutView):
 class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):
 
 	OBJ_DEF_CHANGE_MSG = _("Cannot change the object definition.")
-	LEGACY_EDITABLE_FIELDS = ('available_for_submission_beginning',
-							  'available_for_submission_ending',
-							  'is_non_public')
+
+	@property
+	def legacy_editable_fields(self):
+		# XXX: We allow toggling public status? This is the only
+		# change that may lock the assignment from syncing.
+		return ('is_non_public',) + self.policy_keys
 
 	def _check_object_constraints(self, obj, externalValue):
 		editing_keys = set( externalValue.keys() )
 		if 		not IQEditableEvaluation.providedBy(obj) \
-			and editing_keys - set( self.LEGACY_EDITABLE_FIELDS ):
+			and editing_keys - set( self.legacy_editable_fields ):
 			# Cannot edit content backed assessment objects (except
-			# for available dates).
+			# for policy keys).
 			raise_json_error(self.request,
 							 hexc.HTTPUnprocessableEntity,
 							 {

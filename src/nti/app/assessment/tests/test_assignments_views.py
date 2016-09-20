@@ -71,7 +71,7 @@ class TestAssignmentViews(ApplicationLayerTest):
 	assignment_url = '/dataserver2/Objects/%s?course=%s' % (assignment_id, course_ntiid)
 
 	@WithSharedApplicationMockDS(users=True, testapp=True)
-	def test_content_assignment_date_editing(self):
+	def test_assignment_editing(self):
 		editor_environ = self._make_extra_environ(username="sjohnson@nextthought.com")
 		new_start_date = "2014-09-10T05:00:00Z"
 		new_end_date = "2015-11-12T04:59:00Z"
@@ -89,7 +89,7 @@ class TestAssignmentViews(ApplicationLayerTest):
 		orig_end_date = res.get(end_field)
 		orig_non_public = res.get(public_field)
 		assert_that(orig_non_public, is_(True))
-		assert_that(res.get( 'auto_grade' ), none())
+		assert_that(res.get( 'auto_grade' ), is_( False ))
 		assert_that(res.get( 'total_points' ), none())
 
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
@@ -235,11 +235,12 @@ class TestAssignmentViews(ApplicationLayerTest):
 
 	@time_monotonically_increases
 	@WithSharedApplicationMockDS(users=True, testapp=True)
-	def test_assignment_editing_invalid(self):
+	def test_assignment_policy_editing(self):
 		"""
-		Test assignment date editing. The client generally publishes the object
-		before scheduling any dates (the assignment in the test is below).
-		Changing dates in draft mode (unpublished) is untested, but should not 409.
+		Test assignment policy editing for a content backed assignment. The client
+		generally publishes the object before scheduling any dates (the assignment
+		in the test is below). Changing dates in draft mode (unpublished) is untested,
+		but should not 409.
 		"""
 		editor_environ = self._make_extra_environ(username="sjohnson@nextthought.com")
 		past_date_str = "2015-09-10T05:00:00Z"
@@ -250,6 +251,14 @@ class TestAssignmentViews(ApplicationLayerTest):
 		confirm_rel = 'confirm'
 		conflict_class = 'DestructiveChallenge'
 		conflict_mime = 'application/vnd.nextthought.destructivechallenge'
+
+		assignment = self.testapp.get(assignment_url, extra_environ=editor_environ)
+		assignment = assignment.json_body
+		assert_that( assignment.get( 'policy_locked'), is_( False ))
+		assert_that( assignment.get( 'auto_grade'), is_( False ))
+		assert_that( assignment.get( 'total_points'), none())
+		for rel in ('date-edit', 'auto-grade', 'total-points'):
+			self.require_link_href_with_rel(assignment, rel)
 
 		def _validate_conflict(conflict_res, confirm_code=False):
 			conflict_res = conflict_res.json_body
@@ -381,6 +390,21 @@ class TestAssignmentViews(ApplicationLayerTest):
 		self.testapp.put_json(assignment_url,
 							  data, extra_environ=editor_environ,
 							  status=422)
+
+		# Other policy edits
+		assignment = self.testapp.get(assignment_url, extra_environ=editor_environ)
+		assignment = assignment.json_body
+		assert_that( assignment.get( 'policy_locked'), is_( True ))
+		assert_that( assignment.get( 'auto_grade'), is_( False ))
+		assert_that( assignment.get( 'total_points'), none())
+
+		data = { 'total_points': 100 }
+		assignment = self.testapp.put_json(assignment_url,
+									data, extra_environ=editor_environ)
+		assignment = assignment.json_body
+		assert_that( assignment.get( 'policy_locked'), is_( True ))
+		assert_that( assignment.get( 'auto_grade'), is_( False ))
+		assert_that( assignment.get( 'total_points'), is_( 100 ))
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_no_context(self):

@@ -1566,5 +1566,7 @@ class RegradeEvaluationView(AbstractAuthenticatedView):
 		course = self._can_regrade_evaluation(self.context, user)
 		logger.info( '%s regrading %s (%s)',
 					 user.username, self.context.ntiid, self.remoteUser.username)
+		# The grade object itself actually randomly picks an
+		# instructor as the creator.
 		regrade_evaluation(self.context, course)
 		return self.context

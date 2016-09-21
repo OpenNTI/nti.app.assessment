@@ -18,10 +18,6 @@ from zope import interface
 from zope import lifecycleevent
 
 from zope.security.interfaces import IPrincipal
-from zope.security.interfaces import NoInteraction 
-from zope.security.management import getInteraction
-
-from zope.security.management import system_user
 
 from nti.app.assessment.common import make_evaluation_ntiid
 
@@ -45,6 +41,8 @@ from nti.assessment.interfaces import IQuestionSet
 
 from nti.cabinet.filer import transfer_to_native_file
 
+from nti.coremetadata.utils import currentPrincipal
+			
 from nti.contentlibrary.interfaces import IFilesystemBucket
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -79,10 +77,7 @@ class EvaluationsImporter(BaseSectionImporter):
 	def current_principal(self):
 		remoteUser = IPrincipal(get_remote_user(), None)
 		if remoteUser is None:
-			try:
-				remoteUser = getInteraction().participations[0].principal
-			except (NoInteraction, IndexError, AttributeError):
-				remoteUser = system_user
+			remoteUser = currentPrincipal()
 		return remoteUser
 
 	def get_ntiid(self, obj):

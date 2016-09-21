@@ -73,6 +73,7 @@ from nti.appserver.pyramid_authorization import has_permission
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssessment
 from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQSubmittable
 from nti.assessment.interfaces import IQAssessedQuestion
 from nti.assessment.interfaces import IQuestionSubmission
@@ -433,13 +434,14 @@ def _legacy_course_from_submittable_lineage(assesment, user):
 	return None
 
 @interface.implementer(ICourseInstance)
-@component.adapter(IQSubmittable, IUser)
-def course_from_submittable(assesment, user):
+@component.adapter(IQEvaluation, IUser)
+def course_for_evaluation_and_user(assesment, user):
 	"""
-	For a submittable, try to fetch the user enrolled/instructed context.
-	We prefer to have a course in our request context so that submittables
+	For an evaluation, try to fetch the user enrolled/instructed context.
+	We prefer to have a course in our request context so that evaluations
 	that exist in multiple courses have a deterministic course to submit to.
-	Otherwise, we fall back to guessing.
+	Otherwise, we fall back to looking for enrollments and then guessing
+	(for instructors).
 	"""
 	result = get_course_from_request()
 	if result is None:

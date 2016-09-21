@@ -178,7 +178,7 @@
 
 	<adapter factory=".adapters.course_from_history_item_lineage" />
 
-	<adapter factory=".adapters.course_from_submittable" />
+	<adapter factory=".adapters.course_for_evaluation_and_user" />
 
 	<!-- Common course lineage adapters -->
 	<adapter factory=".adapters.course_from_context_lineage"

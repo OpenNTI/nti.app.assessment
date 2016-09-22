@@ -61,6 +61,7 @@ from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQSubmittable
 from nti.assessment.interfaces import IQPollSubmission
+from nti.assessment.interfaces import IQAggregatedSurvey
 from nti.assessment.interfaces import IQSurveySubmission
 from nti.assessment.interfaces import IQInquirySubmission
 
@@ -229,7 +230,7 @@ class InquirySubmissionsView(AbstractAuthenticatedView, InquiryViewMixin):
 
 	def __call__(self):
 		course = self.course
-		if not (	is_course_instructor(course, self.remoteUser) 
+		if not (	is_course_instructor(course, self.remoteUser)
 				or	has_permission(nauth.ACT_NTI_ADMIN, course, self.request)):
 			raise hexc.HTTPForbidden(_("Cannot get inquiry submissions."))
 		result = LocatedExternalDict()
@@ -335,6 +336,15 @@ class InquiryAggregatedGetView(AbstractAuthenticatedView, InquiryViewMixin):
 			result = aggregate_course_inquiry(self.context, course)
 		if result is None:
 			return hexc.HTTPNoContent()
+
+		if 		IQAggregatedSurvey.providedBy( result ) \
+			and IQPoll.providedBy( self.context ):
+			# Asking for question level aggregation for
+			# survey submissions.
+			for poll_result in result.questions or ():
+				if poll_result.inquiryId == self.context.ntiid:
+					result = poll_result
+					break
 		return result
 
 @view_config(route_name="objects.generic.traversal",

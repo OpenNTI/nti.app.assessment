@@ -704,14 +704,18 @@ def _transfer_locked_items_to_content_package( content_package, added_items, loc
 	"""
 	added_ntiids = set( x.ntiid for x in added_items or () )
 	missing_ntiids = set( locked_ntiids ) - set( added_ntiids )
-	parents_questions = IQAssessmentItemContainer(content_package)
 	for ntiid in missing_ntiids:
-		logger.info( 'Attempting to remove item (%s) from content, but item is locked' % ntiid )
+		# Try to store in its existing content unit container; otherwise
+		# fall back to storing on the content package.
 		missing_item = find_object_with_ntiid( ntiid )
-		# XXX: We store these orphans on the package, should we try to store
-		# on the old unit it was under?
+		item_parent = find_object_with_ntiid( missing_item.containerId )
+		logger.info( 'Attempting to remove item from content, but item is locked (%s) (parent=%s)',
+					 ntiid, missing_item.containerId )
+		if item_parent is None:
+			item_parent = content_package
+		parents_questions = IQAssessmentItemContainer( item_parent )
 		parents_questions.append( missing_item )
-		missing_item.__parent__ = content_package
+		missing_item.__parent__ = item_parent
 
 @component.adapter(IContentPackage, IObjectModifiedEvent)
 def update_assessment_items_when_modified(content_package, event=None):

@@ -461,7 +461,7 @@ class StructuralValidationMixin(object):
 	@Lazy
 	def course(self):
 		# XXX: Evaluation has lineage access to its course.
-		result = find_interface(self.context, ICourseInstance, strict=True)
+		result = find_interface(self.context, ICourseInstance, strict=False)
 		return result
 
 	def _check_part_structure(self, context, externalValue):

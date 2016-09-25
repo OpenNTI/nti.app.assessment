@@ -18,6 +18,8 @@ from zope import component
 from zope import interface
 from zope import lifecycleevent
 
+from zope.component.hooks import getSite
+
 from zope.event import notify as event_notify
 
 from zope.i18n import translate
@@ -1109,7 +1111,7 @@ def delete_evaluation(evaluation, course=None):
 	provided = iface_of_assessment(evaluation)
 	registered = component.queryUtility(provided, name=evaluation.ntiid)
 	if registered is not None:
-		site_name = get_resource_site_name(course)
+		site_name = get_resource_site_name(course) or getSite().__name__
 		registry = get_host_site(site_name).getSiteManager()
 		unregisterUtility(registry, provided=provided, name=evaluation.ntiid)
 

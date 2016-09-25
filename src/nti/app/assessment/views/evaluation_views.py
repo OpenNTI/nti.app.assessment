@@ -1100,8 +1100,9 @@ class AssignmentPutView(NewAndLegacyPutView):
 def delete_evaluation(evaluation, course=None):
 	# delete from evaluations
 	course = find_interface(evaluation, ICourseInstance, strict=False)
-	evaluations = ICourseEvaluations(course)
-	del evaluations[evaluation.ntiid]
+	evaluations = ICourseEvaluations(course, None)
+	if evaluations and evaluation.ntiid in evaluations:
+		del evaluations[evaluation.ntiid]
 	evaluation.__home__ = None
 
 	# remove from registry

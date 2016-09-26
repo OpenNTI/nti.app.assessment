@@ -15,10 +15,6 @@ import itertools
 
 from datetime import datetime
 
-from pyramid import httpexceptions as hexc
-
-from pyramid.threadlocal import get_current_request
-
 from zope import component
 from zope import lifecycleevent
 
@@ -30,6 +26,12 @@ from zope.proxy import isProxy
 from zope.proxy import ProxyBase
 
 from zope.schema.interfaces import RequiredMissing
+
+from zope.security.interfaces import IPrincipal
+
+from pyramid import httpexceptions as hexc
+
+from pyramid.threadlocal import get_current_request
 
 from ZODB import loglevels
 
@@ -113,8 +115,12 @@ from nti.coremetadata.interfaces import SYSTEM_USER_ID
 
 from nti.coremetadata.interfaces import IPublishable
 
+from nti.dataserver.interfaces import IUser
+
 from nti.dataserver.metadata_index import IX_MIMETYPE
 from nti.dataserver.metadata_index import IX_CONTAINERID
+
+from nti.dataserver.users import User
 
 from nti.externalization.externalization import to_external_object
 from nti.externalization.externalization import StandardExternalFields
@@ -156,6 +162,13 @@ def get_resource_site_name(context, strict=False):
 	folder = find_interface(context, IHostPolicyFolder, strict=strict)
 	return folder.__name__ if folder is not None else None
 get_course_site = get_resource_site_name
+
+def get_user(user):
+	if IPrincipal.providedBy(user):
+		user = user.id
+	if user is not None and not IUser.providedBy(user):
+		user = User.get_user(str(user))
+	return user
 
 # containment
 
@@ -389,11 +402,19 @@ def get_course_from_evaluation(evaluation, user=None, catalog=None,
 get_course_from_assignment = get_course_from_evaluation  # BWC
 
 def has_assigments_submitted(context, user):
+	user = get_user(user)
 	course = ICourseInstance(context, None)
 	histories = component.queryMultiAdapter((course, user),
 											IUsersCourseAssignmentHistory)
-	result = histories is not None and len(histories) > 0
-	return result
+	return bool(histories is not None and len(histories) > 0)
+
+def has_submitted_assigment(context, user, assigment):
+	user = get_user(user)
+	course = ICourseInstance(context, None)
+	histories = component.queryMultiAdapter((course, user),
+											IUsersCourseAssignmentHistory)
+	ntiid = getattr(assigment, 'ntiid', assigment)
+	return bool(histories and ntiid in histories)
 
 def get_assessment_metadata_item(context, user, assignment):
 	course = ICourseInstance(context, None)

@@ -46,6 +46,7 @@ from nti.app.assessment.common import validate_auto_grade
 from nti.app.assessment.common import make_evaluation_ntiid
 from nti.app.assessment.common import get_auto_grade_policy
 from nti.app.assessment.common import get_resource_site_name
+from nti.app.assessment.common import get_evaluation_courses
 from nti.app.assessment.common import has_inquiry_submissions
 from nti.app.assessment.common import delete_evaluation_metadata
 from nti.app.assessment.common import delete_inquiry_submissions
@@ -140,6 +141,7 @@ from nti.common.maps import CaseInsensitiveDict
 from nti.common.string import is_true
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.contenttypes.courses.utils import is_course_instructor
 
@@ -1540,24 +1542,22 @@ class RegradeEvaluationView(AbstractAuthenticatedView):
 							 None)
 		return result
 
-	def _get_course_from_evaluation(self, theObject):
+	def _get_courses(self, evaluation):
 		result = get_course_from_request(self.request)
 		if result is None:
-			result = get_course_from_evaluation(evaluation=theObject,
-										  		user=self.remoteUser)
+			# If no course in request, get all courses for this assignment.
+			result = get_evaluation_courses( evaluation )
+		else:
+			result = (result,)
 		return result
 
-	def _can_regrade_evaluation(self, theObject, user):
-		course = self._get_course_from_evaluation(theObject)
-		if course is None:
-			raise_json_error(self.request,
-							 hexc.HTTPForbidden,
-							 {
-								u'message': _("Cannot find evaluation course."),
-								u'code': 'CannotFindEvaluationCourse',
-							 },
-							 None)
-		if not is_course_instructor(course, user):
+	def _validate_regrade(self, course, user):
+		# Only admins or instructors are able to make this call.
+		# Otherwise, make sure the user param passed in is an
+		# instructor.
+		if 			(not self._admin_user \
+				and not is_course_instructor(course, self.remoteUser)) \
+			or  not is_course_instructor(course, user):
 			raise_json_error(self.request,
 							 hexc.HTTPForbidden,
 							 {
@@ -1565,17 +1565,29 @@ class RegradeEvaluationView(AbstractAuthenticatedView):
 								u'code': 'CannotRegradeEvaluation',
 							 },
 							 None)
-		return course
 
 	def __call__(self):
 		user = self.remoteUser
 		if self._admin_user:
 			# We allow admin users to regrade as instructors.
 			user = self._get_instructor()
-		course = self._can_regrade_evaluation(self.context, user)
-		logger.info( '%s regrading %s (%s)',
-					 user.username, self.context.ntiid, self.remoteUser.username)
-		# The grade object itself actually randomly picks an
-		# instructor as the creator.
-		regrade_evaluation(self.context, course)
+		courses = self._get_courses( self.context )
+		if not courses:
+			raise_json_error(self.request,
+							 hexc.HTTPForbidden,
+							 {
+								u'message': _("Cannot find evaluation course."),
+								u'code': 'CannotFindEvaluationCourse',
+							 },
+							 None)
+		for course in courses:
+			self._validate_regrade( course, user )
+			entry = ICourseCatalogEntry( course, None )
+			entry_ntiid = getattr( entry, 'ntiid', '' )
+			logger.info( '%s regrading %s (%s) (course=%s)',
+						 user.username, self.context.ntiid,
+						 self.remoteUser.username, entry_ntiid)
+			# The grade object itself actually arbitrarily picks an
+			# instructor as the creator.
+			regrade_evaluation(self.context, course)
 		return self.context

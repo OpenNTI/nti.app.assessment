@@ -186,7 +186,7 @@ def get_evaluation_containment(ntiid, sites=None, intids=None):
 		container = intids.queryObject(uid)
 		if container is not None and container.ntiid != ntiid:
 			result.append(container)
-	return tuple(result)
+	return result
 
 def get_evaluation_containers(evaluation):
 	result = []
@@ -195,7 +195,7 @@ def get_evaluation_containers(evaluation):
 		container = find_object_with_ntiid(ntiid) if ntiid else None
 		if container is not None:
 			result.append(container)
-	return tuple(result)
+	return result
 
 def get_evaluation_courses(evaluation):
 	result = []
@@ -239,7 +239,7 @@ def get_course_evaluations(context, sites=None, intids=None, mimetypes=None):
 		evaluation = intids.queryObject(uid)
 		if IQEvaluation.providedBy(evaluation):  # extra check
 			result.append(evaluation)
-	return tuple(result)
+	return result
 
 # assessment
 

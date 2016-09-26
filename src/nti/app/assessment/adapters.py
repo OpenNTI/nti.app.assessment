@@ -56,8 +56,6 @@ from nti.app.assessment.utils import get_course_from_request
 
 from nti.app.authentication import get_remote_user
 
-from nti.app.products.courseware.utils import get_course_and_parent
-
 from nti.appserver.context_providers import get_joinable_contexts
 from nti.appserver.context_providers import get_top_level_contexts
 from nti.appserver.context_providers import get_top_level_contexts_for_user
@@ -344,23 +342,9 @@ class _DefaultCourseAssignmentCatalog(object):
 		self.context = context
 
 	def iter_assignments(self, course_lineage=False):
-		if course_lineage:
-			courses = tuple(get_course_and_parent(self.context))
-		else:
-			courses = (self.context,)
-
-		# We're gathering parent courses; make sure we exclude duplicates.
-		if len(courses) > 1:
-			result = []
-			seen = set()
-			for course in courses:
-				course_assignments = get_course_assignments(course, sort=False)
-				for assignment in course_assignments or ():
-					if assignment.ntiid not in seen:
-						seen.add(assignment.ntiid)
-						result.append(assignment)
-		else:
-			result = get_course_assignments(courses[0], sort=False)
+		result = get_course_assignments(self.context,
+										sort=False,
+										parent_course=course_lineage)
 		return result
 
 @interface.implementer(ICourseInstance)

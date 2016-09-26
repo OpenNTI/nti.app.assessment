@@ -101,6 +101,7 @@ from nti.contentlibrary.interfaces import IContentPackage
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ICourseSubInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 from nti.contenttypes.courses.interfaces import IDenyOpenEnrollment
 from nti.contenttypes.courses.interfaces import INonPublicCourseInstance
@@ -109,6 +110,7 @@ from nti.contenttypes.courses.legacy_catalog import ILegacyCourseInstance
 
 from nti.contenttypes.courses.common import get_course_packages
 
+from nti.contenttypes.courses.utils import get_parent_course
 from nti.contenttypes.courses.utils import get_course_hierarchy
 
 from nti.coremetadata.interfaces import SYSTEM_USER_ID
@@ -205,7 +207,7 @@ def get_evaluation_courses(evaluation):
 			result.append(ICourseInstance(container))
 	return result
 
-def get_course_evaluations(context, sites=None, intids=None, mimetypes=None):
+def get_course_evaluations(context, sites=None, intids=None, mimetypes=None, parent_course=False):
 	if isinstance(context, six.string_types):
 		ntiid = context
 		containers = (ntiid,)
@@ -219,6 +221,12 @@ def get_course_evaluations(context, sites=None, intids=None, mimetypes=None):
 		# make sure we also check for course packages.
 		ntiid = entry.ntiid
 		containers = [ntiid]
+		if ICourseSubInstance.providedBy( course ) and parent_course:
+			# Make sure we pull for both subinstance and parent if asked for.
+			parent_course = get_parent_course( course )
+			parent_entry = ICourseCatalogEntry( parent_course )
+			if parent_entry:
+				containers.append( parent_entry.ntiid )
 		packages = get_course_packages(course)
 		containers.extend((x.ntiid for x in packages))
 		sites = get_course_site(course) if not sites else sites
@@ -448,7 +456,9 @@ def get_all_course_assignments(context):
 	seen = set()
 	results = []
 	package_items = get_course_assessment_items(context)
-	course_items = get_course_assignments(context, sort=False, do_filtering=False)
+	# For API created assignments, get from parent if we're a subinstance.
+	course_items = get_course_assignments(context, sort=False,
+										  do_filtering=False, parent_course=True)
 	for item in itertools.chain(package_items, course_items):
 		if 		not IQAssignment.providedBy(item) \
 			or  item.ntiid in seen:
@@ -457,8 +467,8 @@ def get_all_course_assignments(context):
 		results.append(item)
 	return results
 
-def get_course_assignments(context, sort=True, reverse=False, do_filtering=True):
-	items = get_course_evaluations(context, mimetypes=ALL_ASSIGNMENT_MIME_TYPES)
+def get_course_assignments(context, sort=True, reverse=False, do_filtering=True, parent_course=False):
+	items = get_course_evaluations(context, mimetypes=ALL_ASSIGNMENT_MIME_TYPES, parent_course=parent_course)
 	ntiid = getattr(ICourseCatalogEntry(context, None), 'ntiid', None)
 	if do_filtering:
 		# Filter out excluded assignments so they don't show in the gradebook either

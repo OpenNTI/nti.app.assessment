@@ -1121,16 +1121,13 @@ def get_outline_evaluation_containers( obj ):
 	if obj.ntiid is None:
 		# Tests
 		return
-	containers = get_containers_for_evaluation_object( obj,
-													   include_question_sets=True )
 	assigment_question_sets = set()
+	containers = get_containers_for_evaluation_object(obj, include_question_sets=True )
 
 	# Gather assignment question sets and remove them.
 	for container in containers or ():
 		if IQAssignment.providedBy( container ):
-			for question_set in container.iter_question_sets():
-				qset_ntiid = question_set.ntiid
-				assigment_question_sets.add( qset_ntiid )
+			assigment_question_sets.update(x.ntiid for x in container.iter_question_sets())
 
 	if assigment_question_sets and containers:
 		results = []

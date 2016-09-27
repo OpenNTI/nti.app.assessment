@@ -54,7 +54,7 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssessment
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
-from nti.assessment.interfaces import UnlockQAssessmentPolicies 
+from nti.assessment.interfaces import UnlockQAssessmentPolicies
 
 from nti.contentlibrary.indexed_data import get_library_catalog
 
@@ -71,6 +71,8 @@ from nti.contenttypes.presentation.interfaces import INTIAssignmentRef
 from nti.contenttypes.presentation.interfaces import INTIQuestionSetRef
 
 from nti.dataserver import authorization as nauth
+
+from nti.externalization.externalization import to_external_object
 
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
@@ -263,6 +265,9 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 
 		return outline
 
+	def _external_object(self, obj):
+		return obj
+
 	def _do_catalog(self, instance, result):
 		catalog = ICourseAssignmentCatalog(instance)
 		uber_filter = get_course_assessment_predicate_for_user(self.remoteUser, instance)
@@ -271,7 +276,7 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 		for asg in (x for x in assignments if self._is_editor or uber_filter(x)):
 			container_id = get_containerId(asg)
 			if container_id:
-				result.setdefault(container_id, []).append(asg)
+				result.setdefault(container_id, []).append( asg )
 			else:
 				logger.error("%s is an assignment without parent container", asg.ntiid)
 		return result
@@ -288,10 +293,31 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 		if self.is_ipad_legacy:
 			self._do_catalog(instance, result)
 		else:
-			items = result[ITEMS] = {}
+			items = {}
 			outline = result['Outline'] = {}
 			self._do_catalog(instance, items)
 			self._do_outline(instance, items, outline)
+			result[ITEMS] = final_items = {}
+			for key, vals in items.items():
+				final_items[key] = [self._external_object( x ) for x in vals]
+		return result
+
+@view_config(context=ICourseInstance)
+@view_config(context=ICourseCatalogEntry)
+@view_config(context=ICourseInstanceEnrollment)
+@view_defaults(route_name='objects.generic.traversal',
+			   renderer='rest',
+			   permission=nauth.ACT_READ,
+			   request_method='GET',
+			   name='AssignmentSummaryByOutlineNode')  # See decorators
+class AssignmentSummaryByOutlineNodeView(AssignmentsByOutlineNodeView):
+	"""
+	A `AssigmentsByOutlineNodeView` that only returns summaries of
+	assessment objects.
+	"""
+
+	def _external_object(self, obj):
+		result = to_external_object( obj, name="summary" )
 		return result
 
 @view_config(context=ICourseInstance)
@@ -317,6 +343,9 @@ class NonAssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 	to identify the corresponding level it wishes to display.
 	"""
 
+	def _external_object(self, obj):
+		return obj
+
 	def _do_catalog(self, instance, result):
 		qsids_to_strip = set()
 		data = defaultdict(dict)
@@ -333,9 +362,11 @@ class NonAssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 
 		# Now remove the forbidden
 		for ntiid, items in data.items():
-			result_items = [items[x] for x in items.keys() if x not in qsids_to_strip]
+			result_items = (items[x] for x in items.keys() if x not in qsids_to_strip)
+			if not self.is_ipad_legacy:
+				result_items = (self._external_object( x ) for x in result_items)
 			if result_items:
-				result[ntiid] = result_items
+				result[ntiid] = tuple( result_items )
 
 		return result
 
@@ -353,6 +384,23 @@ class NonAssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 		else:
 			items = result[ITEMS] = {}
 			self._do_catalog(instance, items)
+		return result
+
+@view_config(context=ICourseInstance)
+@view_config(context=ICourseCatalogEntry)
+@view_config(context=ICourseInstanceEnrollment)
+@view_defaults(route_name='objects.generic.traversal',
+			   renderer='rest',
+			   permission=nauth.ACT_READ,
+			   request_method='GET',
+			   name='NonAssignmentAssessmentSummaryItemsByOutlineNode')  # See decorators
+class NonAssignmentSummaryByOutlineNodeView(NonAssignmentsByOutlineNodeView):
+	"""
+	A `NonAssignmentsByOutlineNodeView` that only returns summaries of
+	assessment objects.
+	"""
+	def _external_object(self, obj):
+		result = to_external_object( obj, name="summary" )
 		return result
 
 @view_config(route_name="objects.generic.traversal",

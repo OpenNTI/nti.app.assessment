@@ -66,6 +66,8 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataContaine
 
 from nti.app.assessment.interfaces import ObjectRegradeEvent
 
+from nti.app.authentication import get_remote_user
+
 from nti.app.externalization.error import raise_json_error
 
 from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
@@ -165,8 +167,10 @@ def get_resource_site_name(context, strict=False):
 	return folder.__name__ if folder is not None else None
 get_course_site = get_resource_site_name
 
-def get_user(user):
-	if IPrincipal.providedBy(user):
+def get_user(user=None, remote=False, request=None):
+	if user is None and remote:
+		user = get_remote_user(request)
+	elif IPrincipal.providedBy(user):
 		user = user.id
 	if user is not None and not IUser.providedBy(user):
 		user = User.get_user(str(user))

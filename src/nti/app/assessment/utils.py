@@ -22,11 +22,10 @@ from zope.intid.interfaces import IIntIds
 
 from zope.proxy import isProxy
 
-from zope.security.interfaces import IPrincipal
-
 from pyramid.threadlocal import get_current_request
 
 from nti.app.assessment.common import proxy
+from nti.app.assessment.common import get_user
 from nti.app.assessment.common import AssessmentItemProxy
 from nti.app.assessment.common import get_course_from_evaluation
 
@@ -59,10 +58,7 @@ from nti.contenttypes.courses.utils import is_course_instructor_or_editor
 
 from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
-from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import IUsernameSubstitutionPolicy
-
-from nti.dataserver.users import User
 
 from nti.externalization.proxy import removeAllProxies
 
@@ -238,15 +234,6 @@ def get_course_from_request(request=None, params=None):
 		pass
 	return None
 
-def get_user(user=None):
-	if user is None:
-		user = get_remote_user()
-	elif IPrincipal.providedBy(user):
-		user = user.id
-	if user is not None and not IUser.providedBy(user):
-		user = User.get_user(str(user))
-	return user
-
 def get_uid(context):
 	result = component.getUtility(IIntIds).getId(context)
 	return result
@@ -255,7 +242,7 @@ def get_uid(context):
 class PrincipalSeedSelector(object):
 
 	def __call__(self, principal=None):
-		user = get_user(principal)
+		user = get_user(principal, True)
 		if user is not None:
 			return get_uid(user)
 		return None

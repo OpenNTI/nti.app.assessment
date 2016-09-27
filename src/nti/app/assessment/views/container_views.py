@@ -23,6 +23,8 @@ from nti.assessment.interfaces import IQuestion
 
 from nti.dataserver import authorization as nauth
 
+from nti.externalization.externalization import to_external_object
+
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
@@ -42,10 +44,10 @@ class QuestionContainersView(AbstractAuthenticatedView):
 	"""
 
 	def __call__(self):
-		# TODO: We'd like to summarize these objects on externalization.
 		result = LocatedExternalDict()
 		result['Assessments'] = assessments = list()
 		containers = get_outline_evaluation_containers( self.context )
+		containers = [to_external_object(x, name="summary") for x in containers]
 		assessments.extend( containers )
 		result[ITEM_COUNT] = result[TOTAL] = len( containers )
 		return result

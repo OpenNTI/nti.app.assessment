@@ -147,10 +147,14 @@ class _AssignmentsByOutlineNodeDecorator(AbstractAssessmentDecoratorPredicate):
 		course = ICourseInstance(context, context)
 
 		links = result_map.setdefault(LINKS, [])
-		links.append(self._link_with_rel(course, 'NonAssignmentAssessmentItemsByOutlineNode'))
+		for rel in ('NonAssignmentAssessmentItemsByOutlineNode',
+					'NonAssignmentAssessmentSummaryItemsByOutlineNode'):
+			links.append(self._link_with_rel(course, rel))
 
 		if self.show_assignments_by_outline_link(course):
-			links.append(self._link_with_rel(course, 'AssignmentsByOutlineNode'))
+			for rel in ('AssignmentsByOutlineNode',
+						'AssignmentSummaryByOutlineNode'):
+				links.append(self._link_with_rel(course, rel))
 
 @component.adapter(IQAssignment, IRequest)
 @interface.implementer(IExternalMappingDecorator)

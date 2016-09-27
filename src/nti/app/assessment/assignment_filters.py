@@ -63,8 +63,7 @@ class UserEnrolledForCreditInCourseOrInstructsFilter(object):
 	@Lazy
 	def is_enrolled_for_credit(self):
 		record = get_enrollment_in_hierarchy(self.course, self.user)
-		result = record is not None and record.Scope != ES_PUBLIC
-		return result
+		return bool(record is not None and record.Scope != ES_PUBLIC)
 
 	def allow_assessment_for_user_in_course(self, asg, user, course):
 		if self.TEST_OVERRIDE:
@@ -94,8 +93,7 @@ class AssessmentPolicyExclusionFilter(object):
 		self.policies = IQAssessmentPolicies(course)
 
 	def allow_assessment_for_user_in_course(self, asg, user=None, course=None):
-		excluded = self.policies.getPolicyForAssessment(asg.ntiid).get('excluded', False)
-		return not excluded
+		return not self.policies.getPolicyForAssessment(asg.ntiid).get('excluded', False)
 	allow_assignment_for_user_in_course = allow_assessment_for_user_in_course
 AssignmentPolicyExclusionFilter = AssessmentPolicyExclusionFilter
 
@@ -107,6 +105,5 @@ class AssessmentPublishExclusionFilter(object):
 		pass
 
 	def allow_assessment_for_user_in_course(self, asg, user=None, course=None):
-		result = asg.is_published()
-		return result
+		return asg.is_published()
 	allow_assignment_for_user_in_course = allow_assessment_for_user_in_course # BWC

@@ -85,6 +85,10 @@
 	<!-- ACL providers -->
 	<adapter factory=".acl.EvaluationACLProvider" />
 
+	<!-- Zope security -->
+	<adapter factory=".zope_security.AssignmentHistoriesRolePermissionManager"
+			 provides="zope.securitypolicy.interfaces.IRolePermissionMap" />
+
 	<!-- Populating questions from content -->
 	<adapter factory="._question_map.ContentUnitAssessmentItems" />
 

@@ -37,7 +37,7 @@ class _BaseCourseEvaluationPathAdapter(Contained):
 		if not key:
 			raise hexc.HTTPNotFound()
 		ntiid = unquote(key)
-		for registry in (self.context, component):
+		for registry in (component, ):
 			try:
 				registry = registry.getSiteManager()
 				assesment = registry.queryUtility(IQEvaluation, name=ntiid)
@@ -49,10 +49,8 @@ class _BaseCourseEvaluationPathAdapter(Contained):
 
 @interface.implementer(IPathAdapter)
 class _CourseAssessmentsPathAdapter(_BaseCourseEvaluationPathAdapter):
-
 	__name__ = 'Assessments'
 
 @interface.implementer(IPathAdapter)
 class _CourseInquiriesPathAdapter(_BaseCourseEvaluationPathAdapter):
-
 	__name__ = 'CourseInquiries'

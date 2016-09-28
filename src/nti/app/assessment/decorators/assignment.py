@@ -318,7 +318,7 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 
 	@classmethod
 	def strip(cls, item):
-		for part in item['parts']:
+		for part in item.get('parts') or ():
 			if isinstance(part, Mapping):
 				for key in ('solutions', 'explanation'):
 					if key in part:
@@ -326,7 +326,7 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 
 	@classmethod
 	def strip_qset(cls, item):
-		for q in item['questions']:
+		for q in item.get('questions') or ():
 			cls.strip(q)
 
 	def _predicate(self, context, result):
@@ -334,9 +334,10 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 			return self.needs_stripped(context, self.request, self.remoteUser)
 
 	def _do_decorate_external(self, context, result):
-		for part in result['parts']:
-			question_set = part['question_set']
-			self.strip_qset(question_set)
+		for part in result.get('parts') or ():
+			question_set = part.get('question_set')
+			if question_set:
+				self.strip_qset(question_set)
 
 class _AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAwareDecorator):
 	"""
@@ -355,7 +356,7 @@ class _AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper(Abstra
 			return _AssignmentBeforeDueDateSolutionStripper.needs_stripped(assg, self.request, self.remoteUser)
 
 	def _do_decorate_external(self, context, result):
-		for part in result['parts']:
+		for part in result.get('parts') or ():
 			_AssignmentBeforeDueDateSolutionStripper.strip_qset(part)
 
 @interface.implementer(IExternalObjectDecorator)
@@ -617,10 +618,10 @@ class _AssessmentPracticeLinkDecorator(AbstractAuthenticatedRequestAwareDecorato
 		if course is not None:
 			link_context = course
 			elements = ('Assessments', context.ntiid,
-						'@@'+ASSESSMENT_PRACTICE_SUBMISSION)
+						'@@' + ASSESSMENT_PRACTICE_SUBMISSION)
 		else:
 			link_context = context
-			elements = ('@@'+ASSESSMENT_PRACTICE_SUBMISSION,)
+			elements = ('@@' + ASSESSMENT_PRACTICE_SUBMISSION,)
 
 		link = Link(link_context, rel=ASSESSMENT_PRACTICE_SUBMISSION,
 					elements=elements)

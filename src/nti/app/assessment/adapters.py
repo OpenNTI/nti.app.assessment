@@ -448,8 +448,7 @@ def _get_hierarchy_context_for_context(obj, top_level_context):
 
 def _get_course_context( evaluation ):
 	user = get_remote_user()
-	course = get_course_from_evaluation( evaluation, user )
-	return course
+	return get_course_from_evaluation( evaluation, user )
 
 @interface.implementer(ITopLevelContainerContextProvider)
 @component.adapter(IQInquiry)
@@ -473,8 +472,7 @@ def _courses_from_obj_and_user(obj, user):
 def _hierarchy_from_obj_and_user(obj, user):
 	results = []
 	# Get our top level courses for this object and user
-	courses = get_top_level_contexts_for_user(obj, user)
-	for course in courses:
+	for course in get_top_level_contexts_for_user(obj, user):
 		# Get assignments/question sets so that we can find in outline.
 		for container in get_outline_evaluation_containers( obj ) or (obj,):
 			hierarchy_context = _get_hierarchy_context_for_context( container, course )
@@ -486,8 +484,8 @@ def _hierarchy_from_obj_and_user(obj, user):
 @component.adapter(IQInquiry)
 @component.adapter(IQAssessment)
 def _joinable_courses_from_obj(obj):
-	courses = get_evaluation_courses( obj )
 	results = set()
+	courses = get_evaluation_courses( obj )
 	for course in courses or ():
 		joinable = get_joinable_contexts(course)
 		if joinable:

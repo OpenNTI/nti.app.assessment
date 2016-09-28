@@ -14,14 +14,14 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope import interface
 
-from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
-
-from nti.dataserver.authorization import ROLE_CONTENT_ADMIN_NAME
-
 from zope.securitypolicy.interfaces import Deny
 from zope.securitypolicy.interfaces import IRolePermissionMap
 
 from zope.securitypolicy.rolepermission import AnnotationRolePermissionManager
+
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
+
+from nti.dataserver.authorization import ROLE_CONTENT_ADMIN_NAME
 
 @component.adapter(IUsersCourseAssignmentHistories)
 @interface.implementer(IRolePermissionMap)

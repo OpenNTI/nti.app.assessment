@@ -72,6 +72,7 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssessment
 from nti.assessment.interfaces import IQTimedAssignment
+from nti.assessment.interfaces import IQEditableEvaluation
 
 from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
@@ -577,12 +578,25 @@ class _AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecora
 		result = has_savepoints(context, courses) or has_submissions(context, courses)
 		return result
 
+	def _can_auto_grade(self, context):
+		# Content backed assignments can *only* enable auto_grade
+		# if the parts are auto-assessable.
+		result = True
+		if 		IQAssignment.providedBy( context ) \
+			and not IQEditableEvaluation.providedBy( context ):
+			for part in context.parts or ():
+				if part.auto_grade == False:
+					return False
+		return result
+
 	def _do_decorate_external(self, context, result):
 		_links = result.setdefault(LINKS, [])
 		courses = self._get_courses(context)
-		names = ('date-edit-end', 'date-edit', 'auto-grade', 'total-points')
+		names = ('date-edit-end', 'date-edit', 'total-points')
 		if not self._has_submitted_data(context, courses):
 			names += ('date-edit-start',)
+		if self._can_auto_grade(context):
+			names += ('auto-grade',)
 
 		# set correct context and elements if request comes from a course
 		course = get_course_from_request(self.request)

@@ -115,7 +115,7 @@ from nti.contenttypes.courses.common import get_course_packages
 from nti.contenttypes.courses.utils import get_parent_course
 from nti.contenttypes.courses.utils import get_course_hierarchy
 
-from nti.coremetadata.interfaces import SYSTEM_USER_ID
+from nti.coremetadata.interfaces import SYSTEM_USER_NAME
 
 from nti.coremetadata.interfaces import IPublishable
 
@@ -941,7 +941,7 @@ def validate_auto_grade_points(assignment, course, request, externalValue):
 							 },
 							 None)
 
-def make_evaluation_ntiid(kind, creator=SYSTEM_USER_ID, base=None, extra=None):
+def make_evaluation_ntiid(kind, base=None, extra=None):
 	# get kind
 	if IQAssignment.isOrExtends(kind):
 		kind = u'assignment'
@@ -956,8 +956,8 @@ def make_evaluation_ntiid(kind, creator=SYSTEM_USER_ID, base=None, extra=None):
 	else:
 		kind = str(kind)
 
+	creator = SYSTEM_USER_NAME
 	current_time = time_to_64bit_int(time.time())
-	creator = getattr(creator, 'username', creator)
 	provider = get_provider(base) or 'NTI' if base else 'NTI'
 
 	specific_base = get_specific(base) if base else None

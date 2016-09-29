@@ -96,7 +96,7 @@ class EvaluationsImporter(BaseSectionImporter):
 		ntiid = self.get_ntiid(obj)
 		if not ntiid:
 			provided = iface_of_assessment(obj)
-			obj.ntiid = make_evaluation_ntiid(provided, principal.id, extra=self._extra)
+			obj.ntiid = make_evaluation_ntiid(provided, extra=self._extra)
 			obj.creator = principal.id
 		evaluations = ICourseEvaluations(course)
 		lifecycleevent.created(obj)

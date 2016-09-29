@@ -265,7 +265,7 @@ class EvaluationMixin(StructuralValidationMixin):
 		"""
 		provided = iface_of_assessment(obj)
 		evaluations = ICourseEvaluations(course)
-		obj.ntiid = ntiid = make_evaluation_ntiid(provided, user, extra=self._extra)
+		obj.ntiid = ntiid = make_evaluation_ntiid(provided, extra=self._extra)
 		obj.creator = getattr(user, 'username', user)
 		lifecycleevent.created(obj)
 		try:

@@ -346,9 +346,12 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		activity_link = course_instance_link + '/CourseActivity'
 		res = self.testapp.get(activity_link, extra_environ=instructor_environ)
 		assert_that( res.json_body, has_entry('TotalItemCount', 2) )
-		assert_that( res.json_body['Items'], contains( has_entries('Class', 'UsersCourseAssignmentHistoryItemFeedback',
-																   'AssignmentId', 'tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.asg:QUIZ1_aristotle'),
-													   has_entry('Class', 'AssignmentSubmission')))
+		assert_that( res.json_body['Items'],
+					 contains(
+						has_entries('Class', 'UsersCourseAssignmentHistoryItemFeedback',
+									'AssignmentId', 'tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.asg:QUIZ1_aristotle',
+									'SubmissionCreator', self.default_username),
+						has_entry('Class', 'AssignmentSubmission')))
 
 		# The instructor can add his own feedback
 		feedback = UsersCourseAssignmentHistoryItemFeedback(body=['A reply to your feedback'])

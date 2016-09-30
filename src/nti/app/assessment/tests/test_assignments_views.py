@@ -252,6 +252,12 @@ class TestAssignmentViews(ApplicationLayerTest):
 		conflict_class = 'DestructiveChallenge'
 		conflict_mime = 'application/vnd.nextthought.destructivechallenge'
 
+		# Force the parts to be auto_grade (assessable).
+		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+			asg = find_object_with_ntiid(self.assignment_id)
+			for parts in asg.parts or ():
+				parts.auto_grade = True
+
 		assignment = self.testapp.get(assignment_url, extra_environ=editor_environ)
 		assignment = assignment.json_body
 		assert_that( assignment.get( 'policy_locked'), is_( False ))

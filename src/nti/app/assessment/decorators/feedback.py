@@ -35,7 +35,10 @@ class _FeedbackItemAssignmentIdDecorator(object):
 			feedback = item.__parent__
 			history_item = feedback.__parent__
 			submission = history_item.Submission
+			creator = submission.creator
+			creator = getattr( creator, 'username', creator )
 			result_map['AssignmentId'] = submission.assignmentId
+			result_map['SubmissionCreator'] = creator
 		except AttributeError:
 			pass
 

@@ -28,6 +28,7 @@ from nti.externalization.externalization import to_external_object
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
+ITEMS = StandardExternalFields.ITEMS
 TOTAL = StandardExternalFields.TOTAL
 ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 
@@ -45,7 +46,7 @@ class QuestionContainersView(AbstractAuthenticatedView):
 
 	def __call__(self):
 		result = LocatedExternalDict()
-		result['Assessments'] = assessments = list()
+		result[ITEMS] = assessments = list()
 		containers = get_outline_evaluation_containers( self.context )
 		containers = [to_external_object(x, name="summary") for x in containers]
 		assessments.extend( containers )

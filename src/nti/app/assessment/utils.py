@@ -223,8 +223,10 @@ def get_course_from_request(request=None, params=None):
 
 	try:
 		params = request.params if params is None else params
-		ntiid = 	params.get('course') or params.get('entry') \
-				or	params.get('ntiid') or params.get('context')
+		ntiid = 	params.get('course') \
+				or	params.get('entry') \
+				or	params.get('ntiid') \
+				or	params.get('context')
 		ntiid = unquote(ntiid) if ntiid else None
 		if ntiid and is_valid_ntiid_string(ntiid):
 			result = find_object_with_ntiid(ntiid)

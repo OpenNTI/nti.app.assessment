@@ -29,6 +29,8 @@ from cStringIO import StringIO
 
 from zope import component
 
+from zope.securitypolicy.principalrole import principalRoleManager
+
 import ZODB
 
 from nti.assessment import parts
@@ -46,6 +48,10 @@ from nti.assessment.interfaces import IQAssessmentItemContainer
 from nti.assessment.assignment import QAssignmentPart, QAssignment
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
+
+from nti.dataserver.authorization import ROLE_CONTENT_ADMIN
+
+from nti.dataserver.users import User
 
 from nti.externalization import internalization
 
@@ -301,3 +307,50 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 		self.testapp.delete(item_edit_href, status=204)
 		self.testapp.get(item_href, status=404)
 		self.testapp.get(history_feedback_container_href, status=404)
+
+	@WithSharedApplicationMockDS(users=('content_admin',), testapp=True)
+	@fudge.patch('nti.app.assessment.history.get_policy_for_assessment',
+				 'nti.app.assessment.history.get_available_for_submission_ending')
+	def admin_permissions(self, mock_gpa, mock_se):
+		"""
+		Make sure our global content admin cannot edit feedback.
+		"""
+		mock_gpa.is_callable().with_args().returns({'student_nuclear_reset_capable':True})
+		mock_se.is_callable().with_args().returns(datetime.utcfromtimestamp(time.time() + 20000))
+
+		# Enroll and get our history item and feedback
+		cid = 'tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice_SubInstances_01'
+		history_res, _ = self._create_and_enroll(course_id=cid)
+
+		item = history_res.json_body['Items'][self.assignment_id]
+		item_href = item['href']
+		# Initially, we have the ability to delete it ourself
+		link = self.link_with_rel(item, 'edit')
+		assert_that(link, is_(not_none()))
+		assert_that(link, has_entry('method', 'DELETE'))
+
+		history_feedback_container_href = item['Feedback']['href']
+		# If we put some feedback, that goes away
+		feedback = UsersCourseAssignmentHistoryItemFeedback(body=['Some feedback'])
+		ext_feedback = to_external_object(feedback)
+		feedback_res = self.testapp.post_json(history_feedback_container_href,
+									  		  ext_feedback,
+									  		  status=201)
+		feedback_href = feedback_res.json_body.get( 'href' )
+
+		# Create our admin
+		admin_environ = self._make_extra_environ(username='content_admin')
+
+		res = self.testapp.get('/dataserver2/users/content_admin/Courses/AdministeredCourses',
+								extra_environ=admin_environ)
+		assert_that(res.json_body, has_entry('Items', has_length(0)))
+
+		with mock_dataserver.mock_db_trans(self.ds):
+			user = User.get_user( 'content_admin' )
+			assert_that( user, not_none() )
+			principalRoleManager.assignRoleToPrincipal(
+								ROLE_CONTENT_ADMIN.id, 'content_admin', check=False)
+
+		# Global content admin cannot fetch history item or feedback
+		self.testapp.get( item_href, extra_environ=admin_environ, status=403 )
+		self.testapp.get( feedback_href, extra_environ=admin_environ, status=403 )

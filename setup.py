@@ -40,8 +40,7 @@ setup(
 	install_requires=[
 		'setuptools',
 		'nti.assessment',
-		'nti.contenttypes.courses',
-		'nti.app.products.courseware'
+		'nti.contenttypes.courses'
 	],
 	entry_points=entry_points
 )

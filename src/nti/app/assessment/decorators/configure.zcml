@@ -158,6 +158,11 @@
 				for="nti.assessment.interfaces.IQuestion
 					 pyramid.interfaces.IRequest" />
 
+	<!-- question set -->
+	<subscriber factory=".question_set._NTIQuestionSetCountDecorator"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator"
+				for="nti.assessment.interfaces.IQuestionSet" />
+
 	<!-- savepoint -->
 	<subscriber factory=".savepoint._AssignmentSavepointDecorator"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"

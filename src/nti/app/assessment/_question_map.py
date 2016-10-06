@@ -280,7 +280,7 @@ class QuestionMap(QuestionIndex):
 		hierarchy_ntiids.add(content_package.ntiid)
 
 		if level_ntiid and library is not None:
-			containing_content_units = library.pathToNTIID(level_ntiid, skip_cache=True)
+			containing_content_units = library.pathToNTIID(level_ntiid)
 			if containing_content_units:
 				parent = containing_content_units[-1]
 				parents_questions = IQAssessmentItemContainer(parent)
@@ -369,7 +369,6 @@ class QuestionMap(QuestionIndex):
 				if ntiid not in parents_questions:
 					parents_questions.append(registered)
 
-			obj.createdTime = obj.lastModified = key_lastModified
 			if containing_hierarchy_key:
 				assert 	containing_hierarchy_key in by_file, \
 						"Container for file must already be present"

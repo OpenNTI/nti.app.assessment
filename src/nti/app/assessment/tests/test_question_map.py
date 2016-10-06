@@ -212,7 +212,7 @@ class TestQuestionMap( AssessmentLayerTest ):
 		super( TestQuestionMap, self ).tearDown()
 		component.getGlobalSiteManager().unregisterUtility(self, IGlobalContentPackageLibrary)
 
-	def pathToNTIID(self, ntiid, skip_cache=False):
+	def pathToNTIID(self, ntiid):
 		return ()
 
 	def _do_test_create_question_map_captures_set_ntiids(self, index_string=ASSM_STRING_W_SET):

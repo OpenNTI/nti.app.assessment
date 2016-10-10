@@ -371,6 +371,19 @@ class _QuestionSetDecorator(object):
 			external[OID] = oid
 
 @interface.implementer(IExternalObjectDecorator)
+class _AssignmentPartDecorator(object):
+	"""
+	The underlying QuestionSet may not always be externalized, so
+	decorate the QuestionSetId on externalization for clients.
+	"""
+
+	__metaclass__ = SingletonDecorator
+
+	def decorateExternalObject(self, original, external):
+		if original.question_set is not None:
+			external['QuestionSetId'] = original.question_set.ntiid
+
+@interface.implementer(IExternalObjectDecorator)
 class _QuestionSetRandomizedDecorator(object):
 	"""
 	Decorate the randomized state of question sets,

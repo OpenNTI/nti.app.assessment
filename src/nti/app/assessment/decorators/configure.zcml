@@ -70,6 +70,10 @@
 				for="nti.assessment.interfaces.IQuestionSet"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"/>
 
+	<subscriber factory=".assignment._AssignmentPartDecorator"
+				for="nti.assessment.interfaces.IQAssignmentPart"
+				provides="nti.externalization.interfaces.IExternalObjectDecorator"/>
+
 	<subscriber factory=".assignment._QuestionSetDecorator"
 				for="nti.assessment.randomized.interfaces.IQuestionBank"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"/>

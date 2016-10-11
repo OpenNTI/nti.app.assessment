@@ -124,6 +124,9 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 		if course is None:
 			raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
 
+		if not self.context.is_published():
+			raise hexc.HTTPConflict(_("Assignment is not available."))
+
 	def _do_call(self):
 		creator = self.remoteUser
 		try:
@@ -137,11 +140,11 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 					raise hexc.HTTPUnprocessableEntity(_("No submission source was specified"))
 				extValue = extValue.read()
 				extValue = read_input_data(extValue, self.request)
-				submission = self.readCreateUpdateContentObject(creator, 
+				submission = self.readCreateUpdateContentObject(creator,
 																externalValue=extValue)
 				submission = read_multipart_sources(submission, self.request)
 
-			result = component.getMultiAdapter((self.request, submission), 
+			result = component.getMultiAdapter((self.request, submission),
 												IExceptionResponse)
 		except HTTPCreated as e:
 			result = e # valid response
@@ -304,8 +307,8 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 
 						if IQUploadedFile.providedBy(qp_part):
 							user_filename_part = self._get_username_filename_part( principal )
-							full_filename = "%s-%s-%s-%s-%s" % (user_filename_part, 
-																sub_num, 
+							full_filename = "%s-%s-%s-%s-%s" % (user_filename_part,
+																sub_num,
 																q_num,
 																qp_num,
 																qp_part.filename)

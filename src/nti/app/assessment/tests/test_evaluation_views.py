@@ -856,6 +856,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		assignment_href = res.get( 'href' )
 		assignment_submit_href = self.require_link_href_with_rel( res,
 																  ASSESSMENT_PRACTICE_SUBMISSION)
+		publish_href = self.require_link_href_with_rel( res, VIEW_PUBLISH )
 		assignment_ntiid = res.get('ntiid')
 		assignment_ntiids = (assignment_ntiid,)
 		savepoint_href = '/dataserver2/Objects/%s/AssignmentSavepoints/sjohnson@nextthought.com/%s/Savepoint' % \
@@ -880,6 +881,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		qset_move_href = self.require_link_href_with_rel(qset, VIEW_ASSESSMENT_MOVE)
 		qset_contents_href = self.require_link_href_with_rel(qset, VIEW_QUESTION_SET_CONTENTS)
 		self._validate_assignment_containers( qset_ntiid, assignment_ntiids )
+		self.testapp.post( publish_href )
 
 		# Get submission ready
 		upload_submission = QUploadedFile(data=b'1234',
@@ -1124,7 +1126,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		"""
 		Validate assignment (structural) links change when students submit.
 		"""
-		# Create base assessment object, enroll student, and set up vars for test.
+		# Create base assessment object (published), enroll student, and set up vars for test.
 		course_oid = self._get_course_oid()
 		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
 		assignment = self._load_assignment()
@@ -1134,6 +1136,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		assignment_href = res.get( 'href' )
 		assignment_ntiid = res.get('ntiid')
 		assignment_ntiids = (assignment_ntiid,)
+		self.testapp.post( '%s/@@publish' % assignment_href )
 		assert_that( res.get( 'version' ), none() )
 		old_part = res.get( 'parts' )[0]
 		qset = old_part.get( 'question_set' )
@@ -1536,3 +1539,48 @@ class TestEvaluationViews(ApplicationLayerTest):
 			get_top_level_contexts( assignment )
 			get_top_level_contexts_for_user( assignment, user )
 			IHierarchicalContextProvider( assignment, user )
+
+	@time_monotonically_increases
+	@WithSharedApplicationMockDS(testapp=True, users=True)
+	def test_submissions_for_unpublished(self):
+		"""
+		We can only submit if an assignment is published, but we can
+		always practice submit.
+		"""
+		# Create base assessment object, enroll student, and set up vars for test.
+		course_oid = self._get_course_oid()
+		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
+		assignment = self._load_assignment()
+		res = self.testapp.post_json(href, assignment, status=201)
+		res = res.json_body
+		assignment_href = res.get( 'href' )
+		practice_submission_href = self.require_link_href_with_rel( res,
+																  ASSESSMENT_PRACTICE_SUBMISSION)
+		unpublish_href = self.require_link_href_with_rel( res, VIEW_UNPUBLISH )
+		assignment_ntiid = res.get('ntiid')
+		savepoint_href = '/dataserver2/Objects/%s/AssignmentSavepoints/sjohnson@nextthought.com/%s/Savepoint' % \
+						 (course_oid, assignment_ntiid )
+		assert_that( res.get( 'version' ), none() )
+		old_part = res.get( 'parts' )[0]
+		qset = old_part.get( 'question_set' )
+		qset_ntiid = qset.get( 'NTIID' )
+		question_ntiid = qset.get( 'questions' )[0].get( 'ntiid' )
+
+		# Unpublish
+		self.testapp.post( unpublish_href )
+
+		# Get submission ready
+		upload_submission = QUploadedFile(data=b'1234',
+										  contentType=b'image/gif',
+										  filename='foo.pdf')
+		q_sub = QuestionSubmission(questionId=question_ntiid,
+								   parts=(upload_submission,))
+
+		qs_submission = QuestionSetSubmission(questionSetId=qset_ntiid,
+											  questions=(q_sub,))
+		submission = AssignmentSubmission(assignmentId=assignment_ntiid,
+										  parts=(qs_submission,))
+		submission = toExternalObject( submission )
+		self.testapp.post_json( assignment_href, submission, status=409 )
+		self.testapp.post_json( savepoint_href, submission, status=409 )
+		self.testapp.post_json( practice_submission_href, submission )

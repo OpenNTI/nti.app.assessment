@@ -119,6 +119,7 @@ class _RegisterFileAssignmentLayer(InstructedCourseApplicationTestLayer):
 			cls.lesson_page_id = lesson_page_id
 			lesson = lib.pathToNTIID(lesson_page_id)[-1]
 			assignment.__parent__ = lesson
+			assignment.publish()
 			IQAssessmentItemContainer(lesson).append(assignment)
 
 		cls.database = ZODB.DB(ApplicationTestLayer._storage_base, database_name='Users')

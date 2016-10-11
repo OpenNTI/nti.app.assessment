@@ -37,7 +37,7 @@ from pyramid.interfaces import IExceptionResponse
 from pyramid.view import view_config
 from pyramid.view import view_defaults
 
-from nti.app.assessment import MessageFactory as _m
+from nti.app.assessment import MessageFactory as _
 from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
 
 from nti.app.assessment._submission import get_source
@@ -122,7 +122,7 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 			course = component.queryMultiAdapter((self.context, creator),
 											  	 ICourseInstance)
 		if course is None:
-			raise hexc.HTTPForbidden(_m("Must be enrolled in a course."))
+			raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
 
 	def _do_call(self):
 		creator = self.remoteUser
@@ -134,7 +134,7 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 			else:
 				extValue = get_source(self.request, 'json', 'input', 'submission')
 				if not extValue:
-					raise hexc.HTTPUnprocessableEntity(_m("No submission source was specified"))
+					raise hexc.HTTPUnprocessableEntity(_("No submission source was specified"))
 				extValue = extValue.read()
 				extValue = read_input_data(extValue, self.request)
 				submission = self.readCreateUpdateContentObject(creator, 

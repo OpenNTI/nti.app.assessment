@@ -24,7 +24,7 @@ from pyramid import httpexceptions as hexc
 
 from pyramid.view import view_config
 
-from nti.app.assessment import MessageFactory as _m
+from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment._integrity_check import check_assessment_integrity
 
@@ -236,16 +236,16 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
 		values = self.readInput()
 		ntiid = values.get('ntiid')
 		if not ntiid:
-			raise hexc.HTTPUnprocessableEntity(_m("Invalid Object NTIID."))
+			raise hexc.HTTPUnprocessableEntity(_("Invalid Object NTIID."))
 
 		force = is_true(values.get('force'))
 		evaluation = find_object_with_ntiid(ntiid)
 		evaluation = IQEvaluation(evaluation, None)
 		if evaluation is None:
-			raise hexc.HTTPUnprocessableEntity(_m("Invalid Evaluation object."))
+			raise hexc.HTTPUnprocessableEntity(_("Invalid Evaluation object."))
 
 		if not force and evaluation.isLocked():
-			raise hexc.HTTPUnprocessableEntity(_m("Evaluation object is locked."))
+			raise hexc.HTTPUnprocessableEntity(_("Evaluation object is locked."))
 
 		folder = find_interface(evaluation, IHostPolicyFolder, strict=False)
 		if folder is None:
@@ -255,7 +255,7 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
 			site = get_host_site(folder.__name__)
 		
 		if site is None:
-			raise hexc.HTTPUnprocessableEntity(_m("Invalid Evaluation site."))
+			raise hexc.HTTPUnprocessableEntity(_("Invalid Evaluation site."))
 		
 		# unregister the evaluation object
 		with current_site(site):
@@ -298,13 +298,13 @@ class UnregisterAssessmentItemsView(AbstractAuthenticatedView,
 		values = self.readInput()
 		ntiid = values.get('ntiid') or values.get('pacakge')
 		if not ntiid:
-			raise hexc.HTTPUnprocessableEntity(_m("Invalid content package NTIID."))
+			raise hexc.HTTPUnprocessableEntity(_("Invalid content package NTIID."))
 
 		force = is_true(values.get('force'))
 		package = find_object_with_ntiid(ntiid)
 		package = IContentPackage(package, None)
 		if package is None:
-			raise hexc.HTTPUnprocessableEntity(_m("Invalid content package."))
+			raise hexc.HTTPUnprocessableEntity(_("Invalid content package."))
 
 		name = get_resource_site_name(package)
 		site = get_host_site(name)
@@ -335,12 +335,12 @@ class RegisterAssessmentItemsView(AbstractAuthenticatedView,
 		values = self.readInput()
 		ntiid = values.get('ntiid') or values.get('pacakge')
 		if not ntiid:
-			raise hexc.HTTPUnprocessableEntity(_m("Invalid content package NTIID."))
+			raise hexc.HTTPUnprocessableEntity(_("Invalid content package NTIID."))
 
 		package = find_object_with_ntiid(ntiid)
 		package = IContentPackage(package, None)
 		if package is None:
-			raise hexc.HTTPUnprocessableEntity(_m("Invalid content package."))
+			raise hexc.HTTPUnprocessableEntity(_("Invalid content package."))
 
 		items = ()
 		result = LocatedExternalDict()

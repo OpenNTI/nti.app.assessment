@@ -1419,9 +1419,9 @@ class TestEvaluationViews(ApplicationLayerTest):
 		self.testapp.post_json( qset2_move_href, move_json, status=422 )
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
-	def test_insert(self):
+	def test_insert_and_replace(self):
 		"""
-		Test moving questions between question sets.
+		Test inserting/replacing questions in question sets.
 		"""
 		# Initialize and install qset
 		course_oid = self._get_course_oid()
@@ -1439,6 +1439,8 @@ class TestEvaluationViews(ApplicationLayerTest):
 		# Add a question
 		new_question = self.testapp.post_json(evaluations_href, ext_question, status=201)
 		question_ntiid1 = new_question.json_body.get( 'NTIID' )
+		new_question = self.testapp.post_json(evaluations_href, ext_question, status=201)
+		question_ntiid2 = new_question.json_body.get( 'NTIID' )
 
 		# Append just ntiid
 		self.testapp.post_json( contents_href, {'ntiid': question_ntiid1} )
@@ -1472,6 +1474,25 @@ class TestEvaluationViews(ApplicationLayerTest):
 		self.testapp.post_json( contents_href,
 								{'ntiid': question_ntiid1 + 'xxx'},
 								status=422 )
+
+		# Replace
+		original_question_ntiids = self._get_question_ntiids( qset_ntiid )
+		self.testapp.put_json( contents_href + '/index/1',
+							   {'ntiid': question_ntiid2})
+		original_question_ntiids[1] = question_ntiid2
+		question_ntiids = self._get_question_ntiids( qset_ntiid )
+		assert_that( question_ntiids, is_( original_question_ntiids ))
+
+		# Replace with no or a bad index
+		self.testapp.put_json( contents_href,
+							   {'ntiid': question_ntiid2},
+							   status=422 )
+		self.testapp.put_json( contents_href + '/index/1000',
+							   {'ntiid': question_ntiid2},
+							   status=409 )
+		self.testapp.put_json( '%s/index/1000?ntiid=%s' % (contents_href, question_ntiid1 + 'xxxxxx'),
+							   {'ntiid': question_ntiid2},
+							   status=409 )
 
 	def _get_delete_url_suffix(self, index, ntiid):
 		return '/ntiid/%s?index=%s' % (ntiid, index)

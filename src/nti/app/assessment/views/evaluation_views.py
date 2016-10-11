@@ -680,18 +680,69 @@ class QuestionSetInsertView(AbstractAuthenticatedView,
 				if not is_valid and override_auto_grade:
 					self._disable_auto_grade( assignment, course )
 
+	def _do_insert(self, new_question, index):
+		self.context.insert(index, new_question)
+		logger.info('Inserted new question (%s)', new_question.ntiid)
+
 	def __call__(self):
 		self._pre_flight_validation( self.context, structural_change=True )
 		params = CaseInsensitiveDict(self.request.params)
 		index = self._get_index()
 		question = self._get_new_question()
-		self.context.insert(index, question)
+		self._do_insert( question, index )
 		event_notify(QuestionInsertedInContainerEvent(self.context, question, index))
-		logger.info('Inserted new question (%s)', question.ntiid)
 		# validate changes
 		self._validate( params )
 		self.request.response.status_int = 201
 		return question
+
+@view_config(route_name='objects.generic.traversal',
+			 context=IQuestionSet,
+			 request_method='PUT',
+			 permission=nauth.ACT_CONTENT_EDIT,
+			 renderer='rest',
+			 name=VIEW_QUESTION_SET_CONTENTS)
+class QuestionSetReplaceView( QuestionSetInsertView ):
+	"""
+	Replaces a question at the given index path.
+	"""
+
+	def _get_current_question_at_index(self, index):
+		if index is None:
+			raise_json_error(self.request,
+							 hexc.HTTPUnprocessableEntity,
+							 {
+								u'message': _("Must give an index to replace a question."),
+								u'code': 'QuestionReplaceIndexRequired',
+							 },
+							 None)
+		try:
+			old_question = self.context[index]
+		except (KeyError, IndexError):
+			old_question = None
+
+		params = CaseInsensitiveDict( self.request.params )
+		old_ntiid = params.get( 'ntiid' )
+		# If they give us ntiid, validate that against our index.
+		if 		old_question is None \
+			or ( old_ntiid and old_ntiid != old_question.ntiid ):
+			raise_json_error(
+						self.request,
+						hexc.HTTPConflict,
+						{
+							u'message': _('The question no longer exists at this index.'),
+							u'code': 'InvalidQuestionReplaceIndex'
+						},
+						None)
+		return old_question
+
+	def _do_insert(self, new_question, index):
+		old_question = self._get_current_question_at_index( index )
+		self.context.remove( old_question )
+		event_notify(QuestionRemovedFromContainerEvent(self.context, old_question, index))
+		self.context.insert( index, new_question )
+		logger.info('Replaced question (old=%s) (new=%s)',
+					old_question.ntiid, new_question.ntiid)
 
 # PUT views
 

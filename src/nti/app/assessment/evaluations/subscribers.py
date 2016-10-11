@@ -134,7 +134,7 @@ def _on_question_inserted_in_container(container, event):
 	course = find_interface(container, ICourseInstance, strict=False)
 	validate_structural_edits(container, course)
 	if IRecordableContainer.providedBy(container):
-		container.child_order_locked = True
+		container.childOrderLock()
 	# Now update any assignments for our container
 	assignments = get_assignments_for_evaluation_object( container )
 	for assignment in assignments or ():

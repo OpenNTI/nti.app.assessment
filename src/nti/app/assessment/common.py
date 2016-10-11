@@ -816,24 +816,31 @@ def get_max_time_allowed(assignment, course):
 		max_time_allowed = policy['maximum_time_allowed']
 	return max_time_allowed
 
-def get_auto_grade_policy(assignment, course):
-	"""
-	For a given assignment (or ntiid), return the autograde policy for the given course.
-	"""
+def _get_policy_field( assignment, course, field ):
 	policy = IQAssignmentPolicies(course, None)
 	assignment_ntiid = getattr(assignment, 'ntiid', assignment)
-	result = policy and policy.get(assignment_ntiid, 'auto_grade')
+	result = policy.get(assignment_ntiid, field, False)
 	return result
+
+def get_auto_grade_policy(assignment, course):
+	"""
+	For a given assignment (or ntiid), return the `auto_grade` policy for the given course.
+	"""
+	return _get_policy_field( assignment, course, 'auto_grade' )
 
 def get_policy_locked(assignment, course):
 	"""
-	For a given assignment (or ntiid), return the policy locked state for the given
+	For a given assignment (or ntiid), return the policy `locked` state for the given
 	course.
 	"""
-	policy = IQAssignmentPolicies(course, None)
-	assignment_ntiid = getattr(assignment, 'ntiid', assignment)
-	locked = policy.get(assignment_ntiid, 'locked', False)
-	return locked
+	return _get_policy_field( assignment, course, 'locked' )
+
+def get_policy_excluded(assignment, course):
+	"""
+	For a given assignment (or ntiid), return the policy `excluded` state for the given
+	course.
+	"""
+	return _get_policy_field( assignment, course, 'excluded' )
 
 def get_auto_grade_policy_state(assignment, course):
 	"""

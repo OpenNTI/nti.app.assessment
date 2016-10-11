@@ -40,6 +40,7 @@ from nti.app.assessment.common import get_courses
 from nti.app.assessment.common import has_savepoints
 from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import get_policy_locked
+from nti.app.assessment.common import get_policy_excluded
 from nti.app.assessment.common import get_max_time_allowed
 from nti.app.assessment.common import is_part_auto_gradable
 from nti.app.assessment.common import get_auto_grade_policy
@@ -224,6 +225,7 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			result['auto_grade'] = False
 			result['total_points'] = None
 		result['policy_locked'] = get_policy_locked( assignment, course )
+		result['excluded'] = get_policy_excluded( assignment, course )
 
 class _TimedAssignmentPartStripperDecorator(AbstractAuthenticatedRequestAwareDecorator):
 

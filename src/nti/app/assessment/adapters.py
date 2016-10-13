@@ -412,10 +412,9 @@ def _legacy_course_from_submittable_lineage(assesment, user):
 
 	# Snap. No current course matches. Fall back to the old approach of checking
 	# all your enrollments. This could find things not currently in the catalog.
-	packages = get_course_packages(course)
 	for enrollment in get_enrollments(user):
 		course = ICourseInstance(enrollment, None)
-		if course is not None and package in packages:
+		if course is not None and package in get_course_packages(course):
 			return course
 	return None
 

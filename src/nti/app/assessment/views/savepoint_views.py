@@ -81,7 +81,7 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 			raise hexc.HTTPForbidden(_("Must be Authenticated."))
 
 		if not self.context.is_published():
-			raise hexc.HTTPConflict(_("Assignment is not available."))
+			raise hexc.HTTPForbidden(_("Assignment is not available."))
 
 		course = get_course_from_request(self.request)
 		if course is None:

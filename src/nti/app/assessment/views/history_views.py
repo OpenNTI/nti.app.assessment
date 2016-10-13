@@ -125,7 +125,7 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 			raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
 
 		if not self.context.is_published():
-			raise hexc.HTTPConflict(_("Assignment is not available."))
+			raise hexc.HTTPForbidden(_("Assignment is not available."))
 
 	def _do_call(self):
 		creator = self.remoteUser

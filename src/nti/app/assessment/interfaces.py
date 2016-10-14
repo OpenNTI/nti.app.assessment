@@ -38,6 +38,7 @@ from nti.dataserver.interfaces import ILastViewed
 from nti.dataserver.interfaces import ILastModified
 from nti.dataserver.interfaces import ITitledContent
 from nti.dataserver.interfaces import IModeledContent
+from nti.dataserver.interfaces import IUserGeneratedData
 from nti.dataserver.interfaces import IModeledContentBody
 from nti.dataserver.interfaces import INeverStoredInSharedStream
 from nti.dataserver.interfaces import IShouldHaveTraversablePath
@@ -251,6 +252,7 @@ class IUsersCourseAssignmentHistoryItemFeedback(IContained,
 												ITitledContent,
 												IModeledContent,
 												IFileConstrained,
+												IUserGeneratedData,
 												IModeledContentBody,
 												INeverStoredInSharedStream,
 												IShouldHaveTraversablePath):

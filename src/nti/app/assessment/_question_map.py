@@ -518,25 +518,16 @@ def populate_question_map_json(asm_index_json,
 							   key_lastModified=None):
 	result = None
 	if asm_index_json:
-		try:
-			if sync_results is None:
-				sync_results = _new_sync_results(content_package)
+		if sync_results is None:
+			sync_results = _new_sync_results(content_package)
 
-			question_map = QuestionMap() if question_map is None else question_map
-			result = question_map._from_root_index(asm_index_json,
-												   content_package,
-												   registry=registry,
-												   sync_results=sync_results,
-												   key_lastModified=key_lastModified)
-			result = None if result is None else result[1]  # registered
-		except (interface.Invalid, ValueError):  # pragma: no cover
-			# Because the map is updated in place, depending on where the error
-			# was, we might have some data...that's not good, but it's not a show stopper
-			# either, since we shouldn't get content like this out of the rendering
-			# process
-			logger.exception(
-				"Failed to load assessment items, invalid assessment_index for %s",
-				 content_package)
+		question_map = QuestionMap() if question_map is None else question_map
+		result = question_map._from_root_index(asm_index_json,
+											   content_package,
+											   registry=registry,
+											   sync_results=sync_results,
+											   key_lastModified=key_lastModified)
+		result = None if result is None else result[1]  # registered
 	return result or set()
 
 def _populate_question_map_from_text(question_map,

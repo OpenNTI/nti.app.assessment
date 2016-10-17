@@ -1602,6 +1602,6 @@ class TestEvaluationViews(ApplicationLayerTest):
 		submission = AssignmentSubmission(assignmentId=assignment_ntiid,
 										  parts=(qs_submission,))
 		submission = toExternalObject( submission )
-		self.testapp.post_json( assignment_href, submission, status=409 )
-		self.testapp.post_json( savepoint_href, submission, status=409 )
+		self.testapp.post_json( assignment_href, submission, status=403 )
+		self.testapp.post_json( savepoint_href, submission, status=403 )
 		self.testapp.post_json( practice_submission_href, submission )

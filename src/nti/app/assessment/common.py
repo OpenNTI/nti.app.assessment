@@ -488,7 +488,7 @@ def get_course_assignments(context, sort=True, reverse=False, do_filtering=True,
 		assignments = sorted(assignments, cmp=assignment_comparator, reverse=reverse)
 	return assignments
 
-def get_course_self_assessments(context, exclude_editable=False):
+def get_course_self_assessments(context, exclude_editable=True):
 	"""
 	Given an :class:`.ICourseInstance`, return a list of all
 	the \"self assessments\" in the course. Self-assessments are
@@ -517,6 +517,8 @@ def get_course_self_assessments(context, exclude_editable=False):
 		elif 	exclude_editable \
 			and IQEditableEvaluation.providedBy(item):
 			# XXX: Seems like eventually we'll want to return these.
+			# We probably eventually want to mark question-sets that
+			# are self-assessments.
 			qsids_to_strip.add(item.ntiid)
 		else:
 			result.append(item)

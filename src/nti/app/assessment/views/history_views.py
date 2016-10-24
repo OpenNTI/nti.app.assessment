@@ -148,8 +148,8 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 												IExceptionResponse)
 		except HTTPCreated as e:
 			result = e # valid response
-		except HTTPException as e:
-			logger.error("%s", e)
+		except HTTPException:
+			logger.exception("HTTP Error while submitting assignment")
 			raise
 		except Exception as e:
 			logger.exception("Error while submitting assignment")

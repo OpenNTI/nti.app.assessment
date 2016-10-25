@@ -42,7 +42,6 @@ from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import get_policy_locked
 from nti.app.assessment.common import get_policy_excluded
 from nti.app.assessment.common import get_max_time_allowed
-from nti.app.assessment.common import is_part_auto_gradable
 from nti.app.assessment.common import get_auto_grade_policy
 from nti.app.assessment.common import get_assessment_metadata_item
 from nti.app.assessment.common import is_assignment_non_public_only
@@ -82,6 +81,8 @@ from nti.assessment.randomized.interfaces import IRandomizedPartsContainer
 from nti.contentlibrary.interfaces import IContentUnit
 
 from nti.contenttypes.courses import get_course_vendor_info
+
+from nti.contenttypes.courses.common import is_part_auto_gradable
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance

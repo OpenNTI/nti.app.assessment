@@ -111,6 +111,7 @@ from nti.contenttypes.courses.interfaces import INonPublicCourseInstance
 from nti.contenttypes.courses.legacy_catalog import ILegacyCourseInstance
 
 from nti.contenttypes.courses.common import get_course_packages
+from nti.contenttypes.courses.common import can_be_auto_graded
 
 from nti.contenttypes.courses.utils import get_parent_course
 from nti.contenttypes.courses.utils import get_course_hierarchy
@@ -854,21 +855,6 @@ def get_auto_grade_policy_state(assignment, course):
 		# Only allow auto_grading if disable is explicitly set to False.
 		result = not policy.get('disable')
 	return result
-
-def is_part_auto_gradable(part):
-	# Validate every part has grader.
-	result = 	getattr(part, 'grader_interface', None) \
-			or  getattr(part, 'grader_name', None)
-	return bool(result)
-
-def can_be_auto_graded(assignment):
-	for part in assignment.parts or ():
-		question_set = part.question_set
-		for question in question_set.questions or ():
-			for part in question.parts or ():
-				if not is_part_auto_gradable(part):
-					return False
-	return True
 
 def validate_auto_grade(assignment, course, request=None, challenge=False, raise_exc=True):
 	"""

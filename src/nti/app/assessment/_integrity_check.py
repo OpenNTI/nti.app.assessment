@@ -189,12 +189,20 @@ def check_assessment_integrity(remove=False):
 	# check all registered items
 	for key, things in all_registered.items():
 		ntiid, _ = key
-		if ntiid in legacy:
-			continue
 		site, registered = things
 		uid = intids.queryId(registered)
-		containers = all_containers.get(key)
+		if ntiid in legacy:
+			registry = site.getSiteManager()
+			if registry is not component.globalSiteManager():
+				provided = iface_of_assessment(registered)
+				logger.warn("Invalid global registration for %s", key)
+				unregisterUtility(registry, provided=provided, name=ntiid)
+				if uid is not None:
+					catalog.unindex(uid)
+					removeIntId(registered)
+			continue
 
+		containers = all_containers.get(key)
 		if uid is not None and not catalog.get_containers(registered):
 			logger.warn("Reindexing %s", ntiid)
 			reindexed.add(ntiid)

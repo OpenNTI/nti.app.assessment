@@ -32,6 +32,7 @@ from nti.contenttypes.courses.utils import get_course_subinstances
 
 from nti.externalization.externalization import to_external_object
 
+from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
 ITEMS = StandardExternalFields.ITEMS
@@ -63,7 +64,7 @@ class EvaluationsExporter(BaseSectionExporter):
 		return map(_ext, ordered)
 
 	def externalize(self, context, filer=None):
-		result = dict()
+		result = LocatedExternalDict()
 		course = ICourseInstance(context)
 		items = self._output(course, target_filer=filer)
 		if items: # check

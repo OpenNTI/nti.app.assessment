@@ -1152,7 +1152,7 @@ class AssignmentPutView(NewAndLegacyPutView):
 
 # DELETE views
 
-def delete_evaluation(evaluation, course=None):
+def delete_evaluation(evaluation):
 	# delete from evaluations
 	course = find_interface(evaluation, ICourseInstance, strict=False)
 	evaluations = ICourseEvaluations(course, None)
@@ -1167,6 +1167,12 @@ def delete_evaluation(evaluation, course=None):
 		site_name = get_resource_site_name(course) or getSite().__name__
 		registry = get_host_site(site_name).getSiteManager()
 		unregisterUtility(registry, provided=provided, name=evaluation.ntiid)
+
+	# Clean up question sets under assignments
+	if IQAssignment.providedBy( evaluation ):
+		for part in evaluation.parts or ():
+			if part.question_set is not None:
+				delete_evaluation( part.question_set )
 
 @view_config(route_name="objects.generic.traversal",
 			 context=IQEvaluation,

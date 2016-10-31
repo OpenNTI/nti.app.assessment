@@ -53,6 +53,8 @@
 	<subscriber handler=".subscribers._on_assignment_unlock_event" />
 	<subscriber handler=".subscribers._on_regrade_evaluation_event" />
 	<subscriber handler=".subscribers._on_assessment_policies_modified_event" />
+	
+	<subscriber handler=".subscribers.on_course_instance_removed" />
 
 	<!-- Analyzers -->
 	<adapter factory=".analyzers._FilePartChangeAnalyzer" />

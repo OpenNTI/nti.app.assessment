@@ -17,6 +17,7 @@ from zope import lifecycleevent
 from zope.event import notify
 
 from zope.intid.interfaces import IIntIdAddedEvent
+from zope.intid.interfaces import IIntIdRemovedEvent
 
 from zope.lifecycleevent import ObjectModifiedEvent
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
@@ -27,6 +28,7 @@ from nti.app.assessment import MessageFactory as _
 from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import regrade_evaluation
 from nti.app.assessment.common import get_evaluation_courses
+from nti.app.assessment.common import get_resource_site_name
 from nti.app.assessment.common import get_course_from_evaluation
 from nti.app.assessment.common import get_evaluation_containment
 from nti.app.assessment.common import get_assignments_for_evaluation_object
@@ -37,6 +39,7 @@ from nti.app.assessment.evaluations.adapters import evaluations_for_course
 
 from nti.app.assessment.evaluations.utils import validate_structural_edits
 
+from nti.app.assessment.interfaces import ICourseEvaluations
 from nti.app.assessment.interfaces import IQAvoidSolutionCheck
 from nti.app.assessment.interfaces import IQPartChangeAnalyzer
 from nti.app.assessment.interfaces import IRegradeEvaluationEvent
@@ -44,6 +47,8 @@ from nti.app.assessment.interfaces import IRegradeEvaluationEvent
 from nti.app.assessment.utils import get_course_from_request
 
 from nti.app.authentication import get_remote_user
+
+from nti.assessment.common import iface_of_assessment
 
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
@@ -72,6 +77,10 @@ from nti.ntiids.ntiids import find_object_with_ntiid
 from nti.recorder.interfaces import TRX_TYPE_CREATE
 
 from nti.recorder.utils import record_transaction
+
+from nti.site.hostpolicy import get_host_site
+
+from nti.site.utils import unregisterUtility
 
 from nti.traversal.traversal import find_interface
 
@@ -199,3 +208,14 @@ def _on_assessment_policies_modified_event(course, event):
 def _on_assignment_unlock_event(context, event):
 	courses = get_evaluation_courses(context)
 	notify(UnlockQAssessmentPolicies(context, courses))
+
+@component.adapter(ICourseInstance, IIntIdRemovedEvent)
+def on_course_instance_removed(course, event):
+	evaluations = ICourseEvaluations(course, None)
+	if evaluations is not None:
+		site = get_host_site(get_resource_site_name(course))
+		registry = site.getSiteManager()
+		for obj in list(evaluations.values()):
+			provided = iface_of_assessment(obj)
+			unregisterUtility(registry, provided=provided, name=obj.ntiid)
+		evaluations.clear()

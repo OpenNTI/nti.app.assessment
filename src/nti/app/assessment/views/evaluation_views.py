@@ -171,6 +171,8 @@ from nti.links.links import Link
 
 from nti.mimetype.externalization import decorateMimeType
 
+from nti.ntiids.ntiids import find_object_with_ntiid
+
 from nti.recorder.record import copy_transaction_history
 
 from nti.property.property import Lazy
@@ -286,6 +288,9 @@ class EvaluationMixin(StructuralValidationMixin):
 		evaluations = ICourseEvaluations(course)
 		if ntiid in evaluations:  # replace
 			obj = evaluations[ntiid]
+		elif isinstance( obj, six.string_types ):
+			# Allows us to share evaluations across courses...
+			obj = find_object_with_ntiid( obj )
 		else:
 			provided = iface_of_assessment(obj)
 			obj = component.queryUtility(provided, name=ntiid)

@@ -120,17 +120,14 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 
 	@Lazy
 	def _catalog(self):
-		result = component.getUtility(ICourseCatalog)
-		return result
+		return component.getUtility(ICourseCatalog)
 
 	@Lazy
 	def _intids(self):
-		result = component.getUtility(IIntIds)
-		return result
+		return component.getUtility(IIntIds)
 
 	def _submissions(self, course, context):
-		result = inquiry_submissions(context, course)
-		return len(result)
+		return len(inquiry_submissions(context, course))
 
 	def _predicate(self, context, result):
 		context = IQInquiry(context, None)
@@ -143,7 +140,7 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 		# ref lineage to distinguish between multiple courses. Ideally, we'll want
 		# to make sure we have a course context wherever this ref is being accessed
 		# (lesson overview) to handle subinstances correctly.
-		course = find_interface( context, ICourseInstance, strict=False )
+		course = find_interface(context, ICourseInstance, strict=False)
 		if course is None:
 			course = _get_course_from_evaluation(context,
 												 user,
@@ -163,8 +160,8 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 
 		links = result_map.setdefault(LINKS, [])
 		# See note above on why we get course for inquiry ref.
-		ref_course = self._get_course( source, user )
-		course = self._get_course( context, user )
+		ref_course = self._get_course(source, user)
+		course = self._get_course(context, user)
 		submission_count = 0
 
 		# overrides
@@ -208,7 +205,7 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 		# aggregated
 		if 		course is not None \
 			and submission_count \
-			and (	is_course_instructor(course, user)
+			and (is_course_instructor(course, user)
 				 or can_disclose_inquiry(context, course)):
 			links.append(Link(course,
 							  rel='Aggregated',

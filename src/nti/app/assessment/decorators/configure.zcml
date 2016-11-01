@@ -235,6 +235,16 @@
 				for="nti.assessment.interfaces.IQInquiry
 					 pyramid.interfaces.IRequest" />
 
+	<subscriber factory=".survey._SubmissionDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="nti.assessment.interfaces.IQPollSubmission
+					 pyramid.interfaces.IRequest" />
+
+	<subscriber factory=".survey._SubmissionDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="nti.assessment.interfaces.IQSurveySubmission
+					 pyramid.interfaces.IRequest" />
+
 	<configure zcml:condition="installed nti.app.contenttypes.presentation">
 		<subscriber factory=".survey._InquiryDecorator"
 					provides="nti.externalization.interfaces.IExternalObjectDecorator"

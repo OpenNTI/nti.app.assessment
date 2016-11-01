@@ -28,11 +28,13 @@ from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
 from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
 
 from nti.app.assessment.interfaces import IUsersCourseInquiry
-
+from nti.app.assessment.interfaces import IUsersCourseInquiryItem
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQInquiry
+from nti.assessment.interfaces import IQPollSubmission
+from nti.assessment.interfaces import IQSurveySubmission
 from nti.assessment.interfaces import IQAssessmentDateContext
 
 from nti.contentlibrary.interfaces import IContentUnit
@@ -58,6 +60,7 @@ from nti.property.property import Lazy
 from nti.traversal.traversal import find_interface
 
 LINKS = StandardExternalFields.LINKS
+CREATOR = StandardExternalFields.CREATOR
 
 class _InquiryContentRootURLAdder(AbstractAuthenticatedRequestAwareDecorator):
 
@@ -100,6 +103,17 @@ class _InquiryItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			result_map['href'] = render_link(link)['href']
 		except (KeyError, ValueError, AssertionError):
 			pass  # Nope
+
+@component.adapter(IQPollSubmission)
+@component.adapter(IQSurveySubmission)
+@interface.implementer(IExternalMappingDecorator)
+class _SubmissionDecorator(AbstractAuthenticatedRequestAwareDecorator):
+
+	def _do_decorate_external(self, context, result_map):
+		item = find_interface(context, IUsersCourseInquiryItem, strict=False)
+		if item is not None and CREATOR not in result_map:
+			creator = getattr(item.creator, 'username', item.creator)
+			result_map[CREATOR] = creator
 
 @interface.implementer(IExternalMappingDecorator)
 class _InquiryDecorator(_AbstractTraversableLinkDecorator):

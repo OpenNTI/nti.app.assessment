@@ -141,6 +141,7 @@ from nti.common.maps import CaseInsensitiveDict
 from nti.common.string import is_true
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ICourseSubInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.contenttypes.courses.utils import is_course_instructor
@@ -288,12 +289,8 @@ class EvaluationMixin(StructuralValidationMixin):
 		evaluations = ICourseEvaluations(course)
 		if ntiid in evaluations:  # replace
 			obj = evaluations[ntiid]
-		elif isinstance( obj, six.string_types ):
-			# Allows us to share evaluations across courses...
-			obj = find_object_with_ntiid( obj )
 		else:
-			provided = iface_of_assessment(obj)
-			obj = component.queryUtility(provided, name=ntiid)
+			obj = find_object_with_ntiid( ntiid )
 		return obj
 
 	def is_new(self, context):
@@ -665,7 +662,7 @@ class QuestionSetInsertView(AbstractAuthenticatedView,
 		policy['disable'] = True
 		event_notify(QAssessmentPoliciesModified(course, assignment.ntiid, 'auto_grade', False))
 
-	def _validate(self, params):
+	def _validate_auto_grade(self, params):
 		"""
 		Will validate and raise a challenge if the user wants to disable auto-grading
 		and add the non-auto-gradable question to this question set. If overridden,
@@ -685,6 +682,28 @@ class QuestionSetInsertView(AbstractAuthenticatedView,
 				if not is_valid and override_auto_grade:
 					self._disable_auto_grade( assignment, course )
 
+	def _validate_section_course(self, question):
+		"""
+		Section-level API created items cannot be inserted into parent-level assessment
+		items.
+		"""
+		question_course = find_interface( question, ICourseInstance, strict=False )
+		question_set_course = find_interface( self.context, ICourseInstance, strict=False )
+		if 		ICourseSubInstance.providedBy( question_course ) \
+			and question_set_course is not None \
+			and question_course != question_set_course:
+				raise_json_error(self.request,
+								 hexc.HTTPUnprocessableEntity,
+								 {
+									u'message': _("Section course question cannot be inserted in parent course assessment item."),
+									u'code': 'InsertSectionQuestionInParentAssessment',
+								 },
+								 None)
+
+	def _validate(self, question, params):
+		self._validate_auto_grade( params )
+		self._validate_section_course( question )
+
 	def _do_insert(self, new_question, index):
 		self.context.insert(index, new_question)
 		logger.info('Inserted new question (%s)', new_question.ntiid)
@@ -697,7 +716,7 @@ class QuestionSetInsertView(AbstractAuthenticatedView,
 		self._do_insert( question, index )
 		event_notify(QuestionInsertedInContainerEvent(self.context, question, index))
 		# validate changes
-		self._validate( params )
+		self._validate( question, params )
 		self.request.response.status_int = 201
 		return question
 

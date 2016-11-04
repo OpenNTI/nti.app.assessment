@@ -30,6 +30,10 @@ VIEW_ASSESSMENT_MOVE = 'AssessmentMove'
 #: The ordered-contents (insert) view for QuestionSets
 VIEW_QUESTION_SET_CONTENTS = 'ordered-contents'
 
+#: The ordered-contents (insert) view for QuestionSets, set on the part
+#: to drive behavior in 'summary' calls.
+VIEW_PART_QUESTION_SET_CONTENTS = 'question-set-ordered-contents'
+
 #: A view to mark the assessment object as randomized.
 VIEW_RANDOMIZE = 'Randomize'
 

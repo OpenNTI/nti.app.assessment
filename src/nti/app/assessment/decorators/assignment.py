@@ -35,7 +35,6 @@ from nti.app.assessment import VIEW_INSERT_PART_OPTION
 from nti.app.assessment import VIEW_REMOVE_PART_OPTION
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
-from nti.app.assessment import VIEW_PART_QUESTION_SET_CONTENTS
 
 from nti.app.assessment.common import get_courses
 from nti.app.assessment.common import has_savepoints
@@ -72,7 +71,6 @@ from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssessment
-from nti.assessment.interfaces import IQAssignmentPart
 from nti.assessment.interfaces import IQTimedAssignment
 from nti.assessment.interfaces import IQEditableEvaluation
 
@@ -513,6 +511,12 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		result['LimitedEditingCapabilities'] = in_progress
 		result['LimitedEditingCapabilitiesSavepoints'] = context_status.has_savepoints
 		result['LimitedEditingCapabilitiesSubmissions'] = context_status.has_submissions
+		if IQAssignment.providedBy( context ):
+			# For assignments, we want to decorate the insertable status
+			# when the clients fetch only the summary of the objects. This
+			# allows behavior to be dictated even if the client does not have
+			# the full object.
+			result['CanInsertQuestions'] = not in_progress
 
 		rels = ['schema',]
 		# We provide the edit link no matter the status of the assessment
@@ -543,22 +547,6 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 				elements = None if not start_elements else start_elements
 			else:
 				elements = start_elements + ('@@%s' % rel,)
-			link = Link(link_context, rel=rel, elements=elements)
-			interface.alsoProvides(link, ILocation)
-			link.__name__ = ''
-			link.__parent__ = link_context
-			_links.append(link)
-
-		if 		not in_progress \
-			and IQAssignmentPart.providedBy( context ) \
-			and context.question_set is not None:
-			# For assignment parts, we want to decorate the ordered-contents
-			# rel when the clients fetch only the summary of the objects. This
-			# allows behavior to be dictated even if the client does not have
-			# the full object.
-			link_context = context.question_set if course is None else course
-			start_elements = () if course is None else ('Assessments', context.question_set.ntiid)
-			elements = start_elements + ('@@%s' % VIEW_PART_QUESTION_SET_CONTENTS,)
 			link = Link(link_context, rel=rel, elements=elements)
 			interface.alsoProvides(link, ILocation)
 			link.__name__ = ''

@@ -796,15 +796,27 @@ def get_available_assignments_for_evaluation_object(context):
 	containing the object.
 	"""
 	results = []
-	now = datetime.utcnow()
 	assignments = get_assignments_for_evaluation_object(context)
 	for assignment in assignments or ():
-		if not _is_published(assignment):
-			continue
-		start_date = get_available_for_submission_beginning(assignment)
-		if not start_date or start_date < now:
+		if is_assignment_available( assignment ):
 			results.append(assignment)
 	return results
+
+def is_assignment_available(assignment, course=None, user=None):
+	"""
+	For the given assignment, determines if it is published and
+	available via the assignment policy.
+	"""
+	result = False
+	if not _is_published(assignment):
+		return result
+	user = get_remote_user() if user is None else User
+	if course is None:
+		course = find_course_for_assignment( assignment, user, exc=False )
+	start_date = get_available_for_submission_beginning(assignment, course)
+	if not start_date or start_date < datetime.utcnow():
+		result = True
+	return result
 
 def get_max_time_allowed(assignment, course):
 	"""

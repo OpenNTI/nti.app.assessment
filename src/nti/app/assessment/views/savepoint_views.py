@@ -24,6 +24,7 @@ from nti.app.assessment._submission import get_source
 from nti.app.assessment._submission import check_upload_files
 from nti.app.assessment._submission import read_multipart_sources
 
+from nti.app.assessment.common import is_assignment_available
 from nti.app.assessment.common import check_submission_version
 from nti.app.assessment.common import get_course_from_evaluation
 from nti.app.assessment.common import get_assessment_metadata_item
@@ -80,14 +81,14 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 		if not creator:
 			raise hexc.HTTPForbidden(_("Must be Authenticated."))
 
-		if not self.context.is_published():
-			raise hexc.HTTPForbidden(_("Assignment is not available."))
-
 		course = get_course_from_request(self.request)
 		if course is None:
 			course = get_course_from_evaluation(self.context, creator, exc=False)
 		if course is None:
 			raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
+
+		if not is_assignment_available( self.context, user=creator, course=course ):
+			raise hexc.HTTPForbidden(_("Assignment is not available."))
 
 		if not self.request.POST:
 			submission = self.readCreateUpdateContentObject(creator)

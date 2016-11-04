@@ -70,7 +70,7 @@ from nti.intid.common import removeIntId
 
 from nti.ntiids.ntiids import find_object_with_ntiid
 
-from nti.site.hostpolicy import get_host_site
+from nti.site.hostpolicy import get_host_site, get_all_host_sites
 
 from nti.site.interfaces import IHostPolicyFolder
 
@@ -243,14 +243,25 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
 		evaluation = IQEvaluation(evaluation, None)
 		if evaluation is None:
 			raise hexc.HTTPUnprocessableEntity(_("Invalid Evaluation object."))
-
+		
 		if not force and evaluation.isLocked():
 			raise hexc.HTTPUnprocessableEntity(_("Evaluation object is locked."))
 
+		provided = iface_of_assessment(evaluation)
 		folder = find_interface(evaluation, IHostPolicyFolder, strict=False)
 		if folder is None:
-			site = values.get('site')
-			site = get_host_site(site) if site else None
+			site = None
+			name = values.get('site')
+			if not name:
+				for host_site in get_all_host_sites(): # check all sites
+					with current_site(host_site):
+						obj = component.queryUtility(provided, ntiid=evaluation.ntiid)
+						if obj is evaluation:
+							logger.info("%s evaluation found at %s", ntiid, host_site.__name__)
+							site = host_site
+							break
+			else:
+				site = get_host_site(name)
 		else:
 			site = get_host_site(folder.__name__)
 		
@@ -260,7 +271,6 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
 		# unregister the evaluation object
 		with current_site(site):
 			registry = site.getSiteManager()
-			provided = iface_of_assessment(evaluation)
 			if unregisterUtility(registry, provided=provided, name=evaluation.ntiid, force=force):
 				logger.warn("%s has been unregistered", evaluation.ntiid)
 			if not IQEditableEvaluation.providedBy(evaluation):

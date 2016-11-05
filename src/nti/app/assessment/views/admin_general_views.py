@@ -255,7 +255,7 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
 			if not name:
 				for host_site in get_all_host_sites(): # check all sites
 					with current_site(host_site):
-						obj = component.queryUtility(provided, ntiid=evaluation.ntiid)
+						obj = component.queryUtility(provided, name=evaluation.ntiid)
 						if obj is evaluation:
 							logger.info("%s evaluation found at %s", ntiid, host_site.__name__)
 							site = host_site

@@ -34,7 +34,7 @@ from zope.lifecycleevent.interfaces import IObjectModifiedEvent
 
 from ZODB.interfaces import IConnection
 
-from persistent import Persistent
+from persistent.list import PersistentList
 
 from persistent.mapping import PersistentMapping
 
@@ -89,7 +89,7 @@ from nti.wref.interfaces import IWeakRef
 NTIID = StandardExternalFields.NTIID
 
 deprecated('_AssessmentItemContainer', 'Replaced with a persistent mapping')
-class _AssessmentItemContainer(Persistent):
+class _AssessmentItemContainer(PersistentList):
 	pass
 
 deprecated('_AssessmentItemStore', 'Deprecated Storage Mode')

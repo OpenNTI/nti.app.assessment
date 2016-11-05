@@ -228,6 +228,10 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
 			container = IQAssessmentItemContainer(unit)
 			if isinstance(container, (list, PersistentList)):
 				del container[:]
+				try:
+					del unit._question_map_assessment_item_container
+				except AttributeError:
+					pass
 				logger.warn("Invalid container for unit %r", unit)
 			elif ntiid in container:
 				evaluation = container[ntiid]

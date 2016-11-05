@@ -20,6 +20,8 @@ from zope.intid.interfaces import IIntIds
 
 from zope.security.interfaces import IPrincipal
 
+from persistent.list import PersistentList
+
 from pyramid import httpexceptions as hexc
 
 from pyramid.view import view_config
@@ -224,7 +226,10 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
 	def removeFromPackage(self, package, ntiid):
 		def _recur(unit):
 			container = IQAssessmentItemContainer(unit)
-			if ntiid in container:
+			if isinstance(container, (list, PersistentList)):
+				del container[:]
+				logger.warn("Invalid container for unit %r", unit)
+			elif ntiid in container:
 				evaluation = container[ntiid]
 				container.pop(ntiid, None)
 				self.removeIntId(evaluation)

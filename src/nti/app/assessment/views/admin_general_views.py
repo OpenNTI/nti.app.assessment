@@ -45,6 +45,8 @@ from nti.app.base.abstract_views import AbstractAuthenticatedView
 from nti.app.externalization.internalization import read_body_as_external_object
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
+from nti.assessment import EVALUATION_INTERFACES
+
 from nti.assessment.common import iface_of_assessment
 
 from nti.assessment.interfaces import IQEvaluation
@@ -241,6 +243,36 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
 				_recur(child)
 		_recur(package)
 
+	def _lookupAll(self, components, specs, provided, i, l, result, ntiid):
+		if i < l:
+			for spec in reversed(specs[i].__sro__):
+				comps = components.get(spec)
+				if comps:
+					self._lookupAll(comps, specs, provided, i + 1, l, result, ntiid)
+		else:
+			for iface in reversed(provided):
+				comps = components.get(iface)
+				if comps and ntiid in comps:
+					result.append(comps)
+
+	def remove_evaluation_from_components(self, site_registry, ntiid):
+		result = []
+		required = ()
+		order = len(required)
+		for registry in site_registry.utilities.ro:  # must keep order
+			byorder = registry._adapters
+			if order >= len(byorder):
+				continue
+			components = byorder[order]
+			extendors = EVALUATION_INTERFACES
+			self._lookupAll(components, required, extendors, 0, order, result, ntiid)
+			break  # break on first
+		for cmps in result:
+			logger.warn("Removing %s from components %r", ntiid, cmps)
+			del cmps[ntiid]
+		if result and hasattr(site_registry, 'changed'):
+			site_registry.changed(site_registry)
+
 	def _do_call(self):
 		values = self.readInput()
 		ntiid = values.get('ntiid')
@@ -252,7 +284,7 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
 		evaluation = IQEvaluation(evaluation, None)
 		if evaluation is None:
 			raise hexc.HTTPUnprocessableEntity(_("Invalid Evaluation object."))
-		
+
 		if not force and evaluation.isLocked():
 			raise hexc.HTTPUnprocessableEntity(_("Evaluation object is locked."))
 
@@ -262,7 +294,7 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
 			site = None
 			name = values.get('site')
 			if not name:
-				for host_site in get_all_host_sites(): # check all sites
+				for host_site in get_all_host_sites():  # check all sites
 					with current_site(host_site):
 						obj = component.queryUtility(provided, name=evaluation.ntiid)
 						if obj is evaluation:
@@ -273,28 +305,33 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
 				site = get_host_site(name)
 		else:
 			site = get_host_site(folder.__name__)
-		
+
 		if site is None:
 			raise hexc.HTTPUnprocessableEntity(_("Invalid Evaluation site."))
-		
+
 		# unregister the evaluation object
 		with current_site(site):
 			registry = site.getSiteManager()
 			if unregisterUtility(registry, provided=provided, name=evaluation.ntiid, force=force):
 				logger.warn("%s has been unregistered", evaluation.ntiid)
+			else:
+				# At this point the object was found, but registry  is in bad shape
+				# so we remove it directly from the components
+				self.remove_evaluation_from_components(registry, ntiid)
+
 			if not IQEditableEvaluation.providedBy(evaluation):
 				self.removeIntId(evaluation)
-		
+
 		package = evaluation.__parent__
 		package = find_interface(package, IContentPackage, strict=False)
 		if package is None:
 			package = values.get('package')
 			package = find_object_with_ntiid(ntiid) if package is not None else None
-			
+
 		package = IContentPackage(package, None)
 		if package is not None and not IQEditableEvaluation.providedBy(evaluation):
 			self.removeFromPackage(package, ntiid)
-		
+
 		return hexc.HTTPNoContent()
 
 @view_config(route_name='objects.generic.traversal',

@@ -268,7 +268,7 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
 			self._lookupAll(components, required, extendors, 0, order, result, ntiid)
 			break  # break on first
 		for cmps in result:
-			logger.warn("Removing %s from components %r", ntiid, cmps)
+			logger.warn("Removing %s from components %s", ntiid, cmps)
 			del cmps[ntiid]
 		if result and hasattr(site_registry, 'changed'):
 			site_registry.changed(site_registry)
@@ -297,7 +297,7 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
 				for host_site in get_all_host_sites():  # check all sites
 					with current_site(host_site):
 						obj = component.queryUtility(provided, name=evaluation.ntiid)
-						if obj is evaluation:
+						if obj is not None:
 							logger.info("%s evaluation found at %s", ntiid, host_site.__name__)
 							site = host_site
 							break

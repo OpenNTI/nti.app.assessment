@@ -9,20 +9,6 @@
 	<include package="zope.component" />
 	<include package="zope.security" />
 
-	<utility factory=".model._assignmentfeedbackitem_metadata" name="assignmentfeedback" />
-
-	<adapter factory=".model._AssignmentFeedbackItemResolver"
-			 for="..interfaces.IUsersCourseAssignmentHistoryItemFeedback"
-			 provides=".model.IAssignmentFeedbackItemResolver" />
-
-	<adapter factory=".model.AssignmentFeedbackItemSearchHit"
-			 for="..interfaces.IUsersCourseAssignmentHistoryItemFeedback"
-			 provides=".model.IAssignmentFeedbackItemSearchHit" />
-
-	<subscriber factory="nti.contentsearch.decorators.SearchHitHighlightDecorator"
-				for=".model.IAssignmentFeedbackItemSearchHit"
-				provides="nti.externalization.interfaces.IExternalObjectDecorator"/>
-
 	<subscriber factory=".predicates._AssignmentFeedbackItemSearchHitPredicate"
 				provides="nti.contentsearch.interfaces.ISearchHitPredicate"
 				for="nti.dataserver.interfaces.ICreated" />

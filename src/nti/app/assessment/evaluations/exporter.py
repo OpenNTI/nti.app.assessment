@@ -71,7 +71,7 @@ class EvaluationsExporter(BaseSectionExporter):
 			result[ITEMS] = items
 		return result
 
-	def export(self, context, filer):
+	def export(self, context, filer, backup=True):
 		course = ICourseInstance(context)
 		courses = (course,) + tuple(get_course_subinstances(course))
 		for course in courses:

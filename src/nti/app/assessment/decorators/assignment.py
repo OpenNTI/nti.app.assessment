@@ -43,6 +43,7 @@ from nti.app.assessment.common import get_policy_locked
 from nti.app.assessment.common import get_policy_excluded
 from nti.app.assessment.common import get_max_time_allowed
 from nti.app.assessment.common import get_auto_grade_policy
+from nti.app.assessment.common import get_evaluation_courses
 from nti.app.assessment.common import get_assessment_metadata_item
 from nti.app.assessment.common import is_assignment_non_public_only
 from nti.app.assessment.common import get_available_for_submission_ending
@@ -417,8 +418,12 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 					VIEW_REMOVE_PART_OPTION, VIEW_DELETE)
 
 	def get_courses(self, context):
-		result = find_interface(context, ICourseInstance, strict=False)
-		return get_courses(result)
+		result = set()
+		courses = get_evaluation_courses( context )
+		for course in courses or ():
+			hierarchy = get_courses( course )
+			result.update( hierarchy )
+		return result
 
 	def _has_edit_link(self, _links):
 		for lnk in _links:

@@ -62,7 +62,7 @@ class EvaluationsExporter(BaseSectionExporter):
 				if name in ext_obj:
 					ntiid = ext_obj[name]
 					parts = get_parts(ntiid)
-					digest = self.hexdigest(ntiid)
+					digest = self.hexdigest(ntiid).upper()
 					specific = make_specific_safe("%s_%04d" % (digest, len(ntiid)))
 					ntiid = make_ntiid(parts.date, 
 									   parts.provider,

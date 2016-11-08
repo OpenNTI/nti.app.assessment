@@ -255,7 +255,7 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
 				if comps and ntiid in comps:
 					result.append(comps)
 
-	def remove_evaluation_from_components(self, site_registry, ntiid):
+	def _remove_evaluation_from_components(self, site_registry, ntiid):
 		result = []
 		required = ()
 		order = len(required)
@@ -273,6 +273,14 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
 		if result and hasattr(site_registry, 'changed'):
 			site_registry.changed(site_registry)
 
+	def _unregister_evaluation(self, registry, evaluation):
+		interfaces = (iface_of_assessment(evaluation),) + EVALUATION_INTERFACES
+		for provided in interfaces:
+			if unregisterUtility(registry, provided=provided, name=evaluation.ntiid):
+				logger.warn("%s has been unregistered", evaluation.ntiid)
+				return True
+		return False
+
 	def _do_call(self):
 		values = self.readInput()
 		ntiid = values.get('ntiid')
@@ -288,7 +296,6 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
 		if not force and evaluation.isLocked():
 			raise hexc.HTTPUnprocessableEntity(_("Evaluation object is locked."))
 
-		provided = iface_of_assessment(evaluation)
 		folder = find_interface(evaluation, IHostPolicyFolder, strict=False)
 		if folder is None:
 			site = None
@@ -312,12 +319,12 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
 		# unregister the evaluation object
 		with current_site(site):
 			registry = site.getSiteManager()
-			if unregisterUtility(registry, provided=provided, name=evaluation.ntiid, force=force):
+			if self._unregister_evaluation(registry, evaluation.ntiid):
 				logger.warn("%s has been unregistered", evaluation.ntiid)
 			else:
 				# At this point the object was found, but registry  is in bad shape
 				# so we remove it directly from the components
-				self.remove_evaluation_from_components(registry, ntiid)
+				self._remove_evaluation_from_components(registry, ntiid)
 
 			if not IQEditableEvaluation.providedBy(evaluation):
 				self.removeIntId(evaluation)

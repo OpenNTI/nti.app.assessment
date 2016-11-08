@@ -53,6 +53,7 @@ from nti.app.assessment.index import IX_CONTAINMENT
 from nti.app.assessment.index import IX_ASSESSMENT_ID
 from nti.app.assessment.index import IX_MIMETYPE as IX_ASSESS_MIMETYPE
 
+from nti.app.assessment.interfaces import IUsersCourseInquiry
 from nti.app.assessment.interfaces import IQAvoidSolutionCheck
 from nti.app.assessment.interfaces import IQPartChangeAnalyzer
 from nti.app.assessment.interfaces import IUsersCourseInquiries
@@ -664,6 +665,14 @@ def has_inquiry_submissions(context, course, subinstances=True):
 	for _ in inquiry_submissions(context, course, subinstances=True):
 		return True
 	return False
+
+def has_submitted_inquiry(context, user, assigment):
+	user = get_user(user)
+	course = ICourseInstance(context, None)
+	histories = component.queryMultiAdapter((course, user),
+											IUsersCourseInquiry)
+	ntiid = getattr(assigment, 'ntiid', assigment)
+	return bool(histories and ntiid in histories)
 
 def _delete_context_contained_data(container_iface, context, course, subinstances=True):
 	result = 0

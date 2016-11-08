@@ -1142,7 +1142,8 @@ def get_outline_evaluation_containers( obj ):
 		# Tests
 		return
 	assigment_question_sets = set()
-	containers = get_containers_for_evaluation_object(obj, include_question_sets=True )
+	containers = get_containers_for_evaluation_object(obj,
+													  include_question_sets=True )
 
 	# Gather assignment question sets and remove them.
 	for container in containers or ():

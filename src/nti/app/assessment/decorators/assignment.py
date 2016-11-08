@@ -491,8 +491,8 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 			is_available = is_available or self._is_available(assignment)
 		submissions = has_submissions(context, courses)
 		return _ContextStatus(has_savepoints=savepoints,
-							   has_submissions=submissions,
-							   is_available=is_available)
+							  has_submissions=submissions,
+							  is_available=is_available)
 
 	def _can_toggle_is_non_public( self, context, courses ):
 		"""
@@ -508,6 +508,7 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		courses = self.get_courses(context)
 		context_status = self._get_context_status(context, courses)
 		in_progress = context_status.has_savepoints or context_status.has_submissions
+		result['IsAvailable'] = context_status.is_available
 		result['LimitedEditingCapabilities'] = in_progress
 		result['LimitedEditingCapabilitiesSavepoints'] = context_status.has_savepoints
 		result['LimitedEditingCapabilitiesSubmissions'] = context_status.has_submissions

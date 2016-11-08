@@ -319,7 +319,7 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
 		# unregister the evaluation object
 		with current_site(site):
 			registry = site.getSiteManager()
-			if self._unregister_evaluation(registry, evaluation.ntiid):
+			if self._unregister_evaluation(registry, evaluation):
 				logger.warn("%s has been unregistered", evaluation.ntiid)
 			else:
 				# At this point the object was found, but registry  is in bad shape

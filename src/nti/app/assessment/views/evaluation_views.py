@@ -12,6 +12,8 @@ logger = __import__('logging').getLogger(__name__)
 import six
 import copy
 import uuid
+import itertools
+
 from collections import Mapping
 
 from zope import component
@@ -423,8 +425,51 @@ class EvaluationMixin(StructuralValidationMixin):
 		register_context(result)
 		return result
 
+	def _validate_section_course_items(self, container, items, additional_contexts=None):
+		"""
+		Validate the given question set does not have any section level questions
+		when the top-level assessment item is in the parent course.
+		"""
+		context_courses = set()
+		for context in itertools.chain( (container,), additional_contexts or () ):
+			context_course = find_interface( context, ICourseInstance, strict=False )
+			if context_course is not None:
+				context_courses.add( context_course )
+
+		if not context_courses:
+			return
+
+		for item in items or ():
+			item_course = find_interface( item, ICourseInstance, strict=False )
+			if 		item_course is not None \
+				and ICourseSubInstance.providedBy( item_course ) \
+				and item_course not in context_courses:
+					# A question that comes from a section course and
+					# that course is not where the qset/assignment were created
+					raise_json_error(self.request,
+									 hexc.HTTPUnprocessableEntity,
+									 {
+										u'message': _("Section course question cannot be inserted in parent course assessment item."),
+										u'code': 'InsertSectionQuestionInParentAssessment',
+									 },
+									 None)
+
+	def _validate_section_course(self, item):
+		"""
+		Section-level API created items cannot be inserted into parent-level assessment
+		items.
+		"""
+		if IQAssignment.providedBy( item ):
+			for part in item.parts or ():
+				if part.question_set is not None:
+					self._validate_section_course_items( part.question_set,
+														 part.question_set.questions,
+														 additional_contexts=(item,) )
+		elif IQuestionSet.providedBy( item ):
+			self._validate_section_course_items( item, item.questions )
+
 	def post_update_check(self, contentObject, externalValue):
-		pass
+		self._validate_section_course( contentObject )
 
 	def _get_required_question(self, item):
 		"""
@@ -682,27 +727,8 @@ class QuestionSetInsertView(AbstractAuthenticatedView,
 				if not is_valid and override_auto_grade:
 					self._disable_auto_grade( assignment, course )
 
-	def _validate_section_course(self, question):
-		"""
-		Section-level API created items cannot be inserted into parent-level assessment
-		items.
-		"""
-		question_course = find_interface( question, ICourseInstance, strict=False )
-		question_set_course = find_interface( self.context, ICourseInstance, strict=False )
-		if 		ICourseSubInstance.providedBy( question_course ) \
-			and question_set_course is not None \
-			and question_course != question_set_course:
-				raise_json_error(self.request,
-								 hexc.HTTPUnprocessableEntity,
-								 {
-									u'message': _("Section course question cannot be inserted in parent course assessment item."),
-									u'code': 'InsertSectionQuestionInParentAssessment',
-								 },
-								 None)
-
-	def _validate(self, question, params):
+	def _validate(self, params):
 		self._validate_auto_grade( params )
-		self._validate_section_course( question )
 
 	def _do_insert(self, new_question, index):
 		self.context.insert(index, new_question)
@@ -716,7 +742,8 @@ class QuestionSetInsertView(AbstractAuthenticatedView,
 		self._do_insert( question, index )
 		event_notify(QuestionInsertedInContainerEvent(self.context, question, index))
 		# validate changes
-		self._validate( question, params )
+		self._validate( params )
+		self.post_update_check( self.context, {} )
 		self.request.response.status_int = 201
 		return question
 
@@ -881,6 +908,7 @@ class QuestionSetPutView(EvaluationPutView):
 		self._pre_flight_validation( obj, externalValue )
 
 	def post_update_check(self, contentObject, originalSource):
+		super( QuestionSetPutView, self ).post_update_check( contentObject, originalSource )
 		if IQEditableEvaluation.providedBy(contentObject):
 			items = originalSource.get(ITEMS)
 			if items:  # list of ntiids
@@ -1076,6 +1104,7 @@ class SurveyPutView(NewAndLegacyPutView):
 			self._validate_structural_edits()
 
 	def post_update_check(self, contentObject, originalSource):
+		super( SurveyPutView, self ).post_update_check( contentObject, originalSource )
 		if IQEditableEvaluation.providedBy(contentObject):
 			items = originalSource.get(ITEMS)
 			if items:  # list of ntiids
@@ -1121,6 +1150,7 @@ class AssignmentPutView(NewAndLegacyPutView):
 		return externalValue, result
 
 	def post_update_check(self, contentObject, originalSource):
+		super( AssignmentPutView, self ).post_update_check( contentObject, originalSource )
 		if IQEditableEvaluation.providedBy(contentObject):
 			if originalSource:  # list of ntiids
 				for qset in contentObject.iter_question_sets():  # reset

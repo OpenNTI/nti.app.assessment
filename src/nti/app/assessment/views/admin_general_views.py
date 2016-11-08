@@ -270,6 +270,8 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
 		for cmps in result:
 			logger.warn("Removing %s from components %s", ntiid, type(cmps))
 			del cmps[ntiid]
+		if result and hasattr(site_registry, 'changed'):
+			site_registry.changed(site_registry)
 
 	def _do_call(self):
 		values = self.readInput()

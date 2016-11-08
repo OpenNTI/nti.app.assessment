@@ -27,6 +27,7 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseAssignmentCatalog
 from nti.contenttypes.courses.interfaces import get_course_assessment_predicate_for_user
 
+from nti.contenttypes.courses.utils import get_parent_course
 from nti.contenttypes.courses.utils import is_course_instructor
 
 from nti.dataserver.interfaces import IUser
@@ -52,14 +53,24 @@ class _AssignmentsAvailableAssignmentHistoryDecorator(AbstractAuthenticatedReque
 
 	def _do_decorate_external(self, context, result_map):
 		user = context.owner
-		course = find_interface(context, ICourseInstance, strict=False)
-		if course is not None:
-			assignment_catalog = ICourseAssignmentCatalog(course)
-			user_predicate = get_course_assessment_predicate_for_user(user, course)
-			result_map['AvailableAssignmentNTIIDs'] = [
-				asg.ntiid 
-				for asg in assignment_catalog.iter_assignments() if user_predicate(asg)
-			]
+		courses = set()
+		# Course request context specific
+		context_course = _get_course_from_evaluation(context,
+											 		user=self.remoteUser,
+											 		request=self.request)
+		if context_course is not None:
+			courses.add( context_course )
+			parent_course = get_parent_course( context_course )
+			courses.add( parent_course )
+			result = set()
+			# Get all parnet/section assignments available to student.
+			for course in courses:
+				assignment_catalog = ICourseAssignmentCatalog(course)
+				user_predicate = get_course_assessment_predicate_for_user(user, course)
+				result.update(	asg.ntiid
+								for asg in assignment_catalog.iter_assignments()
+								if user_predicate(asg) )
+			result_map['AvailableAssignmentNTIIDs'] = result
 
 @interface.implementer(IExternalMappingDecorator)
 class _CourseAssignmentHistoryDecorator(AbstractAssessmentDecoratorPredicate):

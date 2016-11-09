@@ -152,7 +152,12 @@
 
 	<!-- submissions -->
 	<subscriber factory=".submissions._SyntheticSubmissionDecorator"
-				provides="nti.externalization.interfaces.IExternalMappingDecorator"/>
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="..interfaces.IUsersCourseAssignmentHistoryItem" />
+
+	<subscriber factory=".submissions._SyntheticSubmissionDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="..interfaces.IUsersCourseAssignmentHistoryItemSummary" />
 
 	<!-- ipad -->
 	<subscriber factory=".ipad._IPad110NoSubmitPartAdjuster"

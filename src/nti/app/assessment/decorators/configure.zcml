@@ -150,6 +150,10 @@
 	<subscriber factory=".feedback._FeedbackLibraryPathLinkDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"/>
 
+	<!-- submissions -->
+	<subscriber factory=".submissions._SyntheticSubmissionDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"/>
+
 	<!-- ipad -->
 	<subscriber factory=".ipad._IPad110NoSubmitPartAdjuster"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"

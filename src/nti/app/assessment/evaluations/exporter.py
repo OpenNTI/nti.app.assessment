@@ -9,7 +9,6 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-import hashlib
 from collections import Mapping
 
 from zope import interface
@@ -38,20 +37,11 @@ from nti.externalization.externalization import to_external_object
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
-from nti.ntiids.ntiids import get_parts
-from nti.ntiids.ntiids import make_ntiid
-from nti.ntiids.ntiids import make_specific_safe
-
 ITEMS = StandardExternalFields.ITEMS
 NTIID = StandardExternalFields.NTIID
 
 @interface.implementer(ICourseSectionExporter)
 class EvaluationsExporter(BaseSectionExporter):
-
-	def hexdigest(self, data):
-		hasher = hashlib.sha256()
-		hasher.update(data)
-		return hasher.hexdigest()
 
 	def _change_ntiid(self, ext_obj):
 		if isinstance(ext_obj, Mapping):
@@ -61,14 +51,7 @@ class EvaluationsExporter(BaseSectionExporter):
 			for name in (NTIID, NTIID.lower()):
 				ntiid = ext_obj.get(name)
 				if ntiid:
-					parts = get_parts(ntiid)
-					digest = self.hexdigest(ntiid).upper()
-					specific = make_specific_safe("%s_%04d" % (digest, len(ntiid)))
-					ntiid = make_ntiid(parts.date, 
-									   parts.provider,
-									   parts.nttype, 
-									   specific=specific)
-					ext_obj[name] = ntiid
+					ext_obj[name] = self.hash_ntiid(ntiid)
 			for value in ext_obj.values():
 				self._change_ntiid(value)
 		elif isinstance(ext_obj, (list, tuple, set)):

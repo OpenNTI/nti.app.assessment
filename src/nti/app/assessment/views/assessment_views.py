@@ -67,6 +67,8 @@ from nti.contenttypes.courses.interfaces import ICourseOutlineContentNode
 from nti.contenttypes.courses.interfaces import ICourseSelfAssessmentItemCatalog
 from nti.contenttypes.courses.interfaces import get_course_assessment_predicate_for_user
 
+from nti.contenttypes.courses.utils import get_parent_course
+
 from nti.contenttypes.presentation.interfaces import INTIAssignmentRef
 from nti.contenttypes.presentation.interfaces import INTIQuestionSetRef
 
@@ -221,6 +223,13 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 	to identify the corresponding level it wishes to display.
 	"""
 
+	def _get_course_ntiids(self, instance):
+		courses = set()
+		courses.add( instance )
+		parent_course = get_parent_course( instance )
+		courses.add( parent_course )
+		return (ICourseCatalogEntry(x).ntiid for x in courses)
+
 	def _do_outline(self, instance, items, outline):
 		# reverse question set map
 		# this is done in case question set refs
@@ -236,11 +245,12 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 		seen = set()
 		catalog = get_library_catalog()
 		sites = get_component_hierarchy_names()
-		ntiid = ICourseCatalogEntry(instance).ntiid
+		course_ntiids = self._get_course_ntiids( instance )
 		provided = (INTIAssignmentRef, INTIQuestionSetRef)
 		for obj in catalog.search_objects(provided=provided,
-										  container_ntiids=ntiid,
-										  sites=sites):
+										  container_ntiids=course_ntiids,
+										  sites=sites,
+										  container_all_of=False):
 			# find property content node
 			node = find_interface(obj, ICourseOutlineContentNode, strict=False)
 			if node is None or not node.ContentNTIID:

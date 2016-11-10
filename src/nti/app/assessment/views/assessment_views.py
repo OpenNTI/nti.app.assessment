@@ -224,10 +224,13 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 	"""
 
 	def _get_course_ntiids(self, instance):
-		courses = set()
-		courses.add( instance )
+		courses = (instance,)
 		parent_course = get_parent_course( instance )
-		courses.add( parent_course )
+		# We want to check our parent course for refs
+		# in the outline, if we have shared outlines.
+		if 		parent_course != instance \
+			and instance.Outline == parent_course.Outline:
+			courses = (instance, parent_course)
 		return (ICourseCatalogEntry(x).ntiid for x in courses)
 
 	def _do_outline(self, instance, items, outline):

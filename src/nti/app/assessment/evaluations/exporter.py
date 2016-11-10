@@ -59,8 +59,8 @@ class EvaluationsExporter(BaseSectionExporter):
 			# use it as the specific part for a new NTIID to make sure there are
 			# fewer collisions when importing back
 			for name in (NTIID, NTIID.lower()):
-				if name in ext_obj:
-					ntiid = ext_obj[name]
+				ntiid = ext_obj.get(name)
+				if ntiid:
 					parts = get_parts(ntiid)
 					digest = self.hexdigest(ntiid).upper()
 					specific = make_specific_safe("%s_%04d" % (digest, len(ntiid)))

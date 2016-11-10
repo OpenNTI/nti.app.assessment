@@ -908,12 +908,12 @@ class QuestionSetPutView(EvaluationPutView):
 		self._pre_flight_validation( obj, externalValue )
 
 	def post_update_check(self, contentObject, originalSource):
-		super( QuestionSetPutView, self ).post_update_check( contentObject, originalSource )
 		if IQEditableEvaluation.providedBy(contentObject):
 			items = originalSource.get(ITEMS)
 			if items:  # list of ntiids
 				contentObject.questions = indexed_iter()  # reset
 				self.auto_complete_questionset(contentObject, originalSource)
+		super( QuestionSetPutView, self ).post_update_check( contentObject, originalSource )
 
 	def _get_post_update_source(self, externalValue):
 		"""
@@ -1104,12 +1104,12 @@ class SurveyPutView(NewAndLegacyPutView):
 			self._validate_structural_edits()
 
 	def post_update_check(self, contentObject, originalSource):
-		super( SurveyPutView, self ).post_update_check( contentObject, originalSource )
 		if IQEditableEvaluation.providedBy(contentObject):
 			items = originalSource.get(ITEMS)
 			if items:  # list of ntiids
 				contentObject.questions = indexed_iter()  # reset
 				self.auto_complete_survey(contentObject, originalSource)
+		super( SurveyPutView, self ).post_update_check( contentObject, originalSource )
 
 @view_config(route_name='objects.generic.traversal',
 			 context=IQAssignment,
@@ -1150,12 +1150,13 @@ class AssignmentPutView(NewAndLegacyPutView):
 		return externalValue, result
 
 	def post_update_check(self, contentObject, originalSource):
-		super( AssignmentPutView, self ).post_update_check( contentObject, originalSource )
 		if IQEditableEvaluation.providedBy(contentObject):
 			if originalSource:  # list of ntiids
 				for qset in contentObject.iter_question_sets():  # reset
 					qset.questions = indexed_iter()
 				self.auto_complete_assignment(contentObject, originalSource)
+		# Must complete our set first.
+		super( AssignmentPutView, self ).post_update_check( contentObject, originalSource )
 
 	def _transform_to_timed(self, contentObject):
 		"""

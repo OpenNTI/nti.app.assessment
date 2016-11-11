@@ -2,4 +2,4 @@
  Application Assessment Viwes
 ==============================
 
-.. automodule:: nti.app.assessment.assessment_views
+.. automodule:: nti.app.assessment.views.assessment_views

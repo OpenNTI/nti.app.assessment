@@ -231,7 +231,7 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 		if 		parent_course != instance \
 			and instance.Outline == parent_course.Outline:
 			courses = (instance, parent_course)
-		return (ICourseCatalogEntry(x).ntiid for x in courses)
+		return {ICourseCatalogEntry(x).ntiid for x in courses}
 
 	def _do_outline(self, instance, items, outline):
 		# reverse question set map

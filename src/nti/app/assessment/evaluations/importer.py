@@ -38,6 +38,7 @@ from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
+from nti.assessment.interfaces import IQEditableEvaluation
 
 from nti.cabinet.filer import transfer_to_native_file
 
@@ -101,6 +102,7 @@ class EvaluationsImporter(BaseSectionImporter):
 		evaluations = ICourseEvaluations(course)
 		lifecycleevent.created(obj)
 		evaluations[obj.ntiid] = obj  # gain intid
+		interface.alsoProvides(obj, IQEditableEvaluation) # mark as editable
 		return obj
 
 	def get_registered_evaluation(self, obj, course):

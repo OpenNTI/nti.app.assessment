@@ -117,55 +117,41 @@ class EvaluationsImporter(BaseSectionImporter):
 		return obj
 
 	def handle_question(self, theObject, course):
-		ntiid = self.get_ntiid(theObject)
 		if self.is_new(theObject, course):
 			theObject = self.store_evaluation(theObject, course)
 		else:
 			theObject = self.get_registered_evaluation(theObject, course)
-		if theObject is None:
-			raise KeyError("Question %s does not exists." % ntiid)
 		[p.ntiid for p in theObject.parts or ()]  # set auto part NTIIDs
 		return theObject
 
 	def handle_poll(self, theObject, course):
-		ntiid = self.get_ntiid(theObject)
 		if self.is_new(theObject, course):
 			theObject = self.store_evaluation(theObject, course)
 		else:
 			theObject = self.get_registered_evaluation(theObject, course)
-		if theObject is None:
-			raise KeyError("Poll %s does not exists." % ntiid)
 		[p.ntiid for p in theObject.parts or ()]  # set auto part NTIIDs
 		return theObject
 
 	def handle_question_set(self, theObject, course):
-		ntiid = self.get_ntiid(theObject)
-		if self.is_new(theObject, course):
-			questions = indexed_iter()
-			for question in theObject.questions or ():
-				question = self.handle_question(question, course)
-				questions.append(question)
-			theObject.questions = questions
-			theObject = self.store_evaluation(theObject, course)
-		else:
+		if not self.is_new(theObject, course):
 			theObject = self.get_registered_evaluation(theObject, course)
-		if theObject is None:
-			raise KeyError("QuestionSet %s does not exists." % ntiid)
+		questions = indexed_iter()
+		for question in theObject.questions or ():
+			question = self.handle_question(question, course)
+			questions.append(question)
+		theObject.questions = questions
+		theObject = self.store_evaluation(theObject, course)
 		return theObject
 
 	def handle_survey(self, theObject, course):
-		ntiid = self.get_ntiid(theObject)
-		if self.is_new(theObject, course):
-			questions = indexed_iter()
-			for poll in theObject.questions or ():
-				poll = self.handle_poll(poll, course)
-				questions.append(poll)
-			theObject.questions = questions
-			theObject = self.store_evaluation(theObject, course)
-		else:
+		if not self.is_new(theObject, course):
 			theObject = self.get_registered_evaluation(theObject, course)
-		if theObject is None:
-			raise KeyError("Survey %s does not exists." % ntiid)
+		questions = indexed_iter()
+		for poll in theObject.questions or ():
+			poll = self.handle_poll(poll, course)
+			questions.append(poll)
+		theObject.questions = questions
+		theObject = self.store_evaluation(theObject, course)
 		return theObject
 
 	def handle_assignment_part(self, part, course):
@@ -174,18 +160,14 @@ class EvaluationsImporter(BaseSectionImporter):
 		return part
 
 	def handle_assignment(self, theObject, course):
-		ntiid = self.get_ntiid(theObject)
-		if self.is_new(theObject, course):
-			parts = indexed_iter()
-			for part in theObject.parts or ():
-				part = self.handle_assignment_part(part, course)
-				parts.append(part)
-			theObject.parts = parts
-			theObject = self.store_evaluation(theObject, course)
-		else:
+		if not self.is_new(theObject, course):
 			theObject = self.get_registered_evaluation(theObject, course)
-		if theObject is None:
-			raise KeyError("Assignment %s does not exists." % ntiid)
+		parts = indexed_iter()
+		for part in theObject.parts or ():
+			part = self.handle_assignment_part(part, course)
+			parts.append(part)
+		theObject.parts = parts
+		theObject = self.store_evaluation(theObject, course)
 		[p.ntiid for p in theObject.parts or ()]  # set auto part NTIIDs
 		return theObject
 
@@ -203,17 +185,18 @@ class EvaluationsImporter(BaseSectionImporter):
 		else:
 			result = theObject
 
-		# course is the evaluation home
-		result.__home__ = course
-		remoteUser = get_remote_user()
-		target_filer = get_course_filer(course, remoteUser)
-
-		# parse content fields and load sources
-		import_evaluation_content(result, source_filer=source_filer,
-								  target_filer=target_filer)
-
-		# always register
-		register_context(result)
+		if IQEditableEvaluation.providedBy(result):
+			# course is the evaluation home
+			result.__home__ = course
+			remoteUser = get_remote_user()
+			target_filer = get_course_filer(course, remoteUser)
+	
+			# parse content fields and load sources
+			import_evaluation_content(result, source_filer=source_filer,
+									  target_filer=target_filer)
+	
+			# always register
+			register_context(result, force=True)
 
 		isPublished = source.get('isPublished')
 		if isPublished:

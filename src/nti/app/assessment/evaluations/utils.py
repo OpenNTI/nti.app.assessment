@@ -71,6 +71,7 @@ from nti.coremetadata.interfaces import IPublishable
 from nti.site.hostpolicy import get_host_site
 
 from nti.site.utils import registerUtility
+from nti.site.utils import unregisterUtility
 
 def indexed_iter():
 	return PersistentList()
@@ -207,12 +208,15 @@ def export_evaluation_content(model, source_filer, target_filer):
 			setattr(obj, name, value)
 	return model
 
-def register_context(context, site_name=None):
+def register_context(context, site_name=None, force=False):
 	ntiid = context.ntiid
 	provided = iface_of_assessment(context)
 	site_name = get_resource_site_name(context, True) if not site_name else site_name
 	registry = get_host_site(site_name).getSiteManager()
 	if registry.queryUtility(provided, name=ntiid) is None:
+		registerUtility(registry, context, provided, name=ntiid)
+	elif force: # [re]register new object
+		unregisterUtility(registry, provided=provided, name=ntiid)
 		registerUtility(registry, context, provided, name=ntiid)
 	# process 'children'
 	if IQEvaluationItemContainer.providedBy(context):

@@ -169,6 +169,10 @@ def get_resource_site_name(context, strict=False):
 	return folder.__name__ if folder is not None else None
 get_course_site = get_resource_site_name
 
+def get_resource_site_registry(context, strict=False):
+	folder = find_interface(context, IHostPolicyFolder, strict=strict)
+	return folder.getSiteManager() if folder is not None else None
+
 def get_user(user=None, remote=False, request=None):
 	if user is None and remote:
 		user = get_remote_user(request)

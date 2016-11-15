@@ -25,8 +25,8 @@ from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment.common import has_savepoints
 from nti.app.assessment.common import has_submissions
-from nti.app.assessment.common import get_resource_site_name
 from nti.app.assessment.common import has_inquiry_submissions
+from nti.app.assessment.common import get_resource_site_registry
 from nti.app.assessment.common import get_assignments_for_evaluation_object
 
 from nti.app.base.abstract_views import get_safe_source_filename
@@ -67,8 +67,6 @@ from nti.contentfragments.interfaces import IHTMLContentFragment
 from nti.contenttypes.courses.interfaces import NTI_COURSE_FILE_SCHEME
 
 from nti.coremetadata.interfaces import IPublishable
-
-from nti.site.hostpolicy import get_host_site
 
 from nti.site.utils import registerUtility
 from nti.site.utils import unregisterUtility
@@ -208,11 +206,10 @@ def export_evaluation_content(model, source_filer, target_filer):
 			setattr(obj, name, value)
 	return model
 
-def register_context(context, site_name=None, force=False):
+def register_context(context, force=False):
 	ntiid = context.ntiid
 	provided = iface_of_assessment(context)
-	site_name = get_resource_site_name(context, True) if not site_name else site_name
-	registry = get_host_site(site_name).getSiteManager()
+	registry = get_resource_site_registry(context)
 	if registry.queryUtility(provided, name=ntiid) is None:
 		registerUtility(registry, context, provided, name=ntiid)
 	elif force: # [re]register new object
@@ -221,10 +218,10 @@ def register_context(context, site_name=None, force=False):
 	# process 'children'
 	if IQEvaluationItemContainer.providedBy(context):
 		for item in context.Items or ():
-			register_context(item, site_name)
+			register_context(item)
 	elif IQAssignment.providedBy(context):
 		for item in context.iter_question_sets():
-			register_context(item, site_name)
+			register_context(item)
 
 def validate_submissions(theObject, course, request=None):
 	if IQInquiry.providedBy(theObject):

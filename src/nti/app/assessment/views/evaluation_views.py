@@ -1521,7 +1521,7 @@ class UserEvaluationResetView(AbstractAuthenticatedView,
 
 # Publish views
 
-def publish_context(context, start=None, end=None, site_name=None):
+def publish_context(context, start=None, end=None):
 	# publish
 	if not context.is_published():
 		if ICalendarPublishable.providedBy(context):
@@ -1529,14 +1529,14 @@ def publish_context(context, start=None, end=None, site_name=None):
 		else:
 			context.publish()
 	# register utility
-	register_context(context, site_name)
+	register_context(context)
 	# process 'children'
 	if IQEvaluationItemContainer.providedBy(context):
 		for item in context.Items or ():
-			publish_context(item, start, end, site_name)
+			publish_context(item, start, end)
 	elif IQAssignment.providedBy(context):
 		for item in context.iter_question_sets():
-			publish_context(item, start, end, site_name)
+			publish_context(item, start, end)
 
 @view_config(context=IQEvaluation)
 @view_defaults(route_name='objects.generic.traversal',

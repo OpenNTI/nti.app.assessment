@@ -146,9 +146,9 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
 		# testing? Although we might have to grant CREATE access to the child?
 		# (in fact we do)
 		course = ICourseInstance(self, None)
-		instructors = getattr(course, 'instructors', ())  # already principals
+		instructors = getattr(course, 'instructors', None)  # already principals
 		aces = [ace_allowing(self.owner, ACT_READ, type(self))]
-		for instructor in instructors:
+		for instructor in instructors or ():
 			aces.append(ace_allowing(instructor, ALL_PERMISSIONS, type(self)))
 		aces.append(ACE_DENY_ALL)
 		return acl_from_aces(aces)

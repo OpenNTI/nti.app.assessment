@@ -21,11 +21,10 @@ from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecora
 from nti.assessment.interfaces import IQTimedAssignment
 
 from nti.dataserver.interfaces import IUser
+from nti.dataserver.interfaces import ILinkExternalHrefOnly
 
 from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import IExternalMappingDecorator
-
-from nti.links.externalization import render_link
 
 from nti.links.links import Link
 
@@ -82,6 +81,7 @@ class _AssignmentMetadataItemDecorator(AbstractAuthenticatedRequestAwareDecorato
 	def _do_decorate_external(self, context, result_map):
 		try:
 			link = Link(context)
-			result_map['href'] = render_link(link)['href']
+			interface.alsoProvides(link, ILinkExternalHrefOnly)
+			result_map['href'] = link
 		except (KeyError, ValueError, AssertionError):
 			pass  # Nope

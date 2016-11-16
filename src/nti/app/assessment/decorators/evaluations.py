@@ -41,11 +41,11 @@ from nti.contenttypes.courses.utils import is_course_instructor
 
 from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
+from nti.dataserver.interfaces import ILinkExternalHrefOnly
+
 from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import IExternalObjectDecorator
 from nti.externalization.interfaces import IExternalMappingDecorator
-
-from nti.links.externalization import render_link
 
 from nti.links.links import Link
 
@@ -78,7 +78,8 @@ class _EvaluationLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		pre_elements = () if course is None else ('Assessments', context.ntiid)
 
 		context_link = Link(link_context, elements=pre_elements)
-		result['href'] = render_link(context_link)['href']
+		interface.alsoProvides(context_link, ILinkExternalHrefOnly)
+		result['href'] = context_link
 
 		if has_permission(ACT_CONTENT_EDIT, context, self.request):
 			link = Link(link_context, rel=VIEW_COPY_EVALUATION,

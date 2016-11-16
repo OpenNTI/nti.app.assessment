@@ -27,11 +27,10 @@ from nti.contenttypes.courses.utils import is_course_instructor_or_editor
 from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
 from nti.dataserver.interfaces import IUser
+from nti.dataserver.interfaces import ILinkExternalHrefOnly
 
 from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import IExternalMappingDecorator
-
-from nti.links.externalization import render_link
 
 from nti.links.links import Link
 
@@ -90,6 +89,7 @@ class _AssignmentSavepointItemDecorator(AbstractAuthenticatedRequestAwareDecorat
 	def _do_decorate_external(self, context, result_map):
 		try:
 			link = Link(context)
-			result_map['href'] = render_link(link)['href']
+			interface.alsoProvides(link, ILinkExternalHrefOnly)
+			result_map['href'] = link
 		except (KeyError, ValueError, AssertionError):
 			pass  # Nope

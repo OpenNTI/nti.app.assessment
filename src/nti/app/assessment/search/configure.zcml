@@ -11,6 +11,10 @@
 
 	<subscriber factory=".predicates._AssignmentFeedbackItemSearchHitPredicate"
 				provides="nti.contentsearch.interfaces.ISearchHitPredicate"
-				for="nti.dataserver.interfaces.ICreated" />
+				for="nti.app.assessment.interfaces.IUsersCourseAssignmentHistoryItemFeedback" />
+
+	<subscriber factory=".predicates._EvaluationSearchHitPredicate"
+				provides="nti.contentsearch.interfaces.ISearchHitPredicate"
+				for="nti.assessment.interfaces.IQEvaluation" />
 
 </configure>

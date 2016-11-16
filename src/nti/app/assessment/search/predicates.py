@@ -14,12 +14,18 @@ from zope import interface
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedback
 
+from nti.assessment.interfaces import IQEvaluation
+
+from nti.contentlibrary.interfaces import IContentPackage
+
 from nti.contentsearch.interfaces import ISearchHitPredicate
 from nti.contentsearch.predicates import DefaultSearchHitPredicate
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
+from nti.contenttypes.courses.utils import is_enrolled
 from nti.contenttypes.courses.utils import is_instructed_by_name
+from nti.contenttypes.courses.utils import get_courses_for_packages
 
 from nti.dataserver.users import User
 
@@ -40,4 +46,28 @@ class _AssignmentFeedbackItemSearchHitPredicate(DefaultSearchHitPredicate):
 			if 		user is not None \
 				and (owner == user is not None or is_instructed_by_name(course, pid)):
 				return True
+		return False
+
+@component.adapter(IQEvaluation)
+@interface.implementer(ISearchHitPredicate)
+class _EvaluationSearchHitPredicate(DefaultSearchHitPredicate):
+
+	def allow(self, item, score, query=None):
+		if self.principal is None:
+			return True
+		else:
+			course = find_interface(item, ICourseInstance, strict=False)
+			if course is not None:
+				courses = (course,)
+			else:
+				package = find_interface(item, IContentPackage, strict=False)
+				if package is not None:
+					courses = get_courses_for_packages(packages=package.ntiid)
+				else:
+					courses = ()
+			
+			for course in courses:
+				if 		is_instructed_by_name(course, self.principal.pid) \
+					or	is_enrolled(course, self.principal):
+					return True
 		return False

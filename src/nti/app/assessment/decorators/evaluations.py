@@ -75,6 +75,8 @@ class _EvaluationLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		link_context = context if course is None else course
 		pre_elements = () if course is None else ('Assessments', context.ntiid)
 
+		result['href'] = Link(link_context, elements=pre_elements)
+
 		if has_permission(ACT_CONTENT_EDIT, context, self.request):
 			link = Link(link_context, rel=VIEW_COPY_EVALUATION,
 						elements=pre_elements + ('@@' + VIEW_COPY_EVALUATION,),

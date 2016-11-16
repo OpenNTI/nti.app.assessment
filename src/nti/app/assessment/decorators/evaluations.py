@@ -45,6 +45,8 @@ from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import IExternalObjectDecorator
 from nti.externalization.interfaces import IExternalMappingDecorator
 
+from nti.links.externalization import render_link
+
 from nti.links.links import Link
 
 from nti.traversal.traversal import find_interface
@@ -75,7 +77,8 @@ class _EvaluationLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		link_context = context if course is None else course
 		pre_elements = () if course is None else ('Assessments', context.ntiid)
 
-		result['href'] = Link(link_context, elements=pre_elements)
+		context_link = Link(link_context, elements=pre_elements)
+		result['href'] = render_link(context_link)['href']
 
 		if has_permission(ACT_CONTENT_EDIT, context, self.request):
 			link = Link(link_context, rel=VIEW_COPY_EVALUATION,

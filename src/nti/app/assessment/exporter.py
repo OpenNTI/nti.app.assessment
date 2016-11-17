@@ -80,7 +80,7 @@ class AssessmentsExporter(BaseSectionExporter):
 			self.mapped(package, items)
 		return result
 
-	def export(self, context, filer, backup=True):
+	def export(self, context, filer, backup=True, salt=None):
 		result = self.externalize(context)
 		source = self.dump(result)
 		filer.save("assessment_index.json", source,

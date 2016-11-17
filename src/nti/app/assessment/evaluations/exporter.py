@@ -43,7 +43,7 @@ NTIID = StandardExternalFields.NTIID
 @interface.implementer(ICourseSectionExporter)
 class EvaluationsExporter(BaseSectionExporter):
 
-	def _change_ntiid(self, ext_obj):
+	def _change_ntiid(self, ext_obj, salt=None):
 		if isinstance(ext_obj, Mapping):
 			# when not backing up make sure we take a hash of the current NTIID and
 			# use it as the specific part for a new NTIID to make sure there are
@@ -51,14 +51,14 @@ class EvaluationsExporter(BaseSectionExporter):
 			for name in (NTIID, NTIID.lower()):
 				ntiid = ext_obj.get(name)
 				if ntiid:
-					ext_obj[name] = self.hash_ntiid(ntiid)
+					ext_obj[name] = self.hash_ntiid(ntiid, salt)
 			for value in ext_obj.values():
-				self._change_ntiid(value)
+				self._change_ntiid(value, salt)
 		elif isinstance(ext_obj, (list, tuple, set)):
 			for value in ext_obj:
-				self._change_ntiid(value)
+				self._change_ntiid(value, salt)
 
-	def _output(self, course, target_filer=None, backup=True):
+	def _output(self, course, target_filer=None, backup=True, salt=None):
 		evaluations = ICourseEvaluations(course)
 		source_filer = get_course_filer(course)
 
@@ -77,26 +77,26 @@ class EvaluationsExporter(BaseSectionExporter):
 				export_evaluation_content(evaluation, source_filer, target_filer)
 			ext_obj = to_external_object(evaluation, name="exporter", decorate=False)
 			if not backup:
-				self._change_ntiid(ext_obj)
+				self._change_ntiid(ext_obj, salt)
 			return ext_obj
 
 		ordered = sorted(evaluations.values(), key=_get_key)
 		return map(_ext, ordered)
 
-	def externalize(self, context, filer=None, backup=True):
+	def externalize(self, context, filer=None, backup=True, salt=None):
 		result = LocatedExternalDict()
 		course = ICourseInstance(context)
-		items = self._output(course, target_filer=filer, backup=backup)
+		items = self._output(course, target_filer=filer, backup=backup, salt=salt)
 		if items: # check
 			result[ITEMS] = items
 		return result
 
-	def export(self, context, filer, backup=True):
+	def export(self, context, filer, backup=True, salt=None):
 		course = ICourseInstance(context)
 		courses = get_course_hierarchy(course)
 		for course in courses:
 			bucket = self.course_bucket(course)
-			result = self.externalize(course, filer, backup)
+			result = self.externalize(course, filer, backup, salt)
 			if result:  # check
 				source = self.dump(result)
 				filer.save("evaluation_index.json", source, bucket=bucket,

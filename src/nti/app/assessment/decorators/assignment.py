@@ -85,9 +85,10 @@ from nti.contenttypes.courses import get_course_vendor_info
 
 from nti.contenttypes.courses.common import is_part_auto_gradable
 
+from nti.contenttypes.courses.legacy_catalog import ILegacyCourseInstance
+
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
-from nti.contenttypes.courses.interfaces import ILegacyCourseInstance
 
 from nti.contenttypes.courses.utils import is_course_instructor
 from nti.contenttypes.courses.utils import is_course_instructor_or_editor

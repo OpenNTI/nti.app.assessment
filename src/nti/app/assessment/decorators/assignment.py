@@ -87,6 +87,7 @@ from nti.contenttypes.courses.common import is_part_auto_gradable
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ILegacyCommunityBasedCourseInstance
 
 from nti.contenttypes.courses.utils import is_course_instructor
 from nti.contenttypes.courses.utils import is_course_instructor_or_editor
@@ -648,7 +649,9 @@ class _AssessmentPracticeLinkDecorator(AbstractAuthenticatedRequestAwareDecorato
 	def _predicate(self, context, result):
 		user = self.remoteUser
 		course = _get_course_from_evaluation(context, user, request=self.request)
+		# Legacy, global courses give 'All' perms to course community.
 		return 		self._is_authenticated \
+				and not ILegacyCommunityBasedCourseInstance.providedBy( course ) \
 				and (	is_course_instructor_or_editor(course, user) \
 					 or has_permission(ACT_CONTENT_EDIT, context, self.request))
 

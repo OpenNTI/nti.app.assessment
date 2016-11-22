@@ -13,6 +13,8 @@ logger = __import__('logging').getLogger(__name__)
 
 from collections import defaultdict
 
+from itertools import chain
+
 from zope import component
 
 from zope.event import notify
@@ -67,10 +69,13 @@ from nti.contenttypes.courses.interfaces import ICourseOutlineContentNode
 from nti.contenttypes.courses.interfaces import ICourseSelfAssessmentItemCatalog
 from nti.contenttypes.courses.interfaces import get_course_assessment_predicate_for_user
 
+from nti.contenttypes.courses.legacy_catalog import ILegacyCourseInstance
+
 from nti.contenttypes.courses.utils import get_parent_course
 
 from nti.contenttypes.presentation.interfaces import INTIAssignmentRef
 from nti.contenttypes.presentation.interfaces import INTIQuestionSetRef
+from nti.contenttypes.presentation.interfaces import INTILessonOverview
 
 from nti.dataserver import authorization as nauth
 
@@ -80,6 +85,8 @@ from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.externalization.proxy import removeAllProxies
+
+from nti.ntiids.ntiids import find_object_with_ntiid
 
 from nti.property.property import Lazy
 
@@ -233,16 +240,43 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 			courses = (instance, parent_course)
 		return {ICourseCatalogEntry(x).ntiid for x in courses}
 
-	def _do_outline(self, instance, items, outline):
-		# reverse question set map
-		# this is done in case question set refs
-		# appear in a lesson overview
-		reverse_qset = {}
-		for assgs in items.values():
-			for asg in assgs:
-				for part in asg.parts:
-					reverse_qset[part.question_set.ntiid] = asg.ntiid
+	def _do_legacy_outline(self, instance, items, outline, reverse_qset):
+		"""
+		Build the outline dict for legacy courses by iterating through
+		the outline nodes.
+		"""
+		def _recur(node):
+			if ICourseOutlineContentNode.providedBy(node) and node.ContentNTIID:
+				key = node.ContentNTIID
+				node_results = []
+				# Check children content units
+				content_unit = find_object_with_ntiid( key )
+				if content_unit is not None:
+					for content in chain( (content_unit,), content_unit.children or () ):
+						assgs = items.get( content.ntiid )
+						if assgs:
+							node_results.extend( x.ntiid for x in assgs )
+				name = node.LessonOverviewNTIID
+				lesson = component.queryUtility(INTILessonOverview, name=name or u'')
+				for group in lesson or ():
+					for item in group or ():
+						if INTIAssignmentRef.providedBy(item):
+							node_results.append(item.target or item.ntiid)
+						elif INTIQuestionSetRef.providedBy(item):
+							ntiid = reverse_qset.get(item.target)
+							if ntiid:
+								node_results.append(ntiid)
+				if node_results:
+					outline[key] = node_results
+			for child in node.values():
+				_recur(child)
+		_recur(instance.Outline)
+		return outline
 
+	def _do_outline(self, instance, items, outline, reverse_qset):
+		"""
+		Build the outline dict by fetching all assignment refs in our catalog.
+		"""
 		# use library catalog to find
 		# all assignment and question-set refs
 		seen = set()
@@ -278,10 +312,26 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 
 		return outline
 
+	def _build_outline(self, instance, items, outline):
+		# reverse question set map
+		# this is done in case question set refs
+		# appear in a lesson overview
+		reverse_qset = {}
+		for assgs in items.values():
+			for asg in assgs:
+				for part in asg.parts:
+					reverse_qset[part.question_set.ntiid] = asg.ntiid
+
+		if ILegacyCourseInstance.providedBy( instance ):
+			result = self._do_legacy_outline( instance, items, outline, reverse_qset )
+		else:
+			result = self._do_outline( instance, items, outline, reverse_qset )
+		return result
+
 	def _external_object(self, obj):
 		return obj
 
-	def _do_catalog(self, instance, result):
+	def _build_catalog(self, instance, result):
 		catalog = ICourseAssignmentCatalog(instance)
 		uber_filter = get_course_assessment_predicate_for_user(self.remoteUser, instance)
 		# Must grab all assigments in our parent (since they may be referenced in shared lessons.
@@ -304,12 +354,12 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 		result[LAST_MODIFIED] = result.lastModified = self._lastModified
 
 		if self.is_ipad_legacy:
-			self._do_catalog(instance, result)
+			self._build_catalog(instance, result)
 		else:
 			items = {}
 			outline = result['Outline'] = {}
-			self._do_catalog(instance, items)
-			self._do_outline(instance, items, outline)
+			self._build_catalog(instance, items)
+			self._build_outline(instance, items, outline)
 			result[ITEMS] = final_items = {}
 			for key, vals in items.items():
 				final_items[key] = [self._external_object( x ) for x in vals]

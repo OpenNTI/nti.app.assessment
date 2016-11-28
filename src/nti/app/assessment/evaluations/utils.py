@@ -57,6 +57,7 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignmentPart
 from nti.assessment.interfaces import IQEvaluationItemContainer
+from nti.assessment.interfaces import IQNonGradableFillInTheBlankWithWordBankPart
 
 from nti.contentfile.interfaces import IContentBaseFile
 
@@ -87,6 +88,8 @@ def get_html_content_fields(context):
 		result.append((context, 'explanation'))
 		for hint in context.hints or ():
 			result.extend(get_html_content_fields(hint))
+		if IQNonGradableFillInTheBlankWithWordBankPart.providedBy( context ):
+			result.append((context, 'input'))
 	elif 	IQAssignment.providedBy(context) \
 		or	IQuestion.providedBy(context) \
 		or	IQPoll.providedBy(context):

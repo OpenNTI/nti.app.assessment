@@ -12,7 +12,7 @@
 
 	<subscriber factory=".pageinfo._ContentUnitAssessmentItemDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
-				for="nti.appserver.interfaces.IContentUnitInfo
+				for="nti.app.contentlibrary.interfaces.IContentUnitInfo
 					 pyramid.interfaces.IRequest" />
 
 	<!-- upload file -->

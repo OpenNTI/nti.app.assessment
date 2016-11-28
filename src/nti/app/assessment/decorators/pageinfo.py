@@ -20,7 +20,7 @@ from nti.app.assessment.utils import get_course_from_request
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
-from nti.appserver.interfaces import IContentUnitInfo
+from nti.app.contentlibrary.interfaces import IContentUnitInfo
 
 from nti.appserver.pyramid_authorization import has_permission
 

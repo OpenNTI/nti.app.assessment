@@ -19,6 +19,7 @@ from nti.app.assessment import VIEW_RESET_EVALUATION
 from nti.app.assessment.common import get_courses
 from nti.app.assessment.common import has_savepoints
 from nti.app.assessment.common import has_submissions
+from nti.app.assessment.common import is_global_evaluation
 from nti.app.assessment.common import has_inquiry_submissions
 
 from nti.app.assessment.decorators import _get_course_from_evaluation
@@ -81,7 +82,8 @@ class _EvaluationLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		interface.alsoProvides(context_link, ILinkExternalHrefOnly)
 		result['href'] = context_link
 
-		if has_permission(ACT_CONTENT_EDIT, context, self.request):
+		if 		not is_global_evaluation( context ) \
+			and has_permission(ACT_CONTENT_EDIT, context, self.request):
 			link = Link(link_context, rel=VIEW_COPY_EVALUATION,
 						elements=pre_elements + ('@@' + VIEW_COPY_EVALUATION,),
 						method='POST')

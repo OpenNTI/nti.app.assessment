@@ -101,6 +101,7 @@ from nti.assessment.interfaces import IQAssessmentItemContainer
 from nti.common.maps import CaseInsensitiveDict
 
 from nti.contentlibrary.interfaces import IContentPackage
+from nti.contentlibrary.interfaces import IGlobalContentPackage
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -1162,3 +1163,11 @@ def get_outline_evaluation_containers( obj ):
 	else:
 		results = containers
 	return results
+
+def is_global_evaluation( evaluation ):
+	"""
+	Returns whether the given evaluation is from a global content-package/course.
+	"""
+	package = find_interface( evaluation, IContentPackage, strict=False )
+	result = package is not None and IGlobalContentPackage.providedBy( package )
+	return result

@@ -42,6 +42,7 @@ from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import get_policy_locked
 from nti.app.assessment.common import get_policy_excluded
 from nti.app.assessment.common import get_max_time_allowed
+from nti.app.assessment.common import is_global_evaluation
 from nti.app.assessment.common import get_auto_grade_policy
 from nti.app.assessment.common import get_evaluation_courses
 from nti.app.assessment.common import get_assessment_metadata_item
@@ -600,8 +601,12 @@ class _AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecora
 		return get_courses(result)
 
 	def _predicate(self, context, result):
+		"""
+		Course policy edits can only occur on non-global assignments.
+		"""
 		return 		self._acl_decoration \
 				and self._is_authenticated \
+				and not is_global_evaluation( context ) \
 				and has_permission(ACT_CONTENT_EDIT, context, self.request)
 
 	def _has_submitted_data(self, context, courses):

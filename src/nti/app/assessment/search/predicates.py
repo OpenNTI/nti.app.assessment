@@ -12,7 +12,11 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope import interface
 
+from pyramid.threadlocal import get_current_request
+
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedback
+
+from nti.appserver.pyramid_authorization import has_permission
 
 from nti.assessment.interfaces import IQEvaluation
 
@@ -27,7 +31,11 @@ from nti.contenttypes.courses.utils import is_enrolled
 from nti.contenttypes.courses.utils import is_instructed_by_name
 from nti.contenttypes.courses.utils import get_courses_for_packages
 
+from nti.dataserver.authorization import ACT_READ
+
 from nti.dataserver.users import User
+
+from nti.property.property import Lazy
 
 from nti.traversal.traversal import find_interface
 
@@ -52,10 +60,15 @@ class _AssignmentFeedbackItemSearchHitPredicate(DefaultSearchHitPredicate):
 @interface.implementer(ISearchHitPredicate)
 class _EvaluationSearchHitPredicate(DefaultSearchHitPredicate):
 
+	@Lazy
+	def request(self):
+		return get_current_request()
+	
 	def allow(self, item, score, query=None):
 		if self.principal is None:
 			return True
 		else:
+			courses = None
 			course = find_interface(item, ICourseInstance, strict=False)
 			if course is not None:
 				courses = (course,)
@@ -63,10 +76,10 @@ class _EvaluationSearchHitPredicate(DefaultSearchHitPredicate):
 				package = find_interface(item, IContentPackage, strict=False)
 				if package is not None:
 					courses = get_courses_for_packages(packages=package.ntiid)
-				else:
-					courses = ()
+					if not courses:
+						return has_permission(ACT_READ, item, self.request)
 			
-			for course in courses:
+			for course in courses or ():
 				if 		is_instructed_by_name(course, self.principal.id) \
 					or	is_enrolled(course, self.principal):
 					return True

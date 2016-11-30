@@ -67,7 +67,7 @@ class _EvaluationSearchHitPredicate(DefaultSearchHitPredicate):
 					courses = ()
 			
 			for course in courses:
-				if 		is_instructed_by_name(course, self.principal.pid) \
+				if 		is_instructed_by_name(course, self.principal.id) \
 					or	is_enrolled(course, self.principal):
 					return True
 		return False

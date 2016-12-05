@@ -338,14 +338,14 @@ class QuestionMap(QuestionIndex):
 							logger.warn("Could not set parent for %s. %s %s", ntiid,
 										thing_to_register.__parent__, parent)
 
+						# publish item
+						self._publish_object(thing_to_register)
+
 						# add to container and get and intid
 						self._intid_register(thing_to_register,
 											 intids=intids,
 											 registry=registry)
 						parents_questions.append(thing_to_register)
-
-						# publish item
-						self._publish_object(thing_to_register)
 
 						# register in sync results
 						if sync_results is not None:

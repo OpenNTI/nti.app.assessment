@@ -102,6 +102,8 @@ from nti.common.maps import CaseInsensitiveDict
 
 from nti.contentlibrary.interfaces import IContentPackage
 from nti.contentlibrary.interfaces import IGlobalContentPackage
+from nti.contentlibrary.interfaces import IContentPackageLibrary
+from nti.contentlibrary.interfaces import IGlobalContentPackageLibrary
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -1169,5 +1171,6 @@ def is_global_evaluation( evaluation ):
 	Returns whether the given evaluation is from a global content-package/course.
 	"""
 	package = find_interface( evaluation, IContentPackage, strict=False )
-	result = package is not None and IGlobalContentPackage.providedBy( package )
-	return result
+	library = find_interface( evaluation, IContentPackageLibrary, strict=False )
+	return	IGlobalContentPackage.providedBy( package ) \
+		or  IGlobalContentPackageLibrary.providedBy( library )

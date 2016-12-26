@@ -31,6 +31,8 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedb
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
+from nti.coremetadata.mixins import ContainedMixin
+
 from nti.dataserver.authorization import ACT_READ
 from nti.dataserver.authorization_acl import ace_allowing
 from nti.dataserver.authorization_acl import acl_from_aces
@@ -42,8 +44,6 @@ from nti.dataserver.interfaces import ACE_DENY_ALL
 from nti.dataserver.interfaces import ALL_PERMISSIONS
 
 from nti.dataserver.sharing import AbstractReadableSharedMixin
-
-from nti.dataserver_core.mixins import ContainedMixin
 
 from nti.dublincore.datastructures import PersistentCreatedModDateTrackingObject
 

@@ -159,7 +159,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		# to anything)
 		ext_obj['ContainerId'] = 'tag:nextthought.com,2011-10:mathcounts-HTML-MN.2012.0'
 
-		res = self.testapp.post_json( '/dataserver2/Objects/%s?course=%s' % (self.assignment_id, COURSE_NTIID ),
+		res = self.testapp.post_json( '/dataserver2/Objects/%s?course=%s' % (self.assignment_id, COURSE_NTIID),
 									  ext_obj)
 
 		self._check_submission(res)
@@ -173,9 +173,9 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		submission = AssignmentSubmission(assignmentId=self.assignment_id, parts=(qs_submission,))
 		ext_obj = to_external_object( submission )
 
-		self.testapp.post_json( '/dataserver2/Objects/' + self.assignment_id,
+		self.testapp.post_json( '/dataserver2/Objects/%s' % self.assignment_id,
 								 ext_obj,
-								 status=403)
+								 status=422)
 
 	@WithSharedApplicationMockDS(users=('outest5',),testapp=True,default_authenticate=True)
 	def test_fetching_entire_assignment_history_collection(self):

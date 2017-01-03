@@ -1134,6 +1134,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		res = self.testapp.post_json(href, assignment, status=201)
 		res = res.json_body
 		assignment_href = res.get( 'href' )
+		assignment_post_href = '%s?ntiid=%s' % (assignment_href, course_oid)
 		assignment_ntiid = res.get('ntiid')
 		assignment_ntiids = (assignment_ntiid,)
 		self.testapp.post( '%s/@@publish' % assignment_href )
@@ -1173,7 +1174,8 @@ class TestEvaluationViews(ApplicationLayerTest):
 		# Student submits and the edit state changes
 		submission = toExternalObject( submission )
 		submission['version'] = None
-		self.testapp.post_json( assignment_href, submission, extra_environ=student_environ )
+		self.testapp.post_json( assignment_post_href, submission,
+								extra_environ=student_environ )
 
 		self._test_external_state(ntiid=assignment_ntiid,
 								  has_submissions=True)
@@ -1297,6 +1299,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		res = self.testapp.post_json(href, assignment, status=201)
 		res = res.json_body
 		assignment_href = res['href']
+		assignment_href = '%s?ntiid=%s' % (assignment_href, course_oid)
 		assignment_ntiid = res['NTIID']
 		publish_href = self.require_link_href_with_rel( res, VIEW_PUBLISH )
 		unpublish_href = self.require_link_href_with_rel( res, VIEW_UNPUBLISH )
@@ -1575,6 +1578,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		res = self.testapp.post_json(href, assignment, status=201)
 		res = res.json_body
 		assignment_href = res.get( 'href' )
+		assignment_href = '%s?ntiid=%s' % (assignment_href, course_oid)
 		practice_submission_href = self.require_link_href_with_rel( res,
 																  ASSESSMENT_PRACTICE_SUBMISSION)
 		unpublish_href = self.require_link_href_with_rel( res, VIEW_UNPUBLISH )

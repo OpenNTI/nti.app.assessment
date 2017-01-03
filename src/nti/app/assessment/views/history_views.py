@@ -120,10 +120,8 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 		creator = self.remoteUser
 		course = get_course_from_request(self.request)
 		if course is None:
-			course = component.queryMultiAdapter((self.context, creator),
-											  	 ICourseInstance)
-		if course is None:
-			raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
+			logger.warn( 'Submission for assessment without course context (user=%s)', creator)
+			raise hexc.HTTPUnprocessableEntity("Submission for assessment without course context")
 
 		if not is_assignment_available( self.context, course=course, user=creator ):
 			raise hexc.HTTPForbidden(_("Assignment is not available."))

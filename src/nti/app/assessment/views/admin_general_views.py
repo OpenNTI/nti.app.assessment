@@ -396,7 +396,7 @@ class RegisterAssessmentItemsView(AbstractAuthenticatedView,
 
 	def _do_call(self):
 		values = self.readInput()
-		ntiid = values.get('ntiid') or values.get('pacakge')
+		ntiid = values.get('ntiid') or values.get('package')
 		if not ntiid:
 			raise hexc.HTTPUnprocessableEntity(_("Invalid content package NTIID."))
 

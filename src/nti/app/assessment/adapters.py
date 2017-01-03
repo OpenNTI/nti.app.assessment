@@ -24,7 +24,6 @@ from zope.schema.interfaces import NotUnique
 from zope.schema.interfaces import ConstraintNotSatisfied
 
 from pyramid import renderers
-
 from pyramid import httpexceptions as hexc
 
 from pyramid.interfaces import IRequest
@@ -430,8 +429,6 @@ def course_for_evaluation_and_user(assesment, user):
 	"""
 	result = get_course_from_request()
 	if result is None:
-		logger.warn( 'Submission for assessment without course context (%s) (user=%s)',
-					 assesment.ntiid, user)
 		courses = get_evaluation_courses(assesment)
 		for course in courses or ():
 			if 		is_course_instructor_or_editor(course, user) \

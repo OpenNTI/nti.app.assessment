@@ -75,11 +75,10 @@ def _master_data_collector():
     seen = set()
     registered = {}
     containers = defaultdict(list)
-    intids = component.getUtility(IIntIds)
     legacy = component.getUtilitiesFor(IQEvaluation)
     legacy = {ntiid for ntiid, _ in list(legacy)}
+
     def recur(site, unit):
-        __traceback_info__ = unit, intids.queryId(unit)
         for child in unit.children or ():
             recur(site, child)
         container = IQAssessmentItemContainer(unit)

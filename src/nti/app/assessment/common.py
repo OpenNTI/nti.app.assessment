@@ -163,10 +163,12 @@ CLASS = StandardExternalFields.CLASS
 LINKS = StandardExternalFields.LINKS
 MIME_TYPE = StandardExternalFields.MIMETYPE
 
+UNGRADABLE_CODE = u'UngradableInAutoGradeAssignment'
 UNGRADABLE_MSG = _("Ungradable item in auto-graded assignment.")
-UNGRADABLE_CODE = 'UngradableInAutoGradeAssignment'
+
 DISABLE_AUTO_GRADE_MSG = _(
     "Removing points to auto-gradable assignment. Do you want to disable auto-grading?")
+
 AUTO_GRADE_NO_POINTS_MSG = _(
     "Cannot enable auto-grading without setting a point value.")
 
@@ -309,8 +311,7 @@ class AssessmentItemProxy(ProxyBase):
 
 
 def proxy(item, content_unit=None, catalog_entry=None):
-    item = item if isProxy(
-        item, AssessmentItemProxy) else AssessmentItemProxy(item)
+    item = item if isProxy(item, AssessmentItemProxy) else AssessmentItemProxy(item)
     item.ContentUnitNTIID = content_unit or item.ContentUnitNTIID
     item.CatalogEntryNTIID = catalog_entry or item.CatalogEntryNTIID
     return item

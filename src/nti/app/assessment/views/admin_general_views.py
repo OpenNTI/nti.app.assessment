@@ -372,7 +372,7 @@ class UnregisterAssessmentItemsView(AbstractAuthenticatedView,
 		name = get_resource_site_name(package)
 		site = get_host_site(name)
 		with current_site(site):
-			items, _ = _remove_assessment_items_from_oldcontent(package, force=force)
+			items, unused = _remove_assessment_items_from_oldcontent(package, force=force)
 		result = LocatedExternalDict()
 		result[ITEMS] = sorted(items.keys())
 		result[ITEM_COUNT] = result[TOTAL] = len(items)

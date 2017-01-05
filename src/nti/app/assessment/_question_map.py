@@ -600,11 +600,9 @@ def add_assessment_items_from_new_content(content_package, event, key=None):
 
 	return result or set()
 
-def _remove_assessment_items_from_oldcontent(content_package,
-											 force=False,
-											 sync_results=None):
+def _remove_assessment_items_from_oldcontent(package, force=False, sync_results=None):
 	if sync_results is None:
-		sync_results = _new_sync_results(content_package)
+		sync_results = _new_sync_results(package)
 
 	# Unregister the things from the component registry.
 	# We SHOULD be run in the registry where the library item was initially
@@ -612,10 +610,10 @@ def _remove_assessment_items_from_oldcontent(content_package,
 	# FIXME: This doesn't properly handle the case of
 	# having references in different content units; we approximate
 	sm = component.getSiteManager()
-	if component.getSiteManager(content_package) is not sm:
+	if component.getSiteManager(package) is not sm:
 		# This could be an assertion
 		logger.warn("Removing assessment items from wrong site %s should be %s; may not work",
-					sm, component.getSiteManager(content_package))
+					sm, component.getSiteManager(package))
 
 	result = dict()
 	intids = component.queryUtility(IIntIds)  # test mode
@@ -666,24 +664,24 @@ def _remove_assessment_items_from_oldcontent(content_package,
 	# is to ensure, if for example, a question is in multiple content
 	# units (and in a locked assignment), we do not overwrite (register)
 	# its state, leaving the item in the assignment stale.
-	ntiids_to_ignore = set()
-	_gather_to_ignore( content_package, ntiids_to_ignore )
-	_unregister(content_package, ntiids_to_ignore)
+	_ntiids_to_ignore = set()
+	_gather_to_ignore(package, _ntiids_to_ignore)
+	_unregister(package, _ntiids_to_ignore)
 
 	# register locked
-	for ntiid in ntiids_to_ignore:
+	for ntiid in _ntiids_to_ignore:
 		sync_results.add_assessment(ntiid, locked=True)
 
-	return result, ntiids_to_ignore
+	return result, _ntiids_to_ignore
 
 @component.adapter(IContentPackage, IObjectRemovedEvent)
-def remove_assessment_items_from_oldcontent(content_package, event=None, force=True):
-	sync_results = _get_sync_results(content_package, event)
+def remove_assessment_items_from_oldcontent(package, event=None, force=True):
+	sync_results = _get_sync_results(package, event)
 	logger.info("Removing assessment items from old content %s %s",
-				content_package, event)
-	result, locked_ntiids = _remove_assessment_items_from_oldcontent(content_package,
-													  force=force,
-													  sync_results=sync_results)
+				package, event)
+	result, locked_ntiids = _remove_assessment_items_from_oldcontent(package,
+													                 force=force,
+													                 sync_results=sync_results)
 	return set(result.keys()), set( locked_ntiids )
 
 def _transfer_locked_items_to_content_package( content_package, added_items, locked_ntiids ):

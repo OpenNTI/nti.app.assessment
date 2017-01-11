@@ -110,7 +110,7 @@ class _LastViewedAssignmentHistoryDecorator(AbstractAuthenticatedRequestAwareDec
 						  method='PUT'))
 
 @interface.implementer(IExternalMappingDecorator)
-class _AssignmentHistoryLinkDecorator(_AbstractTraversableLinkDecorator):
+class _AssignmentHistoryLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 	@Lazy
 	def _catalog(self):

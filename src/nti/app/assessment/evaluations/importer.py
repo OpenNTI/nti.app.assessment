@@ -48,6 +48,7 @@ from nti.contentlibrary.interfaces import IFilesystemBucket
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseSectionImporter
+from nti.contenttypes.courses.interfaces import ICourseEvaluationImporter
 
 from nti.contenttypes.courses.importer import BaseSectionImporter
 
@@ -66,7 +67,7 @@ from nti.property.property import Lazy
 ITEMS = StandardExternalFields.ITEMS
 
 
-@interface.implementer(ICourseSectionImporter)
+@interface.implementer(ICourseSectionImporter, ICourseEvaluationImporter)
 class EvaluationsImporter(BaseSectionImporter):
 
     EVALUATION_INDEX = "evaluation_index.json"

@@ -15,15 +15,16 @@ from pyramid.threadlocal import get_current_request
 
 from nti.app.externalization.error import raise_json_error
 
+
 def raise_error(v, tb=None, factory=hexc.HTTPUnprocessableEntity, request=None):
-	request = request or get_current_request()
-	raise_json_error(request, factory, v, tb)
+    request = request or get_current_request()
+    raise_json_error(request, factory, v, tb)
 
 import zope.deferredimport
 zope.deferredimport.initialize()
 
 zope.deferredimport.deprecatedFrom(
-	"Moved to nti.app.assessment.evaluations.model",
-	"nti.app.assessment.evaluations.model",
-	"CourseEvaluations"
+    "Moved to nti.app.assessment.evaluations.model",
+    "nti.app.assessment.evaluations.model",
+    "CourseEvaluations"
 )

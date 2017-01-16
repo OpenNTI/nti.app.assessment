@@ -39,57 +39,58 @@ from nti.property.property import Lazy
 
 from nti.traversal.traversal import find_interface
 
+
 @interface.implementer(ICourseEvaluations)
 class CourseEvaluations(CaseInsensitiveCheckingLastModifiedBTreeContainer):
-	"""
-	Implementation of the course evaluations.
-	"""
+    """
+    Implementation of the course evaluations.
+    """
 
-	__external_can_create__ = False
+    __external_can_create__ = False
 
-	@property
-	def Items(self):
-		return dict(self)
+    @property
+    def Items(self):
+        return dict(self)
 
-	def _save(self, key, value):
-		self._setitemf(key, value)
-		locate(value, parent=self, name=key)
-		if IConnection(value, None) is None:
-			IConnection(self).add(value)
-		lifecycleevent.added(value, self, key)
-		self.updateLastMod()
-		self._p_changed = True
+    def _save(self, key, value):
+        self._setitemf(key, value)
+        locate(value, parent=self, name=key)
+        if IConnection(value, None) is None:
+            IConnection(self).add(value)
+        lifecycleevent.added(value, self, key)
+        self.updateLastMod()
+        self._p_changed = True
 
-	def __setitem__(self, key, value):
-		self._save(key, value)
+    def __setitem__(self, key, value):
+        self._save(key, value)
 
-	def _eject(self, key, event=True):
-		self._delitemf(key, event=event)
-		self.updateLastMod()
-		self._p_changed = True
+    def _eject(self, key, event=True):
+        self._delitemf(key, event=event)
+        self.updateLastMod()
+        self._p_changed = True
 
-	def __delitem__(self, key):
-		self._eject(key)
+    def __delitem__(self, key):
+        self._eject(key)
 
-	def replace(self, old, new, event=False):
-		assert old.ntiid == new.ntiid
-		ntiid = old.ntiid
-		self._eject(ntiid, event=event)
-		if not event:
-			removeIntId(old)
-		self._save(ntiid, new)
-		return new
+    def replace(self, old, new, event=False):
+        assert old.ntiid == new.ntiid
+        ntiid = old.ntiid
+        self._eject(ntiid, event=event)
+        if not event:
+            removeIntId(old)
+        self._save(ntiid, new)
+        return new
 
-	@Lazy
-	def __acl__(self):
-		aces = [ ace_allowing(ROLE_ADMIN, ALL_PERMISSIONS, self),
-				 ace_allowing(ROLE_CONTENT_ADMIN, ALL_PERMISSIONS, type(self))]
-		course = find_interface(self.context, ICourseInstance, strict=False)
-		if course is not None:
-			aces.extend(ace_allowing(i, ALL_PERMISSIONS, type(self))
-						for i in course.instructors or ())
-			aces.extend(ace_allowing(i, ALL_PERMISSIONS, type(self))
-						for i in get_course_editors(course))
-		aces.append(ACE_DENY_ALL)
-		result = acl_from_aces(aces)
-		return result
+    @Lazy
+    def __acl__(self):
+        aces = [ace_allowing(ROLE_ADMIN, ALL_PERMISSIONS, self),
+                ace_allowing(ROLE_CONTENT_ADMIN, ALL_PERMISSIONS, type(self))]
+        course = find_interface(self.context, ICourseInstance, strict=False)
+        if course is not None:
+            aces.extend(ace_allowing(i, ALL_PERMISSIONS, type(self))
+                        for i in course.instructors or ())
+            aces.extend(ace_allowing(i, ALL_PERMISSIONS, type(self))
+                        for i in get_course_editors(course))
+        aces.append(ACE_DENY_ALL)
+        result = acl_from_aces(aces)
+        return result

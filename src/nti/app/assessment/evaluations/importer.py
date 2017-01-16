@@ -43,7 +43,7 @@ from nti.assessment.interfaces import IQEditableEvaluation
 from nti.cabinet.filer import transfer_to_native_file
 
 from nti.coremetadata.utils import currentPrincipal
-			
+
 from nti.contentlibrary.interfaces import IFilesystemBucket
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -65,6 +65,7 @@ from nti.property.property import Lazy
 
 ITEMS = StandardExternalFields.ITEMS
 
+
 @interface.implementer(ICourseSectionImporter)
 class EvaluationsImporter(BaseSectionImporter):
 
@@ -73,7 +74,7 @@ class EvaluationsImporter(BaseSectionImporter):
 	@property
 	def _extra(self):
 		return str(uuid.uuid4()).split('-')[0].upper()
-	
+
 	@Lazy
 	def current_principal(self):
 		remoteUser = IPrincipal(get_remote_user(), None)
@@ -89,8 +90,8 @@ class EvaluationsImporter(BaseSectionImporter):
 		provided = iface_of_assessment(obj)
 		evaluations = ICourseEvaluations(course)
 		return		not ntiid \
-				or (	ntiid not in evaluations \
-					and component.queryUtility(provided, name=ntiid) is None)
+			or (	ntiid not in evaluations
+				 and component.queryUtility(provided, name=ntiid) is None)
 
 	def store_evaluation(self, obj, course):
 		principal = self.current_principal
@@ -98,11 +99,11 @@ class EvaluationsImporter(BaseSectionImporter):
 		if not ntiid:
 			provided = iface_of_assessment(obj)
 			obj.ntiid = make_evaluation_ntiid(provided, extra=self._extra)
-		obj.creator = principal.id # always seet a creator
+		obj.creator = principal.id  # always seet a creator
 		evaluations = ICourseEvaluations(course)
 		lifecycleevent.created(obj)
 		evaluations[obj.ntiid] = obj  # gain intid
-		interface.alsoProvides(obj, IQEditableEvaluation) # mark as editable
+		interface.alsoProvides(obj, IQEditableEvaluation)  # mark as editable
 		return obj
 
 	def get_registered_evaluation(self, obj, course):
@@ -171,7 +172,7 @@ class EvaluationsImporter(BaseSectionImporter):
 		[p.ntiid for p in theObject.parts or ()]  # set auto part NTIIDs
 		return theObject
 
-	def handle_evaluation(self, theObject, source, course, source_filer):
+	def handle_evaluation(self, theObject, source, course, source_filer=None):
 		if IQuestion.providedBy(theObject):
 			result = self.handle_question(theObject, course)
 		elif IQPoll.providedBy(theObject):
@@ -190,11 +191,11 @@ class EvaluationsImporter(BaseSectionImporter):
 			result.__home__ = course
 			remoteUser = get_remote_user()
 			target_filer = get_course_filer(course, remoteUser)
-	
 			# parse content fields and load sources
-			import_evaluation_content(result, source_filer=source_filer,
+			import_evaluation_content(result, 
+									  context=course, 
+									  source_filer=source_filer,
 									  target_filer=target_filer)
-	
 			# always register
 			register_context(result, force=True)
 
@@ -206,14 +207,14 @@ class EvaluationsImporter(BaseSectionImporter):
 							   event=False)
 			else:
 				result.publish(event=False)
-				
+
 		locked = source.get('isLocked')
 		if locked and IRecordable.providedBy(theObject):
 			theObject.lock(event=False)
 			lifecycleevent.modified(theObject)
 		return result
 
-	def handle_course_items(self, items, course, source_filer):
+	def handle_course_items(self, items, course, source_filer=None):
 		for ext_obj in items or ():
 			source = copy.deepcopy(ext_obj)
 			factory = find_factory_for(ext_obj)
@@ -221,18 +222,22 @@ class EvaluationsImporter(BaseSectionImporter):
 			update_from_external_object(theObject, ext_obj, notify=False)
 			self.handle_evaluation(theObject, source, course, source_filer)
 
+	def process_source(self, course, source, filer=None):
+		source = self.load(source)
+		items = source.get(ITEMS)
+		self.handle_course_items(items, course, filer)
+			
 	def do_import(self, course, filer, writeout=True):
 		href = self.course_bucket_path(course) + self.EVALUATION_INDEX
 		source = self.safe_get(filer, href)
 		if source is not None:
-			source = self.load(source)
-			items = source.get(ITEMS)
-			self.handle_course_items(items, course, filer)
+			self.process_source(course, source, filer)
 			# save source
 			if writeout and IFilesystemBucket.providedBy(course.root):
 				source = self.safe_get(filer, href)  # reload
 				self.makedirs(course.root.absolute_path)  # create
-				new_path = os.path.join(course.root.absolute_path, self.EVALUATION_INDEX)
+				new_path = os.path.join(course.root.absolute_path,
+										self.EVALUATION_INDEX)
 				transfer_to_native_file(source, new_path)
 			return True
 		return False

@@ -50,6 +50,8 @@ from nti.traversal.traversal import find_interface
 @component.adapter(IUsersCourseAssignmentHistoryItemFeedback)
 class _AssignmentFeedbackItemSearchHitPredicate(DefaultSearchHitPredicate):
 
+    __name__ = 'AssignmentFeedback'
+    
     def allow(self, feedback, score, query=None):
         if self.principal is None:
             return True
@@ -68,6 +70,8 @@ class _AssignmentFeedbackItemSearchHitPredicate(DefaultSearchHitPredicate):
 @interface.implementer(ISearchHitPredicate)
 class _EvaluationSearchHitPredicate(DefaultSearchHitPredicate):
 
+    __name__ = 'Evaluation'
+    
     @Lazy
     def request(self):
         return get_current_request()
@@ -97,6 +101,8 @@ class _EvaluationSearchHitPredicate(DefaultSearchHitPredicate):
 @interface.implementer(ISearchHitPredicate)
 class _ContentUnitAssesmentHitPredicate(DefaultSearchHitPredicate):
 
+    __name__ = 'ContentUnitAssesment'
+    
     SEARCH_MTS = ALL_ASSIGNMENT_MIME_TYPES + (SURVEY_MIME_TYPE,)
     
     def _is_allowed(self, ntiid, query=None):

@@ -267,7 +267,7 @@ class EvaluationsImporter(BaseSectionImporter):
 								   check_locked=check_locked,
 								   source_filer=source_filer)
 
-    def process_source(self, course, source, check_locked=False, filer=None):
+    def process_source(self, course, source, check_locked=True, filer=None):
         source = self.load(source)
         items = source.get(ITEMS)
         self.handle_course_items(items, course, check_locked, filer)

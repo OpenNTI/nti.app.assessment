@@ -35,34 +35,35 @@ from nti.links.links import Link
 
 LINKS = StandardExternalFields.LINKS
 
+
 @component.adapter(IQuestion)
 @interface.implementer(IExternalObjectDecorator)
 class QuestionContainerDecorator(AbstractAuthenticatedRequestAwareDecorator):
-	"""
-	Add an `Assessments` link to fetch all assignments and question sets
-	containing our given question context and add a `AssessmentContainerCount`.
-	"""
+    """
+    Add an `Assessments` link to fetch all assignments and question sets
+    containing our given question context and add a `AssessmentContainerCount`.
+    """
 
-	def _predicate(self, context, result):
-		return 		self._is_authenticated \
-				and has_permission(ACT_CONTENT_EDIT, context, self.request)
+    def _predicate(self, context, result):
+        return 		self._is_authenticated \
+            and has_permission(ACT_CONTENT_EDIT, context, self.request)
 
-	def _do_decorate_external(self, context, result):
-		containers = get_outline_evaluation_containers( context )
-		result['AssessmentContainerCount'] = len( containers or () )
+    def _do_decorate_external(self, context, result):
+        containers = get_outline_evaluation_containers(context)
+        result['AssessmentContainerCount'] = len(containers or ())
 
-		course = _get_course_from_evaluation(context,
-											 user=self.remoteUser,
-											 request=self.request)
+        course = _get_course_from_evaluation(context,
+                                             user=self.remoteUser,
+                                             request=self.request)
 
-		link_context = context if course is None else course
-		pre_elements = () if course is None else ('Assessments', context.ntiid)
+        link_context = context if course is None else course
+        pre_elements = () if course is None else ('Assessments', context.ntiid)
 
-		_links = result.setdefault(LINKS, [])
-		link = Link(link_context,
-					rel=VIEW_QUESTION_CONTAINERS,
-					elements=pre_elements + ('@@%s' % VIEW_QUESTION_CONTAINERS,))
-		interface.alsoProvides(link, ILocation)
-		link.__name__ = ''
-		link.__parent__ = link_context
-		_links.append(link)
+        _links = result.setdefault(LINKS, [])
+        link = Link(link_context,
+                    rel=VIEW_QUESTION_CONTAINERS,
+                    elements=pre_elements + ('@@%s' % VIEW_QUESTION_CONTAINERS,))
+        interface.alsoProvides(link, ILocation)
+        link.__name__ = ''
+        link.__parent__ = link_context
+        _links.append(link)

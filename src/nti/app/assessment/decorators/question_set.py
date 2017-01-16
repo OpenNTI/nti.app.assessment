@@ -22,13 +22,15 @@ from nti.externalization.singleton import SingletonDecorator
 OID = StandardExternalFields.OID
 LINKS = StandardExternalFields.LINKS
 
+
 @component.adapter(IQuestionSet)
 @interface.implementer(IExternalObjectDecorator)
 class _NTIQuestionSetCountDecorator(object):
 
-	__metaclass__ = SingletonDecorator
+    __metaclass__ = SingletonDecorator
 
-	def decorateExternalObject(self, original, external):
-		external.pop('question_count', None)
-		question_count = getattr( original, 'draw', None ) or len( original.questions )
-		external[u'question-count'] = str( question_count )
+    def decorateExternalObject(self, original, external):
+        external.pop('question_count', None)
+        question_count =   getattr(original, 'draw', None) \
+                        or len(original.questions)
+        external[u'question-count'] = str(question_count)

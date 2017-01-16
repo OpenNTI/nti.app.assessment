@@ -20,29 +20,31 @@ from nti.externalization.interfaces import IExternalMappingDecorator
 
 from nti.externalization.singleton import SingletonDecorator
 
+
 @interface.implementer(IExternalMappingDecorator)
 @component.adapter(IUsersCourseAssignmentHistoryItemFeedback)
 class _FeedbackItemAssignmentIdDecorator(object):
-	"""
-	Give a feedback item its assignment id, because it is used
-	in contexts outside its collection.
-	"""
+    """
+    Give a feedback item its assignment id, because it is used
+    in contexts outside its collection.
+    """
 
-	__metaclass__ = SingletonDecorator
+    __metaclass__ = SingletonDecorator
 
-	def decorateExternalMapping(self, item, result_map):
-		try:
-			feedback = item.__parent__
-			history_item = feedback.__parent__
-			submission = history_item.Submission
-			creator = submission.creator
-			creator = getattr( creator, 'username', creator )
-			result_map['AssignmentId'] = submission.assignmentId
-			result_map['SubmissionCreator'] = creator
-		except AttributeError:
-			pass
+    def decorateExternalMapping(self, item, result_map):
+        try:
+            feedback = item.__parent__
+            history_item = feedback.__parent__
+            submission = history_item.Submission
+            creator = submission.creator
+            creator = getattr(creator, 'username', creator)
+            result_map['AssignmentId'] = submission.assignmentId
+            result_map['SubmissionCreator'] = creator
+        except AttributeError:
+            pass
+
 
 @interface.implementer(IExternalMappingDecorator)
 @component.adapter(IUsersCourseAssignmentHistoryItemFeedback)
 class _FeedbackLibraryPathLinkDecorator(AbstractLibraryPathLinkDecorator):
-	pass
+    pass

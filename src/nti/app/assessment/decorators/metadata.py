@@ -30,58 +30,64 @@ from nti.links.links import Link
 
 LINKS = StandardExternalFields.LINKS
 
+
 class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
-	def _do_decorate_external(self, assignment, result):
-		user = self.remoteUser
-		course = _get_course_from_evaluation(assignment, user, request=self.request)
-		if course is None:
-			return
+    def _do_decorate_external(self, assignment, result):
+        user = self.remoteUser
+        course = _get_course_from_evaluation(assignment, 
+											 user, 
+											 request=self.request)
+        if course is None:
+            return
 
-		elements = ('AssignmentMetadata', user.username, assignment.ntiid)
+        elements = ('AssignmentMetadata', user.username, assignment.ntiid)
 
-		links = result.setdefault(LINKS, [])
-		links.append(Link(course,
-						  rel='Metadata',
-						  elements=elements + ('Metadata',)))
+        links = result.setdefault(LINKS, [])
+        links.append(Link(course,
+                          rel='Metadata',
+                          elements=elements + ('Metadata',)))
 
-		if IQTimedAssignment.providedBy(assignment):
-			item = get_assessment_metadata_item(course, self.remoteUser, assignment)
-			if item is None or item.StartTime is None:
-				links.append(Link(course,
-								  method='POST',
-								  rel='Commence',
-								  elements=elements + ('@@Commence',)))
-			else:
-				for rel in ('StartTime', 'TimeRemaining'):
-					links.append(Link(course,
-								  	  method='GET',
-								  	  rel=rel,
-								  	  elements=elements + ('@@' + rel,)))
+        if IQTimedAssignment.providedBy(assignment):
+            item = get_assessment_metadata_item(
+                course, self.remoteUser, assignment)
+            if item is None or item.StartTime is None:
+                links.append(Link(course,
+                                  method='POST',
+                                  rel='Commence',
+                                  elements=elements + ('@@Commence',)))
+            else:
+                for rel in ('StartTime', 'TimeRemaining'):
+                    links.append(Link(course,
+                                      method='GET',
+                                      rel=rel,
+                                      elements=elements + ('@@' + rel,)))
+
 
 @interface.implementer(IExternalMappingDecorator)
 class _AssignmentMetadataContainerDecorator(AbstractAssessmentDecoratorPredicate):
 
-	def _do_decorate_external(self, context, result_map):
-		links = result_map.setdefault(LINKS, [])
-		user = IUser(context, self.remoteUser)
-		links.append(Link(context,
-						  rel='AssignmentMetadata',
-						  elements=('AssignmentMetadata', user.username)))
+    def _do_decorate_external(self, context, result_map):
+        links = result_map.setdefault(LINKS, [])
+        user = IUser(context, self.remoteUser)
+        links.append(Link(context,
+                          rel='AssignmentMetadata',
+                          elements=('AssignmentMetadata', user.username)))
+
 
 @interface.implementer(IExternalMappingDecorator)
 class _AssignmentMetadataItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
-	def _predicate(self, context, result):
-		creator = context.creator
-		return (	AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
-				and creator is not None
-				and creator == self.remoteUser)
+    def _predicate(self, context, result):
+        creator = context.creator
+        return (	AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
+                 and creator is not None
+                 and creator == self.remoteUser)
 
-	def _do_decorate_external(self, context, result_map):
-		try:
-			link = Link(context)
-			interface.alsoProvides(link, ILinkExternalHrefOnly)
-			result_map['href'] = link
-		except (KeyError, ValueError, AssertionError):
-			pass  # Nope
+    def _do_decorate_external(self, context, result_map):
+        try:
+            link = Link(context)
+            interface.alsoProvides(link, ILinkExternalHrefOnly)
+            result_map['href'] = link
+        except (KeyError, ValueError, AssertionError):
+            pass  # Nope

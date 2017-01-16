@@ -28,35 +28,36 @@ from nti.property.property import Lazy
 
 LINKS = StandardExternalFields.LINKS
 
+
 @interface.implementer(IExternalMappingDecorator)
 class _CourseEditorLinksDecorator(_AbstractTraversableLinkDecorator):
 
-	@Lazy
-	def _acl_decoration(self):
-		result = getattr(self.request, 'acl_decoration', True)
-		return result
+    @Lazy
+    def _acl_decoration(self):
+        result = getattr(self.request, 'acl_decoration', True)
+        return result
 
-	def _predicate(self, context, result):
-		return (	super(_CourseEditorLinksDecorator, self)._predicate(context, result)
-				and self._acl_decoration
-				and (	is_course_editor(context, self.remoteUser)
-					 or has_permission(ACT_CONTENT_EDIT, context, self.request)))
+    def _predicate(self, context, result):
+        return (	super(_CourseEditorLinksDecorator, self)._predicate(context, result)
+                 and self._acl_decoration
+                 and (	is_course_editor(context, self.remoteUser)
+                       or has_permission(ACT_CONTENT_EDIT, context, self.request)))
 
-	def _do_decorate_external(self, context, result_map):
-		links = result_map.setdefault(LINKS, [])
-		for name in ('Assignments', 'Inquiries', 'AssessmentItems', ):
-			links.append(Link(context, rel=name, elements=('@@%s' % name,)))
-		links.append(Link(context,
-						  rel='CourseEvaluations',
-					 	  elements=('CourseEvaluations',)))
+    def _do_decorate_external(self, context, result_map):
+        links = result_map.setdefault(LINKS, [])
+        for name in ('Assignments', 'Inquiries', 'AssessmentItems', ):
+            links.append(Link(context, rel=name, elements=('@@%s' % name,)))
+        links.append(Link(context,
+                          rel='CourseEvaluations',
+                          elements=('CourseEvaluations',)))
+
 
 @interface.implementer(IExternalMappingDecorator)
 class _CourseEvaluationSubmissionLinksDecorator(_AbstractTraversableLinkDecorator):
 
-	def _do_decorate_external(self, context, result_map):
-		for rel in ('Assessments', 'CourseInquiries'):
-			links = result_map.setdefault(LINKS, [])
-			links.append(Link(context,
-							  rel=rel,
-						 	  elements=(rel,)))
-
+    def _do_decorate_external(self, context, result_map):
+        for rel in ('Assessments', 'CourseInquiries'):
+            links = result_map.setdefault(LINKS, [])
+            links.append(Link(context,
+                              rel=rel,
+                              elements=(rel,)))

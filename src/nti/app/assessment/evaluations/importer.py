@@ -121,6 +121,7 @@ class EvaluationsImporter(BaseSectionImporter):
                 obj = evaluations.replace(old, obj, event=False)
             else:
                 obj = old
+            interface.alsoProvides(obj, IQEditableEvaluation)  # mark as editable
         else:
             provided = iface_of_assessment(obj)
             obj = component.getUtility(provided, name=ntiid)
@@ -131,8 +132,8 @@ class EvaluationsImporter(BaseSectionImporter):
             the_object = self.store_evaluation(the_object, course)
         else:
             the_object = self.get_registered_evaluation(the_object,
-                                                       course,
-                                                       check_locked)
+                                                        course,
+                                                        check_locked)
         [p.ntiid for p in the_object.parts or ()]  # set auto part NTIIDs
         return the_object
 
@@ -141,8 +142,8 @@ class EvaluationsImporter(BaseSectionImporter):
             the_object = self.store_evaluation(the_object, course)
         else:
             the_object = self.get_registered_evaluation(the_object,
-                                                       course,
-                                                       check_locked)
+                                                        course,
+                                                        check_locked)
         [p.ntiid for p in the_object.parts or ()]  # set auto part NTIIDs
         return the_object
 
@@ -165,8 +166,8 @@ class EvaluationsImporter(BaseSectionImporter):
     def handle_survey(self, the_object, course, check_locked=False):
         if not self.is_new(the_object, course):
             the_object = self.get_registered_evaluation(the_object,
-                                                       course,
-                                                       check_locked)
+                                                        course,
+                                                        check_locked)
         if not check_locked or not self.is_locked(the_object):
             questions = indexed_iter() # replace polls
             for poll in the_object.questions or ():

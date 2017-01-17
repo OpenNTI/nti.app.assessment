@@ -72,6 +72,14 @@ class EvaluationsImporter(BaseSectionImporter):
 
     EVALUATION_INDEX = "evaluation_index.json"
 
+    singleton = None
+
+    def __new__(cls, *args, **kwargs):
+        if cls.singleton is None:
+            cls.singleton = super(EvaluationsImporter, cls).__new__(
+                cls, *args, **kwargs)
+        return cls.singleton
+
     @property
     def _extra(self):
         return str(uuid.uuid4()).split('-')[0].upper()
@@ -94,7 +102,7 @@ class EvaluationsImporter(BaseSectionImporter):
         provided = iface_of_assessment(obj)
         evaluations = ICourseEvaluations(course)
         return  not ntiid \
-            or (    ntiid not in evaluations
+            or (ntiid not in evaluations
                 and component.queryUtility(provided, name=ntiid) is None)
 
     def store_evaluation(self, obj, course):
@@ -108,20 +116,21 @@ class EvaluationsImporter(BaseSectionImporter):
         if ntiid not in evaluations:
             lifecycleevent.created(obj)
         # gain intid or replace provided the object is the same
-        evaluations[obj.ntiid] = obj 
+        evaluations[obj.ntiid] = obj
         interface.alsoProvides(obj, IQEditableEvaluation)  # mark as editable
         return obj
 
     def get_registered_evaluation(self, obj, course, check_locked=False):
         ntiid = self.get_ntiid(obj)
         evaluations = ICourseEvaluations(course)
-        if ntiid in evaluations: # replace
+        if ntiid in evaluations:  # replace
             old = evaluations[ntiid]
-            if not check_locked or not self.is_locked(obj): 
+            if not check_locked or not self.is_locked(obj):
                 obj = evaluations.replace(old, obj, event=False)
             else:
                 obj = old
-            interface.alsoProvides(obj, IQEditableEvaluation)  # mark as editable
+            # mark as editable
+            interface.alsoProvides(obj, IQEditableEvaluation)
         else:
             provided = iface_of_assessment(obj)
             obj = component.getUtility(provided, name=ntiid)
@@ -150,10 +159,10 @@ class EvaluationsImporter(BaseSectionImporter):
     def handle_question_set(self, the_object, course, check_locked=False):
         if not self.is_new(the_object, course):
             the_object = self.get_registered_evaluation(the_object,
-                                                       course,
-                                                       check_locked)
+                                                        course,
+                                                        check_locked)
         if not check_locked or not self.is_locked(the_object):
-            questions = indexed_iter() # replace questions
+            questions = indexed_iter()  # replace questions
             for question in the_object.questions or ():
                 question = self.handle_question(question,
                                                 course,
@@ -169,7 +178,7 @@ class EvaluationsImporter(BaseSectionImporter):
                                                         course,
                                                         check_locked)
         if not check_locked or not self.is_locked(the_object):
-            questions = indexed_iter() # replace polls
+            questions = indexed_iter()  # replace polls
             for poll in the_object.questions or ():
                 poll = self.handle_poll(poll, course)
                 questions.append(poll)
@@ -181,19 +190,19 @@ class EvaluationsImporter(BaseSectionImporter):
         question_set = self.handle_question_set(part.question_set,
                                                 course,
                                                 check_locked)
-        part.question_set = question_set # replace is safe in part
+        part.question_set = question_set  # replace is safe in part
         return part
 
     def handle_assignment(self, the_object, course, check_locked=False):
         if not self.is_new(the_object, course):
             the_object = self.get_registered_evaluation(the_object,
-                                                       course,
-                                                       check_locked)
+                                                        course,
+                                                        check_locked)
         if not check_locked or not self.is_locked(the_object):
             parts = indexed_iter()
             for part in the_object.parts or ():
-                part = self.handle_assignment_part(part, 
-                                                   course, 
+                part = self.handle_assignment_part(part,
+                                                   course,
                                                    check_locked)
                 parts.append(part)
             the_object.parts = parts
@@ -201,11 +210,11 @@ class EvaluationsImporter(BaseSectionImporter):
         [p.ntiid for p in the_object.parts or ()]  # set auto part NTIIDs
         return the_object
 
-    def handle_evaluation(self, the_object, source, course, 
+    def handle_evaluation(self, the_object, source, course,
                           check_locked=False, source_filer=None):
         if IQuestion.providedBy(the_object):
-            result = self.handle_question(the_object, 
-                                          course, 
+            result = self.handle_question(the_object,
+                                          course,
                                           check_locked)
         elif IQPoll.providedBy(the_object):
             result = self.handle_poll(the_object,
@@ -216,7 +225,7 @@ class EvaluationsImporter(BaseSectionImporter):
                                               course,
                                               check_locked)
         elif IQSurvey.providedBy(the_object):
-            result = self.handle_survey(the_object, 
+            result = self.handle_survey(the_object,
                                         course,
                                         check_locked)
         elif IQAssignment.providedBy(the_object):
@@ -227,14 +236,14 @@ class EvaluationsImporter(BaseSectionImporter):
             result = the_object
 
         if      IQEditableEvaluation.providedBy(result) \
-            and (not check_locked or not self.is_locked(result)):
+                and (not check_locked or not self.is_locked(result)):
             # course is the evaluation home
             result.__home__ = course
             remoteUser = get_remote_user()
             target_filer = get_course_filer(course, remoteUser)
             # parse content fields and load sources
-            import_evaluation_content(result, 
-                                      context=course, 
+            import_evaluation_content(result,
+                                      context=course,
                                       source_filer=source_filer,
                                       target_filer=target_filer)
             # always register
@@ -251,13 +260,13 @@ class EvaluationsImporter(BaseSectionImporter):
 
         locked = source.get('isLocked')
         if      locked \
-            and IRecordable.providedBy(the_object) \
-            and (not check_locked or not self.is_locked(result)):
+                and IRecordable.providedBy(the_object) \
+                and (not check_locked or not self.is_locked(result)):
             the_object.lock(event=False)
             lifecycleevent.modified(the_object)
         return result
 
-    def handle_course_items(self, items, course, 
+    def handle_course_items(self, items, course,
                             check_locked=False, source_filer=None):
         for ext_obj in items or ():
             source = copy.deepcopy(ext_obj)
@@ -265,16 +274,16 @@ class EvaluationsImporter(BaseSectionImporter):
             the_object = factory()
             update_from_external_object(the_object, ext_obj, notify=False)
             self.handle_evaluation(the_object,
-								   source=source, 
-								   course=course,
-								   check_locked=check_locked,
-								   source_filer=source_filer)
+                                   source=source,
+                                   course=course,
+                                   check_locked=check_locked,
+                                   source_filer=source_filer)
 
     def process_source(self, course, source, check_locked=True, filer=None):
         source = self.load(source)
         items = source.get(ITEMS)
         self.handle_course_items(items, course, check_locked, filer)
-            
+
     def do_import(self, course, filer, writeout=True):
         href = self.course_bucket_path(course) + self.EVALUATION_INDEX
         source = self.safe_get(filer, href)

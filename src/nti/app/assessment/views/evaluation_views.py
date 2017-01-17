@@ -124,6 +124,7 @@ from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQTimedAssignment
 from nti.assessment.interfaces import IQEditableEvaluation
+from nti.assessment.interfaces import IQDiscussionAssignment
 from nti.assessment.interfaces import IQEvaluationItemContainer
 
 from nti.assessment.interfaces import QAssessmentPoliciesModified
@@ -153,6 +154,8 @@ from nti.coremetadata.interfaces import ICalendarPublishable
 from nti.dataserver import authorization as nauth
 
 from nti.dataserver.authorization import ROLE_ADMIN
+
+from nti.dataserver.contenttypes.forums.interfaces import ITopic
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import IGroupMember
@@ -403,6 +406,31 @@ class EvaluationMixin(StructuralValidationMixin):
 							 None)
 		return theObject
 
+	def handle_discussion_assignment(self, theObject, course, user):
+		"""
+		Validate discussion assignment is valid, ignoring any parts
+		coming in externally.
+		"""
+		assignment = self.handle_assignment(theObject, course, user)
+		discussion = find_object_with_ntiid( assignment.discussion_ntiid )
+		if discussion is None:
+			raise_json_error(self.request,
+							 hexc.HTTPUnprocessableEntity,
+							 {
+								u'message': _("Discussion does not exist."),
+								u'code': 'DiscussionDoesNotExist',
+							 },
+							 None)
+		if not ITopic.providedBy( discussion ):
+			raise_json_error(self.request,
+							 hexc.HTTPUnprocessableEntity,
+							 {
+								u'message': _("Must point to discussion."),
+								u'code': 'InvalidDiscussionAssignment',
+							 },
+							 None)
+		return theObject
+
 	def handle_evaluation(self, theObject, course, sources, user):
 		if IQuestion.providedBy(theObject):
 			result = self.handle_question(theObject, course, user)
@@ -412,6 +440,8 @@ class EvaluationMixin(StructuralValidationMixin):
 			result = self.handle_question_set(theObject, course, user)
 		elif IQSurvey.providedBy(theObject):
 			result = self.handle_survey(theObject, course, user)
+		elif IQDiscussionAssignment.providedBy(theObject):
+			result = self.handle_discussion_assignment(theObject, course, user)
 		elif IQAssignment.providedBy(theObject):
 			result = self.handle_assignment(theObject, course, user)
 		else:
@@ -1180,6 +1210,15 @@ class AssignmentPutView(NewAndLegacyPutView):
 		"""
 		Determine if our object is transitioning to/from a timed assignment.
 		"""
+		if IQDiscussionAssignment.providedBy( contentObject ):
+			raise_json_error(self.request,
+							 hexc.HTTPUnprocessableEntity,
+							 {
+								u'message': _("Cannot transform discussion assignment."),
+								u'code': 'CannotTransformAssignment',
+							 },
+							 None)
+
 		if 'maximum_time_allowed' in externalValue:
 			# The client passed us something; see if we are going to/from timed assignment.
 			max_time_allowed = externalValue.get('maximum_time_allowed')

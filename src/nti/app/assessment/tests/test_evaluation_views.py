@@ -33,6 +33,7 @@ from zope.intid.interfaces import IIntIds
 
 from nti.app.assessment import get_evaluation_catalog
 
+from nti.app.assessment import VIEW_DELETE
 from nti.app.assessment import VIEW_MOVE_PART
 from nti.app.assessment import VIEW_RANDOMIZE
 from nti.app.assessment import VIEW_UNRANDOMIZE
@@ -68,6 +69,7 @@ from nti.assessment.interfaces import QUESTION_MIME_TYPE
 from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
 from nti.assessment.interfaces import QUESTION_SET_MIME_TYPE
 from nti.assessment.interfaces import QUESTION_BANK_MIME_TYPE
+from nti.assessment.interfaces import DISCUSSION_ASSIGNMENT_MIME_TYPE
 
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQEvaluation
@@ -107,6 +109,7 @@ from nti.recorder.interfaces import ITransactionRecordHistory
 from nti.testing.time import time_monotonically_increases
 
 NTIID = StandardExternalFields.NTIID
+ITEMS = StandardExternalFields.ITEMS
 
 class TestEvaluationViews(ApplicationLayerTest):
 
@@ -580,6 +583,50 @@ class TestEvaluationViews(ApplicationLayerTest):
 		res = self.testapp.put_json( assignment_href, data )
 		res = res.json_body
 		assert_that( res.get( 'parts' ), has_length( 1 ))
+
+	@WithSharedApplicationMockDS(testapp=True, users=True)
+	def test_created_discussion_assignment(self):
+		"""
+		Test creating discussion assignments.
+		"""
+		course_oid = self._get_course_oid()
+		assignment = self._load_assignment()
+		old_parts = assignment['parts']
+		course_href = '/dataserver2/Objects/%s' % course_oid
+		forum_href = '%s/Discussions/In_Class_Discussions/contents' % course_href
+		forum_res = self.testapp.get( forum_href )
+		forum_res = forum_res.json_body
+		discussion_ntiid = forum_res[ITEMS][0].get( NTIID )
+		assignment['discussion_ntiid'] = discussion_ntiid
+		assignment['parts'] = []
+		assignment['Class'] = 'DiscussionAssignment'
+		assignment['MimeType'] = DISCUSSION_ASSIGNMENT_MIME_TYPE
+
+		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
+		res = self.testapp.post_json(href, assignment, status=201)
+		res = res.json_body
+		assert_that( res.get( 'CanInsertQuestions' ), is_( False ))
+		assignment_href = res.get( 'href' )
+
+		self.require_link_href_with_rel(res, VIEW_DELETE)
+		for part_rel in (VIEW_MOVE_PART, VIEW_REMOVE_PART, VIEW_INSERT_PART):
+			self.forbid_link_with_rel(res, part_rel)
+
+		# Must exist
+		assignment['discussion_ntiid'] = discussion_ntiid + 'dne'
+		self.testapp.post_json(href, assignment, status=422)
+
+		# Must point to topic
+		assignment['discussion_ntiid'] = course_oid
+		self.testapp.post_json(href, assignment, status=422)
+
+		# Cannot transform type
+		data = { 'maximum_time_allowed': 300 }
+		self.testapp.put_json( assignment_href, data, status=422 )
+
+		# Cannot add parts
+		data = { 'parts' : old_parts }
+		res = self.testapp.put_json( assignment_href, data, status=422 )
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_question_bank_toggle(self):

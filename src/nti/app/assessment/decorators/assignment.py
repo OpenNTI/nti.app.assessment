@@ -75,6 +75,7 @@ from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssessment
 from nti.assessment.interfaces import IQTimedAssignment
 from nti.assessment.interfaces import IQEditableEvaluation
+from nti.assessment.interfaces import IQDiscussionAssignment
 
 from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
@@ -418,7 +419,7 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
 	_MARKER_RELS = (VIEW_MOVE_PART, VIEW_INSERT_PART, VIEW_REMOVE_PART,
 					VIEW_MOVE_PART_OPTION, VIEW_INSERT_PART_OPTION,
-					VIEW_REMOVE_PART_OPTION, VIEW_DELETE)
+					VIEW_REMOVE_PART_OPTION, VIEW_DELETE, VIEW_IS_NON_PUBLIC)
 
 	def get_courses(self, context):
 		result = set()
@@ -439,7 +440,9 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 		return bool(assignments)
 
 	def _predicate(self, context, result):
+		# `IQDiscussionAssignment` objects are handled elsewhere.
 		return 		self._is_authenticated \
+				and not IQDiscussionAssignment.providedBy( context ) \
 				and has_permission(ACT_CONTENT_EDIT, context, self.request)
 
 	def _get_question_rels(self):
@@ -544,6 +547,49 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 				rels.extend(self._get_assignment_rels( context, courses ))
 			elif IQuestion.providedBy(context):
 				rels.extend(self._get_question_rels())
+
+		# chose link context according to the presence of a course
+		course = get_course_from_request(self.request)
+		link_context = context if course is None else course
+		start_elements = () if course is None else ('Assessments', context.ntiid)
+
+		# loop through rels and create links
+		for rel in rels:
+			if rel in self._MARKER_RELS:
+				elements = None if not start_elements else start_elements
+			else:
+				elements = start_elements + ('@@%s' % rel,)
+			link = Link(link_context, rel=rel, elements=elements)
+			interface.alsoProvides(link, ILocation)
+			link.__name__ = ''
+			link.__parent__ = link_context
+			_links.append(link)
+
+@interface.implementer(IExternalMappingDecorator)
+class _DiscussionAssignmentEditorDecorator(_AssessmentEditorDecorator):
+	"""
+	Provides editor link and info on `IQDiscussionAssignment' objects.
+	"""
+
+	def _predicate(self, context, result):
+		return 		self._is_authenticated \
+				and has_permission(ACT_CONTENT_EDIT, context, self.request)
+
+	def _do_decorate_external(self, context, result):
+		_links = result.setdefault(LINKS, [])
+
+		result['IsAvailable'] = self._is_available(context)
+		result['CanInsertQuestions'] = False
+
+		rels = ['schema', VIEW_DELETE]
+		# We provide the edit link no matter the status of the assessment
+		# object. Some edits (textual changes) will be allowed no matter what.
+		if not self._has_edit_link(_links):
+			rels.append('edit')
+
+		courses = self.get_courses(context)
+		if self._can_toggle_is_non_public(context, courses):
+			rels.append( VIEW_IS_NON_PUBLIC )
 
 		# chose link context according to the presence of a course
 		course = get_course_from_request(self.request)

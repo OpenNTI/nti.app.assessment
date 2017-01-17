@@ -236,7 +236,7 @@ class EvaluationsImporter(BaseSectionImporter):
             result = the_object
 
         if      IQEditableEvaluation.providedBy(result) \
-                and (not check_locked or not self.is_locked(result)):
+            and (not check_locked or not self.is_locked(result)):
             # course is the evaluation home
             result.__home__ = course
             remoteUser = get_remote_user()

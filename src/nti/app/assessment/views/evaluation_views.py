@@ -412,23 +412,24 @@ class EvaluationMixin(StructuralValidationMixin):
 		coming in externally.
 		"""
 		assignment = self.handle_assignment(theObject, course, user)
-		discussion = find_object_with_ntiid( assignment.discussion_ntiid )
-		if discussion is None:
-			raise_json_error(self.request,
-							 hexc.HTTPUnprocessableEntity,
-							 {
-								u'message': _("Discussion does not exist."),
-								u'code': 'DiscussionDoesNotExist',
-							 },
-							 None)
-		if not ITopic.providedBy( discussion ):
-			raise_json_error(self.request,
-							 hexc.HTTPUnprocessableEntity,
-							 {
-								u'message': _("Must point to discussion."),
-								u'code': 'InvalidDiscussionAssignment',
-							 },
-							 None)
+		if assignment.discussion_ntiid:
+			discussion = find_object_with_ntiid( assignment.discussion_ntiid )
+			if discussion is None:
+				raise_json_error(self.request,
+								 hexc.HTTPUnprocessableEntity,
+								 {
+									u'message': _("Discussion does not exist."),
+									u'code': 'DiscussionDoesNotExist',
+								 },
+								 None)
+			if not ITopic.providedBy( discussion ):
+				raise_json_error(self.request,
+								 hexc.HTTPUnprocessableEntity,
+								 {
+									u'message': _("Must point to discussion."),
+									u'code': 'InvalidDiscussionAssignment',
+								 },
+								 None)
 		return theObject
 
 	def handle_evaluation(self, theObject, course, sources, user):

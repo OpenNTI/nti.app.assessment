@@ -155,7 +155,7 @@ from nti.dataserver import authorization as nauth
 
 from nti.dataserver.authorization import ROLE_ADMIN
 
-from nti.dataserver.contenttypes.forums.interfaces import ITopic
+from nti.dataserver.contenttypes.forums.interfaces import ICommunityHeadlineTopic
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import IGroupMember
@@ -422,7 +422,9 @@ class EvaluationMixin(StructuralValidationMixin):
 									u'code': 'DiscussionDoesNotExist',
 								 },
 								 None)
-			if not ITopic.providedBy( discussion ):
+			# Restrict to course specific topics
+			# TODO: Need explicit interface
+			if not ICommunityHeadlineTopic.providedBy( discussion ):
 				raise_json_error(self.request,
 								 hexc.HTTPUnprocessableEntity,
 								 {
@@ -1211,16 +1213,16 @@ class AssignmentPutView(NewAndLegacyPutView):
 		"""
 		Determine if our object is transitioning to/from a timed assignment.
 		"""
-		if IQDiscussionAssignment.providedBy( contentObject ):
-			raise_json_error(self.request,
-							 hexc.HTTPUnprocessableEntity,
-							 {
-								u'message': _("Cannot transform discussion assignment."),
-								u'code': 'CannotTransformAssignment',
-							 },
-							 None)
-
 		if 'maximum_time_allowed' in externalValue:
+			if IQDiscussionAssignment.providedBy( contentObject ):
+				raise_json_error(self.request,
+								 hexc.HTTPUnprocessableEntity,
+								 {
+									u'message': _("Cannot transform discussion assignment."),
+									u'code': 'CannotTransformAssignment',
+								 },
+								 None)
+
 			# The client passed us something; see if we are going to/from timed assignment.
 			max_time_allowed = externalValue.get('maximum_time_allowed')
 			if 		max_time_allowed \

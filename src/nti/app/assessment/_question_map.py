@@ -81,6 +81,9 @@ from nti.intid.common import removeIntId
 
 from nti.ntiids.ntiids import find_object_with_ntiid
 
+from nti.recorder.record import copy_transaction_history
+from nti.recorder.record import remove_transaction_history
+
 from nti.site.utils import registerUtility
 from nti.site.utils import unregisterUtility
 
@@ -682,9 +685,13 @@ def remove_assessment_items_from_oldcontent(package, event=None, force=True):
 	result, locked_ntiids = _remove_assessment_items_from_oldcontent(package,
 													                 force=force,
 													                 sync_results=sync_results)
-	return set(result.keys()), set( locked_ntiids )
+	# remove transaction records
+	for item in result.values():
+		remove_transaction_history(item)
 
-def _transfer_locked_items_to_content_package( content_package, added_items, locked_ntiids ):
+	return set(result.keys()), set(locked_ntiids)
+
+def _transfer_locked_items_to_content_package(content_package, added_items, locked_ntiids):
 	"""
 	If we have locked items, but they do not exist in the added items, add
 	them to our content package so that it's possible to remove them if
@@ -705,6 +712,15 @@ def _transfer_locked_items_to_content_package( content_package, added_items, loc
 		parents_questions.append( missing_item )
 		missing_item.__parent__ = item_parent
 
+def _transfer_transaction_records(removed):
+	for item in removed.values():
+		provided = iface_of_assessment(item)
+		obj = component.queryUtility(provided, name=item.ntiid)
+		if obj is None:
+			remove_transaction_history(item)
+		else:
+			copy_transaction_history(item, obj)
+
 @component.adapter(IContentPackage, IObjectModifiedEvent)
 def update_assessment_items_when_modified(content_package, event=None):
 	# The event may be an IContentPackageReplacedEvent, a subtype of the
@@ -724,7 +740,9 @@ def update_assessment_items_when_modified(content_package, event=None):
 	logger.info("Updating assessment items from modified content %s %s",
 				content_package, event)
 
-	removed, locked_ntiids = remove_assessment_items_from_oldcontent(original, event, force=False)
+	removed, locked_ntiids = remove_assessment_items_from_oldcontent(original, 
+																	 event,
+																	 force=False)
 	logger.info("%s assessment item(s) have been removed from content %s",
 				len(removed), original)
 
@@ -740,6 +758,9 @@ def update_assessment_items_when_modified(content_package, event=None):
 		_transfer_locked_items_to_content_package( content_package,
 												   assesment_items,
 												   locked_ntiids )
+
+	# Transfer records
+	_transfer_transaction_records(removed)
 
 	if len(assesment_items) < len(registered):
 		raise AssertionError("[%s] Item(s) in content package %s are less that in the registry %s" %

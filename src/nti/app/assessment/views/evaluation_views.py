@@ -143,6 +143,8 @@ from nti.common.maps import CaseInsensitiveDict
 
 from nti.common.string import is_true
 
+from nti.contenttypes.courses.discussions.interfaces import ICourseDiscussion
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseSubInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
@@ -422,13 +424,12 @@ class EvaluationMixin(StructuralValidationMixin):
 									u'code': 'DiscussionDoesNotExist',
 								 },
 								 None)
-			# Restrict to course specific topics
-			# TODO: Need explicit interface
-			if not ICommunityHeadlineTopic.providedBy( discussion ):
+			if 		not ICourseDiscussion.providedBy(discussion) \
+				and not ICommunityHeadlineTopic.providedBy( discussion ):
 				raise_json_error(self.request,
 								 hexc.HTTPUnprocessableEntity,
 								 {
-									u'message': _("Must point to discussion."),
+									u'message': _("Must point to valid discussion."),
 									u'code': 'InvalidDiscussionAssignment',
 								 },
 								 None)

@@ -64,6 +64,8 @@ from nti.externalization.internalization import update_from_external_object
 
 from nti.property.property import Lazy
 
+from nti.recorder.record import copy_transaction_history
+
 ITEMS = StandardExternalFields.ITEMS
 
 
@@ -102,7 +104,7 @@ class EvaluationsImporter(BaseSectionImporter):
         provided = iface_of_assessment(obj)
         evaluations = ICourseEvaluations(course)
         return  not ntiid \
-            or (ntiid not in evaluations
+            or (    ntiid not in evaluations
                 and component.queryUtility(provided, name=ntiid) is None)
 
     def store_evaluation(self, obj, course):
@@ -126,6 +128,7 @@ class EvaluationsImporter(BaseSectionImporter):
         if ntiid in evaluations:  # replace
             old = evaluations[ntiid]
             if not check_locked or not self.is_locked(obj):
+                copy_transaction_history(old, obj)
                 obj = evaluations.replace(old, obj, event=False)
             else:
                 obj = old

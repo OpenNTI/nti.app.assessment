@@ -157,7 +157,7 @@ from nti.dataserver import authorization as nauth
 
 from nti.dataserver.authorization import ROLE_ADMIN
 
-from nti.dataserver.contenttypes.forums.interfaces import ICommunityHeadlineTopic
+from nti.dataserver.contenttypes.forums.interfaces import ITopic
 
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import IGroupMember
@@ -425,7 +425,7 @@ class EvaluationMixin(StructuralValidationMixin):
 								 },
 								 None)
 			if 		not ICourseDiscussion.providedBy(discussion) \
-				and not ICommunityHeadlineTopic.providedBy( discussion ):
+				and not ITopic.providedBy( discussion ):
 				raise_json_error(self.request,
 								 hexc.HTTPUnprocessableEntity,
 								 {

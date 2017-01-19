@@ -24,6 +24,8 @@ from pyramid import httpexceptions as hexc
 from pyramid.view import view_config
 from pyramid.view import view_defaults
 
+from nti.app.assessment import MessageFactory as _
+
 from nti.app.assessment import VIEW_RESOLVE_TOPIC
 from nti.app.assessment import VIEW_UNLOCK_POLICIES
 from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
@@ -500,8 +502,8 @@ class SelfAssessmentPracticeSubmissionPostView(UGDPostView):
 		return assessed
 
 	def _do_call(self):
-		submission, _ = self.readCreateUpdateContentObject(self.remoteUser,
-														   search_owner=True)
+		submission, unused = self.readCreateUpdateContentObject(self.remoteUser,
+														   		search_owner=True)
 		try:
 			result = self._assess(submission)
 			return result

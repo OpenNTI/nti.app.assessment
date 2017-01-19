@@ -24,6 +24,7 @@ from pyramid import httpexceptions as hexc
 from pyramid.view import view_config
 from pyramid.view import view_defaults
 
+from nti.app.assessment import VIEW_RESOLVE_TOPIC
 from nti.app.assessment import VIEW_UNLOCK_POLICIES
 from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
 
@@ -54,13 +55,20 @@ from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssessment
+from nti.assessment.interfaces import IQDiscussionAssignment
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.assessment.interfaces import UnlockQAssessmentPolicies
 
+from nti.common.maps import CaseInsensitiveDict
+
 from nti.contentlibrary.indexed_data import get_library_catalog
 
 from nti.contenttypes.courses.common import get_course_packages
+
+from nti.contenttypes.courses.discussions.interfaces import ICourseDiscussion
+
+from nti.contenttypes.courses.discussions.utils import resolve_discussion_course_bundle
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
@@ -78,6 +86,10 @@ from nti.contenttypes.presentation.interfaces import INTIQuestionSetRef
 from nti.contenttypes.presentation.interfaces import INTILessonOverview
 
 from nti.dataserver import authorization as nauth
+
+from nti.dataserver.contenttypes.forums.interfaces import ITopic
+
+from nti.dataserver.users import User
 
 from nti.externalization.externalization import to_external_object
 
@@ -525,3 +537,51 @@ class UnlockAssignmenPoliciesView(AbstractAuthenticatedView):
 			courses = (courses,)
 		notify(UnlockQAssessmentPolicies(context, courses))
 		return hexc.HTTPNoContent()
+
+@view_config(route_name='objects.generic.traversal',
+			 renderer='rest',
+			 context=IQDiscussionAssignment,
+			 permission=nauth.ACT_READ,
+			 request_method='GET',
+			 name=VIEW_RESOLVE_TOPIC)
+class DiscussionAssignmentResolveTopicView(AbstractAuthenticatedView):
+	"""
+	For a IQDiscussionAssignment, resolve it into the discussion it is
+	pointing to; if given a `user`, return the relevant topic for that
+	user.
+	"""
+
+	def _get_user(self):
+		params = CaseInsensitiveDict( self.request.params )
+		username = params.get( 'user' ) or params.get( 'username' )
+		if username:
+			user = User.get_user( username )
+			if user is None:
+				raise hexc.HTTPUnprocessableEntity(_("User not found."))
+		else:
+			user = self.remoteUser
+		return user
+
+	def __call__(self):
+		context = find_object_with_ntiid( self.context.discussion_ntiid )
+		result = None
+		if ITopic.providedBy(context):
+			result = context
+		elif ICourseDiscussion.providedBy( context ):
+			user = self._get_user()
+			course = ICourseInstance(context, None)
+			resolved = resolve_discussion_course_bundle(user=user,
+														item=context,
+														context=course)
+			if resolved is not None:
+				cdiss, topic = resolved
+				logger.debug('%s resolved to %s', self.context.id, cdiss)
+				result = topic
+
+		if result is None:
+			logger.warn( 'No discussion found for discussion assignment (%s) (%s) (%s)',
+						 user,
+						 self.context.discussion_ntiid,
+						 type( context ) )
+			raise hexc.HTTPNotFound(_("No topic found for assessment."))
+		return result

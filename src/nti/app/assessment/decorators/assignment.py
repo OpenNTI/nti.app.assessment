@@ -26,6 +26,7 @@ from nti.app.assessment import VIEW_RANDOMIZE
 from nti.app.assessment import VIEW_UNRANDOMIZE
 from nti.app.assessment import VIEW_INSERT_PART
 from nti.app.assessment import VIEW_REMOVE_PART
+from nti.app.assessment import VIEW_RESOLVE_TOPIC
 from nti.app.assessment import VIEW_IS_NON_PUBLIC
 from nti.app.assessment import VIEW_ASSESSMENT_MOVE
 from nti.app.assessment import VIEW_RANDOMIZE_PARTS
@@ -586,6 +587,9 @@ class _DiscussionAssignmentEditorDecorator(_AssessmentEditorDecorator):
 		# object. Some edits (textual changes) will be allowed no matter what.
 		if not self._has_edit_link(_links):
 			rels.append('edit')
+
+		if context.discussion_ntiid:
+			rels.append( VIEW_RESOLVE_TOPIC )
 
 		courses = self.get_courses(context)
 		if self._can_toggle_is_non_public(context, courses):

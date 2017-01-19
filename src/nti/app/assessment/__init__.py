@@ -84,6 +84,9 @@ VIEW_UNLOCK_POLICIES = 'UnlockPolicies'
 #: A view to fetch all question containers.
 VIEW_QUESTION_CONTAINERS = 'Assessments'
 
+#: A view to fetch the topic associated with an IQDiscussionAssignment
+VIEW_RESOLVE_TOPIC = 'ResolveTopic'
+
 def get_submission_catalog():
 	return component.queryUtility(IMetadataCatalog, name=SUBMISSION_CATALOG_NAME)
 

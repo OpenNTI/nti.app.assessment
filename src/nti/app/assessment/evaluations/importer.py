@@ -62,8 +62,6 @@ from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.internalization import find_factory_for
 from nti.externalization.internalization import update_from_external_object
 
-from nti.property.property import Lazy
-
 from nti.recorder.record import copy_transaction_history
 
 ITEMS = StandardExternalFields.ITEMS
@@ -89,7 +87,7 @@ class EvaluationsImporter(BaseSectionImporter):
     def is_locked(self, obj):
         return IRecordable.providedBy(obj) and obj.is_locked()
 
-    @Lazy
+    @property
     def current_principal(self):
         remoteUser = IPrincipal(get_remote_user(), None)
         if remoteUser is None:

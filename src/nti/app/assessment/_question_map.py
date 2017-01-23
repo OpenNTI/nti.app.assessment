@@ -737,8 +737,8 @@ def update_assessment_items_when_modified(content_package, event=None):
 				content_package, event)
 
 	removed_items, locked_ntiids = remove_assessment_items_from_oldcontent(original,
-																	 event,
-																	 force=False)
+																	 	   event,
+																	       force=False)
 	logger.info("%s assessment item(s) have been removed from content %s",
 				len(removed_items), original)
 
@@ -759,5 +759,6 @@ def update_assessment_items_when_modified(content_package, event=None):
 	_transfer_transaction_records(removed_items)
 
 	if len(assesment_items) < len(registered):
-		raise AssertionError("[%s] Item(s) in content package %s are less that in the registry %s" %
-							(content_package.ntiid, len(assesment_items), len(registered)))
+		raise AssertionError(
+				"[%s] Item(s) in content package %s are less that in the registry %s" %
+				(content_package.ntiid, len(assesment_items), len(registered)))

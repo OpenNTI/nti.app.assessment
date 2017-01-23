@@ -189,8 +189,11 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 									  status=201 )
 
 		default_enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'AssignmentHistory')
-		assert_that( default_enrollment_history_link,
-					 is_('/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentHistories/' + self.default_username))
+		expected = ('/dataserver2/users/' +
+					self.default_username +
+					'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentHistories/' + 
+					self.default_username)
+		assert_that(unquote(default_enrollment_history_link), is_(unquote(expected)))
 
 		res = self.testapp.post_json( '/dataserver2/users/outest5/Courses/EnrolledCourses',
 								COURSE_NTIID,
@@ -262,11 +265,17 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'AssignmentHistory')
 		course_history_link = self.require_link_href_with_rel( res.json_body['CourseInstance'], 'AssignmentHistory')
 		course_instance_link = res.json_body['CourseInstance']['href']
-		assert_that( enrollment_history_link,
-					 is_('/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentHistories/' + self.default_username))
+		
+		expected = ('/dataserver2/users/' +
+					self.default_username + 
+					'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentHistories/' +
+					self.default_username)
+		assert_that( unquote(enrollment_history_link),
+					 is_(unquote(expected)))
 
-		assert_that( course_history_link,
-					 is_('/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice/AssignmentHistories/' + self.default_username) )
+		expected = ('/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice/AssignmentHistories/' +
+					self.default_username)
+		assert_that(unquote(course_history_link), is_(unquote(expected)) )
 
 		# Both history links are equivalent and work; and both are empty before I submit
 		for link in course_history_link, enrollment_history_link:
@@ -322,7 +331,9 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 			assert_that( feedback, has_entry('Items', has_length(1)))
 			assert_that( feedback['Items'], has_item( has_entry( 'body', ['Other feedback'])))
 			assert_that( feedback['Items'], has_item( has_entry( 'href',
-																 ends_with('AssignmentHistories/'+self.default_username+'/tag%3Anextthought.com%2C2011-10%3AOU-NAQ-CLC3403_LawAndJustice.naq.asg%3AQUIZ1_aristotle/Feedback/0') ) ) )
+																 ends_with('AssignmentHistories/'+
+																			self.default_username +
+																			unquote('/tag%3Anextthought.com%2C2011-10%3AOU-NAQ-CLC3403_LawAndJustice.naq.asg%3AQUIZ1_aristotle/Feedback/0')))))
 
 		# We can modify the view date by putting to the field
 		res = self.testapp.put_json(last_viewed_href, 1234)
@@ -613,7 +624,7 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin, ApplicationLayerTest
 			links_from = res.json_body
 			# Note that we now expect these to point through the course, not
 			# the enrollment
-			#record_href = '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses/tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/'
+			# record_href = '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses/tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/'
 
 			enrollment_assignments = self.require_link_href_with_rel( links_from, 'AssignmentsByOutlineNode')
 			enrollment_non_assignments = self.require_link_href_with_rel( links_from, 'NonAssignmentAssessmentItemsByOutlineNode')

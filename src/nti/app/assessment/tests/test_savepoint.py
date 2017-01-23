@@ -114,11 +114,11 @@ class TestSavepointViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 									 status=201)
 
 		default_enrollment_savepoints_link = self.require_link_href_with_rel(res.json_body, 'AssignmentSavepoints')
-		assert_that(default_enrollment_savepoints_link,
-					 is_('/dataserver2/users/' +
-						self.default_username +
-						'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentSavepoints/' +
-						self.default_username))
+		expected = ('/dataserver2/users/' +
+					self.default_username +
+					'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentSavepoints/' + 
+					self.default_username)
+		assert_that(unquote(default_enrollment_savepoints_link), is_(unquote(expected)))
 
 		res = self.testapp.post_json(
 							'/dataserver2/users/outest5/Courses/EnrolledCourses',
@@ -188,15 +188,17 @@ class TestSavepointViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		enrollment_savepoints_link = self.require_link_href_with_rel(res.json_body, 'AssignmentSavepoints')
 		course_savepoints_link = self.require_link_href_with_rel(res.json_body['CourseInstance'], 'AssignmentSavepoints')
 
-		assert_that(enrollment_savepoints_link,
-					is_('/dataserver2/users/' +
-						self.default_username +
-						'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentSavepoints/' +
-						self.default_username))
+		expected = ('/dataserver2/users/' +
+					self.default_username +
+					'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentSavepoints/' +
+					self.default_username)
+		assert_that(unquote(enrollment_savepoints_link),
+					is_(unquote(expected)))
 
-		assert_that(course_savepoints_link,
-					is_('/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice/AssignmentSavepoints/' +
-						self.default_username))
+		expected = ('/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice/AssignmentSavepoints/' +
+					self.default_username)
+		assert_that(unquote(course_savepoints_link),
+					is_(unquote(expected)))
 
 		# Both savepoint links are equivalent and work; and both are empty before I submit
 		for link in course_savepoints_link, enrollment_savepoints_link:

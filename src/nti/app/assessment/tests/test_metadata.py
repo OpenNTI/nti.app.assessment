@@ -124,11 +124,13 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 									 status=201)
 
 		default_enrollment_metadata_link = self.require_link_href_with_rel(res.json_body, 'AssignmentMetadata')
-		assert_that(default_enrollment_metadata_link,
-					is_('/dataserver2/users/' +
-						self.default_username +
-						'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentMetadata/' +
-						self.default_username))
+		
+		expected = ('/dataserver2/users/' +
+					self.default_username +
+					'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentMetadata/' +
+					self.default_username)
+		assert_that(unquote(default_enrollment_metadata_link),
+					is_(unquote(expected)))
 
 		res = self.testapp.post_json('/dataserver2/users/outest5/Courses/EnrolledCourses',
 									 COURSE_NTIID,
@@ -192,15 +194,17 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		enrollment_metadata_link = self.require_link_href_with_rel(res.json_body, 'AssignmentMetadata')
 		course_metadata_link = self.require_link_href_with_rel(res.json_body['CourseInstance'], 'AssignmentMetadata')
 
-		assert_that(enrollment_metadata_link,
-					is_('/dataserver2/users/' +
-						self.default_username +
-						'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentMetadata/' +
-						self.default_username))
+		expected = ('/dataserver2/users/' +
+					self.default_username +
+					'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentMetadata/' +
+					self.default_username)
+		assert_that(unquote(enrollment_metadata_link),
+					is_(unquote(expected)))
 
-		assert_that(course_metadata_link,
- 					is_('/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice/AssignmentMetadata/' +
- 						self.default_username))
+		expected =('/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice/AssignmentMetadata/' +
+ 					self.default_username)
+		assert_that(unquote(course_metadata_link),
+ 					is_(unquote(expected)))
 
 		# Both links are equivalent and work; and both are empty before I submit
 		for link in course_metadata_link, enrollment_metadata_link:

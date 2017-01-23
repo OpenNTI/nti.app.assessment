@@ -65,8 +65,6 @@ class TestFeedback(unittest.TestCase):
 		# but still last value
 		assert_that(container.Items[-1], is_(same_instance(item)))
 
-import fudge
-
 from zope import lifecycleevent
 
 class TestFunctionalFeedback(AssessmentLayerTest):
@@ -96,9 +94,7 @@ class TestFunctionalFeedback(AssessmentLayerTest):
 												greater_than(history_lm)))
 
 	@time_monotonically_increases
-	@fudge.patch('nti.hypatia.subscribers.queue_modified')
-	def test_editing_feedback_changes_item_last_modified(self, mock_q):
-		mock_q.is_callable()
+	def test_editing_feedback_changes_item_last_modified(self):
 		history_item = history.UsersCourseAssignmentHistoryItem()
 		container = history_item.Feedback
 

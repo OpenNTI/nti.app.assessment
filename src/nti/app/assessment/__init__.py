@@ -87,8 +87,10 @@ VIEW_QUESTION_CONTAINERS = 'Assessments'
 #: A view to fetch the topic associated with an IQDiscussionAssignment
 VIEW_RESOLVE_TOPIC = 'ResolveTopic'
 
+
 def get_submission_catalog():
-	return component.queryUtility(IMetadataCatalog, name=SUBMISSION_CATALOG_NAME)
+    return component.queryUtility(IMetadataCatalog, name=SUBMISSION_CATALOG_NAME)
+
 
 def get_evaluation_catalog():
-	return component.queryUtility(ICatalog, name=EVALUATION_CATALOG_NAME)
+    return component.queryUtility(ICatalog, name=EVALUATION_CATALOG_NAME)

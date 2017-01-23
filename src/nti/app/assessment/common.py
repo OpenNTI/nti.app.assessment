@@ -226,10 +226,11 @@ def get_evaluation_containers(evaluation):
 def get_evaluation_courses(evaluation):
     result = []
     for container in get_evaluation_containers(evaluation):
-        if		ICourseInstance.providedBy(container) \
-                or ICourseCatalogEntry.providedBy(container):
+        if     ICourseInstance.providedBy(container) \
+            or ICourseCatalogEntry.providedBy(container):
             result.append(ICourseInstance(container))
     return result
+
 
 def get_container_evaluations(context, sites=None, intids=None, mimetypes=None):
     if isinstance(context, six.string_types):
@@ -238,7 +239,7 @@ def get_container_evaluations(context, sites=None, intids=None, mimetypes=None):
         containers = (context.ntiid)
     else:
         containers = context
-    
+
     sites = get_component_hierarchy_names() if not sites else sites
     sites = sites.split() if isinstance(sites, six.string_types) else sites
     query = {
@@ -259,7 +260,9 @@ def get_container_evaluations(context, sites=None, intids=None, mimetypes=None):
             result.append(evaluation)
     return result
 
-def get_course_evaluations(context, sites=None, intids=None, mimetypes=None, parent_course=False):
+
+def get_course_evaluations(context, sites=None, intids=None, mimetypes=None,
+                           parent_course=False):
     if isinstance(context, six.string_types):
         ntiid = context
         containers = (ntiid,)
@@ -282,8 +285,8 @@ def get_course_evaluations(context, sites=None, intids=None, mimetypes=None, par
         packages = get_course_packages(course)
         containers.extend((x.ntiid for x in packages))
         sites = get_course_site(course) if not sites else sites
-    
-    return get_container_evaluations(containers, 
+
+    return get_container_evaluations(containers,
                                      sites=sites,
                                      intids=intids,
                                      mimetypes=mimetypes)
@@ -311,7 +314,8 @@ class AssessmentItemProxy(ProxyBase):
 
 
 def proxy(item, content_unit=None, catalog_entry=None):
-    item = item if isProxy(item, AssessmentItemProxy) else AssessmentItemProxy(item)
+    item = item if isProxy(
+        item, AssessmentItemProxy) else AssessmentItemProxy(item)
     item.ContentUnitNTIID = content_unit or item.ContentUnitNTIID
     item.CatalogEntryNTIID = catalog_entry or item.CatalogEntryNTIID
     return item
@@ -522,7 +526,7 @@ def get_all_course_assignments(context):
     course_items = get_course_assignments(context, sort=False,
                                           do_filtering=False, parent_course=True)
     for item in itertools.chain(package_items, course_items):
-        if 		not IQAssignment.providedBy(item) \
+        if         not IQAssignment.providedBy(item) \
                 or item.ntiid in seen:
             continue
         seen.add(item.ntiid)
@@ -530,9 +534,11 @@ def get_all_course_assignments(context):
     return results
 
 
-def get_course_assignments(context, sort=True, reverse=False, do_filtering=True, parent_course=False):
-    items = get_course_evaluations(
-        context, mimetypes=ALL_ASSIGNMENT_MIME_TYPES, parent_course=parent_course)
+def get_course_assignments(context, sort=True, reverse=False, do_filtering=True,
+                           parent_course=False):
+    items = get_course_evaluations(context,
+                                   mimetypes=ALL_ASSIGNMENT_MIME_TYPES, 
+                                   parent_course=parent_course)
     ntiid = getattr(ICourseCatalogEntry(context, None), 'ntiid', None)
     if do_filtering:
         # Filter out excluded assignments so they don't show in the gradebook
@@ -543,11 +549,12 @@ def get_course_assignments(context, sort=True, reverse=False, do_filtering=True,
                        if IQAssignment.providedBy(x)
                        and _filter.allow_assessment_for_user_in_course(x, course=course)]
     else:
-        assignments = [	proxy(x, catalog_entry=ntiid)
-                        for x in items if IQAssignment.providedBy(x)]
+        assignments = [proxy(x, catalog_entry=ntiid)
+                       for x in items if IQAssignment.providedBy(x)]
     if sort:
-        assignments = sorted(
-            assignments, cmp=assignment_comparator, reverse=reverse)
+        assignments = sorted(assignments, 
+                             cmp=assignment_comparator,
+                             reverse=reverse)
     return assignments
 
 
@@ -577,8 +584,8 @@ def get_course_self_assessments(context, exclude_editable=True):
                     qsids_to_strip.add(question.ntiid)
         elif not IQuestionSet.providedBy(item):
             qsids_to_strip.add(item.ntiid)
-        elif 	exclude_editable \
-                and IQEditableEvaluation.providedBy(item):
+        elif    exclude_editable \
+            and IQEditableEvaluation.providedBy(item):
             # XXX: Seems like eventually we'll want to return these.
             # We probably eventually want to mark question-sets that
             # are self-assessments.
@@ -627,8 +634,8 @@ def get_course_inquiries(context, do_filtering=True):
                    if IQInquiry.providedBy(x)
                    and _filter.allow_assessment_for_user_in_course(x, course=course)]
     else:
-        surveys = [	proxy(x, catalog_entry=ntiid)
-                    for x in items if IQInquiry.providedBy(x)]
+        surveys = [proxy(x, catalog_entry=ntiid)
+                   for x in items if IQInquiry.providedBy(x)]
     return surveys
 
 
@@ -924,9 +931,9 @@ def get_max_time_allowed(assignment, course):
     max_time_allowed = assignment.maximum_time_allowed
     policy = IQAssignmentPolicies(
         course).getPolicyForAssignment(assignment.ntiid)
-    if 		policy \
-            and 'maximum_time_allowed' in policy \
-            and policy['maximum_time_allowed'] != max_time_allowed:
+    if      policy \
+        and 'maximum_time_allowed' in policy \
+        and policy['maximum_time_allowed'] != max_time_allowed:
         max_time_allowed = policy['maximum_time_allowed']
     return max_time_allowed
 
@@ -1098,8 +1105,8 @@ def check_submission_version(submission, evaluation):
     submitting stale, incorrect data for this assignment.
     """
     evaluation_version = evaluation.version
-    if 		evaluation_version \
-            and evaluation_version != getattr(submission, 'version', ''):
+    if      evaluation_version \
+        and evaluation_version != getattr(submission, 'version', ''):
         raise hexc.HTTPConflict(_('Evaluation version has changed.'))
 
 
@@ -1198,9 +1205,11 @@ def reassess_assignment_history_item(item):
 
     assignment = item.Assignment
     course = find_interface(item, ICourseInstance, strict=False)
-    new_pending_assessment = assess_assignment_submission(
-        course, assignment, submission)
-    new_pending_assessment.CreatorRecordedEffortDuration = old_pending_assessment.CreatorRecordedEffortDuration
+    new_pending_assessment = assess_assignment_submission(course,
+                                                          assignment,
+                                                          submission)
+    old_duration = old_pending_assessment.CreatorRecordedEffortDuration
+    new_pending_assessment.CreatorRecordedEffortDuration = old_duration
 
     item.pendingAssessment = new_pending_assessment
     new_pending_assessment.__parent__ = item
@@ -1236,7 +1245,7 @@ def is_assignment_non_public_only(context, courses=None):
         courses = get_courses(course)
 
     def _is_non_public(course):
-        return 	INonPublicCourseInstance.providedBy( course ) \
+        return INonPublicCourseInstance.providedBy( course ) \
             or IDenyOpenEnrollment.providedBy(course)
 
     is_non_public_only = courses and all(_is_non_public(x) for x in courses)
@@ -1278,5 +1287,5 @@ def is_global_evaluation(evaluation):
     """
     package = find_interface(evaluation, IContentPackage, strict=False)
     library = find_interface(evaluation, IContentPackageLibrary, strict=False)
-    return	IGlobalContentPackage.providedBy( package ) \
+    return IGlobalContentPackage.providedBy(package) \
         or IGlobalContentPackageLibrary.providedBy(library)

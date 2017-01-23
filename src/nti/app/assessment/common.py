@@ -314,8 +314,8 @@ class AssessmentItemProxy(ProxyBase):
 
 
 def proxy(item, content_unit=None, catalog_entry=None):
-    item = item if isProxy(
-        item, AssessmentItemProxy) else AssessmentItemProxy(item)
+    if not isProxy(item, AssessmentItemProxy):
+        item = AssessmentItemProxy(item)
     item.ContentUnitNTIID = content_unit or item.ContentUnitNTIID
     item.CatalogEntryNTIID = catalog_entry or item.CatalogEntryNTIID
     return item
@@ -436,12 +436,12 @@ def _get_evaluation_catalog_entry(evaluation, catalog=None, registry=component):
     # instructor can find the correct course when they are looking at a
     # section.
     result = None
-    catalog = catalog if catalog is not None else registry.getUtility(
-        ICourseCatalog)
+    if catalog is None:
+        catalog = registry.getUtility(ICourseCatalog)
     try:
         ntiid = evaluation.CatalogEntryNTIID or u''
-        result = find_object_with_ntiid(
-            ntiid) or catalog.getCatalogEntry(ntiid)
+        result =   find_object_with_ntiid(ntiid) \
+                or catalog.getCatalogEntry(ntiid)
     except (KeyError, AttributeError):
         pass
     return result
@@ -526,8 +526,8 @@ def get_all_course_assignments(context):
     course_items = get_course_assignments(context, sort=False,
                                           do_filtering=False, parent_course=True)
     for item in itertools.chain(package_items, course_items):
-        if         not IQAssignment.providedBy(item) \
-                or item.ntiid in seen:
+        if     not IQAssignment.providedBy(item) \
+            or item.ntiid in seen:
             continue
         seen.add(item.ntiid)
         results.append(item)
@@ -681,9 +681,8 @@ def to_course_list(courses=()):
 
 def get_entry_ntiids(courses=()):
     courses = to_course_list(courses) or ()
-    ntiids = {getattr(ICourseCatalogEntry(x, None), 'ntiid', None)
-              for x in courses}
-    ntiids.discard(None)
+    entries = [ICourseCatalogEntry(x, None) for x in courses]
+    ntiids = {x.ntiid for x in entries if x is not None}
     return ntiids
 
 
@@ -885,7 +884,6 @@ def get_containers_for_evaluation_object(context, sites=None, include_question_s
         if IQEvaluation.providedBy(evaluation):  # extra check
             result.append(evaluation)
     return tuple(result)
-
 get_assignments_for_evaluation_object = get_containers_for_evaluation_object
 
 

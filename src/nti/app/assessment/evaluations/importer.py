@@ -62,6 +62,8 @@ from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.internalization import find_factory_for
 from nti.externalization.internalization import update_from_external_object
 
+from nti.property.property import Lazy
+
 from nti.recorder.record import copy_transaction_history
 
 ITEMS = StandardExternalFields.ITEMS
@@ -74,12 +76,6 @@ class EvaluationsImporter(BaseSectionImporter):
 
     singleton = None
 
-    def __new__(cls, *args, **kwargs):
-        if cls.singleton is None:
-            cls.singleton = super(EvaluationsImporter, cls).__new__(
-                cls, *args, **kwargs)
-        return cls.singleton
-
     @property
     def _extra(self):
         return str(uuid.uuid4()).split('-')[0].upper()
@@ -87,7 +83,7 @@ class EvaluationsImporter(BaseSectionImporter):
     def is_locked(self, obj):
         return IRecordable.providedBy(obj) and obj.is_locked()
 
-    @property
+    @Lazy
     def current_principal(self):
         remoteUser = IPrincipal(get_remote_user(), None)
         if remoteUser is None:
@@ -237,7 +233,7 @@ class EvaluationsImporter(BaseSectionImporter):
             result = the_object
 
         if      IQEditableEvaluation.providedBy(result) \
-            and (not check_locked or not self.is_locked(result)):
+                and (not check_locked or not self.is_locked(result)):
             # course is the evaluation home
             result.__home__ = course
             remoteUser = get_remote_user()
@@ -261,8 +257,8 @@ class EvaluationsImporter(BaseSectionImporter):
 
         locked = source.get('isLocked')
         if      locked \
-            and IRecordable.providedBy(the_object) \
-            and (not check_locked or not self.is_locked(result)):
+                and IRecordable.providedBy(the_object) \
+                and (not check_locked or not self.is_locked(result)):
             the_object.lock(event=False)
             lifecycleevent.modified(the_object)
         return result

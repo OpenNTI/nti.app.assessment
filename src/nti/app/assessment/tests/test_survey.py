@@ -103,11 +103,12 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 									  status=201)
 
 		default_enrollment_savepoints_link = self.require_link_href_with_rel(res.json_body, 'InquiryHistory')
-		assert_that(default_enrollment_savepoints_link,
-					 is_('/dataserver2/users/' +
-						self.default_username +
-						'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/Inquiries/' +
-						self.default_username))
+		expected = ('/dataserver2/users/' +
+					self.default_username +
+					'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/Inquiries/' +
+					self.default_username)
+		assert_that(unquote(default_enrollment_savepoints_link),
+					 is_(unquote(expected)))
 
 		res = self.testapp.post_json('/dataserver2/users/outest5/Courses/EnrolledCourses',
 								COURSE_NTIID,
@@ -168,15 +169,17 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		submission_href = '%s/%s' % (course_inquiries_link, item_id)
 		_ = res.json_body['CourseInstance']['href']
 
-		assert_that(enrollment_inquiries_link,
-					 is_('/dataserver2/users/' +
-						 self.default_username +
-						 '/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/Inquiries/' +
-						 self.default_username))
+		expected = ('/dataserver2/users/' +
+					 self.default_username +
+					 '/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/Inquiries/' +
+					 self.default_username)
+		assert_that(unquote(enrollment_inquiries_link),
+					is_(unquote(expected)))
 
-		assert_that(course_inquiries_history_link,
-					 is_('/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice/Inquiries/' +
-						 self.default_username))
+		expected = ('/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice/Inquiries/' +
+					self.default_username)
+		assert_that(unquote(course_inquiries_history_link),
+					is_(unquote(expected)))
 
 		# Both survey links are equivalent and work; and both are empty before I submit
 		for link in course_inquiries_history_link, enrollment_inquiries_link:

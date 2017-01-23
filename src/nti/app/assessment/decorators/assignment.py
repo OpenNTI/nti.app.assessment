@@ -588,9 +588,6 @@ class _DiscussionAssignmentEditorDecorator(_AssessmentEditorDecorator):
 		if not self._has_edit_link(_links):
 			rels.append('edit')
 
-		if context.discussion_ntiid:
-			rels.append( VIEW_RESOLVE_TOPIC )
-
 		courses = self.get_courses(context)
 		if self._can_toggle_is_non_public(context, courses):
 			rels.append( VIEW_IS_NON_PUBLIC )
@@ -611,6 +608,24 @@ class _DiscussionAssignmentEditorDecorator(_AssessmentEditorDecorator):
 			link.__name__ = ''
 			link.__parent__ = link_context
 			_links.append(link)
+
+@interface.implementer(IExternalMappingDecorator)
+class _DiscussionAssignmentResolveTopicDecorator(AbstractAuthenticatedRequestAwareDecorator):
+	"""
+	Provides `ResolveTopic` links on `IQDiscussionAssignment' objects.
+	"""
+
+	def _do_decorate_external(self, context, result):
+		_links = result.setdefault(LINKS, [])
+		course = get_course_from_request(self.request)
+		link_context = context if course is None else course
+		start_elements = () if course is None else ('Assessments', context.ntiid)
+		elements = start_elements + ('@@%s' % VIEW_RESOLVE_TOPIC,)
+		link = Link(link_context, rel=VIEW_RESOLVE_TOPIC, elements=elements)
+		interface.alsoProvides(link, ILocation)
+		link.__name__ = ''
+		link.__parent__ = link_context
+		_links.append(link)
 
 @interface.implementer(IExternalMappingDecorator)
 class _PartAutoGradeStatus(AbstractAuthenticatedRequestAwareDecorator):

@@ -565,8 +565,8 @@ class DiscussionAssignmentResolveTopicView(AbstractAuthenticatedView):
 		return user
 
 	def __call__(self):
+		user = result = None
 		context = find_object_with_ntiid( self.context.discussion_ntiid )
-		result = None
 		if ITopic.providedBy(context):
 			result = context
 		elif ICourseDiscussion.providedBy( context ):

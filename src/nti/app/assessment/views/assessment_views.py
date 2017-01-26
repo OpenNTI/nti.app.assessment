@@ -117,9 +117,9 @@ LAST_MODIFIED = StandardExternalFields.LAST_MODIFIED
 # the behaviour under 1.3.
 
 _read_view_defaults = dict(route_name='objects.generic.traversal',
-							renderer='rest',
-							permission=nauth.ACT_READ,
-							request_method='GET')
+                           renderer='rest',
+                           permission=nauth.ACT_READ,
+                           request_method='GET')
 _question_view = dict(context=IQuestion)
 _question_view.update(_read_view_defaults)
 
@@ -132,458 +132,477 @@ _assignment_view.update(_read_view_defaults)
 _inquiry_view = dict(context=IQInquiry)
 _inquiry_view.update(_read_view_defaults)
 
+
 @view_config(accept=str(PAGE_INFO_MT_JSON),
-			 **_question_view)
+             **_question_view)
 @view_config(accept=str(PAGE_INFO_MT_JSON),
-			 **_question_set_view)
+             **_question_set_view)
 @view_config(accept=str(PAGE_INFO_MT_JSON),
-			 **_assignment_view)
+             **_assignment_view)
 @view_config(accept=str(PAGE_INFO_MT_JSON),
-			 **_inquiry_view)
+             **_inquiry_view)
 @view_config(accept=str(PAGE_INFO_MT),
-			 **_question_view)
+             **_question_view)
 @view_config(accept=str(PAGE_INFO_MT),
-			 **_question_set_view)
+             **_question_set_view)
 @view_config(accept=str(PAGE_INFO_MT),
-			 **_inquiry_view)
+             **_inquiry_view)
 @view_config(accept=str(PAGE_INFO_MT),
-			 **_assignment_view)
+             **_assignment_view)
 def pageinfo_from_question_view(request):
-	assert request.accept
-	# questions are now generally held within their containing IContentUnit,
-	# but some old tests don't parent them correctly, using strings
-	content_unit_or_ntiid = request.context.__parent__
-	return find_page_info_view_helper(request, content_unit_or_ntiid)
+    assert request.accept
+    # questions are now generally held within their containing IContentUnit,
+    # but some old tests don't parent them correctly, using strings
+    content_unit_or_ntiid = request.context.__parent__
+    return find_page_info_view_helper(request, content_unit_or_ntiid)
+
 
 @view_config(accept=str('application/vnd.nextthought.link+json'),
-			 **_question_view)
+             **_question_view)
 @view_config(accept=str('application/vnd.nextthought.link+json'),
-			 **_question_set_view)
+             **_question_set_view)
 @view_config(accept=str('application/vnd.nextthought.link+json'),
-			 **_assignment_view)
+             **_assignment_view)
 @view_config(accept=str('application/vnd.nextthought.link+json'),
-			 **_inquiry_view)
+             **_inquiry_view)
 def get_question_view_link(request):
-	# Not supported.
-	return hexc.HTTPBadRequest()
+    # Not supported.
+    return hexc.HTTPBadRequest()
+
 
 @view_config(accept=str(''),  # explicit empty accept, else we get a ConfigurationConflict
-			 ** _question_view)  # and/or no-Accept header goes to the wrong place
+             ** _question_view)  # and/or no-Accept header goes to the wrong place
 @view_config(**_question_view)
 @view_config(accept=str(''),
-			 **_question_set_view)
+             **_question_set_view)
 @view_config(**_question_set_view)
 @view_config(accept=str(''),
-			 **_assignment_view)
+             **_assignment_view)
 @view_config(**_assignment_view)
 @view_config(accept=str(''),
-			 **_inquiry_view)
+             **_inquiry_view)
 @view_config(**_inquiry_view)
 def get_question_view(request):
-	return request.context
+    return request.context
 
 del _inquiry_view
 del _question_view
 del _assignment_view
 del _read_view_defaults
 
+
 class AssignmentsByOutlineNodeMixin(AbstractAuthenticatedView):
 
-	_LEGACY_UAS = (
-		"NTIFoundation DataLoader NextThought/1.0",
-		"NTIFoundation DataLoader NextThought/1.1.",
-		"NTIFoundation DataLoader NextThought/1.2.",
-		"NTIFoundation DataLoader NextThought/1.3.",
-		"NTIFoundation DataLoader NextThought/1.4.0"
-	)
+    _LEGACY_UAS = (
+        "NTIFoundation DataLoader NextThought/1.0",
+        "NTIFoundation DataLoader NextThought/1.1.",
+        "NTIFoundation DataLoader NextThought/1.2.",
+        "NTIFoundation DataLoader NextThought/1.3.",
+        "NTIFoundation DataLoader NextThought/1.4.0"
+    )
 
-	@Lazy
-	def _is_editor(self):
-		instance = ICourseInstance(self.context)
-		return has_permission(nauth.ACT_CONTENT_EDIT, instance)
+    @Lazy
+    def _is_editor(self):
+        instance = ICourseInstance(self.context)
+        return has_permission(nauth.ACT_CONTENT_EDIT, instance)
 
-	@Lazy
-	def is_ipad_legacy(self):
-		result = False
-		ua = self.request.environ.get('HTTP_USER_AGENT', '')
-		if ua:
-			for bua in self._LEGACY_UAS:
-				if ua.startswith(bua):
-					result = True
-					break
-		return result
+    @Lazy
+    def is_ipad_legacy(self):
+        result = False
+        ua = self.request.environ.get('HTTP_USER_AGENT', '')
+        if ua:
+            for bua in self._LEGACY_UAS:
+                if ua.startswith(bua):
+                    result = True
+                    break
+        return result
 
-	@Lazy
-	def _lastModified(self):
-		instance = ICourseInstance(self.context)
-		result = ICourseEvaluations(instance).lastModified or 0
-		for package in get_course_packages(instance):
-			result = max(result, IQAssessmentItemContainer(package).lastModified or 0)
-		return result
+    @Lazy
+    def _lastModified(self):
+        instance = ICourseInstance(self.context)
+        result = ICourseEvaluations(instance).lastModified or 0
+        for package in get_course_packages(instance):
+            lastMod = IQAssessmentItemContainer(package).lastModified
+            result = max(result, lastMod or 0)
+        return result
+
 
 @view_config(context=ICourseInstance)
 @view_config(context=ICourseCatalogEntry)
 @view_config(context=ICourseInstanceEnrollment)
 @view_defaults(route_name='objects.generic.traversal',
-			   renderer='rest',
-			   permission=nauth.ACT_READ,
-			   request_method='GET',
-			   name='AssignmentsByOutlineNode')  # See decorators
+               renderer='rest',
+               permission=nauth.ACT_READ,
+               request_method='GET',
+               name='AssignmentsByOutlineNode')  # See decorators
 class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
-	"""
-	For course instances (and things that can be adapted to them),
-	there is a view at ``/.../AssignmentsByOutlineNode``. For
-	authenticated users, it returns a map from NTIID to the assignments
-	contained within that NTIID.
+    """
+    For course instances (and things that can be adapted to them),
+    there is a view at ``/.../AssignmentsByOutlineNode``. For
+    authenticated users, it returns a map from NTIID to the assignments
+    contained within that NTIID.
 
-	At this time, nodes in the course outline
-	do not have their own identity as NTIIDs; therefore, the NTIIDs
-	returned from here are the NTIIDs of content pages that show up
-	in the individual lessons; for maximum granularity, these are returned
-	at the lowest level, so a client may need to walk \"up\" the tree
-	to identify the corresponding level it wishes to display.
-	"""
+    At this time, nodes in the course outline
+    do not have their own identity as NTIIDs; therefore, the NTIIDs
+    returned from here are the NTIIDs of content pages that show up
+    in the individual lessons; for maximum granularity, these are returned
+    at the lowest level, so a client may need to walk \"up\" the tree
+    to identify the corresponding level it wishes to display.
+    """
 
-	def _get_course_ntiids(self, instance):
-		courses = (instance,)
-		parent_course = get_parent_course( instance )
-		# We want to check our parent course for refs
-		# in the outline, if we have shared outlines.
-		if 		parent_course != instance \
-			and instance.Outline == parent_course.Outline:
-			courses = (instance, parent_course)
-		return {ICourseCatalogEntry(x).ntiid for x in courses}
+    def _get_course_ntiids(self, instance):
+        courses = (instance,)
+        parent_course = get_parent_course(instance)
+        # We want to check our parent course for refs
+        # in the outline, if we have shared outlines.
+        if      parent_course != instance \
+            and instance.Outline == parent_course.Outline:
+            courses = (instance, parent_course)
+        return {ICourseCatalogEntry(x).ntiid for x in courses}
 
-	def _do_legacy_outline(self, instance, items, outline, reverse_qset):
-		"""
-		Build the outline dict for legacy courses by iterating through
-		the outline nodes.
-		"""
-		def _recur(node):
-			if ICourseOutlineContentNode.providedBy(node) and node.ContentNTIID:
-				key = node.ContentNTIID
-				node_results = []
-				# Check children content units
-				content_unit = find_object_with_ntiid( key )
-				if content_unit is not None:
-					for content in chain( (content_unit,), content_unit.children or () ):
-						assgs = items.get( content.ntiid )
-						if assgs:
-							node_results.extend( x.ntiid for x in assgs )
-				name = node.LessonOverviewNTIID
-				lesson = component.queryUtility(INTILessonOverview, name=name or u'')
-				for group in lesson or ():
-					for item in group or ():
-						if INTIAssignmentRef.providedBy(item):
-							node_results.append(item.target or item.ntiid)
-						elif INTIQuestionSetRef.providedBy(item):
-							ntiid = reverse_qset.get(item.target)
-							if ntiid:
-								node_results.append(ntiid)
-				if node_results:
-					outline[key] = node_results
-			for child in node.values():
-				_recur(child)
-		_recur(instance.Outline)
-		return outline
+    def _do_legacy_outline(self, instance, items, outline, reverse_qset):
+        """
+        Build the outline dict for legacy courses by iterating through
+        the outline nodes.
+        """
+        def _recur(node):
+            if ICourseOutlineContentNode.providedBy(node) and node.ContentNTIID:
+                key = node.ContentNTIID
+                node_results = []
+                # Check children content units
+                content_unit = find_object_with_ntiid(key)
+                if content_unit is not None:
+                    for content in chain((content_unit,), content_unit.children or ()):
+                        assgs = items.get(content.ntiid)
+                        if assgs:
+                            node_results.extend(x.ntiid for x in assgs)
+                name = node.LessonOverviewNTIID
+                lesson = component.queryUtility(INTILessonOverview, 
+                                                name=name or u'')
+                for group in lesson or ():
+                    for item in group or ():
+                        if INTIAssignmentRef.providedBy(item):
+                            node_results.append(item.target or item.ntiid)
+                        elif INTIQuestionSetRef.providedBy(item):
+                            ntiid = reverse_qset.get(item.target)
+                            if ntiid:
+                                node_results.append(ntiid)
+                if node_results:
+                    outline[key] = node_results
+            for child in node.values():
+                _recur(child)
+        _recur(instance.Outline)
+        return outline
 
-	def _do_outline(self, instance, items, outline, reverse_qset):
-		"""
-		Build the outline dict by fetching all assignment refs in our catalog.
-		"""
-		# use library catalog to find
-		# all assignment and question-set refs
-		seen = set()
-		catalog = get_library_catalog()
-		sites = get_component_hierarchy_names()
-		course_ntiids = self._get_course_ntiids( instance )
-		provided = (INTIAssignmentRef, INTIQuestionSetRef)
-		for obj in catalog.search_objects(provided=provided,
-										  container_ntiids=course_ntiids,
-										  sites=sites,
-										  container_all_of=False):
-			# find property content node
-			node = find_interface(obj, ICourseOutlineContentNode, strict=False)
-			if node is None or not node.ContentNTIID:
-				continue
-			key = node.ContentNTIID
+    def _do_outline(self, instance, items, outline, reverse_qset):
+        """
+        Build the outline dict by fetching all assignment refs in our catalog.
+        """
+        # use library catalog to find
+        # all assignment and question-set refs
+        seen = set()
+        catalog = get_library_catalog()
+        sites = get_component_hierarchy_names()
+        course_ntiids = self._get_course_ntiids(instance)
+        provided = (INTIAssignmentRef, INTIQuestionSetRef)
+        for obj in catalog.search_objects(provided=provided,
+                                          container_ntiids=course_ntiids,
+                                          sites=sites,
+                                          container_all_of=False):
+            # find property content node
+            node = find_interface(obj, ICourseOutlineContentNode, strict=False)
+            if node is None or not node.ContentNTIID:
+                continue
+            key = node.ContentNTIID
 
-			# start if possible with collected items
-			assgs = items.get(key)
-			if assgs and key not in seen:
-				seen.add(key)
-				outline[key] = [x.ntiid for x in assgs]
+            # start if possible with collected items
+            assgs = items.get(key)
+            if assgs and key not in seen:
+                seen.add(key)
+                outline[key] = [x.ntiid for x in assgs]
 
-			# add target to outline key
-			if INTIAssignmentRef.providedBy(obj):
-				outline.setdefault(key, [])
-				outline[key].append(obj.target or obj.ntiid)
-			elif INTIQuestionSetRef.providedBy(obj):
-				ntiid = reverse_qset.get(obj.target)
-				if ntiid:
-					outline.setdefault(key, [])
-					outline[key].append(ntiid)
+            # add target to outline key
+            if INTIAssignmentRef.providedBy(obj):
+                outline.setdefault(key, [])
+                outline[key].append(obj.target or obj.ntiid)
+            elif INTIQuestionSetRef.providedBy(obj):
+                ntiid = reverse_qset.get(obj.target)
+                if ntiid:
+                    outline.setdefault(key, [])
+                    outline[key].append(ntiid)
 
-		return outline
+        return outline
 
-	def _build_outline(self, instance, items, outline):
-		# reverse question set map
-		# this is done in case question set refs
-		# appear in a lesson overview
-		reverse_qset = {}
-		for assgs in items.values():
-			for asg in assgs:
-				for part in asg.parts:
-					reverse_qset[part.question_set.ntiid] = asg.ntiid
+    def _build_outline(self, instance, items, outline):
+        # reverse question set map
+        # this is done in case question set refs
+        # appear in a lesson overview
+        reverse_qset = {}
+        for assgs in items.values():
+            for asg in assgs:
+                for part in asg.parts or ():
+                    reverse_qset[part.question_set.ntiid] = asg.ntiid
 
-		if ILegacyCourseInstance.providedBy( instance ):
-			result = self._do_legacy_outline( instance, items, outline, reverse_qset )
-		else:
-			result = self._do_outline( instance, items, outline, reverse_qset )
-		return result
+        if ILegacyCourseInstance.providedBy(instance):
+            result = self._do_legacy_outline(instance, 
+											 items, 
+											 outline,
+											 reverse_qset)
+        else:
+            result = self._do_outline(instance, items, outline, reverse_qset)
+        return result
 
-	def _external_object(self, obj):
-		return obj
+    def _external_object(self, obj):
+        return obj
 
-	def _build_catalog(self, instance, result):
-		catalog = ICourseAssignmentCatalog(instance)
-		uber_filter = get_course_assessment_predicate_for_user(self.remoteUser, instance)
-		# Must grab all assigments in our parent (since they may be referenced in shared lessons.
-		assignments = catalog.iter_assignments(course_lineage=True)
-		for asg in (x for x in assignments if self._is_editor or uber_filter(x)):
-			container_id = get_containerId(asg)
-			if container_id:
-				result.setdefault(container_id, []).append( asg )
-			else:
-				logger.error("%s is an assignment without parent container", asg.ntiid)
-		return result
+    def _build_catalog(self, instance, result):
+        catalog = ICourseAssignmentCatalog(instance)
+        uber_filter = get_course_assessment_predicate_for_user(self.remoteUser,
+															   instance)
+        # Must grab all assigments in our parent (since they may be referenced
+        # in shared lessons.
+        assignments = catalog.iter_assignments(course_lineage=True)
+        for asg in (x for x in assignments if self._is_editor or uber_filter(x)):
+            container_id = get_containerId(asg)
+            if container_id:
+                result.setdefault(container_id, []).append(asg)
+            else:
+                logger.error("%s is an assignment without parent container",
+							 asg.ntiid)
+        return result
 
-	def __call__(self):
-		result = LocatedExternalDict()
-		result.__name__ = self.request.view_name
-		result.__parent__ = self.request.context
-		self.request.acl_decoration = self._is_editor
+    def __call__(self):
+        result = LocatedExternalDict()
+        result.__name__ = self.request.view_name
+        result.__parent__ = self.request.context
+        self.request.acl_decoration = self._is_editor
 
-		instance = ICourseInstance(self.request.context)
-		result[LAST_MODIFIED] = result.lastModified = self._lastModified
+        instance = ICourseInstance(self.request.context)
+        result[LAST_MODIFIED] = result.lastModified = self._lastModified
 
-		if self.is_ipad_legacy:
-			self._build_catalog(instance, result)
-		else:
-			items = {}
-			outline = result['Outline'] = {}
-			self._build_catalog(instance, items)
-			self._build_outline(instance, items, outline)
-			result[ITEMS] = final_items = {}
-			for key, vals in items.items():
-				final_items[key] = [self._external_object( x ) for x in vals]
-		return result
+        if self.is_ipad_legacy:
+            self._build_catalog(instance, result)
+        else:
+            items = {}
+            outline = result['Outline'] = {}
+            self._build_catalog(instance, items)
+            self._build_outline(instance, items, outline)
+            result[ITEMS] = final_items = {}
+            for key, vals in items.items():
+                final_items[key] = [self._external_object(x) for x in vals]
+        return result
+
 
 @view_config(context=ICourseInstance)
 @view_config(context=ICourseCatalogEntry)
 @view_config(context=ICourseInstanceEnrollment)
 @view_defaults(route_name='objects.generic.traversal',
-			   renderer='rest',
-			   permission=nauth.ACT_READ,
-			   request_method='GET',
-			   name='AssignmentSummaryByOutlineNode')  # See decorators
+               renderer='rest',
+               permission=nauth.ACT_READ,
+               request_method='GET',
+               name='AssignmentSummaryByOutlineNode')  # See decorators
 class AssignmentSummaryByOutlineNodeView(AssignmentsByOutlineNodeView):
-	"""
-	A `AssigmentsByOutlineNodeView` that only returns summaries of
-	assessment objects.
-	"""
+    """
+    A `AssigmentsByOutlineNodeView` that only returns summaries of
+    assessment objects.
+    """
 
-	def _external_object(self, obj):
-		result = to_external_object( obj, name="summary" )
-		return result
+    def _external_object(self, obj):
+        return to_external_object(obj, name="summary")
+
 
 @view_config(context=ICourseInstance)
 @view_config(context=ICourseCatalogEntry)
 @view_config(context=ICourseInstanceEnrollment)
 @view_defaults(route_name='objects.generic.traversal',
-			   renderer='rest',
-			   permission=nauth.ACT_READ,
-			   request_method='GET',
-			   name='NonAssignmentAssessmentItemsByOutlineNode')  # See decorators
+               renderer='rest',
+               permission=nauth.ACT_READ,
+               request_method='GET',
+               name='NonAssignmentAssessmentItemsByOutlineNode')  # See decorators
 class NonAssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
-	"""
-	For course instances (and things that can be adapted to them),
-	there is a view at ``/.../NonAssignmentAssessmentItemsByOutlineNode``. For
-	authenticated users, it returns a map from NTIID to the assessment items
-	contained within that NTIID.
+    """
+    For course instances (and things that can be adapted to them),
+    there is a view at ``/.../NonAssignmentAssessmentItemsByOutlineNode``. For
+    authenticated users, it returns a map from NTIID to the assessment items
+    contained within that NTIID.
 
-	At the time this was created, nodes in the course outline
-	do not have their own identity as NTIIDs; therefore, the NTIIDs
-	returned from here are the NTIIDs of content pages that show up
-	in the individual lessons; for maximum granularity, these are returned
-	at the lowest level, so a client may need to walk \"up\" the tree
-	to identify the corresponding level it wishes to display.
-	"""
+    At the time this was created, nodes in the course outline
+    do not have their own identity as NTIIDs; therefore, the NTIIDs
+    returned from here are the NTIIDs of content pages that show up
+    in the individual lessons; for maximum granularity, these are returned
+    at the lowest level, so a client may need to walk \"up\" the tree
+    to identify the corresponding level it wishes to display.
+    """
 
-	def _external_object(self, obj):
-		return obj
+    def _external_object(self, obj):
+        return obj
 
-	def _do_catalog(self, instance, result):
-		qsids_to_strip = set()
-		data = defaultdict(dict)
-		catalog = ICourseSelfAssessmentItemCatalog(instance)
-		for item in catalog.iter_assessment_items(exclude_editable=False):
-			# CS: We can remove proxies since the items are neither assignments
-			# nor survey, so no course lookup is necesary
-			item = removeAllProxies(item)
-			container_id = get_containerId(item)
-			if container_id:
-				data[container_id][item.ntiid] = item
-			else:
-				logger.error("%s is an item without container", item.ntiid)
+    def _do_catalog(self, instance, result):
+        qsids_to_strip = set()
+        data = defaultdict(dict)
+        catalog = ICourseSelfAssessmentItemCatalog(instance)
+        for item in catalog.iter_assessment_items(exclude_editable=False):
+            # CS: We can remove proxies since the items are neither assignments
+            # nor survey, so no course lookup is necesary
+            item = removeAllProxies(item)
+            container_id = get_containerId(item)
+            if container_id:
+                data[container_id][item.ntiid] = item
+            else:
+                logger.error("%s is an item without container", item.ntiid)
 
-		# Now remove the forbidden
-		for ntiid, items in data.items():
-			result_items = (items[x] for x in items.keys() if x not in qsids_to_strip)
-			if not self.is_ipad_legacy:
-				result_items = (self._external_object( x ) for x in result_items)
-			if result_items:
-				result[ntiid] = tuple( result_items )
+        # Now remove the forbidden
+        for ntiid, items in data.items():
+            result_items = (items[x]
+                            for x in items.keys() if x not in qsids_to_strip)
+            if not self.is_ipad_legacy:
+                result_items = (self._external_object(x) for x in result_items)
+            if result_items:
+                result[ntiid] = tuple(result_items)
 
-		return result
+        return result
 
-	def __call__(self):
-		result = LocatedExternalDict()
-		result.__name__ = self.request.view_name
-		result.__parent__ = self.request.context
-		self.request.acl_decoration = self._is_editor
+    def __call__(self):
+        result = LocatedExternalDict()
+        result.__name__ = self.request.view_name
+        result.__parent__ = self.request.context
+        self.request.acl_decoration = self._is_editor
 
-		instance = ICourseInstance(self.request.context)
-		result[LAST_MODIFIED] = result.lastModified = self._lastModified
+        instance = ICourseInstance(self.request.context)
+        result[LAST_MODIFIED] = result.lastModified = self._lastModified
 
-		if self.is_ipad_legacy:
-			self._do_catalog(instance, result)
-		else:
-			items = result[ITEMS] = {}
-			self._do_catalog(instance, items)
-		return result
+        if self.is_ipad_legacy:
+            self._do_catalog(instance, result)
+        else:
+            items = result[ITEMS] = {}
+            self._do_catalog(instance, items)
+        return result
+
 
 @view_config(context=ICourseInstance)
 @view_config(context=ICourseCatalogEntry)
 @view_config(context=ICourseInstanceEnrollment)
 @view_defaults(route_name='objects.generic.traversal',
-			   renderer='rest',
-			   permission=nauth.ACT_READ,
-			   request_method='GET',
-			   name='NonAssignmentAssessmentSummaryItemsByOutlineNode')  # See decorators
+               renderer='rest',
+               permission=nauth.ACT_READ,
+               request_method='GET',
+               name='NonAssignmentAssessmentSummaryItemsByOutlineNode')  # See decorators
 class NonAssignmentSummaryByOutlineNodeView(NonAssignmentsByOutlineNodeView):
-	"""
-	A `NonAssignmentsByOutlineNodeView` that only returns summaries of
-	assessment objects.
-	"""
-	def _external_object(self, obj):
-		result = to_external_object( obj, name="summary" )
-		return result
+    """
+    A `NonAssignmentsByOutlineNodeView` that only returns summaries of
+    assessment objects.
+    """
+
+    def _external_object(self, obj):
+        return to_external_object(obj, name="summary")
+
 
 @view_config(route_name="objects.generic.traversal",
-			 context=IQuestionSet,
-			 renderer='rest',
-			 name=ASSESSMENT_PRACTICE_SUBMISSION,
-			 request_method='POST')
+             context=IQuestionSet,
+             renderer='rest',
+             name=ASSESSMENT_PRACTICE_SUBMISSION,
+             request_method='POST')
 class SelfAssessmentPracticeSubmissionPostView(UGDPostView):
-	"""
-	A practice self-assessment submission view that will assess results
-	but not persist.
-	"""
+    """
+    A practice self-assessment submission view that will assess results
+    but not persist.
+    """
 
-	def _assess(self, submission):
-		transformer = component.queryMultiAdapter((self.request, submission),
-												   INewObjectTransformer)
-		if transformer is None:
-			transformer = component.queryAdapter(submission,
-												 INewObjectTransformer)
+    def _assess(self, submission):
+        transformer = component.queryMultiAdapter((self.request, submission),
+                                                  INewObjectTransformer)
+        if transformer is None:
+            transformer = component.queryAdapter(submission,
+                                                 INewObjectTransformer)
 
-		assessed = transformer(submission)
-		return assessed
+        assessed = transformer(submission)
+        return assessed
 
-	def _do_call(self):
-		submission, unused = self.readCreateUpdateContentObject(self.remoteUser,
-														   		search_owner=True)
-		try:
-			result = self._assess(submission)
-			return result
-		finally:
-			self.request.environ['nti.commit_veto'] = 'abort'
+    def _do_call(self):
+        submission, unused = self.readCreateUpdateContentObject(self.remoteUser,
+                                                                search_owner=True)
+        try:
+            return self._assess(submission)
+        finally:
+            self.request.environ['nti.commit_veto'] = 'abort'
+
 
 @view_config(route_name='objects.generic.traversal',
-			 renderer='rest',
-			 context=IQAssessment,
-			 permission=nauth.ACT_READ,
-			 request_method='GET',
-			 name="schema")
+             renderer='rest',
+             context=IQAssessment,
+             permission=nauth.ACT_READ,
+             request_method='GET',
+             name="schema")
 class AssessmentSchemaView(AbstractAuthenticatedView):
 
-	def __call__(self):
-		result = self.context.schema()
-		return result
+    def __call__(self):
+        result = self.context.schema()
+        return result
+
 
 @view_config(route_name='objects.generic.traversal',
-			 renderer='rest',
-			 context=IQAssignment,
-			 permission=nauth.ACT_CONTENT_EDIT,
-			 request_method='POST',
-			 name=VIEW_UNLOCK_POLICIES)
+             renderer='rest',
+             context=IQAssignment,
+             permission=nauth.ACT_CONTENT_EDIT,
+             request_method='POST',
+             name=VIEW_UNLOCK_POLICIES)
 class UnlockAssignmenPoliciesView(AbstractAuthenticatedView):
 
-	def __call__(self):
-		context = self.context
-		courses = get_course_from_request(self.request)
-		if not courses:
-			courses = get_evaluation_courses(context)
-		else:
-			courses = (courses,)
-		notify(UnlockQAssessmentPolicies(context, courses))
-		return hexc.HTTPNoContent()
+    def __call__(self):
+        context = self.context
+        courses = get_course_from_request(self.request)
+        if not courses:
+            courses = get_evaluation_courses(context)
+        else:
+            courses = (courses,)
+        notify(UnlockQAssessmentPolicies(context, courses))
+        return hexc.HTTPNoContent()
+
 
 @view_config(route_name='objects.generic.traversal',
-			 renderer='rest',
-			 context=IQDiscussionAssignment,
-			 permission=nauth.ACT_READ,
-			 request_method='GET',
-			 name=VIEW_RESOLVE_TOPIC)
+             renderer='rest',
+             context=IQDiscussionAssignment,
+             permission=nauth.ACT_READ,
+             request_method='GET',
+             name=VIEW_RESOLVE_TOPIC)
 class DiscussionAssignmentResolveTopicView(AbstractAuthenticatedView):
-	"""
-	For a IQDiscussionAssignment, resolve it into the discussion it is
-	pointing to; if given a `user`, return the relevant topic for that
-	user.
-	"""
+    """
+    For a IQDiscussionAssignment, resolve it into the discussion it is
+    pointing to; if given a `user`, return the relevant topic for that
+    user.
+    """
 
-	def _get_user(self):
-		params = CaseInsensitiveDict( self.request.params )
-		username = params.get( 'user' ) or params.get( 'username' )
-		if username:
-			user = User.get_user( username )
-			if user is None:
-				raise hexc.HTTPUnprocessableEntity(_("User not found."))
-		else:
-			user = self.remoteUser
-		return user
+    def _get_user(self):
+        params = CaseInsensitiveDict(self.request.params)
+        username = params.get('user') or params.get('username')
+        if username:
+            user = User.get_user(username)
+            if user is None:
+                raise hexc.HTTPUnprocessableEntity(_("User not found."))
+        else:
+            user = self.remoteUser
+        return user
 
-	def __call__(self):
-		user = result = None
-		context = find_object_with_ntiid( self.context.discussion_ntiid )
-		if ITopic.providedBy(context):
-			result = context
-		elif ICourseDiscussion.providedBy( context ):
-			user = self._get_user()
-			course = ICourseInstance(context, None)
-			resolved = resolve_discussion_course_bundle(user=user,
-														item=context,
-														context=course)
-			if resolved is not None:
-				cdiss, topic = resolved
-				logger.debug('%s resolved to %s', self.context.id, cdiss)
-				result = topic
+    def __call__(self):
+        user = result = None
+        context = find_object_with_ntiid(self.context.discussion_ntiid)
+        if ITopic.providedBy(context):
+            result = context
+        elif ICourseDiscussion.providedBy(context):
+            user = self._get_user()
+            course = ICourseInstance(context, None)
+            resolved = resolve_discussion_course_bundle(user=user,
+                                                        item=context,
+                                                        context=course)
+            if resolved is not None:
+                cdiss, topic = resolved
+                logger.debug('%s resolved to %s', self.context.id, cdiss)
+                result = topic
 
-		if result is None:
-			logger.warn( 'No discussion found for discussion assignment (%s) (%s) (%s)',
-						 user,
-						 self.context.discussion_ntiid,
-						 type( context ) )
-			raise hexc.HTTPNotFound(_("No topic found for assessment."))
-		return result
+        if result is None:
+            logger.warn('No discussion found for discussion assignment (%s) (%s) (%s)',
+                        user,
+                        self.context.discussion_ntiid,
+                        type(context))
+            raise hexc.HTTPNotFound(_("No topic found for assessment."))
+        return result

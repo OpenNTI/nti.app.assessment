@@ -330,7 +330,7 @@ class _DefaultCourseSelfAssessmentItemCatalog(object):
 	def __init__(self, context):
 		self.context = context
 
-	def iter_assessment_items(self, exclude_editable=True):
+	def iter_assessment_items(self, exclude_editable=False):
 		result = get_course_self_assessments(self.context,
 											 exclude_editable=exclude_editable)
 		return result

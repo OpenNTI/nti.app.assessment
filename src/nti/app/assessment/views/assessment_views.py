@@ -427,7 +427,7 @@ class NonAssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 		qsids_to_strip = set()
 		data = defaultdict(dict)
 		catalog = ICourseSelfAssessmentItemCatalog(instance)
-		for item in catalog.iter_assessment_items(exclude_editable=True):
+		for item in catalog.iter_assessment_items(exclude_editable=False):
 			# CS: We can remove proxies since the items are neither assignments
 			# nor survey, so no course lookup is necesary
 			item = removeAllProxies(item)

@@ -11,9 +11,10 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+from itertools import chain
 from collections import defaultdict
 
-from itertools import chain
+from requests.structures import CaseInsensitiveDict
 
 from zope import component
 
@@ -61,8 +62,6 @@ from nti.assessment.interfaces import IQDiscussionAssignment
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.assessment.interfaces import UnlockQAssessmentPolicies
-
-from nti.common.maps import CaseInsensitiveDict
 
 from nti.contentlibrary.indexed_data import get_library_catalog
 

@@ -597,7 +597,6 @@ class TestEvaluationViews(ApplicationLayerTest):
 		forum_res = self.testapp.get( forum_href )
 		forum_res = forum_res.json_body
 		discussion_ntiid = forum_res[ITEMS][0].get( NTIID )
-		assignment.pop('category_name', None)
 		assignment['discussion_ntiid'] = discussion_ntiid
 		assignment['parts'] = []
 		assignment['Class'] = 'DiscussionAssignment'

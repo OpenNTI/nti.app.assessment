@@ -191,7 +191,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		default_enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'AssignmentHistory')
 		expected = ('/dataserver2/users/' +
 					self.default_username +
-					'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentHistories/' + 
+					'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentHistories/' +
 					self.default_username)
 		assert_that(unquote(default_enrollment_history_link), is_(unquote(expected)))
 
@@ -265,9 +265,9 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 		enrollment_history_link = self.require_link_href_with_rel( res.json_body, 'AssignmentHistory')
 		course_history_link = self.require_link_href_with_rel( res.json_body['CourseInstance'], 'AssignmentHistory')
 		course_instance_link = res.json_body['CourseInstance']['href']
-		
+
 		expected = ('/dataserver2/users/' +
-					self.default_username + 
+					self.default_username +
 					'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentHistories/' +
 					self.default_username)
 		assert_that( unquote(enrollment_history_link),

@@ -276,7 +276,7 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
                         if assgs:
                             node_results.extend(x.ntiid for x in assgs)
                 name = node.LessonOverviewNTIID
-                lesson = component.queryUtility(INTILessonOverview, 
+                lesson = component.queryUtility(INTILessonOverview,
                                                 name=name or u'')
                 for group in lesson or ():
                     for item in group or ():
@@ -343,8 +343,8 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
                     reverse_qset[part.question_set.ntiid] = asg.ntiid
 
         if ILegacyCourseInstance.providedBy(instance):
-            result = self._do_legacy_outline(instance, 
-											 items, 
+            result = self._do_legacy_outline(instance,
+											 items,
 											 outline,
 											 reverse_qset)
         else:
@@ -583,12 +583,12 @@ class DiscussionAssignmentResolveTopicView(AbstractAuthenticatedView):
         return user
 
     def __call__(self):
-        user = result = None
+        result = None
+        user = self._get_user()
         context = find_object_with_ntiid(self.context.discussion_ntiid)
         if ITopic.providedBy(context):
             result = context
         elif ICourseDiscussion.providedBy(context):
-            user = self._get_user()
             course = ICourseInstance(context, None)
             resolved = resolve_discussion_course_bundle(user=user,
                                                         item=context,

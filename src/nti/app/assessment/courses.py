@@ -26,31 +26,34 @@ from nti.assessment.interfaces import IQEvaluation
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
+
 class _BaseCourseEvaluationPathAdapter(Contained):
 
-	def __init__(self, context, request=None):
-		self.request = request
-		self.__parent__ = context
-		self.context = ICourseInstance(context)
+    def __init__(self, context, request=None):
+        self.request = request
+        self.__parent__ = context
+        self.context = ICourseInstance(context)
 
-	def __getitem__(self, key):
-		if not key:
-			raise hexc.HTTPNotFound()
-		ntiid = unquote(key)
-		for registry in (component, ):
-			try:
-				registry = registry.getSiteManager()
-				assesment = registry.queryUtility(IQEvaluation, name=ntiid)
-				if assesment is not None:
-					return assesment
-			except (TypeError, ComponentLookupError):
-				pass
-		raise KeyError(ntiid)
+    def __getitem__(self, key):
+        if not key:
+            raise hexc.HTTPNotFound()
+        ntiid = unquote(key)
+        for registry in (component, ):
+            try:
+                registry = registry.getSiteManager()
+                assesment = registry.queryUtility(IQEvaluation, name=ntiid)
+                if assesment is not None:
+                    return assesment
+            except (TypeError, ComponentLookupError):
+                pass
+        raise KeyError(ntiid)
+
 
 @interface.implementer(IPathAdapter)
 class _CourseAssessmentsPathAdapter(_BaseCourseEvaluationPathAdapter):
-	__name__ = 'Assessments'
+    __name__ = 'Assessments'
+
 
 @interface.implementer(IPathAdapter)
 class _CourseInquiriesPathAdapter(_BaseCourseEvaluationPathAdapter):
-	__name__ = 'CourseInquiries'
+    __name__ = 'CourseInquiries'

@@ -41,69 +41,75 @@ from nti.property.property import Lazy
 # structure currently, and I'd like to avoid spreading that.
 # So for now, we're implementing the filters with brute force
 
+
 @interface.implementer(ICourseAssessmentUserFilter)
 @component.adapter(IUser, ICourseInstance)
 class UserEnrolledForCreditInCourseOrInstructsFilter(object):
-	"""
-	Allows access to the assignment if the user is enrolled
-	for credit, or if the assignment designates that it is available
-	to everyone.
-	"""
+    """
+    Allows access to the assignment if the user is enrolled
+    for credit, or if the assignment designates that it is available
+    to everyone.
+    """
 
-	TEST_OVERRIDE = False
+    TEST_OVERRIDE = False
 
-	def __init__(self, user, course):
-		self.user = user
-		self.course = course
+    def __init__(self, user, course):
+        self.user = user
+        self.course = course
 
-	@Lazy
-	def is_instructor(self):
-		return is_instructed_or_edited_by_name(self.course, self.user.username)
+    @Lazy
+    def is_instructor(self):
+        return is_instructed_or_edited_by_name(self.course, self.user.username)
 
-	@Lazy
-	def is_enrolled_for_credit(self):
-		record = get_enrollment_in_hierarchy(self.course, self.user)
-		return bool(record is not None and record.Scope != ES_PUBLIC)
+    @Lazy
+    def is_enrolled_for_credit(self):
+        record = get_enrollment_in_hierarchy(self.course, self.user)
+        return bool(record is not None and record.Scope != ES_PUBLIC)
 
-	def allow_assessment_for_user_in_course(self, asg, user, course):
-		if self.TEST_OVERRIDE:
-			return True
+    def allow_assessment_for_user_in_course(self, asg, user, course):
+        if self.TEST_OVERRIDE:
+            return True
 
-		if not asg.is_non_public:
-			return True
+        if not asg.is_non_public:
+            return True
 
-		# Note implicit assumption that assignment is in course
-		# TODO: check if assignment is indeed in the enroll for credit courses
-		return self.is_instructor or self.is_enrolled_for_credit
-	allow_assignment_for_user_in_course = allow_assessment_for_user_in_course  # BWC
-UserEnrolledForCreditInCourseFilter = UserEnrolledForCreditInCourseOrInstructsFilter  # BWC
+        # Note implicit assumption that assignment is in course
+        # TODO: check if assignment is indeed in the enroll for credit courses
+        return self.is_instructor or self.is_enrolled_for_credit
+    # BWC
+    allow_assignment_for_user_in_course = allow_assessment_for_user_in_course
+# BWC
+UserEnrolledForCreditInCourseFilter = UserEnrolledForCreditInCourseOrInstructsFilter
+
 
 @component.adapter(IUser, ICourseInstance)
 @interface.implementer(ICourseAssessmentUserFilter)
 class AssessmentPolicyExclusionFilter(object):
-	"""
-	If the assignment policies for the course instance exclude the
-	filter, we exclude it.
+    """
+    If the assignment policies for the course instance exclude the
+    filter, we exclude it.
 
-	The policy data is simply the key 'excluded' with a boolean value.
-	If there is no policy, this for the assignment, it is allowed.
-	"""
+    The policy data is simply the key 'excluded' with a boolean value.
+    If there is no policy, this for the assignment, it is allowed.
+    """
 
-	def __init__(self, user=None, course=None):
-		self.policies = IQAssessmentPolicies(course)
+    def __init__(self, user=None, course=None):
+        self.policies = IQAssessmentPolicies(course)
 
-	def allow_assessment_for_user_in_course(self, asg, user=None, course=None):
-		return not self.policies.getPolicyForAssessment(asg.ntiid).get('excluded', False)
-	allow_assignment_for_user_in_course = allow_assessment_for_user_in_course
+    def allow_assessment_for_user_in_course(self, asg, user=None, course=None):
+        return not self.policies.getPolicyForAssessment(asg.ntiid).get('excluded', False)
+    allow_assignment_for_user_in_course = allow_assessment_for_user_in_course
 AssignmentPolicyExclusionFilter = AssessmentPolicyExclusionFilter
+
 
 @component.adapter(IUser, ICourseInstance)
 @interface.implementer(ICourseAssessmentUserFilter)
 class AssessmentPublishExclusionFilter(object):
 
-	def __init__(self, user=None, course=None):
-		pass
+    def __init__(self, user=None, course=None):
+        pass
 
-	def allow_assessment_for_user_in_course(self, asg, user=None, course=None):
-		return asg.is_published()
-	allow_assignment_for_user_in_course = allow_assessment_for_user_in_course # BWC
+    def allow_assessment_for_user_in_course(self, asg, user=None, course=None):
+        return asg.is_published()
+    # BWC
+    allow_assignment_for_user_in_course = allow_assessment_for_user_in_course

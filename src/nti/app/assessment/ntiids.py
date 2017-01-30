@@ -24,32 +24,34 @@ from nti.ntiids.ntiids import get_parts
 from nti.ntiids.ntiids import make_ntiid
 from nti.ntiids.ntiids import find_object_with_ntiid
 
+
 @interface.implementer(INTIIDResolver)
 class _EvaluationResolver(object):
-	"""
-	A resolver for the :const:`nti.assessment.interfaces.NTIID_TYPE`
-	value. This one single type of ntiid is used for questions,
-	question sets, assignments, surveys and polls. We expect to be able to
-	resolve these using the current component registry.
-	"""
+    """
+    A resolver for the :const:`nti.assessment.interfaces.NTIID_TYPE`
+    value. This one single type of ntiid is used for questions,
+    question sets, assignments, surveys and polls. We expect to be able to
+    resolve these using the current component registry.
+    """
 
-	def resolve(self, ntiid):
-		result = component.queryUtility(IQEvaluation, name=ntiid)
-		return result
+    def resolve(self, ntiid):
+        result = component.queryUtility(IQEvaluation, name=ntiid)
+        return result
 _AssessmentResolver = _EvaluationResolver
+
 
 @interface.implementer(INTIIDResolver)
 class _EvaluationPartResolver(object):
 
-	def resolve(self, ntiid):
-		parts = get_parts(ntiid)
-		specific = parts.specific[:parts.specific.rfind('.')]
-		parent_ntiid = make_ntiid(date=parts.date, 
-						   		  provider=parts.provider, 
-						  		  nttype=NTIID_TYPE, 
-						   		  specific=specific)
-		parent = find_object_with_ntiid(parent_ntiid)
-		for part in getattr(parent, 'parts', None) or ():
-			if part.ntiid == ntiid:
-				return part
-		return None
+    def resolve(self, ntiid):
+        parts = get_parts(ntiid)
+        specific = parts.specific[:parts.specific.rfind('.')]
+        parent_ntiid = make_ntiid(date=parts.date,
+                                  provider=parts.provider,
+                                  nttype=NTIID_TYPE,
+                                  specific=specific)
+        parent = find_object_with_ntiid(parent_ntiid)
+        for part in getattr(parent, 'parts', None) or ():
+            if part.ntiid == ntiid:
+                return part
+        return None

@@ -35,8 +35,6 @@ from nti.dataserver.authorization_acl import acl_from_aces
 
 from nti.intid.common import removeIntId
 
-from nti.property.property import Lazy
-
 from nti.traversal.traversal import find_interface
 
 
@@ -81,7 +79,7 @@ class CourseEvaluations(CaseInsensitiveCheckingLastModifiedBTreeContainer):
         self._save(ntiid, new)
         return new
 
-    @Lazy
+    @property
     def __acl__(self):
         aces = [ace_allowing(ROLE_ADMIN, ALL_PERMISSIONS, self),
                 ace_allowing(ROLE_CONTENT_ADMIN, ALL_PERMISSIONS, type(self))]

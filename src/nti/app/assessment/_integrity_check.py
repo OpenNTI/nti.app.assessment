@@ -219,8 +219,9 @@ def check_assessment_integrity(remove=False):
         # fix lineage
         if registered.__parent__ is None:
             if containers:
-                unit = find_interface(
-                    containers[0], IContentUnit, strict=False)
+                unit = find_interface(containers[0], 
+                                      IContentUnit, 
+                                      strict=False)
                 if unit is not None:
                     logger.warn("Fixing lineage for %s", key)
                     fixed_lineage.add(ntiid)

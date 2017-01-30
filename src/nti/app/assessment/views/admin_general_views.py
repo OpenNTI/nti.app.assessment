@@ -253,8 +253,13 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
             for spec in reversed(specs[i].__sro__):
                 comps = components.get(spec)
                 if comps:
-                    self._lookupAll(
-                        comps, specs, provided, i + 1, l, result, ntiid)
+                    self._lookupAll(comps,
+                                    specs, 
+                                    provided,
+                                    i + 1,
+                                    l,
+                                    result,
+                                    ntiid)
         else:
             for iface in reversed(provided):
                 comps = components.get(iface)
@@ -311,11 +316,12 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
             if not name:
                 for host_site in get_all_host_sites():  # check all sites
                     with current_site(host_site):
-                        obj = component.queryUtility(
-                            IQEvaluation, name=evaluation.ntiid)
+                        obj = component.queryUtility(IQEvaluation,
+                                                     name=evaluation.ntiid)
                         if obj is not None:
-                            logger.info(
-                                "%s evaluation found at %s", ntiid, host_site.__name__)
+                            logger.info("%s evaluation found at %s",
+                                         ntiid, 
+                                         host_site.__name__)
                             site = host_site
                             break
             else:
@@ -343,8 +349,10 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
         package = find_interface(package, IContentPackage, strict=False)
         if package is None:
             package = values.get('package')
-            package = find_object_with_ntiid(
-                ntiid) if package is not None else None
+            if package is not None:
+                package = find_object_with_ntiid(ntiid) 
+            else:
+                package = None
 
         package = IContentPackage(package, None)
         if package is not None and not IQEditableEvaluation.providedBy(evaluation):
@@ -385,8 +393,8 @@ class UnregisterAssessmentItemsView(AbstractAuthenticatedView,
         name = get_resource_site_name(package)
         site = get_host_site(name)
         with current_site(site):
-            items, unused = _remove_assessment_items_from_oldcontent(
-                package, force=force)
+            items, unused = _remove_assessment_items_from_oldcontent(package,
+                                                                     force=force)
         result = LocatedExternalDict()
         result[ITEMS] = sorted(items.keys())
         result[ITEM_COUNT] = result[TOTAL] = len(items)

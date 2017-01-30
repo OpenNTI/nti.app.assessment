@@ -60,8 +60,8 @@ class _AssignmentFeedbackItemSearchHitPredicate(DefaultSearchHitPredicate):
             user = User.get_user(pid)
             owner = feedback.creator
             course = find_interface(feedback, ICourseInstance, strict=False)
-            if 		user is not None \
-                    and (owner == user is not None or is_instructed_by_name(course, pid)):
+            if      user is not None \
+                and (owner == user is not None or is_instructed_by_name(course, pid)):
                 return True
         return False
 
@@ -92,8 +92,8 @@ class _EvaluationSearchHitPredicate(DefaultSearchHitPredicate):
                         return has_permission(ACT_READ, item, self.request)
 
             for course in courses or ():
-                if 		is_instructed_by_name(course, self.principal.id) \
-                        or is_enrolled(course, self.principal):
+                if     is_instructed_by_name(course, self.principal.id) \
+                    or is_enrolled(course, self.principal):
                     return True
         return False
 

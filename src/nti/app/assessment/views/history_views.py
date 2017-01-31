@@ -332,7 +332,7 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 										   date_time=date_time.timetuple())
                             zipfile.writestr(info, qp_part.data)
         zipfile.close()
-        buf.reset()
+        buf.seek(0)
 
         self.request.response.body = buf.getvalue()
         filename = self._get_filename(course)

@@ -32,23 +32,24 @@ ITEMS = StandardExternalFields.ITEMS
 TOTAL = StandardExternalFields.TOTAL
 ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 
+
 @view_config(context=IQuestion)
 @view_defaults(route_name='objects.generic.traversal',
-			   renderer='rest',
-			   name=VIEW_QUESTION_CONTAINERS,
-			   permission=nauth.ACT_CONTENT_EDIT)
+               renderer='rest',
+               name=VIEW_QUESTION_CONTAINERS,
+               permission=nauth.ACT_CONTENT_EDIT)
 class QuestionContainersView(AbstractAuthenticatedView):
-	"""
-	Fetch all question_sets/assignments holding our given context.
-	A `course` param can be given that narrows the scope of the result,
-	otherwise, results from all courses will be returned.
-	"""
+    """
+    Fetch all question_sets/assignments holding our given context.
+    A `course` param can be given that narrows the scope of the result,
+    otherwise, results from all courses will be returned.
+    """
 
-	def __call__(self):
-		result = LocatedExternalDict()
-		result[ITEMS] = assessments = list()
-		containers = get_outline_evaluation_containers( self.context )
-		containers = [to_external_object(x, name="summary") for x in containers]
-		assessments.extend( containers )
-		result[ITEM_COUNT] = result[TOTAL] = len( containers )
-		return result
+    def __call__(self):
+        result = LocatedExternalDict()
+        result[ITEMS] = assessments = list()
+        containers = get_outline_evaluation_containers(self.context)
+        containers = [to_external_object(x, name="summary") for x in containers]
+        assessments.extend(containers)
+        result[ITEM_COUNT] = result[TOTAL] = len(containers)
+        return result

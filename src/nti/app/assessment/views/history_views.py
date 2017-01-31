@@ -139,8 +139,10 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
                 submission = self.readCreateUpdateContentObject(creator)
                 check_upload_files(submission)
             else:
-                extValue = get_source(
-                    self.request, 'json', 'input', 'submission')
+                extValue = get_source(self.request, 
+                                      'json',
+                                      'input', 
+                                      'submission')
                 if not extValue:
                     raise hexc.HTTPUnprocessableEntity(
                         _("No submission source was specified"))
@@ -186,8 +188,7 @@ class AssignmentPracticeSubmissionPostView(AssignmentSubmissionPostView):
 
     def _do_call(self):
         try:
-            result = super(
-                AssignmentPracticeSubmissionPostView, self)._do_call()
+            result = super(AssignmentPracticeSubmissionPostView, self)._do_call()
             return result
         finally:
             self.request.environ['nti.commit_veto'] = 'abort'
@@ -236,8 +237,9 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
             result = ICourseInstance(result, None)
         if result is None:
             # Ok, pick the first course we find.
-            result = get_course_from_evaluation(
-                context, self.remoteUser, exc=True)
+            result = get_course_from_evaluation(context,
+                                                self.remoteUser, 
+                                                exc=True)
         return result
 
     def _string(self, val, sub=''):
@@ -318,8 +320,7 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
                             qp_part = qp_part.value
 
                         if IQUploadedFile.providedBy(qp_part):
-                            user_filename_part = self._get_username_filename_part(
-                                principal)
+                            user_filename_part = self._get_username_filename_part(principal)
                             full_filename = "%s-%s-%s-%s-%s" % (user_filename_part,
                                                                 sub_num,
                                                                 q_num,

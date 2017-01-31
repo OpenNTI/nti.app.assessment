@@ -45,103 +45,114 @@ from nti.traversal.traversal import find_interface
 
 LINKS = StandardExternalFields.LINKS
 
+
 @interface.implementer(IExternalMappingDecorator)
 class _AssignmentsAvailableAssignmentHistoryDecorator(AbstractAuthenticatedRequestAwareDecorator):
-	"""
-	For a user's assignment history, expose available assignments.
-	"""
+    """
+    For a user's assignment history, expose available assignments.
+    """
 
-	def _do_decorate_external(self, context, result_map):
-		user = context.owner
-		courses = set()
-		# Course request context specific
-		context_course = _get_course_from_evaluation(context,
-											 		user=self.remoteUser,
-											 		request=self.request)
-		if context_course is not None:
-			courses.add( context_course )
-			parent_course = get_parent_course( context_course )
-			courses.add( parent_course )
-			result = set()
-			# Get all parnet/section assignments available to student.
-			for course in courses:
-				assignment_catalog = ICourseAssignmentCatalog(course)
-				user_predicate = get_course_assessment_predicate_for_user(user, course)
-				result.update(	asg.ntiid
-								for asg in assignment_catalog.iter_assignments()
-								if user_predicate(asg) )
-			result_map['AvailableAssignmentNTIIDs'] = result
+    def _user_predicate(self, user, course):
+        return get_course_assessment_predicate_for_user(user, course)
+
+    def _do_decorate_external(self, context, result_map):
+        user = context.owner
+        courses = set()
+        # Course request context specific
+        context_course = _get_course_from_evaluation(context,
+                                                     user=self.remoteUser,
+                                                     request=self.request)
+        if context_course is not None:
+            courses.add(context_course)
+            parent_course = get_parent_course(context_course)
+            courses.add(parent_course)
+            result = set()
+            # Get all parnet/section assignments available to student.
+            for course in courses:
+                assignment_catalog = ICourseAssignmentCatalog(course)
+                user_predicate = self._user_predicate(user, course)
+                result.update(asg.ntiid
+                              for asg in assignment_catalog.iter_assignments()
+                              if user_predicate(asg))
+            result_map['AvailableAssignmentNTIIDs'] = result
+
 
 @interface.implementer(IExternalMappingDecorator)
 class _CourseAssignmentHistoryDecorator(AbstractAssessmentDecoratorPredicate):
-	"""
-	For things that have an assignment history, add this as a link.
-	"""
+    """
+    For things that have an assignment history, add this as a link.
+    """
 
-	# Note: This overlaps with the registrations in assessment_views
-	# Note: We do not specify what we adapt, there are too many
-	# things with no common ancestor.
+    # Note: This overlaps with the registrations in assessment_views
+    # Note: We do not specify what we adapt, there are too many
+    # things with no common ancestor.
 
-	def _do_decorate_external(self, context, result_map):
-		links = result_map.setdefault(LINKS, [])
-		# XXX: If the context provides a user, that's the one we want,
-		# otherwise we want the current user
-		user = IUser(context, self.remoteUser)
-		links.append(Link(context,
-						  rel='AssignmentHistory',
-						  elements=('AssignmentHistories', user.username)))
+    def _do_decorate_external(self, context, result_map):
+        links = result_map.setdefault(LINKS, [])
+        # XXX: If the context provides a user, that's the one we want,
+        # otherwise we want the current user
+        user = IUser(context, self.remoteUser)
+        links.append(Link(context,
+                          rel='AssignmentHistory',
+                          elements=('AssignmentHistories', user.username)))
+
 
 class _LastViewedAssignmentHistoryDecorator(AbstractAuthenticatedRequestAwareDecorator):
-	"""
-	For assignment histories, when the requester is the owner,
-	we add a link to point to the 'lastViewed' update spot.
-	"""
+    """
+    For assignment histories, when the requester is the owner,
+    we add a link to point to the 'lastViewed' update spot.
+    """
 
-	def _predicate(self, context, result):
-		return (	self._is_authenticated
-				and context.owner is not None
-				and context.owner == self.remoteUser)
+    def _predicate(self, context, result):
+        return (self._is_authenticated
+                and context.owner is not None
+                and context.owner == self.remoteUser)
 
-	def _do_decorate_external(self, context, result):
-		links = result.setdefault(LINKS, [])
-		links.append(Link(context,
-						  rel='lastViewed',
-						  elements=('@@lastViewed',),
-						  method='PUT'))
+    def _do_decorate_external(self, context, result):
+        links = result.setdefault(LINKS, [])
+        links.append(Link(context,
+                          rel='lastViewed',
+                          elements=('@@lastViewed',),
+                          method='PUT'))
+
 
 @interface.implementer(IExternalMappingDecorator)
 class _AssignmentHistoryLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
-	@Lazy
-	def _catalog(self):
-		result = component.getUtility(ICourseCatalog)
-		return result
+    @Lazy
+    def _catalog(self):
+        result = component.getUtility(ICourseCatalog)
+        return result
 
-	def _do_decorate_external(self, context, result_map):
-		user = self.remoteUser
-		course = _get_course_from_evaluation(context,
-											 user,
-											 self._catalog,
-											 request=self.request)
-		history = component.queryMultiAdapter((course, user),
-											  IUsersCourseAssignmentHistory)
-		if history and context.ntiid in history:
-			links = result_map.setdefault(LINKS, [])
-			links.append(Link(course,
-							  rel='History',
-							  elements=('AssignmentHistories', user.username,
-										context.ntiid)))
+    def _do_decorate_external(self, context, result_map):
+        user = self.remoteUser
+        course = _get_course_from_evaluation(context,
+                                             user,
+                                             self._catalog,
+                                             request=self.request)
+        history = component.queryMultiAdapter((course, user),
+                                              IUsersCourseAssignmentHistory)
+        if history and context.ntiid in history:
+            links = result_map.setdefault(LINKS, [])
+            links.append(Link(course,
+                              rel='History',
+                              elements=('AssignmentHistories', user.username,
+                                        context.ntiid)))
+
 
 @interface.implementer(IExternalMappingDecorator)
 class _AssignmentHistoryItemDecorator(_AbstractTraversableLinkDecorator):
 
-	def _do_decorate_external(self, context, result_map):
-		creator = context.creator
-		remoteUser = self.remoteUser
-		course = find_interface(context, ICourseInstance, strict=False)
-		if course is None:
-			return
-		user = creator if is_course_instructor(course, remoteUser) else remoteUser
-		item = get_assessment_metadata_item(course, user, context.assignmentId)
-		if item is not None:
-			result_map['Metadata'] = to_external_object(item)
+    def _do_decorate_external(self, context, result_map):
+        creator = context.creator
+        remoteUser = self.remoteUser
+        course = find_interface(context, ICourseInstance, strict=False)
+        if course is None:
+            return
+        if is_course_instructor(course, remoteUser):
+            user = creator
+        else:
+            user = remoteUser
+        item = get_assessment_metadata_item(course, user, context.assignmentId)
+        if item is not None:
+            result_map['Metadata'] = to_external_object(item)

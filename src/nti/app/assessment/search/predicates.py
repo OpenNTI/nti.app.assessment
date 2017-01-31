@@ -26,7 +26,7 @@ from nti.assessment.interfaces import ALL_ASSIGNMENT_MIME_TYPES
 from nti.assessment.interfaces import IQEvaluation
 
 from nti.contentlibrary.interfaces import IContentUnit
-from nti.contentlibrary.interfaces import IContentPackage 
+from nti.contentlibrary.interfaces import IContentPackage
 
 from nti.contentsearch.interfaces import ISearchHitPredicate
 from nti.contentsearch.predicates import DefaultSearchHitPredicate
@@ -51,7 +51,7 @@ from nti.traversal.traversal import find_interface
 class _AssignmentFeedbackItemSearchHitPredicate(DefaultSearchHitPredicate):
 
     __name__ = 'AssignmentFeedback'
-    
+
     def allow(self, feedback, score, query=None):
         if self.principal is None:
             return True
@@ -71,7 +71,7 @@ class _AssignmentFeedbackItemSearchHitPredicate(DefaultSearchHitPredicate):
 class _EvaluationSearchHitPredicate(DefaultSearchHitPredicate):
 
     __name__ = 'Evaluation'
-    
+
     @Lazy
     def request(self):
         return get_current_request()
@@ -97,14 +97,15 @@ class _EvaluationSearchHitPredicate(DefaultSearchHitPredicate):
                     return True
         return False
 
+
 @component.adapter(IContentUnit)
 @interface.implementer(ISearchHitPredicate)
 class _ContentUnitAssesmentHitPredicate(DefaultSearchHitPredicate):
 
     __name__ = 'ContentUnitAssesment'
-    
+
     SEARCH_MTS = ALL_ASSIGNMENT_MIME_TYPES + (SURVEY_MIME_TYPE,)
-    
+
     def _is_allowed(self, ntiid, query=None):
         evaluations = get_container_evaluations((ntiid,),
                                                 mimetypes=self.SEARCH_MTS)

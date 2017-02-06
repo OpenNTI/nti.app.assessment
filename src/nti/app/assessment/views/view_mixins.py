@@ -251,7 +251,7 @@ class AssessmentPutView(UGDPutView):
 											  externalValue,
 											  courses=courses)
 			# Update our publish modification time since dates may be changing...
-			contentObject._update_publish_last_mod()
+			contentObject.update_publish_last_mod()
 
 	def validate(self, contentObject, externalValue, courses=()):
 		# We could validate edits based on the unused submission/savepoint

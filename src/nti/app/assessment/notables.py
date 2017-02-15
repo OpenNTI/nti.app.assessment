@@ -13,6 +13,8 @@ from zope import interface
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedback
 
+from nti.contenttypes.courses.interfaces import ICourseInstance
+
 from nti.dataserver.interfaces import INotableFilter
 
 
@@ -36,6 +38,7 @@ class AssignmentFeedbackNotableFilter(object):
         if IUsersCourseAssignmentHistoryItemFeedback.providedBy(obj):
             history_item = obj.__parent__.__parent__
             submission = history_item.Submission
-            if submission.creator == user and obj.creator != user:
+            course = ICourseInstance(self.context)
+            if submission.creator == user or user in course.instructors and obj.creator != user:
                 result = True
         return result

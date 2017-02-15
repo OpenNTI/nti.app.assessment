@@ -11,6 +11,8 @@ logger = __import__('logging').getLogger(__name__)
 
 from collections import Mapping
 
+from ordered_set import OrderedSet
+
 from zope import component
 from zope import interface
 
@@ -26,8 +28,6 @@ from nti.assessment.interfaces import IQNonGradableConnectingPart
 from nti.assessment.interfaces import IQNonGradableFreeResponsePart
 from nti.assessment.interfaces import IQNonGradableMultipleChoicePart
 from nti.assessment.interfaces import IQNonGradableMultipleChoiceMultipleAnswerPart
-
-from nti.common.sets import OrderedSet
 
 from nti.contentfragments.interfaces import IPlainTextContentFragment
 

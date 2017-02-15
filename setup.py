@@ -27,7 +27,7 @@ setup(
     license='Proprietary',
     keywords='pyramid assessment',
     classifiers=[
-		'Framework :: Pyramid',
+        'Framework :: Pyramid',
         'Intended Audience :: Developers',
         'Natural Language :: English',
         'Operating System :: OS Independent',

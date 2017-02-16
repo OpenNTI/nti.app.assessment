@@ -26,8 +26,8 @@ class AssignmentFeedbackNotableFilter(object):
     is not created by our user.
 
     Typically, students get feedback objects from another notable filter.
-    This would be the place to allow instructors to view feedback notables
-    from students.
+    This also provides instructors with feedback notables on course
+    assessments..
     """
 
     def __init__(self, context):
@@ -39,6 +39,8 @@ class AssignmentFeedbackNotableFilter(object):
             history_item = obj.__parent__.__parent__
             submission = history_item.Submission
             course = ICourseInstance(self.context)
-            if submission.creator == user or user in course.instructors and obj.creator != user:
-                result = True
+            instructors = course.instructors or ()
+            result =    (   submission.creator == user  \
+                         or user in instructors) \
+                     and obj.creator != user
         return result

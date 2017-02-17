@@ -231,7 +231,7 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 		download_res = self.testapp.get(submitted_file_part['url'])
 		assert_that(download_res, has_property('content_type', 'image/gif'))
 		assert_that(download_res, has_property('content_length', 61))
-		assert_that(download_res, has_property('content_disposition', none()))
+		assert_that(download_res, has_property('content_disposition', is_not(none())))
 
 		# Then for download, both directly and without the trailing /view
 		paths = [submitted_file_part['download_url']]

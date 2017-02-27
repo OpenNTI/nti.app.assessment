@@ -233,7 +233,7 @@ class EvaluationsImporter(BaseSectionImporter):
             result = the_object
 
         if      IQEditableEvaluation.providedBy(result) \
-                and (not check_locked or not self.is_locked(result)):
+            and (not check_locked or not self.is_locked(result)):
             # course is the evaluation home
             result.__home__ = course
             remoteUser = get_remote_user()
@@ -257,8 +257,8 @@ class EvaluationsImporter(BaseSectionImporter):
 
         locked = source.get('isLocked')
         if      locked \
-                and IRecordable.providedBy(the_object) \
-                and (not check_locked or not self.is_locked(result)):
+            and IRecordable.providedBy(the_object) \
+            and (not check_locked or not self.is_locked(result)):
             the_object.lock(event=False)
             lifecycleevent.modified(the_object)
         return result

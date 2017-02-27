@@ -42,7 +42,7 @@ from nti.assessment.interfaces import IQEditableEvaluation
 
 from nti.cabinet.filer import transfer_to_native_file
 
-from nti.coremetadata.utils import currentPrincipal
+from nti.coremetadata.utils import current_principal
 
 from nti.contentlibrary.interfaces import IFilesystemBucket
 
@@ -74,8 +74,6 @@ class EvaluationsImporter(BaseSectionImporter):
 
     EVALUATION_INDEX = "evaluation_index.json"
 
-    singleton = None
-
     @property
     def _extra(self):
         return str(uuid.uuid4()).split('-')[0].upper()
@@ -87,7 +85,7 @@ class EvaluationsImporter(BaseSectionImporter):
     def current_principal(self):
         remoteUser = IPrincipal(get_remote_user(), None)
         if remoteUser is None:
-            remoteUser = currentPrincipal()
+            remoteUser = current_principal()
         return remoteUser
 
     def get_ntiid(self, obj):

@@ -74,15 +74,15 @@ class EvaluationsExporter(BaseSectionExporter):
         def _ext(item):
             evaluation = removeAllProxies(item)
             if target_filer is not None:
-                # Copy evaluation b/c changes in content may be done 
+                # Copy evaluation b/c changes in content may be done
                 # during the export
                 evaluation = copy_evaluation(evaluation)
                 export_evaluation_content(evaluation,
-										  source_filer,
-										  target_filer)
+                                          source_filer,
+                                          target_filer)
             ext_obj = to_external_object(evaluation,
-										 name="exporter",
-										 decorate=False)
+                                         name="exporter",
+                                         decorate=False)
             if not backup:
                 self._change_ntiid(ext_obj, salt)
             return ext_obj
@@ -94,9 +94,9 @@ class EvaluationsExporter(BaseSectionExporter):
         result = LocatedExternalDict()
         course = ICourseInstance(context)
         items = self._output(course,
-							 target_filer=filer,
-							 backup=backup,
-							 salt=salt)
+                             target_filer=filer,
+                             backup=backup,
+                             salt=salt)
         if items:  # check
             result[ITEMS] = items
         return result

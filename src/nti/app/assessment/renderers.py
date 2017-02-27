@@ -16,19 +16,21 @@ from zope.location.interfaces import ILocation
 
 from nti.app.assessment.utils import get_course_from_request
 
-from nti.appserver.pyramid_renderers_edit_link_decorator import DefaultEditLinkMaker
-
 from nti.appserver.interfaces import IEditLinkMaker
+
+from nti.appserver.pyramid_renderers_edit_link_decorator import DefaultEditLinkMaker
 
 from nti.assessment.interfaces import IQEvaluation
 
 from nti.links.links import Link
 
+
 @component.adapter(IQEvaluation)
 @interface.implementer(IEditLinkMaker)
 class AssesmentEditLinkMaker(DefaultEditLinkMaker):
-    
-    def make(self, context, request=None, allow_traversable_paths=True, link_method=None):
+
+    def make(self, context, request=None,
+             allow_traversable_paths=True, link_method=None):
         context = self.context if context is None else context
         course = get_course_from_request(request)
         if course is not None:
@@ -41,8 +43,8 @@ class AssesmentEditLinkMaker(DefaultEditLinkMaker):
             interface.alsoProvides(link, ILocation)
             return link
         # default
-        return DefaultEditLinkMaker.make(self, 
-                                         context, 
-                                         request=request, 
+        return DefaultEditLinkMaker.make(self,
+                                         context,
+                                         request=request,
                                          allow_traversable_paths=allow_traversable_paths,
                                          link_method=link_method)

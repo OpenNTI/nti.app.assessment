@@ -55,6 +55,7 @@ from nti.assessment.interfaces import QUESTION_SET_MIME_TYPE
 from nti.coremetadata.interfaces import IRecordable
 from nti.coremetadata.interfaces import IPublishable
 from nti.coremetadata.interfaces import INoPublishLink
+from nti.coremetadata.interfaces import IObjectPublishedEvent
 
 from nti.contentlibrary.indexed_data import get_site_registry
 
@@ -687,6 +688,11 @@ def remove_assessment_items_from_oldcontent(package, event=None, force=True):
 													                 sync_results=sync_results)
 
 	return set(result.values()), set(locked_ntiids)
+
+@component.adapter(IContentPackage, IObjectPublishedEvent)
+def remove_assessment_items_when_unpublished(package, event=None):
+	_remove_assessment_items_from_oldcontent(package, force=True)
+
 
 def _transfer_locked_items_to_content_package(content_package, added_items, locked_ntiids):
 	"""

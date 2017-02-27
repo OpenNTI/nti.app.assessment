@@ -73,166 +73,180 @@ from nti.traversal.traversal import find_interface
 
 # activity / submission
 
-def add_object_to_course_activity(submission, event):
-	"""
-	This can be registered for anything we want to submit to course activity
-	as a subscriber to :class:`zope.intid.interfaces.IIntIdAddedEvent`
-	"""
-	if IUsersCourseAssignmentSavepointItem.providedBy(submission.__parent__):
-		return
 
-	course = find_interface(submission, ICourseInstance)
-	activity = ICourseInstanceActivity(course)
-	activity.append(submission)
+def add_object_to_course_activity(submission, event):
+    """
+    This can be registered for anything we want to submit to course activity
+    as a subscriber to :class:`zope.intid.interfaces.IIntIdAddedEvent`
+    """
+    if IUsersCourseAssignmentSavepointItem.providedBy(submission.__parent__):
+        return
+
+    course = find_interface(submission, ICourseInstance)
+    activity = ICourseInstanceActivity(course)
+    activity.append(submission)
+
 
 def remove_object_from_course_activity(submission, event):
-	"""
-	This can be registered for anything we want to submit to course activity
-	as a subscriber to :class:`zope.intid.interfaces.IIntIdRemovedEvent`
-	"""
-	if IUsersCourseAssignmentSavepointItem.providedBy(submission.__parent__):
-		return
+    """
+    This can be registered for anything we want to submit to course activity
+    as a subscriber to :class:`zope.intid.interfaces.IIntIdRemovedEvent`
+    """
+    if IUsersCourseAssignmentSavepointItem.providedBy(submission.__parent__):
+        return
 
-	course = find_interface(submission, ICourseInstance)
-	activity = ICourseInstanceActivity(course)
-	activity.remove(submission)
+    course = find_interface(submission, ICourseInstance)
+    activity = ICourseInstanceActivity(course)
+    activity.remove(submission)
+
 
 # UGD
 
+
 def prevent_note_on_assignment_part(note, event):
-	"""
-	When we try to create a note on something related to an
-	assignment, don't, unless it's after the due date.
+    """
+    When we try to create a note on something related to an
+    assignment, don't, unless it's after the due date.
 
-	This includes:
+    This includes:
 
-		* The main containing page
-		* The assignment itself
-		* Any question or part within the assignment
+            * The main containing page
+            * The assignment itself
+            * Any question or part within the assignment
 
-	This works only as long as assignments reference a question set
-	one and only one time and they are always authored together on the
-	same page.
-	"""
+    This works only as long as assignments reference a question set
+    one and only one time and they are always authored together on the
+    same page.
+    """
 
-	container_id = note.containerId
+    container_id = note.containerId
 
-	item = None
-	items = ()
-	for iface in ASSESSMENT_INTERFACES:
-		item = component.queryUtility(iface, name=container_id)
-		if item is not None:
-			items = (item,)
-			break
+    item = None
+    items = ()
+    for iface in ASSESSMENT_INTERFACES:
+        item = component.queryUtility(iface, name=container_id)
+        if item is not None:
+            items = (item,)
+            break
 
-	if 		IQPoll.providedBy(item) \
-		or	IQuestion.providedBy(item) \
-		or	IQuestionSet.providedBy(item):
+    if        IQPoll.providedBy(item) \
+        or IQuestion.providedBy(item) \
+        or IQuestionSet.providedBy(item):
 
-		parent = item.__parent__
-		if parent:
-			# Ok, we found the content unit defining this question.
-			# If that content unit has any assignments in it,
-			# no notes, regardless of whether this particular
-			# question was used in the assignment. So
-			# restart the lookup at the container level
-			container_id = parent.ntiid
-			item = None
+        parent = item.__parent__
+        if parent:
+            # Ok, we found the content unit defining this question.
+            # If that content unit has any assignments in it,
+            # no notes, regardless of whether this particular
+            # question was used in the assignment. So
+            # restart the lookup at the container level
+            container_id = parent.ntiid
+            item = None
 
-	if item is None:
-		# Look for a page
-		library = component.queryUtility(IContentPackageLibrary)
-		path = library.pathToNTIID(container_id) if library is not None else None
-		if path:
-			item = path[-1]
-			items = get_unit_assessments(item)
-			items = [x for x in items if IQAssignment.providedBy(x)]
+    if item is None:
+        # Look for a page
+        library = component.queryUtility(IContentPackageLibrary)
+        path = library.pathToNTIID(
+            container_id) if library is not None else None
+        if path:
+            item = path[-1]
+            items = get_unit_assessments(item)
+            items = [x for x in items if IQAssignment.providedBy(x)]
 
-	if not items:
-		return
+    if not items:
+        return
 
-	remoteUser = note.creator
+    remoteUser = note.creator
 
-	for asg in items:
-		if IQAssignment.providedBy(asg):
-			course = get_course_from_evaluation(asg, remoteUser)
-			available_for_submission_ending = get_available_for_submission_ending(asg, course)
-			if 		available_for_submission_ending \
-				and available_for_submission_ending >= datetime.utcnow():
-				e = HTTPUnprocessableEntity()
-				e.text = simplejson.dumps(
-						{'message': _("You cannot make notes on an assignment before the due date."),
-						 'code': 'CannotNoteOnAssignmentBeforeDueDate',
-						 'available_for_submission_ending':
-						 		to_external_object(available_for_submission_ending)},
-						ensure_ascii=False)
-				e.content_type = b'application/json'
-				raise e
+    for asg in items:
+        if IQAssignment.providedBy(asg):
+            course = get_course_from_evaluation(asg, remoteUser)
+            available_for_submission_ending = get_available_for_submission_ending(asg, course)
+            if      available_for_submission_ending \
+                and available_for_submission_ending >= datetime.utcnow():
+                e = HTTPUnprocessableEntity()
+                e.text = simplejson.dumps(
+                    {
+						'message': _("You cannot make notes on an assignment before the due date."),
+                    	'code': 'CannotNoteOnAssignmentBeforeDueDate',
+                     	'available_for_submission_ending':
+                     	to_external_object(available_for_submission_ending)
+                    },
+                    ensure_ascii=False)
+                e.content_type = b'application/json'
+                raise e
 
 # users
 
 CONTAINER_INTERFACES = (IUsersCourseInquiries,
-						IUsersCourseAssignmentHistories,
-						IUsersCourseAssignmentSavepoints,
-						IUsersCourseAssignmentMetadataContainer)
+                        IUsersCourseAssignmentHistories,
+                        IUsersCourseAssignmentSavepoints,
+                        IUsersCourseAssignmentMetadataContainer)
+
 
 def delete_user_data(user):
-	username = user.username
-	catalog = get_enrollment_catalog()
-	intids = component.getUtility(IIntIds)
-	query = { IX_USERNAME: {'any_of':(username,)} }
-	for uid in catalog.apply(query) or ():
-		context = intids.queryObject(uid)
-		course = ICourseInstance(context, None)
-		if course is None:
-			continue
-		for iface in CONTAINER_INTERFACES:
-			user_data = iface(course, None)
-			if user_data is not None and username in user_data:
-				container = user_data[username]
-				if IContainer.providedBy(container):
-					container.clear()
-				del user_data[username]
+    username = user.username
+    catalog = get_enrollment_catalog()
+    intids = component.getUtility(IIntIds)
+    query = {IX_USERNAME: {'any_of': (username,)}}
+    for uid in catalog.apply(query) or ():
+        context = intids.queryObject(uid)
+        course = ICourseInstance(context, None)
+        if course is None:
+            continue
+        for iface in CONTAINER_INTERFACES:
+            user_data = iface(course, None)
+            if user_data is not None and username in user_data:
+                container = user_data[username]
+                if IContainer.providedBy(container):
+                    container.clear()
+                del user_data[username]
+
 
 def unindex_user_data(user):
-	catalog = get_submission_catalog()
-	query = { IX_CREATOR: {'any_of':(user.username,)} }
-	for uid in catalog.apply(query) or ():
-		catalog.unindex_doc(uid)
+    catalog = get_submission_catalog()
+    query = {IX_CREATOR: {'any_of': (user.username,)}}
+    for uid in catalog.apply(query) or ():
+        catalog.unindex_doc(uid)
+
 
 @component.adapter(IUser, IWillDeleteEntityEvent)
 def _on_user_will_be_removed(user, event):
-	logger.info("Removing assignment data for user %s", user)
-	delete_user_data(user)
-	unindex_user_data(user)
+    logger.info("Removing assignment data for user %s", user)
+    delete_user_data(user)
+    unindex_user_data(user)
 
 # courses
 
+
 def delete_course_data(course):
-	for iface in CONTAINER_INTERFACES:
-		user_data = iface(course, None)
-		if user_data is not None:
-			user_data.clear()
+    for iface in CONTAINER_INTERFACES:
+        user_data = iface(course, None)
+        if user_data is not None:
+            user_data.clear()
+
 
 def unindex_course_data(course):
-	entry = ICourseCatalogEntry(course, None)
-	site_name = get_resource_site_name(course)
-	if entry is not None and site_name:
-		catalog = get_submission_catalog()
-		query = { IX_COURSE: {'any_of':(entry.ntiid,)},
-				  IX_SITE: {'any_of':(site_name,) } }
-		for uid in catalog.apply(query) or ():
-			catalog.unindex_doc(uid)
+    entry = ICourseCatalogEntry(course, None)
+    site_name = get_resource_site_name(course)
+    if entry is not None and site_name:
+        catalog = get_submission_catalog()
+        query = {IX_COURSE: {'any_of': (entry.ntiid,)},
+                 IX_SITE: {'any_of': (site_name,)}}
+        for uid in catalog.apply(query) or ():
+            catalog.unindex_doc(uid)
+
 
 @component.adapter(ICourseInstance, IIntIdRemovedEvent)
 def on_course_instance_removed(course, event):
-	delete_course_data(course)
-	unindex_course_data(course)
+    delete_course_data(course)
+    unindex_course_data(course)
+
 
 @component.adapter(IQuestion, IQuestionMovedEvent)
 def on_question_moved(question, event):
-	# We should only be moving questions within a question set.
-	ntiid = getattr(question, 'ntiid', None)
-	if ntiid:
-		record_transaction(question, principal=event.principal,
-						   type_=TRX_QUESTION_MOVE_TYPE)
+    # We should only be moving questions within a question set.
+    ntiid = getattr(question, 'ntiid', None)
+    if ntiid:
+        record_transaction(question, principal=event.principal,
+                           type_=TRX_QUESTION_MOVE_TYPE)

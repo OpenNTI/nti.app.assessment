@@ -95,6 +95,7 @@
 	<subscriber	handler="._question_map.add_assessment_items_from_new_content" />
 	<subscriber handler="._question_map.update_assessment_items_when_modified" />
 	<subscriber	handler="._question_map.remove_assessment_items_from_oldcontent" />
+	<subscriber	handler="._question_map.remove_assessment_items_when_unpublished" />
 
 	<adapter factory=".adapters._DefaultCourseAssignmentCatalog" />
 	<adapter factory=".adapters._DefaultCourseAssessmentItemCatalog" />

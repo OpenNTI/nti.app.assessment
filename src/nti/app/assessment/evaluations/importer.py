@@ -255,10 +255,10 @@ class EvaluationsImporter(BaseSectionImporter):
 
         locked = source.get('isLocked')
         if      locked \
-            and IRecordable.providedBy(the_object) \
+            and IRecordable.providedBy(result) \
             and (not check_locked or not self.is_locked(result)):
             the_object.lock(event=False)
-            lifecycleevent.modified(the_object)
+            lifecycleevent.modified(result)
         return result
 
     def handle_course_items(self, items, course,

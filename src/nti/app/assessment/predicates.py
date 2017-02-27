@@ -104,8 +104,7 @@ class _AssignmentHistoryPrincipalObjects(BasePrincipalObjects):
                 for item in items:
                     feedback = item.Feedback
                     if feedback is not None:
-                        for item in self._feedbackitem_collector(
-                                feedback, user):
+                        for item in self._feedbackitem_collector(feedback, user):
                             _add_to_result(result, item)
         return result
 

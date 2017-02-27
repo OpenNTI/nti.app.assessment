@@ -129,7 +129,7 @@ def prevent_note_on_assignment_part(note, event):
             items = (item,)
             break
 
-    if        IQPoll.providedBy(item) \
+    if     IQPoll.providedBy(item) \
         or IQuestion.providedBy(item) \
         or IQuestionSet.providedBy(item):
 
@@ -146,8 +146,7 @@ def prevent_note_on_assignment_part(note, event):
     if item is None:
         # Look for a page
         library = component.queryUtility(IContentPackageLibrary)
-        path = library.pathToNTIID(
-            container_id) if library is not None else None
+        path = library.pathToNTIID(container_id) if library is not None else None
         if path:
             item = path[-1]
             items = get_unit_assessments(item)
@@ -167,10 +166,10 @@ def prevent_note_on_assignment_part(note, event):
                 e = HTTPUnprocessableEntity()
                 e.text = simplejson.dumps(
                     {
-						'message': _("You cannot make notes on an assignment before the due date."),
-                    	'code': 'CannotNoteOnAssignmentBeforeDueDate',
-                     	'available_for_submission_ending':
-                     	to_external_object(available_for_submission_ending)
+                        'message': _("You cannot make notes on an assignment before the due date."),
+                        'code': 'CannotNoteOnAssignmentBeforeDueDate',
+                        'available_for_submission_ending':
+                        to_external_object(available_for_submission_ending)
                     },
                     ensure_ascii=False)
                 e.content_type = b'application/json'

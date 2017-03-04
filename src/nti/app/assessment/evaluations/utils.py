@@ -15,6 +15,8 @@ from urlparse import urlparse
 from html5lib import HTMLParser
 from html5lib import treebuilders
 
+from zope import lifecycleevent
+
 from pyramid import httpexceptions as hexc
 
 from pyramid.threadlocal import get_current_request
@@ -80,6 +82,7 @@ def indexed_iter():
 def associate(model, source):
     if IContentBaseFile.providedBy(source):
         source.add_association(model)
+        lifecycleevent.modified(source)
 
 
 def get_html_content_fields(context):

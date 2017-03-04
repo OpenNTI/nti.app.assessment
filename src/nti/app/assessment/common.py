@@ -15,6 +15,8 @@ import itertools
 
 from datetime import datetime
 
+from requests.structures import CaseInsensitiveDict
+
 from zope import component
 from zope import lifecycleevent
 
@@ -97,8 +99,6 @@ from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQAssessedQuestionSet
 from nti.assessment.interfaces import IQAssessmentDateContext
 from nti.assessment.interfaces import IQAssessmentItemContainer
-
-from nti.common.maps import CaseInsensitiveDict
 
 from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.interfaces import IContentPackage

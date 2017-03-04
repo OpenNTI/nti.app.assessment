@@ -12,6 +12,8 @@ logger = __import__('logging').getLogger(__name__)
 import csv
 from io import BytesIO
 
+from requests.structures import CaseInsensitiveDict
+
 from zope import component
 
 from zope.component.hooks import site as current_site
@@ -52,8 +54,6 @@ from nti.assessment.common import iface_of_assessment
 from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQAssessmentItemContainer
-
-from nti.common.maps import CaseInsensitiveDict
 
 from nti.common.string import is_true
 

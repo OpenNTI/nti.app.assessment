@@ -12,7 +12,10 @@ logger = __import__('logging').getLogger(__name__)
 
 from functools import partial
 
-from zope import component, lifecycleevent
+from requests.structures import CaseInsensitiveDict
+
+from zope import component
+from zope import lifecycleevent
 
 from pyramid.view import view_config
 from pyramid.view import view_defaults
@@ -27,8 +30,6 @@ from nti.app.externalization.view_mixins import BatchingUtilsMixin
 from nti.assessment.common import get_containerId
 
 from nti.assessment.interfaces import IQAssignment
-
-from nti.common.maps import CaseInsensitiveDict
 
 from nti.common.string import is_true
 

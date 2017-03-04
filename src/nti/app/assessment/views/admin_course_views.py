@@ -12,6 +12,8 @@ logger = __import__('logging').getLogger(__name__)
 import csv
 from datetime import datetime
 
+from requests.structures import CaseInsensitiveDict
+
 from zope import component
 
 from zope.interface.common.idatetime import IDateTime
@@ -35,8 +37,6 @@ from nti.app.products.courseware.views import CourseAdminPathAdapter
 
 from nti.assessment.interfaces import IQSubmittable
 from nti.assessment.interfaces import IQAssessmentDateContext
-
-from nti.common.maps import CaseInsensitiveDict
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments

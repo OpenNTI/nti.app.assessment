@@ -16,6 +16,8 @@ import itertools
 
 from collections import Mapping
 
+from requests.structures import CaseInsensitiveDict
+
 from zope import component
 from zope import interface
 from zope import lifecycleevent
@@ -138,8 +140,6 @@ from nti.assessment.question import QQuestionSet
 from nti.assessment.randomized.interfaces import IQuestionBank
 
 from nti.assessment.randomized.question import QQuestionBank
-
-from nti.common.maps import CaseInsensitiveDict
 
 from nti.common.string import is_true
 

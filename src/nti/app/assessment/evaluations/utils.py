@@ -96,9 +96,9 @@ def get_html_content_fields(context):
             result.extend(get_html_content_fields(hint))
         if IQNonGradableFillInTheBlankWithWordBankPart.providedBy(context):
             result.append((context, 'input'))
-    elif 	IQAssignment.providedBy(context) \
-            or	IQuestion.providedBy(context) \
-            or IQPoll.providedBy(context):
+    elif   IQAssignment.providedBy(context) \
+        or IQuestion.providedBy(context) \
+        or IQPoll.providedBy(context):
         result.append((context, 'content'))
         for part in context.parts or ():
             result.extend(get_html_content_fields(part))
@@ -191,16 +191,16 @@ def export_evaluation_content(model, source_filer, target_filer):
                 rsrc_name = resource.name
                 contentType = resource.contentType
 
-                if 		ICourseContentResource.providedBy(resource) \
-                	and hasattr(resource, 'path'):
+                if      ICourseContentResource.providedBy(resource) \
+                    and hasattr(resource, 'path'):
                     path = resource.path
                     path = os.path.split(path)[0]  # remove resource name
                     path = path[1:] if path.startswith('/') else path
                 else:
                     path = IMAGES_FOLDER if is_image(
                         rsrc_name, contentType) else DOCUMENTS_FOLDER
-                if 		not path.startswith(IMAGES_FOLDER) \
-                        and not path.startswith(DOCUMENTS_FOLDER):
+                if      not path.startswith(IMAGES_FOLDER) \
+                    and not path.startswith(DOCUMENTS_FOLDER):
                     # under assets folder
                     path = os.path.join(ASSETS_FOLDER, path)
                 # save resource

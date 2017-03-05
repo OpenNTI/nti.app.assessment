@@ -180,7 +180,7 @@ def _on_poll_modified(poll, event):
 @component.adapter(IQuestionSet, IObjectAddedEvent)
 @component.adapter(IQuestionSet, IObjectModifiedFromExternalEvent)
 def _on_questionset_event(context, event):
-    if 		IQEditableEvaluation.providedBy(context) \
+    if      IQEditableEvaluation.providedBy(context) \
         and not context.questions:
         raise_error({
             u'message': _("QuestionSet cannot be empty."),
@@ -191,7 +191,7 @@ def _on_questionset_event(context, event):
 @component.adapter(IQSurvey, IObjectAddedEvent)
 @component.adapter(IQSurvey, IObjectModifiedFromExternalEvent)
 def _on_survey_event(context, event):
-    if 		IQEditableEvaluation.providedBy(context) \
+    if      IQEditableEvaluation.providedBy(context) \
         and not context.questions:
         raise_error({
             u'message': _("Survey cannot be empty."),
@@ -216,7 +216,7 @@ def _on_assessment_policies_modified_event(course, event):
     if IQAssignment.providedBy(assesment):
         # If they're enabling auto_grade or specifying a new
         # total points value, trigger a regrade.
-        if 		event.key.lower() in ('total_points', 'auto_grade') \
+        if      event.key.lower() in ('total_points', 'auto_grade') \
             and event.value:
             regrade_evaluation(assesment, course)
 

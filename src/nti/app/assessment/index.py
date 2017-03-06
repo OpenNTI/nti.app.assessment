@@ -12,7 +12,7 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope import interface
 
-from zope.deprecation import deprecate
+from zope.deprecation import deprecated
 
 from zope.intid.interfaces import IIntIds
 
@@ -91,12 +91,12 @@ IX_ASSESSMENT_TYPE = 'assesmentType'
 IX_CREATOR = IX_STUDENT = IX_USERNAME = 'creator'
 
 
-@deprecate('ValidatingCourseIntID no longer used')
+deprecated('ValidatingCourseIntID',  'No longer used')
 class ValidatingCourseIntID(object):
     pass
 
 
-@deprecate('CourseIntIDIndex no longer used')
+deprecated('CourseIntIDIndex', 'No longer used')
 class CourseIntIDIndex(IntegerAttributeIndex):
     pass
 

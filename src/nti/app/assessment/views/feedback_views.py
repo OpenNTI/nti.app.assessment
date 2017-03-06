@@ -165,8 +165,9 @@ class _FeedbackLibraryPathView(AbstractCachingLibraryPathView):
         results = []
         course = course_from_context_lineage(self.context)
         if course is not None:
-            history_item = find_interface(
-                self.context, IUsersCourseAssignmentHistoryItem, strict=False)
+            history_item = find_interface(self.context,
+                                          IUsersCourseAssignmentHistoryItem, 
+                                          strict=False)
             path = (course, history_item, self.context)
             results.append(path)
         return results

@@ -44,8 +44,10 @@ def get_evaluation_courses(context):
         result = (course,)
     else:  # legacy
         package = find_interface(context, IContentPackage, strict=False)
-        result = content_unit_to_courses(
-            package) if package is not None else ()
+        if package is not None:
+            result = content_unit_to_courses(package) 
+        else:
+            result = ()
     return result
 
 

@@ -69,8 +69,8 @@ class CourseViewMixin(AbstractAuthenticatedView, BatchingUtilsMixin):
         return outline
 
     def _filterBy(self, item, mimeTypes=()):
-        mt = getattr(item, 'mimeType', None) or getattr(
-            item, 'mime_type', None)
+        mt = getattr(item, 'mimeType', None) \
+          or getattr(item, 'mime_type', None)
         return bool(not mimeTypes or mt in mimeTypes)
 
     def _do_call(self, func):
@@ -127,8 +127,9 @@ class CourseAssignmentsView(CourseViewMixin):
         instance = ICourseInstance(self.request.context)
         params = CaseInsensitiveDict(self.request.params)
         do_filtering = is_true(params.get('filter'))
-        func = partial(
-            get_course_assignments, instance, do_filtering=do_filtering)
+        func = partial(get_course_assignments,
+                       instance,
+                       do_filtering=do_filtering)
         return self._do_call(func)
 
 

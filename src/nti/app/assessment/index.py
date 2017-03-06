@@ -12,7 +12,7 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope import interface
 
-from zope.deprecation import deprecated
+from zope.deprecation import deprecate
 
 from zope.intid.interfaces import IIntIds
 
@@ -33,6 +33,8 @@ from nti.assessment.interfaces import IQPollSubmission
 from nti.assessment.interfaces import IQSurveySubmission
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQAssignmentSubmission
+
+from nti.base._compat import unicode_
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
@@ -74,6 +76,7 @@ class ExtenedAttributeSetIndex(AttributeSetIndex):
         else:
             super(ExtenedAttributeSetIndex, self).unindex_doc(doc_id)
 
+
 # Submission / Assesed catalog
 
 # Not a very good name
@@ -87,12 +90,13 @@ IX_ASSESSMENT_ID = 'assesmentId'
 IX_ASSESSMENT_TYPE = 'assesmentType'
 IX_CREATOR = IX_STUDENT = IX_USERNAME = 'creator'
 
-deprecated('ValidatingCourseIntID', 'No longer used')
+
+@deprecate('ValidatingCourseIntID no longer used')
 class ValidatingCourseIntID(object):
     pass
 
 
-deprecated('CourseIntIDIndex', 'No longer used')
+@deprecate('CourseIntIDIndex no longer used')
 class CourseIntIDIndex(IntegerAttributeIndex):
     pass
 
@@ -105,18 +109,15 @@ class ValidatingSite(object):
     def _folder(cls, obj):
         for iface in (IUsersCourseInquiryItem, IUsersCourseAssignmentHistoryItem):
             item = iface(obj, None)
-            if item is not None:
-                course = ICourseInstance(item, None)  # course is lineage
-                folder = find_interface(course,
-                                        IHostPolicyFolder,
-                                        strict=False) if course is not None else None
-                return folder
+            course = ICourseInstance(item, None)  # course is lineage
+            folder = find_interface(course, IHostPolicyFolder, strict=False)
+            return folder
         return None
 
     def __init__(self, obj, default=None):
         folder = self._folder(obj)
         if folder is not None:
-            self.site = unicode(folder.__name__)
+            self.site = unicode_(folder.__name__)
 
     def __reduce__(self):
         raise TypeError()
@@ -135,11 +136,10 @@ class ValidatingCatalogEntryID(object):
     def _entry(cls, obj):
         for iface in (IUsersCourseInquiryItem, IUsersCourseAssignmentHistoryItem):
             item = iface(obj, None)
-            if item is not None:
-                course = ICourseInstance(item, None)  # course is lineage
-                # entry is an annotation
-                entry = ICourseCatalogEntry(course, None)
-                return entry
+            course = ICourseInstance(item, None)  # course is lineage
+            # entry is an annotation
+            entry = ICourseCatalogEntry(course, None)
+            return entry
         return None
 
     def __init__(self, obj, default=None):
@@ -285,8 +285,9 @@ def install_submission_catalog(site_manager_container, intids=None):
     catalog = MetadataAssesmentCatalog(family=intids.family)
     locate(catalog, site_manager_container, SUBMISSION_CATALOG_NAME)
     intids.register(catalog)
-    lsm.registerUtility(
-        catalog, provided=IMetadataCatalog, name=SUBMISSION_CATALOG_NAME)
+    lsm.registerUtility(catalog, 
+                        provided=IMetadataCatalog,
+                        name=SUBMISSION_CATALOG_NAME)
 
     for name, clazz in ((IX_SITE, SiteIndex),
                         (IX_CREATOR, CreatorIndex),
@@ -300,7 +301,9 @@ def install_submission_catalog(site_manager_container, intids=None):
         catalog[name] = index
     return catalog
 
+
 # Evaluation / Containment catalog
+
 
 EVALUATION_CATALOG_NAME = 'nti.dataserver.++etc++evaluation-catalog'
 
@@ -311,13 +314,13 @@ IX_KEYWORDS = 'keyworkds'
 IX_CONTAINERS = 'containers'
 IX_CONTAINMENT = 'containment'
 
+from six import integer_types
+
 from zope.catalog.interfaces import ICatalog
 
 from zc.catalog.index import SetIndex as ZC_SetIndex
 
 from pyramid.location import lineage
-
-from nti.common._compat import integer_types
 
 from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.interfaces import IContentPackage
@@ -352,8 +355,8 @@ class ValidatingEvaluationSite(object):
     def __init__(self, obj, default=None):
         if IQEvaluation.providedBy(obj):
             folder = find_interface(obj, IHostPolicyFolder, strict=False)
-            self.site = unicode(
-                folder.__name__) if folder is not None else None
+            if folder is not None:
+                self.site = unicode_(folder.__name__)
 
     def __reduce__(self):
         raise TypeError()
@@ -566,8 +569,9 @@ def install_evaluation_catalog(site_manager_container, intids=None):
     catalog = EvaluationCatalog()
     locate(catalog, site_manager_container, EVALUATION_CATALOG_NAME)
     intids.register(catalog)
-    lsm.registerUtility(
-        catalog, provided=ICatalog, name=EVALUATION_CATALOG_NAME)
+    lsm.registerUtility(catalog,
+                        provided=ICatalog,
+                        name=EVALUATION_CATALOG_NAME)
 
     catalog = create_evaluation_catalog(catalog=catalog, family=intids.family)
     for index in catalog.values():

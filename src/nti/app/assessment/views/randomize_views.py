@@ -39,124 +39,130 @@ from nti.assessment.randomized.question import QRandomizedQuestionSet
 
 from nti.dataserver import authorization as nauth
 
+
 class AbstractRandomizeView(AbstractAuthenticatedView,
-							StructuralValidationMixin):
+                            StructuralValidationMixin):
 
-	#: The message returned for an unacceptable assessment type to modify.
-	_TYPE_RANDOMIZE_ERROR_MSG = u''
+    #: The message returned for an unacceptable assessment type to modify.
+    _TYPE_RANDOMIZE_ERROR_MSG = u''
 
-	#: The message returned for an unacceptable assessment state to modify.
-	_STATE_RANDOMIZE_ERROR_MSG = u''
+    #: The message returned for an unacceptable assessment state to modify.
+    _STATE_RANDOMIZE_ERROR_MSG = u''
 
-	def _validate(self):
-		if not IQEditableEvaluation.providedBy(self.context):
-			raise hexc.HTTPUnprocessableEntity(_(self._TYPE_RANDOMIZE_ERROR_MSG))
-		self._pre_flight_validation(self.context, structural_change=True)
+    def _validate(self):
+        if not IQEditableEvaluation.providedBy(self.context):
+            raise hexc.HTTPUnprocessableEntity(
+                	_(self._TYPE_RANDOMIZE_ERROR_MSG))
+        self._pre_flight_validation(self.context, structural_change=True)
+
 
 @view_config(route_name='objects.generic.traversal',
-			 renderer='rest',
-			 name=VIEW_RANDOMIZE,
-			 context=IQuestionSet,
-			 request_method='POST',
-			 permission=nauth.ACT_CONTENT_EDIT)
+             renderer='rest',
+             name=VIEW_RANDOMIZE,
+             context=IQuestionSet,
+             request_method='POST',
+             permission=nauth.ACT_CONTENT_EDIT)
 class QuestionSetRandomizeView(AbstractRandomizeView):
-	"""
-	A view to mark the question set context as containing questions
-	in random order.
-	"""
+    """
+    A view to mark the question set context as containing questions
+    in random order.
+    """
 
-	_TYPE_RANDOMIZE_ERROR_MSG = u"Cannot randomize legacy object."
+    _TYPE_RANDOMIZE_ERROR_MSG = u"Cannot randomize legacy object."
 
-	def _validate(self):
-		super( QuestionSetRandomizeView, self )._validate()
-		if IQuestionBank.providedBy( self.context ):
-			msg = _("Cannot randomize question bank.")
-			raise_json_error(self.request,
-							 hexc.HTTPUnprocessableEntity,
-							 {
-								u'message': msg,
-							 	u'code': "CannotRandomizeQuestionBank"
-							 },
-							 None)
+    def _validate(self):
+        super(QuestionSetRandomizeView, self)._validate()
+        if IQuestionBank.providedBy(self.context):
+            msg = _("Cannot randomize question bank.")
+            raise_json_error(self.request,
+                             hexc.HTTPUnprocessableEntity,
+                             {
+                                 u'message': msg,
+                                 u'code': "CannotRandomizeQuestionBank"
+                             },
+                             None)
 
-	def __call__(self):
-		self._validate()
-		interface.alsoProvides(self.context, IRandomizedQuestionSet)
-		return self.context
+    def __call__(self):
+        self._validate()
+        interface.alsoProvides(self.context, IRandomizedQuestionSet)
+        return self.context
+
 
 @view_config(route_name='objects.generic.traversal',
-			 renderer='rest',
-			 name=VIEW_UNRANDOMIZE,
-			 context=IQuestionSet,
-			 request_method='POST',
-			 permission=nauth.ACT_CONTENT_EDIT)
+             renderer='rest',
+             name=VIEW_UNRANDOMIZE,
+             context=IQuestionSet,
+             request_method='POST',
+             permission=nauth.ACT_CONTENT_EDIT)
 class QuestionSetUnRandomizeView(AbstractRandomizeView):
-	"""
-	A view to mark the question set context as containing questions
-	not in random order. Concrete QRandomizedQuestionSets cannot
-	toggle state.
-	"""
+    """
+    A view to mark the question set context as containing questions
+    not in random order. Concrete QRandomizedQuestionSets cannot
+    toggle state.
+    """
 
-	_TYPE_RANDOMIZE_ERROR_MSG = u"Cannot unrandomize legacy object."
+    _TYPE_RANDOMIZE_ERROR_MSG = u"Cannot unrandomize legacy object."
 
-	def _validate(self):
-		super(QuestionSetUnRandomizeView, self)._validate()
-		if isinstance(self.context, QRandomizedQuestionSet):
-			# This should not happen.
-			msg = _("Cannot unrandomize concrete implementation.")
-			raise_json_error(self.request,
-							 hexc.HTTPUnprocessableEntity,
-							 {
-								u'message': msg,
-							 	u'code': "CannotUnrandomizeObject"
-							 },
-							 None)
+    def _validate(self):
+        super(QuestionSetUnRandomizeView, self)._validate()
+        if isinstance(self.context, QRandomizedQuestionSet):
+            # This should not happen.
+            msg = _("Cannot unrandomize concrete implementation.")
+            raise_json_error(self.request,
+                             hexc.HTTPUnprocessableEntity,
+                             {
+                                 u'message': msg,
+                                 u'code': "CannotUnrandomizeObject"
+                             },
+                             None)
 
-	def __call__(self):
-		self._validate()
-		if IRandomizedQuestionSet.providedBy(self.context):
-			interface.noLongerProvides(self.context, IRandomizedQuestionSet)
-		return self.context
+    def __call__(self):
+        self._validate()
+        if IRandomizedQuestionSet.providedBy(self.context):
+            interface.noLongerProvides(self.context, IRandomizedQuestionSet)
+        return self.context
+
 
 @view_config(route_name='objects.generic.traversal',
-			 renderer='rest',
-			 name=VIEW_RANDOMIZE_PARTS,
-			 context=IQuestionSet,
-			 request_method='POST',
-			 permission=nauth.ACT_CONTENT_EDIT)
+             renderer='rest',
+             name=VIEW_RANDOMIZE_PARTS,
+             context=IQuestionSet,
+             request_method='POST',
+             permission=nauth.ACT_CONTENT_EDIT)
 class QuestionSetRandomizePartsView(AbstractRandomizeView):
-	"""
-	A view to mark the question set context as containing questions
-	with randomized parts. This does not change any underlying concrete
-	randomized parts. The underlying parts may or may not support
-	randomization.
-	"""
+    """
+    A view to mark the question set context as containing questions
+    with randomized parts. This does not change any underlying concrete
+    randomized parts. The underlying parts may or may not support
+    randomization.
+    """
 
-	_TYPE_RANDOMIZE_ERROR_MSG = u"Cannot randomize parts of legacy object."
+    _TYPE_RANDOMIZE_ERROR_MSG = u"Cannot randomize parts of legacy object."
 
-	def __call__(self):
-		self._validate()
-		interface.alsoProvides(self.context, IRandomizedPartsContainer)
-		return self.context
+    def __call__(self):
+        self._validate()
+        interface.alsoProvides(self.context, IRandomizedPartsContainer)
+        return self.context
+
 
 @view_config(route_name='objects.generic.traversal',
-			 renderer='rest',
-			 name=VIEW_UNRANDOMIZE_PARTS,
-			 context=IQuestionSet,
-			 request_method='POST',
-			 permission=nauth.ACT_CONTENT_EDIT)
+             renderer='rest',
+             name=VIEW_UNRANDOMIZE_PARTS,
+             context=IQuestionSet,
+             request_method='POST',
+             permission=nauth.ACT_CONTENT_EDIT)
 class QuestionSetUnRandomizePartsView(AbstractRandomizeView):
-	"""
-	A view to mark the question set context as not containing questions
-	with randomized parts. This does not change any underlying concrete
-	randomized parts. The underlying parts may or may not support
-	randomization.
-	"""
+    """
+    A view to mark the question set context as not containing questions
+    with randomized parts. This does not change any underlying concrete
+    randomized parts. The underlying parts may or may not support
+    randomization.
+    """
 
-	_TYPE_RANDOMIZE_ERROR_MSG = u"Cannot unrandomize parts of legacy object."
+    _TYPE_RANDOMIZE_ERROR_MSG = u"Cannot unrandomize parts of legacy object."
 
-	def __call__(self):
-		self._validate()
-		if IRandomizedPartsContainer.providedBy(self.context):
-			interface.noLongerProvides(self.context, IRandomizedPartsContainer)
-		return self.context
+    def __call__(self):
+        self._validate()
+        if IRandomizedPartsContainer.providedBy(self.context):
+            interface.noLongerProvides(self.context, IRandomizedPartsContainer)
+        return self.context

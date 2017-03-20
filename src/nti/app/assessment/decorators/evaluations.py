@@ -86,7 +86,7 @@ class _EvaluationLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
         if      not is_global_evaluation( context ) \
             and has_permission(ACT_CONTENT_EDIT, context, self.request):
-            link = Link(link_context, 
+            link = Link(link_context,
                         rel=VIEW_COPY_EVALUATION,
                         elements=pre_elements + ('@@' + VIEW_COPY_EVALUATION,),
                         method='POST')

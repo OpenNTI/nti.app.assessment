@@ -109,9 +109,10 @@ class ValidatingSite(object):
     def _folder(cls, obj):
         for iface in (IUsersCourseInquiryItem, IUsersCourseAssignmentHistoryItem):
             item = iface(obj, None)
-            course = ICourseInstance(item, None)  # course is lineage
-            folder = find_interface(course, IHostPolicyFolder, strict=False)
-            return folder
+            if item is not None:
+                course = ICourseInstance(item, None)  # course is lineage
+                folder = find_interface(course, IHostPolicyFolder, strict=False)
+                return folder
         return None
 
     def __init__(self, obj, default=None):
@@ -136,10 +137,11 @@ class ValidatingCatalogEntryID(object):
     def _entry(cls, obj):
         for iface in (IUsersCourseInquiryItem, IUsersCourseAssignmentHistoryItem):
             item = iface(obj, None)
-            course = ICourseInstance(item, None)  # course is lineage
-            # entry is an annotation
-            entry = ICourseCatalogEntry(course, None)
-            return entry
+            if item is not None:
+                course = ICourseInstance(item, None)  # course is lineage
+                # entry is an annotation
+                entry = ICourseCatalogEntry(course, None)
+                return entry
         return None
 
     def __init__(self, obj, default=None):
@@ -285,7 +287,7 @@ def install_submission_catalog(site_manager_container, intids=None):
     catalog = MetadataAssesmentCatalog(family=intids.family)
     locate(catalog, site_manager_container, SUBMISSION_CATALOG_NAME)
     intids.register(catalog)
-    lsm.registerUtility(catalog, 
+    lsm.registerUtility(catalog,
                         provided=IMetadataCatalog,
                         name=SUBMISSION_CATALOG_NAME)
 

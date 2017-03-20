@@ -99,7 +99,7 @@ class _EvaluationLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
             and is_course_instructor(course, self.remoteUser) \
             and _has_any_submissions(context, course):
             link = Link(link_context,
-					    rel=VIEW_RESET_EVALUATION,
+                        rel=VIEW_RESET_EVALUATION,
                         elements=pre_elements + ('@@' + VIEW_RESET_EVALUATION,),
                         method='POST')
             interface.alsoProvides(link, ILocation)

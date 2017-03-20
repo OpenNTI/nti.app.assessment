@@ -655,11 +655,6 @@ class _AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecora
 	"""
 
 	@Lazy
-	def _acl_decoration(self):
-		result = getattr(self.request, 'acl_decoration', True)
-		return result
-
-	@Lazy
 	def request_course(self):
 		course = get_course_from_request(self.request)
 		return course
@@ -682,8 +677,7 @@ class _AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecora
 		"""
 		Course policy edits can only occur on non-global assignments.
 		"""
-		return 		self._acl_decoration \
-				and self._is_authenticated \
+		return 		self._is_authenticated \
 				and not is_global_evaluation( context ) \
 				and self._can_edit(context)
 

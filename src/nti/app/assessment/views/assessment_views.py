@@ -374,7 +374,6 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
         result = LocatedExternalDict()
         result.__name__ = self.request.view_name
         result.__parent__ = self.request.context
-        self.request.acl_decoration = self._is_editor
 
         instance = ICourseInstance(self.request.context)
         result[LAST_MODIFIED] = result.lastModified = self._lastModified
@@ -465,7 +464,6 @@ class NonAssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
         result = LocatedExternalDict()
         result.__name__ = self.request.view_name
         result.__parent__ = self.request.context
-        self.request.acl_decoration = self._is_editor
 
         instance = ICourseInstance(self.request.context)
         result[LAST_MODIFIED] = result.lastModified = self._lastModified

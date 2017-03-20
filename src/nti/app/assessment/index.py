@@ -9,6 +9,8 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+import six
+
 from zope import component
 from zope import interface
 
@@ -156,13 +158,33 @@ class CatalogEntryIDIndex(ValueIndex):
     default_interface = ValidatingCatalogEntryID
 
 
+class ValidatingCreatedUsername(object):
+
+    __slots__ = (b'creator_username',)
+
+    def __init__(self,  obj, default=None):
+        if not IUsersCourseSubmissionItem.providedBy(obj):
+            return
+        try:
+            creator = obj.creator
+            username = getattr(creator, 'username', creator)
+            username = getattr(username, 'id', username)
+            if isinstance(username, six.string_types):
+                self.creator_username = username.lower()
+        except (AttributeError, TypeError):
+            pass
+
+    def __reduce__(self):
+        raise TypeError()
+
+
 class CreatorRawIndex(RawValueIndex):
     pass
 
 
 def CreatorIndex(family=None):
     return NormalizationWrapper(field_name='creator_username',
-                                interface=IUsersCourseSubmissionItem,
+                                interface=ValidatingCreatedUsername,
                                 index=CreatorRawIndex(family=family),
                                 normalizer=StringTokenNormalizer())
 
@@ -247,8 +269,7 @@ class ValidatingAssesmentSubmittedType(object):
         return result
 
     def __init__(self, obj, default=None):
-        if     IUsersCourseAssignmentHistoryItem.providedBy(obj) \
-            or IUsersCourseInquiryItem.providedBy(obj):
+        if IUsersCourseSubmissionItem.providedBy(obj):
             self.submitted = self.get_submitted(obj)
 
     def __reduce__(self):

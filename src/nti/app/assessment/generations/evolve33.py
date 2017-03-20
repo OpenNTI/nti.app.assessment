@@ -21,6 +21,7 @@ from zope.component.hooks import setHooks
 from zope.component.hooks import site as current_site
 
 from nti.app.assessment.index import IX_CREATOR
+from nti.app.assessment.index import CreatorIndex
 from nti.app.assessment.index import install_submission_catalog
 
 from nti.app.assessment.interfaces import IUsersCourseInquiries
@@ -106,8 +107,15 @@ def do_evolve(context, generation=generation):
         intids = lsm.getUtility(IIntIds)
         queue = metadata_queue()
         submission_catalog = install_submission_catalog(ds_folder, intids)
-        submission_catalog[IX_CREATOR].clear()  # clear all
-
+        # recreate creator index
+        index = submission_catalog[IX_CREATOR]
+        index.clear()  # clear all
+        intids.unregister(index)
+        del submission_catalog[IX_CREATOR]
+        index = CreatorIndex(family=intids.family)
+        intids.register(index)
+        submission_catalog[IX_CREATOR] = index
+        # reindex objects
         seen = set()
         for site in get_all_host_sites():
             with current_site(site):

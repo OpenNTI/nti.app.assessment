@@ -24,8 +24,8 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
 from nti.dataserver.authorization import ROLE_CONTENT_ADMIN_NAME
 
 
-@component.adapter(IUsersCourseAssignmentHistories)
 @interface.implementer(IRolePermissionMap)
+@component.adapter(IUsersCourseAssignmentHistories)
 class AssignmentHistoriesRolePermissionManager(AnnotationRolePermissionManager):
     """
     A Zope `IRolePermissionMap` that denies any access by global
@@ -38,8 +38,7 @@ class AssignmentHistoriesRolePermissionManager(AnnotationRolePermissionManager):
 
     def getRolesForPermission(self, perm):
         result = []
-        super_roles = super(AssignmentHistoriesRolePermissionManager, 
-                            self).getRolesForPermission(perm)
+        super_roles = super(AssignmentHistoriesRolePermissionManager, self).getRolesForPermission(perm)
         for role, setting in super_roles:
             if role != ROLE_CONTENT_ADMIN_NAME:
                 result.append((role, setting))

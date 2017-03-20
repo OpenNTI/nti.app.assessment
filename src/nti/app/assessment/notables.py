@@ -40,6 +40,6 @@ class AssignmentFeedbackNotableFilter(object):
             submission = history_item.Submission
             course = ICourseInstance(self.context)
             instructors = course.instructors or ()
-            result = (submission.creator == user or user in instructors) \
-                 and obj.creator != user
+            result =     (submission.creator == user or user in instructors) \
+                     and obj.creator != user
         return result

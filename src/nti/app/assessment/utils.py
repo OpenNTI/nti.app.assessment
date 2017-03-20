@@ -65,6 +65,7 @@ from nti.externalization.proxy import removeAllProxies
 from nti.ntiids.ntiids import is_valid_ntiid_string
 from nti.ntiids.ntiids import find_object_with_ntiid
 
+
 _r47694_map = None
 def r47694():
     """
@@ -108,8 +109,9 @@ def has_question_bank(a):
 def do_copy(source):
     if isProxy(source, AssessmentItemProxy):
         result = copy.copy(removeAllProxies(source))
-        result = proxy(
-            result, source.ContentUnitNTIID, source.CatalogEntryNTIID)
+        result = proxy(result, 
+                       source.ContentUnitNTIID, 
+                       source.CatalogEntryNTIID)
     else:
         result = copy.copy(source)
     return result
@@ -174,8 +176,8 @@ def copy_evaluation(context, is_instructor=True):
     if IQAssignment.providedBy(context):
         result = copy_assignment(context)
     elif IQuestionBank.providedBy(context):
-        result = copy_questionbank(
-            context, is_instructor=is_instructor)  # all questions
+        result = copy_questionbank(context,
+                                   is_instructor=is_instructor)  # all questions
     elif IQuestionSet.providedBy(context):
         result = copy_questionset(context)
     elif IQuestion.providedBy(context):
@@ -311,7 +313,7 @@ class RandomizedPartGraderUnshuffleValidator(object):
             else:
                 # If not, return if submitter is and editor/instructor.
                 is_editor = has_permission(ACT_CONTENT_EDIT, course) \
-                    or is_course_instructor_or_editor(course, user)
+                         or is_course_instructor_or_editor(course, user)
                 result = not is_editor
         return result
     needsUnshuffled = needs_unshuffled

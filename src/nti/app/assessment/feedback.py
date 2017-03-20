@@ -55,169 +55,175 @@ from nti.schema.fieldproperty import AdaptingFieldProperty
 
 from nti.wref.interfaces import IWeakRef
 
+
 @interface.implementer(IUsersCourseAssignmentHistoryItemFeedback,
-					   IAttributeAnnotatable,
-					   IContentTypeAware)
+                       IAttributeAnnotatable,
+                       IContentTypeAware)
 class UsersCourseAssignmentHistoryItemFeedback(PersistentCreatedModDateTrackingObject,
-											   SchemaConfigured,
-											   ContainedMixin,
-											   AbstractReadableSharedMixin):
+                                               SchemaConfigured,
+                                               ContainedMixin,
+                                               AbstractReadableSharedMixin):
 
-	__external_can_create = True
+    __external_can_create = True
 
-	parameters = {}  # IContentTypeAware
-	mime_type = mimeType = "application/vnd.nextthought.assessment.userscourseassignmenthistoryitemfeedback"
+    parameters = {}  # IContentTypeAware
+    mime_type = mimeType = "application/vnd.nextthought.assessment.userscourseassignmenthistoryitemfeedback"
 
-	body = BodyFieldProperty(IUsersCourseAssignmentHistoryItemFeedback['body'])
-	title = AdaptingFieldProperty(IUsersCourseAssignmentHistoryItemFeedback['title'])
+    body = BodyFieldProperty(IUsersCourseAssignmentHistoryItemFeedback['body'])
+    title = AdaptingFieldProperty(IUsersCourseAssignmentHistoryItemFeedback['title'])
 
-	@property
-	def creator(self):
-		# as a Created object, we need to have a creator;
-		# our default ACL provider uses that
-		if self.__dict__.get('creator') is not None:
-			creator = self.__dict__['creator']
-			return creator() if callable(creator) else creator
+    @property
+    def creator(self):
+        # as a Created object, we need to have a creator;
+        # our default ACL provider uses that
+        if self.__dict__.get('creator') is not None:
+            creator = self.__dict__['creator']
+            return creator() if callable(creator) else creator
 
-		# If the user is deleted we won't be able to do this
-		if self.__parent__ is not None:
-			return IUser(self.__parent__.__parent__, None)
-		return None
+        # If the user is deleted we won't be able to do this
+        if self.__parent__ is not None:
+            return IUser(self.__parent__.__parent__, None)
+        return None
 
-	@creator.setter
-	def creator(self, nv):
-		if nv is None:
-			if 'creator' in self.__dict__:
-				del self.__dict__['creator']
-				self._p_changed = True
-			return
-		try:
-			self.__dict__['creator'] = IWeakRef(nv)
-		except TypeError:
-			self.__dict__['creator'] = nv
-		self._p_changed = True
+    @creator.setter
+    def creator(self, nv):
+        if nv is None:
+            if 'creator' in self.__dict__:
+                del self.__dict__['creator']
+                self._p_changed = True
+            return
+        try:
+            self.__dict__['creator'] = IWeakRef(nv)
+        except TypeError:
+            self.__dict__['creator'] = nv
+        self._p_changed = True
 
-	@property
-	def sharingTargets(self):
-		"""
-		By design, the user cannot toggle feedback sharable properties.
-		However, we define sharing targets here to expose change
-		broadcasting.
-		"""
-		results = []
-		creator = self.creator
-		results.append(creator)
-		course = ICourseInstance(self, None)
-		if course is not None:
-			instructors = (IUser(i, None) for i in course.instructors)
-			results.extend((x for x in instructors if x))
+    @property
+    def sharingTargets(self):
+        """
+        By design, the user cannot toggle feedback sharable properties.
+        However, we define sharing targets here to expose change
+        broadcasting.
+        """
+        results = []
+        creator = self.creator
+        results.append(creator)
+        course = ICourseInstance(self, None)
+        if course is not None:
+            instructors = (IUser(i, None) for i in course.instructors or ())
+            results.extend(x for x in instructors if x is not None)
 
-		if self.__parent__ is not None:
-			container_owner = IUser(self.__parent__.__parent__, None)
-			if container_owner is not None:
-				results.append(container_owner)
-		return results
+        if self.__parent__ is not None:
+            container_owner = IUser(self.__parent__.__parent__, None)
+            if container_owner is not None:
+                results.append(container_owner)
+        return results
 
-	@property
-	def __acl__(self):
-		aces = []
-		# give all permissions to the owner
-		creator = self.creator
-		if creator is not None:
-			aces.append(ace_allowing(creator, ALL_PERMISSIONS, type(self)))
+    @property
+    def __acl__(self):
+        aces = []
+        # give all permissions to the owner
+        creator = self.creator
+        if creator is not None:
+            aces.append(ace_allowing(creator, ALL_PERMISSIONS, type(self)))
 
-		# read access for the instructors
-		course = ICourseInstance(self, None)
-		if course is not None:
-			aces.extend(ace_allowing(i, ACT_READ, type(self))
-				 		for i in course.instructors or ())
+        # read access for the instructors
+        course = ICourseInstance(self, None)
+        if course is not None:
+            aces.extend(ace_allowing(i, ACT_READ, type(self))
+                        for i in course.instructors or ())
 
-		# read access to the container feedback owner
-		if self.__parent__ is not None:
-			container_owner = IUser(self.__parent__.__parent__, None)
-			if container_owner is not None and container_owner != creator:
-				aces.append(ace_allowing(container_owner, ACT_READ, type(self)))
-		aces.append(ACE_DENY_ALL)
-		return acl_from_aces(aces)
+        # read access to the container feedback owner
+        if self.__parent__ is not None:
+            container_owner = IUser(self.__parent__.__parent__, None)
+            if container_owner is not None and container_owner != creator:
+                aces.append(ace_allowing(container_owner, ACT_READ, type(self)))
+        aces.append(ACE_DENY_ALL)
+        return acl_from_aces(aces)
+
 
 @interface.implementer(IUsersCourseAssignmentHistoryItemFeedbackContainer,
-					   IAttributeAnnotatable)
+                       IAttributeAnnotatable)
 class UsersCourseAssignmentHistoryItemFeedbackContainer(PersistentCreatedModDateTrackingObject,
-														OrderedContainer):
-	"""
-	Container for feedback items. We extend OrderedContainer
-	mostly because it's a much lighter weight object than a btree
-	container, and we don't expect to need many items.
+                                                        OrderedContainer):
+    """
+    Container for feedback items. We extend OrderedContainer
+    mostly because it's a much lighter weight object than a btree
+    container, and we don't expect to need many items.
 
-	As an implementation of :class:`.IContainerNamesContainer`, we
-	choose our own keys; what you pass to the set method is ignored.
-	"""
+    As an implementation of :class:`.IContainerNamesContainer`, we
+    choose our own keys; what you pass to the set method is ignored.
+    """
 
-	#: We want to inherit the read access for the instructors
-	__acl_deny_all__ = False
+    #: We want to inherit the read access for the instructors
+    __acl_deny_all__ = False
 
-	def __setitem__(self, key, value):
-		# Choose first available key, starting from the end
-		# (optimizing for the case that we're appending).
-		# In this way our keys match our sort natural sort order
-		count = len(self)
-		key = '%d' % count
-		while key in self:
-			# this means something has previously been
-			# deleted, so we've got a key gap. By sticking
-			# to ordering the keys, this will be apparent.
-			count += 1
-			key = '%d' % count
+    def __setitem__(self, key, value):
+        # Choose first available key, starting from the end
+        # (optimizing for the case that we're appending).
+        # In this way our keys match our sort natural sort order
+        count = len(self)
+        key = '%d' % count
+        while key in self:
+            # this means something has previously been
+            # deleted, so we've got a key gap. By sticking
+            # to ordering the keys, this will be apparent.
+            count += 1
+            key = '%d' % count
 
-		checkObject(self, key, value)
-		super(UsersCourseAssignmentHistoryItemFeedbackContainer, self).__setitem__(key, value)
-		self.updateLastMod()
+        checkObject(self, key, value)
+        super(UsersCourseAssignmentHistoryItemFeedbackContainer, self).__setitem__(key, value)
+        self.updateLastMod()
 
-	@property
-	def Items(self):
-		return list(self.values())
+    @property
+    def Items(self):
+        return list(self.values())
 
-	@property
-	def creator(self):
-		# as a Created object, we need to have a creator;
-		# our default ACL provider uses that.
-		# If the user is deleted, we won't be able to do this
-		return IUser(self.__parent__, None)
+    @property
+    def creator(self):
+        # as a Created object, we need to have a creator;
+        # our default ACL provider uses that.
+        # If the user is deleted, we won't be able to do this
+        return IUser(self.__parent__, None)
+
 
 @component.adapter(IUsersCourseAssignmentHistoryItemFeedbackContainer,
-				   IContainerModifiedEvent)
+                   IContainerModifiedEvent)
 def when_feedback_container_modified_modify_history_item(container,
-														 event,
-														 update_mod=True):
-	"""
-	Because we directly surface the 'Feedback' container as an inline
-	property of the history item, and not as a secondary link, it's important
-	to clients that when the feedback item or its descendents are modified
-	that the top-level history item is modified as well (so that they can
-	depend on LastModified).
-	"""
-	try:
-		if update_mod:
-			# because we dont know what order these fire in,
-			# the main last mod subscriber may or may not have run yet
-			container.updateLastMod()
-		container.__parent__.updateLastModIfGreater(container.lastModified)
-	except AttributeError:
-		pass
+                                                         event,
+                                                         update_mod=True):
+    """
+    Because we directly surface the 'Feedback' container as an inline
+    property of the history item, and not as a secondary link, it's important
+    to clients that when the feedback item or its descendents are modified
+    that the top-level history item is modified as well (so that they can
+    depend on LastModified).
+    """
+    try:
+        if update_mod:
+            # because we dont know what order these fire in,
+            # the main last mod subscriber may or may not have run yet
+            container.updateLastMod()
+        container.__parent__.updateLastModIfGreater(container.lastModified)
+    except AttributeError:
+        pass
 
 # likewise for simple modification events inside the container
+
+
 @component.adapter(IUsersCourseAssignmentHistoryItemFeedback,
-				   IObjectModifiedEvent)
+                   IObjectModifiedEvent)
 def when_feedback_modified_modify_history_item(feedback, event):
-	try:
-		feedback.updateLastMod()  # not sure of order
-		container = feedback.__parent__
-		container.updateLastModIfGreater(feedback.lastModified)
-		when_feedback_container_modified_modify_history_item(container, event, False)
-	except AttributeError:
-		pass
+    try:
+        feedback.updateLastMod()  # not sure of order
+        container = feedback.__parent__
+        container.updateLastModIfGreater(feedback.lastModified)
+        when_feedback_container_modified_modify_history_item(container, event, False)
+    except AttributeError:
+        pass
+
 
 @interface.implementer(IFileConstraints)
 @component.adapter(IUsersCourseAssignmentHistoryItemFeedback)
 class _AssignmentHistoryItemFeedbackFileConstraints(FileConstraints):
-	max_file_size = 52428800 # 50 MB
+    max_file_size = 52428800  # 50 MB

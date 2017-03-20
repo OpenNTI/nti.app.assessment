@@ -650,7 +650,7 @@ class _PartAutoGradeStatus(AbstractAuthenticatedRequestAwareDecorator):
 @interface.implementer(IExternalMappingDecorator)
 class _AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
-	Give editors a policy edit links. This should be available on all
+	Give editors and instructors policy edit links. This should be available on all
 	assignments/inquiries.
 	"""
 
@@ -659,11 +659,24 @@ class _AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecora
 		result = getattr(self.request, 'acl_decoration', True)
 		return result
 
+	@Lazy
+	def request_course(self):
+		course = get_course_from_request(self.request)
+		return course
+
 	def _get_courses(self, context):
 		result = _get_course_from_evaluation(context,
 											 user=self.remoteUser,
 											 request=self.request)
 		return get_courses(result)
+
+	def _can_edit(self, context):
+		"""
+		Editors or instructors of given course context can edit policy.
+		"""
+		return has_permission(ACT_CONTENT_EDIT, context, self.request) \
+			or (	self.request_course is not None \
+				and is_course_instructor(self.request_course, self.remoteUser))
 
 	def _predicate(self, context, result):
 		"""
@@ -672,7 +685,7 @@ class _AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecora
 		return 		self._acl_decoration \
 				and self._is_authenticated \
 				and not is_global_evaluation( context ) \
-				and has_permission(ACT_CONTENT_EDIT, context, self.request)
+				and self._can_edit(context)
 
 	def _has_submitted_data(self, context, courses):
 		result = has_savepoints(context, courses) or has_submissions(context, courses)
@@ -699,7 +712,7 @@ class _AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecora
 			names += ('auto-grade',)
 
 		# set correct context and elements if request comes from a course
-		course = get_course_from_request(self.request)
+		course = self.request_course
 		link_context = context if course is None else course
 		elements = None if course is None else ('Assessments', context.ntiid)
 

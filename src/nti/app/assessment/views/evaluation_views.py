@@ -1063,7 +1063,32 @@ class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):
 		# change that may lock the assignment from syncing.
 		return ('is_non_public',) + self.policy_keys
 
+	def _validate_instructor_edit(self, externalValue):
+		"""
+		We want to allow instructors to edit their specific course assessment
+		policies.
+		"""
+		course = get_course_from_request()
+		if course is None:
+			raise hexc.HTTPForbidden(_('Must supply course'))
+		if not is_course_instructor(course, self.remoteUser):
+			raise hexc.HTTPForbidden()
+		non_policy_edits = bool(set( externalValue.keys() ) - set( self.policy_keys ))
+		if non_policy_edits:
+			raise hexc.HTTPForbidden(_('Instructors can only edit policy fields.'))
+
+	def _validate_permissions(self, obj, externalValue):
+		"""
+		This is our permission checking for PUTS on assignments. Editors
+		get full WRITE access, while instructors only get to edit
+		assignment policy fields.
+		"""
+		is_editor = has_permission(nauth.ACT_CONTENT_EDIT, obj, self.request)
+		if not is_editor:
+			self._validate_instructor_edit(externalValue)
+
 	def _check_object_constraints(self, obj, externalValue):
+		self._validate_permissions(obj, externalValue)
 		editing_keys = set( externalValue.keys() )
 		if 		not IQEditableEvaluation.providedBy(obj) \
 			and editing_keys - set( self.legacy_editable_fields ):
@@ -1112,7 +1137,6 @@ class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):
 @view_config(route_name='objects.generic.traversal',
 			 context=IQPoll,
 			 request_method='PUT',
-			 permission=nauth.ACT_CONTENT_EDIT,
 			 renderer='rest')
 class PollPutView(NewAndLegacyPutView):
 
@@ -1123,7 +1147,6 @@ class PollPutView(NewAndLegacyPutView):
 @view_config(route_name='objects.generic.traversal',
 			 context=IQSurvey,
 			 request_method='PUT',
-			 permission=nauth.ACT_CONTENT_EDIT,
 			 renderer='rest')
 class SurveyPutView(NewAndLegacyPutView):
 
@@ -1148,7 +1171,6 @@ class SurveyPutView(NewAndLegacyPutView):
 @view_config(route_name='objects.generic.traversal',
 			 context=IQAssignment,
 			 request_method='PUT',
-			 permission=nauth.ACT_CONTENT_EDIT,
 			 renderer='rest')
 class AssignmentPutView(NewAndLegacyPutView):
 

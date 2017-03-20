@@ -21,6 +21,7 @@ from zope.location import locate
 import BTrees
 
 from nti.app.assessment.interfaces import IUsersCourseInquiryItem
+from nti.app.assessment.interfaces import IUsersCourseSubmissionItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 
 from nti.assessment.interfaces import IQPoll
@@ -39,7 +40,6 @@ from nti.base._compat import unicode_
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
-from nti.dataserver.interfaces import ICreatedUsername
 from nti.dataserver.interfaces import IMetadataCatalog
 
 from nti.site.interfaces import IHostPolicyFolder
@@ -107,12 +107,11 @@ class ValidatingSite(object):
 
     @classmethod
     def _folder(cls, obj):
-        for iface in (IUsersCourseInquiryItem, IUsersCourseAssignmentHistoryItem):
-            item = iface(obj, None)
-            if item is not None:
-                course = ICourseInstance(item, None)  # course is lineage
-                folder = find_interface(course, IHostPolicyFolder, strict=False)
-                return folder
+        item = IUsersCourseSubmissionItem(obj, None)
+        if item is not None:
+            course = ICourseInstance(item, None)  # course is lineage
+            folder = find_interface(course, IHostPolicyFolder, strict=False)
+            return folder
         return None
 
     def __init__(self, obj, default=None):
@@ -135,13 +134,12 @@ class ValidatingCatalogEntryID(object):
 
     @classmethod
     def _entry(cls, obj):
-        for iface in (IUsersCourseInquiryItem, IUsersCourseAssignmentHistoryItem):
-            item = iface(obj, None)
-            if item is not None:
-                course = ICourseInstance(item, None)  # course is lineage
-                # entry is an annotation
-                entry = ICourseCatalogEntry(course, None)
-                return entry
+        item = IUsersCourseSubmissionItem(obj, None)
+        if item is not None:
+            course = ICourseInstance(item, None)  # course is lineage
+            # entry is an annotation
+            entry = ICourseCatalogEntry(course, None)
+            return entry
         return None
 
     def __init__(self, obj, default=None):
@@ -164,7 +162,7 @@ class CreatorRawIndex(RawValueIndex):
 
 def CreatorIndex(family=None):
     return NormalizationWrapper(field_name='creator_username',
-                                interface=ICreatedUsername,
+                                interface=IUsersCourseSubmissionItem,
                                 index=CreatorRawIndex(family=family),
                                 normalizer=StringTokenNormalizer())
 
@@ -174,8 +172,7 @@ class ValidatingAssesmentID(object):
     __slots__ = (b'assesmentId',)
 
     def __init__(self, obj, default=None):
-        if     IUsersCourseAssignmentHistoryItem.providedBy(obj) \
-            or IUsersCourseInquiryItem.providedBy(obj):
+        if IUsersCourseSubmissionItem.providedBy(obj):
             self.assesmentId = obj.__name__  # by definition
 
     def __reduce__(self):

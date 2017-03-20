@@ -217,10 +217,15 @@ class IUsersCourseAssignmentHistoryItemFeedbackContainer(IContainerNamesContaine
                  readonly=True)
 
 
+class IUsersCourseSubmissionItem(IContained, IShouldHaveTraversablePath):
+    """
+    Marker interface for course submission items
+    """
+
+
 class IUsersCourseAssignmentHistoryItem(ICreated,
-                                        IContained,
                                         ILastModified,
-                                        IShouldHaveTraversablePath):
+                                        IUsersCourseSubmissionItem):
     """
     A record of something being submitted for an assignment.
 
@@ -394,10 +399,9 @@ class IUsersCourseInquiry(IContainer,
         """
 
 
-class IUsersCourseInquiryItem(IContained,
+class IUsersCourseInquiryItem(ICreated,
                               ILastModified,
-                              ICreated,
-                              IShouldHaveTraversablePath):
+                              IUsersCourseSubmissionItem):
     """
     A record of something being submitted for a survey/poll.
     """

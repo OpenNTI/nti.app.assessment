@@ -28,6 +28,7 @@ from nti.app.assessment import MessageFactory as _
 from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import regrade_evaluation
 from nti.app.assessment.common import get_evaluation_courses
+from nti.app.assessment.common import delete_all_evaluation_data
 from nti.app.assessment.common import get_course_from_evaluation
 from nti.app.assessment.common import get_evaluation_containment
 from nti.app.assessment.common import get_assignments_for_evaluation_object
@@ -55,6 +56,7 @@ from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQuestionSet
+from nti.assessment.interfaces import IQSubmittable
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQEvaluationItemContainer
 from nti.assessment.interfaces import IQAssessmentPoliciesModified
@@ -227,8 +229,14 @@ def _on_assignment_unlock_event(context, event):
     notify(UnlockQAssessmentPolicies(context, courses))
 
 
+@component.adapter(IQEditableEvaluation, IIntIdRemovedEvent)
+def _on_editable_evaluation_removed(context, event):
+    if IQSubmittable.providedBy(context):
+        delete_all_evaluation_data(context)
+
+
 @component.adapter(ICourseInstance, IIntIdRemovedEvent)
-def on_course_instance_removed(course, event):
+def _on_course_instance_removed(course, event):
     evaluations = ICourseEvaluations(course, None)
     if evaluations is not None:
         registry = get_course_site_registry(course)
@@ -236,3 +244,4 @@ def on_course_instance_removed(course, event):
             provided = iface_of_assessment(obj)
             unregisterUtility(registry, provided=provided, name=obj.ntiid)
         evaluations.clear()
+on_course_instance_removed = _on_course_instance_removed # BWC

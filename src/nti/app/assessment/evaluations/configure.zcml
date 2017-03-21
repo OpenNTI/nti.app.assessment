@@ -54,7 +54,8 @@
 	<subscriber handler=".subscribers._on_regrade_evaluation_event" />
 	<subscriber handler=".subscribers._on_assessment_policies_modified_event" />
 	
-	<subscriber handler=".subscribers.on_course_instance_removed" />
+	<subscriber handler=".subscribers._on_course_instance_removed" />
+	<subscriber handler=".subscribers._on_editable_evaluation_removed" />
 
 	<!-- Analyzers -->
 	<adapter factory=".analyzers._FilePartChangeAnalyzer" />

@@ -16,6 +16,8 @@ from zope import lifecycleevent
 
 from zope.event import notify
 
+from zc.intid.interfaces import IBeforeIdRemovedEvent
+
 from zope.intid.interfaces import IIntIdAddedEvent
 from zope.intid.interfaces import IIntIdRemovedEvent
 
@@ -229,7 +231,7 @@ def _on_assignment_unlock_event(context, event):
     notify(UnlockQAssessmentPolicies(context, courses))
 
 
-@component.adapter(IQEditableEvaluation, IIntIdRemovedEvent)
+@component.adapter(IQEditableEvaluation, IBeforeIdRemovedEvent)
 def _on_editable_evaluation_removed(context, event):
     if IQSubmittable.providedBy(context):
         delete_all_evaluation_data(context)

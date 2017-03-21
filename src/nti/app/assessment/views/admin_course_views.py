@@ -26,6 +26,8 @@ from pyramid import httpexceptions as hexc
 from pyramid.view import view_config
 from pyramid.view import view_defaults
 
+from nti.app.assessment import MessageFactory as _
+
 from nti.app.assessment._assessment import move_user_assignment_from_course_to_course
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
@@ -37,6 +39,7 @@ from nti.app.base.abstract_views import get_all_sources
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
 from nti.app.externalization.internalization import read_body_as_external_object
+
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
 from nti.app.products.courseware.views import CourseAdminPathAdapter
@@ -79,19 +82,21 @@ class MoveUserAssignmentsView(AbstractAuthenticatedView,
             values = read_body_as_external_object(self.request)
         else:
             values = self.request.params
-        result = CaseInsensitiveDict(values)
-        return result
+        return CaseInsensitiveDict(values)
+
+    def _do_move(self, user, source, target):
+        return move_user_assignment_from_course_to_course(user, source, target)
 
     def __call__(self):
         values = self.readInput()
         source = parse_catalog_entry(values, names=("source", "origin"))
         target = parse_catalog_entry(values, names=("target", "dest"))
         if source is None:
-            raise hexc.HTTPUnprocessableEntity("Invalid source NTIID")
+            raise hexc.HTTPUnprocessableEntity(_("Invalid source NTIID"))
         if target is None:
-            raise hexc.HTTPUnprocessableEntity("Invalid target NTIID")
+            raise hexc.HTTPUnprocessableEntity(_("Invalid target NTIID"))
         if source == target:
-            msg = "Source and Target courses are the same"
+            msg = _("Source and Target courses are the same")
             raise hexc.HTTPUnprocessableEntity(msg)
 
         source = ICourseInstance(source)
@@ -110,9 +115,7 @@ class MoveUserAssignmentsView(AbstractAuthenticatedView,
             if user is None or not IUser.providedBy(user):
                 logger.info("User %s does not exists", username)
                 continue
-            moved = move_user_assignment_from_course_to_course(user,
-                                                               source,
-                                                               target)
+            moved = self._do_move(user, source, target)
             items[username] = sorted(moved)
         result[ITEM_COUNT] = result[TOTAL] = len(items)
         return result
@@ -129,8 +132,7 @@ class SetCourseDatePolicy(AbstractAuthenticatedView,
                           ModeledContentUploadRequestUtilsMixin):
 
     def readInput(self, value=None):
-        result = ModeledContentUploadRequestUtilsMixin.readInput(
-            self, value=value)
+        result = super(SetCourseDatePolicy, self).readInput(value)
         return CaseInsensitiveDict(result)
 
     def _get_datetime(self, x=None):
@@ -200,6 +202,7 @@ class SetCourseDatePolicy(AbstractAuthenticatedView,
         return hexc.HTTPNoContent()
 
 
+@view_config(context=IDataserverFolder)
 @view_config(context=CourseAdminPathAdapter)
 @view_defaults(route_name='objects.generic.traversal',
                renderer='rest',
@@ -235,6 +238,7 @@ class RemovedMatchedSavePointsView(AbstractAuthenticatedView,
         return result
 
 
+@view_config(context=IDataserverFolder)
 @view_config(context=CourseAdminPathAdapter)
 @view_defaults(route_name='objects.generic.traversal',
                renderer='rest',

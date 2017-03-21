@@ -14,11 +14,13 @@ generation = 34
 from zope import component
 from zope import interface
 
-from zope.intid.interfaces import IIntIds
-
 from zope.component.hooks import site
 from zope.component.hooks import setHooks
 from zope.component.hooks import site as current_site
+
+from zope.intid.interfaces import IIntIds
+
+from zope.location import locate
 
 from nti.app.assessment.index import IX_CREATOR
 from nti.app.assessment.index import CreatorIndex
@@ -103,7 +105,6 @@ def do_evolve(context, generation=generation):
     with current_site(ds_folder):
         assert  component.getSiteManager() == ds_folder.getSiteManager(), \
                 "Hooks not installed?"
-
         intids = lsm.getUtility(IIntIds)
         queue = metadata_queue()
         submission_catalog = install_submission_catalog(ds_folder, intids)
@@ -114,6 +115,7 @@ def do_evolve(context, generation=generation):
         del submission_catalog[IX_CREATOR]
         index = CreatorIndex(family=intids.family)
         intids.register(index)
+        locate(index, submission_catalog, IX_CREATOR)
         submission_catalog[IX_CREATOR] = index
         # reindex objects
         seen = set()

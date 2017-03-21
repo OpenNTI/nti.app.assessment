@@ -57,128 +57,136 @@ ITEMS = StandardExternalFields.ITEMS
 TOTAL = StandardExternalFields.TOTAL
 ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 
+
 @view_config(context=IDataserverFolder)
 @view_config(context=CourseAdminPathAdapter)
 @view_defaults(route_name='objects.generic.traversal',
-			   renderer='rest',
-			   permission=nauth.ACT_NTI_ADMIN,
-			   name='MoveUserAssignments')
+               renderer='rest',
+               permission=nauth.ACT_NTI_ADMIN,
+               name='MoveUserAssignments')
 class MoveUserAssignmentsView(AbstractAuthenticatedView,
-							  ModeledContentUploadRequestUtilsMixin):
+                              ModeledContentUploadRequestUtilsMixin):
 
-	def readInput(self, value=None):
-		if self.request.body:
-			values = read_body_as_external_object(self.request)
-		else:
-			values = self.request.params
-		result = CaseInsensitiveDict(values)
-		return result
+    def readInput(self, value=None):
+        if self.request.body:
+            values = read_body_as_external_object(self.request)
+        else:
+            values = self.request.params
+        result = CaseInsensitiveDict(values)
+        return result
 
-	def __call__(self):
-		values = self.readInput()
-		source = parse_catalog_entry(values, names=("source", "origin"))
-		target = parse_catalog_entry(values, names=("target", "dest"))
-		if source is None:
-			raise hexc.HTTPUnprocessableEntity("Invalid source NTIID")
-		if target is None:
-			raise hexc.HTTPUnprocessableEntity("Invalid target NTIID")
-		if source == target:
-			raise hexc.HTTPUnprocessableEntity("Source and Target courses are the same")
+    def __call__(self):
+        values = self.readInput()
+        source = parse_catalog_entry(values, names=("source", "origin"))
+        target = parse_catalog_entry(values, names=("target", "dest"))
+        if source is None:
+            raise hexc.HTTPUnprocessableEntity("Invalid source NTIID")
+        if target is None:
+            raise hexc.HTTPUnprocessableEntity("Invalid target NTIID")
+        if source == target:
+            raise hexc.HTTPUnprocessableEntity("Source and Target courses are the same")
 
-		source = ICourseInstance(source)
-		target = ICourseInstance(target)
+        source = ICourseInstance(source)
+        target = ICourseInstance(target)
 
-		usernames = values.get('usernames') or values.get('username')
-		if usernames:
-			usernames = usernames.split(',')
-		else:
-			usernames = tuple(ICourseEnrollments(source).iter_principals())
+        usernames = values.get('usernames') or values.get('username')
+        if usernames:
+            usernames = usernames.split(',')
+        else:
+            usernames = tuple(ICourseEnrollments(source).iter_principals())
 
-		result = LocatedExternalDict()
-		items = result[ITEMS] = {}
-		for username in usernames:
-			user = User.get_user(username)
-			if user is None or not IUser.providedBy(user):
-				logger.info("User %s does not exists", username)
-				continue
-			moved = move_user_assignment_from_course_to_course(user, source, target)
-			items[username] = sorted(moved)
-		result[ITEM_COUNT] = result[TOTAL] = len(items)
-		return result
+        result = LocatedExternalDict()
+        items = result[ITEMS] = {}
+        for username in usernames:
+            user = User.get_user(username)
+            if user is None or not IUser.providedBy(user):
+                logger.info("User %s does not exists", username)
+                continue
+            moved = move_user_assignment_from_course_to_course(user,
+                                                               source, 
+                                                               target)
+            items[username] = sorted(moved)
+        result[ITEM_COUNT] = result[TOTAL] = len(items)
+        return result
+
 
 @view_config(context=IDataserverFolder)
 @view_config(context=CourseAdminPathAdapter)
 @view_defaults(route_name='objects.generic.traversal',
-			   renderer='rest',
-			   request_method='POST',
-			   permission=nauth.ACT_NTI_ADMIN,
-			   name='SetCourseDatePolicy')
+               renderer='rest',
+               request_method='POST',
+               permission=nauth.ACT_NTI_ADMIN,
+               name='SetCourseDatePolicy')
 class SetCourseDatePolicy(AbstractAuthenticatedView,
-						  ModeledContentUploadRequestUtilsMixin):
+                          ModeledContentUploadRequestUtilsMixin):
 
-	def readInput(self, value=None):
-		result = ModeledContentUploadRequestUtilsMixin.readInput(self, value=value)
-		return CaseInsensitiveDict(result)
+    def readInput(self, value=None):
+        result = ModeledContentUploadRequestUtilsMixin.readInput(
+            self, value=value)
+        return CaseInsensitiveDict(result)
 
-	def _get_datetime(self, x=None):
-		for func in (float, int):
-			try:
-				value = func(x)
-				return datetime.fromtimestamp(value)
-			except (ValueError, TypeError):
-				pass
-		try:
-			return IDateTime(x)
-		except Exception:
-			pass
-		return None
+    def _get_datetime(self, x=None):
+        for func in (float, int):
+            try:
+                value = func(x)
+                return datetime.fromtimestamp(value)
+            except (ValueError, TypeError):
+                pass
+        try:
+            return IDateTime(x)
+        except Exception:
+            pass
+        return None
 
-	def _process_row(self, course, evaluation, beginning=None, ending=None):
-		course = ICourseInstance(find_object_with_ntiid(course or u''), None)
-		evaluation = component.queryUtility(IQSubmittable, name=evaluation or u'')
-		if course is None or evaluation is None:
-			return False
+    def _process_row(self, course, evaluation, beginning=None, ending=None):
+        course = ICourseInstance(find_object_with_ntiid(course or u''), None)
+        evaluation = component.queryUtility(IQSubmittable, 
+                                            name=evaluation or u'')
+        if course is None or evaluation is None:
+            return False
 
-		dates = []
-		for x in (beginning, ending):
-			if x:
-				x = self._get_datetime(x)
-				if x is None:
-					return False
-			dates.append(x)
-		
-		context = IQAssessmentDateContext(course)
-		for idx, key in enumerate(('available_for_submission_beginning', 
-								   'available_for_submission_ending')):
-			value = dates[idx]
-			if value is not None:
-				context.set(evaluation.ntiid, key, value)
-		return True
-		
-	def __call__(self):
-		values = self.readInput()
-		sources = get_all_sources(self.request, None)
-		if sources:
-			for name, source in sources.items():
-				rdr = csv.reader(source)
-				for idx, row in enumerate(rdr):
-					if len(row) < 3:
-						logger.error("[%s]. Invalid entry at line %s", name, idx)
-						continue
-					course = row[0]
-					evaluation = row[1]
-					beginning = row[2]
-					ending = row[3] if len(row) >=4 else None
-					if not self._process_row(course, evaluation, beginning, ending):
-						logger.error("[%s]. Invalid entry at line %s", name, idx)
-		else:
-			evaluation = 	values.get('evaluation') \
-						 or values.get('assignment') \
-						 or values.get('assesment')
-			if not self._process_row(values.get('course') or values.get('context'),
-							     	 evaluation,
-							         values.get('beginning') or values.get('start'),
-							     	 values.get('ending') or values.get('end')):
-				logger.error("Invalid input data %s", values)
-				raise hexc.HTTPUnprocessableEntity()
-		return hexc.HTTPNoContent()
+        dates = []
+        for x in (beginning, ending):
+            if x:
+                x = self._get_datetime(x)
+                if x is None:
+                    return False
+            dates.append(x)
+
+        context = IQAssessmentDateContext(course)
+        for idx, key in enumerate(('available_for_submission_beginning',
+                                   'available_for_submission_ending')):
+            value = dates[idx]
+            if value is not None:
+                context.set(evaluation.ntiid, key, value)
+        return True
+
+    def __call__(self):
+        values = self.readInput()
+        sources = get_all_sources(self.request, None)
+        if sources:
+            for name, source in sources.items():
+                rdr = csv.reader(source)
+                for idx, row in enumerate(rdr):
+                    if len(row) < 3:
+                        logger.error("[%s]. Invalid entry at line %s",
+                                     name, idx)
+                        continue
+                    course = row[0]
+                    evaluation = row[1]
+                    beginning = row[2]
+                    ending = row[3] if len(row) >= 4 else None
+                    if not self._process_row(course, evaluation, beginning, ending):
+                        logger.error("[%s]. Invalid entry at line %s", 
+                                     name, idx)
+        else:
+            evaluation = values.get('evaluation') \
+                       or values.get('assignment') \
+                       or values.get('assesment')
+            if not self._process_row(values.get('course') or values.get('context'),
+                                     evaluation,
+                                     values.get('beginning') or values.get('start'),
+                                     values.get('ending') or values.get('end')):
+                logger.error("Invalid input data %s", values)
+                raise hexc.HTTPUnprocessableEntity()
+        return hexc.HTTPNoContent()

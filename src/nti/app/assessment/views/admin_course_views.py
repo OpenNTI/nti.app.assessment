@@ -91,7 +91,8 @@ class MoveUserAssignmentsView(AbstractAuthenticatedView,
         if target is None:
             raise hexc.HTTPUnprocessableEntity("Invalid target NTIID")
         if source == target:
-            raise hexc.HTTPUnprocessableEntity("Source and Target courses are the same")
+            msg = "Source and Target courses are the same"
+            raise hexc.HTTPUnprocessableEntity(msg)
 
         source = ICourseInstance(source)
         target = ICourseInstance(target)
@@ -199,12 +200,11 @@ class SetCourseDatePolicy(AbstractAuthenticatedView,
         return hexc.HTTPNoContent()
 
 
-@view_config(context=IDataserverFolder)
 @view_config(context=CourseAdminPathAdapter)
-@view_config(route_name='objects.generic.traversal',
-             renderer='rest',
-             permission=nauth.ACT_NTI_ADMIN,
-             name='RemoveMatchedSavePoints')
+@view_defaults(route_name='objects.generic.traversal',
+               renderer='rest',
+               permission=nauth.ACT_NTI_ADMIN,
+               name='RemoveMatchedSavePoints')
 class RemovedMatchedSavePointsView(AbstractAuthenticatedView,
                                    ModeledContentUploadRequestUtilsMixin):
 
@@ -235,13 +235,12 @@ class RemovedMatchedSavePointsView(AbstractAuthenticatedView,
         return result
 
 
-@view_config(context=IDataserverFolder)
 @view_config(context=CourseAdminPathAdapter)
-@view_config(route_name='objects.generic.traversal',
-             renderer='rest',
-             permission=nauth.ACT_NTI_ADMIN,
-             request_method='GET',
-             name='UnmatchedSavePoints')
+@view_defaults(route_name='objects.generic.traversal',
+               renderer='rest',
+               permission=nauth.ACT_NTI_ADMIN,
+               request_method='GET',
+               name='UnmatchedSavePoints')
 class UnmatchedSavePointsView(AbstractAuthenticatedView):
 
     def __call__(self):

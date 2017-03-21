@@ -150,7 +150,7 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
                 comps = components.get(spec)
                 if comps:
                     self._lookupAll(comps,
-                                    specs, 
+                                    specs,
                                     provided,
                                     i + 1,
                                     l,
@@ -216,8 +216,8 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
                                                      name=evaluation.ntiid)
                         if obj is not None:
                             logger.info("%s evaluation found at %s",
-                                         ntiid, 
-                                         host_site.__name__)
+                                        ntiid,
+                                        host_site.__name__)
                             site = host_site
                             break
             else:
@@ -246,7 +246,7 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
         if package is None:
             package = values.get('package')
             if package is not None:
-                package = find_object_with_ntiid(ntiid) 
+                package = find_object_with_ntiid(ntiid)
             else:
                 package = None
 

@@ -75,6 +75,11 @@ def process_course(course, queue, intids):
             continue
         for item in user_data.values():
             add_2_queue(item, queue, intids)
+            try:
+                for item in item.values():
+                    add_2_queue(item, queue, intids)
+            except AttributeError:
+                pass
 
 
 def process_site_courses(seen, queue, intids):

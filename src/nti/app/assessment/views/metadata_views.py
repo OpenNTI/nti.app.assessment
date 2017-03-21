@@ -77,8 +77,9 @@ class AssignmentSubmissionMetataPostView(AbstractAuthenticatedView,
             raise hexc.HTTPForbidden(_("Must be Authenticated."))
         course = get_course_from_request(self.request)
         if course is None:
-            course = get_course_from_evaluation(
-                self.context, creator, exc=False)
+            course = get_course_from_evaluation(self.context, 
+                                                creator, 
+                                                exc=False)
         if course is None:
             raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
         return creator, course
@@ -86,9 +87,8 @@ class AssignmentSubmissionMetataPostView(AbstractAuthenticatedView,
     def _process(self, creator=None, course=None, item=None):
         if creator is None or course is None:
             creator, course = self._validate()
-
-        item = self.readCreateUpdateContentObject(
-            creator) if item is None else item
+        if item is None:
+            item = self.readCreateUpdateContentObject(creator)
         lifecycleevent.created(item)
 
         self.request.response.status_int = 201
@@ -145,8 +145,9 @@ class AssignmentSubmissionMetadataGetView(AbstractAuthenticatedView):
     def course(self):
         course = get_course_from_request(self.request)
         if course is None:
-            course = get_course_from_evaluation(
-                self.context, self.remoteUser, exc=False)
+            course = get_course_from_evaluation(self.context, 
+                                                self.remoteUser, 
+                                                exc=False)
         return course
 
     def _do_call(self):

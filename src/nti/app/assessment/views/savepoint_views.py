@@ -84,8 +84,9 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 
         course = get_course_from_request(self.request)
         if course is None:
-            course = get_course_from_evaluation(
-                self.context, creator, exc=False)
+            course = get_course_from_evaluation(self.context, 
+                                                creator, 
+                                                exc=False)
         if course is None:
             raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
 
@@ -162,8 +163,8 @@ class AssignmentSubmissionSavepointGetView(AbstractAuthenticatedView):
         course = get_course_from_request(self.request)
         if course is None:
             course = get_course_from_evaluation(self.context, 
-                                                 creator, 
-                                                 exc=False)
+                                                creator, 
+                                                exc=False)
         if course is None:
             raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
 

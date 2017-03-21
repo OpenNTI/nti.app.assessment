@@ -9,9 +9,6 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-import csv
-from io import BytesIO
-
 from requests.structures import CaseInsensitiveDict
 
 from zope import component
@@ -19,8 +16,6 @@ from zope import component
 from zope.component.hooks import site as current_site
 
 from zope.intid.interfaces import IIntIds
-
-from zope.security.interfaces import IPrincipal
 
 from persistent.list import PersistentList
 
@@ -36,11 +31,6 @@ from nti.app.assessment._question_map import _add_assessment_items_from_new_cont
 from nti.app.assessment._question_map import _remove_assessment_items_from_oldcontent
 
 from nti.app.assessment.common import get_resource_site_name
-
-from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
-from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
-
-from nti.app.assessment.views import parse_catalog_entry
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
@@ -58,10 +48,6 @@ from nti.assessment.interfaces import IQAssessmentItemContainer
 from nti.common.string import is_true
 
 from nti.contentlibrary.interfaces import IContentPackage
-
-from nti.contenttypes.courses.interfaces import ICourseCatalog
-from nti.contenttypes.courses.interfaces import ICourseInstance
-from nti.contenttypes.courses.interfaces import ICourseEnrollments
 
 from nti.dataserver import authorization as nauth
 
@@ -116,96 +102,6 @@ class CheckAssessmentIntegrityView(AbstractAuthenticatedView,
         result['FixedLineage'] = sorted(fixed_lineage)
         result['AdjustedContainer'] = sorted(adjusted)
         return result
-
-
-@view_config(route_name='objects.generic.traversal',
-             renderer='rest',
-             permission=nauth.ACT_NTI_ADMIN,
-             context=IDataserverFolder,
-             name='RemoveMatchedSavePoints')
-class RemovedMatchedSavePointsView(AbstractAuthenticatedView,
-                                   ModeledContentUploadRequestUtilsMixin):
-
-    """
-    Remove savepoint for already submitted assignment(s)
-    """
-
-    def _do_call(self):
-        result = LocatedExternalDict()
-        items = result[ITEMS] = {}
-        catalog = component.getUtility(ICourseCatalog)
-        for entry in catalog.iterCatalogEntries():
-            course = ICourseInstance(entry)
-            enrollments = ICourseEnrollments(course)
-            for record in enrollments.iter_enrollments():
-                principal = record.Principal
-                history = component.queryMultiAdapter((course, principal),
-                                                      IUsersCourseAssignmentHistory)
-                savepoint = component.queryMultiAdapter((course, principal),
-                                                        IUsersCourseAssignmentSavepoint)
-                if not savepoint or not history:
-                    continue
-                for assignmentId in set(history.keys()):  # snapshot
-                    if assignmentId in savepoint:
-                        savepoint._delitemf(assignmentId, event=False)
-                        assignments = items.setdefault(principal.username, [])
-                        assignments.append(assignmentId)
-        return result
-
-
-@view_config(route_name='objects.generic.traversal',
-             renderer='rest',
-             permission=nauth.ACT_NTI_ADMIN,
-             request_method='GET',
-             context=IDataserverFolder,
-             name='UnmatchedSavePoints')
-class UnmatchedSavePointsView(AbstractAuthenticatedView):
-
-    def __call__(self):
-        catalog = component.getUtility(ICourseCatalog)
-        params = CaseInsensitiveDict(self.request.params)
-        entry = parse_catalog_entry(params)
-        if entry is not None:
-            entries = (entry,)
-        else:
-            entries = catalog.iterCatalogEntries()
-
-        response = self.request.response
-        response.content_encoding = str('identity')
-        response.content_type = str('text/csv; charset=UTF-8')
-        response.content_disposition = str('attachment; filename="report.csv"')
-
-        stream = BytesIO()
-        writer = csv.writer(stream)
-        header = ['course', 'username', 'assignment']
-        writer.writerow(header)
-
-        for entry in entries:
-            ntiid = entry.ntiid
-            course = ICourseInstance(entry)
-            enrollments = ICourseEnrollments(course)
-            for record in enrollments.iter_enrollments():
-                principal = record.Principal
-                if IPrincipal(principal, None) is None:
-                    continue
-
-                history = component.queryMultiAdapter((course, principal),
-                                                      IUsersCourseAssignmentHistory)
-
-                savepoint = component.queryMultiAdapter((course, principal),
-                                                        IUsersCourseAssignmentSavepoint)
-                if not savepoint:
-                    continue
-
-                for assignmentId in set(savepoint.keys()):  # snapshot
-                    if assignmentId not in history or ():
-                        row_data = [ntiid, principal.username, assignmentId]
-                        writer.writerow(row_data)
-
-        stream.flush()
-        stream.seek(0)
-        response.body_file = stream
-        return response
 
 
 @view_config(route_name='objects.generic.traversal',

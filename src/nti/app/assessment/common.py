@@ -166,11 +166,9 @@ MIME_TYPE = StandardExternalFields.MIMETYPE
 UNGRADABLE_CODE = u'UngradableInAutoGradeAssignment'
 UNGRADABLE_MSG = _("Ungradable item in auto-graded assignment.")
 
-DISABLE_AUTO_GRADE_MSG = _(
-    "Removing points to auto-gradable assignment. Do you want to disable auto-grading?")
+DISABLE_AUTO_GRADE_MSG = _("Removing points to auto-gradable assignment. Do you want to disable auto-grading?")
 
-AUTO_GRADE_NO_POINTS_MSG = _(
-    "Cannot enable auto-grading without setting a point value.")
+AUTO_GRADE_NO_POINTS_MSG = _("Cannot enable auto-grading without setting a point value.")
 
 
 def get_resource_site_name(context, strict=False):
@@ -352,7 +350,6 @@ def get_assessment_items_from_unit(contentUnit):
 
 def get_content_packages_assessment_items(package):
     result = []
-
     def _recur(unit):
         items = get_unit_assessments(unit)
         for item in items:
@@ -440,8 +437,8 @@ def _get_evaluation_catalog_entry(evaluation, catalog=None, registry=component):
         catalog = registry.getUtility(ICourseCatalog)
     try:
         ntiid = evaluation.CatalogEntryNTIID or u''
-        result =   find_object_with_ntiid(ntiid) \
-                or catalog.getCatalogEntry(ntiid)
+        result =  find_object_with_ntiid(ntiid) \
+               or catalog.getCatalogEntry(ntiid)
     except (KeyError, AttributeError):
         pass
     return result
@@ -492,8 +489,10 @@ def get_assessment_metadata_item(context, user, assignment):
     metadata = component.queryMultiAdapter((course, user),
                                            IUsersCourseAssignmentMetadata)
     if metadata is not None:
-        ntiid = assignment.ntiid if IQAssignment.providedBy(
-            assignment) else str(assignment)
+        if IQAssignment.providedBy(assignment):
+            ntiid = assignment.ntiid 
+        else:
+            ntiid = str(assignment)
         if ntiid in metadata:
             return metadata[ntiid]
     return None
@@ -537,7 +536,7 @@ def get_all_course_assignments(context):
 def get_course_assignments(context, sort=True, reverse=False, do_filtering=True,
                            parent_course=False):
     items = get_course_evaluations(context,
-                                   mimetypes=ALL_ASSIGNMENT_MIME_TYPES, 
+                                   mimetypes=ALL_ASSIGNMENT_MIME_TYPES,
                                    parent_course=parent_course)
     ntiid = getattr(ICourseCatalogEntry(context, None), 'ntiid', None)
     if do_filtering:
@@ -552,7 +551,7 @@ def get_course_assignments(context, sort=True, reverse=False, do_filtering=True,
         assignments = [proxy(x, catalog_entry=ntiid)
                        for x in items if IQAssignment.providedBy(x)]
     if sort:
-        assignments = sorted(assignments, 
+        assignments = sorted(assignments,
                              cmp=assignment_comparator,
                              reverse=reverse)
     return assignments
@@ -846,6 +845,16 @@ def delete_evaluation_metadata(context, course, subinstances=True):
                                             course,
                                             subinstances)
     return result
+
+
+def delete_all_evaluation_data(evaluation):
+    for course in get_evaluation_courses(evaluation):
+        if IQInquiry.providedBy(evaluation):
+            delete_inquiry_submissions(evaluation, course)
+        else:
+            delete_evaluation_metadata(evaluation, course)
+            delete_evaluation_savepoints(evaluation, course)
+            delete_evaluation_submissions(evaluation, course)
 
 
 def get_containers_for_evaluation_object(context, sites=None, include_question_sets=False):

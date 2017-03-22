@@ -87,7 +87,6 @@ from nti.ntiids.ntiids import find_object_with_ntiid
 @view_config(route_name="objects.generic.traversal",
              context=IQAssignment,
              renderer='rest',
-             # permission=nauth.ACT_CREATE, # see below
              request_method='POST')
 class AssignmentSubmissionPostView(AbstractAuthenticatedView,
                                    ModeledContentUploadRequestUtilsMixin):
@@ -124,9 +123,9 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
         course = get_course_from_request(self.request)
         if course is None:
             logger.warn('Submission for assessment without course context (user=%s)',
-					    creator)
-            raise hexc.HTTPUnprocessableEntity(
-                "Submission for assessment without course context")
+                        creator)
+            msg = _("Submission for assessment without course context")
+            raise hexc.HTTPUnprocessableEntity(msg)
 
         if not is_assignment_available(self.context, course=course, user=creator):
             raise hexc.HTTPForbidden(_("Assignment is not available."))
@@ -139,13 +138,13 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
                 submission = self.readCreateUpdateContentObject(creator)
                 check_upload_files(submission)
             else:
-                extValue = get_source(self.request, 
+                extValue = get_source(self.request,
                                       'json',
-                                      'input', 
+                                      'input',
                                       'submission')
                 if not extValue:
-                    raise hexc.HTTPUnprocessableEntity(
-                        _("No submission source was specified"))
+                    msg = _("No submission source was specified")
+                    raise hexc.HTTPUnprocessableEntity(msg)
                 extValue = extValue.read()
                 extValue = read_input_data(extValue, self.request)
                 submission = self.readCreateUpdateContentObject(creator,
@@ -188,8 +187,7 @@ class AssignmentPracticeSubmissionPostView(AssignmentSubmissionPostView):
 
     def _do_call(self):
         try:
-            result = super(AssignmentPracticeSubmissionPostView, self)._do_call()
-            return result
+            return super(AssignmentPracticeSubmissionPostView, self)._do_call()
         finally:
             self.request.environ['nti.commit_veto'] = 'abort'
 
@@ -238,7 +236,7 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
         if result is None:
             # Ok, pick the first course we find.
             result = get_course_from_evaluation(context,
-                                                self.remoteUser, 
+                                                self.remoteUser,
                                                 exc=True)
         return result
 
@@ -320,17 +318,17 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
                             qp_part = qp_part.value
 
                         if IQUploadedFile.providedBy(qp_part):
-                            user_filename_part = self._get_username_filename_part(principal)
-                            full_filename = "%s-%s-%s-%s-%s" % (user_filename_part,
+                            fn_part = self._get_username_filename_part(principal)
+                            full_filename = "%s-%s-%s-%s-%s" % (fn_part,
                                                                 sub_num,
                                                                 q_num,
                                                                 qp_num,
                                                                 qp_part.filename)
 
-                            date_time = datetime.utcfromtimestamp(
-                                qp_part.lastModified)
-                            info = ZipInfo(full_filename, 
-										   date_time=date_time.timetuple())
+                            lastModified = qp_part.lastModified
+                            date_time = datetime.utcfromtimestamp(lastModified)
+                            info = ZipInfo(full_filename,
+                                           date_time=date_time.timetuple())
                             zipfile.writestr(info, qp_part.data)
         zipfile.close()
         buf.seek(0)

@@ -30,6 +30,7 @@ from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment._assessment import move_user_assignment_from_course_to_course
 
+from nti.app.assessment.interfaces import ICourseEvaluations
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
 
@@ -47,7 +48,8 @@ from nti.app.products.courseware.views import CourseAdminPathAdapter
 from nti.assessment.interfaces import IQSubmittable
 from nti.assessment.interfaces import IQAssessmentDateContext
 
-from nti.contenttypes.courses.interfaces import ICourseCatalog
+from nti.contenttypes.courses.interfaces import ICourseCatalog,\
+    ICourseCatalogEntry
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 
@@ -191,11 +193,12 @@ class SetCourseDatePolicy(AbstractAuthenticatedView,
                                      name, idx)
         else:
             evaluation = values.get('evaluation') \
-                      or values.get('assignment') \
-                      or values.get('assesment')
+                or values.get('assignment') \
+                or values.get('assesment')
             if not self._process_row(values.get('course') or values.get('context'),
                                      evaluation,
-                                     values.get('beginning') or values.get('start'),
+                                     values.get('beginning') or values.get(
+                                         'start'),
                                      values.get('ending') or values.get('end')):
                 logger.error("Invalid input data %s", values)
                 raise hexc.HTTPUnprocessableEntity()
@@ -292,3 +295,20 @@ class UnmatchedSavePointsView(AbstractAuthenticatedView):
         stream.seek(0)
         response.body_file = stream
         return response
+
+
+@view_config(context=ICourseInstance)
+@view_config(context=ICourseCatalogEntry)
+@view_defaults(route_name='objects.generic.traversal',
+               renderer='rest',
+               permission=nauth.ACT_NTI_ADMIN,
+               request_method='POST',
+               name='RemoveCourseEvaluations')
+class RemoveCourseEvaluationsView(AbstractAuthenticatedView):
+
+    def __call__(self):
+        course = ICourseInstance(self.context)
+        evaluations = ICourseEvaluations(course, None)
+        if evaluations:
+            evaluations.clear()
+        return hexc.HTTPNoContent()

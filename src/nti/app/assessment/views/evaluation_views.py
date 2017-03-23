@@ -1485,7 +1485,7 @@ class EvaluationResetMixin(ModeledContentUploadRequestUtilsMixin):
 			   renderer='rest',
 			   request_method='POST',
 			   name=VIEW_RESET_EVALUATION,
-			   permission=nauth.ACT_UPDATE)
+			   permission=nauth.ACT_READ)
 class EvaluationResetView(AbstractAuthenticatedView,
 						  EvaluationResetMixin):
 
@@ -1526,7 +1526,7 @@ class EvaluationResetView(AbstractAuthenticatedView,
 @view_defaults(route_name='objects.generic.traversal',
 			   renderer='rest',
 			   name=VIEW_USER_RESET_EVALUATION,
-			   permission=nauth.ACT_UPDATE)
+			   permission=nauth.ACT_READ)
 class UserEvaluationResetView(AbstractAuthenticatedView,
 							  EvaluationResetMixin):
 

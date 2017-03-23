@@ -490,7 +490,7 @@ def get_assessment_metadata_item(context, user, assignment):
                                            IUsersCourseAssignmentMetadata)
     if metadata is not None:
         if IQAssignment.providedBy(assignment):
-            ntiid = assignment.ntiid 
+            ntiid = assignment.ntiid
         else:
             ntiid = str(assignment)
         if ntiid in metadata:
@@ -1044,7 +1044,7 @@ def validate_auto_grade_points(assignment, course, request, externalValue):
             if not params.get('disableAutoGrade'):
                 links = (
                     Link(request.path, rel='confirm',
-                         params={'disableAutoGrade': True}, method='POST'),
+                         params={'disableAutoGrade': True}, method='PUT'),
                 )
                 raise_json_error(request,
                                  hexc.HTTPConflict,

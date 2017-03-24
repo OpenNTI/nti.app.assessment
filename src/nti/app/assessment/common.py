@@ -93,7 +93,6 @@ from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQAggregatedInquiry
 from nti.assessment.interfaces import IQInquirySubmission
-from nti.assessment.interfaces import IQAssignmentPolicies
 from nti.assessment.interfaces import IQAssessmentPolicies
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQAssessedQuestionSet
@@ -847,8 +846,24 @@ def delete_evaluation_metadata(context, course, subinstances=True):
     return result
 
 
+def delete_evaluation_policies(context, course, subinstances=True):
+    result = 0
+    course = ICourseInstance(course)
+    context_ntiid = getattr(context, 'ntiid', context)
+    for course in get_courses(course, subinstances=subinstances):
+        for provided in (IQAssessmentPolicies, IQAssessmentDateContext):
+            container = provided(course, None) or {}
+            try:
+                del container[context_ntiid]
+                result += 1
+            except KeyError:
+                pass
+    return result
+
+
 def delete_all_evaluation_data(evaluation):
     for course in get_evaluation_courses(evaluation):
+        delete_evaluation_policies(evaluation, course)
         if IQInquiry.providedBy(evaluation):
             delete_inquiry_submissions(evaluation, course)
         else:
@@ -936,8 +951,8 @@ def get_max_time_allowed(assignment, course):
     take the assignment, definied by the assignment policies.
     """
     max_time_allowed = assignment.maximum_time_allowed
-    policy = IQAssignmentPolicies(
-        course).getPolicyForAssignment(assignment.ntiid)
+    policies = IQAssessmentPolicies(course)
+    policy = policies.getPolicyForAssignment(assignment.ntiid)
     if      policy \
         and 'maximum_time_allowed' in policy \
         and policy['maximum_time_allowed'] != max_time_allowed:
@@ -946,7 +961,7 @@ def get_max_time_allowed(assignment, course):
 
 
 def _get_policy_field(assignment, course, field):
-    policy = IQAssignmentPolicies(course, None)
+    policy = IQAssessmentPolicies(course, None)
     assignment_ntiid = getattr(assignment, 'ntiid', assignment)
     result = policy.get(assignment_ntiid, field, False)
     return result

@@ -33,6 +33,7 @@ from nti.app.assessment.common import get_evaluation_courses
 from nti.app.assessment.common import delete_all_evaluation_data
 from nti.app.assessment.common import get_course_from_evaluation
 from nti.app.assessment.common import get_evaluation_containment
+from nti.app.assessment.common import delete_all_evaluation_policy_data
 from nti.app.assessment.common import get_assignments_for_evaluation_object
 
 from nti.app.assessment.evaluations import raise_error
@@ -235,6 +236,8 @@ def _on_assignment_unlock_event(context, event):
 def _on_editable_evaluation_removed(context, event):
     if IQSubmittable.providedBy(context):
         delete_all_evaluation_data(context)
+    else:
+        delete_all_evaluation_policy_data(context)
 
 
 @component.adapter(ICourseInstance, IIntIdRemovedEvent)

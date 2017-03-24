@@ -9,9 +9,7 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-generation = 29
-
-from collections import Mapping
+generation = 35
 
 from zope import component
 from zope import interface
@@ -23,6 +21,10 @@ from zope.component.hooks import site as current_site
 from zope.intid.interfaces import IIntIds
 
 from BTrees.OOBTree import OOBTree
+
+from nti.assessment.interfaces import IQEvaluation
+
+from nti.contentlibrary.interfaces import IContentPackageLibrary
 
 from nti.contenttypes.courses.assignment import COURSE_DATE_CONTEXT_KEY
 from nti.contenttypes.courses.assignment import COURSE_INSTANCE_DATE_CONTEXT_KEY
@@ -67,7 +69,9 @@ def _update_policy(seen, catalog, intids):
                 continue
             mapping = OOBTree(mixin._mapping)
             for key, value in list(mapping.items()):
-                if isinstance(value, Mapping):
+                if component.queryUtility(IQEvaluation, name=key) is None:
+                    del mapping[key]
+                else:
                     mapping[key] = OOBTree(value)
             mixin._mapping = mapping
             mixin._p_changed = True
@@ -88,6 +92,11 @@ def do_evolve(context, generation=generation):
         lsm = ds_folder.getSiteManager()
         intids = lsm.getUtility(IIntIds)
 
+        # Load library
+        library = component.queryUtility(IContentPackageLibrary)
+        if library is not None:
+            library.syncContentPackages()
+
         seen = set()
         # global site
         catalog = component.queryUtility(ICourseCatalog)
@@ -105,6 +114,6 @@ def do_evolve(context, generation=generation):
 
 def evolve(context):
     """
-    Evolve to generation 29 by changing the mapping type in the policies.
+    Evolve to generation 35 by changing the mapping type in the policies.
     """
     do_evolve(context, generation)

@@ -861,9 +861,16 @@ def delete_evaluation_policies(context, course, subinstances=True):
     return result
 
 
-def delete_all_evaluation_data(evaluation):
+def delete_all_evaluation_policy_data(evaluation):
     for course in get_evaluation_courses(evaluation):
         delete_evaluation_policies(evaluation, course)
+
+
+def delete_all_evaluation_data(evaluation):
+    for course in get_evaluation_courses(evaluation):
+        # delete policy data
+        delete_evaluation_policies(evaluation, course)
+        # delete submission data
         if IQInquiry.providedBy(evaluation):
             delete_inquiry_submissions(evaluation, course)
         else:

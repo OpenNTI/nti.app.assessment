@@ -52,7 +52,7 @@ class MockDataserver(object):
         return None
 
 
-def _update_policy(seen, catalog, intids):
+def _update_policy(seen, catalog, intids, check=True):
     for entry in catalog.iterCatalogEntries():
         course = ICourseInstance(entry, None)
         doc_id = intids.queryId(course)
@@ -69,7 +69,7 @@ def _update_policy(seen, catalog, intids):
                 continue
             mapping = OOBTree(mixin._mapping)
             for key, value in list(mapping.items()):
-                if component.queryUtility(IQEvaluation, name=key) is None:
+                if check and component.queryUtility(IQEvaluation, name=key) is None:
                     del mapping[key]
                 else:
                     mapping[key] = OOBTree(value)
@@ -100,7 +100,7 @@ def do_evolve(context, generation=generation):
         seen = set()
         # global site
         catalog = component.queryUtility(ICourseCatalog)
-        _update_policy(seen, catalog, intids)
+        _update_policy(seen, catalog, intids, False)
         # all sites
         for site in get_all_host_sites():
             with current_site(site):

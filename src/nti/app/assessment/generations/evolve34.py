@@ -113,11 +113,12 @@ def do_evolve(context, generation=generation):
         intids = lsm.getUtility(IIntIds)
         queue = metadata_queue()
         submission_catalog = install_submission_catalog(ds_folder, intids)
-        # recreate creator index
+        submission_catalog.clear() # clear all
+        # delete creator index
         index = submission_catalog[IX_CREATOR]
-        index.clear()  # clear all
         intids.unregister(index)
         del submission_catalog[IX_CREATOR]
+        # recreate and add creator index
         index = CreatorIndex(family=intids.family)
         intids.register(index)
         locate(index, submission_catalog, IX_CREATOR)

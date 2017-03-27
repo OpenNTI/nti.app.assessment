@@ -35,130 +35,139 @@ from nti.assessment.interfaces import IInternalUploadedFileRef
 
 from nti.namedfile.interfaces import INamedFile
 
+
 def check_max_size(part, max_file_size=None):
-	size = part.size
-	max_file_size = max_file_size or sys.maxint
-	if size > max_file_size:
-		msg = _('Max file size exceeded.')
-		raise hexc.HTTPUnprocessableEntity(msg)
-	return part
+    size = part.size
+    max_file_size = max_file_size or sys.maxint
+    if size > max_file_size:
+        msg = _('Max file size exceeded.')
+        raise hexc.HTTPUnprocessableEntity(msg)
+    return part
+
 
 def check_upload_files(submission):
-	for question_set in submission.parts:
-		for sub_question in question_set.questions:
-			question = component.getUtility(IQuestion, sub_question.questionId)
-			for part, sub_part in zip(question.parts, sub_question.parts):
-				part_value = get_part_value(sub_part)
-				if not INamedFile.providedBy(part_value):
-					continue
+    for question_set in submission.parts:
+        for sub_question in question_set.questions:
+            question = component.getUtility(IQuestion, sub_question.questionId)
+            for part, sub_part in zip(question.parts, sub_question.parts):
+                part_value = get_part_value(sub_part)
+                if not INamedFile.providedBy(part_value):
+                    continue
 
-				if not IQFilePart.providedBy(part):
-					msg = 'Invalid submission. Expected a IQFilePart, instead it found %s' % part
-					raise hexc.HTTPUnprocessableEntity(msg)
+                if not IQFilePart.providedBy(part):
+                    msg = 'Invalid submission. Expected a IQFilePart, instead it found %s' % part
+                    raise hexc.HTTPUnprocessableEntity(msg)
 
-				max_size = part.max_file_size
-				check_max_size(part_value, max_size)
-	return submission
+                max_size = part.max_file_size
+                check_max_size(part_value, max_size)
+    return submission
+
 
 def read_multipart_sources(submission, request):
-	for question_set in submission.parts:
-		for sub_question in question_set.questions:
-			question = component.getUtility(IQuestion, sub_question.questionId)
-			for part, sub_part in zip(question.parts, sub_question.parts):
-				part_value = get_part_value(sub_part)
-				if not INamedFile.providedBy(part_value):
-					continue
+    for question_set in submission.parts:
+        for sub_question in question_set.questions:
+            question = component.getUtility(IQuestion, sub_question.questionId)
+            for part, sub_part in zip(question.parts, sub_question.parts):
+                part_value = get_part_value(sub_part)
+                if not INamedFile.providedBy(part_value):
+                    continue
 
-				if not IQFilePart.providedBy(part):
-					msg = 'Invalid submission. Expected a IQFilePart, instead it found %s' % part
-					raise hexc.HTTPUnprocessableEntity(msg)
+                if not IQFilePart.providedBy(part):
+                    msg = 'Invalid submission. Expected a IQFilePart, instead it found %s' % part
+                    raise hexc.HTTPUnprocessableEntity(msg)
 
-				max_size = part.max_file_size
-				if part_value.size > 0:
-					check_max_size(part_value, max_size)
+                max_size = part.max_file_size
+                if part_value.size > 0:
+                    check_max_size(part_value, max_size)
 
-				if not part_value.name:
-					msg = 'No name was given to uploded file'
-					raise hexc.HTTPUnprocessableEntity(msg)
+                if not part_value.name:
+                    msg = 'No name was given to uploded file'
+                    raise hexc.HTTPUnprocessableEntity(msg)
 
-				source = get_source(request, part_value.name)
-				if source is None:
-					msg = 'Could not find data for file %s' % part_value.name
-					raise hexc.HTTPUnprocessableEntity(msg)
+                source = get_source(request, part_value.name)
+                if source is None:
+                    msg = 'Could not find data for file %s' % part_value.name
+                    raise hexc.HTTPUnprocessableEntity(msg)
 
-				# copy data
-				transfer_data(source, part_value)
-	return submission
+                # copy data
+                transfer_data(source, part_value)
+    return submission
+
 
 def set_poll_submission_lineage(submission):
-	for submitted_question_part in submission.parts:
-		set_parent(submitted_question_part, submission)
-	return submission
+    for submitted_question_part in submission.parts:
+        set_parent(submitted_question_part, submission)
+    return submission
+
 
 def set_survey_submission_lineage(submission):
-	for submitted_question in submission.questions:
-		set_parent(submitted_question, submission)
-		set_poll_submission_lineage(submitted_question)
-	return submission
+    for submitted_question in submission.questions:
+        set_parent(submitted_question, submission)
+        set_poll_submission_lineage(submitted_question)
+    return submission
+
 
 def set_inquiry_submission_lineage(submission):
-	if IQPollSubmission.providedBy(submission):
-		set_poll_submission_lineage(submission)
-	elif IQSurveySubmission.providedBy(submission):
-		set_survey_submission_lineage(submission)
-	return submission
+    if IQPollSubmission.providedBy(submission):
+        set_poll_submission_lineage(submission)
+    elif IQSurveySubmission.providedBy(submission):
+        set_survey_submission_lineage(submission)
+    return submission
+
 
 def transfer_submission_file_data(source, target,  force=False):
-	"""
-	Search for previously uploaded files and make them part of the
-	new submission if nothing has changed.
+    """
+    Search for previously uploaded files and make them part of the
+    new submission if nothing has changed.
 
-	:param source Source submission
-	:param target Target submission
-	"""
+    :param source Source submission
+    :param target Target submission
+    """
 
-	def _is_internal(source):
-		if not INamedFile.providedBy(source):
-			return False
-		if force:
-			return True
-		else:
-			result =	IInternalUploadedFileRef.providedBy(source) \
-					or	(not source.filename and source.size == 0)
-			return result
+    def _is_internal(source):
+        if not INamedFile.providedBy(source):
+            return False
+        if force:
+            return True
+        else:
+            result = IInternalUploadedFileRef.providedBy(source) \
+                  or (not source.filename and source.size == 0)
+            return result
 
-	# extra check
-	if source is None or target is None:
-		return target
+    # extra check
+    if source is None or target is None:
+        return target
 
-	for question_set in target.parts:
-		try:
-			# make sure we have a question set
-			old_question_set = source.get(question_set.questionSetId)
-			if old_question_set is None:
-				continue
-			for question in question_set.questions:
-				# make sure we have a question
-				old_question = old_question_set.get(question.questionId)
-				if old_question is None:
-					continue
-				for idx, part in enumerate(question.parts):
-					part_value = get_part_value(part)
-					# check there is a part
-					try:
-						old_part = old_question[idx]
-						old_part_value = get_part_value(old_part)
-					except IndexError:
-						break
-					# check if the uploaded file has been internalized empty
-					# this is tightly coupled w/ the way IQUploadedFile are updated.
-					if INamedFile.providedBy(old_part_value) and _is_internal(part_value):
-						part_value.data = old_part_value.data
-						part_value.filename = old_part_value.filename
-						part_value.contentType = old_part_value.contentType
-						part_value.name = getattr(old_part_value, 'name', None)
-						interface.noLongerProvides(part_value, IInternalUploadedFileRef)
-		except POSError:
-			logger.exception("Failed to transfer data from savepoints")
-			break
-	return target
+    for question_set in target.parts:
+        try:
+            # make sure we have a question set
+            old_question_set = source.get(question_set.questionSetId)
+            if old_question_set is None:
+                continue
+            for question in question_set.questions:
+                # make sure we have a question
+                old_question = old_question_set.get(question.questionId)
+                if old_question is None:
+                    continue
+                for idx, part in enumerate(question.parts):
+                    part_value = get_part_value(part)
+                    # check there is a part
+                    try:
+                        old_part = old_question[idx]
+                        old_part_value = get_part_value(old_part)
+                    except IndexError:
+                        break
+                    # check if the uploaded file has been internalized empty
+                    # this is tightly coupled w/ the way IQUploadedFile are
+                    # updated.
+                    if INamedFile.providedBy(old_part_value) and _is_internal(part_value):
+                        part_value.data = old_part_value.data
+                        part_value.filename = old_part_value.filename
+                        part_value.contentType = old_part_value.contentType
+                        part_value.name = getattr(old_part_value, 'name', None)
+                        interface.noLongerProvides(part_value, 
+                                                   IInternalUploadedFileRef)
+        except POSError:
+            logger.exception("Failed to transfer data from savepoints")
+            break
+    return target

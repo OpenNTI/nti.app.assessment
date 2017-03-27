@@ -73,243 +73,266 @@ from nti.wref.interfaces import IWeakRef
 
 LINKS = StandardExternalFields.LINKS
 
+
 @interface.implementer(IUsersCourseInquiries)
 class UsersCourseInquiries(CaseInsensitiveCheckingLastModifiedBTreeContainer):
-	"""
-	Implementation of the course inquirys for all users in a course.
-	"""
+    """
+    Implementation of the course inquirys for all users in a course.
+    """
+
+
 UsersCourseSurveys = UsersCourseInquiries  # BWC
+
 
 @interface.implementer(IUsersCourseInquiry)
 class UsersCourseInquiry(CheckingLastModifiedBTreeContainer):
 
-	__external_can_create__ = False
+    __external_can_create__ = False
 
-	#: An :class:`.IWeakRef` to the owning user
-	_owner_ref = None
+    #: An :class:`.IWeakRef` to the owning user
+    _owner_ref = None
 
-	def _get_owner(self):
-		return self._owner_ref() if self._owner_ref else None
-	def _set_owner(self, owner):
-		self._owner_ref = IWeakRef(owner)
-	owner = property(_get_owner, _set_owner)
+    def _get_owner(self):
+        return self._owner_ref() if self._owner_ref else None
 
-	creator = alias('owner')
+    def _set_owner(self, owner):
+        self._owner_ref = IWeakRef(owner)
+    owner = property(_get_owner, _set_owner)
 
-	@property
-	def Items(self):
-		return dict(self)
+    creator = alias('owner')
 
-	def recordSubmission(self, submission):
-		if submission.__parent__ is not None:
-			raise ValueError("Objects already parented")
+    @property
+    def Items(self):
+        return dict(self)
 
-		item = UsersCourseInquiryItem(Submission=submission)
-		submission.__parent__ = item
-		set_inquiry_submission_lineage(submission)
+    def recordSubmission(self, submission):
+        if submission.__parent__ is not None:
+            raise ValueError("Objects already parented")
 
-		self[submission.inquiryId] = item
-		return item
+        item = UsersCourseInquiryItem(Submission=submission)
+        submission.__parent__ = item
+        set_inquiry_submission_lineage(submission)
 
-	def removeSubmission(self, submission):
-		inquiryId = getattr(submission, 'inquiryId', str(submission))
-		if inquiryId not in self:
-			return
-		del self[inquiryId]
+        self[submission.inquiryId] = item
+        return item
 
-	def __conform__(self, iface):
-		if IUser.isOrExtends(iface):
-			return self.owner
+    def removeSubmission(self, submission):
+        inquiryId = getattr(submission, 'inquiryId', str(submission))
+        if inquiryId not in self:
+            return
+        del self[inquiryId]
 
-		if ICourseInstance.isOrExtends(iface):
-			return self.__parent__
+    def __conform__(self, iface):
+        if IUser.isOrExtends(iface):
+            return self.owner
 
-	@property
-	def __acl__(self):
-		course = ICourseInstance(self, None)
-		instructors = getattr(course, 'instructors', ())  # already principals
-		aces = [ace_allowing(self.owner, ACT_READ, type(self))]
-		for instructor in instructors:
-			aces.append(ace_allowing(instructor, ALL_PERMISSIONS, type(self)))
-		aces.append(ACE_DENY_ALL)
-		return acl_from_aces(aces)
+        if ICourseInstance.isOrExtends(iface):
+            return self.__parent__
+
+    @property
+    def __acl__(self):
+        course = ICourseInstance(self, None)
+        instructors = getattr(course, 'instructors', ())  # already principals
+        aces = [ace_allowing(self.owner, ACT_READ, type(self))]
+        for instructor in instructors:
+            aces.append(ace_allowing(instructor, ALL_PERMISSIONS, type(self)))
+        aces.append(ACE_DENY_ALL)
+        return acl_from_aces(aces)
+
 
 @interface.implementer(IUsersCourseInquiryItem,
-					   IACLProvider,
-					   ISublocations)
+                       IACLProvider,
+                       ISublocations)
 class UsersCourseInquiryItem(PersistentCreatedModDateTrackingObject,
-							 Contained,
-							 SchemaConfigured):
-	createDirectFieldProperties(IUsersCourseInquiryItem)
+                             Contained,
+                             SchemaConfigured):
+    createDirectFieldProperties(IUsersCourseInquiryItem)
 
-	__external_can_create__ = False
+    __external_can_create__ = False
 
-	def __conform__(self, iface):
-		if IUser.isOrExtends(iface):
-			try:
-				return iface(self.__parent__)
-			except (AttributeError, TypeError):
-				return None
+    def __conform__(self, iface):
+        if IUser.isOrExtends(iface):
+            try:
+                return iface(self.__parent__)
+            except (AttributeError, TypeError):
+                return None
 
-	@property
-	def creator(self):
-		return IUser(self, None)
+    @property
+    def creator(self):
+        return IUser(self, None)
 
-	@creator.setter
-	def creator(self, nv):
-		pass
+    @creator.setter
+    def creator(self, nv):
+        pass
 
-	@property
-	def inquiryId(self):
-		return self.__name__
+    @property
+    def inquiryId(self):
+        return self.__name__
 
-	@readproperty
-	def Inquiry(self):
-		result = component.queryUtility(IQInquiry, name=self.__name__)
-		return result
+    @readproperty
+    def Inquiry(self):
+        result = component.queryUtility(IQInquiry, name=self.__name__)
+        return result
 
-	@property
-	def __acl__(self):
-		course = ICourseInstance(self, None)
-		instructors = getattr(course, 'instructors', ())  # already principals
-		aces = [ace_allowing(self.creator, ACT_READ, type(self))]
-		for instructor in instructors:
-			aces.append(ace_allowing(instructor, ALL_PERMISSIONS, type(self)))
-		aces.append(ACE_DENY_ALL)
-		return acl_from_aces(aces)
+    @property
+    def __acl__(self):
+        course = ICourseInstance(self, None)
+        instructors = getattr(course, 'instructors', ())  # already principals
+        aces = [ace_allowing(self.creator, ACT_READ, type(self))]
+        for instructor in instructors:
+            aces.append(ace_allowing(instructor, ALL_PERMISSIONS, type(self)))
+        aces.append(ACE_DENY_ALL)
+        return acl_from_aces(aces)
 
-	def sublocations(self):
-		if self.Submission is not None:
-			yield self.Submission
+    def sublocations(self):
+        if self.Submission is not None:
+            yield self.Submission
+
 
 @interface.implementer(IUsersCourseInquiryItemResponse)
 class UsersCourseInquiryItemResponse(SchemaConfigured):
-	createDirectFieldProperties(IUsersCourseInquiryItemResponse)
+    createDirectFieldProperties(IUsersCourseInquiryItemResponse)
+
 
 @component.adapter(ICourseInstance)
 @interface.implementer(IUsersCourseInquiries)
 def _inquiries_for_course(course, create=True):
-	result = None
-	annotations = IAnnotations(course)
-	try:
-		KEY = 'Inquiries'
-		result = annotations[KEY]
-	except KeyError:
-		if create:
-			result = UsersCourseInquiries()
-			annotations[KEY] = result
-			result.__name__ = KEY
-			result.__parent__ = course
-	return result
+    result = None
+    annotations = IAnnotations(course)
+    try:
+        KEY = 'Inquiries'
+        result = annotations[KEY]
+    except KeyError:
+        if create:
+            result = UsersCourseInquiries()
+            annotations[KEY] = result
+            result.__name__ = KEY
+            result.__parent__ = course
+    return result
+
 
 @component.adapter(ICourseInstance, IUser)
 @interface.implementer(IUsersCourseInquiry)
 def _inquiry_for_user_in_course(course, user, create=True):
-	result = None
-	inquiries = _inquiries_for_course(course)
-	try:
-		result = inquiries[user.username]
-	except KeyError:
-		if create:
-			result = UsersCourseInquiry()
-			result.owner = user
-			inquiries[user.username] = result
-	return result
+    result = None
+    inquiries = _inquiries_for_course(course)
+    try:
+        result = inquiries[user.username]
+    except KeyError:
+        if create:
+            result = UsersCourseInquiry()
+            result.owner = user
+            inquiries[user.username] = result
+    return result
+
 
 def _inquiries_for_course_path_adapter(course, request):
-	return _inquiries_for_course(course)
+    return _inquiries_for_course(course)
+
 
 def _inquiries_for_courseenrollment_path_adapter(enrollment, request):
-	return _inquiries_for_course(ICourseInstance(enrollment))
+    return _inquiries_for_course(ICourseInstance(enrollment))
+
 
 @interface.implementer(ICourseInstance)
 @component.adapter(IUsersCourseInquiryItem)
 def _course_from_inquiryitem_lineage(item):
-	return course_from_context_lineage(item)
+    return course_from_context_lineage(item)
+
 
 @component.adapter(IUsersCourseInquiries, IRequest)
 class _UsersCourseInquiriesTraversable(ContainerAdapterTraversable):
 
-	def traverse(self, key, remaining_path):
-		try:
-			return super(_UsersCourseInquiriesTraversable, self).traverse(key, remaining_path)
-		except LocationError:
-			user = User.get_user(key)
-			if user is not None:
-				return _inquiry_for_user_in_course(self.context.__parent__, user)
-			raise
+    def traverse(self, key, remaining_path):
+        try:
+            return super(_UsersCourseInquiriesTraversable, self).traverse(key, remaining_path)
+        except LocationError:
+            user = User.get_user(key)
+            if user is not None:
+                return _inquiry_for_user_in_course(self.context.__parent__, user)
+            raise
+
 
 @component.adapter(IUsersCourseInquiry, IRequest)
 class _UsersCourseInquiryTraversable(ContainerAdapterTraversable):
 
-	def traverse(self, key, remaining_path):
-		assesment = component.queryUtility(IQInquiry, name=key)
-		if assesment is not None:
-			return assesment
-		raise LocationError(self.context, key)
+    def traverse(self, key, remaining_path):
+        assesment = component.queryUtility(IQInquiry, name=key)
+        if assesment is not None:
+            return assesment
+        raise LocationError(self.context, key)
+
 
 @interface.implementer(ICourseInquiryCatalog)
 @component.adapter(ICourseInstance)
 class _DefaultCourseInquiryCatalog(object):
 
-	def __init__(self, context):
-		self.context = context
+    def __init__(self, context):
+        self.context = context
 
-	def iter_inquiries(self):
-		result = get_course_inquiries(self.context)
-		return result
+    def iter_inquiries(self):
+        result = get_course_inquiries(self.context)
+        return result
+
 
 @interface.implementer(ICourseAggregatedInquiries)
 class CourseAggregatedSurveys(CheckingLastModifiedBTreeContainer):
 
-	__external_can_create__ = False
+    __external_can_create__ = False
 
-	def __conform__(self, iface):
-		if ICourseInstance.isOrExtends(iface):
-			return self.__parent__
+    def __conform__(self, iface):
+        if ICourseInstance.isOrExtends(iface):
+            return self.__parent__
 
-	@property
-	def __acl__(self):
-		course = ICourseInstance(self, None)
-		instructors = getattr(course, 'instructors', ())  # already principals
-		aces = [ace_allowing(i, ALL_PERMISSIONS, type(self)) for i in instructors]
-		aces.append(ace_allowing(EVERYONE_USER_NAME, ACT_READ))
-		return acl_from_aces(aces)
+    @property
+    def __acl__(self):
+        course = ICourseInstance(self, None)
+        instructors = getattr(course, 'instructors', ())  # already principals
+        aces = [ace_allowing(i, ALL_PERMISSIONS, type(self))
+                for i in instructors or ()]
+        aces.append(ace_allowing(EVERYONE_USER_NAME, ACT_READ))
+        return acl_from_aces(aces)
+
 
 @component.adapter(ICourseInstance)
 @interface.implementer(ICourseAggregatedInquiries)
 def _aggreated_inquiries_for_course(course):
-	annotations = IAnnotations(course)
-	try:
-		KEY = 'AggregatedInquiries'
-		result = annotations[KEY]
-	except KeyError:
-		result = CourseAggregatedSurveys()
-		annotations[KEY] = result
-		result.__name__ = KEY
-		result.__parent__ = course
-	return result
+    annotations = IAnnotations(course)
+    try:
+        KEY = 'AggregatedInquiries'
+        result = annotations[KEY]
+    except KeyError:
+        result = CourseAggregatedSurveys()
+        annotations[KEY] = result
+        result.__name__ = KEY
+        result.__parent__ = course
+    return result
+
 
 def _aggreated_inquiries_for_course_path_adapter(course, request):
-	return _aggreated_inquiries_for_course(course)
+    return _aggreated_inquiries_for_course(course)
+
 
 def _aggreated_inquiries_for_courseenrollment_path_adapter(enrollment, request):
-	return _aggreated_inquiries_for_course(ICourseInstance(enrollment))
+    return _aggreated_inquiries_for_course(ICourseInstance(enrollment))
+
 
 @component.adapter(ICourseInstance, IObjectAddedEvent)
 def _on_course_added(course, event):
-	_inquiries_for_course(course)
+    _inquiries_for_course(course)
+
 
 @component.adapter(IUsersCourseInquiryItem, IObjectAddedEvent)
 def _on_course_inquiry_item_added(item, event):
-	pass
+    pass
+
 
 def aggregate_survey_submission(storage, submission):
-	aggregated_inquiry = IQAggregatedSurvey(submission)
-	for aggregated_poll in aggregated_inquiry.questions:
-		pollId = aggregated_poll.pollId
-		if pollId not in storage:
-			storage[pollId] = aggregated_poll
-		else:
-			stored = storage[pollId]
-			stored += aggregated_poll
+    aggregated_inquiry = IQAggregatedSurvey(submission)
+    for aggregated_poll in aggregated_inquiry.questions:
+        pollId = aggregated_poll.pollId
+        if pollId not in storage:
+            storage[pollId] = aggregated_poll
+        else:
+            stored = storage[pollId]
+            stored += aggregated_poll

@@ -46,5 +46,5 @@ class AssesmentEditLinkMaker(DefaultEditLinkMaker):
         return DefaultEditLinkMaker.make(self,
                                          context,
                                          request=request,
-                                         allow_traversable_paths=allow_traversable_paths,
-                                         link_method=link_method)
+                                         link_method=link_method,
+                                         allow_traversable_paths=allow_traversable_paths)

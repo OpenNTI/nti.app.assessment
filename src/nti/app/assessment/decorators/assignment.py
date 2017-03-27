@@ -648,7 +648,7 @@ class _PartAutoGradeStatus(AbstractAuthenticatedRequestAwareDecorator):
 		result['AutoGradable'] = is_part_auto_gradable(context)
 
 @interface.implementer(IExternalMappingDecorator)
-class _AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
+class AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 	"""
 	Give editors and instructors policy edit links. This should be available on all
 	assignments/inquiries.
@@ -658,6 +658,12 @@ class _AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecora
 	def request_course(self):
 		course = get_course_from_request(self.request)
 		return course
+
+	def get_context(self, context):
+		"""
+		Subclasses can override.
+		"""
+		return context
 
 	def _get_courses(self, context):
 		result = _get_course_from_evaluation(context,
@@ -677,6 +683,7 @@ class _AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecora
 		"""
 		Course policy edits can only occur on non-global assignments.
 		"""
+		context = self.get_context(context)
 		return 		self._is_authenticated \
 				and not is_global_evaluation( context ) \
 				and self._can_edit(context)
@@ -697,6 +704,7 @@ class _AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecora
 		return result
 
 	def _do_decorate_external(self, context, result):
+		context = self.get_context(context)
 		_links = result.setdefault(LINKS, [])
 		courses = self._get_courses(context)
 		names = ('date-edit-end', 'date-edit', 'total-points')

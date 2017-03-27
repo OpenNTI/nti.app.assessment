@@ -188,12 +188,16 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 		return res
 
 	def _create_and_enroll(self, course_id='tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice'):
-		q_sub = submission.QuestionSubmission(questionId=self.question_id, parts=(response.QUploadedFile(data=b'1234',
-																							contentType=b'image/gif',
-																							filename='foo.gif'),))
+		uploaded_file = response.QUploadedFile(data=b'1234',
+											   contentType=b'image/gif',
+											   filename='foo.gif')
+		q_sub = submission.QuestionSubmission(questionId=self.question_id,
+											  parts=(uploaded_file,))
 
-		qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id, questions=(q_sub,))
-		asg_submission = AssignmentSubmission(assignmentId=self.assignment_id, parts=(qs_submission,))
+		qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id,
+											  questions=(q_sub,))
+		asg_submission = AssignmentSubmission(assignmentId=self.assignment_id,
+											  parts=(qs_submission,))
 		GIF_DATAURL = b'data:image/gif;base64,R0lGODlhCwALAIAAAAAA3pn/ZiH5BAEAAAEALAAAAAALAAsAAAIUhA+hkcuO4lmNVindo7qyrIXiGBYAOw=='
 
 		ext_obj = to_external_object(asg_submission)

@@ -201,7 +201,7 @@ def _begin_assessment_for_assignment_submission(submission):
     no longer exactly true, but we can still associate a course enrollment).
     """
     # Get the assignment
-    assignment = component.getUtility(IQAssignment, 
+    assignment = component.getUtility(IQAssignment,
                                       name=submission.assignmentId)
     # Submissions to an assignment with zero parts are not allowed;
     # those are reserved for the professor
@@ -223,8 +223,8 @@ def _begin_assessment_for_assignment_submission(submission):
 
     course = get_course_from_request()
     if course is None:
-        course = get_course_from_assignment(assignment, 
-                                            submission.creator, 
+        course = get_course_from_assignment(assignment,
+                                            submission.creator,
                                             exc=True)
 
     _validate_submission(submission, course, assignment)
@@ -240,8 +240,8 @@ def _begin_assessment_for_assignment_submission(submission):
     set_assessed_lineage(submission)
     submission.containerId = submission.assignmentId
 
-    pending_assessment = assess_assignment_submission(course, 
-                                                      assignment, 
+    pending_assessment = assess_assignment_submission(course,
+                                                      assignment,
                                                       submission)
     set_assessed_lineage(pending_assessment)
     lifecycleevent.created(pending_assessment)
@@ -472,7 +472,7 @@ def course_for_evaluation_and_user(assesment, user):
 def _get_hierarchy_context_for_context(obj, top_level_context):
     results = component.queryMultiAdapter((top_level_context, obj),
                                           IHierarchicalContextProvider)
-    return results or (top_level_context,)
+    return results
 
 
 def _get_course_context(evaluation):
@@ -507,9 +507,9 @@ def _hierarchy_from_obj_and_user(obj, user):
     for course in get_top_level_contexts_for_user(obj, user):
         # Get assignments/question sets so that we can find in outline.
         for container in get_outline_evaluation_containers(obj) or (obj,):
-            context = _get_hierarchy_context_for_context(container, course)
-            if context:
-                results.extend(context)
+            path = _get_hierarchy_context_for_context(container, course)
+            path = path if path else ((course,),)
+            results.extend(path)
     return results
 
 

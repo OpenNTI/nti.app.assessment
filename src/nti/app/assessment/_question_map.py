@@ -52,7 +52,6 @@ from nti.assessment.interfaces import SURVEY_MIME_TYPE
 from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
 from nti.assessment.interfaces import QUESTION_SET_MIME_TYPE
 
-from nti.coremetadata.interfaces import IRecordable
 from nti.coremetadata.interfaces import IPublishable
 from nti.coremetadata.interfaces import INoPublishLink
 from nti.coremetadata.interfaces import IObjectPublishedEvent
@@ -81,6 +80,8 @@ from nti.intid.common import addIntId
 from nti.intid.common import removeIntId
 
 from nti.ntiids.ntiids import find_object_with_ntiid
+
+from nti.recorder.interfaces import IRecordable
 
 from nti.recorder.record import copy_transaction_history
 from nti.recorder.record import remove_transaction_history

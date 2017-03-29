@@ -124,8 +124,8 @@ class _InquiryPrincipalObjects(BasePrincipalObjects):
     def _item_collector(self, result):
         user = self.user
         for course in _get_courses_from_enrollments(user):
-            items = component.queryMultiAdapter((course, user), 
-                                                 IUsersCourseInquiry)
+            items = component.queryMultiAdapter((course, user),
+                                                IUsersCourseInquiry)
             if not items:
                 continue
             _add_to_result(result, items)
@@ -169,9 +169,9 @@ class _UserEvaluationObjects(BasePrincipalObjects):
             course = ICourseInstance(entry)
             evaluations = ICourseEvaluations(course)
             for ntiid, e in list(evaluations.items()):
-                creator = e.creator
-                creator = getattr(creator, 'username', creator)
-                if ntiid not in seen and creator == user.username:
+                creator = getattr(e.creator, 'username', None)
+                creator = getattr(e.creator, 'id', creator) or u''
+                if ntiid not in seen and creator.lower() == user.username.lower():
                     seen.add(ntiid)
                     result.extend(e)
 

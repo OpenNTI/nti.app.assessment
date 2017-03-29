@@ -72,15 +72,15 @@ from nti.contenttypes.courses.common import get_course_site_registry
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
-from nti.coremetadata.interfaces import IRecordable
-from nti.coremetadata.interfaces import IObjectUnlockedEvent
-from nti.coremetadata.interfaces import IRecordableContainer
-
 from nti.externalization.interfaces import IObjectModifiedFromExternalEvent
 
 from nti.ntiids.ntiids import find_object_with_ntiid
 
 from nti.recorder.interfaces import TRX_TYPE_CREATE
+
+from nti.recorder.interfaces import IRecordable
+from nti.recorder.interfaces import IObjectUnlockedEvent
+from nti.recorder.interfaces import IRecordableContainer
 
 from nti.recorder.utils import record_transaction
 

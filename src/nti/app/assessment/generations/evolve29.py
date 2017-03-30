@@ -30,10 +30,10 @@ from nti.contentlibrary.interfaces import IContentPackageLibrary
 
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
-from nti.coremetadata.interfaces import IRecordable
-
 from nti.dataserver.interfaces import IDataserver
 from nti.dataserver.interfaces import IOIDResolver
+
+from nti.recorder.interfaces import IRecordable
 
 from nti.site.hostpolicy import get_all_host_sites
 

@@ -12,15 +12,6 @@ logger = __import__('logging').getLogger(__name__)
 import zope.i18nmessageid
 MessageFactory = zope.i18nmessageid.MessageFactory(__name__)
 
-from zope import component
-
-from zope.catalog.interfaces import ICatalog
-
-from nti.app.assessment.index import EVALUATION_CATALOG_NAME
-from nti.app.assessment.index import SUBMISSION_CATALOG_NAME
-
-from nti.zope_catalog.interfaces import IMetadataCatalog
-
 #: A view name to submit an assignment without persisting.
 ASSESSMENT_PRACTICE_SUBMISSION = 'PracticeSubmission'
 
@@ -87,10 +78,8 @@ VIEW_QUESTION_CONTAINERS = 'Assessments'
 #: A view to fetch the topic associated with an IQDiscussionAssignment
 VIEW_RESOLVE_TOPIC = 'ResolveTopic'
 
+from nti.app.assessment.index import EVALUATION_CATALOG_NAME
+from nti.app.assessment.index import SUBMISSION_CATALOG_NAME
 
-def get_submission_catalog():
-    return component.queryUtility(IMetadataCatalog, name=SUBMISSION_CATALOG_NAME)
-
-
-def get_evaluation_catalog():
-    return component.queryUtility(ICatalog, name=EVALUATION_CATALOG_NAME)
+from nti.app.assessment.index import get_submission_catalog
+from nti.app.assessment.index import get_evaluation_catalog

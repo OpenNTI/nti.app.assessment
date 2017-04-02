@@ -93,7 +93,7 @@ IX_ASSESSMENT_TYPE = 'assesmentType'
 IX_CREATOR = IX_STUDENT = IX_USERNAME = 'creator'
 
 
-deprecated('ValidatingCourseIntID',  'No longer used')
+deprecated('ValidatingCourseIntID', 'No longer used')
 class ValidatingCourseIntID(object):
     pass
 
@@ -109,9 +109,8 @@ class ValidatingSite(object):
 
     @classmethod
     def _folder(cls, obj):
-        item = IUsersCourseSubmissionItem(obj, None)
-        if item is not None:
-            course = ICourseInstance(item, None)  # course is lineage
+        if IUsersCourseSubmissionItem.providedBy(obj):
+            course = ICourseInstance(obj, None)  # course is lineage
             folder = find_interface(course, IHostPolicyFolder, strict=False)
             return folder
         return None
@@ -136,9 +135,8 @@ class ValidatingCatalogEntryID(object):
 
     @classmethod
     def _entry(cls, obj):
-        item = IUsersCourseSubmissionItem(obj, None)
-        if item is not None:
-            course = ICourseInstance(item, None)  # course is lineage
+        if IUsersCourseSubmissionItem.providedBy(obj):
+            course = ICourseInstance(obj, None)  # course is lineage
             # entry is an annotation
             entry = ICourseCatalogEntry(course, None)
             return entry
@@ -322,6 +320,10 @@ def install_submission_catalog(site_manager_container, intids=None):
     return catalog
 
 
+def get_submission_catalog():
+    return component.queryUtility(IMetadataCatalog, name=SUBMISSION_CATALOG_NAME)
+
+
 # Evaluation / Containment catalog
 
 
@@ -431,7 +433,7 @@ class ValidatingEvaluationContainment(object):
 
     def _do_assigment_question_set(self, obj):
         result = set()
-        for p in obj.parts:
+        for p in obj.parts or ():
             question_set = p.question_set
             result.add(question_set.ntiid)
             result.update(self._do_survey_question_set(question_set))
@@ -562,6 +564,10 @@ class EvaluationCatalog(Catalog):
             result = self.containers_index.documents_to_values.get(doc_id)
             return set(result or ())
         return set()
+
+
+def get_evaluation_catalog():
+    return component.queryUtility(ICatalog, name=EVALUATION_CATALOG_NAME)
 
 
 def create_evaluation_catalog(catalog=None, family=None):

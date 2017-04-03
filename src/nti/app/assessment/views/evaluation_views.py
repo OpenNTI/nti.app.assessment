@@ -223,22 +223,40 @@ class CourseEvaluationsGetView(AbstractAuthenticatedView, BatchingUtilsMixin):
 			accept = ()
 		return accept
 
-	def __call__(self):
+	def _do_call(self, evaluations):
 		result = LocatedExternalDict()
+		result.__parent__ = evaluations
 		result.__name__ = self.request.view_name
-		result.__parent__ = self.request.context
-		result.lastModified = self.context.lastModified
+		result.lastModified = evaluations.lastModified
 		mimeTypes = self._get_mimeTypes()
 		items = result[ITEMS] = []
 		if mimeTypes:
-			items.extend(x for x in self.context.values() if x.mimeType in mimeTypes)
+			items.extend(x for x in evaluations.values() if x.mimeType in mimeTypes)
 		else:
-			items.extend(self.context.values())
+			items.extend(evaluations.values())
 
 		result['TotalItemCount'] = len(items)
 		self._batch_items_iterable(result, items)
 		result[ITEM_COUNT] = len(result[ITEMS])
 		return result
+
+	def __call__(self):
+		return self._do_call(self.context)
+
+
+@view_config(context=ICourseCatalogEntry)
+@view_defaults(route_name='objects.generic.traversal',
+			   renderer='rest',
+			   request_method='GET',
+			   name="CourseEvaluations",
+			   permission=nauth.ACT_CONTENT_EDIT)
+class CatalogEntryEvaluationsView(CourseEvaluationsGetView):
+
+	def __call__(self):
+		course = ICourseInstance(self.context)
+		evaluations = ICourseEvaluations(course)
+		return self._do_call(evaluations)
+
 
 class EvaluationMixin(StructuralValidationMixin):
 

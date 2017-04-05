@@ -36,7 +36,7 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.dataserver.interfaces import IDataserver
 from nti.dataserver.interfaces import IOIDResolver
 
-from nti.metadata import metadata_queue
+from nti.metadata import queue_add
 
 from nti.site.hostpolicy import get_all_host_sites
 
@@ -59,30 +59,27 @@ CONTAINER_INTERFACES = (IUsersCourseInquiries,
                         IUsersCourseAssignmentMetadataContainer)
 
 
-def add_2_queue(context, queue, intids):
+def add_2_queue(context, intids):
     doc_id = intids.queryId(context)
     if doc_id is not None:
-        try:
-            queue.add(doc_id)
-        except TypeError:
-            pass
+        queue_add(doc_id)
 
 
-def process_course(course, queue, intids):
+def process_course(course, intids):
     for provided in CONTAINER_INTERFACES:
         user_data = provided(course, None)
         if not user_data:
             continue
         for item in user_data.values():
-            add_2_queue(item, queue, intids)
+            add_2_queue(item, intids)
             try:
                 for item in item.values():
-                    add_2_queue(item, queue, intids)
+                    add_2_queue(item, intids)
             except AttributeError:
                 pass
 
 
-def process_site_courses(seen, queue, intids):
+def process_site_courses(seen, intids):
     catalog = component.queryUtility(ICourseCatalog)
     if catalog is None or catalog.isEmpty():
         return
@@ -92,7 +89,7 @@ def process_site_courses(seen, queue, intids):
         if doc_id is None or doc_id in seen:
             continue
         seen.add(doc_id)
-        process_course(course, queue, intids)
+        process_course(course, intids)
 
 
 def do_evolve(context, generation=generation):
@@ -111,7 +108,6 @@ def do_evolve(context, generation=generation):
         assert  component.getSiteManager() == ds_folder.getSiteManager(), \
                 "Hooks not installed?"
         intids = lsm.getUtility(IIntIds)
-        queue = metadata_queue()
         submission_catalog = install_submission_catalog(ds_folder, intids)
         submission_catalog.clear() # clear all
         # delete creator index
@@ -127,7 +123,7 @@ def do_evolve(context, generation=generation):
         seen = set()
         for site in get_all_host_sites():
             with current_site(site):
-                process_site_courses(seen, queue, intids)
+                process_site_courses(seen, intids)
         seen.clear()
 
     component.getGlobalSiteManager().unregisterUtility(mock_ds, IDataserver)

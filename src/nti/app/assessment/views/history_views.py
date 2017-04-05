@@ -335,6 +335,7 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 
         self.request.response.body = buf.getvalue()
         filename = self._get_filename(course)
+        self.request.response.content_type = b'application/zip; charset=UTF-8'
         self.request.response.content_disposition = 'attachment; filename="%s"' % filename
 
         return self.request.response

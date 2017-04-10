@@ -18,6 +18,8 @@ from datetime import datetime
 
 from six import StringIO
 
+from zipfile import ZIP_DEFLATED
+
 from zipfile import ZipFile
 from zipfile import ZipInfo
 
@@ -324,21 +326,21 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
                                                                 q_num,
                                                                 qp_num,
                                                                 qp_part.filename)
-
                             lastModified = qp_part.lastModified
                             date_time = datetime.utcfromtimestamp(lastModified)
                             info = ZipInfo(full_filename,
                                            date_time=date_time.timetuple())
+                            info.compress_type = ZIP_DEFLATED
                             zipfile.writestr(info, qp_part.data)
         zipfile.close()
         buf.seek(0)
-
         self.request.response.body = buf.getvalue()
         filename = self._get_filename(course)
-        self.request.response.content_type = b'application/zip; charset=UTF-8'
-        self.request.response.content_disposition = 'attachment; filename="%s"' % filename
-
-        return self.request.response
+        response = self.request.response
+        response.content_encoding = b'identity'
+        response.content_type = b'application/zip; charset=UTF-8'
+        response.content_disposition = b'attachment; filename="%s"' % filename
+        return response
 
 
 @view_defaults(route_name="objects.generic.traversal",

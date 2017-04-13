@@ -14,8 +14,6 @@ from collections import Mapping
 from zope import interface
 
 from nti.app.assessment.evaluations.utils import export_evaluation_content
-from nti.app.assessment.evaluations.utils import is_randomized_assignment
-from nti.app.assessment.evaluations.utils import is_randomized_assignment_part
 
 from nti.app.assessment.interfaces import ICourseEvaluations
 
@@ -24,6 +22,9 @@ from nti.app.assessment.utils import copy_evaluation
 from nti.app.products.courseware.resources.utils import get_course_filer
 
 from nti.assessment import EVALUATION_INTERFACES
+
+from nti.assessment.common import is_randomized_assignment
+from nti.assessment.common import is_randomized_assignment_part
 
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet

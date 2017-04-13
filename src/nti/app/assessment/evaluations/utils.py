@@ -61,10 +61,6 @@ from nti.assessment.interfaces import IQAssignmentPart
 from nti.assessment.interfaces import IQEvaluationItemContainer
 from nti.assessment.interfaces import IQNonGradableFillInTheBlankWithWordBankPart
 
-from nti.assessment.randomized.interfaces import IQuestionBank
-from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
-from nti.assessment.randomized.interfaces import IRandomizedPartsContainer
-
 from nti.contentfile.interfaces import IContentBaseFile
 
 from nti.contentfragments.html import _html5lib_tostring
@@ -292,12 +288,3 @@ def validate_structural_edits(theObject, course, request=None):
     for assignment in assignments:
         validate_savepoints(assignment, course, request)
     validate_submissions(theObject, course, request)
-
-
-def is_randomized_assignment(assignment):
-    return not IQuestionBank.providedBy(assignment) \
-           and IRandomizedQuestionSet.providedBy(assignment)
-
-
-def is_randomized_assignment_part(assignment):
-    return IRandomizedPartsContainer.providedBy(assignment)

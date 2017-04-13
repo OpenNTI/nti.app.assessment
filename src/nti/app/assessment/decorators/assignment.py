@@ -57,9 +57,6 @@ from nti.app.assessment.decorators import _root_url
 from nti.app.assessment.decorators import _get_course_from_evaluation
 from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
 
-from nti.app.assessment.evaluations.utils import is_randomized_assignment
-from nti.app.assessment.evaluations.utils import is_randomized_assignment_part
-
 from nti.app.assessment.interfaces import ACT_VIEW_SOLUTIONS
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
@@ -72,6 +69,9 @@ from nti.app.contentlibrary import LIBRARY_PATH_GET_VIEW
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
 from nti.appserver.pyramid_authorization import has_permission
+
+from nti.assessment.common import is_randomized_assignment
+from nti.assessment.common import is_randomized_assignment_part
 
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment

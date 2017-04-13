@@ -186,8 +186,9 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
 
     def _do_decorate_external(self, context, result):
         links = result.setdefault(LINKS, [])
-        course = _get_course_from_evaluation(
-            context, self.remoteUser, request=self.request)
+        course = _get_course_from_evaluation(context, 
+                                             self.remoteUser, 
+                                             request=self.request)
         if course is not None:
             ntiid = context.ntiid
             link = Link(course,
@@ -218,18 +219,21 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
         if course is None:
             return
 
+        # start date
         start_date = get_available_for_submission_beginning(assignment, course)
+        ext_obj = to_external_object(start_date)
+        result['available_for_submission_beginning'] = ext_obj
+        
+        # end date
         end_date = get_available_for_submission_ending(assignment, course)
-        result['available_for_submission_beginning'] = to_external_object(
-            start_date)
-        result['available_for_submission_ending'] = to_external_object(
-            end_date)
+        ext_obj = to_external_object(end_date)
+        result['available_for_submission_ending'] = ext_obj
 
         if IQTimedAssignment.providedBy(assignment):
             max_time_allowed = get_max_time_allowed(assignment, course)
             result['IsTimedAssignment'] = True
-            result['MaximumTimeAllowed'] = result[
-                'maximum_time_allowed'] = max_time_allowed
+            result['MaximumTimeAllowed'] = max_time_allowed
+            result['maximum_time_allowed'] = max_time_allowed
         else:
             result['IsTimedAssignment'] = False
 
@@ -238,8 +242,7 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
         if auto_grade:
             disabled = auto_grade.get('disable')
             # If we have policy but no disabled flag, default to True.
-            result[
-                'auto_grade'] = not disabled if disabled is not None else True
+            result['auto_grade'] = not disabled if disabled is not None else True
             result['total_points'] = auto_grade.get('total_points')
         else:
             result['auto_grade'] = False
@@ -255,9 +258,9 @@ class _TimedAssignmentPartStripperDecorator(AbstractAuthenticatedRequestAwareDec
                                              user=self.remoteUser,
                                              request=self.request)
 
-        if 	   course is None \
-                or is_course_instructor(course, self.remoteUser) \
-                or has_permission(ACT_CONTENT_EDIT, course, self.request):
+        if     course is None \
+            or is_course_instructor(course, self.remoteUser) \
+            or has_permission(ACT_CONTENT_EDIT, course, self.request):
             return
         item = get_assessment_metadata_item(
             course, self.remoteUser, context.ntiid)
@@ -271,12 +274,13 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
         course = _get_course_from_evaluation(context,
                                              user=self.remoteUser,
                                              request=self.request)
-        if 	   course is None \
-                or is_course_instructor(course, self.remoteUser) \
-                or has_permission(ACT_CONTENT_EDIT, course, self.request):
+        if     course is None \
+            or is_course_instructor(course, self.remoteUser) \
+            or has_permission(ACT_CONTENT_EDIT, course, self.request):
             return
-        item = get_assessment_metadata_item(
-            course, self.remoteUser, context.ntiid)
+        item = get_assessment_metadata_item(course, 
+                                            self.remoteUser, 
+                                            context.ntiid)
         if item is not None:
             metadata = {'Duration': item.Duration, 'StartTime': item.StartTime}
             result['Metadata'] = metadata
@@ -294,8 +298,9 @@ class _AssignmentQuestionContentRootURLAdder(AbstractAuthenticatedRequestAwareDe
             if content_unit is not None:
                 ntiid = content_unit.ntiid
             else:
-                assignment = find_interface(
-                    context, IQAssignment, strict=False)
+                assignment = find_interface(context, 
+                                            IQAssignment, 
+                                            strict=False)
                 ntiid = getattr(assignment, 'ContentUnitNTIID', None)
 
         bucket_root = _root_url(ntiid) if ntiid else None
@@ -326,8 +331,8 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
             logger.warn("Could not adapt %s to course", context)
             return False
 
-        if 	   has_permission(ACT_VIEW_SOLUTIONS, course, request) \
-                or has_permission(ACT_CONTENT_EDIT, course, request):
+        if        has_permission(ACT_VIEW_SOLUTIONS, course, request) \
+            or has_permission(ACT_CONTENT_EDIT, course, request):
             # The instructor or an editor, nothing to do
             return False
 
@@ -429,8 +434,7 @@ class QuestionSetRandomizedDecorator(object):
 
     def decorateExternalObject(self, original, external):
         external['Randomized'] = is_randomized_assignment(original)
-        external['RandomizedPartsType'] = is_randomized_assignment_part(
-            original)
+        external['RandomizedPartsType'] = is_randomized_assignment_part(original)
 
 _ContextStatus = namedtuple("_ContextStatus",
                             ("has_savepoints", "has_submissions", "is_available"))
@@ -469,7 +473,7 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
     def _predicate(self, context, result):
         # `IQDiscussionAssignment` objects are handled elsewhere.
-        return 		self._is_authenticated \
+        return  self._is_authenticated \
             and not IQDiscussionAssignment.providedBy( context ) \
             and has_permission(ACT_CONTENT_EDIT, context, self.request)
 
@@ -550,10 +554,9 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
         in_progress = context_status.has_savepoints or context_status.has_submissions
         result['IsAvailable'] = context_status.is_available
         result['LimitedEditingCapabilities'] = in_progress
-        result[
-            'LimitedEditingCapabilitiesSavepoints'] = context_status.has_savepoints
-        result[
-            'LimitedEditingCapabilitiesSubmissions'] = context_status.has_submissions
+        result['LimitedEditingCapabilitiesSavepoints'] = context_status.has_savepoints
+        result['LimitedEditingCapabilitiesSubmissions'] = context_status.has_submissions
+
         if IQAssignment.providedBy(context):
             # For assignments, we want to decorate the insertable status
             # when the clients fetch only the summary of the objects. This
@@ -580,10 +583,11 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
                 rels.extend(self._get_question_rels())
 
         # chose link context according to the presence of a course
+        start_elements = ()
         course = get_course_from_request(self.request)
         link_context = context if course is None else course
-        start_elements = () if course is None else (
-            'Assessments', context.ntiid)
+        if course is not None:
+            start_elements = ('Assessments', context.ntiid)
 
         # loop through rels and create links
         for rel in rels:
@@ -605,7 +609,7 @@ class _DiscussionAssignmentEditorDecorator(_AssessmentEditorDecorator):
     """
 
     def _predicate(self, context, result):
-        return 		self._is_authenticated \
+        return         self._is_authenticated \
             and has_permission(ACT_CONTENT_EDIT, context, self.request)
 
     def _do_decorate_external(self, context, result):
@@ -625,10 +629,11 @@ class _DiscussionAssignmentEditorDecorator(_AssessmentEditorDecorator):
             rels.append(VIEW_IS_NON_PUBLIC)
 
         # chose link context according to the presence of a course
+        start_elements = ()
         course = get_course_from_request(self.request)
         link_context = context if course is None else course
-        start_elements = () if course is None else (
-            'Assessments', context.ntiid)
+        if course is not None:
+            start_elements = ('Assessments', context.ntiid)
 
         # loop through rels and create links
         for rel in rels:
@@ -651,10 +656,11 @@ class _DiscussionAssignmentResolveTopicDecorator(AbstractAuthenticatedRequestAwa
 
     def _do_decorate_external(self, context, result):
         _links = result.setdefault(LINKS, [])
+        start_elements = ()
         course = get_course_from_request(self.request)
         link_context = context if course is None else course
-        start_elements = () if course is None else (
-            'Assessments', context.ntiid)
+        if course is not None:
+            start_elements = ('Assessments', context.ntiid)
         elements = start_elements + ('@@%s' % VIEW_RESOLVE_TOPIC,)
         link = Link(link_context, rel=VIEW_RESOLVE_TOPIC, elements=elements)
         interface.alsoProvides(link, ILocation)
@@ -677,10 +683,9 @@ class _PartAutoGradeStatus(AbstractAuthenticatedRequestAwareDecorator):
     def _predicate(self, context, result):
         # IQParts are not IQEditableEvaluations (we can check lineage if
         # needed).
-        return 		self._acl_decoration \
+        return  self._acl_decoration \
             and self._is_authenticated \
-            and has_permission(ACT_CONTENT_EDIT, context, self.request) \
-
+            and has_permission(ACT_CONTENT_EDIT, context, self.request)
 
     def _do_decorate_external(self, context, result):
         result['AutoGradable'] = is_part_auto_gradable(context)
@@ -715,29 +720,29 @@ class AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
         Editors or instructors of given course context can edit policy.
         """
         return has_permission(ACT_CONTENT_EDIT, context, self.request) \
-            or (	self.request_course is not None
-                 and is_course_instructor(self.request_course, self.remoteUser))
+            or (    self.request_course is not None
+                and is_course_instructor(self.request_course, self.remoteUser))
 
     def _predicate(self, context, result):
         """
         Course policy edits can only occur on non-global assignments.
         """
         context = self.get_context(context)
-        return 		self._is_authenticated \
+        return  self._is_authenticated \
             and not is_global_evaluation( context ) \
             and self._can_edit(context)
 
     def _has_submitted_data(self, context, courses):
-        result = has_savepoints(
-            context, courses) or has_submissions(context, courses)
+        result = has_savepoints(context, courses) \
+              or has_submissions(context, courses)
         return result
 
     def _can_auto_grade(self, context):
         # Content backed assignments can *only* enable auto_grade
         # if the parts are auto-assessable.
         result = True
-        if 		IQAssignment.providedBy( context ) \
-                and not IQEditableEvaluation.providedBy(context):
+        if      IQAssignment.providedBy( context ) \
+            and not IQEditableEvaluation.providedBy(context):
             for part in context.parts or ():
                 if part.auto_grade == False:
                     return False
@@ -778,10 +783,10 @@ class _AssessmentPracticeLinkDecorator(AbstractAuthenticatedRequestAwareDecorato
         course = _get_course_from_evaluation(
             context, user, request=self.request)
         # Legacy, global courses give 'All' perms to course community.
-        return 		self._is_authenticated \
+        return      self._is_authenticated \
             and not ILegacyCourseInstance.providedBy( course ) \
-            and (	is_course_instructor_or_editor(course, user)
-                  or has_permission(ACT_CONTENT_EDIT, context, self.request))
+            and (   is_course_instructor_or_editor(course, user)
+                 or has_permission(ACT_CONTENT_EDIT, context, self.request))
 
     def _do_decorate_external(self, context, result):
         _links = result.setdefault(LINKS, [])

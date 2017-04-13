@@ -17,15 +17,16 @@ from nti.externalization.interfaces import IExternalMappingDecorator
 
 from nti.externalization.singleton import SingletonDecorator
 
+
 @interface.implementer(IExternalMappingDecorator)
 class _SyntheticSubmissionDecorator(object):
-	"""
-	Decorate placeholder submissions as synthetic submissions.
-	"""
+    """
+    Decorate placeholder submissions as synthetic submissions.
+    """
 
-	__metaclass__ = SingletonDecorator
+    __metaclass__ = SingletonDecorator
 
-	def decorateExternalMapping(self, item, result_map):
-		submission = item.Submission
-		is_synth = IPlaceholderAssignmentSubmission.providedBy( submission )
-		result_map['SyntheticSubmission'] = is_synth
+    def decorateExternalMapping(self, item, result_map):
+        submission = item.Submission
+        is_synth = IPlaceholderAssignmentSubmission.providedBy(submission)
+        result_map['SyntheticSubmission'] = is_synth

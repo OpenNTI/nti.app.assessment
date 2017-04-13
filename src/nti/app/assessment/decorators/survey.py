@@ -61,168 +61,173 @@ from nti.traversal.traversal import find_interface
 LINKS = StandardExternalFields.LINKS
 CREATOR = StandardExternalFields.CREATOR
 
+
 class _InquiryContentRootURLAdder(AbstractAuthenticatedRequestAwareDecorator):
 
-	def _do_decorate_external(self, context, result):
-		ntiid = getattr(context, 'ContentUnitNTIID', None)
-		if not ntiid:
-			content_unit = find_interface(context, IContentUnit, strict=False)
-			if content_unit is not None:
-				ntiid = content_unit.ntiid
-			else:
-				assignment = find_interface(context, IQSurvey, strict=False)
-				ntiid = getattr(assignment, 'ContentUnitNTIID', None)
+    def _do_decorate_external(self, context, result):
+        ntiid = getattr(context, 'ContentUnitNTIID', None)
+        if not ntiid:
+            content_unit = find_interface(context, IContentUnit, strict=False)
+            if content_unit is not None:
+                ntiid = content_unit.ntiid
+            else:
+                assignment = find_interface(context, IQSurvey, strict=False)
+                ntiid = getattr(assignment, 'ContentUnitNTIID', None)
 
-		bucket_root = _root_url(ntiid) if ntiid else None
-		if bucket_root:
-			result['ContentRoot' ] = bucket_root
+        bucket_root = _root_url(ntiid) if ntiid else None
+        if bucket_root:
+            result['ContentRoot'] = bucket_root
+
 
 @interface.implementer(IExternalMappingDecorator)
 class _InquiriesDecorator(AbstractAssessmentDecoratorPredicate):
 
-	def _do_decorate_external(self, context, result_map):
-		links = result_map.setdefault(LINKS, [])
-		user = IUser(context, self.remoteUser)
-		links.append(Link(context,
-						  rel='InquiryHistory',
-						  elements=('Inquiries', user.username)))
+    def _do_decorate_external(self, context, result_map):
+        links = result_map.setdefault(LINKS, [])
+        user = IUser(context, self.remoteUser)
+        links.append(Link(context,
+                          rel='InquiryHistory',
+                          elements=('Inquiries', user.username)))
+
 
 @interface.implementer(IExternalMappingDecorator)
 class _InquiryItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
-	def _predicate(self, context, result):
-		creator = context.creator
-		return (AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
-				and creator is not None
-				and creator == self.remoteUser)
+    def _predicate(self, context, result):
+        creator = context.creator
+        return (    AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
+                and creator is not None
+                and creator == self.remoteUser)
 
-	def _do_decorate_external(self, context, result_map):
-		try:
-			link = Link(context)
-			interface.alsoProvides(link, ILinkExternalHrefOnly)
-			result_map['href'] = link
-		except (KeyError, ValueError, AssertionError):
-			pass  # Nope
+    def _do_decorate_external(self, context, result_map):
+        try:
+            link = Link(context)
+            interface.alsoProvides(link, ILinkExternalHrefOnly)
+            result_map['href'] = link
+        except (KeyError, ValueError, AssertionError):
+            pass  # Nope
+
 
 @component.adapter(IQPollSubmission)
 @component.adapter(IQSurveySubmission)
 @interface.implementer(IExternalMappingDecorator)
 class _SubmissionDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
-	def _do_decorate_external(self, context, result_map):
-		item = find_interface(context, IUsersCourseInquiryItem, strict=False)
-		if item is not None and CREATOR not in result_map:
-			creator = getattr(item.creator, 'username', item.creator)
-			result_map[CREATOR] = creator
+    def _do_decorate_external(self, context, result_map):
+        item = find_interface(context, IUsersCourseInquiryItem, strict=False)
+        if item is not None and CREATOR not in result_map:
+            creator = getattr(item.creator, 'username', item.creator)
+            result_map[CREATOR] = creator
+
 
 @interface.implementer(IExternalMappingDecorator)
 class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 
-	@Lazy
-	def _catalog(self):
-		return component.getUtility(ICourseCatalog)
+    @Lazy
+    def _catalog(self):
+        return component.getUtility(ICourseCatalog)
 
-	@Lazy
-	def _intids(self):
-		return component.getUtility(IIntIds)
+    @Lazy
+    def _intids(self):
+        return component.getUtility(IIntIds)
 
-	def _submissions(self, course, context):
-		return len(inquiry_submissions(context, course))
+    def _submissions(self, course, context):
+        return len(inquiry_submissions(context, course))
 
-	def _predicate(self, context, result):
-		context = IQInquiry(context, None)
-		if context is not None:
-			return super(_InquiryDecorator, self)._predicate(context, result)
-		return False
+    def _predicate(self, context, result):
+        context = IQInquiry(context, None)
+        if context is not None:
+            return super(_InquiryDecorator, self)._predicate(context, result)
+        return False
 
-	def _get_course(self, context, user):
-		# We may have survey in multiple courses (if decorating survey ref), use our
-		# ref lineage to distinguish between multiple courses. Ideally, we'll want
-		# to make sure we have a course context wherever this ref is being accessed
-		# (lesson overview) to handle subinstances correctly.
-		course = find_interface(context, ICourseInstance, strict=False)
-		if course is None:
-			course = _get_course_from_evaluation(context,
-												 user,
-												 self._catalog,
-												 request=self.request)
-		return course
+    def _get_course(self, context, user):
+        # We may have survey in multiple courses (if decorating survey ref), use our
+        # ref lineage to distinguish between multiple courses. Ideally, we'll want
+        # to make sure we have a course context wherever this ref is being accessed
+        # (lesson overview) to handle subinstances correctly.
+        course = find_interface(context, ICourseInstance, strict=False)
+        if course is None:
+            course = _get_course_from_evaluation(context,
+                                                 user,
+                                                 self._catalog,
+                                                 request=self.request)
+        return course
 
-	def _do_decorate_external(self, context, result_map):
-		source = context
-		user = self.remoteUser
-		context = IQInquiry(source, None)
-		if context is None:
-			return
+    def _do_decorate_external(self, context, result_map):
+        source = context
+        user = self.remoteUser
+        context = IQInquiry(source, None)
+        if context is None:
+            return
 
-		isClosed = bool(context.closed)
-		result_map['isClosed'] = isClosed
+        isClosed = bool(context.closed)
+        result_map['isClosed'] = isClosed
 
-		links = result_map.setdefault(LINKS, [])
-		# See note above on why we get course for inquiry ref.
-		ref_course = self._get_course(source, user)
-		course = self._get_course(context, user)
-		submission_count = 0
+        links = result_map.setdefault(LINKS, [])
+        # See note above on why we get course for inquiry ref.
+        ref_course = self._get_course(source, user)
+        course = self._get_course(context, user)
+        submission_count = 0
 
-		# overrides
-		if course is not None:
-			submission_count = self._submissions(ref_course, context)
-			available = []
-			now = datetime.utcnow()
-			dates = IQAssessmentDateContext(course).of(context)
-			for k, func in (
-					('available_for_submission_beginning', get_available_for_submission_beginning),
-					('available_for_submission_ending', get_available_for_submission_ending)):
-				dates_date = func(dates, k)
-				asg_date = getattr(context, k)
-				if dates_date != asg_date:
-					result_map[k] = to_external_object(dates_date)
-					available.append(dates_date)
-				else:
-					available.append(asg_date)
+        # overrides
+        if course is not None:
+            submission_count = self._submissions(ref_course, context)
+            available = []
+            now = datetime.utcnow()
+            dates = IQAssessmentDateContext(course).of(context)
+            for k, func in (
+                    ('available_for_submission_beginning', get_available_for_submission_beginning),
+                    ('available_for_submission_ending', get_available_for_submission_ending)):
+                dates_date = func(dates, k)
+                asg_date = getattr(context, k)
+                if dates_date != asg_date:
+                    result_map[k] = to_external_object(dates_date)
+                    available.append(dates_date)
+                else:
+                    available.append(asg_date)
 
-			if available[0] is not None and now < available[0]:
-				isClosed = result_map['isClosed'] = True
-			elif available[1] is not None and now > available[1]:
-				isClosed = result_map['isClosed'] = True
+            if available[0] is not None and now < available[0]:
+                isClosed = result_map['isClosed'] = True
+            elif available[1] is not None and now > available[1]:
+                isClosed = result_map['isClosed'] = True
 
-			policy = get_policy_for_assessment(context, course)
-			if policy and 'disclosure' in policy:
-				result_map['disclosure'] = policy['disclosure']
+            policy = get_policy_for_assessment(context, course)
+            if policy and 'disclosure' in policy:
+                result_map['disclosure'] = policy['disclosure']
 
-			result_map['submissions'] = submission_count
+            result_map['submissions'] = submission_count
 
-		elements = ('Inquiries', user.username, context.ntiid)
+        elements = ('Inquiries', user.username, context.ntiid)
 
-		course_inquiry = component.queryMultiAdapter((course, user),
-													 IUsersCourseInquiry)
-		# history
-		if course is not None and course_inquiry and context.ntiid in course_inquiry:
-			links.append(Link(course,
-							  rel='History',
-							  elements=elements + ('Submission',)))
+        course_inquiry = component.queryMultiAdapter((course, user),
+                                                     IUsersCourseInquiry)
+        # history
+        if course is not None and course_inquiry and context.ntiid in course_inquiry:
+            links.append(Link(course,
+                              rel='History',
+                              elements=elements + ('Submission',)))
 
-		# aggregated
-		if 		course is not None \
-			and submission_count \
-			and (is_course_instructor(course, user)
-				 or can_disclose_inquiry(context, course)):
-			links.append(Link(course,
-							  rel='Aggregated',
-							  elements=elements + ('@@Aggregated',)))
-			links.append(Link(course,
-							  rel='Submissions',
-							  elements=elements + ('@@Submissions',)))
+        # aggregated
+        if      course is not None \
+            and submission_count \
+            and (   is_course_instructor(course, user)
+                 or can_disclose_inquiry(context, course)):
+            links.append(Link(course,
+                              rel='Aggregated',
+                              elements=elements + ('@@Aggregated',)))
+            links.append(Link(course,
+                              rel='Submissions',
+                              elements=elements + ('@@Submissions',)))
 
-		# close/open
-		if course is not None and is_course_instructor(course, user):
-			if not context.closed:
-				links.append(Link(course,
-								  rel='close',
-								  method='POST',
-								  elements=elements + ('@@close',)))
-			else:
-				links.append(Link(course,
-								  rel='open',
-								  method='POST',
-								  elements=elements + ('@@open',)))
+        # close/open
+        if course is not None and is_course_instructor(course, user):
+            if not context.closed:
+                links.append(Link(course,
+                                  rel='close',
+                                  method='POST',
+                                  elements=elements + ('@@close',)))
+            else:
+                links.append(Link(course,
+                                  rel='open',
+                                  method='POST',
+                                  elements=elements + ('@@open',)))

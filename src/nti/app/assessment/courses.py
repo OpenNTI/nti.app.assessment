@@ -16,8 +16,6 @@ from zope import interface
 
 from zope.container.contained import Contained
 
-from zope.interface.interfaces import ComponentLookupError
-
 from zope.traversing.interfaces import IPathAdapter
 
 from pyramid import httpexceptions as hexc
@@ -38,14 +36,9 @@ class _BaseCourseEvaluationPathAdapter(Contained):
         if not key:
             raise hexc.HTTPNotFound()
         ntiid = unquote(key)
-        for registry in (component, ):
-            try:
-                registry = registry.getSiteManager()
-                assesment = registry.queryUtility(IQEvaluation, name=ntiid)
-                if assesment is not None:
-                    return assesment
-            except (TypeError, ComponentLookupError):
-                pass
+        assesment = component.queryUtility(IQEvaluation, name=ntiid)
+        if assesment is not None:
+            return assesment
         raise KeyError(ntiid)
 
 

@@ -40,6 +40,9 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQEditableEvaluation
 
+from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
+from nti.assessment.randomized.interfaces import IRandomizedPartsContainer
+
 from nti.cabinet.filer import transfer_to_native_file
 
 from nti.coremetadata.utils import current_principal
@@ -97,7 +100,7 @@ class EvaluationsImporter(BaseSectionImporter):
         provided = iface_of_assessment(obj)
         evaluations = ICourseEvaluations(course)
         return  not ntiid \
-            or (    ntiid not in evaluations
+            or (ntiid not in evaluations
                 and component.queryUtility(provided, name=ntiid) is None)
 
     def store_evaluation(self, obj, course):
@@ -152,7 +155,7 @@ class EvaluationsImporter(BaseSectionImporter):
         [p.ntiid for p in the_object.parts or ()]  # set auto part NTIIDs
         return the_object
 
-    def handle_question_set(self, the_object, course, check_locked=False):
+    def handle_question_set(self, the_object, source, course, check_locked=False):
         if not self.is_new(the_object, course):
             the_object = self.get_registered_evaluation(the_object,
                                                         course,
@@ -165,7 +168,14 @@ class EvaluationsImporter(BaseSectionImporter):
                                                 check_locked)
                 questions.append(question)
             the_object.questions = questions
+            randomized = source.get('Randomized', False)
+            randomized_part = source.get('RandomizedPartsType', False)
+            if randomized:
+                interface.alsoProvides(the_object, IRandomizedQuestionSet)
+            if randomized_part:
+                interface.alsoProvides(the_object, IRandomizedPartsContainer)
             the_object = self.store_evaluation(the_object, course)
+
         return the_object
 
     def handle_survey(self, the_object, course, check_locked=False):
@@ -182,22 +192,24 @@ class EvaluationsImporter(BaseSectionImporter):
             the_object = self.store_evaluation(the_object, course)
         return the_object
 
-    def handle_assignment_part(self, part, course, check_locked=False):
+    def handle_assignment_part(self, part, source, course, check_locked=False):
         question_set = self.handle_question_set(part.question_set,
+                                                source['question_set'],
                                                 course,
                                                 check_locked)
         part.question_set = question_set  # replace is safe in part
         return part
 
-    def handle_assignment(self, the_object, course, check_locked=False):
+    def handle_assignment(self, the_object, source, course, check_locked=False):
         if not self.is_new(the_object, course):
             the_object = self.get_registered_evaluation(the_object,
                                                         course,
                                                         check_locked)
         if not check_locked or not self.is_locked(the_object):
             parts = indexed_iter()
-            for part in the_object.parts or ():
+            for index, part in enumerate(the_object.parts) or ():
                 part = self.handle_assignment_part(part,
+                                                   source['parts'][index],
                                                    course,
                                                    check_locked)
                 parts.append(part)
@@ -218,6 +230,7 @@ class EvaluationsImporter(BaseSectionImporter):
                                       check_locked)
         elif IQuestionSet.providedBy(the_object):
             result = self.handle_question_set(the_object,
+                                              source,
                                               course,
                                               check_locked)
         elif IQSurvey.providedBy(the_object):
@@ -226,13 +239,14 @@ class EvaluationsImporter(BaseSectionImporter):
                                         check_locked)
         elif IQAssignment.providedBy(the_object):
             result = self.handle_assignment(the_object,
+                                            source,
                                             course,
                                             check_locked)
         else:
             result = the_object
 
         if      IQEditableEvaluation.providedBy(result) \
-            and (not check_locked or not self.is_locked(result)):
+                and (not check_locked or not self.is_locked(result)):
             # course is the evaluation home
             result.__home__ = course
             remoteUser = get_remote_user()
@@ -256,8 +270,8 @@ class EvaluationsImporter(BaseSectionImporter):
 
         locked = source.get('isLocked')
         if      locked \
-            and IRecordable.providedBy(result) \
-            and (not check_locked or not self.is_locked(result)):
+                and IRecordable.providedBy(result) \
+                and (not check_locked or not self.is_locked(result)):
             the_object.lock(event=False)
             lifecycleevent.modified(result)
         return result

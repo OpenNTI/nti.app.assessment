@@ -13,7 +13,11 @@ from collections import Mapping
 
 from zope import interface
 
+from nti.app.assessment.decorators.assignment import QuestionSetRandomizedDecorator
+
 from nti.app.assessment.evaluations.utils import export_evaluation_content
+from nti.app.assessment.evaluations.utils import is_randomized_assignment
+from nti.app.assessment.evaluations.utils import is_randomized_assignment_part
 
 from nti.app.assessment.interfaces import ICourseEvaluations
 
@@ -22,6 +26,11 @@ from nti.app.assessment.utils import copy_evaluation
 from nti.app.products.courseware.resources.utils import get_course_filer
 
 from nti.assessment import EVALUATION_INTERFACES
+from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQuestionSet
+from nti.assessment.randomized.interfaces import IQuestionBank
+from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
+from nti.assessment.randomized.interfaces import IRandomizedPartsContainer
 
 from nti.externalization.proxy import removeAllProxies
 
@@ -36,6 +45,7 @@ from nti.externalization.externalization import to_external_object
 
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
+
 
 ITEMS = StandardExternalFields.ITEMS
 NTIID = StandardExternalFields.NTIID
@@ -83,6 +93,31 @@ class EvaluationsExporter(BaseSectionExporter):
             ext_obj = to_external_object(evaluation,
                                          name="exporter",
                                          decorate=False)
+
+            qs_randomized_decorator = QuestionSetRandomizedDecorator()
+
+            if IQuestionSet.providedBy(evaluation):
+                ext_obj['Randomized'] = is_randomized_assignment(evaluation)
+                ext_obj['RandomizedPartsType'] = is_randomized_assignment(
+                    evaluation)
+                # This is a question set, so we can run the
+                # randomization decorator on it directly.
+                qs_randomized_decorator.decorateExternalObject(
+                    evaluation, ext_obj)
+
+            if IQAssignment.providedBy(evaluation):
+                # This is an assignment, so we need to drill down
+                # to its actual question set before we can
+                # run the randomization decorator on it.
+                for index, part in enumerate(evaluation.parts):
+
+                    ext_part_obj = ext_obj['parts'][index]
+
+                    ext_part_obj['Randomized'] = is_randomized_assignment(
+                        part.question_set)
+                    ext_part_obj['RandomizedPartsType'] = is_randomized_assignment_part(
+                        part.question_set)
+
             if not backup:
                 self._change_ntiid(ext_obj, salt)
             return ext_obj

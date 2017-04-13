@@ -49,6 +49,10 @@ from nti.app.products.courseware.resources.utils import get_file_from_external_l
 
 from nti.assessment.common import iface_of_assessment
 
+from nti.assessment.randomized.interfaces import IQuestionBank
+from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
+from nti.assessment.randomized.interfaces import IRandomizedPartsContainer
+
 from nti.assessment.interfaces import IQHint
 from nti.assessment.interfaces import IQPart
 from nti.assessment.interfaces import IQPoll
@@ -97,8 +101,8 @@ def get_html_content_fields(context):
         if IQNonGradableFillInTheBlankWithWordBankPart.providedBy(context):
             result.append((context, 'input'))
     elif   IQAssignment.providedBy(context) \
-        or IQuestion.providedBy(context) \
-        or IQPoll.providedBy(context):
+            or IQuestion.providedBy(context) \
+            or IQPoll.providedBy(context):
         result.append((context, 'content'))
         for part in context.parts or ():
             result.extend(get_html_content_fields(part))
@@ -192,7 +196,7 @@ def export_evaluation_content(model, source_filer, target_filer):
                 contentType = resource.contentType
 
                 if      ICourseContentResource.providedBy(resource) \
-                    and hasattr(resource, 'path'):
+                        and hasattr(resource, 'path'):
                     path = resource.path
                     path = os.path.split(path)[0]  # remove resource name
                     path = path[1:] if path.startswith('/') else path
@@ -200,7 +204,7 @@ def export_evaluation_content(model, source_filer, target_filer):
                     path = IMAGES_FOLDER if is_image(
                         rsrc_name, contentType) else DOCUMENTS_FOLDER
                 if      not path.startswith(IMAGES_FOLDER) \
-                    and not path.startswith(DOCUMENTS_FOLDER):
+                        and not path.startswith(DOCUMENTS_FOLDER):
                     # under assets folder
                     path = os.path.join(ASSETS_FOLDER, path)
                 # save resource
@@ -288,3 +292,12 @@ def validate_structural_edits(theObject, course, request=None):
     for assignment in assignments:
         validate_savepoints(assignment, course, request)
     validate_submissions(theObject, course, request)
+
+
+def is_randomized_assignment(assignment):
+    return not IQuestionBank.providedBy(assignment) \
+        and IRandomizedQuestionSet.providedBy(assignment)
+
+
+def is_randomized_assignment_part(assignment):
+    return IRandomizedPartsContainer.providedBy(assignment)

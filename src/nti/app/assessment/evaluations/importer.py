@@ -168,12 +168,11 @@ class EvaluationsImporter(BaseSectionImporter):
                                                 check_locked)
                 questions.append(question)
             the_object.questions = questions
-            randomized = source.get('Randomized', False)
-            randomized_part = source.get('RandomizedPartsType', False)
-            if randomized:
-                interface.alsoProvides(the_object, IRandomizedQuestionSet)
-            if randomized_part:
-                interface.alsoProvides(the_object, IRandomizedPartsContainer)
+            for name, provided in (('Randomized', IRandomizedQuestionSet),
+                                   ('RandomizedPartsType', IRandomizedPartsContainer)):
+                value = source.get(name) if source else False
+                if value:
+                    interface.alsoProvides(the_object, provided)
             the_object = self.store_evaluation(the_object, course)
 
         return the_object
@@ -194,7 +193,7 @@ class EvaluationsImporter(BaseSectionImporter):
 
     def handle_assignment_part(self, part, source, course, check_locked=False):
         question_set = self.handle_question_set(part.question_set,
-                                                source['question_set'],
+                                                source.get('question_set'),
                                                 course,
                                                 check_locked)
         part.question_set = question_set  # replace is safe in part
@@ -208,8 +207,9 @@ class EvaluationsImporter(BaseSectionImporter):
         if not check_locked or not self.is_locked(the_object):
             parts = indexed_iter()
             for index, part in enumerate(the_object.parts) or ():
+                ext_obj = source['parts'][index]
                 part = self.handle_assignment_part(part,
-                                                   source['parts'][index],
+                                                   ext_obj,
                                                    course,
                                                    check_locked)
                 parts.append(part)
@@ -246,7 +246,7 @@ class EvaluationsImporter(BaseSectionImporter):
             result = the_object
 
         if      IQEditableEvaluation.providedBy(result) \
-                and (not check_locked or not self.is_locked(result)):
+            and (not check_locked or not self.is_locked(result)):
             # course is the evaluation home
             result.__home__ = course
             remoteUser = get_remote_user()
@@ -270,8 +270,8 @@ class EvaluationsImporter(BaseSectionImporter):
 
         locked = source.get('isLocked')
         if      locked \
-                and IRecordable.providedBy(result) \
-                and (not check_locked or not self.is_locked(result)):
+            and IRecordable.providedBy(result) \
+            and (not check_locked or not self.is_locked(result)):
             the_object.lock(event=False)
             lifecycleevent.modified(result)
         return result

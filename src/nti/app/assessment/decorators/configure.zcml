@@ -66,7 +66,7 @@
 				for="nti.assessment.interfaces.IQTimedAssignment
 					 pyramid.interfaces.IRequest" />
 
-	<subscriber factory=".assignment._QuestionSetRandomizedDecorator"
+	<subscriber factory=".assignment.QuestionSetRandomizedDecorator"
 				for="nti.assessment.interfaces.IQuestionSet"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"/>
 

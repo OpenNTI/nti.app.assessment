@@ -70,8 +70,8 @@ from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecora
 
 from nti.appserver.pyramid_authorization import has_permission
 
-from nti.assessment.common import is_randomized_assignment
-from nti.assessment.common import is_randomized_assignment_part
+from nti.assessment.common import is_randomized_question_set
+from nti.assessment.common import is_randomized_parts_container
 
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
@@ -186,8 +186,8 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
 
     def _do_decorate_external(self, context, result):
         links = result.setdefault(LINKS, [])
-        course = _get_course_from_evaluation(context, 
-                                             self.remoteUser, 
+        course = _get_course_from_evaluation(context,
+                                             self.remoteUser,
                                              request=self.request)
         if course is not None:
             ntiid = context.ntiid
@@ -223,7 +223,7 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
         start_date = get_available_for_submission_beginning(assignment, course)
         ext_obj = to_external_object(start_date)
         result['available_for_submission_beginning'] = ext_obj
-        
+
         # end date
         end_date = get_available_for_submission_ending(assignment, course)
         ext_obj = to_external_object(end_date)
@@ -278,8 +278,8 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
             or is_course_instructor(course, self.remoteUser) \
             or has_permission(ACT_CONTENT_EDIT, course, self.request):
             return
-        item = get_assessment_metadata_item(course, 
-                                            self.remoteUser, 
+        item = get_assessment_metadata_item(course,
+                                            self.remoteUser,
                                             context.ntiid)
         if item is not None:
             metadata = {'Duration': item.Duration, 'StartTime': item.StartTime}
@@ -298,8 +298,8 @@ class _AssignmentQuestionContentRootURLAdder(AbstractAuthenticatedRequestAwareDe
             if content_unit is not None:
                 ntiid = content_unit.ntiid
             else:
-                assignment = find_interface(context, 
-                                            IQAssignment, 
+                assignment = find_interface(context,
+                                            IQAssignment,
                                             strict=False)
                 ntiid = getattr(assignment, 'ContentUnitNTIID', None)
 
@@ -426,15 +426,15 @@ class _AssignmentPartDecorator(object):
 @interface.implementer(IExternalObjectDecorator)
 class QuestionSetRandomizedDecorator(object):
     """
-    Decorate the randomized state of question sets,
-    since links may not be present.
+    Decorate the randomized state of question sets, since links may not be
+    present.
     """
 
     __metaclass__ = SingletonDecorator
 
     def decorateExternalObject(self, original, external):
-        external['Randomized'] = is_randomized_assignment(original)
-        external['RandomizedPartsType'] = is_randomized_assignment_part(original)
+        external['Randomized'] = is_randomized_question_set(original)
+        external['RandomizedPartsType'] = is_randomized_parts_container(original)
 
 _ContextStatus = namedtuple("_ContextStatus",
                             ("has_savepoints", "has_submissions", "is_available"))

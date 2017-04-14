@@ -23,8 +23,8 @@ from nti.app.products.courseware.resources.utils import get_course_filer
 
 from nti.assessment import EVALUATION_INTERFACES
 
-from nti.assessment.common import is_randomized_assignment
-from nti.assessment.common import is_randomized_assignment_part
+from nti.assessment.common import is_randomized_question_set
+from nti.assessment.common import is_randomized_parts_container
 
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
@@ -91,18 +91,17 @@ class EvaluationsExporter(BaseSectionExporter):
                                          decorate=False)
 
             if IQuestionSet.providedBy(evaluation):
-                ext_obj['Randomized'] = is_randomized_assignment(evaluation)
-                ext_obj['RandomizedPartsType'] = is_randomized_assignment(evaluation)
+                ext_obj['Randomized'] = is_randomized_question_set(evaluation)
+                ext_obj['RandomizedPartsType'] = is_randomized_parts_container(evaluation)
 
             if IQAssignment.providedBy(evaluation):
-                # This is an assignment, so we need to drill down
-                # to its actual question set before we can
-                # run the randomization decorator on it.
+                # This is an assignment, so we need to drill down to the actual
+                # question set in order to set randomized attributes.
                 for index, part in enumerate(evaluation.parts or ()):
                     qs = part.question_set
                     ext_part_obj = ext_obj['parts'][index]
-                    ext_part_obj['Randomized'] = is_randomized_assignment(qs)
-                    ext_part_obj['RandomizedPartsType'] = is_randomized_assignment_part(qs)
+                    ext_part_obj['Randomized'] = is_randomized_question_set(qs)
+                    ext_part_obj['RandomizedPartsType'] = is_randomized_parts_container(qs)
 
             if not backup:
                 self._change_ntiid(ext_obj, salt)

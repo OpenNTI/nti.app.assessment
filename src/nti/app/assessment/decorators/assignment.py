@@ -70,6 +70,7 @@ from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecora
 
 from nti.appserver.pyramid_authorization import has_permission
 
+from nti.assessment.common import is_part_auto_gradable
 from nti.assessment.common import is_randomized_question_set
 from nti.assessment.common import is_randomized_parts_container
 
@@ -88,8 +89,6 @@ from nti.assessment.randomized.interfaces import IRandomizedPartsContainer
 from nti.contentlibrary.interfaces import IContentUnit
 
 from nti.contenttypes.courses import get_course_vendor_info
-
-from nti.contenttypes.courses.common import is_part_auto_gradable
 
 from nti.contenttypes.courses.legacy_catalog import ILegacyCourseInstance
 

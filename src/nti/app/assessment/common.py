@@ -75,6 +75,8 @@ from nti.app.externalization.error import raise_json_error
 
 from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
 
+from nti.assessment.common import can_be_auto_graded
+
 from nti.assessment.interfaces import NTIID_TYPE
 from nti.assessment.interfaces import SURVEY_MIME_TYPE
 from nti.assessment.interfaces import DISCLOSURE_NEVER
@@ -115,7 +117,6 @@ from nti.contenttypes.courses.interfaces import INonPublicCourseInstance
 from nti.contenttypes.courses.legacy_catalog import ILegacyCourseInstance
 
 from nti.contenttypes.courses.common import get_course_packages
-from nti.contenttypes.courses.common import can_be_auto_graded
 
 from nti.contenttypes.courses.utils import get_parent_course
 from nti.contenttypes.courses.utils import get_course_hierarchy

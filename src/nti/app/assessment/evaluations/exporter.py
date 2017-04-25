@@ -92,7 +92,8 @@ class EvaluationsExporter(BaseSectionExporter):
 
             if IQuestionSet.providedBy(evaluation):
                 ext_obj['Randomized'] = is_randomized_question_set(evaluation)
-                ext_obj['RandomizedPartsType'] = is_randomized_parts_container(evaluation)
+                ext_obj['RandomizedPartsType'] = is_randomized_parts_container(
+                    evaluation)
 
             if IQAssignment.providedBy(evaluation):
                 # This is an assignment, so we need to drill down to the actual
@@ -100,8 +101,11 @@ class EvaluationsExporter(BaseSectionExporter):
                 for index, part in enumerate(evaluation.parts or ()):
                     qs = part.question_set
                     ext_part_obj = ext_obj['parts'][index]
-                    ext_part_obj['Randomized'] = is_randomized_question_set(qs)
-                    ext_part_obj['RandomizedPartsType'] = is_randomized_parts_container(qs)
+                    if qs is not None:
+                        ext_part_obj['question_set'][
+                            'Randomized'] = is_randomized_question_set(qs)
+                        ext_part_obj['question_set'][
+                            'RandomizedPartsType'] = is_randomized_parts_container(qs)
 
             if not backup:
                 self._change_ntiid(ext_obj, salt)

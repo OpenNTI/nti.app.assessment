@@ -16,6 +16,8 @@ from collections import namedtuple
 from zope import component
 from zope import interface
 
+from zope.cachedescriptors.property import Lazy
+
 from zope.location.interfaces import ILocation
 
 from pyramid.interfaces import IRequest
@@ -110,8 +112,6 @@ from nti.externalization.interfaces import IExternalMappingDecorator
 from nti.externalization.singleton import SingletonDecorator
 
 from nti.links.links import Link
-
-from nti.property.property import Lazy
 
 from nti.traversal.traversal import find_interface
 

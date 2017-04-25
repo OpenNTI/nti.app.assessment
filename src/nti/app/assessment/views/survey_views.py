@@ -14,6 +14,8 @@ from datetime import datetime
 from zope import component
 from zope import interface
 
+from zope.cachedescriptors.property import Lazy
+
 from zope.schema.interfaces import NotUnique
 from zope.schema.interfaces import ConstraintNotSatisfied
 
@@ -76,7 +78,6 @@ from nti.externalization.interfaces import StandardExternalFields
 
 from nti.externalization.oids import to_external_ntiid_oid
 
-from nti.property.property import Lazy
 
 ITEMS = StandardExternalFields.ITEMS
 TOTAL = StandardExternalFields.TOTAL

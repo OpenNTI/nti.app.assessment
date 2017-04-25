@@ -22,6 +22,8 @@ from zope import component
 from zope import interface
 from zope import lifecycleevent
 
+from zope.cachedescriptors.property import Lazy
+
 from zope.component.hooks import getSite
 
 from zope.event import notify as event_notify
@@ -182,8 +184,6 @@ from nti.mimetype.externalization import decorateMimeType
 from nti.ntiids.ntiids import find_object_with_ntiid
 
 from nti.recorder.record import copy_transaction_history
-
-from nti.property.property import Lazy
 
 from nti.site.hostpolicy import get_host_site
 

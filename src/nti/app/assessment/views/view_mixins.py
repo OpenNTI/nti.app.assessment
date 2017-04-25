@@ -18,6 +18,8 @@ from datetime import datetime
 
 from pyramid import httpexceptions as hexc
 
+from zope.cachedescriptors.property import Lazy
+
 from zope.event import notify as event_notify
 
 from zope.interface.common.idatetime import IDateTime
@@ -69,8 +71,6 @@ from nti.externalization.externalization import StandardExternalFields
 from nti.externalization.internalization import notifyModified
 
 from nti.links.links import Link
-
-from nti.property.property import Lazy
 
 from nti.recorder.utils import record_transaction
 

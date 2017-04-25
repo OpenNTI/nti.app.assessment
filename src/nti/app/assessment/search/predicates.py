@@ -12,6 +12,8 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope import interface
 
+from zope.cachedescriptors.property import Lazy
+
 from pyramid.threadlocal import get_current_request
 
 from nti.app.assessment.common import get_container_evaluations
@@ -40,8 +42,6 @@ from nti.contenttypes.courses.utils import get_courses_for_packages
 from nti.dataserver.authorization import ACT_READ
 
 from nti.dataserver.users import User
-
-from nti.property.property import Lazy
 
 from nti.traversal.traversal import find_interface
 

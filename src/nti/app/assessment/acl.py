@@ -12,6 +12,8 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope import interface
 
+from zope.cachedescriptors.property import Lazy
+
 from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQEditableEvaluation
 
@@ -32,8 +34,6 @@ from nti.dataserver.authorization_acl import acl_from_aces
 from nti.dataserver.interfaces import ALL_PERMISSIONS
 
 from nti.dataserver.interfaces import IACLProvider
-
-from nti.property.property import Lazy
 
 from nti.traversal.traversal import find_interface
 

@@ -12,6 +12,8 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope import interface
 
+from zope.cachedescriptors.property import Lazy
+
 from nti.app.assessment.common import get_assessment_metadata_item
 
 from nti.app.assessment.decorators import _get_course_from_evaluation
@@ -38,8 +40,6 @@ from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import IExternalMappingDecorator
 
 from nti.links.links import Link
-
-from nti.property.property import Lazy
 
 from nti.traversal.traversal import find_interface
 

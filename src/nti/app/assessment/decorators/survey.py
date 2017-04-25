@@ -14,6 +14,8 @@ from datetime import datetime
 from zope import component
 from zope import interface
 
+from zope.cachedescriptors.property import Lazy
+
 from zope.intid.interfaces import IIntIds
 
 from nti.app.assessment.common import inquiry_submissions
@@ -53,8 +55,6 @@ from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import IExternalMappingDecorator
 
 from nti.links.links import Link
-
-from nti.property.property import Lazy
 
 from nti.traversal.traversal import find_interface
 

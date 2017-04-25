@@ -11,6 +11,8 @@ logger = __import__('logging').getLogger(__name__)
 
 from zope import interface
 
+from zope.cachedescriptors.property import Lazy
+
 from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
 
 from nti.appserver.pyramid_authorization import has_permission
@@ -23,8 +25,6 @@ from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import IExternalMappingDecorator
 
 from nti.links.links import Link
-
-from nti.property.property import Lazy
 
 LINKS = StandardExternalFields.LINKS
 

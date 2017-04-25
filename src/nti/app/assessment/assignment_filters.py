@@ -14,6 +14,8 @@ logger = __import__('logging').getLogger(__name__)
 from zope import component
 from zope import interface
 
+from zope.cachedescriptors.property import Lazy
+
 from nti.assessment.interfaces import IQAssessmentPolicies
 
 from nti.contenttypes.courses.interfaces import ES_PUBLIC
@@ -24,8 +26,6 @@ from nti.contenttypes.courses.utils import get_enrollment_in_hierarchy
 from nti.contenttypes.courses.utils import is_instructed_or_edited_by_name
 
 from nti.dataserver.interfaces import IUser
-
-from nti.property.property import Lazy
 
 # ACLs
 # Notice that everything based on enrollment *could* be done

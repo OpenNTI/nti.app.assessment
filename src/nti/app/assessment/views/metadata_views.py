@@ -15,6 +15,8 @@ from zope import component
 from zope import interface
 from zope import lifecycleevent
 
+from zope.cachedescriptors.property import Lazy
+
 from pyramid import httpexceptions as hexc
 
 from pyramid.view import view_config
@@ -53,8 +55,6 @@ from nti.externalization.externalization import to_external_object
 from nti.externalization.interfaces import LocatedExternalDict
 
 from nti.externalization.oids import to_external_ntiid_oid
-
-from nti.property.property import Lazy
 
 
 @view_config(route_name="objects.generic.traversal",

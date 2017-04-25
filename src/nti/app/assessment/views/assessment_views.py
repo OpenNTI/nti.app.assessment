@@ -18,6 +18,8 @@ from requests.structures import CaseInsensitiveDict
 
 from zope import component
 
+from zope.cachedescriptors.property import Lazy
+
 from zope.event import notify
 
 from pyramid import httpexceptions as hexc
@@ -100,8 +102,6 @@ from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.proxy import removeAllProxies
 
 from nti.ntiids.ntiids import find_object_with_ntiid
-
-from nti.property.property import Lazy
 
 from nti.site.site import get_component_hierarchy_names
 

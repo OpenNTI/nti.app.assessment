@@ -17,6 +17,8 @@ from zope import component
 from zope import interface
 from zope import lifecycleevent
 
+from zope.cachedescriptors.property import Lazy
+
 from zope.security.interfaces import IPrincipal
 
 from nti.app.assessment.common import make_evaluation_ntiid
@@ -63,8 +65,6 @@ from nti.externalization.interfaces import StandardExternalFields
 
 from nti.externalization.internalization import find_factory_for
 from nti.externalization.internalization import update_from_external_object
-
-from nti.property.property import Lazy
 
 from nti.recorder.interfaces import IRecordable
 

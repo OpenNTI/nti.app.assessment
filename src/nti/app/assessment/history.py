@@ -22,6 +22,8 @@ from zope import interface
 from zope import lifecycleevent
 
 from zope.cachedescriptors.property import Lazy
+from zope.cachedescriptors.property import readproperty
+from zope.cachedescriptors.property import CachedProperty
 
 from zope.container.contained import Contained
 
@@ -64,8 +66,6 @@ from nti.externalization.oids import to_external_ntiid_oid
 from nti.links.links import Link
 
 from nti.property.property import alias
-from nti.property.property import readproperty
-from nti.property.property import CachedProperty
 
 from nti.schema.field import SchemaConfigured
 

@@ -330,7 +330,7 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
             logger.warn("Could not adapt %s to course", context)
             return False
 
-        if        has_permission(ACT_VIEW_SOLUTIONS, course, request) \
+        if     has_permission(ACT_VIEW_SOLUTIONS, course, request) \
             or has_permission(ACT_CONTENT_EDIT, course, request):
             # The instructor or an editor, nothing to do
             return False

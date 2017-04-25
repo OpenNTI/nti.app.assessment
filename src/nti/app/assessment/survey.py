@@ -14,6 +14,8 @@ from zope import interface
 
 from zope.annotation.interfaces import IAnnotations
 
+from zope.cachedescriptors.property import readproperty
+
 from zope.container.contained import Contained
 
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
@@ -62,7 +64,6 @@ from nti.dublincore.datastructures import PersistentCreatedModDateTrackingObject
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.property.property import alias
-from nti.property.property import readproperty
 
 from nti.schema.field import SchemaConfigured
 from nti.schema.fieldproperty import createDirectFieldProperties

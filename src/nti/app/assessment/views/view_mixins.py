@@ -175,6 +175,7 @@ class AssessmentPutView(UGDPutView):
 		"""
 		Validates that the assessment does not change availability states. If
 		so, we throw a 409 with an available `confirm` link for user overrides.
+		This only raises a 409 if the date range changes.
 
 		The webapp first publishes the assignment and passes in the availability
 		dates if scheduled. If no dates are passed in (and the assignment is
@@ -190,8 +191,10 @@ class AssessmentPutView(UGDPutView):
 			return
 
 		now = datetime.utcnow()
-		new_start_date = self._get_date_object( new_start_date, _marker, 'available_for_submission_beginning' )
-		new_end_date = self._get_date_object( new_end_date, _marker, 'available_for_submission_ending' )
+		new_start_date = self._get_date_object( new_start_date, _marker,
+											   'available_for_submission_beginning' )
+		new_end_date = self._get_date_object( new_end_date, _marker,
+											 'available_for_submission_ending' )
 
 		for course in courses:
 			old_end_date = get_available_for_submission_ending(contentObject,

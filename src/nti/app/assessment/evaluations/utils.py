@@ -69,7 +69,7 @@ from nti.contentfragments.interfaces import IHTMLContentFragment
 
 from nti.contenttypes.courses.interfaces import NTI_COURSE_FILE_SCHEME
 
-from nti.coremetadata.interfaces import IPublishable
+from nti.publishing.interfaces import IPublishable
 
 from nti.site.utils import registerUtility
 from nti.site.utils import unregisterUtility

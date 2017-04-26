@@ -59,12 +59,12 @@ from nti.contenttypes.courses.importer import BaseSectionImporter
 
 from nti.contenttypes.courses.utils import get_course_subinstances
 
-from nti.coremetadata.interfaces import ICalendarPublishable
-
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.externalization.internalization import find_factory_for
 from nti.externalization.internalization import update_from_external_object
+
+from nti.publishing.interfaces import ICalendarPublishable
 
 from nti.recorder.interfaces import IRecordable
 

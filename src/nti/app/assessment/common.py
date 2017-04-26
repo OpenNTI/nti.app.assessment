@@ -123,8 +123,6 @@ from nti.contenttypes.courses.utils import get_course_hierarchy
 
 from nti.coremetadata.interfaces import SYSTEM_USER_NAME
 
-from nti.coremetadata.interfaces import IPublishable
-
 from nti.dataserver.interfaces import IUser
 
 from nti.dataserver.metadata_index import IX_MIMETYPE
@@ -146,6 +144,8 @@ from nti.ntiids.ntiids import get_provider
 from nti.ntiids.ntiids import get_specific
 from nti.ntiids.ntiids import make_specific_safe
 from nti.ntiids.ntiids import find_object_with_ntiid
+
+from nti.publishing.interfaces import IPublishable
 
 from nti.site.interfaces import IHostPolicyFolder
 

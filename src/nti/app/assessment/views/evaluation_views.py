@@ -153,8 +153,6 @@ from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.contenttypes.courses.utils import is_course_instructor
 
-from nti.coremetadata.interfaces import ICalendarPublishable
-
 from nti.dataserver import authorization as nauth
 
 from nti.dataserver.authorization import ROLE_ADMIN
@@ -182,6 +180,8 @@ from nti.links.links import Link
 from nti.mimetype.externalization import decorateMimeType
 
 from nti.ntiids.ntiids import find_object_with_ntiid
+
+from nti.publishing.interfaces import ICalendarPublishable
 
 from nti.recorder.record import copy_transaction_history
 

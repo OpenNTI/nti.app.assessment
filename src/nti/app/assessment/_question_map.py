@@ -52,10 +52,6 @@ from nti.assessment.interfaces import SURVEY_MIME_TYPE
 from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
 from nti.assessment.interfaces import QUESTION_SET_MIME_TYPE
 
-from nti.coremetadata.interfaces import IPublishable
-from nti.coremetadata.interfaces import INoPublishLink
-from nti.coremetadata.interfaces import IObjectPublishedEvent
-
 from nti.contentlibrary.indexed_data import get_site_registry
 
 from nti.contentlibrary.interfaces import IContentUnit
@@ -80,6 +76,10 @@ from nti.intid.common import addIntId
 from nti.intid.common import removeIntId
 
 from nti.ntiids.ntiids import find_object_with_ntiid
+
+from nti.publishing.interfaces import IPublishable
+from nti.publishing.interfaces import INoPublishLink
+from nti.publishing.interfaces import IObjectPublishedEvent
 
 from nti.recorder.interfaces import IRecordable
 

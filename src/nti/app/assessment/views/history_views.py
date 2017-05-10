@@ -265,8 +265,10 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
     def _get_filename(self, course):
         base_name = self._get_course_name(course)
         assignment_name = self._get_assignment_name()
-        suffix = '.zip'
-        result = '%s_%s%s' % (base_name, assignment_name, suffix)
+        suffix = b'.zip'
+        result = b'%s_%s%s' % (base_name, assignment_name, suffix)
+        # strip out any high characters
+        result = result.encode('ascii', 'ignore')
         return result
 
     @classmethod

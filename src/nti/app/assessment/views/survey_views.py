@@ -283,7 +283,6 @@ class InquirySubmissionsDownloadView(AbstractAuthenticatedView, InquiryViewMixin
         if not (is_course_instructor(course, self.remoteUser)
                 or has_permission(nauth.ACT_NTI_ADMIN, course, self.request)):
             raise hexc.HTTPForbidden(_("Cannot get inquiry submissions."))
-        result = LocatedExternalDict()
         queried = inquiry_submissions(self.context, course)
 
         response = self.request.response
@@ -302,7 +301,7 @@ class InquirySubmissionsDownloadView(AbstractAuthenticatedView, InquiryViewMixin
             creator = getattr(item.creator, 'username', item.creator)
             return (lastModified, creator or u'')
 
-        items = result[ITEMS] = [x for x in sorted(queried, key=_key)]
+        items = [x for x in sorted(queried, key=_key)]
 
         for item in items:
             user = IFriendlyNamed(item.creator)

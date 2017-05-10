@@ -275,8 +275,8 @@ class InquirySubmissionsView(AbstractAuthenticatedView, InquiryViewMixin):
              renderer='rest',
              request_method='GET',
              permission=nauth.ACT_READ,
-             name="submissions_download.csv")
-class InquirySubmissionsDownloadView(AbstractAuthenticatedView, InquiryViewMixin):
+             name="SubmissionMetadata")
+class InquirySubmissionMetadataCSVView(AbstractAuthenticatedView, InquiryViewMixin):
 
     def __call__(self):
         course = self.course
@@ -289,7 +289,7 @@ class InquirySubmissionsDownloadView(AbstractAuthenticatedView, InquiryViewMixin
         response.content_encoding = str('identity')
         response.content_type = str('text/csv; charset=UTF-8')
         response.content_disposition = str(
-            'attachment; filename="submissions_download.csv"')
+            'attachment; filename="%s"' % _get_title_for_metadata_download(self.context.title))
 
         stream = BytesIO()
         fieldnames = ['username', 'realname', 'email', 'submission_time']
@@ -320,6 +320,11 @@ class InquirySubmissionsDownloadView(AbstractAuthenticatedView, InquiryViewMixin
         stream.seek(0)
         response.body_file = stream
         return response
+
+
+def _get_title_for_metadata_download(inquiry_name):
+    ascii_str = inquiry_name.encode('ascii', 'ignore')
+    return '%s_SubmissionMetadata.csv' % ascii_str.replace(' ', '')
 
 
 @view_config(route_name="objects.generic.traversal",

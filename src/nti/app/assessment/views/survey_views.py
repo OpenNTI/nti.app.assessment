@@ -9,6 +9,9 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+import csv
+from io import BytesIO
+
 from datetime import datetime
 
 from zope import component
@@ -70,6 +73,7 @@ from nti.assessment.interfaces import IQInquirySubmission
 from nti.contenttypes.courses.utils import is_course_instructor
 
 from nti.dataserver import authorization as nauth
+from nti.dataserver.users.interfaces import IFriendlyNamed
 
 from nti.externalization.externalization import to_external_object
 
@@ -117,7 +121,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
                                 InquiryViewMixin):
 
     _EXTRA_INPUT_ERRORS = ModeledContentUploadRequestUtilsMixin._EXTRA_INPUT_ERRORS + \
-                          (AttributeError,)
+        (AttributeError,)
 
     content_predicate = IQInquirySubmission.providedBy
 
@@ -267,6 +271,59 @@ class InquirySubmissionsView(AbstractAuthenticatedView, InquiryViewMixin):
 
 
 @view_config(route_name="objects.generic.traversal",
+             context=IQInquiry,
+             renderer='rest',
+             request_method='GET',
+             permission=nauth.ACT_READ,
+             name="submissions_download.csv")
+class InquirySubmissionsDownloadView(AbstractAuthenticatedView, InquiryViewMixin):
+
+    def __call__(self):
+        course = self.course
+        if not (is_course_instructor(course, self.remoteUser)
+                or has_permission(nauth.ACT_NTI_ADMIN, course, self.request)):
+            raise hexc.HTTPForbidden(_("Cannot get inquiry submissions."))
+        result = LocatedExternalDict()
+        queried = inquiry_submissions(self.context, course)
+
+        response = self.request.response
+        response.content_encoding = str('identity')
+        response.content_type = str('text/csv; charset=UTF-8')
+        response.content_disposition = str(
+            'attachment; filename="submissions_download.csv"')
+
+        stream = BytesIO()
+        fieldnames = ['username', 'realname', 'email', 'submission_time']
+        writer = csv.DictWriter(stream, fieldnames=fieldnames)
+        writer.writeheader()
+
+        def _key(item):
+            lastModified = item.lastModified
+            creator = getattr(item.creator, 'username', item.creator)
+            return (lastModified, creator or u'')
+
+        items = result[ITEMS] = [x for x in sorted(queried, key=_key)]
+
+        for item in items:
+            user = IFriendlyNamed(item.creator)
+            username = getattr(user, 'username', '')
+            realname = getattr(user, 'realname', '')
+            email = getattr(user, 'email', '')
+            submission_time = datetime.utcfromtimestamp(item.createdTime)
+            submission_time_str = submission_time.strftime('%m-%d-%Y')
+            data = {'username': username,
+                    'realname': realname,
+                    'email': email,
+                    'submission_time': submission_time_str}
+            writer.writerow(data)
+
+        stream.flush()
+        stream.seek(0)
+        response.body_file = stream
+        return response
+
+
+@view_config(route_name="objects.generic.traversal",
              renderer='rest',
              context=IUsersCourseInquiries,
              permission=nauth.ACT_READ,
@@ -356,7 +413,7 @@ class InquiryAggregatedGetView(AbstractAuthenticatedView, InquiryViewMixin):
             return hexc.HTTPNoContent()
 
         if      IQAggregatedSurvey.providedBy( result ) \
-            and IQPoll.providedBy(self.context):
+                and IQPoll.providedBy(self.context):
             # Asking for question level aggregation for
             # survey submissions.
             for poll_result in result.questions or ():
@@ -379,8 +436,8 @@ class InquirySubmisionPostView(UGDPostView):
         if can_disclose_inquiry(inquiry):
             mimeType = self.context.mimeType
             containerId = self.context.containerId
-            result = aggregate_page_inquiry(containerId, 
-                                            mimeType, 
+            result = aggregate_page_inquiry(containerId,
+                                            mimeType,
                                             self.context)
         return result
 

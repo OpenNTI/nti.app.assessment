@@ -308,8 +308,7 @@ class InquirySubmissionMetadataCSVView(AbstractAuthenticatedView, InquiryViewMix
             username = getattr(user, 'username', '')
             realname = getattr(user, 'realname', '')
             email = getattr(user, 'email', '')
-            submission_time = datetime.utcfromtimestamp(item.createdTime)
-            submission_time_str = submission_time.strftime('%m-%d-%Y')
+            submission_time_str = _date_str_from_timestamp(item.createdTime)
             data = {'username': username,
                     'realname': realname,
                     'email': email,
@@ -325,6 +324,11 @@ class InquirySubmissionMetadataCSVView(AbstractAuthenticatedView, InquiryViewMix
 def _get_title_for_metadata_download(inquiry_name):
     ascii_str = inquiry_name.encode('ascii', 'ignore')
     return '%s_SubmissionMetadata.csv' % ascii_str.replace(' ', '')
+
+
+def _date_str_from_timestamp(timestamp):
+    submission_time = datetime.utcfromtimestamp(timestamp)
+    return submission_time.strftime('%m-%d-%Y')
 
 
 @view_config(route_name="objects.generic.traversal",

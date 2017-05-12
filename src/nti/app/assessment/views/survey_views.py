@@ -11,7 +11,6 @@ logger = __import__('logging').getLogger(__name__)
 
 import csv
 from io import BytesIO
-
 from datetime import datetime
 
 from zope import component
@@ -82,7 +81,6 @@ from nti.externalization.interfaces import StandardExternalFields
 
 from nti.externalization.oids import to_external_ntiid_oid
 
-
 ITEMS = StandardExternalFields.ITEMS
 TOTAL = StandardExternalFields.TOTAL
 CREATOR = StandardExternalFields.CREATOR
@@ -102,12 +100,12 @@ class InquiryViewMixin(object):
     def course(self):
         creator = self.remoteUser
         if not creator:
-            raise hexc.HTTPForbidden(_("Must be Authenticated."))
+            raise hexc.HTTPForbidden(_(u"Must be Authenticated."))
         course = get_course_from_request(self.request)
         if course is None:
             course = get_course_from_inquiry(self.context, creator, exc=False)
         if course is None:
-            raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
+            raise hexc.HTTPForbidden(_(u"Must be enrolled in a course."))
         return course
 
 
@@ -121,14 +119,14 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
                                 InquiryViewMixin):
 
     _EXTRA_INPUT_ERRORS = ModeledContentUploadRequestUtilsMixin._EXTRA_INPUT_ERRORS + \
-        (AttributeError,)
+                          (AttributeError,)
 
     content_predicate = IQInquirySubmission.providedBy
 
     def _check_poll_submission(self, submission):
         poll = component.getUtility(IQPoll, name=submission.inquiryId)
         if len(poll.parts) != len(submission.parts):
-            ex = ConstraintNotSatisfied(_("Incorrect submission parts."))
+            ex = ConstraintNotSatisfied(_(u"Incorrect submission parts."))
             ex.field = IQPollSubmission['parts']
             raise ex
 
@@ -136,7 +134,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
         beginning = get_available_for_submission_beginning(
             self.context, course)
         if beginning is not None and datetime.utcnow() < beginning:
-            ex = ConstraintNotSatisfied(_("Submitting too early."))
+            ex = ConstraintNotSatisfied(_(u"Submitting too early."))
             ex.field = IQSubmittable['available_for_submission_beginning']
             ex.value = beginning
             raise ex
@@ -144,13 +142,13 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
     def _check_submission_ending(self, course):
         ending = get_available_for_submission_ending(self.context, course)
         if ending is not None and datetime.utcnow() > ending:
-            ex = ConstraintNotSatisfied(_("Submitting too late."))
+            ex = ConstraintNotSatisfied(_(u"Submitting too late."))
             ex.field = IQSubmittable['available_for_submission_ending']
             raise ex
 
     def _check_inquiry_close(self):
         if self.context.closed:
-            ex = ConstraintNotSatisfied(_("Inquiry has been closed."))
+            ex = ConstraintNotSatisfied(_(u"Inquiry has been closed."))
             ex.field = IQInquiry['closed']
             raise ex
 
@@ -175,7 +173,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
                 poll.pollId for poll in submission.questions
             ]
             if sorted(survey_poll_ids) != sorted(submission_poll_ids):
-                msg = _("Incorrect submission questions.")
+                msg = _(u"Incorrect submission questions.")
                 ex = ConstraintNotSatisfied(msg)
                 ex.field = IQSurveySubmission['questions']
                 raise ex
@@ -190,7 +188,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
         submission.containerId = submission.inquiryId
 
         if submission.inquiryId in course_inquiry:
-            ex = NotUnique(_("Inquiry already submitted."))
+            ex = NotUnique(_(u"Inquiry already submitted."))
             ex.field = IQInquirySubmission['inquiryId']
             ex.value = submission.inquiryId
             raise ex
@@ -245,9 +243,9 @@ class InquirySubmissionsView(AbstractAuthenticatedView, InquiryViewMixin):
 
     def __call__(self):
         course = self.course
-        if not (is_course_instructor(course, self.remoteUser)
-                or has_permission(nauth.ACT_NTI_ADMIN, course, self.request)):
-            raise hexc.HTTPForbidden(_("Cannot get inquiry submissions."))
+        if     not (is_course_instructor(course, self.remoteUser)
+            or has_permission(nauth.ACT_NTI_ADMIN, course, self.request)):
+            raise hexc.HTTPForbidden(_(u"Cannot get inquiry submissions."))
         result = LocatedExternalDict()
         queried = inquiry_submissions(self.context, course)
 
@@ -276,20 +274,21 @@ class InquirySubmissionsView(AbstractAuthenticatedView, InquiryViewMixin):
              request_method='GET',
              permission=nauth.ACT_READ,
              name="SubmissionMetadata")
-class InquirySubmissionMetadataCSVView(AbstractAuthenticatedView, InquiryViewMixin):
+class InquirySubmissionMetadataCSVView(AbstractAuthenticatedView,
+                                       InquiryViewMixin):
 
     def __call__(self):
         course = self.course
-        if not (is_course_instructor(course, self.remoteUser)
-                or has_permission(nauth.ACT_NTI_ADMIN, course, self.request)):
-            raise hexc.HTTPForbidden(_("Cannot get inquiry submissions."))
+        if     not (is_course_instructor(course, self.remoteUser)
+            or has_permission(nauth.ACT_NTI_ADMIN, course, self.request)):
+            raise hexc.HTTPForbidden(_(u"Cannot get inquiry submissions."))
         queried = inquiry_submissions(self.context, course)
 
+        meta_dwld = _get_title_for_metadata_download(self.context.title)
         response = self.request.response
         response.content_encoding = str('identity')
         response.content_type = str('text/csv; charset=UTF-8')
-        response.content_disposition = str(
-            'attachment; filename="%s"' % _get_title_for_metadata_download(self.context.title))
+        response.content_disposition = str('attachment; filename="%s"' % meta_dwld)
 
         stream = BytesIO()
         fieldnames = ['username', 'realname', 'email', 'submission_time']
@@ -309,9 +308,9 @@ class InquirySubmissionMetadataCSVView(AbstractAuthenticatedView, InquiryViewMix
             realname = getattr(user, 'realname', '')
             email = getattr(user, 'email', '')
             submission_time_str = _date_str_from_timestamp(item.createdTime)
-            data = {'username': username,
+            data = {'email': email,
+                    'username': username,
                     'realname': realname,
-                    'email': email,
                     'submission_time': submission_time_str}
             writer.writerow(data)
 
@@ -370,7 +369,7 @@ class InquiryCloseView(AbstractAuthenticatedView, InquiryViewMixin):
     def __call__(self):
         course = self.course
         if not is_course_instructor(course, self.remoteUser):
-            raise hexc.HTTPForbidden(_("Cannot close inquiry."))
+            raise hexc.HTTPForbidden(_(u"Cannot close inquiry."))
         self.context.closed = True
         result = aggregate_course_inquiry(self.context, course)
         container = ICourseAggregatedInquiries(course)
@@ -390,7 +389,7 @@ class InquiryOpenView(AbstractAuthenticatedView, InquiryViewMixin):
     def __call__(self):
         course = self.course
         if not is_course_instructor(course, self.remoteUser):
-            raise hexc.HTTPForbidden(_("Cannot open inquiry."))
+            raise hexc.HTTPForbidden(_(u"Cannot open inquiry."))
         self.context.closed = False
         try:
             container = ICourseAggregatedInquiries(course)
@@ -411,7 +410,7 @@ class InquiryAggregatedGetView(AbstractAuthenticatedView, InquiryViewMixin):
     def __call__(self):
         course = self.course
         if not allow_to_disclose_inquiry(self.context, course, self.remoteUser):
-            raise hexc.HTTPForbidden(_("Cannot disclose inquiry results."))
+            raise hexc.HTTPForbidden(_(u"Cannot disclose inquiry results."))
         if self.context.closed:
             container = ICourseAggregatedInquiries(course)
             result = container[self.context.ntiid]
@@ -420,8 +419,8 @@ class InquiryAggregatedGetView(AbstractAuthenticatedView, InquiryViewMixin):
         if result is None:
             return hexc.HTTPNoContent()
 
-        if      IQAggregatedSurvey.providedBy( result ) \
-                and IQPoll.providedBy(self.context):
+        if      IQAggregatedSurvey.providedBy(result) \
+            and IQPoll.providedBy(self.context):
             # Asking for question level aggregation for
             # survey submissions.
             for poll_result in result.questions or ():
@@ -458,4 +457,4 @@ class InquirySubmisionPostView(UGDPostView):
 class InquirySubmisionPutView(UGDPutView):
 
     def __call__(self):
-        raise hexc.HTTPForbidden(_("Cannot put an inquiry submission."))
+        raise hexc.HTTPForbidden(_(u"Cannot put an inquiry submission."))

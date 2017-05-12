@@ -239,7 +239,8 @@ class _InquirySubmissionMetadataDecorator(_InquiryDecorator):
         user = self.remoteUser
         links = result_map.setdefault(LINKS, [])
         course = self._get_course(context, user)
-        if course is not None and is_course_instructor(course, user):
+        if course is not None and (is_course_instructor(course, user)
+                                   or has_permission(nauth.ACT_NTI_ADMIN, course, self.request)):
             links.append(Link(course,
                               method='GET',
                               rel='submission_metadata',

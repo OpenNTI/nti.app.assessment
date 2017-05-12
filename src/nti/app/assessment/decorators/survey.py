@@ -95,7 +95,7 @@ class _InquiryItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
     def _predicate(self, context, result):
         creator = context.creator
-        return (    AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
+        return (AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
                 and creator is not None
                 and creator == self.remoteUser)
 
@@ -176,7 +176,8 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
             now = datetime.utcnow()
             dates = IQAssessmentDateContext(course).of(context)
             for k, func in (
-                    ('available_for_submission_beginning', get_available_for_submission_beginning),
+                    ('available_for_submission_beginning',
+                     get_available_for_submission_beginning),
                     ('available_for_submission_ending', get_available_for_submission_ending)):
                 dates_date = func(dates, k)
                 asg_date = getattr(context, k)
@@ -210,7 +211,7 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
         # aggregated
         if      course is not None \
             and submission_count \
-            and (   is_course_instructor(course, user)
+            and (is_course_instructor(course, user)
                  or can_disclose_inquiry(context, course)):
             links.append(Link(course,
                               rel='Aggregated',
@@ -231,3 +232,16 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
                                   rel='open',
                                   method='POST',
                                   elements=elements + ('@@open',)))
+
+
+class _InquirySubmissionMetadataDecorator(_InquiryDecorator):
+
+    def _do_decorate_external(self, context, result_map):
+        user = self.remoteUser
+        links = result_map.setdefault(LINKS, [])
+        course = self._get_course(context, user)
+        if course is not None and is_course_instructor(course, user):
+            links.append(Link(course,
+                              rel='Submission metadata',
+                              method='GET',
+                              elements=('CourseInquiries', context.ntiid, '@@SubmissionMetadata',)))

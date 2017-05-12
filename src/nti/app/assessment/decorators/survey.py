@@ -176,8 +176,7 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
             now = datetime.utcnow()
             dates = IQAssessmentDateContext(course).of(context)
             for k, func in (
-                    ('available_for_submission_beginning',
-                     get_available_for_submission_beginning),
+                    ('available_for_submission_beginning', get_available_for_submission_beginning),
                     ('available_for_submission_ending', get_available_for_submission_ending)):
                 dates_date = func(dates, k)
                 asg_date = getattr(context, k)
@@ -211,7 +210,7 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
         # aggregated
         if      course is not None \
             and submission_count \
-            and (is_course_instructor(course, user)
+            and (   is_course_instructor(course, user)
                  or can_disclose_inquiry(context, course)):
             links.append(Link(course,
                               rel='Aggregated',
@@ -242,6 +241,6 @@ class _InquirySubmissionMetadataDecorator(_InquiryDecorator):
         course = self._get_course(context, user)
         if course is not None and is_course_instructor(course, user):
             links.append(Link(course,
-                              rel='Submission metadata',
                               method='GET',
+                              rel='submission_metadata',
                               elements=('CourseInquiries', context.ntiid, '@@SubmissionMetadata',)))

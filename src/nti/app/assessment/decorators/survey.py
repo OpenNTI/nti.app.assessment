@@ -31,6 +31,7 @@ from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
 
 from nti.app.assessment.interfaces import IUsersCourseInquiry
 from nti.app.assessment.interfaces import IUsersCourseInquiryItem
+
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
 from nti.appserver.pyramid_authorization import has_permission

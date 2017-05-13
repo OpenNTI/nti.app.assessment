@@ -53,8 +53,7 @@ class AssessmentsImporter(BaseSectionImporter):
             source = self.load(source)
             for package in get_course_packages(course):
                 site = get_resource_site_name(package)
-                site = get_host_site(site)
-                with current_site(site):
+                with current_site(get_host_site(site)):
                     self.remove_assessments(package)
                     result.update(populate_question_map_json(source, package))
                 # save source

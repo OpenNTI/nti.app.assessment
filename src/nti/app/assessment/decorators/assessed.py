@@ -226,7 +226,7 @@ class _QAssessedQuestionExplanationSolutionAdder(object):
         return externalizer
 
     def decorateExternalObject(self, context, mapping):
-        question_id = context.questionId
+        question_id = context.questionId or ''
         question = component.queryUtility(IQuestion, name=question_id)
         if question is None:
             return  # old?

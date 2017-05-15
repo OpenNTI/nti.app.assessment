@@ -416,7 +416,7 @@ class InquiryAggregatedGetView(AbstractAuthenticatedView, InquiryViewMixin):
             return hexc.HTTPNoContent()
 
         if      IQAggregatedSurvey.providedBy( result ) \
-                and IQPoll.providedBy(self.context):
+            and IQPoll.providedBy(self.context):
             # Asking for question level aggregation for
             # survey submissions.
             for poll_result in result.questions or ():

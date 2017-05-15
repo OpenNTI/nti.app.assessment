@@ -51,6 +51,8 @@ from nti.app.assessment.views import get_ds2
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
+from nti.app.externalization.error import raise_json_error
+
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
 from nti.app.renderers.interfaces import INoHrefInResponse
@@ -102,12 +104,22 @@ class InquiryViewMixin(object):
     def course(self):
         creator = self.remoteUser
         if not creator:
-            raise hexc.HTTPForbidden(_("Must be Authenticated."))
+            raise_json_error(self.request,
+                             hexc.HTTPForbidden,
+                             {
+                                 'message': _(u"Must be Authenticated.")
+                             },
+                             None)
         course = get_course_from_request(self.request)
         if course is None:
             course = get_course_from_inquiry(self.context, creator, exc=False)
         if course is None:
-            raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
+            raise_json_error(self.request,
+                             hexc.HTTPForbidden,
+                             {
+                                 'message': _(u"Must be enrolled in a course.")
+                             },
+                             None)
         return course
 
 
@@ -245,9 +257,14 @@ class InquirySubmissionsView(AbstractAuthenticatedView, InquiryViewMixin):
 
     def __call__(self):
         course = self.course
-        if not (is_course_instructor(course, self.remoteUser)
-                or has_permission(nauth.ACT_NTI_ADMIN, course, self.request)):
-            raise hexc.HTTPForbidden(_("Cannot get inquiry submissions."))
+        if     not (is_course_instructor(course, self.remoteUser)
+            or has_permission(nauth.ACT_NTI_ADMIN, course, self.request)):
+            raise_json_error(self.request,
+                             hexc.HTTPForbidden,
+                             {
+                                 'message': _(u"Cannot get inquiry submissions.")
+                             },
+                             None)
         result = LocatedExternalDict()
         queried = inquiry_submissions(self.context, course)
 
@@ -280,16 +297,21 @@ class InquirySubmissionMetadataCSVView(AbstractAuthenticatedView, InquiryViewMix
 
     def __call__(self):
         course = self.course
-        if not (is_course_instructor(course, self.remoteUser)
-                or has_permission(nauth.ACT_NTI_ADMIN, course, self.request)):
-            raise hexc.HTTPForbidden(_("Cannot get inquiry submissions."))
+        if      not (is_course_instructor(course, self.remoteUser)
+            or has_permission(nauth.ACT_NTI_ADMIN, course, self.request)):
+            raise_json_error(self.request,
+                             hexc.HTTPForbidden,
+                             {
+                                 'message': _(u"Cannot get inquiry submissions.")
+                             },
+                             None)
         queried = inquiry_submissions(self.context, course)
 
         response = self.request.response
         response.content_encoding = str('identity')
         response.content_type = str('text/csv; charset=UTF-8')
-        response.content_disposition = str(
-            'attachment; filename="%s"' % _get_title_for_metadata_download(self.context.title))
+        metadata = _get_title_for_metadata_download(self.context.title)
+        response.content_disposition = str('attachment; filename="%s"' % metadata)
 
         stream = BytesIO()
         fieldnames = ['username', 'realname', 'email', 'submission_time']
@@ -385,7 +407,12 @@ class InquiryOpenView(AbstractAuthenticatedView, InquiryViewMixin):
     def __call__(self):
         course = self.course
         if not is_course_instructor(course, self.remoteUser):
-            raise hexc.HTTPForbidden(_("Cannot open inquiry."))
+            raise_json_error(self.request,
+                             hexc.HTTPForbidden,
+                             {
+                                 'message': _(u"Cannot open inquiry.")
+                             },
+                             None)
         self.context.closed = False
         try:
             container = ICourseAggregatedInquiries(course)
@@ -406,7 +433,12 @@ class InquiryAggregatedGetView(AbstractAuthenticatedView, InquiryViewMixin):
     def __call__(self):
         course = self.course
         if not allow_to_disclose_inquiry(self.context, course, self.remoteUser):
-            raise hexc.HTTPForbidden(_("Cannot disclose inquiry results."))
+            raise_json_error(self.request,
+                             hexc.HTTPForbidden,
+                             {
+                                 'message': _(u"Cannot disclose inquiry results.")
+                             },
+                             None)
         if self.context.closed:
             container = ICourseAggregatedInquiries(course)
             result = container[self.context.ntiid]
@@ -453,4 +485,9 @@ class InquirySubmisionPostView(UGDPostView):
 class InquirySubmisionPutView(UGDPutView):
 
     def __call__(self):
-        raise hexc.HTTPForbidden(_("Cannot put an inquiry submission."))
+        raise_json_error(self.request,
+                         hexc.HTTPForbidden,
+                         {
+                             'message': _(u"Cannot put an inquiry submission.")
+                         },
+                         None)

@@ -211,7 +211,7 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 
     @readproperty
     def Assignment(self):
-        result = component.queryUtility(IQAssignment, name=self.__name__)
+        result = component.queryUtility(IQAssignment, name=self.__name__ or '')
         return result
 
     @property

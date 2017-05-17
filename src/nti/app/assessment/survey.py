@@ -172,7 +172,7 @@ class UsersCourseInquiryItem(PersistentCreatedModDateTrackingObject,
 
     @readproperty
     def Inquiry(self):
-        result = component.queryUtility(IQInquiry, name=self.__name__)
+        result = component.queryUtility(IQInquiry, name=self.__name__ or '')
         return result
 
     @property

@@ -32,6 +32,9 @@ from nti.app.assessment._question_map import _remove_assessment_items_from_oldco
 
 from nti.app.assessment.common import get_resource_site_name
 
+from nti.app.assessment.index import get_evaluation_catalog
+from nti.app.assessment.index import create_evaluation_catalog
+
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
 from nti.app.externalization.internalization import read_body_as_external_object
@@ -60,7 +63,8 @@ from nti.intid.common import removeIntId
 
 from nti.ntiids.ntiids import find_object_with_ntiid
 
-from nti.site.hostpolicy import get_host_site, get_all_host_sites
+from nti.site.hostpolicy import get_host_site
+from nti.site.hostpolicy import get_all_host_sites
 
 from nti.site.interfaces import IHostPolicyFolder
 
@@ -172,8 +176,7 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
                 continue
             components = byorder[order]
             extendors = EVALUATION_INTERFACES
-            self._lookupAll(
-                components, required, extendors, 0, order, result, ntiid)
+            self._lookupAll(components, required, extendors, 0, order, result, ntiid)
             break  # break on first
         for cmps in result:
             logger.warn("Removing %s from components %s", ntiid, type(cmps))
@@ -338,4 +341,38 @@ class RegisterAssessmentItemsView(AbstractAuthenticatedView,
                 result.lastModified = key.lastModified
         result[ITEMS] = sorted(items)
         result[ITEM_COUNT] = result[TOTAL] = len(items)
+        return result
+
+
+@view_config(route_name='objects.generic.traversal',
+             renderer='rest',
+             request_method='POST',
+             permission=nauth.ACT_NTI_ADMIN,
+             context=IDataserverFolder,
+             name='RebuildEvaluationCatalog')
+class RebuildEvaluationCatalogView(AbstractAuthenticatedView):
+
+    def __call__(self):
+        intids = component.getUtility(IIntIds)
+        # remove indexes
+        catalog = get_evaluation_catalog()
+        for name, index in list(catalog.items()):
+            intids.unregister(index)
+            del catalog[name]
+        # recreate indexes
+        catalog = create_evaluation_catalog(catalog=catalog, family=intids.family)
+        for index in catalog.values():
+            intids.register(index)
+        # reindex
+        seen = set()
+        for host_site in get_all_host_sites():  # check all sites
+            with current_site(host_site):
+                for _, evaluation in list(component.getUtilitiesFor(IQEvaluation)):
+                    doc_id = intids.queryId(evaluation)
+                    if doc_id is None or doc_id in seen:
+                        continue
+                    seen.add(doc_id)
+                    catalog.index_doc(doc_id, evaluation)
+        result = LocatedExternalDict()
+        result[ITEM_COUNT] = result[TOTAL] = len(seen)
         return result

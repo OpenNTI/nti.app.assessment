@@ -154,12 +154,12 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
                 comps = components.get(spec)
                 if comps:
                     self._lookupAll(comps,
-                                    specs,
-                                    provided,
-                                    i + 1,
-                                    l,
-                                    result,
-                                    ntiid)
+                                    specs=specs,
+                                    provided=provided,
+                                    i=i + 1,
+                                    l=l,
+                                    result=result,
+                                    ntiid=ntiid)
         else:
             for iface in reversed(provided):
                 comps = components.get(iface)

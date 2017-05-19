@@ -366,6 +366,7 @@ class RebuildEvaluationCatalogView(AbstractAuthenticatedView):
         # reindex
         seen = set()
         for host_site in get_all_host_sites():  # check all sites
+            logger.info("Processing site %s", host_site.__name__)
             with current_site(host_site):
                 for _, evaluation in list(component.getUtilitiesFor(IQEvaluation)):
                     doc_id = intids.queryId(evaluation)

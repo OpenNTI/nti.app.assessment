@@ -25,8 +25,6 @@ from nti.app.contentlibrary.utils import yield_sync_content_packages
 
 from nti.app.assessment import get_evaluation_catalog
 
-from nti.app.assessment.common import dataserver_metadata_catalog
-
 from nti.assessment import EVALUATION_INTERFACES
 
 from nti.assessment._question_index import QuestionIndex
@@ -42,6 +40,8 @@ from nti.assessment.interfaces import IQAssessmentItemContainer
 from nti.contentlibrary.indexed_data import get_library_catalog
 
 from nti.contentlibrary.interfaces import IContentUnit
+
+from nti.dataserver.metadata.index import get_metadata_catalog as dataserver_metadata_catalog
 
 from nti.intid.common import addIntId
 from nti.intid.common import removeIntId

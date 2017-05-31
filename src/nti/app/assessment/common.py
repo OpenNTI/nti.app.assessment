@@ -125,9 +125,11 @@ from nti.coremetadata.interfaces import SYSTEM_USER_NAME
 
 from nti.dataserver.interfaces import IUser
 
-from nti.dataserver.metadata_index import IX_MIMETYPE
-from nti.dataserver.metadata_index import CATALOG_NAME
-from nti.dataserver.metadata_index import IX_CONTAINERID
+from nti.dataserver.metadata.index import IX_MIMETYPE
+from nti.dataserver.metadata.index import CATALOG_NAME
+from nti.dataserver.metadata.index import IX_CONTAINERID
+
+from nti.dataserver.metadata.index import get_metadata_catalog as dataserver_metadata_catalog
 
 from nti.dataserver.users import User
 
@@ -155,8 +157,6 @@ from nti.traversal.traversal import find_interface
 from nti.zodb.containers import time_to_64bit_int
 
 from nti.zope_catalog.catalog import ResultSet
-
-from nti.zope_catalog.interfaces import IMetadataCatalog
 
 NAQ = NTIID_TYPE
 
@@ -191,11 +191,6 @@ def get_user(user=None, remote=False, request=None):
     if user is not None and not IUser.providedBy(user):
         user = User.get_user(str(user))
     return user
-
-# metadata
-
-def dataserver_metadata_catalog():
-    return component.queryUtility(IMetadataCatalog, name=CATALOG_NAME)
 
 
 # containment

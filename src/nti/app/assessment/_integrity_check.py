@@ -41,7 +41,7 @@ from nti.contentlibrary.indexed_data import get_library_catalog
 
 from nti.contentlibrary.interfaces import IContentUnit
 
-from nti.dataserver.metadata.index import get_metadata_catalog as dataserver_metadata_catalog
+from nti.dataserver.metadata.index import get_metadata_catalog
 
 from nti.intid.common import addIntId
 from nti.intid.common import removeIntId
@@ -106,7 +106,7 @@ def _master_data_collector():
 
 def _get_data_item_counts(intids):
     count = defaultdict(list)
-    catalog = dataserver_metadata_catalog()
+    catalog = get_metadata_catalog()
     query = {
         'mimeType': {'any_of': ALL_EVALUATION_MIME_TYPES}
     }

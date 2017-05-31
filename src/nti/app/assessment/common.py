@@ -126,10 +126,9 @@ from nti.coremetadata.interfaces import SYSTEM_USER_NAME
 from nti.dataserver.interfaces import IUser
 
 from nti.dataserver.metadata.index import IX_MIMETYPE
-from nti.dataserver.metadata.index import CATALOG_NAME
 from nti.dataserver.metadata.index import IX_CONTAINERID
 
-from nti.dataserver.metadata.index import get_metadata_catalog as dataserver_metadata_catalog
+from nti.dataserver.metadata.index import get_metadata_catalog
 
 from nti.dataserver.users import User
 
@@ -821,7 +820,7 @@ def aggregate_course_inquiry(inquiry, course, *items):
 
 
 def aggregate_page_inquiry(containerId, mimeType, *items):
-    catalog = dataserver_metadata_catalog()
+    catalog = get_metadata_catalog()
     intids = component.getUtility(IIntIds)
     query = {
         IX_MIMETYPE: {'any_of': (mimeType,)},

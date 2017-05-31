@@ -368,19 +368,17 @@
 			 provides="nti.namedfile.interfaces.IFileConstraints" />
 
 	<!-- Metadata -->
-	<configure zcml:condition="installed nti.metadata">
-		<subscriber	factory=".predicates._AssignmentHistoryPrincipalObjects"
-					provides="nti.dataserver.interfaces.IPrincipalMetadataObjects" />
+	<subscriber	factory=".predicates._AssignmentHistoryPrincipalObjects"
+				provides="nti.dataserver.metadata.interfaces.IPrincipalMetadataObjects" />
 
-		<subscriber	factory=".predicates._InquiryPrincipalObjects"
-					provides="nti.dataserver.interfaces.IPrincipalMetadataObjects" />
+	<subscriber	factory=".predicates._InquiryPrincipalObjects"
+				provides="nti.dataserver.metadata.interfaces.IPrincipalMetadataObjects" />
 
-		<subscriber	factory=".predicates._SystemEvaluationObjects"
-					provides="nti.dataserver.interfaces.IPrincipalMetadataObjects" />
+	<subscriber	factory=".predicates._SystemEvaluationObjects"
+				provides="nti.dataserver.metadata.interfaces.IPrincipalMetadataObjects" />
 
-		<subscriber	factory=".predicates._UserEvaluationObjects"
-					provides="nti.dataserver.interfaces.IPrincipalMetadataObjects" />
-	</configure>
+	<subscriber	factory=".predicates._UserEvaluationObjects"
+				provides="nti.dataserver.metadata.interfaces.IPrincipalMetadataObjects" />
 
 	<!-- Hierarchy/Joinable/TopLevelContext -->
 	<subscriber factory=".adapters._courses_from_obj"

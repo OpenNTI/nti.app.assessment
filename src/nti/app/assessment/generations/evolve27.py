@@ -30,7 +30,7 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 from nti.dataserver.interfaces import IDataserver
 from nti.dataserver.interfaces import IOIDResolver
 
-from nti.dataserver.metadata_index import CATALOG_NAME as METADATA_CATALOG_NAME
+from nti.dataserver.metadata.index import CATALOG_NAME as METADATA_CATALOG_NAME
 
 from nti.zope_catalog.catalog import ResultSet
 

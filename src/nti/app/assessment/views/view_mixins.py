@@ -105,7 +105,7 @@ class AssessmentPutView(UGDPutView):
 	TO_UNAVAILABLE_MSG = None
 	DUE_DATE_CONFIRM_MSG = _('Are you sure you want to change the due date?')
 
-	NON_DATE_POLICY_KEYS = ("auto_grade", 'total_points')
+	NON_DATE_POLICY_KEYS = ("auto_grade", 'total_points', 'maximum_time_allowed')
 
 	def readInput(self, value=None):
 		result = UGDPutView.readInput(self, value=value)
@@ -275,12 +275,13 @@ class AssessmentPutView(UGDPutView):
 		return SUPPORTED_DATE_KEYS + self.NON_DATE_POLICY_KEYS
 
 	def _get_or_create_policy_part(self, course, ntiid, part=None):
-		policy = result = IQAssessmentPolicies(course)
+		policies = IQAssessmentPolicies(course)
+		policy = result = policies.getPolicyForAssessment(ntiid)
 		if part:
-			result = policy.get(ntiid, part)
+			result = policy.get(part)
 			if not result:
 				result = {}
-				policy.set(ntiid, part, result)
+				policies.set(ntiid, part, result)
 				if part == 'auto_grade':
 					# Creating a new auto_grade policy part; default
 					# to auto_grade off.
@@ -318,12 +319,12 @@ class AssessmentPutView(UGDPutView):
 				self._raise_error('InvalidType',
 							  	  _('Value is invalid.'),
 							  	  field=field)
-		elif value_type == float:
+		elif value_type in (int, float):
 			if not value:
 				# Empty/None is acceptable.
 				return None
 			try:
-				result = float(value)
+				result = value_type(value)
 				if result < 0:
 					raise TypeError()
 			except (TypeError, ValueError):
@@ -356,6 +357,8 @@ class AssessmentPutView(UGDPutView):
 		elif key == 'total_points':
 			notify_value = value = self._get_value(float, value, key)
 			part = 'auto_grade'
+		elif key == 'maximum_time_allowed':
+			notify_value = value = self._get_value(int, value, key)
 
 		for course in courses or ():
 			policy = self._get_or_create_policy_part(course, ntiid, part)

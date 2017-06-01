@@ -1269,6 +1269,11 @@ class AssignmentPutView(NewAndLegacyPutView):
 			if 		max_time_allowed \
 				and not IQTimedAssignment.providedBy(contentObject):
 				self._transform_to_timed(contentObject)
+				# This field is an assignment policy field, we need to set a
+				# default value in our object itself that will get overridden
+				# by the policy.
+				if not getattr(contentObject, 'maximum_time_allowed', None):
+					contentObject.maximum_time_allowed = 59
 			elif	max_time_allowed is None \
 				and IQTimedAssignment.providedBy(contentObject):
 				self._transform_to_untimed(contentObject)

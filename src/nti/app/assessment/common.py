@@ -957,7 +957,7 @@ def is_assignment_available(assignment, course=None, user=None):
 def get_max_time_allowed(assignment, course):
     """
     For a given IQTimedAssignment and course, return the maximum time allowed to
-    take the assignment, definied by the assignment policies.
+    take the assignment, defined by the assignment policies.
     """
     max_time_allowed = assignment.maximum_time_allowed
     policies = IQAssessmentPolicies(course)

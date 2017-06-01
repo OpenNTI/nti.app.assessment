@@ -263,7 +263,7 @@ class TestAssignmentViews(ApplicationLayerTest):
 		assert_that( assignment.get( 'policy_locked'), is_( False ))
 		assert_that( assignment.get( 'auto_grade'), is_( False ))
 		assert_that( assignment.get( 'total_points'), none())
-		for rel in ('date-edit', 'auto-grade', 'total-points'):
+		for rel in ('date-edit', 'auto-grade', 'total-points', 'maximum-time-allowed'):
 			self.require_link_href_with_rel(assignment, rel)
 
 		def _validate_conflict(conflict_res, confirm_code=False):

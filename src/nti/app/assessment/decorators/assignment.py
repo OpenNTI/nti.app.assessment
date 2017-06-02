@@ -702,6 +702,11 @@ class AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
         course = get_course_from_request(self.request)
         return course
 
+    @Lazy
+    def is_instructor(self):
+        return  self.request_course is not None \
+            and is_course_instructor(self.request_course, self.remoteUser)
+
     def get_context(self, context):
         """
         Subclasses can override.
@@ -719,8 +724,7 @@ class AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
         Editors or instructors of given course context can edit policy.
         """
         return has_permission(ACT_CONTENT_EDIT, context, self.request) \
-            or (    self.request_course is not None
-                and is_course_instructor(self.request_course, self.remoteUser))
+            or self.is_instructor
 
     def _predicate(self, context, result):
         """
@@ -751,11 +755,18 @@ class AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
         context = self.get_context(context)
         _links = result.setdefault(LINKS, [])
         courses = self._get_courses(context)
-        names = ('date-edit-end', 'date-edit', 'total-points', 'maximum-time-allowed')
+        names = ['date-edit-end', 'date-edit', 'total-points']
         if not self._has_submitted_data(context, courses):
-            names += ('date-edit-start',)
+            names.append('date-edit-start')
         if self._can_auto_grade(context):
-            names += ('auto-grade',)
+            names.append('auto-grade')
+        if self.is_instructor:
+            # Instructors can only change the time allowed if already a
+            # timed assignment.
+            if IQTimedAssignment.providedBy(context):
+                names.append('maximum-time-allowed')
+        else:
+            names.append('maximum-time-allowed')
 
         # set correct context and elements if request comes from a course
         course = self.request_course

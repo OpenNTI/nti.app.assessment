@@ -751,6 +751,21 @@ class AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
                     return False
         return result
 
+    def _can_set_time(self, context):
+        # Content backed assignments can have time allowed edited
+        # if we have a timed assignment.
+        result = False
+        if     IQEditableEvaluation.providedBy(context) \
+            or IQTimedAssignment.providedBy(context):
+            if self.is_instructor:
+                # Instructors can only change the time allowed if already a
+                # timed assignment.
+                if IQTimedAssignment.providedBy(context):
+                    result = True
+            else:
+                result = True
+        return result
+
     def _do_decorate_external(self, context, result):
         context = self.get_context(context)
         _links = result.setdefault(LINKS, [])
@@ -760,12 +775,7 @@ class AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
             names.append('date-edit-start')
         if self._can_auto_grade(context):
             names.append('auto-grade')
-        if self.is_instructor:
-            # Instructors can only change the time allowed if already a
-            # timed assignment.
-            if IQTimedAssignment.providedBy(context):
-                names.append('maximum-time-allowed')
-        else:
+        if self._can_set_time(context):
             names.append('maximum-time-allowed')
 
         # set correct context and elements if request comes from a course

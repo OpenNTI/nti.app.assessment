@@ -277,6 +277,9 @@ class AssessmentPutView(UGDPutView):
 	def _get_or_create_policy_part(self, course, ntiid, part=None):
 		policies = IQAssessmentPolicies(course)
 		policy = result = policies.getPolicyForAssessment(ntiid)
+		if not policy:
+			# Initialize
+			policy = result = policies[ntiid] = {}
 		if part:
 			result = policy.get(part)
 			if not result:

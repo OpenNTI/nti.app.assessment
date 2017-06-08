@@ -1234,18 +1234,20 @@ class AssignmentPutView(NewAndLegacyPutView):
 
 	def _transform_to_timed(self, contentObject):
 		"""
-		Transform from a regular assignment to a timed assignment.
+		Transform from a regular assignment to a timed assignment. This is a
+		policy change on the course so we allow these even if we have
+		submissions/savepoints.
 		"""
-		self._pre_flight_validation(self.context, structural_change=True)
 		interface.alsoProvides(contentObject, IQTimedAssignment)
 		contentObject.mimeType = contentObject.mime_type = TIMED_ASSIGNMENT_MIME_TYPE
 		self._re_register(contentObject, IQAssignment, IQTimedAssignment)
 
 	def _transform_to_untimed(self, contentObject):
 		"""
-		Transform from a timed assignment to a regular assignment.
+		Transform from a timed assignment to a regular assignment. This is a
+		policy change on the course so we allow these even if we have
+		submissions/savepoints.
 		"""
-		self._pre_flight_validation(self.context, structural_change=True)
 		interface.noLongerProvides(contentObject, IQTimedAssignment)
 		contentObject.mimeType = contentObject.mime_type = ASSIGNMENT_MIME_TYPE
 		self._re_register(contentObject, IQTimedAssignment, IQAssignment)

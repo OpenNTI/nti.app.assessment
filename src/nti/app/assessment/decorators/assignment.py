@@ -707,6 +707,9 @@ class AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
         return  self.request_course is not None \
             and is_course_instructor(self.request_course, self.remoteUser)
 
+    def is_editor(self, context):
+        return has_permission(ACT_CONTENT_EDIT, context, self.request)
+
     def get_context(self, context):
         """
         Subclasses can override.
@@ -723,8 +726,7 @@ class AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
         """
         Editors or instructors of given course context can edit policy.
         """
-        return has_permission(ACT_CONTENT_EDIT, context, self.request) \
-            or self.is_instructor
+        return self.is_editor(context) or self.is_instructor
 
     def _predicate(self, context, result):
         """
@@ -757,13 +759,13 @@ class AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
         result = False
         if     IQEditableEvaluation.providedBy(context) \
             or IQTimedAssignment.providedBy(context):
-            if self.is_instructor:
+            if self.is_editor:
+                result = True
+            else:
                 # Instructors can only change the time allowed if already a
                 # timed assignment.
                 if IQTimedAssignment.providedBy(context):
                     result = True
-            else:
-                result = True
         return result
 
     def _do_decorate_external(self, context, result):

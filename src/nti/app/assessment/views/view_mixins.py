@@ -359,7 +359,9 @@ class AssessmentPutView(UGDPutView):
 			notify_value = value = self._get_value(float, value, key)
 			part = 'auto_grade'
 		elif key == 'maximum_time_allowed':
-			notify_value = value = self._get_value(int, value, key)
+			value = self._get_value(int, value, key) or 0
+			# Clamp it at 59s
+			notify_value = value = max(value, 59)
 
 		for course in courses or ():
 			self._do_update_policy(course, ntiid, key, value, part)

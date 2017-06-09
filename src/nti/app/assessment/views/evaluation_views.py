@@ -1256,7 +1256,8 @@ class AssignmentPutView(NewAndLegacyPutView):
 		"""
 		Determine if our object is transitioning to/from a timed assignment.
 		"""
-		if 'maximum_time_allowed' in externalValue:
+		if 		'maximum_time_allowed' in externalValue \
+			and IQEditableEvaluation.providedBy(contentObject):
 			if IQDiscussionAssignment.providedBy( contentObject ):
 				raise_json_error(self.request,
 								 hexc.HTTPUnprocessableEntity,
@@ -1279,12 +1280,6 @@ class AssignmentPutView(NewAndLegacyPutView):
 			elif	max_time_allowed is None \
 				and IQTimedAssignment.providedBy(contentObject):
 				self._transform_to_untimed(contentObject)
-			elif	max_time_allowed is not None \
-				and IQTimedAssignment.providedBy(contentObject) \
-				and contentObject.maximum_time_allowed is not None \
-				and max_time_allowed != contentObject.maximum_time_allowed:
-				# Changing times; validate structurally.
-				self._pre_flight_validation(self.context, structural_change=True)
 
 	def updateContentObject(self, contentObject, externalValue, set_id=False, notify=True):
 		# Must toggle types first (if necessary) before calling super; so

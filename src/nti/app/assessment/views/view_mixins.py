@@ -284,8 +284,7 @@ class AssessmentPutView(UGDPutView):
 			if part == 'auto_grade':
 				# Creating a new auto_grade policy part; default to off.
 				part_value['disable'] = True
-			else:
-				part_value[key] = value
+			part_value[key] = value
 			value = part_value
 			key = part
 		policies.set(ntiid, key, value)

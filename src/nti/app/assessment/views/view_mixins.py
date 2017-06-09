@@ -363,8 +363,8 @@ class AssessmentPutView(UGDPutView):
 			# If still a timed assignment, we must stay above 60s.
 			if 		IQTimedAssignment.providedBy(obj) \
 				and (not value or value < 60):
-				self._raise_error('InvalidType',
-							  	  _('Value is invalid.'),
+				self._raise_error('InvalidValue',
+							  	  _('Time allowed must be at least 60 seconds.'),
 							  	  field='maximum_time_allowed')
 
 		for course in courses or ():

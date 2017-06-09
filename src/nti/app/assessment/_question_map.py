@@ -484,17 +484,13 @@ class QuestionMap(QuestionIndex):
 			# cannot contain  assessment items. The condition of a missing/bad filename
 			# has been seen in jacked-up content that abuses the section hierarchy
 			# (skips levels) and/or jacked-up themes/configurations  that split incorrectly.
+			# 6.2017 - this constraint may no longer be necessary; so let's just warn.
 			if 	   'filename' not in child_index \
 				or not child_index['filename'] \
 				or child_index['filename'].startswith('index.html#'):
 				logger.warn("Ignoring invalid child with invalid filename '%s'; cannot contain assessments: %s",
 							child_index.get('filename', ''),
 							child_index)
-				continue
-
-			# TODO: Do we need this check?
-			assert 	child_index.get('filename'), \
-					'Child must contain valid filename to contain assessments'
 
 			parsed = self._from_index_entry(child_index,
 									   		content_package,

@@ -1255,9 +1255,11 @@ class AssignmentPutView(NewAndLegacyPutView):
 	def _update_timed_status(self, externalValue, contentObject):
 		"""
 		Determine if our object is transitioning to/from a timed assignment.
+		Only editors can toggle state on API created assignments.
 		"""
 		if 		'maximum_time_allowed' in externalValue \
-			and IQEditableEvaluation.providedBy(contentObject):
+			and IQEditableEvaluation.providedBy(contentObject) \
+			and has_permission(nauth.ACT_CONTENT_EDIT, contentObject, self.request):
 			if IQDiscussionAssignment.providedBy( contentObject ):
 				raise_json_error(self.request,
 								 hexc.HTTPUnprocessableEntity,
@@ -1269,19 +1271,15 @@ class AssignmentPutView(NewAndLegacyPutView):
 
 			# The client passed us something; see if we are going to/from timed assignment.
 			max_time_allowed = externalValue.get('maximum_time_allowed')
-			course = get_course_from_request()
-			is_instructor = is_course_instructor(course, self.remoteUser)
 			if 		max_time_allowed \
-				and not is_instructor \
 				and not IQTimedAssignment.providedBy(contentObject):
 				self._transform_to_timed(contentObject)
 				# This field is an assignment policy field, we need to set a
 				# default value in our object itself that will get overridden
 				# by the policy.
 				if not getattr(contentObject, 'maximum_time_allowed', None):
-					contentObject.maximum_time_allowed = 59
+					contentObject.maximum_time_allowed = 60
 			elif	max_time_allowed is None \
-				and not is_instructor \
 				and IQTimedAssignment.providedBy(contentObject):
 				self._transform_to_untimed(contentObject)
 

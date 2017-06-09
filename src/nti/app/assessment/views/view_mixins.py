@@ -44,7 +44,7 @@ from nti.app.externalization.error import raise_json_error
 
 from nti.appserver.ugd_edit_views import UGDPutView
 
-from nti.assessment.interfaces import IQuestion
+from nti.assessment.interfaces import IQuestion, IQTimedAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQEditableEvaluation
@@ -336,7 +336,7 @@ class AssessmentPutView(UGDPutView):
 			raise TypeError()
 		return result
 
-	def update_policy(self, courses, ntiid, key, value):
+	def update_policy(self, courses, ntiid, obj, key, value):
 		if key in SUPPORTED_DATE_KEYS:
 			if value and not isinstance(value, datetime):
 				value = IDateTime(value)
@@ -359,9 +359,13 @@ class AssessmentPutView(UGDPutView):
 			notify_value = value = self._get_value(float, value, key)
 			part = 'auto_grade'
 		elif key == 'maximum_time_allowed':
-			value = self._get_value(int, value, key) or 0
-			# Clamp it at 59s
-			notify_value = value = max(value, 59)
+			value = notify_value = self._get_value(int, value, key)
+			# If still a timed assignment, we must stay above 60s.
+			if 		IQTimedAssignment.providedBy(obj) \
+				and (not value or value < 60):
+				self._raise_error('InvalidType',
+							  	  _('Value is invalid.'),
+							  	  field='maximum_time_allowed')
 
 		for course in courses or ():
 			self._do_update_policy(course, ntiid, key, value, part)
@@ -455,7 +459,7 @@ class AssessmentPutView(UGDPutView):
 		ntiid = contentObject.ntiid
 		for key in self.policy_keys:
 			if key in backupData:
-				self.update_policy(courses, ntiid, key, backupData[key])
+				self.update_policy(courses, ntiid, contentObject, key, backupData[key])
 
 		# Validate once we have policy updated.
 		self.validate(result, backupData, courses)

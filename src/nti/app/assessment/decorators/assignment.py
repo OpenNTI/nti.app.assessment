@@ -761,11 +761,10 @@ class AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
             or IQTimedAssignment.providedBy(context):
             if self.is_editor:
                 result = True
-            else:
+            elif IQTimedAssignment.providedBy(context):
                 # Instructors can only change the time allowed if already a
                 # timed assignment.
-                if IQTimedAssignment.providedBy(context):
-                    result = True
+                result = True
         return result
 
     def _do_decorate_external(self, context, result):

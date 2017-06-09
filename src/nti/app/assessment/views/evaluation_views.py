@@ -1269,7 +1269,10 @@ class AssignmentPutView(NewAndLegacyPutView):
 
 			# The client passed us something; see if we are going to/from timed assignment.
 			max_time_allowed = externalValue.get('maximum_time_allowed')
+			course = get_course_from_request()
+			is_instructor = is_course_instructor(course, self.remoteUser)
 			if 		max_time_allowed \
+				and not is_instructor \
 				and not IQTimedAssignment.providedBy(contentObject):
 				self._transform_to_timed(contentObject)
 				# This field is an assignment policy field, we need to set a
@@ -1278,6 +1281,7 @@ class AssignmentPutView(NewAndLegacyPutView):
 				if not getattr(contentObject, 'maximum_time_allowed', None):
 					contentObject.maximum_time_allowed = 59
 			elif	max_time_allowed is None \
+				and not is_instructor \
 				and IQTimedAssignment.providedBy(contentObject):
 				self._transform_to_untimed(contentObject)
 

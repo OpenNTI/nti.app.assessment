@@ -759,7 +759,7 @@ class AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
         result = False
         if     IQEditableEvaluation.providedBy(context) \
             or IQTimedAssignment.providedBy(context):
-            if self.is_editor:
+            if self.is_editor(context):
                 result = True
             elif IQTimedAssignment.providedBy(context):
                 # Instructors can only change the time allowed if already a

@@ -39,13 +39,10 @@ from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment import VIEW_ASSESSMENT_MOVE
 from nti.app.assessment import VIEW_COPY_EVALUATION
-from nti.app.assessment import VIEW_RESET_EVALUATION
 from nti.app.assessment import VIEW_REGRADE_EVALUATION
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
-from nti.app.assessment import VIEW_USER_RESET_EVALUATION
 
 from nti.app.assessment.common import get_courses
-from nti.app.assessment.common import has_savepoints
 from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import regrade_evaluation
 from nti.app.assessment.common import validate_auto_grade
@@ -57,7 +54,6 @@ from nti.app.assessment.common import has_inquiry_submissions
 from nti.app.assessment.common import delete_evaluation_metadata
 from nti.app.assessment.common import delete_inquiry_submissions
 from nti.app.assessment.common import get_evaluation_containment
-from nti.app.assessment.common import get_course_from_evaluation
 from nti.app.assessment.common import pre_validate_question_change
 from nti.app.assessment.common import delete_evaluation_savepoints
 from nti.app.assessment.common import delete_evaluation_submissions
@@ -70,12 +66,8 @@ from nti.app.assessment.evaluations.utils import validate_structural_edits
 from nti.app.assessment.evaluations.utils import import_evaluation_content
 
 from nti.app.assessment.interfaces import ICourseEvaluations
-from nti.app.assessment.interfaces import IUsersCourseInquiry
 from nti.app.assessment.interfaces import IQAvoidSolutionCheck
 from nti.app.assessment.interfaces import RegradeQuestionEvent
-from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
-from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
-from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
 
 from nti.app.assessment.utils import get_course_from_request
 
@@ -159,7 +151,6 @@ from nti.dataserver.authorization import ROLE_ADMIN
 
 from nti.dataserver.contenttypes.forums.interfaces import ITopic
 
-from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import IGroupMember
 
 from nti.dataserver.users import User
@@ -1475,136 +1466,6 @@ class QuestionSetDeleteChildView(AbstractAuthenticatedView,
 
 	def _validate(self):
 		self._pre_flight_validation( self.context, structural_change=True)
-
-# Reset views
-
-class EvaluationResetMixin(ModeledContentUploadRequestUtilsMixin):
-
-	def readInput(self, value=None):
-		if self.request.body:
-			result = CaseInsensitiveDict(read_body_as_external_object(self.request))
-		else:
-			result = CaseInsensitiveDict(self.request.params)
-		return result
-
-	@Lazy
-	def course(self):
-		if IQEditableEvaluation.providedBy(self.context):
-			result = find_interface(self.context, ICourseInstance, strict=False)
-		else:
-			result = get_course_from_request(self.request)
-			if result is None:
-				result = get_course_from_evaluation(self.context, self.remoteUser)
-		return result
-
-	def _can_delete_contained_data(self, theObject):
-		return is_course_instructor(self.course, self.remoteUser)
-
-@view_config(context=IQPoll)
-@view_config(context=IQSurvey)
-@view_config(context=IQAssignment)
-@view_defaults(route_name='objects.generic.traversal',
-			   renderer='rest',
-			   request_method='POST',
-			   name=VIEW_RESET_EVALUATION,
-			   permission=nauth.ACT_READ)
-class EvaluationResetView(AbstractAuthenticatedView,
-						  EvaluationResetMixin):
-
-	def _has_submissions(self, theObject):
-		if IQInquiry.providedBy(theObject):
-			result = has_inquiry_submissions(theObject, self.course)
-		else:
-			courses = get_courses(self.course)
-			result = 	has_submissions(theObject, courses) \
-					or  has_savepoints( theObject, courses )
-		return result
-
-	def _delete_contained_data(self, theObject):
-		if IQInquiry.providedBy(theObject):
-			delete_inquiry_submissions(theObject, self.course)
-		else:
-			delete_evaluation_metadata(theObject, self.course)
-			delete_evaluation_savepoints(theObject, self.course)
-			delete_evaluation_submissions(theObject, self.course)
-
-	def __call__(self):
-		if not self._can_delete_contained_data(self.context):
-			raise_json_error(self.request,
-							 hexc.HTTPForbidden,
-							 {
-								u'message': _("Cannot reset evaluation object."),
-								u'code': 'CannotResetEvaluation',
-							 },
-							 None)
-		elif self._has_submissions(self.context):
-			self._delete_contained_data(self.context)
-		self.context.update_version()
-		return self.context
-
-@view_config(context=IQPoll)
-@view_config(context=IQSurvey)
-@view_config(context=IQAssignment)
-@view_defaults(route_name='objects.generic.traversal',
-			   renderer='rest',
-			   name=VIEW_USER_RESET_EVALUATION,
-			   permission=nauth.ACT_READ)
-class UserEvaluationResetView(AbstractAuthenticatedView,
-							  EvaluationResetMixin):
-
-	def _delete_contained_data(self, course, theObject, usernames):
-		result = set()
-		ntiid = theObject.ntiid
-		if IQInquiry.providedBy(theObject):
-			container_interfaces = (IUsersCourseInquiry,)
-		else:
-			container_interfaces = (IUsersCourseAssignmentHistory,
-									IUsersCourseAssignmentMetadata,
-									IUsersCourseAssignmentSavepoint)
-
-		for username in usernames or ():
-			user = User.get_user(username)
-			if not IUser.providedBy(user):
-				continue
-			for provided in container_interfaces:
-				container = component.queryMultiAdapter((course, user), provided)
-				if container and ntiid in container:
-					del container[ntiid]
-					result.add(username)
-
-		return sorted(result)
-
-	def __call__(self):
-		values = self.readInput()
-		if not self._can_delete_contained_data(self.context):
-			raise_json_error(self.request,
-							 hexc.HTTPForbidden,
-							 {
-								u'message': _("Cannot reset evaluation object."),
-								u'code': 'CannotResetEvaluation',
-							 },
-							 None)
-
-		usernames = 	values.get('user') \
-					or	values.get('users') \
-					or	values.get('username') \
-					or	values.get('usernames')
-		if isinstance(usernames, six.string_types):
-			usernames = usernames.split()
-		if not usernames:
-			raise_json_error(self.request,
-							 hexc.HTTPUnprocessableEntity,
-							 {
-								u'message': _("Must specify a username."),
-								u'code': 'MustSpecifyUsername',
-							 },
-							 None)
-
-		items = self._delete_contained_data(self.course, self.context, usernames)
-		result = LocatedExternalDict()
-		result[ITEMS] = items
-		result[TOTAL] = result[ITEM_COUNT] = len(items)
-		return result
 
 # Publish views
 

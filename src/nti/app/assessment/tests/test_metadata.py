@@ -47,9 +47,10 @@ class TestMetadata(AssessmentLayerTest):
 		metadata.__parent__ = container
 		# Set an owner; use a python wref instead of the default
 		# adapter to wref as it requires an intid utility
-		metadata.owner = weakref.ref(User.create_user(username='sjohnson@nextthought.com'))
+		user = User.create_user(username=u'sjohnson@nextthought.com')
+		metadata.owner = weakref.ref(user)
 		item = UsersCourseAssignmentMetadataItem(StartTime=100.0)
-		item.creator = 'foo'
+		item.creator = u'foo'
 		item.__parent__ = metadata
 		assert_that(item,
 					validly_provides(IUsersCourseAssignmentMetadataItem))
@@ -67,7 +68,7 @@ class TestMetadata(AssessmentLayerTest):
 		connection.add(metadata)
 		item = UsersCourseAssignmentMetadataItem()
 		item.StartTime = time.time()
-		metadata.append("foo", item)
+		metadata.append(u"foo", item)
 
 		assert_that(item, has_property('StartTime', is_not(none())))
 		assert_that(item, has_property('__name__', is_('foo')))
@@ -82,7 +83,7 @@ class TestMetadata(AssessmentLayerTest):
 		connection = mock_dataserver.current_transaction
 		metadata = UsersCourseAssignmentMetadata()
 		connection.add(metadata)
-		item = metadata.get_or_create('foo', 1.0)
+		item = metadata.get_or_create(u'foo', 1.0)
 		assert_that(item, is_not(none()))
 		assert_that(item, has_property('StartTime', is_(1.0)))
 		item = metadata.get_or_create('foo', 100.0)

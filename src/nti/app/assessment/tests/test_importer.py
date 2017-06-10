@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 # disable: accessing protected members, too many methods
@@ -32,26 +32,27 @@ from nti.app.testing.decorators import WithSharedApplicationMockDS
 
 from nti.dataserver.tests import mock_dataserver
 
+
 class TestImporter(ApplicationLayerTest):
 
-	layer = InstructedCourseApplicationTestLayer
+    layer = InstructedCourseApplicationTestLayer
 
-	default_origin = b'http://janux.ou.edu'
+    default_origin = 'http://janux.ou.edu'
 
-	course_ntiid = 'tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2015_CS_1323'
+    course_ntiid = 'tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2015_CS_1323'
 
-	@WithSharedApplicationMockDS(testapp=True, users=True)
-	def test_importer(self):
-		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
-			context = find_object_with_ntiid(self.course_ntiid)
-			course = ICourseInstance(context)
-			tmp_dir = tempfile.mkdtemp(dir="/tmp")
-			try:
-				filer = DirectoryFiler(tmp_dir)
-				exporter = AssessmentsExporter()
-				exporter.export(course, filer)
-				importer = AssessmentsImporter()
-				result = importer.process(course, filer)
-				assert_that(result, has_length(184))
-			finally:
-				shutil.rmtree(tmp_dir, True)
+    @WithSharedApplicationMockDS(testapp=True, users=True)
+    def test_importer(self):
+        with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+            context = find_object_with_ntiid(self.course_ntiid)
+            course = ICourseInstance(context)
+            tmp_dir = tempfile.mkdtemp(dir="/tmp")
+            try:
+                filer = DirectoryFiler(tmp_dir)
+                exporter = AssessmentsExporter()
+                exporter.export(course, filer)
+                importer = AssessmentsImporter()
+                result = importer.process(course, filer)
+                assert_that(result, has_length(184))
+            finally:
+                shutil.rmtree(tmp_dir, True)

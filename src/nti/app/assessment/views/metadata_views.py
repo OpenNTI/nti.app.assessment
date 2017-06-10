@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -74,14 +74,14 @@ class AssignmentSubmissionMetataPostView(AbstractAuthenticatedView,
     def _validate(self):
         creator = self.remoteUser
         if not creator:
-            raise hexc.HTTPForbidden(_("Must be Authenticated."))
+            raise hexc.HTTPForbidden(_(u"Must be Authenticated."))
         course = get_course_from_request(self.request)
         if course is None:
-            course = get_course_from_evaluation(self.context, 
-                                                creator, 
+            course = get_course_from_evaluation(self.context,
+                                                creator,
                                                 exc=False)
         if course is None:
-            raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
+            raise hexc.HTTPForbidden(_(u"Must be enrolled in a course."))
         return creator, course
 
     def _process(self, creator=None, course=None, item=None):
@@ -145,18 +145,18 @@ class AssignmentSubmissionMetadataGetView(AbstractAuthenticatedView):
     def course(self):
         course = get_course_from_request(self.request)
         if course is None:
-            course = get_course_from_evaluation(self.context, 
-                                                self.remoteUser, 
+            course = get_course_from_evaluation(self.context,
+                                                self.remoteUser,
                                                 exc=False)
         return course
 
     def _do_call(self):
         creator = self.remoteUser
         if not creator:
-            raise hexc.HTTPForbidden(_("Must be Authenticated."))
+            raise hexc.HTTPForbidden(_(u"Must be Authenticated."))
 
         if self.course is None:
-            raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
+            raise hexc.HTTPForbidden(_(u"Must be enrolled in a course."))
 
         container = component.getMultiAdapter((self.course, creator),
                                               IUsersCourseAssignmentMetadata)

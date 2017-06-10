@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -36,6 +36,7 @@ from nti.app.contentfile import read_multipart_sources
 from nti.app.contentfile import transfer_internal_content_data
 
 from nti.app.contentlibrary import LIBRARY_PATH_GET_VIEW
+
 from nti.app.contentlibrary.views.library_views import AbstractCachingLibraryPathView
 
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
@@ -54,7 +55,7 @@ from nti.traversal.traversal import find_interface
 
 @interface.implementer(INewObjectTransformer)
 @component.adapter(IRequest, IUsersCourseAssignmentHistoryItemFeedback)
-def _feedback_transformer_factory(request, context):
+def _feedback_transformer_factory(request, _):
     result = partial(_feedback_transformer, request)
     return result
 
@@ -128,10 +129,8 @@ class AssignmentHistoryItemFeedbackPutView(UGDPutView):
 
 def validate_attachments(user, context, sources=()):
     sources = sources or ()
-
     # check source contraints
     validate_sources(user, context, sources)
-
     # take ownership
     for source in sources:
         source.__parent__ = context

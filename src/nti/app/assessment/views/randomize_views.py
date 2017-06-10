@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -51,8 +51,8 @@ class AbstractRandomizeView(AbstractAuthenticatedView,
 
     def _validate(self):
         if not IQEditableEvaluation.providedBy(self.context):
-            raise hexc.HTTPUnprocessableEntity(
-                	_(self._TYPE_RANDOMIZE_ERROR_MSG))
+            msg = self._TYPE_RANDOMIZE_ERROR_MSG
+            raise hexc.HTTPUnprocessableEntity(_(msg))
         self._pre_flight_validation(self.context, structural_change=True)
 
 
@@ -73,12 +73,12 @@ class QuestionSetRandomizeView(AbstractRandomizeView):
     def _validate(self):
         super(QuestionSetRandomizeView, self)._validate()
         if IQuestionBank.providedBy(self.context):
-            msg = _("Cannot randomize question bank.")
+            msg = _(u"Cannot randomize question bank.")
             raise_json_error(self.request,
                              hexc.HTTPUnprocessableEntity,
                              {
-                                 u'message': msg,
-                                 u'code': "CannotRandomizeQuestionBank"
+                                'message': msg,
+                                'code': "CannotRandomizeQuestionBank"
                              },
                              None)
 
@@ -107,12 +107,12 @@ class QuestionSetUnRandomizeView(AbstractRandomizeView):
         super(QuestionSetUnRandomizeView, self)._validate()
         if isinstance(self.context, QRandomizedQuestionSet):
             # This should not happen.
-            msg = _("Cannot unrandomize concrete implementation.")
+            msg = _(u"Cannot unrandomize concrete implementation.")
             raise_json_error(self.request,
                              hexc.HTTPUnprocessableEntity,
                              {
-                                 u'message': msg,
-                                 u'code': "CannotUnrandomizeObject"
+                                'message': msg,
+                                'code': "CannotUnrandomizeObject"
                              },
                              None)
 

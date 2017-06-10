@@ -62,7 +62,6 @@ from nti.app.assessment.common import get_assignments_for_evaluation_object
 
 from nti.app.assessment.evaluations.utils import indexed_iter
 from nti.app.assessment.evaluations.utils import register_context
-from nti.app.assessment.evaluations.utils import validate_structural_edits
 from nti.app.assessment.evaluations.utils import import_evaluation_content
 
 from nti.app.assessment.interfaces import ICourseEvaluations
@@ -92,12 +91,6 @@ from nti.app.products.courseware.views.view_mixins import IndexedRequestMixin
 from nti.app.products.courseware.views.view_mixins import DeleteChildViewMixin
 from nti.app.products.courseware.views.view_mixins import AbstractChildMoveView
 
-from nti.app.publishing import VIEW_PUBLISH
-from nti.app.publishing import VIEW_UNPUBLISH
-
-from nti.app.publishing.views import CalendarPublishView
-from nti.app.publishing.views import CalendarUnpublishView
-
 from nti.appserver.dataserver_pyramid_views import GenericGetView
 
 from nti.appserver.pyramid_authorization import has_permission
@@ -121,7 +114,6 @@ from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQTimedAssignment
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQDiscussionAssignment
-from nti.assessment.interfaces import IQEvaluationItemContainer
 
 from nti.assessment.interfaces import QAssessmentPoliciesModified
 from nti.assessment.interfaces import QuestionInsertedInContainerEvent
@@ -171,8 +163,6 @@ from nti.links.links import Link
 from nti.mimetype.externalization import decorateMimeType
 
 from nti.ntiids.ntiids import find_object_with_ntiid
-
-from nti.publishing.interfaces import ICalendarPublishable
 
 from nti.recorder.record import copy_transaction_history
 
@@ -1467,59 +1457,9 @@ class QuestionSetDeleteChildView(AbstractAuthenticatedView,
 	def _validate(self):
 		self._pre_flight_validation( self.context, structural_change=True)
 
-# Publish views
-
-def publish_context(context, start=None, end=None):
-	# publish
-	if not context.is_published():
-		if ICalendarPublishable.providedBy(context):
-			context.publish(start=start, end=end)
-		else:
-			context.publish()
-	# register utility
-	register_context(context)
-	# process 'children'
-	if IQEvaluationItemContainer.providedBy(context):
-		for item in context.Items or ():
-			publish_context(item, start, end)
-	elif IQAssignment.providedBy(context):
-		for item in context.iter_question_sets():
-			publish_context(item, start, end)
-
-@view_config(context=IQEvaluation)
-@view_defaults(route_name='objects.generic.traversal',
-			   renderer='rest',
- 			   name=VIEW_PUBLISH,
-			   permission=nauth.ACT_UPDATE,
-			   request_method='POST')
-class EvaluationPublishView(CalendarPublishView):
-
-	def _do_provide(self, context):
-		if IQEditableEvaluation.providedBy(context):
-			start, end = self._get_dates()
-			publish_context(context, start, end)
-
-# Unublish views
-
-@view_config(context=IQEvaluation)
-@view_defaults(route_name='objects.generic.traversal',
-			   renderer='rest',
- 			   name=VIEW_UNPUBLISH,
-			   permission=nauth.ACT_UPDATE,
-			   request_method='POST')
-class EvaluationUnpublishView(CalendarUnpublishView):
-
-	def _do_provide(self, context):
-		if IQEditableEvaluation.providedBy(context):
-			course = find_interface(context, ICourseInstance, strict=True)
-			courses = get_courses( course )
-			for course in courses:
-				# Not allowed to unpublish if we have submissions/savepoints.
-				validate_structural_edits( context, course )
-			# unpublish
-			super(EvaluationUnpublishView, self)._do_provide(context)
 
 # get views
+
 
 @view_config(route_name='objects.generic.traversal',
 			 renderer='rest',

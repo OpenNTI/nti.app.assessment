@@ -16,6 +16,7 @@
 	<pyramid:scan package=".savepoint_views" />
 	<pyramid:scan package=".randomize_views" />
 	<pyramid:scan package=".assessment_views" />
+	<pyramid:scan package=".publishing_views" />
 	<pyramid:scan package=".evaluation_views" />
 	<pyramid:scan package=".admin_course_views" />
 	<pyramid:scan package=".admin_general_views" />

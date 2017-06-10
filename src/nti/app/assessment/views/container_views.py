@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 
 __docformat__ = "restructuredtext en"
 
@@ -49,7 +49,9 @@ class QuestionContainersView(AbstractAuthenticatedView):
         result = LocatedExternalDict()
         result[ITEMS] = assessments = list()
         containers = get_outline_evaluation_containers(self.context)
-        containers = [to_external_object(x, name="summary") for x in containers]
+        containers = [
+            to_external_object(x, name="summary") for x in containers
+        ]
         assessments.extend(containers)
         result[ITEM_COUNT] = result[TOTAL] = len(containers)
         return result

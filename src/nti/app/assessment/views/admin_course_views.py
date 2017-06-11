@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -34,12 +34,13 @@ from nti.app.assessment.interfaces import ICourseEvaluations
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
 
+from nti.app.assessment.views import tx_string
 from nti.app.assessment.views import parse_catalog_entry
 
 from nti.app.base.abstract_views import get_all_sources
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
-from nti.app.externalization.internalization import read_body_as_external_object
+from nti.app.externalization.error import raise_json_error
 
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
@@ -48,10 +49,10 @@ from nti.app.products.courseware.views import CourseAdminPathAdapter
 from nti.assessment.interfaces import IQSubmittable
 from nti.assessment.interfaces import IQAssessmentDateContext
 
-from nti.contenttypes.courses.interfaces import ICourseCatalog,\
-    ICourseCatalogEntry
+from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
+from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.dataserver import authorization as nauth
 
@@ -81,7 +82,7 @@ class MoveUserAssignmentsView(AbstractAuthenticatedView,
 
     def readInput(self, value=None):
         if self.request.body:
-            values = read_body_as_external_object(self.request)
+            values = super(MoveUserAssignmentsView, self).readInput(value)
         else:
             values = self.request.params
         return CaseInsensitiveDict(values)
@@ -94,16 +95,30 @@ class MoveUserAssignmentsView(AbstractAuthenticatedView,
         source = parse_catalog_entry(values, names=("source", "origin"))
         target = parse_catalog_entry(values, names=("target", "dest"))
         if source is None:
-            raise hexc.HTTPUnprocessableEntity(_("Invalid source NTIID"))
+            raise_json_error(self.request,
+                             hexc.HTTPUnprocessableEntity,
+                             {
+                                'message': _(u"Invalid source NTIID."),
+                             },
+                             None)
         if target is None:
-            raise hexc.HTTPUnprocessableEntity(_("Invalid target NTIID"))
+            raise_json_error(self.request,
+                             hexc.HTTPUnprocessableEntity,
+                             {
+                                'message': _(u"Invalid target NTIID."),
+                             },
+                             None)
         if source == target:
-            msg = _("Source and Target courses are the same")
-            raise hexc.HTTPUnprocessableEntity(msg)
+            msg = _(u"Source and Target courses are the same")
+            raise_json_error(self.request,
+                             hexc.HTTPUnprocessableEntity,
+                             {
+                                'message': msg,
+                             },
+                             None)
 
         source = ICourseInstance(source)
         target = ICourseInstance(target)
-
         usernames = values.get('usernames') or values.get('username')
         if usernames:
             usernames = usernames.split(',')
@@ -151,9 +166,9 @@ class SetCourseDatePolicy(AbstractAuthenticatedView,
         return None
 
     def _process_row(self, course, evaluation, beginning=None, ending=None):
-        course = ICourseInstance(find_object_with_ntiid(course or u''), None)
+        course = ICourseInstance(find_object_with_ntiid(course or ''), None)
         evaluation = component.queryUtility(IQSubmittable,
-                                            name=evaluation or u'')
+                                            name=evaluation or '')
         if course is None or evaluation is None:
             return False
 
@@ -193,15 +208,20 @@ class SetCourseDatePolicy(AbstractAuthenticatedView,
                                      name, idx)
         else:
             evaluation = values.get('evaluation') \
-                or values.get('assignment') \
-                or values.get('assesment')
+                      or values.get('assignment') \
+                      or values.get('assesment') \
+                      or values.get('nttid')
             if not self._process_row(values.get('course') or values.get('context'),
                                      evaluation,
-                                     values.get('beginning') or values.get(
-                                         'start'),
+                                     values.get('beginning') or values.get('start'),
                                      values.get('ending') or values.get('end')):
                 logger.error("Invalid input data %s", values)
-                raise hexc.HTTPUnprocessableEntity()
+                raise_json_error(self.request,
+                                 hexc.HTTPUnprocessableEntity,
+                                 {
+                                    'message': _(u"Invalid input data."),
+                                 },
+                                 None)
         return hexc.HTTPNoContent()
 
 
@@ -260,9 +280,9 @@ class UnmatchedSavePointsView(AbstractAuthenticatedView):
             entries = catalog.iterCatalogEntries()
 
         response = self.request.response
-        response.content_encoding = str('identity')
-        response.content_type = str('text/csv; charset=UTF-8')
-        response.content_disposition = str('attachment; filename="report.csv"')
+        response.content_encoding = 'identity'
+        response.content_type = 'text/csv; charset=UTF-8'
+        response.content_disposition = 'attachment; filename="report.csv"'
 
         stream = BytesIO()
         writer = csv.writer(stream)
@@ -289,7 +309,7 @@ class UnmatchedSavePointsView(AbstractAuthenticatedView):
                 for assignmentId in set(savepoint.keys()):  # snapshot
                     if assignmentId not in history or ():
                         row_data = [ntiid, principal.username, assignmentId]
-                        writer.writerow(row_data)
+                        writer.writerow([tx_string(x) for x in row_data])
 
         stream.flush()
         stream.seek(0)

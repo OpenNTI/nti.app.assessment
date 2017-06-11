@@ -1,11 +1,10 @@
-
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -58,7 +57,7 @@ class CourseViewMixin(AbstractAuthenticatedView, BatchingUtilsMixin):
         accept = accept.split(',') if accept else ()
         if accept and '*/*' not in accept:
             accept = {e.strip().lower() for e in accept if e}
-            accept.discard(u'')
+            accept.discard('')
         else:
             accept = ()
         return accept
@@ -89,7 +88,7 @@ class CourseViewMixin(AbstractAuthenticatedView, BatchingUtilsMixin):
             if not outline:
                 items.append(item)
             else:
-                ntiid = get_containerId(item) or u'unparented'
+                ntiid = get_containerId(item) or 'unparented'
                 items.setdefault(ntiid, []).append(item)
         if not outline:
             self._batch_items_iterable(result, items)

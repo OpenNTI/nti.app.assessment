@@ -69,7 +69,7 @@ class CourseViewMixin(AbstractAuthenticatedView, BatchingUtilsMixin):
 
     def _filterBy(self, item, mimeTypes=()):
         mt = getattr(item, 'mimeType', None) \
-          or getattr(item, 'mime_type', None)
+            or getattr(item, 'mime_type', None)
         return bool(not mimeTypes or mt in mimeTypes)
 
     def _do_call(self, func):
@@ -164,6 +164,17 @@ class GetLockAssignmentsView(CourseViewMixin):
         instance = ICourseInstance(self.request.context)
         func = partial(get_course_assignments, instance, do_filtering=False)
         return self._do_call(func)
+
+
+@view_config(context=ICourseInstance)
+@view_config(context=ICourseCatalogEntry)
+@view_defaults(route_name='objects.generic.traversal',
+               renderer='rest',
+               permission=nauth.ACT_CONTENT_EDIT,
+               request_method='GET',
+               name='GetLockedAssignments')
+class GetLockedAssignmentsView(GetLockAssignmentsView):
+    pass
 
 
 @view_config(context=ICourseInstance)

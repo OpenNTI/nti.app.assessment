@@ -130,6 +130,7 @@ def import_evaluation_content(model, context=None, user=None, sources=None,
             value = IHTMLContentFragment(value)
             if not value:
                 continue
+            __traceback_info__ = value,
             parser = HTMLParser(tree=treebuilders.getTreeBuilder("lxml"),
                                 namespaceHTMLElements=False)
             doc = parser.parse(value)

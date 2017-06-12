@@ -1,39 +1,9 @@
-# -*- mode: conf-unix-mode -*-
 [run]
-omit =
-	*/test*
-	*/tests*/
+source = nti.app.assessment
 
 
 [report]
-# Regexes for lines to exclude from consideration
 exclude_lines =
-	# Have to re-enable the standard pragma
-	pragma: no cover
-
-	# Don't complain about missing debug-only code:
-	def __repr__
-	if self\.debug
-
-	# Don't complain if tests don't hit defensive assertion code:
-	raise AssertionError
-	raise NotImplementedError
-
-	# Don't complain if non-runnable code isn't run:
-	if 0:
-	if False:
-	if __name__ == .__main__.:
-
-	# Nose2 imports before running, so some import-time things,
-	# notably class decorators and import statements, don't show as executed
-	implementer
-	adapter
-	import
-	__docformat__
-	"""
-	"""
-	# module-level constant definitions
-	^_?[A-Z].* =
-
-	# Sadly we can't fix this for class or def
-	# because that excludes the whole body
+    pragma: no cover
+    raise NotImplementedError
+    if __name__ == .__main__.:

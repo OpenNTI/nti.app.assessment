@@ -4,10 +4,12 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
+
+import datetime
 
 from zope import component
 from zope import interface
@@ -17,6 +19,7 @@ from zope.cachedescriptors.property import Lazy
 from pyramid.threadlocal import get_current_request
 
 from nti.app.assessment.common import get_container_evaluations
+from nti.app.assessment.common import get_available_for_submission_beginning
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedback
 
@@ -25,6 +28,7 @@ from nti.appserver.pyramid_authorization import has_permission
 from nti.assessment.interfaces import SURVEY_MIME_TYPE
 from nti.assessment.interfaces import ALL_ASSIGNMENT_MIME_TYPES
 
+from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQEvaluation
 
 from nti.contentlibrary.interfaces import IContentUnit
@@ -76,25 +80,50 @@ class _EvaluationSearchHitPredicate(DefaultSearchHitPredicate):
     def request(self):
         return get_current_request()
 
+    def get_courses(self, item):
+        course = find_interface(item, ICourseInstance, strict=False)
+        if course is not None:
+            return (course,)
+        else:
+            package = find_interface(item, IContentPackage, strict=False)
+            if package is not None:
+                return get_courses_for_packages(packages=package.ntiid)
+        return ()
+
     def allow(self, item, score, query=None):
         if self.principal is None:
             return True
         else:
-            courses = None
-            course = find_interface(item, ICourseInstance, strict=False)
-            if course is not None:
-                courses = (course,)
-            else:
-                package = find_interface(item, IContentPackage, strict=False)
-                if package is not None:
-                    courses = get_courses_for_packages(packages=package.ntiid)
-                    if not courses:
-                        return has_permission(ACT_READ, item, self.request)
-
+            courses = self.get_courses(item)
+            if not courses:
+                return has_permission(ACT_READ, item, self.request)
             for course in courses or ():
                 if     is_instructed_by_name(course, self.principal.id) \
                     or is_enrolled(course, self.principal):
                     return True
+        return False
+
+
+@component.adapter(IQAssignment)
+@interface.implementer(ISearchHitPredicate)
+class _AssignmentSearchHitPredicate(_EvaluationSearchHitPredicate):
+
+    __name__ = 'Assignment'
+
+    def allow(self, item, score, query=None):
+        if self.principal is None:
+            return True
+        else:
+            now = datetime.datetime.utcnow()
+            courses = self.get_courses(item)
+            if not courses:
+                return True  # always
+            for course in courses or ():
+                if is_instructed_by_name(course, self.principal.id):
+                    return True
+                if is_enrolled(course, self.principal):
+                    beginning = get_available_for_submission_beginning(item, course)
+                    return not beginning or now >= beginning
         return False
 
 

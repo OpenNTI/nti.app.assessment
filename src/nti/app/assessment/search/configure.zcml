@@ -17,6 +17,10 @@
 				provides="nti.contentsearch.interfaces.ISearchHitPredicate"
 				for="nti.assessment.interfaces.IQEvaluation" />
 
+	<subscriber factory=".predicates._AssignmentSearchHitPredicate"
+				provides="nti.contentsearch.interfaces.ISearchHitPredicate"
+				for="nti.assessment.interfaces.IQAssignment" />
+
 	<subscriber factory=".predicates._ContentUnitAssesmentHitPredicate"
 				provides="nti.contentsearch.interfaces.ISearchHitPredicate"
 				for="nti.contentlibrary.interfaces.IContentUnit" />

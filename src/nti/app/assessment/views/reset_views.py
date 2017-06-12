@@ -50,6 +50,8 @@ from nti.app.externalization.error import raise_json_error
 
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
+from nti.appserver.pyramid_authorization import has_permission
+
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQInquiry
@@ -60,7 +62,8 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.contenttypes.courses.utils import is_course_instructor
 
-from nti.dataserver import authorization as nauth
+from nti.dataserver.authorization import ACT_READ
+from nti.dataserver.authorization import ACT_NTI_ADMIN
 
 from nti.dataserver.interfaces import IUser
 
@@ -101,7 +104,8 @@ class EvaluationResetMixin(ModeledContentUploadRequestUtilsMixin):
 
     @Lazy
     def _can_delete_contained_data(self):
-        return is_course_instructor(self.course, self.remoteUser)
+        return is_course_instructor(self.course, self.remoteUser) \
+            or has_permission(ACT_NTI_ADMIN, self.course, self.request)
 
 
 @view_config(context=IQPoll)
@@ -111,7 +115,7 @@ class EvaluationResetMixin(ModeledContentUploadRequestUtilsMixin):
                renderer='rest',
                request_method='POST',
                name=VIEW_RESET_EVALUATION,
-               permission=nauth.ACT_READ)
+               permission=ACT_READ)
 class EvaluationResetView(AbstractAuthenticatedView,
                           EvaluationResetMixin):
 
@@ -153,7 +157,7 @@ class EvaluationResetView(AbstractAuthenticatedView,
 @view_defaults(route_name='objects.generic.traversal',
                renderer='rest',
                name=VIEW_USER_RESET_EVALUATION,
-               permission=nauth.ACT_READ)
+               permission=ACT_READ)
 class UserEvaluationResetView(AbstractAuthenticatedView,
                               EvaluationResetMixin):
 

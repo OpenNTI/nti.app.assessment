@@ -36,46 +36,46 @@ class TestCourseViews(ApplicationLayerTest):
         href = self.course_url + '/@@AssessmentItems'
         res = self.testapp.get(href, status=200)
         assert_that(res.json_body,
-                    has_entry('Items', greater_than(0)))
+                    has_entry('Items', has_length(greater_than(0))))
 
         href = self.course_url + '/@@AssessmentItems?byOutline=True'
         res = self.testapp.get(href, status=200)
         assert_that(res.json_body,
-                    has_entry('Items', greater_than(0)))
+                    has_entry('Items', has_length(greater_than(0))))
 
     @WithSharedApplicationMockDS(users=True, testapp=True)
     def test_assignments(self):
         href = self.course_url + '/@@Assignments'
         res = self.testapp.get(href, status=200)
         assert_that(res.json_body,
-                    has_entry('Items', greater_than(0)))
+                    has_entry('Items', has_length(greater_than(0))))
 
     @WithSharedApplicationMockDS(users=True, testapp=True)
     def test_inquiries(self):
         href = self.course_url + '/@@Inquiries'
         res = self.testapp.get(href, status=200)
         assert_that(res.json_body,
-                    has_entry('Items', greater_than(0)))
+                    has_entry('Items', has_length(0)))
 
     @WithSharedApplicationMockDS(users=True, testapp=True)
     def test_lock_unlock_all_assignments(self):
         href = self.course_url + '/@@LockAllAssignments'
         res = self.testapp.post(href, status=200)
         assert_that(res.json_body,
-                    has_entry('Items', greater_than(0)))
+                    has_entry('Items', has_length(greater_than(0))))
         count = res.json_body['Total']
 
         href = self.course_url + '/@@GetLockAssignments'
         res = self.testapp.get(href, status=200)
         assert_that(res.json_body,
-                    has_entry('Items', greater_than(0)))
+                    has_entry('Items', has_length(greater_than(0))))
         assert_that(res.json_body,
                     has_entry('Total', is_(count)))
 
         href = self.course_url + '/@@UnlockAllAssignments'
         res = self.testapp.post(href, status=200)
         assert_that(res.json_body,
-                    has_entry('Items', greater_than(0)))
+                    has_entry('Items', has_length(greater_than(0))))
 
         href = self.course_url + '/@@GetLockedAssignments'
         res = self.testapp.get(href, status=200)

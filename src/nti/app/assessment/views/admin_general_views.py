@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -33,11 +33,11 @@ from nti.app.assessment._question_map import _remove_assessment_items_from_oldco
 from nti.app.assessment.common import get_resource_site_name
 
 from nti.app.assessment.index import get_evaluation_catalog
-from nti.app.assessment.index import create_evaluation_catalog
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
-from nti.app.externalization.internalization import read_body_as_external_object
+from nti.app.externalization.error import raise_json_error
+
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
 from nti.assessment import EVALUATION_INTERFACES
@@ -88,8 +88,8 @@ class CheckAssessmentIntegrityView(AbstractAuthenticatedView,
 
     def readInput(self, value=None):
         if self.request.body:
-            result = CaseInsensitiveDict(
-                read_body_as_external_object(self.request))
+            data = super(CheckAssessmentIntegrityView, self).readInput(value)
+            result = CaseInsensitiveDict(data)
         else:
             result = CaseInsensitiveDict()
         return result
@@ -118,7 +118,7 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
 
     def readInput(self, value=None):
         if self.request.body:
-            values = read_body_as_external_object(self.request)
+            values = super(UnregisterAssessmentView, self).readInput(value)
         else:
             values = self.request.params
         result = CaseInsensitiveDict(values)
@@ -196,17 +196,31 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
         values = self.readInput()
         ntiid = values.get('ntiid')
         if not ntiid:
-            raise hexc.HTTPUnprocessableEntity(_("Invalid Object NTIID."))
+            raise_json_error(self.request,
+                             hexc.HTTPUnprocessableEntity,
+                             {
+                                'message': _(u"Invalid object NTIID."),
+                             },
+                             None)
 
         force = is_true(values.get('force'))
         evaluation = find_object_with_ntiid(ntiid)
         evaluation = IQEvaluation(evaluation, None)
         if evaluation is None:
-            raise hexc.HTTPUnprocessableEntity(_("Invalid Evaluation object."))
+            raise_json_error(self.request,
+                             hexc.HTTPUnprocessableEntity,
+                             {
+                                'message': _(u"Invalid Evaluation object."),
+                             },
+                             None)
 
         if not force and evaluation.isLocked():
-            msg = _("Evaluation object is locked.")
-            raise hexc.HTTPUnprocessableEntity(msg)
+            raise_json_error(self.request,
+                             hexc.HTTPUnprocessableEntity,
+                             {
+                                'message': _(u"Evaluation object is locked."),
+                             },
+                             None)
 
         folder = find_interface(evaluation, IHostPolicyFolder, strict=False)
         if folder is None:
@@ -229,7 +243,12 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
             site = get_host_site(folder.__name__)
 
         if site is None:
-            raise hexc.HTTPUnprocessableEntity(_("Invalid Evaluation site."))
+            raise_json_error(self.request,
+                             hexc.HTTPUnprocessableEntity,
+                             {
+                                'message': _(u"Invalid Evaluation site."),
+                             },
+                             None)
 
         # unregister the evaluation object
         with current_site(site):
@@ -270,7 +289,7 @@ class UnregisterAssessmentItemsView(AbstractAuthenticatedView,
 
     def readInput(self, value=None):
         if self.request.body:
-            values = read_body_as_external_object(self.request)
+            values = super(UnregisterAssessmentItemsView, self).readInput(value)
         else:
             values = self.request.params
         result = CaseInsensitiveDict(values)
@@ -280,14 +299,23 @@ class UnregisterAssessmentItemsView(AbstractAuthenticatedView,
         values = self.readInput()
         ntiid = values.get('ntiid') or values.get('package')
         if not ntiid:
-            msg = _("Invalid content package NTIID.")
-            raise hexc.HTTPUnprocessableEntity(msg)
+            raise_json_error(self.request,
+                             hexc.HTTPUnprocessableEntity,
+                             {
+                                'message': _(u"Invalid content package NTIID."),
+                             },
+                             None)
 
         force = is_true(values.get('force'))
         package = find_object_with_ntiid(ntiid)
         package = IContentPackage(package, None)
         if package is None:
-            raise hexc.HTTPUnprocessableEntity(_("Invalid content package."))
+            raise_json_error(self.request,
+                             hexc.HTTPUnprocessableEntity,
+                             {
+                                'message': _(u"Invalid content package."),
+                             },
+                             None)
 
         name = get_resource_site_name(package)
         site = get_host_site(name)
@@ -310,7 +338,7 @@ class RegisterAssessmentItemsView(AbstractAuthenticatedView,
 
     def readInput(self, value=None):
         if self.request.body:
-            values = read_body_as_external_object(self.request)
+            values = super(RegisterAssessmentItemsView, self).readInput(value)
         else:
             values = self.request.params
         result = CaseInsensitiveDict(values)
@@ -320,13 +348,22 @@ class RegisterAssessmentItemsView(AbstractAuthenticatedView,
         values = self.readInput()
         ntiid = values.get('ntiid') or values.get('package')
         if not ntiid:
-            msg = _("Invalid content package NTIID.")
-            raise hexc.HTTPUnprocessableEntity(msg)
+            raise_json_error(self.request,
+                             hexc.HTTPUnprocessableEntity,
+                             {
+                                'message': _(u"Invalid content package NTIID."),
+                             },
+                             None)
 
         package = find_object_with_ntiid(ntiid)
         package = IContentPackage(package, None)
         if package is None:
-            raise hexc.HTTPUnprocessableEntity(_("Invalid content package."))
+            raise_json_error(self.request,
+                             hexc.HTTPUnprocessableEntity,
+                             {
+                                'message': _(u"Invalid content package."),
+                             },
+                             None)
 
         items = ()
         result = LocatedExternalDict()
@@ -354,15 +391,10 @@ class RebuildEvaluationCatalogView(AbstractAuthenticatedView):
 
     def __call__(self):
         intids = component.getUtility(IIntIds)
-        # remove indexes
+        # clear indexes
         catalog = get_evaluation_catalog()
-        for name, index in list(catalog.items()):
-            intids.unregister(index)
-            del catalog[name]
-        # recreate indexes
-        catalog = create_evaluation_catalog(catalog=catalog, family=intids.family)
-        for index in catalog.values():
-            intids.register(index)
+        for index in list(catalog.values()):
+            index.clear()
         # reindex
         seen = set()
         for host_site in get_all_host_sites():  # check all sites

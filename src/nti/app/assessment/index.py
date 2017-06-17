@@ -4,12 +4,14 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
 import six
+from collections import Set
+from collections import Sequence
 
 from zope import component
 from zope import interface
@@ -58,6 +60,14 @@ from nti.zope_catalog.index import AttributeValueIndex as ValueIndex
 from nti.zope_catalog.string import StringTokenNormalizer
 
 
+def to_iterable(value):
+    if isinstance(value, (Sequence, Set)):
+        result = value
+    else:
+        result = (value,) if value is not None else ()
+    return result
+
+
 class ExtenedAttributeSetIndex(AttributeSetIndex):
 
     def remove(self, doc_id, containers):
@@ -103,7 +113,7 @@ class CourseIntIDIndex(IntegerAttributeIndex):
 
 class ValidatingSite(object):
 
-    __slots__ = (b'site',)
+    __slots__ = ('site',)
 
     @classmethod
     def _folder(cls, obj):
@@ -129,7 +139,7 @@ class SiteIndex(ValueIndex):
 
 class ValidatingCatalogEntryID(object):
 
-    __slots__ = (b'ntiid',)
+    __slots__ = ('ntiid',)
 
     @classmethod
     def _entry(cls, obj):
@@ -156,7 +166,7 @@ class CatalogEntryIDIndex(ValueIndex):
 
 class ValidatingCreatedUsername(object):
 
-    __slots__ = (b'creator_username',)
+    __slots__ = ('creator_username',)
 
     def __init__(self,  obj, default=None):
         if not IUsersCourseSubmissionItem.providedBy(obj):
@@ -187,7 +197,7 @@ def CreatorIndex(family=None):
 
 class ValidatingAssesmentID(object):
 
-    __slots__ = (b'assesmentId',)
+    __slots__ = ('assesmentId',)
 
     def __init__(self, obj, default=None):
         if IUsersCourseSubmissionItem.providedBy(obj):
@@ -216,7 +226,7 @@ def get_assesment_type(obj):
 
 class ValidatingAssesmentType(object):
 
-    __slots__ = (b'type',)
+    __slots__ = ('type',)
 
     def __init__(self, obj, default=None):
         if IUsersCourseSubmissionItem.providedBy(obj):
@@ -233,7 +243,7 @@ class AssesmentTypeIndex(ValueIndex):
 
 class ValidatingAssesmentSubmittedType(object):
 
-    __slots__ = (b'submitted',)
+    __slots__ = ('submitted',)
 
     @classmethod
     def get_submitted(cls, item):
@@ -279,35 +289,42 @@ class MetadataAssesmentCatalog(Catalog):
         self.super_index_doc(docid, ob)
 
 
-def install_submission_catalog(site_manager_container, intids=None):
-    lsm = site_manager_container.getSiteManager()
-    intids = lsm.getUtility(IIntIds) if intids is None else intids
-    catalog = lsm.queryUtility(IMetadataCatalog, name=SUBMISSION_CATALOG_NAME)
-    if catalog is not None:
-        return catalog
+def get_submission_catalog(registry=component):
+    return registry.queryUtility(IMetadataCatalog, name=SUBMISSION_CATALOG_NAME)
 
-    catalog = MetadataAssesmentCatalog(family=intids.family)
-    locate(catalog, site_manager_container, SUBMISSION_CATALOG_NAME)
-    intids.register(catalog)
-    lsm.registerUtility(catalog,
-                        provided=IMetadataCatalog,
-                        name=SUBMISSION_CATALOG_NAME)
 
+def create_submission_catalog(catalog=None, family=BTrees.family64):
+    if catalog is None:
+        catalog = MetadataAssesmentCatalog(family=family)
     for name, clazz in ((IX_SITE, SiteIndex),
                         (IX_CREATOR, CreatorIndex),
                         (IX_COURSE, CatalogEntryIDIndex),
                         (IX_ASSESSMENT_ID, AssesmentIdIndex),
                         (IX_SUBMITTED, AssesmentSubmittedIndex),
                         (IX_ASSESSMENT_TYPE, AssesmentTypeIndex)):
-        index = clazz(family=intids.family)
-        intids.register(index)
+        index = clazz(family=family)
         locate(index, catalog, name)
         catalog[name] = index
     return catalog
 
 
-def get_submission_catalog():
-    return component.queryUtility(IMetadataCatalog, name=SUBMISSION_CATALOG_NAME)
+def install_submission_catalog(site_manager_container, intids=None):
+    lsm = site_manager_container.getSiteManager()
+    intids = lsm.getUtility(IIntIds) if intids is None else intids
+    catalog = get_submission_catalog(lsm)
+    if catalog is not None:
+        return catalog
+
+    catalog = create_submission_catalog(family=intids.family)
+    locate(catalog, site_manager_container, SUBMISSION_CATALOG_NAME)
+    intids.register(catalog)
+    lsm.registerUtility(catalog,
+                        provided=IMetadataCatalog,
+                        name=SUBMISSION_CATALOG_NAME)
+
+    for index in catalog.values():
+        intids.register(index)
+    return catalog
 
 
 # Evaluation / Containment catalog
@@ -338,14 +355,6 @@ from nti.contenttypes.courses.utils import get_courses_for_packages
 from nti.externalization.proxy import removeAllProxies
 
 
-def to_iterable(value):
-    if isinstance(value, (list, tuple, set)):
-        result = value
-    else:
-        result = (value,) if value is not None else ()
-    return result
-
-
 def get_uid(item, intids=None):
     if not isinstance(item, integer_types):
         item = removeAllProxies(item)
@@ -358,7 +367,7 @@ def get_uid(item, intids=None):
 
 class ValidatingEvaluationSite(object):
 
-    __slots__ = (b'site',)
+    __slots__ = ('site',)
 
     def __init__(self, obj, default=None):
         if IQEvaluation.providedBy(obj):
@@ -377,7 +386,7 @@ class EvaluationSiteIndex(ValueIndex):
 
 class ValidatingMimeType(object):
 
-    __slots__ = (b'mimeType',)
+    __slots__ = ('mimeType',)
 
     def __init__(self, obj, default=None):
         if IQEvaluation.providedBy(obj):
@@ -394,7 +403,7 @@ class EvaluationMimeTypeIndex(ValueIndex):
 
 class ValidatingEvaluationNTIID(object):
 
-    __slots__ = (b'ntiid',)
+    __slots__ = ('ntiid',)
 
     def __init__(self, obj, default=None):
         if IQEvaluation.providedBy(obj):
@@ -411,7 +420,7 @@ class EvaluationNTIIDIndex(ValueIndex):
 
 class ValidatingEvaluationContainment(object):
 
-    __slots__ = (b'containment',)
+    __slots__ = ('containment',)
 
     def _do_survey_question_set(self, obj):
         result = {q.ntiid for q in obj.questions}
@@ -442,7 +451,7 @@ class EvaluationContainmentIndex(ExtenedAttributeSetIndex):
 
 class ValidatingEvaluationContainers(object):
 
-    __slots__ = (b'containers',)
+    __slots__ = ('containers',)
 
     def _ntiid_lineage(self, context, test_iface, upper_iface):
         result = set()
@@ -489,7 +498,7 @@ class EvaluationContainerIndex(ExtenedAttributeSetIndex):
 
 class ValidatingKeywords(object):
 
-    __slots__ = (b'keywords',)
+    __slots__ = ('keywords',)
 
     def __init__(self, obj, default=None):
         if IQEvaluation.providedBy(obj):
@@ -510,7 +519,7 @@ class EvaluationKeywordIndex(AttributeKeywordIndex):
 
 class ValidatingEditable(object):
 
-    __slots__ = (b'editable',)
+    __slots__ = ('editable',)
 
     def __init__(self, obj, default=None):
         if IQEvaluation.providedBy(obj):
@@ -552,8 +561,8 @@ class EvaluationCatalog(Catalog):
         return set()
 
 
-def get_evaluation_catalog():
-    return component.queryUtility(ICatalog, name=EVALUATION_CATALOG_NAME)
+def get_evaluation_catalog(registry=component):
+    return registry.queryUtility(ICatalog, name=EVALUATION_CATALOG_NAME)
 
 
 def create_evaluation_catalog(catalog=None, family=None):
@@ -574,18 +583,16 @@ def create_evaluation_catalog(catalog=None, family=None):
 def install_evaluation_catalog(site_manager_container, intids=None):
     lsm = site_manager_container.getSiteManager()
     intids = lsm.getUtility(IIntIds) if intids is None else intids
-    catalog = lsm.queryUtility(ICatalog, name=EVALUATION_CATALOG_NAME)
+    catalog = get_evaluation_catalog(lsm)
     if catalog is not None:
         return catalog
 
-    catalog = EvaluationCatalog()
+    catalog = create_evaluation_catalog(family=intids.family)
     locate(catalog, site_manager_container, EVALUATION_CATALOG_NAME)
     intids.register(catalog)
     lsm.registerUtility(catalog,
                         provided=ICatalog,
                         name=EVALUATION_CATALOG_NAME)
-
-    catalog = create_evaluation_catalog(catalog=catalog, family=intids.family)
     for index in catalog.values():
         intids.register(index)
     return catalog

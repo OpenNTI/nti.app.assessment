@@ -26,9 +26,7 @@ from nti.app.assessment.interfaces import IUsersCourseInquiryItem
 from nti.app.assessment.interfaces import IUsersCourseSubmissionItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 
-from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
-from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQEvaluation
@@ -37,7 +35,7 @@ from nti.assessment.interfaces import IQSurveySubmission
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQAssignmentSubmission
 
-from nti.base._compat import unicode_
+from nti.base._compat import text_
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
@@ -118,7 +116,7 @@ class ValidatingSite(object):
     def __init__(self, obj, default=None):
         folder = self._folder(obj)
         if folder is not None:
-            self.site = unicode_(folder.__name__)
+            self.site = text_(folder.__name__)
 
     def __reduce__(self):
         raise TypeError()
@@ -206,26 +204,13 @@ class AssesmentIdIndex(ValueIndex):
 
 def get_assesment_type(obj):
     result = None
-    try:
-        if IUsersCourseAssignmentHistoryItem.providedBy(obj):
-            result = u'Assignment'
-        elif IUsersCourseInquiryItem.providedBy(obj):
-            if IQSurveySubmission.providedBy(obj.Submission):
-                result = u'Survey'
-            elif IQPollSubmission.providedBy(obj.Submission):
-                result = u'Poll'
-        elif IQAssignment.providedBy(obj):
-            result = u'Assignment'
-        elif IQPoll.providedBy(obj):
-            result = u'Poll'
-        elif IQSurvey.providedBy(obj):
+    if IUsersCourseAssignmentHistoryItem.providedBy(obj):
+        result = u'Assignment'
+    elif IUsersCourseInquiryItem.providedBy(obj):
+        if IQSurveySubmission.providedBy(obj.Submission):
             result = u'Survey'
-        elif IQuestionSet.providedBy(obj):
-            result = u'QuestionSet'
-        elif IQuestion.providedBy(obj):
-            result = u'Question'
-    except (AttributeError, TypeError):
-        pass
+        elif IQPollSubmission.providedBy(obj.Submission):
+            result = u'Poll'
     return result
 
 
@@ -234,7 +219,8 @@ class ValidatingAssesmentType(object):
     __slots__ = (b'type',)
 
     def __init__(self, obj, default=None):
-        self.type = get_assesment_type(obj)
+        if IUsersCourseSubmissionItem.providedBy(obj):
+            self.type = get_assesment_type(obj)
 
     def __reduce__(self):
         raise TypeError()
@@ -378,7 +364,7 @@ class ValidatingEvaluationSite(object):
         if IQEvaluation.providedBy(obj):
             folder = find_interface(obj, IHostPolicyFolder, strict=False)
             if folder is not None:
-                self.site = unicode_(folder.__name__)
+                self.site = text_(folder.__name__)
 
     def __reduce__(self):
         raise TypeError()

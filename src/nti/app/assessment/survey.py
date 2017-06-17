@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -80,8 +80,6 @@ class UsersCourseInquiries(CaseInsensitiveCheckingLastModifiedBTreeContainer):
     """
     Implementation of the course inquirys for all users in a course.
     """
-
-
 UsersCourseSurveys = UsersCourseInquiries  # BWC
 
 
@@ -135,7 +133,7 @@ class UsersCourseInquiry(CheckingLastModifiedBTreeContainer):
         course = ICourseInstance(self, None)
         instructors = getattr(course, 'instructors', ())  # already principals
         aces = [ace_allowing(self.owner, ACT_READ, type(self))]
-        for instructor in instructors:
+        for instructor in instructors or ():
             aces.append(ace_allowing(instructor, ALL_PERMISSIONS, type(self)))
         aces.append(ACE_DENY_ALL)
         return acl_from_aces(aces)
@@ -180,7 +178,7 @@ class UsersCourseInquiryItem(PersistentCreatedModDateTrackingObject,
         course = ICourseInstance(self, None)
         instructors = getattr(course, 'instructors', ())  # already principals
         aces = [ace_allowing(self.creator, ACT_READ, type(self))]
-        for instructor in instructors:
+        for instructor in instructors or ():
             aces.append(ace_allowing(instructor, ALL_PERMISSIONS, type(self)))
         aces.append(ACE_DENY_ALL)
         return acl_from_aces(aces)

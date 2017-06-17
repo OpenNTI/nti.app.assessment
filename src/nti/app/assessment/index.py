@@ -74,15 +74,14 @@ class ExtenedAttributeSetIndex(AttributeSetIndex):
         """
         remove the specified containers from the doc_id
         """
-        old = set(self.documents_to_values.get(doc_id) or ())
-        if not old:
+        values = set(self.documents_to_values.get(doc_id) or ())
+        if not values:
             return
         for v in to_iterable(containers):
-            old.discard(v)
-        if old:
-            # call zc.catalog.index.SetIndex which does the actual
-            # value indexation
-            ZC_SetIndex.index_doc(self, doc_id, old)
+            values.discard(v)
+        if values:
+            # index new values
+            ZC_SetIndex.index_doc(self, doc_id, values)
         else:
             super(ExtenedAttributeSetIndex, self).unindex_doc(doc_id)
 

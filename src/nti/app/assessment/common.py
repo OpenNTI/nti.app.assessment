@@ -363,6 +363,9 @@ def get_content_packages_assessment_items(package):
 
 
 def get_course_assessment_items(context):
+    """
+    Retrieve all assessment items from our course's content packages.
+    """
     packages = get_course_packages(context)
     assessments = None if len(packages) <= 1 else list()
     for package in packages:
@@ -1320,3 +1323,19 @@ def is_global_evaluation(evaluation):
     library = find_interface(evaluation, IContentPackageLibrary, strict=False)
     return IGlobalContentPackage.providedBy(package) \
         or IGlobalContentPackageLibrary.providedBy(library)
+
+
+def index_course_package_assessments(course):
+    """
+    Index the given course's package assessments.
+    """
+    catalog = get_evaluation_catalog()
+    intids = component.getUtility(IIntIds)
+    assessment_items = get_course_assessment_items(course)
+    count = 0
+    for item in assessment_items or ():
+        doc_id = intids.queryId(item)
+        if doc_id is not None:
+            catalog.index_doc(doc_id, item)
+            count += 1
+    return count

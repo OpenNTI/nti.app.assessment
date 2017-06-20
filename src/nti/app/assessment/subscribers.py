@@ -28,6 +28,7 @@ from nti.app.assessment import get_submission_catalog
 from nti.app.assessment.common import get_unit_assessments
 from nti.app.assessment.common import get_resource_site_name
 from nti.app.assessment.common import get_course_from_evaluation
+from nti.app.assessment.common import index_course_package_assessments
 from nti.app.assessment.common import get_available_for_submission_ending
 
 from nti.app.assessment.index import IX_SITE
@@ -60,6 +61,7 @@ from nti.contenttypes.courses.index import IX_USERNAME
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
+from nti.contenttypes.courses.interfaces import ICourseBundleUpdatedEvent
 
 from nti.dataserver.interfaces import IUser
 
@@ -249,3 +251,12 @@ def on_question_moved(question, event):
     if ntiid:
         record_transaction(question, principal=event.principal,
                            type_=TRX_QUESTION_MOVE_TYPE)
+
+
+@component.adapter(ICourseInstance, ICourseBundleUpdatedEvent)
+def update_assessments_on_course_bundle_update(course, event):
+    """
+    The course packages have been updated. Re-index any assessment
+    items in our ICourseInstance packages.
+    """
+    index_course_package_assessments(course)

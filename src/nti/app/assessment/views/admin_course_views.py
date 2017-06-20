@@ -30,6 +30,8 @@ from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment._assessment import move_user_assignment_from_course_to_course
 
+from nti.app.assessment.common import index_course_package_assessments
+
 from nti.app.assessment.interfaces import ICourseEvaluations
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
@@ -332,3 +334,25 @@ class RemoveCourseEvaluationsView(AbstractAuthenticatedView):
         if evaluations:
             evaluations.clear()
         return hexc.HTTPNoContent()
+
+
+@view_config(context=ICourseInstance)
+@view_config(context=ICourseCatalogEntry)
+@view_defaults(route_name='objects.generic.traversal',
+               renderer='rest',
+               permission=nauth.ACT_NTI_ADMIN,
+               request_method='POST',
+               name='ReindexCoursePackageAssessments')
+class ReindexCoursePackageAssessmentsView(AbstractAuthenticatedView):
+    """
+    Indexes the package assessments for the course context. Useful
+    if we have stale data tying assessment items to a course.
+    """
+
+    def __call__(self):
+        course = ICourseInstance(self.context)
+        result = LocatedExternalDict()
+        count = index_course_package_assessments(course)
+        result['IndexedCount'] = count
+        return result
+

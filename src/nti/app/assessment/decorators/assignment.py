@@ -608,7 +608,7 @@ class _DiscussionAssignmentEditorDecorator(_AssessmentEditorDecorator):
     """
 
     def _predicate(self, context, result):
-        return self._is_authenticated \
+        return  self._is_authenticated \
             and has_permission(ACT_CONTENT_EDIT, context, self.request)
 
     def _do_decorate_external(self, context, result):
@@ -772,12 +772,13 @@ class AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
         _links = result.setdefault(LINKS, [])
         courses = self._get_courses(context)
         names = ['date-edit-end', 'date-edit', 'total-points']
+        # Cannot toggle start date or time allowed if users have started.
         if not self._has_submitted_data(context, courses):
             names.append('date-edit-start')
+            if self._can_set_time(context):
+                names.append('maximum-time-allowed')
         if self._can_auto_grade(context):
             names.append('auto-grade')
-        if self._can_set_time(context):
-            names.append('maximum-time-allowed')
 
         # set correct context and elements if request comes from a course
         course = self.request_course

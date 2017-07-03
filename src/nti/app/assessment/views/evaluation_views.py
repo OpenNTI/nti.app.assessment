@@ -46,6 +46,7 @@ from nti.app.assessment.common import get_courses
 from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import regrade_evaluation
 from nti.app.assessment.common import validate_auto_grade
+from nti.app.assessment.common import get_max_time_allowed
 from nti.app.assessment.common import make_evaluation_ntiid
 from nti.app.assessment.common import get_auto_grade_policy
 from nti.app.assessment.common import get_resource_site_name
@@ -1062,14 +1063,18 @@ class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):
 		# change that may lock the assignment from syncing.
 		return ('is_non_public',) + self.policy_keys
 
+	def _require_course(self):
+		course = get_course_from_request()
+		if course is None:
+			raise hexc.HTTPForbidden(_('Must supply course'))
+		return course
+
 	def _validate_instructor_edit(self, externalValue):
 		"""
 		We want to allow instructors to edit their specific course assessment
 		policies.
 		"""
-		course = get_course_from_request()
-		if course is None:
-			raise hexc.HTTPForbidden(_('Must supply course'))
+		course = self._require_course()
 		if not is_course_instructor(course, self.remoteUser):
 			raise hexc.HTTPForbidden()
 		non_policy_edits = bool(set( externalValue.keys() ) - set( self.policy_keys ))
@@ -1264,10 +1269,29 @@ class AssignmentPutView(NewAndLegacyPutView):
 				and IQTimedAssignment.providedBy(contentObject):
 				self._transform_to_untimed(contentObject)
 
+	def _validate_timed(self, contentObject, externalValue):
+		"""
+		Validate that, when making time-allowed changes, we do not currently
+		have users taking this assignment.
+		"""
+		max_time_allowed = externalValue.get('maximum_time_allowed')
+		current_time_allowed = None
+		if IQTimedAssignment.providedBy(contentObject):
+			current_time_allowed = get_max_time_allowed(contentObject, self.course)
+		if max_time_allowed != current_time_allowed:
+			if IQEditableEvaluation.providedBy(contentObject):
+				self._pre_flight_validation(contentObject, externalValue,
+											structural_change=True)
+			else:
+				# We do not want to try to version bump content-backed
+				# assignments that might be shared between courses.
+				self._validate_structural_edits(contentObject)
+
 	def updateContentObject(self, contentObject, externalValue, set_id=False, notify=True):
-		# Must toggle types first (if necessary) before calling super; so
-		# everything validates.
-		self._update_timed_status( externalValue, contentObject )
+		# Must toggle types first (if necessary) before calling super;
+		# so everything validates.
+		self._validate_timed(contentObject, externalValue)
+		self._update_timed_status(externalValue, contentObject)
 		result = super(AssignmentPutView, self).updateContentObject(contentObject,
 																	externalValue,
 																	set_id, notify)

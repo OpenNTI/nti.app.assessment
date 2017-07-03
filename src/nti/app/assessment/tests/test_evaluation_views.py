@@ -184,7 +184,8 @@ class TestEvaluationViews(ApplicationLayerTest):
 			submission_rel_checks.extend( (VIEW_MOVE_PART,
 										   VIEW_INSERT_PART,
 										   VIEW_REMOVE_PART,
-										   'date-edit-start') )
+										   'date-edit-start',
+										   'maximum-time-allowed') )
 			self.require_link_href_with_rel(ext_obj, 'date-edit-end')
 			# Our course is non-public, so this should not be togglable.
 			self.forbid_link_with_rel( ext_obj, VIEW_IS_NON_PUBLIC )
@@ -1115,6 +1116,17 @@ class TestEvaluationViews(ApplicationLayerTest):
 		self._test_version_submission( assignment_submit_href, savepoint_href, submission,
 									   version, old_version )
 
+		# Max time allowed
+		self.testapp.put_json( assignment_href, {'maximum_time_allowed': 1000} )
+		version, old_version = _check_version( version )
+		self._test_version_submission( assignment_submit_href, savepoint_href, submission,
+									   version, old_version )
+
+		self.testapp.put_json( assignment_href, {'maximum_time_allowed': None} )
+		version, old_version = _check_version( version )
+		self._test_version_submission( assignment_submit_href, savepoint_href, submission,
+									   version, old_version )
+
 		# Test randomization (order is important).
 		rel_list = (VIEW_RANDOMIZE, VIEW_RANDOMIZE_PARTS,
 					VIEW_UNRANDOMIZE, VIEW_UNRANDOMIZE_PARTS)
@@ -1238,7 +1250,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		self.testapp.delete(qset_contents_href + delete_suffix,
 							status=restricted_structural_status )
 
-		# Cannot randomize
+		# Cannot randomize or set max_time
 		rel_list = (VIEW_RANDOMIZE, VIEW_RANDOMIZE_PARTS,
 					VIEW_UNRANDOMIZE, VIEW_UNRANDOMIZE_PARTS)
 		for rel in rel_list:

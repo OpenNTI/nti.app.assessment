@@ -55,6 +55,9 @@ from nti.app.externalization.error import raise_json_error
 
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
+from nti.app.products.courseware_reports.views.view_mixins import _AbstractReportView
+from nti.app.products.courseware_reports.utils import find_course_for_user
+
 from nti.app.renderers.interfaces import INoHrefInResponse
 
 from nti.appserver.pyramid_authorization import has_permission
@@ -71,7 +74,15 @@ from nti.assessment.interfaces import IQPollSubmission
 from nti.assessment.interfaces import IQAggregatedSurvey
 from nti.assessment.interfaces import IQSurveySubmission
 from nti.assessment.interfaces import IQInquirySubmission
+from nti.assessment.interfaces import IQNonGradableConnectingPart
+from nti.assessment.interfaces import IQNonGradableFreeResponsePart
+from nti.assessment.interfaces import IQNonGradableMultipleChoicePart
+from nti.assessment.interfaces import IQNonGradableModeledContentPart
+from nti.assessment.interfaces import IQNonGradableMultipleChoiceMultipleAnswerPart
 
+from nti.contentfragments.interfaces import IPlainTextContentFragment
+
+from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.utils import is_course_instructor
 
 from nti.dataserver import authorization as nauth
@@ -83,6 +94,8 @@ from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.externalization.oids import to_external_ntiid_oid
+
+from nti.traversal.traversal import find_interface
 
 
 ITEMS = StandardExternalFields.ITEMS
@@ -257,8 +270,8 @@ class InquirySubmissionsView(AbstractAuthenticatedView, InquiryViewMixin):
 
     def __call__(self):
         course = self.course
-        if     not (is_course_instructor(course, self.remoteUser)
-            or has_permission(nauth.ACT_NTI_ADMIN, course, self.request)):
+        if not (is_course_instructor(course, self.remoteUser)
+                or has_permission(nauth.ACT_NTI_ADMIN, course, self.request)):
             raise_json_error(self.request,
                              hexc.HTTPForbidden,
                              {
@@ -297,8 +310,8 @@ class InquirySubmissionMetadataCSVView(AbstractAuthenticatedView, InquiryViewMix
 
     def __call__(self):
         course = self.course
-        if      not (is_course_instructor(course, self.remoteUser)
-            or has_permission(nauth.ACT_NTI_ADMIN, course, self.request)):
+        if not (is_course_instructor(course, self.remoteUser)
+                or has_permission(nauth.ACT_NTI_ADMIN, course, self.request)):
             raise_json_error(self.request,
                              hexc.HTTPForbidden,
                              {
@@ -311,7 +324,8 @@ class InquirySubmissionMetadataCSVView(AbstractAuthenticatedView, InquiryViewMix
         response.content_encoding = str('identity')
         response.content_type = str('text/csv; charset=UTF-8')
         metadata = _get_title_for_metadata_download(self.context.title)
-        response.content_disposition = str('attachment; filename="%s"' % metadata)
+        response.content_disposition = str(
+            'attachment; filename="%s"' % metadata)
 
         stream = BytesIO()
         fieldnames = ['username', 'realname', 'email', 'submission_time']
@@ -448,7 +462,7 @@ class InquiryAggregatedGetView(AbstractAuthenticatedView, InquiryViewMixin):
             return hexc.HTTPNoContent()
 
         if      IQAggregatedSurvey.providedBy( result ) \
-            and IQPoll.providedBy(self.context):
+                and IQPoll.providedBy(self.context):
             # Asking for question level aggregation for
             # survey submissions.
             for poll_result in result.questions or ():
@@ -491,3 +505,118 @@ class InquirySubmisionPutView(UGDPutView):
                              'message': _(u"Cannot put an inquiry submission.")
                          },
                          None)
+
+
+def plain_text(s):
+    result = IPlainTextContentFragment(s) if s else u''
+    return result.strip()
+
+
+def display_list(data):
+    result = ""
+    for item in data[:-1]:
+        result += '%s, ' % item
+    result += '%s' % data[-1]
+    return result
+
+
+@view_config(context=IQSurvey,
+             name='InquiryReport.csv',
+             renderer='rest',
+             permission=nauth.ACT_READ,
+             request_method='GET')
+class SurveyReportCSV(_AbstractReportView):
+
+    @Lazy
+    def course(self):
+        course = find_interface(self.context, ICourseInstance, strict=False)
+        if course is None:
+            course = find_course_for_user(self.context, self.remoteUser)
+        return course
+
+    @property
+    def questions(self):
+        return self.context.questions
+
+    def __call__(self):
+        self._check_access()
+
+        include_usernames = self.request.params.get('include_usernames', False)
+
+        stream = BytesIO()
+        csv_writer = csv.writer(stream)
+
+        # only include the usernames if specified with a param
+        if include_usernames:
+            header_row = ['user']
+        else:
+            header_row = []
+        for question in self.questions:
+            if len(question.parts) > 1:
+                # If the question has more than one part, we need to
+                # create a column for each part of the question.
+                for part in question.parts:
+                    header_row.append(
+                        plain_text(question.content) + ": " + plain_text(part.content))
+            else:
+                header_row.append(plain_text(question.content))
+        csv_writer.writerow(header_row)
+
+        submissions = inquiry_submissions(self.context, self.course)
+        for item in submissions:
+            if not IUsersCourseInquiryItem.providedBy(item):  # always check
+                continue
+            submission_questions = item.Submission.questions
+            if include_usernames:
+                row = [item.creator.username]
+            else:
+                row = []
+            for question in submission_questions:
+                poll = component.queryUtility(IQPoll, name=question.inquiryId)
+                for part_idx, part in enumerate(zip(question.parts, poll.parts)):
+                    question_part = part[0]
+                    poll_part = part[1]
+                    responses = []
+                    if question_part is None:
+                        # If the question part is None, the user did not respond
+                        # to this question, and we should put in a placeholder for
+                        # this question.
+                        result = ''
+                        continue
+
+                    # Each type of question is handled slightly differently.
+                    if IQNonGradableConnectingPart.providedBy(poll_part):
+                        # need this to be sorted by value. Since the response
+                        # values come from a dictionary, they may not be in the right order
+                        # otherwise. We need to make sure to assign the correct label
+                        # for each response.
+                        response_values = sorted(
+                            question_part.items(), key=lambda x: x[1])
+                        part_values = poll.parts[part_idx].values
+                        part_labels = [plain_text(x) for x in part_values]
+                        # We look up by key from the response values in order
+                        # to get the label for this choice.
+                        result = [part_labels[int(k[0])]
+                                  for k in response_values]
+                        result = display_list(result)
+                    elif IQNonGradableMultipleChoiceMultipleAnswerPart.providedBy(poll_part):
+                        response_values = question_part
+                        part_values = poll.parts[part_idx].choices
+                        result = [plain_text(part_values[int(k)])
+                                  for k in response_values]
+                        result = display_list(result)
+                    elif IQNonGradableMultipleChoicePart.providedBy(poll_part):
+                        part_values = poll.parts[part_idx].choices
+                        result = plain_text(part_values[int(question_part)])
+                    elif IQNonGradableModeledContentPart.providedBy(poll_part):
+                        result = question_part.value[0]
+                    elif IQNonGradableFreeResponsePart.providedBy(poll_part):
+                        result = plain_text(question_part)
+
+                    responses.append(result)
+                    row.extend(responses)
+            csv_writer.writerow(row)
+
+        self.request.response.content_type = str('application/octet-stream')
+        self.request.response.body = stream.getvalue()
+        return self.request.response

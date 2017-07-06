@@ -19,6 +19,7 @@ from zope.cachedescriptors.property import Lazy
 from pyramid.threadlocal import get_current_request
 
 from nti.app.assessment.common import get_container_evaluations
+from nti.app.assessment.common import is_assignment_non_public_only
 from nti.app.assessment.common import get_available_for_submission_beginning
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedback
@@ -35,11 +36,14 @@ from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.interfaces import IContentPackage
 
 from nti.contentsearch.interfaces import ISearchHitPredicate
+
 from nti.contentsearch.predicates import DefaultSearchHitPredicate
 
+from nti.contenttypes.courses.interfaces import ES_PUBLIC
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.contenttypes.courses.utils import is_enrolled
+from nti.contenttypes.courses.utils import get_enrollment_record
 from nti.contenttypes.courses.utils import is_instructed_by_name
 from nti.contenttypes.courses.utils import get_courses_for_packages
 
@@ -114,6 +118,10 @@ class _AssignmentSearchHitPredicate(_EvaluationSearchHitPredicate):
         if self.principal is None:
             return True
         else:
+            pid = self.principal.id
+            user = User.get_user(pid)
+            if user is None:
+                return False
             now = datetime.datetime.utcnow()
             courses = self.get_courses(item)
             if not courses:
@@ -121,9 +129,16 @@ class _AssignmentSearchHitPredicate(_EvaluationSearchHitPredicate):
             for course in courses or ():
                 if is_instructed_by_name(course, self.principal.id):
                     return True
-                if is_enrolled(course, self.principal):
-                    beginning = get_available_for_submission_beginning(item, course)
-                    return not beginning or now >= beginning
+                record = get_enrollment_record(course, user)
+                if record is None:
+                    continue
+                beginning = get_available_for_submission_beginning(item, course)
+                if not beginning or now >= beginning:
+                    if is_assignment_non_public_only(item, course):
+                        if record.Scope != ES_PUBLIC:
+                            return True
+                    else:
+                        return True
         return False
 
 

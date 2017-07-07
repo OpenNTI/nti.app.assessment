@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -39,6 +39,8 @@ from nti.app.assessment.utils import get_course_from_request
 from nti.app.assessment.views import get_ds2
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
+
+from nti.app.externalization.error import raise_json_error
 
 from nti.app.externalization.internalization import read_input_data
 from nti.app.externalization.internalization import read_body_as_external_object
@@ -80,7 +82,12 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
     def _do_call(self):
         creator = self.remoteUser
         if not creator:
-            raise hexc.HTTPForbidden(_("Must be Authenticated."))
+            raise_json_error(self.request,
+                             hexc.HTTPForbidden,
+                             {
+                                'message': _(u"Must be Authenticated."),
+                             },
+                             None)
 
         course = get_course_from_request(self.request)
         if course is None:
@@ -88,10 +95,20 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
                                                 creator, 
                                                 exc=False)
         if course is None:
-            raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
+            raise_json_error(self.request,
+                             hexc.HTTPForbidden,
+                             {
+                                'message': _(u"Must be enrolled in a course."),
+                             },
+                             None)
 
         if not is_assignment_available(self.context, user=creator, course=course):
-            raise hexc.HTTPForbidden(_("Assignment is not available."))
+            raise_json_error(self.request,
+                             hexc.HTTPForbidden,
+                             {
+                                'message': _(u"Assignment is not available."),
+                             },
+                             None)
 
         if not self.request.POST:
             submission = self.readCreateUpdateContentObject(creator)
@@ -105,8 +122,13 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
             else:
                 extValue = read_body_as_external_object(self.request)
             if not extValue:
-                msg =  _("No submission source was specified.")
-                raise hexc.HTTPUnprocessableEntity(msg)
+                msg =  _(u"No submission source was specified.")
+                raise_json_error(self.request,
+                                 hexc.HTTPUnprocessableEntity,
+                                 {
+                                    'message': msg,
+                                 },
+                                 None)
             submission = self.readCreateUpdateContentObject(creator,
                                                             externalValue=extValue)
             submission = read_multipart_sources(submission, self.request)
@@ -120,8 +142,13 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
                                                 self.remoteUser,
                                                 self.context.ntiid)
             if item is None or not item.StartTime:
-                msg = _("Cannot savepoint timed assignment unless started.")
-                raise hexc.HTTPClientError(msg)
+                msg = _(u"Cannot savepoint timed assignment unless started.")
+                raise_json_error(self.request,
+                                 hexc.HTTPClientError,
+                                 {
+                                    'message': msg,
+                                 },
+                                 None)
 
         savepoint = component.getMultiAdapter((course, submission.creator),
                                               IUsersCourseAssignmentSavepoint)
@@ -158,7 +185,12 @@ class AssignmentSubmissionSavepointGetView(AbstractAuthenticatedView):
     def __call__(self):
         creator = self.remoteUser
         if not creator:
-            raise hexc.HTTPForbidden(_("Must be Authenticated."))
+            raise_json_error(self.request,
+                             hexc.HTTPForbidden,
+                             {
+                                'message': _(u"Must be Authenticated."),
+                             },
+                             None)
 
         course = get_course_from_request(self.request)
         if course is None:
@@ -166,7 +198,12 @@ class AssignmentSubmissionSavepointGetView(AbstractAuthenticatedView):
                                                 creator, 
                                                 exc=False)
         if course is None:
-            raise hexc.HTTPForbidden(_("Must be enrolled in a course."))
+            raise_json_error(self.request,
+                             hexc.HTTPForbidden,
+                             {
+                                'message': _(u"Must be enrolled in a course."),
+                             },
+                             None)
 
         __traceback_info__ = creator, course
         savepoint = component.getMultiAdapter((course, creator),

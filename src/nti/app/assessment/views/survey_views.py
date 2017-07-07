@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -80,6 +80,8 @@ from nti.assessment.interfaces import IQNonGradableMultipleChoicePart
 from nti.assessment.interfaces import IQNonGradableModeledContentPart
 from nti.assessment.interfaces import IQNonGradableMultipleChoiceMultipleAnswerPart
 
+from nti.common.string import is_true
+
 from nti.contentfragments.interfaces import IPlainTextContentFragment
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -146,14 +148,14 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
                                 InquiryViewMixin):
 
     _EXTRA_INPUT_ERRORS = ModeledContentUploadRequestUtilsMixin._EXTRA_INPUT_ERRORS + \
-        (AttributeError,)
+                          (AttributeError,)
 
     content_predicate = IQInquirySubmission.providedBy
 
     def _check_poll_submission(self, submission):
         poll = component.getUtility(IQPoll, name=submission.inquiryId)
         if len(poll.parts) != len(submission.parts):
-            ex = ConstraintNotSatisfied(_("Incorrect submission parts."))
+            ex = ConstraintNotSatisfied(_(u"Incorrect submission parts."))
             ex.field = IQPollSubmission['parts']
             raise ex
 
@@ -161,7 +163,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
         beginning = get_available_for_submission_beginning(
             self.context, course)
         if beginning is not None and datetime.utcnow() < beginning:
-            ex = ConstraintNotSatisfied(_("Submitting too early."))
+            ex = ConstraintNotSatisfied(_(u"Submitting too early."))
             ex.field = IQSubmittable['available_for_submission_beginning']
             ex.value = beginning
             raise ex
@@ -169,13 +171,13 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
     def _check_submission_ending(self, course):
         ending = get_available_for_submission_ending(self.context, course)
         if ending is not None and datetime.utcnow() > ending:
-            ex = ConstraintNotSatisfied(_("Submitting too late."))
+            ex = ConstraintNotSatisfied(_(u"Submitting too late."))
             ex.field = IQSubmittable['available_for_submission_ending']
             raise ex
 
     def _check_inquiry_close(self):
         if self.context.closed:
-            ex = ConstraintNotSatisfied(_("Inquiry has been closed."))
+            ex = ConstraintNotSatisfied(_(u"Inquiry has been closed."))
             ex.field = IQInquiry['closed']
             raise ex
 
@@ -200,7 +202,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
                 poll.pollId for poll in submission.questions
             ]
             if sorted(survey_poll_ids) != sorted(submission_poll_ids):
-                msg = _("Incorrect submission questions.")
+                msg = _(u"Incorrect submission questions.")
                 ex = ConstraintNotSatisfied(msg)
                 ex.field = IQSurveySubmission['questions']
                 raise ex
@@ -215,7 +217,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
         submission.containerId = submission.inquiryId
 
         if submission.inquiryId in course_inquiry:
-            ex = NotUnique(_("Inquiry already submitted."))
+            ex = NotUnique(_(u"Inquiry already submitted."))
             ex.field = IQInquirySubmission['inquiryId']
             ex.value = submission.inquiryId
             raise ex
@@ -310,7 +312,7 @@ class InquirySubmissionMetadataCSVView(AbstractAuthenticatedView, InquiryViewMix
 
     def __call__(self):
         course = self.course
-        if not (is_course_instructor(course, self.remoteUser)
+        if not (   is_course_instructor(course, self.remoteUser)
                 or has_permission(nauth.ACT_NTI_ADMIN, course, self.request)):
             raise_json_error(self.request,
                              hexc.HTTPForbidden,
@@ -321,11 +323,10 @@ class InquirySubmissionMetadataCSVView(AbstractAuthenticatedView, InquiryViewMix
         queried = inquiry_submissions(self.context, course)
 
         response = self.request.response
-        response.content_encoding = str('identity')
-        response.content_type = str('text/csv; charset=UTF-8')
+        response.content_encoding = 'identity'
+        response.content_type = 'text/csv; charset=UTF-8'
         metadata = _get_title_for_metadata_download(self.context.title)
-        response.content_disposition = str(
-            'attachment; filename="%s"' % metadata)
+        response.content_disposition = 'attachment; filename="%s"' % metadata
 
         stream = BytesIO()
         fieldnames = ['username', 'realname', 'email', 'submission_time']
@@ -354,7 +355,7 @@ class InquirySubmissionMetadataCSVView(AbstractAuthenticatedView, InquiryViewMix
 
 def _get_title_for_metadata_download(inquiry_name):
     ascii_str = inquiry_name.encode('ascii', 'ignore')
-    return '%s_SubmissionMetadata.csv' % ascii_str.replace(' ', '')
+    return u'%s_SubmissionMetadata.csv' % ascii_str.replace(' ', '')
 
 
 def _date_str_from_timestamp(timestamp):
@@ -401,7 +402,12 @@ class InquiryCloseView(AbstractAuthenticatedView, InquiryViewMixin):
     def __call__(self):
         course = self.course
         if not is_course_instructor(course, self.remoteUser):
-            raise hexc.HTTPForbidden(_("Cannot close inquiry."))
+            raise_json_error(self.request,
+                             hexc.HTTPForbidden,
+                             {
+                                 'message': _(u"Cannot close inquiry.")
+                             },
+                             None)
         self.context.closed = True
         result = aggregate_course_inquiry(self.context, course)
         container = ICourseAggregatedInquiries(course)
@@ -462,7 +468,7 @@ class InquiryAggregatedGetView(AbstractAuthenticatedView, InquiryViewMixin):
             return hexc.HTTPNoContent()
 
         if      IQAggregatedSurvey.providedBy( result ) \
-                and IQPoll.providedBy(self.context):
+            and IQPoll.providedBy(self.context):
             # Asking for question level aggregation for
             # survey submissions.
             for poll_result in result.questions or ():
@@ -513,11 +519,11 @@ def plain_text(s):
 
 
 def display_list(data):
-    result = ""
+    result = []
     for item in data[:-1]:
-        result += '%s, ' % item
-    result += '%s' % data[-1]
-    return result
+        result.append('%s, ' % item)
+    result.append('%s' % data[-1])
+    return u''.join(result)
 
 
 @view_config(context=IQSurvey,
@@ -540,8 +546,8 @@ class SurveyReportCSV(_AbstractReportView):
 
     def __call__(self):
         self._check_access()
-
-        include_usernames = self.request.params.get('include_usernames', False)
+        params = self.request.params
+        include_usernames = is_true(params.get('include_usernames'))
 
         stream = BytesIO()
         csv_writer = csv.writer(stream)
@@ -556,8 +562,8 @@ class SurveyReportCSV(_AbstractReportView):
                 # If the question has more than one part, we need to
                 # create a column for each part of the question.
                 for part in question.parts:
-                    header_row.append(
-                        plain_text(question.content) + ": " + plain_text(part.content))
+                    header_row.append(plain_text(question.content) + ": " + 
+                                      plain_text(part.content))
             else:
                 header_row.append(plain_text(question.content))
         csv_writer.writerow(header_row)
@@ -581,7 +587,7 @@ class SurveyReportCSV(_AbstractReportView):
                         # If the question part is None, the user did not respond
                         # to this question, and we should put in a placeholder for
                         # this question.
-                        result = ''
+                        result = u''
                         continue
 
                     # Each type of question is handled slightly differently.
@@ -617,6 +623,6 @@ class SurveyReportCSV(_AbstractReportView):
                     row.extend(responses)
             csv_writer.writerow(row)
 
-        self.request.response.content_type = str('application/octet-stream')
+        self.request.response.content_type = 'application/octet-stream'
         self.request.response.body = stream.getvalue()
         return self.request.response

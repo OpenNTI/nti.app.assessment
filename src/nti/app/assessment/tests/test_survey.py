@@ -116,7 +116,7 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
                                      status=201)
 
         default_enrollment_savepoints_link = \
-                    self.require_link_href_with_rel(res.json_body, 'InquiryHistory')
+            self.require_link_href_with_rel(res.json_body, 'InquiryHistory')
 
         expected = ('/dataserver2/users/' +
                     self.default_username +
@@ -198,10 +198,12 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
             self.require_link_href_with_rel(res.json_body, 'InquiryHistory')
 
         course_inquiries_history_link = \
-            self.require_link_href_with_rel(res.json_body['CourseInstance'], 'InquiryHistory')
+            self.require_link_href_with_rel(
+                res.json_body['CourseInstance'], 'InquiryHistory')
 
         course_inquiries_link = \
-            self.require_link_href_with_rel(res.json_body['CourseInstance'], 'CourseInquiries')
+            self.require_link_href_with_rel(
+                res.json_body['CourseInstance'], 'CourseInquiries')
 
         submission_href = '%s/%s' % (course_inquiries_link, item_id)
         _ = res.json_body['CourseInstance']['href']
@@ -293,8 +295,9 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
     def test_submission_metadata(self, fake_active, fake_date):
         fake_active.is_callable().returns(True)
         fake_date.is_callable().returns('05-10-2017')
-        test_student_environ = self._make_extra_environ(username='test_student')
-        
+        test_student_environ = self._make_extra_environ(
+            username='test_student')
+
         test_student_environ.update({'HTTP_ORIGIN': 'http://janux.ou.edu'})
         instructor_environ = self._make_extra_environ(username='harp4162')
 
@@ -309,12 +312,12 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
                                extra_environ=test_student_environ)
 
         submission_href = \
-                '/dataserver2/++etc++hostsites/platform.ou.edu/++etc++site/Courses/Fall2013/CLC3403_LawAndJustice' + \
-                '/CourseInquiries/tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.pollid.aristotle.1'
+            '/dataserver2/++etc++hostsites/platform.ou.edu/++etc++site/Courses/Fall2013/CLC3403_LawAndJustice' + \
+            '/CourseInquiries/tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.pollid.aristotle.1'
 
         survey_inquiry_link = \
-                '/dataserver2/++etc++hostsites/platform.ou.edu/++etc++site/Courses/Fall2013/CLC3403_LawAndJustice/' + \
-                'CourseInquiries/' + self.survey_id + '/@@SubmissionMetadata'
+            '/dataserver2/++etc++hostsites/platform.ou.edu/++etc++site/Courses/Fall2013/CLC3403_LawAndJustice/' + \
+            'CourseInquiries/' + self.survey_id + '/@@SubmissionMetadata'
 
         # If we check this when no students have submitted, we should
         # get an empty spreadsheet.
@@ -369,7 +372,8 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
     def test_survey_csv_report(self, fake_active, fake_date):
         fake_active.is_callable().returns(True)
         fake_date.is_callable().returns('05-10-2017')
-        test_student_environ = self._make_extra_environ(username='test_student')
+        test_student_environ = self._make_extra_environ(
+            username='test_student')
         test_student_environ.update({'HTTP_ORIGIN': 'http://janux.ou.edu'})
         instructor_environ = self._make_extra_environ(username='harp4162')
 
@@ -386,8 +390,8 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         survey_ntiid = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.set.survey:KNOWING_aristotle"
         survey_href = '/dataserver2/Objects/' + survey_ntiid
         submission_href = \
-                '/dataserver2/++etc++hostsites/platform.ou.edu/++etc++site/Courses/Fall2013/CLC3403_LawAndJustice' + \
-                '/CourseInquiries/tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.pollid.aristotle.1'
+            '/dataserver2/++etc++hostsites/platform.ou.edu/++etc++site/Courses/Fall2013/CLC3403_LawAndJustice' + \
+            '/CourseInquiries/tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.pollid.aristotle.1'
 
         with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
             # We need to set a title on our survey question
@@ -400,7 +404,7 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
         # If we check this when no students have submitted, we should
         # just get back the header row.
-        res = self.testapp.get(survey_href + '/InquiryReport.csv', 
+        res = self.testapp.get(survey_href + '/InquiryReport.csv',
                                extra_environ=instructor_environ)
 
         assert_that(res.body,
@@ -415,7 +419,7 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         ext_obj = to_external_object(submission)
         res = self.testapp.post_json(submission_href, ext_obj)
 
-        res = self.testapp.get(survey_href + '/InquiryReport.csv', 
+        res = self.testapp.get(survey_href + '/InquiryReport.csv',
                                extra_environ=instructor_environ)
 
         # "Distributive" is the first of the multiple choice options. Since we
@@ -424,26 +428,21 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         assert_that(res.body,
                     is_('Choose an answer\r\nDistributive\r\n'))
 
-        # TODO: add cases for different types of survey questions.
-
         # Submit again as a different student with a different choice
-        poll_sub = QPollSubmission(pollId=self.poll_id, 
+        poll_sub = QPollSubmission(pollId=self.poll_id,
                                    parts=[1])
         submission = QSurveySubmission(surveyId=self.survey_id,
                                        questions=[poll_sub])
         ext_obj = to_external_object(submission)
-        self.testapp.post_json(submission_href, 
-                               ext_obj, 
+        self.testapp.post_json(submission_href,
+                               ext_obj,
                                extra_environ=test_student_environ)
-        res = self.testapp.get(survey_href + '/InquiryReport.csv',
-                               extra_environ=instructor_environ)
 
-        assert_that(res.body,
-                    is_('Choose an answer\r\nCorrective\r\nDistributive\r\n'))
-
+        # Test including the username column now. This will ensure that
+        # the rows are sorted by username.
         res = self.testapp.get(survey_href + '/InquiryReport.csv?include_usernames=True',
                                extra_environ=instructor_environ)
-
-        # check that username column works
         assert_that(res.body,
-                    is_('user,Choose an answer\r\ntest_student,Corrective\r\noutest75,Distributive\r\n'))
+                    is_('user,Choose an answer\r\noutest75,Distributive\r\ntest_student,Corrective\r\n'))
+
+        # TODO: add cases for different types of survey questions.

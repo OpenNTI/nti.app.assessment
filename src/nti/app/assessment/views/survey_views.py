@@ -19,6 +19,8 @@ from zope import interface
 
 from zope.cachedescriptors.property import Lazy
 
+from zope.security.management import checkPermission
+
 from zope.schema.interfaces import NotUnique
 from zope.schema.interfaces import ConstraintNotSatisfied
 
@@ -55,8 +57,7 @@ from nti.app.externalization.error import raise_json_error
 
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
-from nti.app.products.courseware_reports.views.view_mixins import _AbstractReportView
-from nti.app.products.courseware_reports.utils import find_course_for_user
+from nti.app.products.courseware_reports.interfaces import ACT_VIEW_REPORTS
 
 from nti.app.renderers.interfaces import INoHrefInResponse
 
@@ -147,7 +148,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
                                 InquiryViewMixin):
 
     _EXTRA_INPUT_ERRORS = ModeledContentUploadRequestUtilsMixin._EXTRA_INPUT_ERRORS + \
-                          (AttributeError,)
+        (AttributeError,)
 
     content_predicate = IQInquirySubmission.providedBy
 
@@ -311,7 +312,7 @@ class InquirySubmissionMetadataCSVView(AbstractAuthenticatedView, InquiryViewMix
 
     def __call__(self):
         course = self.course
-        if not (   is_course_instructor(course, self.remoteUser)
+        if not (is_course_instructor(course, self.remoteUser)
                 or has_permission(nauth.ACT_NTI_ADMIN, course, self.request)):
             raise_json_error(self.request,
                              hexc.HTTPForbidden,
@@ -467,7 +468,7 @@ class InquiryAggregatedGetView(AbstractAuthenticatedView, InquiryViewMixin):
             return hexc.HTTPNoContent()
 
         if      IQAggregatedSurvey.providedBy( result ) \
-            and IQPoll.providedBy(self.context):
+                and IQPoll.providedBy(self.context):
             # Asking for question level aggregation for
             # survey submissions.
             for poll_result in result.questions or ():
@@ -525,26 +526,23 @@ def display_list(data):
     return u''.join(result)
 
 
-@view_config(context=IQSurvey,
+@view_config(route_name="objects.generic.traversal",
+             context=IQSurvey,
              name='InquiryReport.csv',
              renderer='rest',
              permission=nauth.ACT_READ,
              request_method='GET')
-class SurveyReportCSV(_AbstractReportView):
-
-    @Lazy
-    def course(self):
-        course = find_interface(self.context, ICourseInstance, strict=False)
-        if course is None:
-            course = find_course_for_user(self.context, self.remoteUser)
-        return course
+class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
 
     @property
     def questions(self):
         return self.context.questions
 
     def __call__(self):
-        self._check_access()
+        # only users with reports permissions should be able to view this.
+        if not checkPermission(ACT_VIEW_REPORTS.id, self.course):
+            raise hexc.HTTPForbidden()
+
         params = self.request.params
         include_usernames = is_true(params.get('include_usernames'))
 
@@ -561,12 +559,14 @@ class SurveyReportCSV(_AbstractReportView):
                 # If the question has more than one part, we need to
                 # create a column for each part of the question.
                 for part in question.parts:
-                    header_row.append(plain_text(question.content) + ": " + 
+                    header_row.append(plain_text(question.content) + ": " +
                                       plain_text(part.content))
             else:
                 header_row.append(plain_text(question.content))
 
         csv_writer.writerow(header_row)
+        user_rows = []
+
         submissions = inquiry_submissions(self.context, self.course)
         for item in submissions:
             if not IUsersCourseInquiryItem.providedBy(item):  # always check
@@ -621,8 +621,16 @@ class SurveyReportCSV(_AbstractReportView):
                     # add to result
                     responses.append(result)
                     row.extend(responses)
-            # write row
+            user_rows.append(row)
+
+        # If we have usernames, we should sort by that column.
+        if include_usernames:
+            user_rows = sorted(user_rows, key=lambda x: x[0])
+
+        for row in user_rows:
             csv_writer.writerow(row)
+        stream.flush()
+        stream.seek(0)
         self.request.response.content_type = 'application/octet-stream'
-        self.request.response.body = stream.getvalue()
+        self.request.response.body_file = stream
         return self.request.response

@@ -40,9 +40,12 @@ from nti.assessment.survey import QSurveySubmission
 from nti.dataserver.interfaces import IUser
 
 from nti.dataserver.users import User
+from nti.dataserver.tests import mock_dataserver
 
 
 from nti.app.assessment.tests import AssessmentLayerTest
+
+from nti.ntiids.ntiids import find_object_with_ntiid
 
 
 class TestSurvey(AssessmentLayerTest):
@@ -127,11 +130,11 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
                                      extra_environ=outest_environ)
 
         user2_enrollment_history_link = \
-                self.require_link_href_with_rel(res.json_body, 'InquiryHistory')
+            self.require_link_href_with_rel(res.json_body, 'InquiryHistory')
 
         # each can fetch his own
         self.testapp.get(default_enrollment_savepoints_link)
-        self.testapp.get(user2_enrollment_history_link, 
+        self.testapp.get(user2_enrollment_history_link,
                          extra_environ=outest_environ)
 
         # but they can't get each others
@@ -146,13 +149,13 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         assert_that(res.json_body, has_entry('href', is_not(none())))
 
         submission = res.json_body['Submission']
-        assert_that(submission, 
+        assert_that(submission,
                     has_entry(StandardExternalFields.CREATED_TIME, is_(float)))
-        
-        assert_that(submission, 
+
+        assert_that(submission,
                     has_entry(StandardExternalFields.LAST_MODIFIED, is_(float)))
 
-        assert_that(submission, 
+        assert_that(submission,
                     has_entry(StandardExternalFields.MIMETYPE,
                               'application/vnd.nextthought.assessment.userscourseinquiryitem'))
 
@@ -160,19 +163,19 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         submission = submission['Submission']
         if containerId:
             assert_that(submission, has_entry('ContainerId', containerId))
-        
-        assert_that(submission, 
+
+        assert_that(submission,
                     has_entry(StandardExternalFields.CREATED_TIME, is_(float)))
-        
-        assert_that(submission, 
+
+        assert_that(submission,
                     has_entry(StandardExternalFields.LAST_MODIFIED, is_(float)))
 
         if inquiry:
             __traceback_info__ = inquiry
             inquiry_res = self.testapp.get(inquiry)
-            assert_that(inquiry_res.json_body, 
+            assert_that(inquiry_res.json_body,
                         has_entry('href', contains_string(unquote(inquiry))))
-            assert_that(inquiry_res.json_body, 
+            assert_that(inquiry_res.json_body,
                         has_entry('Items', has_length(1)))
 
             items = list(inquiry_res.json_body['Items'].values())
@@ -191,11 +194,13 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
             self.require_link_href_with_rel(res.json_body, 'InquiryHistory')
 
         course_inquiries_history_link = \
-            self.require_link_href_with_rel(res.json_body['CourseInstance'], 'InquiryHistory')
+            self.require_link_href_with_rel(
+                res.json_body['CourseInstance'], 'InquiryHistory')
 
         course_inquiries_link = \
-            self.require_link_href_with_rel(res.json_body['CourseInstance'], 'CourseInquiries')
-            
+            self.require_link_href_with_rel(
+                res.json_body['CourseInstance'], 'CourseInquiries')
+
         submission_href = '%s/%s' % (course_inquiries_link, item_id)
         _ = res.json_body['CourseInstance']['href']
 
@@ -215,7 +220,7 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         # I submit
         for link in course_inquiries_history_link, enrollment_inquiries_link:
             survey_res = self.testapp.get(link)
-            assert_that(survey_res.json_body, 
+            assert_that(survey_res.json_body,
                         has_entry('Items', has_length(0)))
 
         self.testapp.get(submission_href + '/Submission', status=404)
@@ -236,9 +241,9 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         # Both survey links are equivalent and work
         for link in course_inquiries_history_link, enrollment_inquiries_link:
             surveys_res = self.testapp.get(link)
-            assert_that(surveys_res.json_body, 
+            assert_that(surveys_res.json_body,
                         has_entry('Items', has_length(1)))
-            assert_that(surveys_res.json_body, 
+            assert_that(surveys_res.json_body,
                         has_entry('Items', has_key(item_id)))
 
         # simply adding get us to an item
@@ -261,7 +266,7 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
         ext_obj = to_external_object(submission)
         del ext_obj['Class']
-        assert_that(ext_obj, 
+        assert_that(ext_obj,
                     has_entry('MimeType', 'application/vnd.nextthought.assessment.surveysubmission'))
 
         self._test_submission(self.survey_id, ext_obj)
@@ -275,7 +280,7 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
         ext_obj = to_external_object(submission)
         del ext_obj['Class']
-        assert_that(ext_obj, 
+        assert_that(ext_obj,
                     has_entry('MimeType', 'application/vnd.nextthought.assessment.pollsubmission'))
 
         self._test_submission(self.poll_id, ext_obj)
@@ -286,7 +291,8 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
     def test_submission_metadata(self, fake_active, fake_date):
         fake_active.is_callable().returns(True)
         fake_date.is_callable().returns('05-10-2017')
-        test_student_environ = self._make_extra_environ(username='test_student')
+        test_student_environ = self._make_extra_environ(
+            username='test_student')
         test_student_environ.update({b'HTTP_ORIGIN': b'http://janux.ou.edu'})
         instructor_environ = self._make_extra_environ(username='harp4162')
 
@@ -304,13 +310,14 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
                           u'/CourseInquiries/tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.pollid.aristotle.1'
 
         survey_inquiry_link = u'/dataserver2/++etc++hostsites/platform.ou.edu/++etc++site/Courses/Fall2013/CLC3403_LawAndJustice/' + \
-                              u'CourseInquiries/' + self.survey_id + '/@@SubmissionMetadata'
+                              u'CourseInquiries/' + self.survey_id + \
+            '/@@SubmissionMetadata'
 
         # If we check this when no students have submitted, we should
         # get an empty spreadsheet.
-        res = self.testapp.get(survey_inquiry_link, 
+        res = self.testapp.get(survey_inquiry_link,
                                extra_environ=instructor_environ)
-        assert_that(res.body, 
+        assert_that(res.body,
                     is_('username,realname,email,submission_time\r\n'))
 
         poll_sub = QPollSubmission(pollId=self.poll_id, parts=[0])
@@ -322,11 +329,11 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         res = self.testapp.post_json(submission_href, ext_obj)
 
         # Now we should see that this student submitted
-        res = self.testapp.get(survey_inquiry_link, 
+        res = self.testapp.get(survey_inquiry_link,
                                extra_environ=instructor_environ)
         result = DictReader(StringIO(res.body))
         result = [x for x in result]
-        assert_that(result, 
+        assert_that(result,
                     has_item(has_entries('username', 'outest75',
                                          'submission_time', '05-10-2017',
                                          'email', '',
@@ -334,21 +341,105 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
         # submit as our other test student, and then that should show up in the
         # report as well
-        self.testapp.post_json(submission_href, 
-                               ext_obj, 
+        self.testapp.post_json(submission_href,
+                               ext_obj,
                                extra_environ=test_student_environ)
 
         res = self.testapp.get(survey_inquiry_link,
                                extra_environ=instructor_environ)
         result = DictReader(StringIO(res.body))
         result = [x for x in result]
-        assert_that(result, 
+        assert_that(result,
                     has_item(has_entries('username', 'outest75',
                                          'submission_time', '05-10-2017',
                                          'email', '',
                                          'realname', '')))
-        assert_that(result, 
+        assert_that(result,
                     has_item(has_entries('username', 'test_student',
                                          'submission_time', '05-10-2017',
                                          'email', '',
                                          'realname', '')))
+
+    @WithSharedApplicationMockDS(users=('test_student'), testapp=True, default_authenticate=True)
+    @fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive',
+                 'nti.app.assessment.views.survey_views._date_str_from_timestamp')
+    def test_survey_csv_report(self, fake_active, fake_date):
+        fake_active.is_callable().returns(True)
+        fake_date.is_callable().returns('05-10-2017')
+        test_student_environ = self._make_extra_environ(
+            username='test_student')
+        test_student_environ.update({b'HTTP_ORIGIN': b'http://janux.ou.edu'})
+        instructor_environ = self._make_extra_environ(username='harp4162')
+
+        # make sure we're enrolled
+        self.testapp.post_json('/dataserver2/users/' + self.default_username + '/Courses/EnrolledCourses',
+                               COURSE_NTIID,
+                               status=201)
+
+        self.testapp.post_json('/dataserver2/users/' + 'test_student' + '/Courses/EnrolledCourses',
+                               COURSE_NTIID,
+                               status=201,
+                               extra_environ=test_student_environ)
+
+        survey_ntiid = u"tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.set.survey:KNOWING_aristotle"
+        survey_href = '/dataserver2/Objects/' + survey_ntiid
+        submission_href = u'/dataserver2/++etc++hostsites/platform.ou.edu/++etc++site/Courses/Fall2013/CLC3403_LawAndJustice' + \
+                          u'/CourseInquiries/tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.pollid.aristotle.1'
+
+        with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+            # We need to set a title on our survey question
+            # so that we have a meaningful header row for
+            # our report.
+            survey = find_object_with_ntiid(survey_ntiid)
+            survey_questions = survey.questions
+            question = survey_questions[0]
+            question.content = u'<a name="qid.aristotle.1">Choose an answer</a>'
+
+        # If we check this when no students have submitted, we should
+        # just get back the header row.
+        res = self.testapp.get(
+            survey_href + '/InquiryReport.csv', extra_environ=instructor_environ)
+
+        assert_that(res.body,
+                    is_('Choose an answer\r\n'))
+
+        poll_sub = QPollSubmission(
+            pollId=self.poll_id, parts=[0])
+        submission = QSurveySubmission(surveyId=self.survey_id,
+                                       questions=[poll_sub])
+
+        # submit as a student
+        ext_obj = to_external_object(submission)
+        res = self.testapp.post_json(submission_href, ext_obj)
+
+        res = self.testapp.get(
+            survey_href + '/InquiryReport.csv', extra_environ=instructor_environ)
+
+        # "Distributive" is the first of the multiple choice options. Since we
+        # chose the 0th choice, we expect to get "Distributive" back as the
+        # label.
+        assert_that(res.body,
+                    is_('Choose an answer\r\nDistributive\r\n'))
+
+        # TODO: add cases for different types of survey questions.
+
+        # Submit again as a different student with a different choice
+        poll_sub = QPollSubmission(
+            pollId=self.poll_id, parts=[1])
+        submission = QSurveySubmission(surveyId=self.survey_id,
+                                       questions=[poll_sub])
+        ext_obj = to_external_object(submission)
+        self.testapp.post_json(
+            submission_href, ext_obj, extra_environ=test_student_environ)
+        res = self.testapp.get(
+            survey_href + '/InquiryReport.csv', extra_environ=instructor_environ)
+
+        assert_that(res.body,
+                    is_('Choose an answer\r\nCorrective\r\nDistributive\r\n'))
+
+        res = self.testapp.get(
+            survey_href + '/InquiryReport.csv?include_usernames=True', extra_environ=instructor_environ)
+
+        # check that username column works
+        assert_that(res.body,
+                    is_('user,Choose an answer\r\ntest_student,Corrective\r\noutest75,Distributive\r\n'))

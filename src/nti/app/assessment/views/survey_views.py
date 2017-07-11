@@ -580,8 +580,8 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
                 poll = component.queryUtility(IQPoll, name=question.inquiryId)
                 for part_idx, part in enumerate(zip(question.parts, poll.parts)):
                     responses = []
-                    question_part, poll_part = part
-                    if question_part is None:
+                    user_sub_part, poll_part = part
+                    if user_sub_part is None:
                         # If the question part is None, the user did not respond
                         # to this question, and we should put in a placeholder for
                         # this question.
@@ -594,7 +594,7 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
                         # otherwise. We need to make sure to assign the correct label
                         # for each response.
                         response_values = sorted(
-                            question_part.items(), key=lambda x: x[1]
+                            user_sub_part.items(), key=lambda x: x[1]
                         )
                         part_values = poll.parts[part_idx].values
                         part_labels = [plain_text(x) for x in part_values]
@@ -604,20 +604,25 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
                             part_labels[int(k[0])] for k in response_values
                         ]
                         result = display_list(result)
+
                     elif IQNonGradableMultipleChoiceMultipleAnswerPart.providedBy(poll_part):
-                        response_values = question_part
+                        response_values = user_sub_part
                         part_values = poll.parts[part_idx].choices
                         result = [
                             plain_text(part_values[int(k)]) for k in response_values
                         ]
                         result = display_list(result)
+
                     elif IQNonGradableMultipleChoicePart.providedBy(poll_part):
                         part_values = poll.parts[part_idx].choices
-                        result = plain_text(part_values[int(question_part)])
+                        result = plain_text(part_values[int(user_sub_part)])
+
                     elif IQNonGradableModeledContentPart.providedBy(poll_part):
-                        result = question_part.value[0]
+                        result = user_sub_part.value[0]
+
                     elif IQNonGradableFreeResponsePart.providedBy(poll_part):
-                        result = plain_text(question_part)
+                        result = plain_text(user_sub_part)
+
                     # add to result
                     responses.append(result)
                     row.extend(responses)

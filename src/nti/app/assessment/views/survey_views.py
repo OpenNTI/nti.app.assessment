@@ -85,7 +85,6 @@ from nti.common.string import is_true
 
 from nti.contentfragments.interfaces import IPlainTextContentFragment
 
-from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.utils import is_course_instructor
 
 from nti.dataserver import authorization as nauth
@@ -97,8 +96,6 @@ from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.externalization.oids import to_external_ntiid_oid
-
-from nti.traversal.traversal import find_interface
 
 ITEMS = StandardExternalFields.ITEMS
 TOTAL = StandardExternalFields.TOTAL

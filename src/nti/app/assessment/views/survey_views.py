@@ -571,17 +571,16 @@ class SurveyReportCSV(_AbstractReportView):
         for item in submissions:
             if not IUsersCourseInquiryItem.providedBy(item):  # always check
                 continue
-            submission_questions = item.Submission.questions
+            subs_questions = item.Submission.questions
             if include_usernames:
                 row = [item.creator.username]
             else:
                 row = []
-            for question in submission_questions:
+            for question in sorted(subs_questions, key=lambda x: x.inquiryId, reverse=True):
                 poll = component.queryUtility(IQPoll, name=question.inquiryId)
                 for part_idx, part in enumerate(zip(question.parts, poll.parts)):
-                    question_part = part[0]
-                    poll_part = part[1]
                     responses = []
+                    question_part, poll_part = part
                     if question_part is None:
                         # If the question part is None, the user did not respond
                         # to this question, and we should put in a placeholder for
@@ -619,9 +618,10 @@ class SurveyReportCSV(_AbstractReportView):
                         result = question_part.value[0]
                     elif IQNonGradableFreeResponsePart.providedBy(poll_part):
                         result = plain_text(question_part)
-
+                    # add to result
                     responses.append(result)
                     row.extend(responses)
+            # write row
             csv_writer.writerow(row)
         self.request.response.content_type = 'application/octet-stream'
         self.request.response.body = stream.getvalue()

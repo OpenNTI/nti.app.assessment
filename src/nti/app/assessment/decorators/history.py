@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -74,7 +74,7 @@ class _AssignmentsAvailableAssignmentHistoryDecorator(AbstractAuthenticatedReque
                 result.update(asg.ntiid
                               for asg in assignment_catalog.iter_assignments()
                               if user_predicate(asg))
-            result_map['AvailableAssignmentNTIIDs'] = result
+            result_map['AvailableAssignmentNTIIDs'] = sorted(result)
 
 
 @interface.implementer(IExternalMappingDecorator)
@@ -104,7 +104,7 @@ class _LastViewedAssignmentHistoryDecorator(AbstractAuthenticatedRequestAwareDec
     """
 
     def _predicate(self, context, result):
-        return (self._is_authenticated
+        return (    self._is_authenticated
                 and context.owner is not None
                 and context.owner == self.remoteUser)
 
@@ -136,7 +136,8 @@ class _AssignmentHistoryLinkDecorator(AbstractAuthenticatedRequestAwareDecorator
             links = result_map.setdefault(LINKS, [])
             links.append(Link(course,
                               rel='History',
-                              elements=('AssignmentHistories', user.username,
+                              elements=('AssignmentHistories', 
+                                        user.username,
                                         context.ntiid)))
 
 

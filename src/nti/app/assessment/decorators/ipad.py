@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -59,11 +59,9 @@ class _IPad110NoSubmitPartAdjuster(AbstractAuthenticatedRequestAwareDecorator):
     def _predicate(self, context, result):
         if not context.no_submit or context.parts:
             return False
-
         ua = self.request.environ.get('HTTP_USER_AGENT', '')
         if not ua:
             return False
-
         for bua in self._BAD_UAS:
             if ua.startswith(bua):
                 return True

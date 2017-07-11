@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -31,6 +31,6 @@ class _NTIQuestionSetCountDecorator(object):
 
     def decorateExternalObject(self, original, external):
         external.pop('question_count', None)
-        question_count =   getattr(original, 'draw', None) \
-                        or len(original.questions)
-        external[u'question-count'] = str(question_count)
+        question_count = getattr(original, 'draw', None) \
+                      or len(original.questions)
+        external['question-count'] = str(question_count)

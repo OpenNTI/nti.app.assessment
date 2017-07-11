@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -58,7 +58,7 @@ LINKS = StandardExternalFields.LINKS
 
 def _question_from_context(context, questionId):
     item = find_interface(context,
-                          IUsersCourseAssignmentHistoryItem, 
+                          IUsersCourseAssignmentHistoryItem,
                           strict=False)
     if item is None or item.Assignment is None:
         result = component.queryUtility(IQuestion, name=questionId)
@@ -72,7 +72,7 @@ def _question_from_context(context, questionId):
 
 
 def _is_instructor_or_editor(course, user):
-    return (user is not None and course is not None) \
+    return  (user is not None and course is not None) \
         and (   is_course_instructor_or_editor(course, user)
              or has_permission(ACT_CONTENT_EDIT, course))
 
@@ -83,8 +83,8 @@ def _is_randomized_question_set(context):
     we need to shuffle our solutions.
     """
     result = False
-    assessed_qset = find_interface(context, 
-                                   IQAssessedQuestionSet, 
+    assessed_qset = find_interface(context,
+                                   IQAssessedQuestionSet,
                                    strict=False)
     if assessed_qset is not None:
         qset = find_object_with_ntiid(assessed_qset.questionSetId)
@@ -100,28 +100,24 @@ class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):
         course = find_interface(context, ICourseInstance, strict=False)
         if course is None or not is_course_instructor(course, self.remoteUser):
             return
-
         # extra check
-        uca_history = find_interface(context, 
+        uca_history = find_interface(context,
                                      IUsersCourseAssignmentHistory,
                                      strict=False)
         if uca_history is None or uca_history.creator == self.remoteUser:
             return
-
         # find question
         assessed_question = context.__parent__
         question_id = assessed_question.questionId
         question = component.queryUtility(IQuestion, name=question_id)
         if question is None:
             return  # old question?
-
         # find part
         try:
             index = assessed_question.parts.index(context)
             question_part = question.parts[index]
         except IndexError:
             return
-
         # CS: for instructors we no longer randomized the questions
         # since the submittedResponse is stored randomized
         # we unshuffle it, so the instructor can see the correct answer
@@ -133,16 +129,16 @@ class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):
                 grader = grader_for_response(question_part, response)
                 if grader is None:
                     return
-
                 # CS: We need the user that submitted the question
                 # in order to unshuffle the response
                 creator = uca_history.creator
                 response = grader.unshuffle(response,
                                             user=creator,
                                             context=question_part)
-                ext_response = \
-                    response if isinstance(response, (numbers.Real, basestring)) \
-                    else to_external_object(response)
+                if isinstance(response, (numbers.Real, basestring)):
+                    ext_response = response
+                else:
+                    ext_response = to_external_object(response)
             else:
                 ext_response = response
             result_map['submittedResponse'] = ext_response
@@ -157,7 +153,7 @@ class _QuestionSubmissionDecorator(AbstractAuthenticatedRequestAwareDecorator):
             return
 
         # extra check
-        uca_history = find_interface(context, 
+        uca_history = find_interface(context,
                                      IUsersCourseAssignmentHistory,
                                      strict=False)
         if uca_history is None or uca_history.creator == self.remoteUser:
@@ -238,7 +234,7 @@ class _QAssessedQuestionExplanationSolutionAdder(object):
 
         for question_part, external_part in zip(question.parts, mapping['parts']):
             if not is_instructor:
-                externalizer = self._get_externalizer(question_part, 
+                externalizer = self._get_externalizer(question_part,
                                                       is_randomized_qset)
                 external_part['solutions'] = externalizer.to_external_object()
             else:
@@ -258,8 +254,8 @@ class _QAssignmentSubmissionPendingAssessmentDecorator(AbstractAuthenticatedRequ
                 and creator == self.remoteUser)
 
     def _do_decorate_external(self, context, result_map):
-        item = find_interface(context, 
-                              IUsersCourseAssignmentHistoryItem, 
+        item = find_interface(context,
+                              IUsersCourseAssignmentHistoryItem,
                               strict=False)
         if item is not None:
             links = result_map.setdefault(LINKS, [])

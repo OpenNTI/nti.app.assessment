@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -261,8 +261,9 @@ class _TimedAssignmentPartStripperDecorator(AbstractAuthenticatedRequestAwareDec
             or is_course_instructor(course, self.remoteUser) \
             or has_permission(ACT_CONTENT_EDIT, course, self.request):
             return
-        item = get_assessment_metadata_item(
-            course, self.remoteUser, context.ntiid)
+        item = get_assessment_metadata_item(course,
+                                            self.remoteUser,
+                                            context.ntiid)
         if item is None or not item.StartTime:
             result['parts'] = None
 
@@ -281,7 +282,8 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
                                             self.remoteUser,
                                             context.ntiid)
         if item is not None:
-            metadata = {'Duration': item.Duration, 'StartTime': item.StartTime}
+            metadata = {'Duration': item.Duration, 
+                        'StartTime': item.StartTime}
             result['Metadata'] = metadata
 
 
@@ -435,6 +437,7 @@ class QuestionSetRandomizedDecorator(object):
         external['Randomized'] = is_randomized_question_set(original)
         external['RandomizedPartsType'] = is_randomized_parts_container(original)
 
+
 _ContextStatus = namedtuple("_ContextStatus",
                             ("has_savepoints", "has_submissions", "is_available"))
 
@@ -473,7 +476,7 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
     def _predicate(self, context, result):
         # `IQDiscussionAssignment` objects are handled elsewhere.
         return  self._is_authenticated \
-            and not IQDiscussionAssignment.providedBy( context ) \
+            and not IQDiscussionAssignment.providedBy(context) \
             and has_permission(ACT_CONTENT_EDIT, context, self.request)
 
     def _get_question_rels(self):
@@ -608,8 +611,8 @@ class _DiscussionAssignmentEditorDecorator(_AssessmentEditorDecorator):
     """
 
     def _predicate(self, context, result):
-        return  self._is_authenticated \
-            and has_permission(ACT_CONTENT_EDIT, context, self.request)
+        return self._is_authenticated \
+           and has_permission(ACT_CONTENT_EDIT, context, self.request)
 
     def _do_decorate_external(self, context, result):
         _links = result.setdefault(LINKS, [])
@@ -734,7 +737,7 @@ class AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
         """
         context = self.get_context(context)
         return  self._is_authenticated \
-            and not is_global_evaluation( context ) \
+            and not is_global_evaluation(context) \
             and self._can_edit(context)
 
     def _has_submitted_data(self, context, courses):
@@ -746,7 +749,7 @@ class AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
         # Content backed assignments can *only* enable auto_grade
         # if the parts are auto-assessable.
         result = True
-        if      IQAssignment.providedBy( context ) \
+        if      IQAssignment.providedBy(context) \
             and not IQEditableEvaluation.providedBy(context):
             for part in context.parts or ():
                 if part.auto_grade == False:
@@ -802,11 +805,12 @@ class _AssessmentPracticeLinkDecorator(AbstractAuthenticatedRequestAwareDecorato
 
     def _predicate(self, context, result):
         user = self.remoteUser
-        course = _get_course_from_evaluation(
-            context, user, request=self.request)
+        course = _get_course_from_evaluation(context, 
+                                             user, 
+                                             request=self.request)
         # Legacy, global courses give 'All' perms to course community.
-        return      self._is_authenticated \
-            and not ILegacyCourseInstance.providedBy( course ) \
+        return self._is_authenticated \
+            and not ILegacyCourseInstance.providedBy(course) \
             and (   is_course_instructor_or_editor(course, user)
                  or has_permission(ACT_CONTENT_EDIT, context, self.request))
 

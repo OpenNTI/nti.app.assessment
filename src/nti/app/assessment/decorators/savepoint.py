@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -48,10 +48,10 @@ class _AssignmentSavepointDecorator(AbstractAuthenticatedRequestAwareDecorator):
                                              user=self.remoteUser,
                                              request=self.request)
         # Instructors/editors do not get savepoint links.
-        result = not(is_course_instructor_or_editor(course, user)
+        result = not(   is_course_instructor_or_editor(course, user)
                      or has_permission(ACT_CONTENT_EDIT, context, self.request))
 
-        if 		result \
+        if      result \
             and IQTimedAssignment.providedBy(context) \
             and course is not None:
             item = get_assessment_metadata_item(course, user, context.ntiid)
@@ -60,8 +60,7 @@ class _AssignmentSavepointDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
     def _do_decorate_external(self, assignment, result):
         user = self.remoteUser
-        course = _get_course_from_evaluation(
-            assignment, user, request=self.request)
+        course = _get_course_from_evaluation(assignment, user, request=self.request)
         if course is not None and user != None:
             links = result.setdefault(LINKS, [])
             links.append(Link(course,
@@ -86,9 +85,9 @@ class _AssignmentSavepointItemDecorator(AbstractAuthenticatedRequestAwareDecorat
 
     def _predicate(self, context, result):
         creator = context.creator
-        return (	 AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
-                 and creator is not None
-                 and creator == self.remoteUser)
+        return (    AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
+                and creator is not None
+                and creator == self.remoteUser)
 
     def _do_decorate_external(self, context, result_map):
         try:

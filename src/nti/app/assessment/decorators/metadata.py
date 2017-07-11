@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -35,9 +35,9 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
     def _do_decorate_external(self, assignment, result):
         user = self.remoteUser
-        course = _get_course_from_evaluation(assignment, 
-											 user, 
-											 request=self.request)
+        course = _get_course_from_evaluation(assignment,
+                                             user,
+                                             request=self.request)
         if course is None:
             return
 
@@ -80,7 +80,7 @@ class _AssignmentMetadataItemDecorator(AbstractAuthenticatedRequestAwareDecorato
 
     def _predicate(self, context, result):
         creator = context.creator
-        return (	AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
+        return (     AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
                  and creator is not None
                  and creator == self.remoteUser)
 

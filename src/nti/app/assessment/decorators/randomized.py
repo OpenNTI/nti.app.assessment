@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -56,7 +56,7 @@ class _AbstractNonEditorRandomizingDecorator(AbstractAuthenticatedRequestAwareDe
         user = self.remoteUser
         course = _get_course_from_evaluation(
             context, user, request=self.request)
-        return  self._is_authenticated \
+        return   self._is_authenticated \
             and not is_course_instructor_or_editor(course, user) \
             and not has_permission(ACT_CONTENT_EDIT, context, self.request)
 

@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -45,7 +45,7 @@ class QuestionContainerDecorator(AbstractAuthenticatedRequestAwareDecorator):
     """
 
     def _predicate(self, context, result):
-        return 		self._is_authenticated \
+        return  self._is_authenticated \
             and has_permission(ACT_CONTENT_EDIT, context, self.request)
 
     def _do_decorate_external(self, context, result):

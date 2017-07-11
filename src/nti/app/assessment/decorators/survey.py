@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -100,7 +100,7 @@ class _InquiryItemDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
     def _predicate(self, context, result):
         creator = context.creator
-        return (AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
+        return (    AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
                 and creator is not None
                 and creator == self.remoteUser)
 
@@ -244,10 +244,12 @@ class _InquirySubmissionMetadataDecorator(_InquiryDecorator):
         user = self.remoteUser
         links = result_map.setdefault(LINKS, [])
         course = self._get_course(context, user)
-        if      course is not None \
+        if course is not None \
             and (   is_course_instructor(course, user)
                  or has_permission(ACT_NTI_ADMIN, course, self.request)):
             links.append(Link(course,
                               method='GET',
                               rel='submission_metadata',
-                              elements=('CourseInquiries', context.ntiid, '@@SubmissionMetadata',)))
+                              elements=('CourseInquiries', 
+                                         context.ntiid, 
+                                        '@@SubmissionMetadata',)))

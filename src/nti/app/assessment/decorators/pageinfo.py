@@ -42,9 +42,13 @@ from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
 from nti.externalization.externalization import to_external_object
 
+from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import IExternalMappingDecorator
 
 from nti.externalization.oids import to_external_ntiid_oid
+
+TOTAL = StandardExternalFields.TOTAL
+ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 
 
 @component.adapter(IContentUnitInfo)
@@ -64,7 +68,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
                     or self._is_instructor_or_editor(result, user)):
                 result = None
         if result is None:
-            result = component.queryMultiAdapter((contentUnit, user), 
+            result = component.queryMultiAdapter((contentUnit, user),
                                                  ICourseInstance)
         return result
 
@@ -101,12 +105,10 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
         new_result = {}
         is_instructor = self._is_instructor_or_editor(course, user)
         for ntiid, x in result.iteritems():
-
             # To keep size down, when we send back assignments or question sets,
             # we don't send back the things they contain as top-level. Moreover,
             # for assignments we need to apply a visibility predicate to the assignment
             # itself.
-
             if IQuestionBank.providedBy(x):
                 qsids_to_strip.update(q.ntiid for q in x.questions)
                 new_result[ntiid] = x
@@ -144,6 +146,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
             else:
                 new_result[ntiid] = x
 
+        # remove invalid
         for bad_ntiid in qsids_to_strip:
             new_result.pop(bad_ntiid, None)
         result = new_result.values()
@@ -151,4 +154,4 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
         if result:
             ext_items = to_external_object(result)
             result_map['AssessmentItems'] = ext_items
-            result_map['Total'] = result_map['ItemCount'] = len(result)
+            result_map[TOTAL] = result_map[ITEM_COUNT] = len(result)

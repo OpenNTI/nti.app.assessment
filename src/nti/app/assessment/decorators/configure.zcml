@@ -6,9 +6,7 @@
 			i18n_domain="zope">
 
 	<include package="zope.component" file="meta.zcml" />
-	<include package="zope.security" file="meta.zcml" />
 	<include package="zope.component" />
-	<include package="zope.security" />
 
 	<subscriber factory=".pageinfo._ContentUnitAssessmentItemDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"

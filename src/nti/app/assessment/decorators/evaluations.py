@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -84,7 +84,7 @@ class _EvaluationLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
         interface.alsoProvides(context_link, ILinkExternalHrefOnly)
         result['href'] = context_link
 
-        if      not is_global_evaluation( context ) \
+        if      not is_global_evaluation(context) \
             and has_permission(ACT_CONTENT_EDIT, context, self.request):
             link = Link(link_context,
                         rel=VIEW_COPY_EVALUATION,
@@ -100,7 +100,8 @@ class _EvaluationLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
             and _has_any_submissions(context, course):
             link = Link(link_context,
                         rel=VIEW_RESET_EVALUATION,
-                        elements=pre_elements + ('@@' + VIEW_RESET_EVALUATION,),
+                        elements=pre_elements +
+                        ('@@' + VIEW_RESET_EVALUATION,),
                         method='POST')
             interface.alsoProvides(link, ILocation)
             link.__name__ = ''

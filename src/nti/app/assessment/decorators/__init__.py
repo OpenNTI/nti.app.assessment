@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 
 __docformat__ = "restructuredtext en"
 
@@ -48,7 +48,6 @@ class _AbstractTraversableLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
                 return False
             else:
                 return True
-
     _is_traversable = _predicate
 
 
@@ -59,7 +58,7 @@ class AbstractAssessmentDecoratorPredicate(PreviewCourseAccessPredicateDecorator
     """
 
     def _predicate(self, context, result):
-        return 	super(AbstractAssessmentDecoratorPredicate, self)._predicate( context, result ) \
+        return  super(AbstractAssessmentDecoratorPredicate, self)._predicate(context, result) \
             and self._is_traversable(context, result)
 
 
@@ -78,8 +77,7 @@ def _root_url(ntiid):
         paths = library.pathToNTIID(ntiid)
         package = paths[0] if paths else None
         try:
-            result = root_url_of_unit(package) if package is not None else None
-            return result
+            return root_url_of_unit(package) if package is not None else None
         except Exception:
             pass
     return None

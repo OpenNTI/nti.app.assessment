@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -34,8 +34,7 @@ class _CourseEditorLinksDecorator(_AbstractTraversableLinkDecorator):
 
     @Lazy
     def _acl_decoration(self):
-        result = getattr(self.request, 'acl_decoration', True)
-        return result
+        return getattr(self.request, 'acl_decoration', True)
 
     def _predicate(self, context, result):
         return (	super(_CourseEditorLinksDecorator, self)._predicate(context, result)

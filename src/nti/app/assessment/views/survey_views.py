@@ -99,7 +99,6 @@ from nti.externalization.oids import to_external_ntiid_oid
 
 from nti.traversal.traversal import find_interface
 
-
 ITEMS = StandardExternalFields.ITEMS
 TOTAL = StandardExternalFields.TOTAL
 CREATOR = StandardExternalFields.CREATOR
@@ -566,8 +565,8 @@ class SurveyReportCSV(_AbstractReportView):
                                       plain_text(part.content))
             else:
                 header_row.append(plain_text(question.content))
-        csv_writer.writerow(header_row)
 
+        csv_writer.writerow(header_row)
         submissions = inquiry_submissions(self.context, self.course)
         for item in submissions:
             if not IUsersCourseInquiryItem.providedBy(item):  # always check
@@ -589,7 +588,6 @@ class SurveyReportCSV(_AbstractReportView):
                         # this question.
                         result = u''
                         continue
-
                     # Each type of question is handled slightly differently.
                     if IQNonGradableConnectingPart.providedBy(poll_part):
                         # need this to be sorted by value. Since the response
@@ -597,19 +595,22 @@ class SurveyReportCSV(_AbstractReportView):
                         # otherwise. We need to make sure to assign the correct label
                         # for each response.
                         response_values = sorted(
-                            question_part.items(), key=lambda x: x[1])
+                            question_part.items(), key=lambda x: x[1]
+                        )
                         part_values = poll.parts[part_idx].values
                         part_labels = [plain_text(x) for x in part_values]
                         # We look up by key from the response values in order
                         # to get the label for this choice.
-                        result = [part_labels[int(k[0])]
-                                  for k in response_values]
+                        result = [
+                            part_labels[int(k[0])] for k in response_values
+                        ]
                         result = display_list(result)
                     elif IQNonGradableMultipleChoiceMultipleAnswerPart.providedBy(poll_part):
                         response_values = question_part
                         part_values = poll.parts[part_idx].choices
-                        result = [plain_text(part_values[int(k)])
-                                  for k in response_values]
+                        result = [
+                            plain_text(part_values[int(k)]) for k in response_values
+                        ]
                         result = display_list(result)
                     elif IQNonGradableMultipleChoicePart.providedBy(poll_part):
                         part_values = poll.parts[part_idx].choices
@@ -622,7 +623,6 @@ class SurveyReportCSV(_AbstractReportView):
                     responses.append(result)
                     row.extend(responses)
             csv_writer.writerow(row)
-
         self.request.response.content_type = 'application/octet-stream'
         self.request.response.body = stream.getvalue()
         return self.request.response

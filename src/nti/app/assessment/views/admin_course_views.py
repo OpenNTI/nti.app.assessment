@@ -355,4 +355,3 @@ class ReindexCoursePackageAssessmentsView(AbstractAuthenticatedView):
         count = index_course_package_assessments(course)
         result['IndexedCount'] = count
         return result
-

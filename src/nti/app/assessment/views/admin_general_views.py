@@ -33,6 +33,10 @@ from nti.app.assessment._question_map import _remove_assessment_items_from_oldco
 from nti.app.assessment.common import get_resource_site_name
 
 from nti.app.assessment.index import get_evaluation_catalog
+from nti.app.assessment.index import get_submission_catalog
+
+from nti.app.assessment.interfaces import IUsersCourseInquiries
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
@@ -51,6 +55,8 @@ from nti.assessment.interfaces import IQAssessmentItemContainer
 from nti.common.string import is_true
 
 from nti.contentlibrary.interfaces import IContentPackage
+
+from nti.contenttypes.courses.interfaces import ICourseCatalog, ICourseInstance
 
 from nti.dataserver import authorization as nauth
 
@@ -176,7 +182,8 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
                 continue
             components = byorder[order]
             extendors = EVALUATION_INTERFACES
-            self._lookupAll(components, required, extendors, 0, order, result, ntiid)
+            self._lookupAll(components, required, extendors,
+                            0, order, result, ntiid)
             break  # break on first
         for cmps in result:
             logger.warn("Removing %s from components %s", ntiid, type(cmps))
@@ -199,7 +206,7 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
             raise_json_error(self.request,
                              hexc.HTTPUnprocessableEntity,
                              {
-                                'message': _(u"Invalid object NTIID."),
+                                 'message': _(u"Invalid object NTIID."),
                              },
                              None)
 
@@ -289,7 +296,8 @@ class UnregisterAssessmentItemsView(AbstractAuthenticatedView,
 
     def readInput(self, value=None):
         if self.request.body:
-            values = super(UnregisterAssessmentItemsView, self).readInput(value)
+            values = super(UnregisterAssessmentItemsView,
+                           self).readInput(value)
         else:
             values = self.request.params
         result = CaseInsensitiveDict(values)
@@ -398,7 +406,6 @@ class RebuildEvaluationCatalogView(AbstractAuthenticatedView):
         # reindex
         seen = set()
         for host_site in get_all_host_sites():  # check all sites
-            logger.info("Processing site %s", host_site.__name__)
             with current_site(host_site):
                 for _, evaluation in list(component.getUtilitiesFor(IQEvaluation)):
                     doc_id = intids.queryId(evaluation)
@@ -408,4 +415,55 @@ class RebuildEvaluationCatalogView(AbstractAuthenticatedView):
                     catalog.index_doc(doc_id, evaluation)
         result = LocatedExternalDict()
         result[ITEM_COUNT] = result[TOTAL] = len(seen)
+        return result
+
+
+@view_config(route_name='objects.generic.traversal',
+             renderer='rest',
+             request_method='POST',
+             permission=nauth.ACT_NTI_ADMIN,
+             context=IDataserverFolder,
+             name='RebuildSubmissionCatalog')
+class RebuildSubmissionCatalogView(AbstractAuthenticatedView):
+
+    def _process_course(self, course, index, intids):
+        result = 0
+        for provided in (IUsersCourseAssignmentHistories, IUsersCourseInquiries):
+            container = provided(course, None) or {}
+            for user_data in list(container.values()):
+                for obj in list(user_data.values()):
+                    doc_id = intids.queryId(obj)
+                    if doc_id is not None:
+                        index.index_doc(doc_id, obj)
+                        result += 1
+        return result
+
+    def _process_site(self, index, intids, seen):
+        result = 0
+        catalog = component.queryUtility(ICourseCatalog)
+        if catalog is None or catalog.isEmpty():
+            return result
+        for entry in catalog.iterCatalogEntries():
+            course = ICourseInstance(entry)
+            doc_id = intids.queryId(course)
+            if doc_id is None or doc_id in seen:
+                continue
+            seen.add(doc_id)
+            result += self._process_course(course, index, intids)
+        return result
+
+    def __call__(self):
+        intids = component.getUtility(IIntIds)
+        # clear indexes
+        sub_catalog = get_submission_catalog()
+        for index in list(sub_catalog.values()):
+            index.clear()
+        # reindex
+        seen = set()
+        total = self._process_site(sub_catalog, intids, seen)
+        for host_site in get_all_host_sites():  # check all sites
+            with current_site(host_site):
+                total += self._process_site(sub_catalog, intids, seen)
+        result = LocatedExternalDict()
+        result[ITEM_COUNT] = result[TOTAL] = total
         return result

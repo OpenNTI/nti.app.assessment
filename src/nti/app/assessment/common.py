@@ -40,8 +40,6 @@ from ZODB import loglevels
 from persistent.list import PersistentList
 
 from nti.app.assessment import MessageFactory as _
-from nti.app.assessment import get_evaluation_catalog
-from nti.app.assessment import get_submission_catalog
 
 from nti.app.assessment.assignment_filters import AssessmentPolicyExclusionFilter
 
@@ -55,11 +53,15 @@ from nti.app.assessment.index import IX_CONTAINMENT
 from nti.app.assessment.index import IX_ASSESSMENT_ID
 from nti.app.assessment.index import IX_MIMETYPE as IX_ASSESS_MIMETYPE
 
+from nti.app.assessment.index import get_evaluation_catalog
+from nti.app.assessment.index import get_submission_catalog
+
 from nti.app.assessment.interfaces import IUsersCourseInquiry
 from nti.app.assessment.interfaces import IQAvoidSolutionCheck
 from nti.app.assessment.interfaces import IQPartChangeAnalyzer
 from nti.app.assessment.interfaces import IUsersCourseInquiries
 from nti.app.assessment.interfaces import IUsersCourseInquiryItem
+from nti.app.assessment.interfaces import IUsersCourseSubmissionItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
@@ -718,9 +720,13 @@ def get_submissions(context, courses=(), index_name=IX_ASSESSMENT_ID):
         sites.discard(None)  # tests
         if sites:
             query[IX_SITE] = {'any_of': sites}
-
-        uids = catalog.apply(query) or ()
-        return ResultSet(uids, intids, True)
+            
+        result = []
+        for doc_id in catalog.apply(query) or ():
+            obj = intids.queryObject(doc_id)
+            if IUsersCourseSubmissionItem.providedBy(obj):
+                result.append(obj)
+        return result
 
 
 def has_submissions(context, courses=()):
@@ -1032,8 +1038,8 @@ def validate_auto_grade(assignment, course, request=None, challenge=False, raise
                 raise_json_error(request,
                                  hexc.HTTPUnprocessableEntity,
                                  {
-                                     u'message': UNGRADABLE_MSG,
-                                     u'code': UNGRADABLE_CODE,
+                                    'message': UNGRADABLE_MSG,
+                                    'code': UNGRADABLE_CODE,
                                  },
                                  None)
             # No, so inserting essay (e.g.) into autogradable.
@@ -1044,11 +1050,11 @@ def validate_auto_grade(assignment, course, request=None, challenge=False, raise
             raise_json_error(request,
                              hexc.HTTPConflict,
                              {
-                                 CLASS: 'DestructiveChallenge',
-                                 u'message': UNGRADABLE_MSG,
-                                 u'code': UNGRADABLE_CODE,
-                                 LINKS: to_external_object(links),
-                                 MIME_TYPE: 'application/vnd.nextthought.destructivechallenge'
+                                CLASS: 'DestructiveChallenge',
+                                'message': UNGRADABLE_MSG,
+                                'code': UNGRADABLE_CODE,
+                                LINKS: to_external_object(links),
+                                MIME_TYPE: 'application/vnd.nextthought.destructivechallenge'
                              },
                              None)
     return valid_auto_grade
@@ -1076,11 +1082,11 @@ def validate_auto_grade_points(assignment, course, request, externalValue):
                 raise_json_error(request,
                                  hexc.HTTPConflict,
                                  {
-                                     CLASS: 'DestructiveChallenge',
-                                     u'message': DISABLE_AUTO_GRADE_MSG,
-                                     u'code': 'RemovingAutoGradePoints',
-                                     LINKS: to_external_object(links),
-                                     MIME_TYPE: 'application/vnd.nextthought.destructivechallenge'
+                                    CLASS: 'DestructiveChallenge',
+                                    'message': DISABLE_AUTO_GRADE_MSG,
+                                    'code': 'RemovingAutoGradePoints',
+                                    LINKS: to_external_object(links),
+                                    MIME_TYPE: 'application/vnd.nextthought.destructivechallenge'
                                  },
                                  None)
             # Disable auto grade
@@ -1090,8 +1096,8 @@ def validate_auto_grade_points(assignment, course, request, externalValue):
             raise_json_error(request,
                              hexc.HTTPUnprocessableEntity,
                              {
-                                 u'message': AUTO_GRADE_NO_POINTS_MSG,
-                                 u'code': 'AutoGradeWithoutPoints',
+                                 'message': AUTO_GRADE_NO_POINTS_MSG,
+                                 'code': 'AutoGradeWithoutPoints',
                              },
                              None)
 
@@ -1141,7 +1147,7 @@ def check_submission_version(submission, evaluation):
     evaluation_version = evaluation.version
     if      evaluation_version \
         and evaluation_version != getattr(submission, 'version', ''):
-        raise hexc.HTTPConflict(_('Evaluation version has changed.'))
+        raise hexc.HTTPConflict(_(u'Evaluation version has changed.'))
 
 
 def pre_validate_question_change(question, externalValue):
@@ -1160,8 +1166,8 @@ def pre_validate_question_change(question, externalValue):
                 if not analyzer.allow(change, check_solutions=check_solutions):
                     raise_error(
                         {
-                            u'message': _("Question has submissions. It cannot be updated."),
-                            u'code': 'CannotChangeObjectDefinition',
+                            'message': _(u"Question has submissions. It cannot be updated."),
+                            'code': 'CannotChangeObjectDefinition',
                         })
                 if analyzer.regrade(change):
                     regrade_parts.append(part)
@@ -1216,7 +1222,6 @@ def assess_assignment_submission(course, assignment, submission):
             __traceback_info__ = submission_part
             submission_part = IQAssessedQuestionSet(submission_part)
         new_parts.append(submission_part)
-
     # create a pending assessment object
     pending_assessment = QAssignmentSubmissionPendingAssessment(assignmentId=submission.assignmentId,
                                                                 parts=new_parts)
@@ -1296,14 +1301,15 @@ def get_outline_evaluation_containers(obj):
         # Tests
         return
     assigment_question_sets = set()
-    containers = get_containers_for_evaluation_object(obj,
-                                                      include_question_sets=True)
+    containers = \
+        get_containers_for_evaluation_object(obj, include_question_sets=True)
 
     # Gather assignment question sets and remove them.
     for container in containers or ():
         if IQAssignment.providedBy(container):
             assigment_question_sets.update(
-                x.ntiid for x in container.iter_question_sets())
+                x.ntiid for x in container.iter_question_sets()
+            )
 
     if assigment_question_sets and containers:
         results = []

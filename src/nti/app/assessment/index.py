@@ -11,7 +11,6 @@ logger = __import__('logging').getLogger(__name__)
 
 import six
 from collections import Set
-from collections import Sequence
 
 from zope import component
 from zope import interface
@@ -61,7 +60,7 @@ from nti.zope_catalog.string import StringTokenNormalizer
 
 
 def to_iterable(value):
-    if isinstance(value, (Sequence, Set)):
+    if isinstance(value, (list, tuple, Set)):
         result = value
     else:
         result = (value,) if value is not None else ()
@@ -117,9 +116,7 @@ class ValidatingSite(object):
     @classmethod
     def _folder(cls, obj):
         if IUsersCourseSubmissionItem.providedBy(obj):
-            course = ICourseInstance(obj, None)  # course is lineage
-            folder = find_interface(course, IHostPolicyFolder, strict=False)
-            return folder
+            return find_interface(obj, IHostPolicyFolder, strict=False)
         return None
 
     def __init__(self, obj, default=None):
@@ -275,7 +272,7 @@ class AssesmentSubmittedIndex(ExtenedAttributeSetIndex):
 
 
 @interface.implementer(IMetadataCatalog)
-class MetadataAssesmentCatalog(Catalog):
+class MetadataSubmissionCatalog(Catalog):
 
     family = BTrees.family64
 
@@ -286,6 +283,7 @@ class MetadataAssesmentCatalog(Catalog):
 
     def force_index_doc(self, docid, ob):
         self.super_index_doc(docid, ob)
+MetadataAssesmentCatalog = MetadataSubmissionCatalog # BWC
 
 
 def get_submission_catalog(registry=component):
@@ -294,7 +292,7 @@ def get_submission_catalog(registry=component):
 
 def create_submission_catalog(catalog=None, family=BTrees.family64):
     if catalog is None:
-        catalog = MetadataAssesmentCatalog(family=family)
+        catalog = MetadataSubmissionCatalog(family=family)
     for name, clazz in ((IX_SITE, SiteIndex),
                         (IX_CREATOR, CreatorIndex),
                         (IX_COURSE, CatalogEntryIDIndex),

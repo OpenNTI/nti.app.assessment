@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -54,8 +54,8 @@ def to_int(value):
     try:
         return int(value)
     except ValueError:
-        raise raise_error({u'message': _("Invalid integer value."),
-                           u'code': 'ValueError'})
+        raise raise_error({'message': _(u"Invalid integer value."),
+                           'code': 'ValueError'})
 
 
 def to_positive_int(value, zero=False):
@@ -66,8 +66,8 @@ def to_positive_int(value, zero=False):
         else:
             assert value > 0
     except AssertionError:
-        raise raise_error({u'message': _("Invalid positive integer value."),
-                           u'code': 'ValueError'})
+        raise raise_error({'message': _(u"Invalid positive integer value."),
+                           'code': 'ValueError'})
 
 
 def to_external(obj):
@@ -115,40 +115,40 @@ class _MultipleChoicePartChangeAnalyzer(_BasicPartChangeAnalyzer):
     def validate_solutions(self, part):
         solutions = part.solutions
         if not solutions and is_gradable(part):
-            raise_error({u'message': _("Must specify a solution."),
-                         u'field': 'solutions',
-                         u'code': 'MissingSolutions'})
+            raise_error({'message': _(u"Must specify a solution."),
+                         'field': 'solutions',
+                         'code': 'MissingSolutions'})
         for solution in solutions or ():
             if not solution or solution.value is None:
-                raise_error({u'message': _("Solution cannot be empty."),
-                             u'field': 'solutions',
-                             u'code': 'InvalidSolution'})
+                raise_error({'message': _(u"Solution cannot be empty."),
+                             'field': 'solutions',
+                             'code': 'InvalidSolution'})
             value = to_int(solution.value)  # solutions are indices
             if value < 0 or value >= len(part.choices):
-                raise_error({u'message': _("Solution in not in choices."),
-                             u'field': 'solutions',
-                             u'code': 'InvalidSolution'})
+                raise_error({'message': _(u"Solution in not in choices."),
+                             'field': 'solutions',
+                             'code': 'InvalidSolution'})
 
     def validate(self, part=None, check_solutions=True):
         part = self.part if part is None else part
         choices = part.choices or ()
         if not choices:
-            raise_error({u'message': _("Must specify a choice selection."),
-                         u'field': 'choices',
-                         u'code': 'MissingPartChoices'})
+            raise_error({'message': _(u"Must specify a choice selection."),
+                         'field': 'choices',
+                         'code': 'MissingPartChoices'})
         dupes = _check_duplicates(choices)
         if dupes:
-            raise_error({u'message': _("Cannot have duplicate choices."),
-                         u'field': 'choices',
-                         u'index': dupes,
-                         u'code': 'DuplicatePartChoices'})
+            raise_error({'message': _(u"Cannot have duplicate choices."),
+                         'field': 'choices',
+                         'index': dupes,
+                         'code': 'DuplicatePartChoices'})
 
         empties = _check_empty(choices)
         if empties:
-            raise_error({u'message': _("Cannot have blank choices."),
-                         u'field': 'choices',
-                         u'index': empties,
-                         u'code': 'EmptyChoices'})
+            raise_error({'message': _(u"Cannot have blank choices."),
+                         'field': 'choices',
+                         'index': empties,
+                         'code': 'EmptyChoices'})
 
         if check_solutions:
             self.validate_solutions(part)
@@ -203,28 +203,28 @@ class _MultipleChoiceMultipleAnswerPartChangeAnalyzer(_MultipleChoicePartChangeA
     def validate_solutions(self, part):
         solutions = part.solutions
         if not solutions and is_gradable(part):
-            raise_error({u'message': _("Must specify a solution set."),
-                         u'field': 'solutions',
-                         u'code': 'MissingSolutions'})
+            raise_error({'message': _(u"Must specify a solution set."),
+                         'field': 'solutions',
+                         'code': 'MissingSolutions'})
         for solution in solutions or ():
             if not solution or not solution.value:
-                raise_error({u'message': _("Solution set cannot be empty."),
-                             u'field': 'solutions',
-                             u'code': 'MissingSolutions'})
+                raise_error({'message': _(u"Solution set cannot be empty."),
+                             'field': 'solutions',
+                             'code': 'MissingSolutions'})
             dupes = _check_duplicates(solution.value)
             if dupes:
-                raise_error({u'message': _("Cannot have duplicate solutions."),
-                             u'field': 'solutions',
-                             u'index': dupes,
-                             u'code': 'DuplicateSolution'})
+                raise_error({'message': _(u"Cannot have duplicate solutions."),
+                             'field': 'solutions',
+                             'index': dupes,
+                             'code': 'DuplicateSolution'})
 
             for idx in solution.value:
                 idx = to_int(idx)
                 # solutions are indices
                 if idx < 0 or idx >= len(part.choices):
-                    raise_error({u'message': _("Solution in not in choices."),
-                                 u'field': 'solutions',
-                                 u'code': 'InvalidSolution'})
+                    raise_error({'message': _(u"Solution in not in choices."),
+                                 'field': 'solutions',
+                                 'code': 'InvalidSolution'})
 
 
 @interface.implementer(IQPartChangeAnalyzer)
@@ -237,14 +237,14 @@ class _FreeResponsePartChangeAnalyzer(_BasicPartChangeAnalyzer):
     def validate_solutions(self, part):
         solutions = part.solutions
         if not solutions and is_gradable(part):
-            raise_error({u'message': _("Must specify a solution."),
-                         u'field': 'solutions',
-                         u'code': 'MissingSolutions'})
+            raise_error({'message': _(u"Must specify a solution."),
+                         'field': 'solutions',
+                         'code': 'MissingSolutions'})
         for solution in solutions or ():
             if not solution or not solution.value:
-                raise_error({u'message': _("Solution cannot be empty."),
-                             u'field': 'solutions',
-                             u'code': 'InvalidSolution'})
+                raise_error({'message': _(u"Solution cannot be empty."),
+                             'field': 'solutions',
+                             'code': 'InvalidSolution'})
 
     def validate(self, part=None, check_solutions=True):
         part = self.part if part is None else part
@@ -278,14 +278,14 @@ class _ConnectingPartChangeAnalyzer(_BasicPartChangeAnalyzer):
     def validate_solutions(self, part, labels, values):
         solutions = part.solutions
         if not solutions and is_gradable(part):
-            raise_error({u'message': _("Must specify a solution."),
-                         u'field': 'solutions',
-                         u'code': 'MissingSolutions'})
+            raise_error({'message': _(u"Must specify a solution."),
+                         'field': 'solutions',
+                         'code': 'MissingSolutions'})
         for solution in solutions or ():
             if not solution or not solution.value:
-                raise_error({u'message': _("Solutions cannot be empty."),
-                             u'field': 'solutions',
-                             u'code': 'InvalidSolution'})
+                raise_error({'message': _(u"Solutions cannot be empty."),
+                             'field': 'solutions',
+                             'code': 'InvalidSolution'})
 
             # map of indices
             m = solution.value
@@ -293,80 +293,80 @@ class _ConnectingPartChangeAnalyzer(_BasicPartChangeAnalyzer):
             # check all labels in solution
             if len(m) != len(labels):
                 raise_error(
-                    {u'message': _("Cannot have an incomplete solution."),
-                     u'field': 'solutions',
-                     u'code': 'IncompleteSolution'})
+                    {'message': _(u"Cannot have an incomplete solution."),
+                     'field': 'solutions',
+                     'code': 'IncompleteSolution'})
 
             # check for duplicate values
             dupes = _check_duplicates(m.values())
             if dupes:
-                raise_error({u'message': _("Cannot have duplicate solutions."),
-                             u'field': 'solutions',
-                             u'index': dupes,
-                             u'code': 'DuplicateSolution'})
+                raise_error({'message': _(u"Cannot have duplicate solutions."),
+                             'field': 'solutions',
+                             'index': dupes,
+                             'code': 'DuplicateSolution'})
 
             for label, value in m.items():
                 label = to_int(label)
                 if label < 0 or label >= len(labels):  # solutions are indices
                     raise_error(
-                        {u'message': _("Solution label in not in part labels."),
-                         u'field': 'solutions',
-                         u'code': 'InvalidSolution'})
+                        {'message': _(u"Solution label in not in part labels."),
+                         'field': 'solutions',
+                         'code': 'InvalidSolution'})
 
                 value = to_int(value)
                 if value < 0 or value >= len(values):  # solutions are indices
                     raise_error(
-                        {u'message': _("Solution value in not in part values."),
-                         u'field': 'solutions',
-                         u'code': 'InvalidSolution'})
+                        {'message': _(u"Solution value in not in part values."),
+                         'field': 'solutions',
+                         'code': 'InvalidSolution'})
 
     def validate(self, part=None, check_solutions=True):
         part = self.part if part is None else part
         labels = part.labels or ()
         if not labels:
-            raise_error({u'message': _("Must specify a label selection."),
-                         u'field': 'labels',
-                         u'code': 'MissingPartLabels'})
+            raise_error({'message': _(u"Must specify a label selection."),
+                         'field': 'labels',
+                         'code': 'MissingPartLabels'})
 
         dupes = _check_duplicates(labels)
         if dupes:
-            raise_error({u'message': _("Cannot have duplicate labels."),
-                         u'field': 'labels',
-                         u'index': dupes,
-                         u'code': 'DuplicatePartLabels'})
+            raise_error({'message': _(u"Cannot have duplicate labels."),
+                         'field': 'labels',
+                         'index': dupes,
+                         'code': 'DuplicatePartLabels'})
 
         empties = _check_empty(labels)
         if empties:
-            raise_error({u'message': _("Cannot have blank labels."),
-                         u'field': 'labels',
-                         u'index': empties,
-                         u'code': 'EmptyLabels'})
+            raise_error({'message': _(u"Cannot have blank labels."),
+                         'field': 'labels',
+                         'index': empties,
+                         'code': 'EmptyLabels'})
 
         values = part.values or ()
         if not values:
-            raise_error({u'message': _("Must specify a value selection."),
-                         u'field': 'values',
-                         u'code': 'MissingPartValues'})
+            raise_error({'message': _(u"Must specify a value selection."),
+                         'field': 'values',
+                         'code': 'MissingPartValues'})
 
         dupes = _check_duplicates(values)
         if dupes:
-            raise_error({u'message': _("Cannot have duplicate values."),
-                         u'field': 'values',
-                         u'index': dupes,
-                         u'code': 'DuplicatePartValues'})
+            raise_error({'message': _(u"Cannot have duplicate values."),
+                         'field': 'values',
+                         'index': dupes,
+                         'code': 'DuplicatePartValues'})
 
         empties = _check_empty(values)
         if empties:
-            raise_error({u'message': _("Cannot have blank values."),
-                         u'field': 'values',
-                         u'index': empties,
-                         u'code': 'EmptyValues'})
+            raise_error({'message': _(u"Cannot have blank values."),
+                         'field': 'values',
+                         'index': empties,
+                         'code': 'EmptyValues'})
 
         if len(labels) != len(values):
             raise_error(
-                {u'message': _("Number of labels and values must be equal."),
-                 u'field': 'values',
-                 u'code': 'InvalidLabelsValues'})
+                {'message': _(u"Number of labels and values must be equal."),
+                 'field': 'values',
+                 'code': 'InvalidLabelsValues'})
 
         if check_solutions:
             self.validate_solutions(part, labels, values)

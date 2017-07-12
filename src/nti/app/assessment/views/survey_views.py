@@ -57,8 +57,6 @@ from nti.app.externalization.error import raise_json_error
 
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
-from nti.app.products.courseware_reports.interfaces import ACT_VIEW_REPORTS
-
 from nti.app.renderers.interfaces import INoHrefInResponse
 
 from nti.appserver.pyramid_authorization import has_permission
@@ -269,7 +267,7 @@ class InquirySubmissionsView(AbstractAuthenticatedView, InquiryViewMixin):
 
     def __call__(self):
         course = self.course
-        if not (   is_course_instructor(course, self.remoteUser)
+        if not (is_course_instructor(course, self.remoteUser)
                 or has_permission(nauth.ACT_NTI_ADMIN, course, self.request)):
             raise_json_error(self.request,
                              hexc.HTTPForbidden,
@@ -309,7 +307,7 @@ class InquirySubmissionMetadataCSVView(AbstractAuthenticatedView, InquiryViewMix
 
     def __call__(self):
         course = self.course
-        if not (   is_course_instructor(course, self.remoteUser)
+        if not (is_course_instructor(course, self.remoteUser)
                 or has_permission(nauth.ACT_NTI_ADMIN, course, self.request)):
             raise_json_error(self.request,
                              hexc.HTTPForbidden,
@@ -465,7 +463,7 @@ class InquiryAggregatedGetView(AbstractAuthenticatedView, InquiryViewMixin):
             return hexc.HTTPNoContent()
 
         if      IQAggregatedSurvey.providedBy( result ) \
-            and IQPoll.providedBy(self.context):
+                and IQPoll.providedBy(self.context):
             # Asking for question level aggregation for
             # survey submissions.
             for poll_result in result.questions or ():
@@ -536,9 +534,16 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
         return self.context.questions
 
     def __call__(self):
-        # only users with reports permissions should be able to view this.
-        if not checkPermission(ACT_VIEW_REPORTS.id, self.course):
-            raise hexc.HTTPForbidden()
+
+        # only instructors or admins should be able to view this.
+        if not (is_course_instructor(self.course, self.remoteUser)
+                or has_permission(nauth.ACT_NTI_ADMIN, self.course, self.request)):
+            raise_json_error(self.request,
+                             hexc.HTTPForbidden,
+                             {
+                                 'message': _(u"Cannot get inquiry submissions report.")
+                             },
+                             None)
 
         params = self.request.params
         include_usernames = is_true(params.get('include_usernames'))

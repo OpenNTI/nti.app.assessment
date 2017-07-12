@@ -295,7 +295,8 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
     def test_submission_metadata(self, fake_active, fake_date):
         fake_active.is_callable().returns(True)
         fake_date.is_callable().returns('05-10-2017')
-        test_student_environ = self._make_extra_environ(username='test_student')
+        test_student_environ = self._make_extra_environ(
+            username='test_student')
 
         test_student_environ.update({'HTTP_ORIGIN': 'http://janux.ou.edu'})
         instructor_environ = self._make_extra_environ(username='harp4162')
@@ -371,7 +372,8 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
     def test_survey_csv_report(self, fake_active, fake_date):
         fake_active.is_callable().returns(True)
         fake_date.is_callable().returns('05-10-2017')
-        test_student_environ = self._make_extra_environ(username='test_student')
+        test_student_environ = self._make_extra_environ(
+            username='test_student')
         test_student_environ.update({'HTTP_ORIGIN': 'http://janux.ou.edu'})
         instructor_environ = self._make_extra_environ(username='harp4162')
 
@@ -404,9 +406,13 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         # just get back the header row.
         res = self.testapp.get(survey_href + '/InquiryReport.csv',
                                extra_environ=instructor_environ)
-
         assert_that(res.body,
                     is_('Choose an answer\r\n'))
+
+        # Make sure that we can't get this report if we're a student.
+        self.testapp.get(survey_href + '/InquiryReport.csv',
+                         extra_environ=test_student_environ,
+                         status=403)
 
         poll_sub = QPollSubmission(
             pollId=self.poll_id, parts=[0])

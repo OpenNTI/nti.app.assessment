@@ -295,8 +295,7 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
     def test_submission_metadata(self, fake_active, fake_date):
         fake_active.is_callable().returns(True)
         fake_date.is_callable().returns('05-10-2017')
-        test_student_environ = self._make_extra_environ(
-            username='test_student')
+        test_student_environ = self._make_extra_environ(sername='test_student')
 
         test_student_environ.update({'HTTP_ORIGIN': 'http://janux.ou.edu'})
         instructor_environ = self._make_extra_environ(username='harp4162')
@@ -372,8 +371,7 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
     def test_survey_csv_report(self, fake_active, fake_date):
         fake_active.is_callable().returns(True)
         fake_date.is_callable().returns('05-10-2017')
-        test_student_environ = self._make_extra_environ(
-            username='test_student')
+        test_student_environ = self._make_extra_environ(username='test_student')
         test_student_environ.update({'HTTP_ORIGIN': 'http://janux.ou.edu'})
         instructor_environ = self._make_extra_environ(username='harp4162')
 

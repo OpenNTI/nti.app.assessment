@@ -269,7 +269,7 @@ class InquirySubmissionsView(AbstractAuthenticatedView, InquiryViewMixin):
 
     def __call__(self):
         course = self.course
-        if not (is_course_instructor(course, self.remoteUser)
+        if not (   is_course_instructor(course, self.remoteUser)
                 or has_permission(nauth.ACT_NTI_ADMIN, course, self.request)):
             raise_json_error(self.request,
                              hexc.HTTPForbidden,
@@ -309,7 +309,7 @@ class InquirySubmissionMetadataCSVView(AbstractAuthenticatedView, InquiryViewMix
 
     def __call__(self):
         course = self.course
-        if not (is_course_instructor(course, self.remoteUser)
+        if not (   is_course_instructor(course, self.remoteUser)
                 or has_permission(nauth.ACT_NTI_ADMIN, course, self.request)):
             raise_json_error(self.request,
                              hexc.HTTPForbidden,
@@ -465,7 +465,7 @@ class InquiryAggregatedGetView(AbstractAuthenticatedView, InquiryViewMixin):
             return hexc.HTTPNoContent()
 
         if      IQAggregatedSurvey.providedBy( result ) \
-                and IQPoll.providedBy(self.context):
+            and IQPoll.providedBy(self.context):
             # Asking for question level aggregation for
             # survey submissions.
             for poll_result in result.questions or ():
@@ -584,6 +584,7 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
                         # this question.
                         result = u''
                         continue
+
                     # Each type of question is handled slightly differently.
                     if IQNonGradableConnectingPart.providedBy(poll_part):
                         # need this to be sorted by value. Since the response

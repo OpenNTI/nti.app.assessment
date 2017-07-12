@@ -6,7 +6,7 @@ Implementations of the feedback content types.
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -137,7 +137,9 @@ class UsersCourseAssignmentHistoryItemFeedback(PersistentCreatedModDateTrackingO
         if self.__parent__ is not None:
             container_owner = IUser(self.__parent__.__parent__, None)
             if container_owner is not None and container_owner != creator:
-                aces.append(ace_allowing(container_owner, ACT_READ, type(self)))
+                aces.append(
+                    ace_allowing(container_owner, ACT_READ, type(self))
+                )
         aces.append(ACE_DENY_ALL)
         return acl_from_aces(aces)
 
@@ -163,13 +165,13 @@ class UsersCourseAssignmentHistoryItemFeedbackContainer(PersistentCreatedModDate
         # (optimizing for the case that we're appending).
         # In this way our keys match our sort natural sort order
         count = len(self)
-        key = '%d' % count
+        key = u'%d' % count
         while key in self:
             # this means something has previously been
             # deleted, so we've got a key gap. By sticking
             # to ordering the keys, this will be apparent.
             count += 1
-            key = '%d' % count
+            key = u'%d' % count
 
         checkObject(self, key, value)
         super(UsersCourseAssignmentHistoryItemFeedbackContainer, self).__setitem__(key, value)
@@ -207,6 +209,7 @@ def when_feedback_container_modified_modify_history_item(container,
         container.__parent__.updateLastModIfGreater(container.lastModified)
     except AttributeError:
         pass
+
 
 # likewise for simple modification events inside the container
 

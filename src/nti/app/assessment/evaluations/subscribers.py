@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -135,8 +135,8 @@ def _allow_poll_change(question, externalValue):
                 if not analyzer.allow(change, check_solutions=False):
                     raise_error(
                         {
-                            u'message': _("Poll has submissions. It cannot be updated."),
-                            u'code': 'CannotChangeObjectDefinition',
+                            'message': _(u"Poll has submissions. It cannot be updated."),
+                            'code': 'CannotChangeObjectDefinition',
                         })
 
 
@@ -188,8 +188,8 @@ def _on_questionset_event(context, event):
     if      IQEditableEvaluation.providedBy(context) \
         and not context.questions:
         raise_error({
-            u'message': _("QuestionSet cannot be empty."),
-            u'code': 'EmptyQuestionSet',
+            'message': _(u"QuestionSet cannot be empty."),
+            'code': 'EmptyQuestionSet',
         })
 
 
@@ -199,8 +199,8 @@ def _on_survey_event(context, event):
     if      IQEditableEvaluation.providedBy(context) \
         and not context.questions:
         raise_error({
-            u'message': _("Survey cannot be empty."),
-            u'code': 'EmptyQuestionSet',
+            'message': _(u"Survey cannot be empty."),
+            'code': 'EmptyQuestionSet',
         })
 
 

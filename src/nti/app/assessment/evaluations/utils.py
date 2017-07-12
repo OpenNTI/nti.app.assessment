@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -250,8 +250,8 @@ def validate_submissions(theObject, course, request=None):
         raise_json_error(request,
                          hexc.HTTPUnprocessableEntity,
                          {
-                             u'message': _("Evaluation has submissions."),
-                             u'code': 'ObjectHasSubmissions',
+                            'message': _(u"Evaluation has submissions."),
+                            'code': 'ObjectHasSubmissions',
                          },
                          None)
 
@@ -262,8 +262,8 @@ def validate_savepoints(theObject, course, request=None):
         raise_json_error(request,
                          hexc.HTTPUnprocessableEntity,
                          {
-                             u'message': _("Evaluation has savepoints."),
-                             u'code': 'ObjectHasSavepoints',
+                            'message': _(u"Evaluation has savepoints."),
+                            'code': 'ObjectHasSavepoints',
                          },
                          None)
 
@@ -274,8 +274,8 @@ def validate_published(theObject, course=None, request=None):
         raise_json_error(request,
                          hexc.HTTPUnprocessableEntity,
                          {
-                             u'message': _("Evaluation has been published."),
-                             u'code': 'ObjectIsPublished',
+                            'message': _(u"Evaluation has been published."),
+                            'code': 'ObjectIsPublished',
                          },
                          None)
 

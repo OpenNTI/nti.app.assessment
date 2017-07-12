@@ -5,9 +5,7 @@
 		   xmlns:ext="http://nextthought.com/ntp/ext">
 
 	<include package="zope.component" file="meta.zcml" />
-	<include package="zope.security" file="meta.zcml" />
 	<include package="zope.component" />
-	<include package="zope.security" />
 
 	<!-- Traversal -->
 	<adapter factory=".adapters.evaluations_for_course_path_adapter"

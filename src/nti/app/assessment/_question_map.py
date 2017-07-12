@@ -466,19 +466,15 @@ class QuestionMap(QuestionIndex):
 			return
 		key_lastModified = key_lastModified or time.time()
 
-		# if only one key assume it for the incoming content package
-		root_keys = tuple(root_items.keys())
-		root_ntiid = root_keys[0] if len(root_keys) == 1 else content_package.ntiid
-
+		# 7.2017 We used to validate we did not have items directly in the root_ntiid.
+		# That should no longer be a concern.
 		by_file = self._get_by_file()
-		if 'Items' not in root_items[root_ntiid]:
-			return by_file, set()
 
 		things_to_register = set()
 		if sync_results is None:
 			sync_results = _new_sync_results(content_package)
 
-		for child_ntiid, child_index in root_items[root_ntiid]['Items'].items():
+		for child_ntiid, child_index in root_items.items():
 			__traceback_info__ = child_ntiid, child_index, content_package
 			# Each of these should have a filename. If they do not, they obviously
 			# cannot contain  assessment items. The condition of a missing/bad filename
@@ -488,7 +484,7 @@ class QuestionMap(QuestionIndex):
 			if 	   'filename' not in child_index \
 				or not child_index['filename'] \
 				or child_index['filename'].startswith('index.html#'):
-				logger.warn("Ignoring invalid child with invalid filename '%s'; cannot contain assessments: %s",
+				logger.warn("Invalid child with invalid filename '%s'; cannot contain assessments: %s",
 							child_index.get('filename', ''),
 							child_index)
 

@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -127,7 +127,6 @@ class UsersCourseAssignmentMetadata(CheckingLastModifiedBTreeContainer):
     def remove(self, assignmentId, event=False):
         if assignmentId not in self:
             return
-
         item = self[assignmentId]
         if event:
             del self[assignmentId]
@@ -220,7 +219,7 @@ class _UsersCourseAssignmentMetadataItemUpdater(object):
 
         result = InterfaceObjectIO(
                     self.item,
-                      IUsersCourseAssignmentMetadataItem).updateFromExternalObject(parsed)
+                    IUsersCourseAssignmentMetadataItem).updateFromExternalObject(parsed)
         return result
 
 

@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-Application (integration) level interfaces for assessments.
-
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 from zope import interface
@@ -64,7 +62,7 @@ class IUsersCourseAssignmentSavepoints(IContainer,
     """
     A container for all the assignment save points in a course, keyed by username.
     """
-    contains(str('.IUsersCourseAssignmentSavepoint'))
+    contains('.IUsersCourseAssignmentSavepoint')
 
     def has_assignment(assignment_id):
         """
@@ -83,17 +81,17 @@ class IUsersCourseAssignmentSavepoint(IContainer,
     is registered for). The values are instances of :class:`.IQAssignmentSubmission`.
     """
 
-    contains(str('.IUsersCourseAssignmentSavepointItem'))
+    contains('.IUsersCourseAssignmentSavepointItem')
     containers(IUsersCourseAssignmentSavepoints)
     __setitem__.__doc__ = None
 
     owner = Object(IUser, 
                    required=False, 
-                   title="The user this save point is for.")
+                   title=u"The user this save point is for.")
     owner.setTaggedValue('_ext_excluded_out', True)
 
-    Items = Dict(
-        title='For externalization only, a copy of the items', readonly=True)
+    Items = Dict(title=u'For externalization only, a copy of the items', 
+                 readonly=True)
 
     def recordSubmission(submission, event=False):
         """
@@ -140,7 +138,7 @@ class IUsersCourseAssignmentHistories(IContainer,
     A container for all the assignment histories in a course, keyed
     by username.
     """
-    contains(str('.IUsersCourseAssignmentHistory'))
+    contains('.IUsersCourseAssignmentHistory')
 
 
 class IUsersCourseAssignmentHistory(IContainer,
@@ -169,16 +167,16 @@ class IUsersCourseAssignmentHistory(IContainer,
     will be the history item which in turn will be parented by this object.)
     """
 
-    contains(str('.IUsersCourseAssignmentHistoryItem'))
+    contains('.IUsersCourseAssignmentHistoryItem')
     containers(IUsersCourseAssignmentHistories)
     __setitem__.__doc__ = None
 
     owner = Object(IUser,
 				   required=False, 
-				   title="The user this history is for.")
+				   title=u"The user this history is for.")
     owner.setTaggedValue('_ext_excluded_out', True)
 
-    Items = Dict(title='For externalization only, a copy of the items',
+    Items = Dict(title=u'For externalization only, a copy of the items',
                  readonly=True)
 
     def recordSubmission(submission, pending_assessment):
@@ -208,12 +206,13 @@ class IUsersCourseAssignmentHistoryItemFeedbackContainer(IContainerNamesContaine
     """
     A container for feedback items.
     """
-    contains(str('.IUsersCourseAssignmentHistoryItemFeedback'))
+    contains('.IUsersCourseAssignmentHistoryItemFeedback')
+
     __setitem__.__doc__ = None
 
-    Items = List(title="The contained feedback items",
-                 description="Unlike forums, we expect very few of these, so we "
-                 "inline them for externalization.",
+    Items = List(title=u"The contained feedback items",
+                 description=u"Unlike forums, we expect very few of these, so we "
+                 u"inline them for externalization.",
                  readonly=True)
 
 
@@ -244,10 +243,10 @@ class IUsersCourseAssignmentHistoryItem(ICreated,
     Feedback = Object(IUsersCourseAssignmentHistoryItemFeedbackContainer,
                       required=False)
 
-    FeedbackCount = Int(title="How many feedback items", default=0)
+    FeedbackCount = Int(title=u"How many feedback items", default=0)
 
     Assignment = Object(IQAssignment, 
-						title="The assigment that generated this item",
+						title=u"The assigment that generated this item",
                         required=False)
     Assignment.setTaggedValue('_ext_excluded_out', True)
 
@@ -261,10 +260,10 @@ class IUsersCourseAssignmentHistoryItemSummary(IContained,
     fast externalization purposes.
     """
 
-    FeedbackCount = Int(title="How many feedback items", default=0)
+    FeedbackCount = Int(title=u"How many feedback items", default=0)
 
     SubmissionCreatedTime = Number(title=u"The timestamp at which the submission object was created.",
-                                   description="Typically set automatically by the object.",
+                                   description=u"Typically set automatically by the object.",
                                    default=0.0)
 
 
@@ -296,7 +295,7 @@ class IUsersCourseAssignmentMetadataContainer(IContainer,
     """
     A container for all the assignment meta data in a course, keyed by username.
     """
-    contains(str('.IUsersCourseAssignmentMetadata'))
+    contains('.IUsersCourseAssignmentMetadata')
 
 
 class IUsersCourseAssignmentMetadata(IContainer,
@@ -310,16 +309,16 @@ class IUsersCourseAssignmentMetadata(IContainer,
     is registered for). The values are instances of :class:`.IUsersCourseAssignmentMetadataItem`.
     """
 
-    contains(str('.IUsersCourseAssignmentMetadataItem'))
+    contains('.IUsersCourseAssignmentMetadataItem')
     containers(IUsersCourseAssignmentMetadataContainer)
     __setitem__.__doc__ = None
 
     owner = Object(IUser, 
 				   required=False, 
-				   title="The user this metadata is for.")
+				   title=u"The user this metadata is for.")
     owner.setTaggedValue('_ext_excluded_out', True)
 
-    Items = Dict(title='For externalization only, a copy of the items', 
+    Items = Dict(title=u'For externalization only, a copy of the items', 
 				 readonly=True)
 
 
@@ -327,8 +326,8 @@ class IUsersCourseAssignmentMetadataItem(interface.Interface):
     containers(IUsersCourseAssignmentMetadata)
     __parent__.required = False
 
-    StartTime = Float(title="Assignment Start time", required=False)
-    Duration = Float(title="Assignment Duration", required=False)
+    StartTime = Float(title=u"Assignment Start time", required=False)
+    Duration = Float(title=u"Assignment Duration", required=False)
 
 
 class IUsersCourseInquiries(IContainer,
@@ -337,7 +336,7 @@ class IUsersCourseInquiries(IContainer,
     """
     A container for all the survey/poll submissions in a course, keyed by username.
     """
-    contains(str('.IUsersCourseInquiry'))
+    contains('.IUsersCourseInquiry')
 
 
 class IUsersCourseInquiry(IContainer,
@@ -362,15 +361,15 @@ class IUsersCourseInquiry(IContainer,
     the creation of the :class:`IUsersCourseInquiryItem`
     """
 
-    contains(str('.IUsersCourseInquiryItem'))
+    contains('.IUsersCourseInquiryItem')
     containers(IUsersCourseInquiries)
     __setitem__.__doc__ = None
 
-    owner = Object(
-        IUser, required=False, title="The user this inquiry is for.")
+    owner = Object(IUser, required=False,
+                   title=u"The user this inquiry is for.")
     owner.setTaggedValue('_ext_excluded_out', True)
 
-    Items = Dict(title='For externalization only, a copy of the items',
+    Items = Dict(title=u'For externalization only, a copy of the items',
                  readonly=True)
 
     def recordSubmission(submission):
@@ -411,11 +410,12 @@ class IUsersCourseInquiryItem(ICreated,
     # Recall that the implementation of IQInquirySubmission is NOT Persistent.
     Submission = Object(IQInquirySubmission, required=False)
 
-    Inquiry = Object(IQInquiry, title="The inquiry that generated this item",
+    Inquiry = Object(IQInquiry, 
+                     title=u"The inquiry that generated this item",
                      required=False)
     Inquiry.setTaggedValue('_ext_excluded_out', True)
 
-    inquiryId = ValidTextLine(title="Survey/Poll id", required=False)
+    inquiryId = ValidTextLine(title=u"Survey/Poll id", required=False)
     inquiryId.setTaggedValue('_ext_excluded_out', True)
 
 

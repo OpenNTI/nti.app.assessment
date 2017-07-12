@@ -82,6 +82,12 @@ ITEMS = StandardExternalFields.ITEMS
 TOTAL = StandardExternalFields.TOTAL
 ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 
+try:
+    from nti.metadata import queue_add as metadata_queue_add
+except ImportError:
+    def metadata_queue_add(unused_obj): 
+        return
+
 
 @view_config(route_name='objects.generic.traversal',
              renderer='rest',
@@ -206,7 +212,7 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
             raise_json_error(self.request,
                              hexc.HTTPUnprocessableEntity,
                              {
-                                 'message': _(u"Invalid object NTIID."),
+                                'message': _(u"Invalid object NTIID."),
                              },
                              None)
 
@@ -413,6 +419,7 @@ class RebuildEvaluationCatalogView(AbstractAuthenticatedView):
                         continue
                     seen.add(doc_id)
                     catalog.index_doc(doc_id, evaluation)
+                    metadata_queue_add(evaluation)
         result = LocatedExternalDict()
         result[ITEM_COUNT] = result[TOTAL] = len(seen)
         return result
@@ -435,6 +442,7 @@ class RebuildSubmissionCatalogView(AbstractAuthenticatedView):
                     doc_id = intids.queryId(obj)
                     if doc_id is not None:
                         index.index_doc(doc_id, obj)
+                        metadata_queue_add(obj)
                         result += 1
         return result
 

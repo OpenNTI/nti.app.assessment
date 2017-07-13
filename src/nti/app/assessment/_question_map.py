@@ -408,7 +408,6 @@ class QuestionMap(QuestionIndex):
 				# We make an exception for index.html, due to a duplicate bug in
 				# old versions of the exporter, but we ensure we can't put any questions on it
 				if index_key == 'index.html':
-					factory = tuple
 					logger.warn("Duplicate 'index.html' entry in %s; update content",
 								content_package)
 				else:

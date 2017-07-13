@@ -19,7 +19,6 @@ from zope.cachedescriptors.property import Lazy
 from pyramid.threadlocal import get_current_request
 
 from nti.app.assessment.common import get_container_evaluations
-from nti.app.assessment.common import is_assignment_non_public_only
 from nti.app.assessment.common import get_available_for_submission_beginning
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedback
@@ -134,7 +133,7 @@ class _AssignmentSearchHitPredicate(_EvaluationSearchHitPredicate):
                     continue
                 beginning = get_available_for_submission_beginning(item, course)
                 if not beginning or now >= beginning:
-                    if is_assignment_non_public_only(item, course):
+                    if item.is_non_public:
                         if record.Scope != ES_PUBLIC:
                             return True
                     else:

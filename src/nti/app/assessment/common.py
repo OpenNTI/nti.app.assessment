@@ -969,12 +969,12 @@ def get_max_time_allowed(assignment, course):
     take the assignment, defined by the assignment policies.
     """
     max_time_allowed = assignment.maximum_time_allowed
-    policies = IQAssessmentPolicies(course)
-    policy = policies.getPolicyForAssignment(assignment.ntiid)
-    if      policy \
-        and 'maximum_time_allowed' in policy \
-        and policy['maximum_time_allowed'] != max_time_allowed:
-        max_time_allowed = policy['maximum_time_allowed']
+    policy_max_time = _get_policy_field(assignment,
+                                        course,
+                                        'maximum_time_allowed')
+    if      policy_max_time \
+        and policy_max_time != max_time_allowed:
+        max_time_allowed = policy_max_time
     return max_time_allowed
 
 

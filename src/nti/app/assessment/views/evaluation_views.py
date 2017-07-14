@@ -1057,6 +1057,11 @@ class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):
 
 	OBJ_DEF_CHANGE_MSG = _("Cannot change the object definition.")
 
+	@Lazy
+	def course(self):
+		result = find_interface(self.context, ICourseInstance, strict=False)
+		return result if result is not None else get_course_from_request()
+
 	@property
 	def legacy_editable_fields(self):
 		# XXX: We allow toggling public status? This is the only

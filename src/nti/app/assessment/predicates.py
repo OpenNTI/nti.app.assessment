@@ -9,11 +9,10 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-from functools import partial
-
 from zope import component
 
-from nti.app.assessment.interfaces import ICourseEvaluations
+from zope.security.interfaces import IPrincipal
+
 from nti.app.assessment.interfaces import IUsersCourseInquiry
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
@@ -21,7 +20,6 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQEditableEvaluation
 
-from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.contenttypes.courses.interfaces import IPrincipalEnrollments
@@ -32,151 +30,125 @@ from nti.dataserver.interfaces import ISystemUserPrincipal
 
 from nti.dataserver.metadata.predicates import BasePrincipalObjects
 
-from nti.site.hostpolicy import run_job_in_all_host_sites
-
-from nti.zodb import isBroken
+from nti.dataserver.users.users import User
 
 
-def _get_courses_from_enrollments(user, provided=IPrincipalEnrollments,
-                                  method='iter_enrollments'):
+def get_courses_from_enrollments(user, provided, method):
     for enrollments in component.subscribers((user,), provided):
         for enrollment in getattr(enrollments, method)():
             course = ICourseInstance(enrollment, None)
-            if course is not None and not isBroken(course):
+            if course is not None:
                 yield course
-
-
-def _add_to_result(result, item):
-    if not isBroken(item):
-        result.append(item)
 
 
 @component.adapter(IUser)
 class _AssignmentHistoryPrincipalObjects(BasePrincipalObjects):
 
-    def _feedbackitem_collector(self, feedback, creator):
+    def get_enrolled_courses(self, user):
+        return get_courses_from_enrollments(user,
+                                            IPrincipalEnrollments,
+                                            'iter_enrollments')
+
+    def get_instructed_courses(self, user):
+        return get_courses_from_enrollments(user,
+                                            IPrincipalAdministrativeRoleCatalog,
+                                            'iter_administrations')
+
+    def feedback_items(self, feedback, username):
         for x in feedback.Items:
-            if x.creator == creator:
+            if self.creator(x) == username:
                 yield x
 
-    def _history_collector(self, result):
-        user = self.user
-        for course in _get_courses_from_enrollments(user):
-            items = component.queryMultiAdapter((course, user),
+    def metadata_items(self, course, user):
+        items = component.queryMultiAdapter((course, user),
+                                            IUsersCourseAssignmentMetadata)
+        result = []
+        if items:
+            result.append(items)
+            result.extend(items.values())
+        return result
+
+    def history_items(self):
+        result = []
+        for course in self.get_enrolled_courses(self.user):
+            items = component.queryMultiAdapter((course, self.user),
                                                 IUsersCourseAssignmentHistory)
             if not items:
                 continue
-            _add_to_result(result, items)
+            result.append(items)
             for item in items.values():
-                _add_to_result(result, item)
-                _add_to_result(result, item.Submission)
-                _add_to_result(result, item.pendingAssessment)
-
-                feedback = item.Feedback
-                if feedback is not None:
-                    for item in self._feedbackitem_collector(feedback, user):
-                        _add_to_result(result, item)
-
-            # collect metadata
-            items = component.queryMultiAdapter((course, user),
-                                                IUsersCourseAssignmentMetadata)
-            if not items:
-                continue
-            _add_to_result(result, items)
-            for item in items.values():
-                _add_to_result(result, item)
+                result.append(item)
+                result.extend(item.sublocations())
+                if not item.has_feedback():
+                    continue
+                result.extend(self.feedback_items(item.Feedback, 
+                                                  self.username))
+            result.extend(self.metadata_items(course, self.user))
         return result
 
-    def _feedback_collector(self, result):
-        user = self.user
-        for course in _get_courses_from_enrollments(user,
-                                                    IPrincipalAdministrativeRoleCatalog,
-                                                    'iter_administrations'):
+    def instructor_feedback_items(self):
+        result = []
+        for course in self.get_instructed_courses(self.user):
             enrollments = ICourseEnrollments(course)
             for record in enrollments.iter_enrollments():
-                student = IUser(record.principal, None)
+                student = IPrincipal(record, None)
                 if student is None:
                     continue
+                student = User.get_user(student.id)
                 items = component.queryMultiAdapter((course, student),
                                                     IUsersCourseAssignmentHistory)
                 if not items:
                     continue
                 for item in items:
-                    feedback = item.Feedback
-                    if feedback is not None:
-                        for item in self._feedbackitem_collector(feedback, user):
-                            _add_to_result(result, item)
+                    if not item.has_feedback():
+                        continue
+                    result.extend(self.feedback_items(item.Feedback, 
+                                                      self.username))
         return result
 
-    def _collector(self, result):
-        self._history_collector(result)
-        self._feedback_collector(result)
-
     def iter_objects(self):
-        result = []
-        run_job_in_all_host_sites(partial(self._collector, result))
+        result = self.history_items()
+        result.extend(self.instructor_feedback_items())
         return result
 
 
 @component.adapter(IUser)
-class _InquiryPrincipalObjects(BasePrincipalObjects):
+class _CourseInquiryPrincipalObjects(BasePrincipalObjects):
 
-    def _item_collector(self, result):
-        user = self.user
-        for course in _get_courses_from_enrollments(user):
-            items = component.queryMultiAdapter((course, user),
-                                                IUsersCourseInquiry)
-            if not items:
-                continue
-            _add_to_result(result, items)
-            for item in items.values():
-                _add_to_result(result, item)
-                _add_to_result(result, item.Submission)
-        return result
+    def get_enrolled_courses(self, user):
+        return get_courses_from_enrollments(user,
+                                            IPrincipalEnrollments,
+                                            'iter_enrollments')
 
     def iter_objects(self):
         result = []
-        run_job_in_all_host_sites(partial(self._item_collector, result))
+        for course in self.get_enrolled_courses(self.user):
+            items = component.queryMultiAdapter((course, self.user),
+                                                IUsersCourseInquiry)
+            if not items:
+                continue
+            result.append(items)
+            for item in items.values():
+                result.append(item)
+                result.append(item.Submission)
         return result
 
 
 @component.adapter(ISystemUserPrincipal)
 class _SystemEvaluationObjects(BasePrincipalObjects):
 
-    def iter_items(self, result, seen):
-        for ntiid, item in list(component.getUtilitiesFor(IQEvaluation)):
-            if ntiid not in seen and not IQEditableEvaluation.providedBy(item):
-                seen.add(ntiid)
-                result.append(item)
-
     def iter_objects(self):
-        result = []
-        seen = set()
-        run_job_in_all_host_sites(partial(self.iter_items, result, seen))
-        return result
+        for _, item in component.getUtilitiesFor(IQEvaluation):
+            if     not IQEditableEvaluation.providedBy(item) \
+                or self.is_system_username(self.creator(item)):
+                yield item
 
 
 @component.adapter(IUser)
 class _UserEvaluationObjects(BasePrincipalObjects):
 
-    def iter_items(self, result, seen):
-        user = self.user
-        catalog = component.getUtility(ICourseCatalog)
-        for entry in catalog.iterCatalogEntries():
-            if entry.ntiid in seen:
-                continue
-            seen.add(entry.ntiid)
-            course = ICourseInstance(entry)
-            evaluations = ICourseEvaluations(course)
-            for ntiid, e in list(evaluations.items()):
-                creator = getattr(e.creator, 'username', None)
-                creator = getattr(e.creator, 'id', creator) or u''
-                if ntiid not in seen and creator.lower() == user.username.lower():
-                    seen.add(ntiid)
-                    result.extend(e)
-
     def iter_objects(self):
-        result = []
-        seen = set()
-        run_job_in_all_host_sites(partial(self.iter_items, result, seen))
-        return result
+        for _, item in component.getUtilitiesFor(IQEvaluation):
+            if      IQEditableEvaluation.providedBy(item) \
+                and self.creator(item) == self.username:
+                yield item

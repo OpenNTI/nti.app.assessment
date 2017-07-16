@@ -372,7 +372,7 @@
 	<subscriber	factory=".predicates._AssignmentHistoryPrincipalObjects"
 				provides="nti.dataserver.metadata.interfaces.IPrincipalMetadataObjects" />
 
-	<subscriber	factory=".predicates._InquiryPrincipalObjects"
+	<subscriber	factory=".predicates._CourseInquiryPrincipalObjects"
 				provides="nti.dataserver.metadata.interfaces.IPrincipalMetadataObjects" />
 
 	<subscriber	factory=".predicates._SystemEvaluationObjects"

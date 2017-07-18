@@ -626,6 +626,11 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
                     elif IQNonGradableFreeResponsePart.providedBy(poll_part):
                         result = plain_text(user_sub_part)
 
+                    # If we don't recognize the question type,
+                    # at least don't crash.
+                    else:
+                        result = ''
+
                     # add to result
                     responses.append(result)
                     row.extend(responses)

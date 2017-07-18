@@ -551,7 +551,8 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
         stream = BytesIO()
         csv_writer = csv.writer(stream)
 
-        # only include the usernames if specified with a param
+        # Construct our header row. Only include
+        # usernames if specified with a param.
         if include_usernames:
             header_row = ['user']
         else:
@@ -565,10 +566,10 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
                                       plain_text(part.content))
             else:
                 header_row.append(plain_text(question.content))
-
         csv_writer.writerow(header_row)
         user_rows = []
 
+        # For each user submission, construct a row with their responses.
         submissions = inquiry_submissions(self.context, self.course)
         for item in submissions:
             if not IUsersCourseInquiryItem.providedBy(item):  # always check
@@ -580,14 +581,23 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
                 row = []
             for question in sorted(subs_questions, key=lambda x: x.inquiryId, reverse=True):
                 poll = component.queryUtility(IQPoll, name=question.inquiryId)
+                # A question may have multiple parts, so we need to go through
+                # each part. We look at the question parts from the user's
+                # submission to get their responses for each part, and we also
+                # look at the question parts from the poll to get labels for the
+                # user's response, if applicable.
                 for part_idx, part in enumerate(zip(question.parts, poll.parts)):
                     responses = []
                     user_sub_part, poll_part = part
+
+                    # If for some reason we don't recognize the question
+                    # type, or if the user did not submit an answer, we
+                    # leave the result blank for this question.
+                    result = ''
+
                     if user_sub_part is None:
                         # If the question part is None, the user did not respond
-                        # to this question, and we should put in a placeholder for
-                        # this question.
-                        result = u''
+                        # to this question
                         continue
 
                     # Each type of question is handled slightly differently.
@@ -626,17 +636,13 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
                     elif IQNonGradableFreeResponsePart.providedBy(poll_part):
                         result = plain_text(user_sub_part)
 
-                    # If we don't recognize the question type,
-                    # at least don't crash.
-                    else:
-                        result = ''
-
                     # add to result
                     responses.append(result)
                     row.extend(responses)
             user_rows.append(row)
 
         # If we have usernames, we should sort by that column.
+        # Otherwise we expect these to be sorted by submission time.
         if include_usernames:
             user_rows = sorted(user_rows, key=lambda x: x[0])
 
@@ -644,6 +650,10 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
             csv_writer.writerow(row)
         stream.flush()
         stream.seek(0)
-        self.request.response.content_type = 'application/octet-stream'
+        filename = (self.context.title or self.context.id) + \
+            "_inquiry_report.csv"
+        self.request.response.content_type = 'text/csv; charset=UTF-8'
         self.request.response.body_file = stream
+        self.request.response.content_disposition = str(
+            'attachment; filename="%s"' % filename)
         return self.request.response

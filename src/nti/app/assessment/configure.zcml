@@ -348,6 +348,9 @@
 	<!-- User Events -->
 	<subscriber handler=".subscribers._on_user_will_be_removed" />
 
+    <subscriber handler=".subscribers.on_discussion_assignment_created" />
+    <subscriber handler=".subscribers.on_discussion_assignment_updated" />
+
 	<!-- Course Events -->
 	<subscriber handler=".subscribers.on_course_instance_removed" />
 	<subscriber handler=".subscribers.update_assessments_on_course_bundle_update" />

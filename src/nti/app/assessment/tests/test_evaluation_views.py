@@ -597,6 +597,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		forum_href = '%s/Discussions/In_Class_Discussions/contents' % course_href
 		forum_res = self.testapp.get( forum_href )
 		forum_res = forum_res.json_body
+		# ForCredit discussion
 		discussion_ntiid = forum_res[ITEMS][0].get( NTIID )
 		assignment['discussion_ntiid'] = discussion_ntiid
 		assignment['parts'] = []
@@ -607,6 +608,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 		res = self.testapp.post_json(href, assignment, status=201)
 		res = res.json_body
 		assert_that( res.get( 'CanInsertQuestions' ), is_( False ))
+		assert_that(res.get('is_non_public'), is_(True))
 		assignment_href = res.get( 'href' )
 
 		self.require_link_href_with_rel(res, VIEW_DELETE)

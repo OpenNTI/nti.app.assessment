@@ -20,6 +20,9 @@ from zope.container.interfaces import IContainer
 from zope.intid.interfaces import IIntIds
 from zope.intid.interfaces import IIntIdRemovedEvent
 
+from zope.lifecycleevent.interfaces import IObjectAddedEvent
+from zope.lifecycleevent.interfaces import IObjectModifiedEvent
+
 from pyramid.httpexceptions import HTTPUnprocessableEntity
 
 from nti.app.assessment import MessageFactory as _
@@ -52,22 +55,35 @@ from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionMovedEvent
+from nti.assessment.interfaces import IQEditableEvaluation
+from nti.assessment.interfaces import IQDiscussionAssignment
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 
 from nti.contenttypes.courses import get_enrollment_catalog
 
+from nti.contenttypes.courses.discussions.interfaces import ICourseDiscussion
+
+from nti.contenttypes.courses.discussions.utils import get_implied_by_scopes
+
 from nti.contenttypes.courses.index import IX_USERNAME
+
+from nti.contenttypes.courses.interfaces import ES_ALL
+from nti.contenttypes.courses.interfaces import ES_PUBLIC
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 from nti.contenttypes.courses.interfaces import ICourseBundleUpdatedEvent
+
+from nti.dataserver.contenttypes.forums.interfaces import ITopic
 
 from nti.dataserver.interfaces import IUser
 
 from nti.dataserver.users.interfaces import IWillDeleteEntityEvent
 
 from nti.externalization.externalization import to_external_object
+
+from nti.ntiids.ntiids import find_object_with_ntiid
 
 from nti.recorder.utils import record_transaction
 
@@ -251,6 +267,35 @@ def on_question_moved(question, event):
     if ntiid:
         record_transaction(question, principal=event.principal,
                            type_=TRX_QUESTION_MOVE_TYPE)
+
+
+def _check_discussion_assignment_non_public(assignment):
+    """
+    Check if the discussion target of an :class:`IQDiscussionAssignment`
+    points to a discussion visible to non-public users only.
+    """
+    if IQEditableEvaluation.providedBy(assignment):
+        course = find_interface(assignment, ICourseInstance, strict=False)
+        topic = find_object_with_ntiid(assignment.discussion_ntiid)
+        if course is not None and topic is not None:
+            if ICourseDiscussion.providedBy(topic):
+                scopes = get_implied_by_scopes(topic.scopes)
+                if not ES_ALL in scopes and not ES_PUBLIC in scopes:
+                    assignment.is_non_public = True
+            elif ITopic.providedBy(topic):
+                public_scope = course.SharingScopes[ES_PUBLIC]
+                if not topic.isSharedWith(public_scope):
+                    assignment.is_non_public = True
+
+
+@component.adapter(IQDiscussionAssignment, IObjectModifiedEvent)
+def on_discussion_assignment_created(assignment, event):
+    _check_discussion_assignment_non_public(assignment)
+
+
+@component.adapter(IQDiscussionAssignment, IObjectAddedEvent)
+def on_discussion_assignment_updated(assignment, event):
+    _check_discussion_assignment_non_public(assignment)
 
 
 @component.adapter(ICourseInstance, ICourseBundleUpdatedEvent)

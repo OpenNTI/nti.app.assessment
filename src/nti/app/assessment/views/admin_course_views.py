@@ -353,5 +353,5 @@ class ReindexCoursePackageAssessmentsView(AbstractAuthenticatedView):
         course = ICourseInstance(self.context)
         result = LocatedExternalDict()
         count = index_course_package_assessments(course)
-        result['IndexedCount'] = count
+        result[TOTAL] = result['IndexedCount'] = count
         return result

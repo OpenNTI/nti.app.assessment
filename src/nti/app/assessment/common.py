@@ -247,7 +247,7 @@ def get_container_evaluations(context, sites=None, intids=None, mimetypes=None):
     if isinstance(context, six.string_types):
         containers = context.split()
     elif IContentUnit.providedBy(context):
-        containers = (context.ntiid)
+        containers = (context.ntiid,)
     else:
         containers = context
 

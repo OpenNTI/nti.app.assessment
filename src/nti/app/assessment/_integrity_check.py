@@ -74,7 +74,7 @@ def _master_data_collector():
     seen = set()
     registered = OrderedDict()
     containers = defaultdict(list)
-    legacy = component.getUtilitiesFor(IQEvaluation)
+    legacy = component.getGlobalSiteManager().getUtilitiesFor(IQEvaluation)
     legacy = {ntiid for ntiid, _ in list(legacy)}
 
     def recur(site, unit):
@@ -196,7 +196,7 @@ def check_assessment_integrity(remove=False):
         uid = intids.queryId(registered)
         if ntiid in legacy:
             registry = site.getSiteManager()
-            if registry is not component.globalSiteManager():
+            if registry is not component.getGlobalSiteManager():
                 provided = iface_of_assessment(registered)
                 logger.warn("Invalid global registration for %s", key)
                 unregisterUtility(registry, provided=provided, name=ntiid)

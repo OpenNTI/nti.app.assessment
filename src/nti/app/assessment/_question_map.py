@@ -34,6 +34,8 @@ from zope.lifecycleevent.interfaces import IObjectModifiedEvent
 
 from ZODB.interfaces import IConnection
 
+from BTrees.OOBTree import OOBTree
+
 from persistent.list import PersistentList
 
 from persistent.mapping import PersistentMapping
@@ -101,23 +103,35 @@ deprecated('_AssessmentItemStore', 'Deprecated Storage Mode')
 class _AssessmentItemStore(BTreeContainer):
 	pass
 
-@component.adapter(IContentUnit)
-@interface.implementer(IQAssessmentItemContainer)
+deprecated('_AssessmentItemBucket', 'Deprecated Storage Mode')
 class _AssessmentItemBucket(PersistentMapping,
 							PersistentCreatedAndModifiedTimeObject,
 							Contained):
+	assessments = PersistentMapping.values
 
+
+@component.adapter(IContentUnit)
+@interface.implementer(IQAssessmentItemContainer)
+class _AssessmentItemOOBTree(OOBTree,
+							 PersistentCreatedAndModifiedTimeObject, 
+							 Contained):
+	
 	_SET_CREATED_MODTIME_ON_INIT = False
-
+	
+	def __init__(self, *args, **kwargs):
+		OOBTree.__init__(self)
+		PersistentCreatedAndModifiedTimeObject.__init__(self, *args, **kwargs)
+	
 	def append(self, item):
 		self[item.ntiid] = item
-
+	
 	def extend(self, items):
 		for item in items or ():
 			self.append(item)
-
+	
 	def assessments(self):
 		return list(self.values())
+
 
 @component.adapter(IContentUnit)
 @interface.implementer(IQAssessmentItemContainer)
@@ -128,7 +142,7 @@ def ContentUnitAssessmentItems(unit):
 	try:
 		result = unit._question_map_assessment_item_container
 	except AttributeError:
-		result = unit._question_map_assessment_item_container = _AssessmentItemBucket()
+		result = unit._question_map_assessment_item_container = _AssessmentItemOOBTree()
 		result.createdTime = time.time()
 		result.lastModified = -1
 	# make sure there is lineage

@@ -27,7 +27,7 @@ from zope import interface
 
 from zope.annotation.interfaces import IAttributeAnnotatable
 
-from nti.app.assessment._question_map import _AssessmentItemBucket
+from nti.app.assessment._question_map import _AssessmentItemOOBTree
 from nti.app.assessment._question_map import QuestionMap as _QuestionMap
 
 from nti.app.assessment._question_map import _get_last_mod_namespace
@@ -183,7 +183,7 @@ ASSESSMENT_STRING_QUESTIONS_IN_FIRST_FILE = """
 class MockEntry(object):
 
 	def __init__(self):
-		self._items = _AssessmentItemBucket()
+		self._items = _AssessmentItemOOBTree()
 		self.ntiid = 'tag:nextthought,2011-05:blehblehbleh'
 
 	children = ()

@@ -17,6 +17,9 @@ from zope.component.hooks import site as current_site
 
 from zope.intid.interfaces import IIntIds
 
+from zope.security.management import endInteraction
+from zope.security.management import restoreInteraction
+
 from persistent.list import PersistentList
 
 from pyramid import httpexceptions as hexc
@@ -35,6 +38,7 @@ from nti.app.assessment.common import get_resource_site_name
 from nti.app.assessment.index import get_evaluation_catalog
 from nti.app.assessment.index import get_submission_catalog
 
+from nti.app.assessment.interfaces import ICourseEvaluations
 from nti.app.assessment.interfaces import IUsersCourseInquiries
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
 
@@ -56,7 +60,8 @@ from nti.common.string import is_true
 
 from nti.contentlibrary.interfaces import IContentPackage
 
-from nti.contenttypes.courses.interfaces import ICourseCatalog, ICourseInstance
+from nti.contenttypes.courses.interfaces import ICourseCatalog 
+from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver import authorization as nauth
 
@@ -205,6 +210,38 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
                 return True
         return False
 
+    def _do_unregiser(self, evaluation, ntiid, site, values):
+        # unregister the evaluation object
+        with current_site(site):
+            registry = site.getSiteManager()
+            if self._unregister_evaluation(registry, evaluation):
+                logger.warn("%s has been unregistered", evaluation.ntiid)
+            else:
+                # At this point the object was found, but registry  is in bad shape
+                # so we remove it directly from the components
+                self._remove_evaluation_from_components(registry, ntiid)
+
+            if not IQEditableEvaluation.providedBy(evaluation):
+                self.removeIntId(evaluation)
+            else:
+                course = ICourseInstance(evaluation, None)
+                evals = ICourseEvaluations(course, None)
+                if evals and ntiid in evals:
+                    del evals[ntiid]
+
+        package = evaluation.__parent__
+        package = find_interface(package, IContentPackage, strict=False)
+        if package is None:
+            package = values.get('package')
+            if package is not None:
+                package = find_object_with_ntiid(ntiid)
+            else:
+                package = None
+
+        package = IContentPackage(package, None)
+        if package is not None and not IQEditableEvaluation.providedBy(evaluation):
+            self.removeFromPackage(package, ntiid)
+
     def _do_call(self):
         values = self.readInput()
         ntiid = values.get('ntiid')
@@ -262,33 +299,12 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
                                 'message': _(u"Invalid Evaluation site."),
                              },
                              None)
-
-        # unregister the evaluation object
-        with current_site(site):
-            registry = site.getSiteManager()
-            if self._unregister_evaluation(registry, evaluation):
-                logger.warn("%s has been unregistered", evaluation.ntiid)
-            else:
-                # At this point the object was found, but registry  is in bad shape
-                # so we remove it directly from the components
-                self._remove_evaluation_from_components(registry, ntiid)
-
-            if not IQEditableEvaluation.providedBy(evaluation):
-                self.removeIntId(evaluation)
-
-        package = evaluation.__parent__
-        package = find_interface(package, IContentPackage, strict=False)
-        if package is None:
-            package = values.get('package')
-            if package is not None:
-                package = find_object_with_ntiid(ntiid)
-            else:
-                package = None
-
-        package = IContentPackage(package, None)
-        if package is not None and not IQEditableEvaluation.providedBy(evaluation):
-            self.removeFromPackage(package, ntiid)
-
+        # do removal
+        endInteraction()
+        try:
+            self._do_unregiser(evaluation, ntiid, site, values)
+        finally:
+            restoreInteraction()
         return hexc.HTTPNoContent()
 
 

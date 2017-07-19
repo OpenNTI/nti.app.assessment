@@ -49,6 +49,7 @@ from nti.app.assessment import VIEW_REMOVE_PART_OPTION
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
 
+from nti.app.assessment.common import is_discussion_assignment_non_public
 from nti.app.assessment.common import get_assignments_for_evaluation_object
 
 from nti.app.assessment.evaluations.exporter import EvaluationsExporter
@@ -607,9 +608,18 @@ class TestEvaluationViews(ApplicationLayerTest):
 		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
 		res = self.testapp.post_json(href, assignment, status=201)
 		res = res.json_body
-		assert_that( res.get( 'CanInsertQuestions' ), is_( False ))
+		ntiid = res['ntiid']
+		assert_that(ntiid, not_none())
+		assert_that(res.get( 'CanInsertQuestions' ), is_( False ))
 		assert_that(res.get('is_non_public'), is_(True))
+		self.forbid_link_with_rel(res, VIEW_IS_NON_PUBLIC)
 		assignment_href = res.get( 'href' )
+
+		# Non public discussion assignment
+		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+			assignment_obj = find_object_with_ntiid(ntiid)
+			non_public = is_discussion_assignment_non_public(assignment_obj)
+			assert_that(non_public, is_(True))
 
 		self.require_link_href_with_rel(res, VIEW_DELETE)
 		for part_rel in (VIEW_MOVE_PART, VIEW_REMOVE_PART, VIEW_INSERT_PART):

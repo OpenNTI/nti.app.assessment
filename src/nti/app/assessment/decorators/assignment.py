@@ -282,7 +282,7 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
                                             self.remoteUser,
                                             context.ntiid)
         if item is not None:
-            metadata = {'Duration': item.Duration, 
+            metadata = {'Duration': item.Duration,
                         'StartTime': item.StartTime}
             result['Metadata'] = metadata
 
@@ -542,9 +542,9 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
     def _can_toggle_is_non_public(self, context, courses):
         """
-        It can be toggled only if it is not in progress and all of its contained courses
-        are not ForCredit only. We don't yet have a way to determine if a course is Public
-        only.
+        It can be toggled only if it is not in progress and all of its
+        contained courses are not ForCredit only. We don't yet have a way to
+        determine if a course is Public only.
         """
         return not is_assignment_non_public_only(context, courses)
 
@@ -805,8 +805,8 @@ class _AssessmentPracticeLinkDecorator(AbstractAuthenticatedRequestAwareDecorato
 
     def _predicate(self, context, result):
         user = self.remoteUser
-        course = _get_course_from_evaluation(context, 
-                                             user, 
+        course = _get_course_from_evaluation(context,
+                                             user,
                                              request=self.request)
         # Legacy, global courses give 'All' perms to course community.
         return self._is_authenticated \

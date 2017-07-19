@@ -100,6 +100,7 @@ from nti.assessment.interfaces import IQInquirySubmission
 from nti.assessment.interfaces import IQAssessmentPolicies
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQAssessedQuestionSet
+from nti.assessment.interfaces import IQDiscussionAssignment
 from nti.assessment.interfaces import IQAssessmentDateContext
 from nti.assessment.interfaces import IQAssessmentItemContainer
 
@@ -108,6 +109,13 @@ from nti.contentlibrary.interfaces import IContentPackage
 from nti.contentlibrary.interfaces import IGlobalContentPackage
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 from nti.contentlibrary.interfaces import IGlobalContentPackageLibrary
+
+from nti.contenttypes.courses.discussions.interfaces import ICourseDiscussion
+
+from nti.contenttypes.courses.discussions.utils import get_implied_by_scopes
+
+from nti.contenttypes.courses.interfaces import ES_ALL
+from nti.contenttypes.courses.interfaces import ES_PUBLIC
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -124,6 +132,8 @@ from nti.contenttypes.courses.utils import get_parent_course
 from nti.contenttypes.courses.utils import get_course_hierarchy
 
 from nti.coremetadata.interfaces import SYSTEM_USER_NAME
+
+from nti.dataserver.contenttypes.forums.interfaces import ITopic
 
 from nti.dataserver.interfaces import IUser
 
@@ -720,7 +730,7 @@ def get_submissions(context, courses=(), index_name=IX_ASSESSMENT_ID):
         sites.discard(None)  # tests
         if sites:
             query[IX_SITE] = {'any_of': sites}
-            
+
         result = []
         for doc_id in catalog.apply(query) or ():
             obj = intids.queryObject(doc_id)
@@ -1272,6 +1282,26 @@ def regrade_evaluation(context, course):
     return result
 
 
+def is_discussion_assignment_non_public(assignment):
+    """
+    Check if the discussion target of an :class:`IQDiscussionAssignment`
+    points to a discussion visible to non-public users only.
+    """
+    is_non_public = False
+    if      IQEditableEvaluation.providedBy(assignment) \
+        and IQDiscussionAssignment.providedBy(assignment):
+        course = find_interface(assignment, ICourseInstance, strict=False)
+        topic = find_object_with_ntiid(assignment.discussion_ntiid)
+        if course is not None and topic is not None:
+            if ICourseDiscussion.providedBy(topic):
+                scopes = get_implied_by_scopes(topic.scopes)
+                is_non_public = not ES_ALL in scopes and not ES_PUBLIC in scopes
+            elif ITopic.providedBy(topic):
+                public_scope = course.SharingScopes[ES_PUBLIC]
+                is_non_public = not topic.isSharedWith(public_scope)
+    return is_non_public
+
+
 def is_assignment_non_public_only(context, courses=None):
     """
     For the given assignment, return if its courses are only
@@ -1288,7 +1318,8 @@ def is_assignment_non_public_only(context, courses=None):
             or IDenyOpenEnrollment.providedBy(course)
 
     is_non_public_only = courses and all(_is_non_public(x) for x in courses)
-    return is_non_public_only
+    is_discussion_non_public = is_discussion_assignment_non_public(context)
+    return is_non_public_only or is_discussion_non_public
 
 
 def get_outline_evaluation_containers(obj):

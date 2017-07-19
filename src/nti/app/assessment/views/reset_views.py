@@ -72,8 +72,6 @@ from nti.dataserver.users import User
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
-from nti.traversal.traversal import find_interface
-
 ITEMS = StandardExternalFields.ITEMS
 TOTAL = StandardExternalFields.TOTAL
 ITEM_COUNT = StandardExternalFields.ITEM_COUNT
@@ -92,9 +90,9 @@ class EvaluationResetMixin(ModeledContentUploadRequestUtilsMixin):
     @Lazy
     def course(self):
         if IQEditableEvaluation.providedBy(self.context):
-            result = find_interface(self.context, 
-									ICourseInstance, 
-									strict=False)
+            result = get_course_from_request(self.request)
+            if result is None:
+                result = ICourseInstance(self.context, None)
         else:
             result = get_course_from_request(self.request)
             if result is None:

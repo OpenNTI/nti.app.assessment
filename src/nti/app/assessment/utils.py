@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -258,8 +258,7 @@ def get_course_from_request(request=None, params=None):
 
 
 def get_uid(context):
-    result = component.getUtility(IIntIds).getId(context)
-    return result
+    return component.getUtility(IIntIds).getId(context)
 
 
 @interface.implementer(IPrincipalSeedSelector)

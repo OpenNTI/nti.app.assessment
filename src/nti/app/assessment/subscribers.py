@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -23,7 +23,6 @@ from zope.intid.interfaces import IIntIdRemovedEvent
 from pyramid.httpexceptions import HTTPUnprocessableEntity
 
 from nti.app.assessment import MessageFactory as _
-from nti.app.assessment import get_submission_catalog
 
 from nti.app.assessment.common import get_unit_assessments
 from nti.app.assessment.common import get_resource_site_name
@@ -34,6 +33,7 @@ from nti.app.assessment.common import get_available_for_submission_ending
 from nti.app.assessment.index import IX_SITE
 from nti.app.assessment.index import IX_COURSE
 from nti.app.assessment.index import IX_CREATOR
+from nti.app.assessment.index import get_submission_catalog
 
 from nti.app.assessment.interfaces import IUsersCourseInquiries
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
@@ -52,7 +52,6 @@ from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionMovedEvent
-
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 
@@ -74,10 +73,11 @@ from nti.recorder.utils import record_transaction
 
 from nti.traversal.traversal import find_interface
 
+
 # activity / submission
 
 
-def add_object_to_course_activity(submission, event):
+def add_object_to_course_activity(submission, unused_event):
     """
     This can be registered for anything we want to submit to course activity
     as a subscriber to :class:`zope.intid.interfaces.IIntIdAddedEvent`
@@ -90,7 +90,7 @@ def add_object_to_course_activity(submission, event):
     activity.append(submission)
 
 
-def remove_object_from_course_activity(submission, event):
+def remove_object_from_course_activity(submission, unused_event):
     """
     This can be registered for anything we want to submit to course activity
     as a subscriber to :class:`zope.intid.interfaces.IIntIdRemovedEvent`
@@ -106,7 +106,7 @@ def remove_object_from_course_activity(submission, event):
 # UGD
 
 
-def prevent_note_on_assignment_part(note, event):
+def prevent_note_on_assignment_part(note, unused_event):
     """
     When we try to create a note on something related to an
     assignment, don't, unless it's after the due date.
@@ -169,7 +169,7 @@ def prevent_note_on_assignment_part(note, event):
                 e = HTTPUnprocessableEntity()
                 e.text = simplejson.dumps(
                     {
-                        'message': _("You cannot make notes on an assignment before the due date."),
+                        'message': _(u"You cannot make notes on an assignment before the due date."),
                         'code': 'CannotNoteOnAssignmentBeforeDueDate',
                         'available_for_submission_ending':
                         to_external_object(available_for_submission_ending)
@@ -177,6 +177,7 @@ def prevent_note_on_assignment_part(note, event):
                     ensure_ascii=False)
                 e.content_type = b'application/json'
                 raise e
+
 
 # users
 
@@ -213,10 +214,11 @@ def unindex_user_data(user):
 
 
 @component.adapter(IUser, IWillDeleteEntityEvent)
-def _on_user_will_be_removed(user, event):
+def _on_user_will_be_removed(user, unused_event):
     logger.info("Removing assignment data for user %s", user)
     delete_user_data(user)
     unindex_user_data(user)
+
 
 # courses
 
@@ -240,7 +242,7 @@ def unindex_course_data(course):
 
 
 @component.adapter(ICourseInstance, IIntIdRemovedEvent)
-def on_course_instance_removed(course, event):
+def on_course_instance_removed(course, unused_event):
     delete_course_data(course)
     unindex_course_data(course)
 
@@ -255,7 +257,7 @@ def on_question_moved(question, event):
 
 
 @component.adapter(ICourseInstance, ICourseBundleUpdatedEvent)
-def update_assessments_on_course_bundle_update(course, event):
+def update_assessments_on_course_bundle_update(course, unused_event):
     """
     The course packages have been updated. Re-index any assessment
     items in our ICourseInstance packages.

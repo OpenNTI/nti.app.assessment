@@ -79,7 +79,6 @@ class UsersCourseAssignmentHistoryItemFeedback(PersistentCreatedModDateTrackingO
         if self.__dict__.get('creator') is not None:
             creator = self.__dict__['creator']
             return creator() if callable(creator) else creator
-
         # If the user is deleted we won't be able to do this
         if self.__parent__ is not None:
             return IUser(self.__parent__.__parent__, None)
@@ -112,7 +111,6 @@ class UsersCourseAssignmentHistoryItemFeedback(PersistentCreatedModDateTrackingO
         if course is not None:
             instructors = (IUser(i, None) for i in course.instructors or ())
             results.extend(x for x in instructors if x is not None)
-
         if self.__parent__ is not None:
             container_owner = IUser(self.__parent__.__parent__, None)
             if container_owner is not None:
@@ -126,13 +124,11 @@ class UsersCourseAssignmentHistoryItemFeedback(PersistentCreatedModDateTrackingO
         creator = self.creator
         if creator is not None:
             aces.append(ace_allowing(creator, ALL_PERMISSIONS, type(self)))
-
         # read access for the instructors
         course = ICourseInstance(self, None)
         if course is not None:
             aces.extend(ace_allowing(i, ACT_READ, type(self))
                         for i in course.instructors or ())
-
         # read access to the container feedback owner
         if self.__parent__ is not None:
             container_owner = IUser(self.__parent__.__parent__, None)

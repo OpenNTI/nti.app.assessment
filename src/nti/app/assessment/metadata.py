@@ -219,7 +219,7 @@ class _UsersCourseAssignmentMetadataItemUpdater(object):
 
         result = InterfaceObjectIO(
                     self.item,
-                    IUsersCourseAssignmentMetadataItem).updateFromExternalObject(parsed)
+                    IUsersCourseAssignmentMetadataItem).updateFromExternalObject(parsed, *args, **kwargs)
         return result
 
 
@@ -255,11 +255,11 @@ def _metadata_for_user_in_course(course, user, create=True):
     return result
 
 
-def _metadatacontainer_for_course_path_adapter(course, request):
+def _metadatacontainer_for_course_path_adapter(course, unused_request):
     return _metadatacontainer_for_course(course)
 
 
-def _metadatacontainer_for_courseenrollment_path_adapter(enrollment, request):
+def _metadatacontainer_for_courseenrollment_path_adapter(enrollment, unused_request):
     return _metadatacontainer_for_course(ICourseInstance(enrollment))
 
 
@@ -285,7 +285,7 @@ class _UsersCourseMetadataContainerTraversable(ContainerAdapterTraversable):
 @component.adapter(IUsersCourseAssignmentMetadata, IRequest)
 class _UsersCourseMetadataTraversable(ContainerAdapterTraversable):
 
-    def traverse(self, key, remaining_path):
+    def traverse(self, key, unused_remaining_path):
         assesment = component.queryUtility(IQAssessment, name=key)
         if assesment is not None:
             return assesment
@@ -293,12 +293,12 @@ class _UsersCourseMetadataTraversable(ContainerAdapterTraversable):
 
 
 @component.adapter(ICourseInstance, IObjectAddedEvent)
-def _on_course_added(course, event):
+def _on_course_added(course, unused_event):
     _metadatacontainer_for_course(course)
 
 
 @component.adapter(IUsersCourseAssignmentHistoryItem, IObjectAddedEvent)
-def _on_assignment_history_item_added(item, event):
+def _on_assignment_history_item_added(item, unused_event):
     user = IUser(item, None)
     course = find_interface(item, ICourseInstance, strict=False)
     assignment_metadata = component.queryMultiAdapter((course, user),
@@ -311,7 +311,7 @@ def _on_assignment_history_item_added(item, event):
 
 
 @component.adapter(IUsersCourseAssignmentHistoryItem, IObjectRemovedEvent)
-def _on_assignment_history_item_deleted(item, event):
+def _on_assignment_history_item_deleted(item, unused_event):
     user = IUser(item, None)
     course = find_interface(item, ICourseInstance, strict=False)
     assignment_metadata = component.queryMultiAdapter((course, user),

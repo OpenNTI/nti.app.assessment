@@ -701,6 +701,30 @@ def get_entry_ntiids(courses=()):
     return ntiids
 
 
+def get_all_submissions(context, sites=(), index_name=IX_ASSESSMENT_ID):
+    if IQEvaluation.providedBy(context):
+        ntiid = context.ntiid
+        if not sites:
+            name = get_resource_site_name(context)
+            sites = (name,) if name else ()
+    else:
+        ntiid = context
+    query = {
+        index_name: {'any_of': (ntiid,)}
+    }
+    if isinstance(sites, six.string_types):
+        sites = sites.split()
+    if sites:
+        query[IX_SITE] = {'any_of': sites}
+    # execute query
+    catalog = get_submission_catalog()
+    intids = component.getUtility(IIntIds)
+    for doc_id in catalog.apply(query) or ():
+        obj = intids.queryObject(doc_id)
+        if IUsersCourseSubmissionItem.providedBy(obj):
+            yield obj
+
+
 def get_submissions(context, courses=(), index_name=IX_ASSESSMENT_ID):
     """
     Return all submissions for the given evaluation object.
@@ -1332,8 +1356,8 @@ def get_outline_evaluation_containers(obj):
         # Tests
         return
     assigment_question_sets = set()
-    containers = \
-        get_containers_for_evaluation_object(obj, include_question_sets=True)
+    containers = get_containers_for_evaluation_object(obj, 
+                                                      include_question_sets=True)
 
     # Gather assignment question sets and remove them.
     for container in containers or ():

@@ -9,7 +9,8 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-from collections import defaultdict
+from collections import defaultdict 
+from collections import OrderedDict 
 
 from zope import component
 
@@ -36,8 +37,6 @@ from nti.assessment.interfaces import ALL_EVALUATION_MIME_TYPES
 from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQAssessmentItemContainer
-
-from nti.contentlibrary.indexed_data import get_library_catalog
 
 from nti.contentlibrary.interfaces import IContentUnit
 
@@ -73,7 +72,7 @@ def lookup_all_evaluations(site_registry):
 
 def _master_data_collector():
     seen = set()
-    registered = {}
+    registered = OrderedDict()
     containers = defaultdict(list)
     legacy = component.getUtilitiesFor(IQEvaluation)
     legacy = {ntiid for ntiid, _ in list(legacy)}
@@ -130,7 +129,6 @@ def check_assessment_integrity(remove=False):
     result = 0
     removed = set()
     duplicates = dict()
-    catalog = get_library_catalog()
     for key, data in count.items():
         ntiid, _ = key
         # find registry and registered objects
@@ -178,7 +176,6 @@ def check_assessment_integrity(remove=False):
             if doc_id != ruid:
                 result += 1
                 item.__parent__ = None
-                catalog.unindex(doc_id)
                 removeIntId(item)
 
         # canonicalize
@@ -190,7 +187,8 @@ def check_assessment_integrity(remove=False):
     fixed_lineage = set()
     adjusted_container = set()
     catalog = get_evaluation_catalog()
-
+    meta_catalog = get_metadata_catalog()
+    
     # check all registered items
     for key, things in all_registered.items():
         ntiid, _ = key
@@ -212,6 +210,7 @@ def check_assessment_integrity(remove=False):
             logger.warn("Reindexing %s", ntiid)
             reindexed.add(ntiid)
             catalog.index_doc(uid, registered)
+            meta_catalog.index_doc(uid, registered)
 
         if IQEditableEvaluation.providedBy(registered):
             continue
@@ -228,6 +227,7 @@ def check_assessment_integrity(remove=False):
                     registered.__parent__ = unit
                     if uid is not None:
                         catalog.index_doc(uid, registered)
+                        meta_catalog.index_doc(uid, registered)
             elif remove and uid is not None and not registered.isLocked():
                 registry = site.getSiteManager()
                 removed.add(ntiid)
@@ -244,6 +244,8 @@ def check_assessment_integrity(remove=False):
                     connection.add(registered)
                 addIntId(registered)
                 uid = intids.queryId(registered)
+                catalog.index_doc(uid, registered)
+                meta_catalog.index_doc(uid, registered)
 
         # make sure containers have registered object
         for container in containers or ():

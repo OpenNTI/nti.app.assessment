@@ -249,11 +249,11 @@ def _savepoint_for_user_in_course(course, user, create=True):
     return result
 
 
-def _savepoints_for_course_path_adapter(course, request):
+def _savepoints_for_course_path_adapter(course, unused_request):
     return _savepoints_for_course(course)
 
 
-def _savepoints_for_courseenrollment_path_adapter(enrollment, request):
+def _savepoints_for_courseenrollment_path_adapter(enrollment, unused_request):
     return _savepoints_for_course(ICourseInstance(enrollment))
 
 
@@ -279,7 +279,7 @@ class _UsersCourseAssignmentSavepointsTraversable(ContainerAdapterTraversable):
 @component.adapter(IUsersCourseAssignmentSavepoint, IRequest)
 class _UsersCourseAssignmentSavepointTraversable(ContainerAdapterTraversable):
 
-    def traverse(self, key, remaining_path):
+    def traverse(self, key, unused_remaining_path):
         assesment = component.queryUtility(IQAssessment, name=key)
         if assesment is not None:
             return assesment
@@ -287,7 +287,7 @@ class _UsersCourseAssignmentSavepointTraversable(ContainerAdapterTraversable):
 
 
 @component.adapter(ICourseInstance, IObjectAddedEvent)
-def _on_course_added(course, event):
+def _on_course_added(course, unused_event):
     _savepoints_for_course(course)
 
 
@@ -303,10 +303,10 @@ def _delete_assignment_save_point(item):
 
 
 @component.adapter(IUsersCourseAssignmentHistoryItem, IObjectRemovedEvent)
-def _on_assignment_history_item_deleted(item, event):
+def _on_assignment_history_item_deleted(item, unused_event):
     _delete_assignment_save_point(item)
 
 
 @component.adapter(IUsersCourseAssignmentHistoryItem, IObjectAddedEvent)
-def _on_assignment_history_item_added(item, event):
+def _on_assignment_history_item_added(item, unused_event):
     _delete_assignment_save_point(item)

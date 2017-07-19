@@ -225,11 +225,11 @@ def _inquiry_for_user_in_course(course, user, create=True):
     return result
 
 
-def _inquiries_for_course_path_adapter(course, request):
+def _inquiries_for_course_path_adapter(course, unused_request):
     return _inquiries_for_course(course)
 
 
-def _inquiries_for_courseenrollment_path_adapter(enrollment, request):
+def _inquiries_for_courseenrollment_path_adapter(enrollment, unused_request):
     return _inquiries_for_course(ICourseInstance(enrollment))
 
 
@@ -255,7 +255,7 @@ class _UsersCourseInquiriesTraversable(ContainerAdapterTraversable):
 @component.adapter(IUsersCourseInquiry, IRequest)
 class _UsersCourseInquiryTraversable(ContainerAdapterTraversable):
 
-    def traverse(self, key, remaining_path):
+    def traverse(self, key, unused_remaining_path):
         assesment = component.queryUtility(IQInquiry, name=key)
         if assesment is not None:
             return assesment
@@ -308,16 +308,16 @@ def _aggreated_inquiries_for_course(course):
     return result
 
 
-def _aggreated_inquiries_for_course_path_adapter(course, request):
+def _aggreated_inquiries_for_course_path_adapter(course, unused_request):
     return _aggreated_inquiries_for_course(course)
 
 
-def _aggreated_inquiries_for_courseenrollment_path_adapter(enrollment, request):
+def _aggreated_inquiries_for_courseenrollment_path_adapter(enrollment, unused_request):
     return _aggreated_inquiries_for_course(ICourseInstance(enrollment))
 
 
 @component.adapter(ICourseInstance, IObjectAddedEvent)
-def _on_course_added(course, event):
+def _on_course_added(course, unused_event):
     _inquiries_for_course(course)
 
 

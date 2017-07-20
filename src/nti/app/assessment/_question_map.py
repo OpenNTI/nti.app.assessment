@@ -56,6 +56,8 @@ from nti.assessment.interfaces import QUESTION_SET_MIME_TYPE
 
 from nti.contentlibrary.indexed_data import get_site_registry
 
+from nti.base._compat import text_
+
 from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.interfaces import IContentPackage
 from nti.contentlibrary.interfaces import IContentPackageLibrary
@@ -325,7 +327,7 @@ class QuestionMap(QuestionIndex):
 											object_hook=_ntiid_object_hook)
 				obj.ntiid = ntiid
 				obj.signature = signatures_dict.get(ntiid)
-				obj.__name__ = unicode(ntiid).encode('utf8').decode('utf8')
+				obj.__name__ = text_(ntiid).encode('utf8').decode('utf8')
 				self._store_object(ntiid, obj)
 
 				things_to_register = self._explode_object_to_register(obj)

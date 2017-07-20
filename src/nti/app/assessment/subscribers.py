@@ -20,6 +20,9 @@ from zope.container.interfaces import IContainer
 from zope.intid.interfaces import IIntIds
 from zope.intid.interfaces import IIntIdRemovedEvent
 
+from zope.lifecycleevent.interfaces import IObjectAddedEvent
+from zope.lifecycleevent.interfaces import IObjectModifiedEvent
+
 from pyramid.httpexceptions import HTTPUnprocessableEntity
 
 from nti.app.assessment import MessageFactory as _
@@ -29,6 +32,7 @@ from nti.app.assessment.common import get_resource_site_name
 from nti.app.assessment.common import get_course_from_evaluation
 from nti.app.assessment.common import index_course_package_assessments
 from nti.app.assessment.common import get_available_for_submission_ending
+from nti.app.assessment.common import is_discussion_assignment_non_public
 
 from nti.app.assessment.index import IX_SITE
 from nti.app.assessment.index import IX_COURSE
@@ -52,6 +56,7 @@ from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionMovedEvent
+from nti.assessment.interfaces import IQDiscussionAssignment
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 
@@ -263,3 +268,15 @@ def update_assessments_on_course_bundle_update(course, unused_event):
     items in our ICourseInstance packages.
     """
     index_course_package_assessments(course)
+
+
+@component.adapter(IQDiscussionAssignment, IObjectModifiedEvent)
+def on_discussion_assignment_created(context, event):
+    is_non_public = is_discussion_assignment_non_public(context)
+    context.is_non_public = is_non_public
+
+
+@component.adapter(IQDiscussionAssignment, IObjectAddedEvent)
+def on_discussion_assignment_updated(context, event):
+    is_non_public = is_discussion_assignment_non_public(context)
+    context.is_non_public = is_non_public

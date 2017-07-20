@@ -150,7 +150,7 @@ class ValidatingCatalogEntryID(object):
     def __init__(self, obj, default=None):
         entry = self._entry(obj)
         if entry is not None:
-            self.ntiid = unicode(entry.ntiid)
+            self.ntiid = text_(entry.ntiid)
 
     def __reduce__(self):
         raise TypeError()

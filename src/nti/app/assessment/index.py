@@ -35,6 +35,7 @@ from nti.assessment.interfaces import IQPollSubmission
 from nti.assessment.interfaces import IQSurveySubmission
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQAssignmentSubmission
+from nti.assessment.interfaces import IQDiscussionAssignment
 
 from nti.base._compat import text_
 
@@ -332,9 +333,10 @@ EVALUATION_CATALOG_NAME = 'nti.dataserver.++etc++evaluation-catalog'
 IX_NTIID = 'ntiid'
 IX_EDITABLE = 'editable'
 IX_MIMETYPE = 'mimeType'
-IX_KEYWORDS = 'keyworkds'
+IX_KEYWORDS = 'keywords'
 IX_CONTAINERS = 'containers'
 IX_CONTAINMENT = 'containment'
+IX_DISCUSSION_NTIID = 'discussion_ntiid'
 
 from six import integer_types
 
@@ -531,6 +533,11 @@ class EvaluationEditableIndex(ValueIndex):
     default_interface = ValidatingEditable
 
 
+class EvaluationDiscussionNTIIDIndex(ValueIndex):
+    default_field_name = 'discussion_ntiid'
+    default_interface = IQDiscussionAssignment
+
+
 class EvaluationCatalog(Catalog):
 
     family = BTrees.family64
@@ -570,7 +577,8 @@ def create_evaluation_catalog(catalog=None, family=None):
                         (IX_EDITABLE, EvaluationEditableIndex),
                         (IX_MIMETYPE, EvaluationMimeTypeIndex),
                         (IX_CONTAINERS, EvaluationContainerIndex),
-                        (IX_CONTAINMENT, EvaluationContainmentIndex),):
+                        (IX_CONTAINMENT, EvaluationContainmentIndex),
+                        (IX_DISCUSSION_NTIID, EvaluationDiscussionNTIIDIndex),):
         index = clazz(family=family)
         locate(index, catalog, name)
         catalog[name] = index

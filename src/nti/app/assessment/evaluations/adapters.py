@@ -66,7 +66,7 @@ def editable_evaluation_to_course(resource):
 
 
 @component.adapter(ICourseInstance, IRequest)
-def evaluations_for_course_path_adapter(course, request):
+def evaluations_for_course_path_adapter(course, _):
     return evaluations_for_course(course)
 
 

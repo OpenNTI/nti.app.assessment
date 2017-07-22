@@ -425,4 +425,7 @@
 			 provides="nti.wref.interfaces.IWeakRef"
 			 for="nti.assessment.interfaces.IQEvaluation" />
 
+	<!-- Recordables -->
+	<utility factory=".recordables.EvaluationRecordables" name="evaluations" />
+
 </configure>

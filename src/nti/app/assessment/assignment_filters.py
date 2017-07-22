@@ -6,7 +6,7 @@ Filters for assignment visibility.
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -78,6 +78,7 @@ class UserEnrolledForCreditInCourseOrInstructsFilter(object):
         return self.is_instructor or self.is_enrolled_for_credit
     # BWC
     allow_assignment_for_user_in_course = allow_assessment_for_user_in_course
+
 # BWC
 UserEnrolledForCreditInCourseFilter = UserEnrolledForCreditInCourseOrInstructsFilter
 
@@ -93,12 +94,14 @@ class AssessmentPolicyExclusionFilter(object):
     If there is no policy, this for the assignment, it is allowed.
     """
 
-    def __init__(self, user=None, course=None):
+    def __init__(self, unused_user=None, course=None):
         self.policies = IQAssessmentPolicies(course)
 
     def allow_assessment_for_user_in_course(self, asg, user=None, course=None):
         return not self.policies.getPolicyForAssessment(asg.ntiid).get('excluded', False)
     allow_assignment_for_user_in_course = allow_assessment_for_user_in_course
+
+
 AssignmentPolicyExclusionFilter = AssessmentPolicyExclusionFilter
 
 

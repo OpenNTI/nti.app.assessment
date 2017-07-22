@@ -18,8 +18,6 @@ from zope.component.hooks import site as current_site
 from nti.app.assessment._question_map import populate_question_map_json
 from nti.app.assessment._question_map import remove_assessment_items_from_oldcontent
 
-from nti.app.assessment.common import get_resource_site_name
-
 from nti.cabinet.filer import transfer_to_native_file
 
 from nti.contentlibrary.interfaces import IFilesystemBucket
@@ -33,7 +31,7 @@ from nti.contenttypes.courses.importer import BaseSectionImporter
 
 from nti.contenttypes.courses.utils import get_parent_course
 
-from nti.site.hostpolicy import get_host_site
+from nti.site.interfaces import IHostPolicyFolder
 
 
 @interface.implementer(ICourseSectionImporter)
@@ -52,8 +50,8 @@ class AssessmentsImporter(BaseSectionImporter):
             result = set()
             source = self.load(source)
             for package in get_course_packages(course):
-                site = get_resource_site_name(package)
-                with current_site(get_host_site(site)):
+                site = IHostPolicyFolder(package)
+                with current_site(site):
                     self.remove_assessments(package)
                     result.update(populate_question_map_json(source, package))
                 # save source

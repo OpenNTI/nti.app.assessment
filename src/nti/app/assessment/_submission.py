@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -18,6 +18,8 @@ from ZODB.POSException import POSError
 
 from pyramid import httpexceptions as hexc
 
+from pyramid.threadlocal import get_current_request
+
 from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment.common import set_parent
@@ -27,21 +29,27 @@ from nti.app.base.abstract_views import get_source
 
 from nti.app.contentfile import transfer_data
 
+from nti.app.externalization.error import raise_json_error
+
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQFilePart
 from nti.assessment.interfaces import IQPollSubmission
 from nti.assessment.interfaces import IQSurveySubmission
 from nti.assessment.interfaces import IInternalUploadedFileRef
 
-from nti.namedfile.interfaces import INamedFile
+from nti.base.interfaces import INamedFile
 
 
 def check_max_size(part, max_file_size=None):
     size = part.size
     max_file_size = max_file_size or sys.maxint
     if size > max_file_size:
-        msg = _('Max file size exceeded.')
-        raise hexc.HTTPUnprocessableEntity(msg)
+        raise_json_error(get_current_request(),
+                         hexc.HTTPUnprocessableEntity,
+                         {
+                            'message': _(u"Max file size exceeded."),
+                         },
+                         None)
     return part
 
 
@@ -55,9 +63,14 @@ def check_upload_files(submission):
                     continue
 
                 if not IQFilePart.providedBy(part):
-                    msg = 'Invalid submission. Expected a IQFilePart, instead it found %s' % part
-                    raise hexc.HTTPUnprocessableEntity(msg)
-
+                    msg = 'Invalid submission. Expected a IQFilePart, ' \
+                          'instead it found %s' % part
+                    raise_json_error(get_current_request(),
+                                     hexc.HTTPUnprocessableEntity,
+                                     {
+                                        'message': msg,
+                                     },
+                                     None)
                 max_size = part.max_file_size
                 check_max_size(part_value, max_size)
     return submission
@@ -73,21 +86,36 @@ def read_multipart_sources(submission, request):
                     continue
 
                 if not IQFilePart.providedBy(part):
-                    msg = 'Invalid submission. Expected a IQFilePart, instead it found %s' % part
-                    raise hexc.HTTPUnprocessableEntity(msg)
-
+                    msg = 'Invalid submission. Expected a IQFilePart, ' \
+                          'instead it found %s' % part
+                    raise_json_error(get_current_request(),
+                                     hexc.HTTPUnprocessableEntity,
+                                     {
+                                        'message': msg,
+                                     },
+                                     None)
                 max_size = part.max_file_size
                 if part_value.size > 0:
                     check_max_size(part_value, max_size)
 
                 if not part_value.name:
-                    msg = 'No name was given to uploded file'
-                    raise hexc.HTTPUnprocessableEntity(msg)
+                    msg = _(u'No name was given to uploded file.')
+                    raise_json_error(get_current_request(),
+                                     hexc.HTTPUnprocessableEntity,
+                                     {
+                                        'message': msg,
+                                     },
+                                     None)
 
                 source = get_source(request, part_value.name)
                 if source is None:
                     msg = 'Could not find data for file %s' % part_value.name
-                    raise hexc.HTTPUnprocessableEntity(msg)
+                    raise_json_error(get_current_request(),
+                                     hexc.HTTPUnprocessableEntity,
+                                     {
+                                        'message': msg,
+                                     },
+                                     None)
 
                 # copy data
                 transfer_data(source, part_value)

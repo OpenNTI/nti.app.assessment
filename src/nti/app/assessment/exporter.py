@@ -58,7 +58,7 @@ class AssessmentsExporter(BaseSectionExporter):
             items[unit.ntiid]['AssessmentItems'] = evaluations
             # create new items for children
             child_items = items[unit.ntiid][ITEMS] = dict()
-            for child in unit.children:
+            for child in unit.children or ():
                 _recur(child, child_items)
             # remove empty
             if not evaluations and not child_items:

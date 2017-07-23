@@ -5,6 +5,8 @@
 """
 
 from __future__ import print_function, absolute_import, division
+from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQuestionSet
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -212,6 +214,16 @@ def check_assessment_integrity(remove=False):
             catalog.index_doc(uid, registered)
             meta_catalog.index_doc(uid, registered)
 
+        registry = site.getSiteManager()
+        if      registry is not component.getGlobalSiteManager() \
+            and IQAssignment.providedBy(registered):
+            for qs in registered.iter_question_sets():
+                doc_id = intids.queryId(qs)
+                if     doc_id is None \
+                    or registry.getUtility(IQuestionSet, qs.ntiid) is None:
+                    logger.warn("Assignment %s/%s has an unregistered question set %s",
+                                site.__name__, ntiid, qs.ntiid)
+                    
         if IQEditableEvaluation.providedBy(registered):
             continue
 

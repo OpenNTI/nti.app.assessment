@@ -220,7 +220,7 @@ def check_assessment_integrity(remove=False):
             for qs in registered.iter_question_sets():
                 doc_id = intids.queryId(qs)
                 if     doc_id is None \
-                    or registry.getUtility(IQuestionSet, qs.ntiid) is None:
+                    or registry.queryUtility(IQuestionSet, qs.ntiid) is None:
                     logger.warn("Assignment %s/%s has an unregistered question set %s",
                                 site.__name__, ntiid, qs.ntiid)
                     

@@ -90,7 +90,7 @@ from nti.traversal.traversal import find_interface
 
 
 @component.adapter(ICourseInstance, IObjectAddedEvent)
-def _on_course_added(course, event):
+def _on_course_added(course, unused_event):
     evaluations_for_course(course)
 
 
@@ -102,12 +102,12 @@ def _update_containment(item, intids=None):
 
 
 @component.adapter(IQuestion, IObjectRemovedEvent)
-def _on_question_removed(question, event):
+def _on_question_removed(question, unused_event):
     _update_containment(question)
 
 
 @component.adapter(IQPoll, IObjectRemovedEvent)
-def _on_poll_removed(poll, event):
+def _on_poll_removed(poll, unused_event):
     _update_containment(poll)
 
 
@@ -141,19 +141,19 @@ def _allow_poll_change(question, externalValue):
 
 
 @component.adapter(IQuestion, IObjectAddedEvent)
-def _on_question_added(question, event):
+def _on_question_added(question, unused_event):
     if IQEditableEvaluation.providedBy(question):
         _validate_part_resource(question)
 
 
 @component.adapter(IQuestion, IObjectModifiedFromExternalEvent)
-def _on_question_modified(question, event):
+def _on_question_modified(question, unused_event):
     if IQEditableEvaluation.providedBy(question):
         _validate_part_resource(question)
 
 
 @component.adapter(IQEditableEvaluation, IQuestionInsertedInContainerEvent)
-def _on_question_inserted_in_container(container, event):
+def _on_question_inserted_in_container(container, unused_event):
     course = find_interface(container, ICourseInstance, strict=False)
     validate_structural_edits(container, course)
     if IRecordableContainer.providedBy(container):
@@ -165,18 +165,18 @@ def _on_question_inserted_in_container(container, event):
 
 
 @component.adapter(IQEditableEvaluation, IQuestionRemovedFromContainerEvent)
-def _on_question_removed_from_container(container, event):
+def _on_question_removed_from_container(container, unused_event):
     _on_question_inserted_in_container(container, None)
 
 
 @component.adapter(IQPoll, IObjectAddedEvent)
-def _on_poll_added(poll, event):
+def _on_poll_added(poll, unused_event):
     if IQEditableEvaluation.providedBy(poll):
         _validate_part_resource(poll)
 
 
 @component.adapter(IQPoll, IObjectModifiedFromExternalEvent)
-def _on_poll_modified(poll, event):
+def _on_poll_modified(poll, unused_event):
     if IQEditableEvaluation.providedBy(poll):
         _validate_part_resource(poll)
         _allow_poll_change(poll)
@@ -184,7 +184,7 @@ def _on_poll_modified(poll, event):
 
 @component.adapter(IQuestionSet, IObjectAddedEvent)
 @component.adapter(IQuestionSet, IObjectModifiedFromExternalEvent)
-def _on_questionset_event(context, event):
+def _on_questionset_event(context, unused_event):
     if      IQEditableEvaluation.providedBy(context) \
         and not context.questions:
         raise_error({
@@ -195,7 +195,7 @@ def _on_questionset_event(context, event):
 
 @component.adapter(IQSurvey, IObjectAddedEvent)
 @component.adapter(IQSurvey, IObjectModifiedFromExternalEvent)
-def _on_survey_event(context, event):
+def _on_survey_event(context, unused_event):
     if      IQEditableEvaluation.providedBy(context) \
         and not context.questions:
         raise_error({
@@ -205,7 +205,7 @@ def _on_survey_event(context, event):
 
 
 @component.adapter(IQEvaluation, IRegradeEvaluationEvent)
-def _on_regrade_evaluation_event(context, event):
+def _on_regrade_evaluation_event(context, unused_event):
     course = get_course_from_request()
     if course is None:
         course = get_course_from_evaluation(context, user=get_remote_user())
@@ -227,13 +227,13 @@ def _on_assessment_policies_modified_event(course, event):
 
 
 @component.adapter(IQAssignment, IObjectUnlockedEvent)
-def _on_assignment_unlock_event(context, event):
+def _on_assignment_unlock_event(context, unused_event):
     courses = get_evaluation_courses(context)
     notify(UnlockQAssessmentPolicies(context, courses))
 
 
 @component.adapter(IQEditableEvaluation, IBeforeIdRemovedEvent)
-def _on_editable_evaluation_removed(context, event):
+def _on_editable_evaluation_removed(context, unused_event):
     if IQSubmittable.providedBy(context):
         delete_all_evaluation_data(context)
     else:
@@ -241,7 +241,7 @@ def _on_editable_evaluation_removed(context, event):
 
 
 @component.adapter(ICourseInstance, IIntIdRemovedEvent)
-def _on_course_instance_removed(course, event):
+def _on_course_instance_removed(course, unused_event):
     evaluations = ICourseEvaluations(course, None)
     if evaluations is not None:
         registry = get_course_site_registry(course)

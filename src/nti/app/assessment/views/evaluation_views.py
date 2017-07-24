@@ -39,18 +39,15 @@ from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment import VIEW_ASSESSMENT_MOVE
 from nti.app.assessment import VIEW_COPY_EVALUATION
-from nti.app.assessment import VIEW_REGRADE_EVALUATION
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 
 from nti.app.assessment.common import get_courses
 from nti.app.assessment.common import has_submissions
-from nti.app.assessment.common import regrade_evaluation
 from nti.app.assessment.common import validate_auto_grade
 from nti.app.assessment.common import get_max_time_allowed
 from nti.app.assessment.common import make_evaluation_ntiid
 from nti.app.assessment.common import get_auto_grade_policy
 from nti.app.assessment.common import get_resource_site_name
-from nti.app.assessment.common import get_evaluation_courses
 from nti.app.assessment.common import has_inquiry_submissions
 from nti.app.assessment.common import delete_evaluation_metadata
 from nti.app.assessment.common import delete_inquiry_submissions
@@ -140,13 +137,7 @@ from nti.contenttypes.courses.utils import is_course_instructor
 
 from nti.dataserver import authorization as nauth
 
-from nti.dataserver.authorization import ROLE_ADMIN
-
 from nti.dataserver.contenttypes.forums.interfaces import ITopic
-
-from nti.dataserver.interfaces import IGroupMember
-
-from nti.dataserver.users import User
 
 from nti.externalization.externalization import to_external_object
 
@@ -1538,85 +1529,3 @@ class QuestionSetMoveView(AbstractChildMoveView,
 							u'code': 'CannotMoveEvaluations',
 						},
 						None)
-
-@view_config(context=IQuestion)
-@view_config(context=IQAssignment)
-@view_defaults(route_name='objects.generic.traversal',
-			   renderer='rest',
-			   request_method='POST',
-			   name=VIEW_REGRADE_EVALUATION,
-			   permission=nauth.ACT_READ)
-class RegradeEvaluationView(AbstractAuthenticatedView):
-
-	@property
-	def _admin_user(self):
-		result = set()
-		for _, adapter in component.getAdapters((self.remoteUser,), IGroupMember):
-			result.update(adapter.groups)
-		return ROLE_ADMIN in result
-
-	def _get_instructor(self):
-		params = CaseInsensitiveDict(self.request.params)
-		username = params.get( 'user' ) \
-				or params.get( 'username' ) \
-				or params.get( 'instructor' )
-		result = User.get_user( username )
-		if result is None:
-			raise_json_error(self.request,
-							 hexc.HTTPForbidden,
-							 {
-								u'message': _("No instructor found."),
-								u'code': 'CannotFindInstructor',
-							 },
-							 None)
-		return result
-
-	def _get_courses(self, evaluation):
-		result = get_course_from_request(self.request)
-		if result is None:
-			# If no course in request, get all courses for this assignment.
-			result = get_evaluation_courses( evaluation )
-		else:
-			result = (result,)
-		return result
-
-	def _validate_regrade(self, course, user):
-		# Only admins or instructors are able to make this call.
-		# Otherwise, make sure the user param passed in is an
-		# instructor.
-		if 			(not self._admin_user \
-				and not is_course_instructor(course, self.remoteUser)) \
-			or  not is_course_instructor(course, user):
-			raise_json_error(self.request,
-							 hexc.HTTPForbidden,
-							 {
-								u'message': _("Cannot regrade evaluation."),
-								u'code': 'CannotRegradeEvaluation',
-							 },
-							 None)
-
-	def __call__(self):
-		user = self.remoteUser
-		if self._admin_user:
-			# We allow admin users to regrade as instructors.
-			user = self._get_instructor()
-		courses = self._get_courses( self.context )
-		if not courses:
-			raise_json_error(self.request,
-							 hexc.HTTPForbidden,
-							 {
-								u'message': _("Cannot find evaluation course."),
-								u'code': 'CannotFindEvaluationCourse',
-							 },
-							 None)
-		for course in courses:
-			self._validate_regrade( course, user )
-			entry = ICourseCatalogEntry( course, None )
-			entry_ntiid = getattr( entry, 'ntiid', '' )
-			logger.info( '%s regrading %s (%s) (course=%s)',
-						 user.username, self.context.ntiid,
-						 self.remoteUser.username, entry_ntiid)
-			# The grade object itself actually arbitrarily picks an
-			# instructor as the creator.
-			regrade_evaluation(self.context, course)
-		return self.context

@@ -450,11 +450,11 @@ class ICourseAggregatedInquiries(IContainer,
     contains(IQAggregatedInquiry)
 
 
-class ICourseEvaluations(IContainer,
-                         IContained,
-                         IShouldHaveTraversablePath):
+class IQEvaluations(IContainer,
+                    IContained,
+                    IShouldHaveTraversablePath):
     """
-    A container for all the evaluation objects in a course
+    A container for all the evaluation objects in a context
     """
     contains(IQEvaluation)
 
@@ -462,6 +462,12 @@ class ICourseEvaluations(IContainer,
         """"
         replace the old evalutation object with the new one
         """
+
+
+class ICourseEvaluations(IQEvaluations):
+    """
+    A container for all the evaluation objects in a course
+    """
 
 
 class IQPartChangeAnalyzer(interface.Interface):

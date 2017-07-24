@@ -521,6 +521,42 @@ def display_list(data):
     return u''.join(result)
 
 
+def _handle_non_gradable_connecting_part(user_sub_part, poll, part_idx):
+    # need this to be sorted by value. Since the response
+    # values come from a dictionary, they may not be in the right order
+    # otherwise. We need to make sure to assign the correct label
+    # for each response.
+    response_values = sorted(user_sub_part.items(), key=lambda x: x[1])
+    part_values = poll.parts[part_idx].values
+    part_labels = [plain_text(x) for x in part_values]
+    # We look up by key from the response values in order
+    # to get the label for this choice.
+    result = [part_labels[int(k[0])] for k in response_values]
+    return display_list(result)
+
+
+def _handle_multiple_choice_multiple_answer(user_sub_part, poll, part_idx):
+    response_values = user_sub_part
+    part_values = poll.parts[part_idx].choices
+    result = [
+        plain_text(part_values[int(k)]) for k in response_values
+    ]
+    return display_list(result)
+
+
+def _handle_multiple_choice_part(user_sub_part, poll, part_idx):
+    part_values = poll.parts[part_idx].choices
+    return plain_text(part_values[int(user_sub_part)])
+
+
+def _handle_modeled_content_part(user_sub_part, poll, part_idx):
+    return user_sub_part.value[0]
+
+
+def _handle_free_response_part(user_sub_part, poll, part_idx):
+    return plain_text(user_sub_part)
+
+
 @view_config(route_name="objects.generic.traversal",
              context=IQSurvey,
              name='InquiryReport.csv',
@@ -536,56 +572,24 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
     @property
     def question_functions(self):
         return [(IQNonGradableMultipleChoiceMultipleAnswerPart,
-                 self._handle_multiple_choice_multiple_answer),
+                 _handle_multiple_choice_multiple_answer),
                 (IQNonGradableConnectingPart,
-                    self._handle_non_gradable_connecting_part),
+                 _handle_non_gradable_connecting_part),
                 (IQNonGradableMultipleChoicePart,
-                    self._handle_multiple_choice_part),
+                 _handle_multiple_choice_part),
                 (IQNonGradableModeledContentPart,
-                    self._handle_modeled_content_part),
+                 _handle_modeled_content_part),
                 (IQNonGradableFreeResponsePart,
-                    self._handle_free_response_part)
-                ]
+                 _handle_free_response_part)]
 
     def _get_function_for_question_type(self, poll_part):
         # look through mapping to find a match
-        for pairing in self.question_functions:
-            if pairing[0].providedBy(poll_part):
-                return pairing[1]
+        for iface, factory in self.question_functions:
+            if iface.providedBy(poll_part):
+                return factory
 
         # return None if we can't find a match for this question type.
         return None
-
-    def _handle_non_gradable_connecting_part(self, user_sub_part, poll, part_idx):
-        # need this to be sorted by value. Since the response
-        # values come from a dictionary, they may not be in the right order
-        # otherwise. We need to make sure to assign the correct label
-        # for each response.
-        response_values = sorted(user_sub_part.items(), key=lambda x: x[1])
-        part_values = poll.parts[part_idx].values
-        part_labels = [plain_text(x) for x in part_values]
-        # We look up by key from the response values in order
-        # to get the label for this choice.
-        result = [part_labels[int(k[0])] for k in response_values]
-        return display_list(result)
-
-    def _handle_multiple_choice_multiple_answer(self, user_sub_part, poll, part_idx):
-        response_values = user_sub_part
-        part_values = poll.parts[part_idx].choices
-        result = [
-            plain_text(part_values[int(k)]) for k in response_values
-        ]
-        return display_list(result)
-
-    def _handle_multiple_choice_part(self, user_sub_part, poll, part_idx):
-        part_values = poll.parts[part_idx].choices
-        return plain_text(part_values[int(user_sub_part)])
-
-    def _handle_modeled_content_part(self, user_sub_part, poll, part_idx):
-        return user_sub_part.value[0]
-
-    def _handle_free_response_part(self, user_sub_part, poll, part_idx):
-        return plain_text(user_sub_part)
 
     def __call__(self):
 

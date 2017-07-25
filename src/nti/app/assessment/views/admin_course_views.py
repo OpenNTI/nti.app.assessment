@@ -32,7 +32,7 @@ from nti.app.assessment._assessment import move_user_assignment_from_course_to_c
 
 from nti.app.assessment.common import index_course_package_assessments
 
-from nti.app.assessment.interfaces import ICourseEvaluations
+from nti.app.assessment.interfaces import IQEvaluations
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
 
@@ -330,7 +330,7 @@ class RemoveCourseEvaluationsView(AbstractAuthenticatedView):
 
     def __call__(self):
         course = ICourseInstance(self.context)
-        evaluations = ICourseEvaluations(course, None)
+        evaluations = IQEvaluations(course, None)
         if evaluations:
             evaluations.clear()
         return hexc.HTTPNoContent()

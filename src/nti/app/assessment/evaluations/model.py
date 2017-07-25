@@ -18,6 +18,7 @@ from ZODB.interfaces import IConnection
 
 from nti.app.assessment.interfaces import IQEvaluations
 from nti.app.assessment.interfaces import ICourseEvaluations
+from nti.app.assessment.interfaces import IContentPackageEvaluations
 
 from nti.containers.containers import CaseInsensitiveCheckingLastModifiedBTreeContainer
 
@@ -104,7 +105,7 @@ class CourseEvaluations(Evaluations):
         return result
 
 
-@interface.implementer(IQEvaluations)
+@interface.implementer(IContentPackageEvaluations)
 class ContentPackageEvaluations(Evaluations):
     """
     Implementation of the content package evaluations.

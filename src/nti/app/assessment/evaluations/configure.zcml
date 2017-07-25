@@ -18,8 +18,7 @@
 			 provides="zope.traversing.interfaces.IPathAdapter"
 			 name="ContentPackageEvaluations" />
 
-	<adapter factory=".adapters.CourseEvaluationsTraversable" />
-	<adapter factory=".adapters.PackageEvaluationsTraversable" />
+	<adapter factory=".adapters.EvaluationsTraversable" />
 
 	<!-- Adapters -->
 	<adapter factory=".adapters.evaluations_for_course" />

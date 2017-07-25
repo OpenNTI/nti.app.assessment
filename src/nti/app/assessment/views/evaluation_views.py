@@ -53,7 +53,7 @@ from nti.app.assessment.evaluations.utils import register_context
 from nti.app.assessment.evaluations.utils import delete_evaluation
 from nti.app.assessment.evaluations.utils import import_evaluation_content
 
-from nti.app.assessment.interfaces import ICourseEvaluations
+from nti.app.assessment.interfaces import IQEvaluations
 from nti.app.assessment.interfaces import IQAvoidSolutionCheck
 from nti.app.assessment.interfaces import RegradeQuestionEvent
 
@@ -159,7 +159,7 @@ ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 VERSION = u'Version'
 
 
-@view_config(context=ICourseEvaluations)
+@view_config(context=IQEvaluations)
 @view_defaults(route_name='objects.generic.traversal',
 			   renderer='rest',
 			   request_method='GET',
@@ -211,7 +211,7 @@ class CatalogEntryEvaluationsView(CourseEvaluationsGetView):
 
 	def __call__(self):
 		course = ICourseInstance(self.context)
-		evaluations = ICourseEvaluations(course)
+		evaluations = IQEvaluations(course)
 		return self._do_call(evaluations)
 
 
@@ -249,7 +249,7 @@ class EvaluationMixin(StructuralValidationMixin):
 		Finish initalizing new evaluation object and store persistently.
 		"""
 		provided = iface_of_assessment(obj)
-		evaluations = ICourseEvaluations(course)
+		evaluations = IQEvaluations(course)
 		obj.ntiid = ntiid = make_evaluation_ntiid(provided, extra=self._extra)
 		obj.creator = getattr(user, 'username', user)
 		lifecycleevent.created(obj)
@@ -268,7 +268,7 @@ class EvaluationMixin(StructuralValidationMixin):
 
 	def get_registered_evaluation(self, obj, course):
 		ntiid = self.get_ntiid(obj)
-		evaluations = ICourseEvaluations(course)
+		evaluations = IQEvaluations(course)
 		if ntiid in evaluations:  # replace
 			obj = evaluations[ntiid]
 		else:
@@ -567,7 +567,7 @@ class EvaluationMixin(StructuralValidationMixin):
 
 # POST views
 
-@view_config(context=ICourseEvaluations)
+@view_config(context=IQEvaluations)
 @view_defaults(route_name='objects.generic.traversal',
 			   renderer='rest',
 			   request_method='POST',
@@ -959,7 +959,7 @@ class QuestionSetPutView(EvaluationPutView):
 		self._update_assignments( source, target )
 
 	def _create_new_object( self, obj, course ):
-		evaluations = ICourseEvaluations( course )
+		evaluations = IQEvaluations( course )
 		lifecycleevent.created(obj)
 		# XXX mark as editable before storing so proper validation is done
 		interface.alsoProvides(obj, IQEditableEvaluation)

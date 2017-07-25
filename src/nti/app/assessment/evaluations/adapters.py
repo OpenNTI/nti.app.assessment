@@ -26,7 +26,6 @@ from nti.app.assessment.evaluations.model import CourseEvaluations
 from nti.app.assessment.evaluations.model import ContentPackageEvaluations
 
 from nti.app.assessment.interfaces import IQEvaluations
-from nti.app.assessment.interfaces import ICourseEvaluations
 
 from nti.assessment.interfaces import IQEditableEvaluation
 
@@ -39,7 +38,7 @@ from nti.traversal.traversal import ContainerAdapterTraversable
 
 
 @component.adapter(ICourseInstance)
-@interface.implementer(ICourseEvaluations)
+@interface.implementer(IQEvaluations)
 def evaluations_for_course(course, create=True):
     result = None
     annotations = IAnnotations(course)
@@ -60,7 +59,7 @@ def evaluations_for_course(course, create=True):
 
 
 @interface.implementer(ICourseInstance)
-@component.adapter(ICourseEvaluations)
+@component.adapter(IQEvaluations)
 def course_from_item_lineage(item):
     return course_from_context_lineage(item, validate=True)
 
@@ -74,13 +73,6 @@ def editable_evaluation_to_course(resource):
 @component.adapter(ICourseInstance, IRequest)
 def evaluations_for_course_path_adapter(course, _):
     return evaluations_for_course(course)
-
-
-@component.adapter(ICourseEvaluations, IRequest)
-class CourseEvaluationsTraversable(ContainerAdapterTraversable):
-
-    def traverse(self, key, remaining_path):
-        return super(CourseEvaluationsTraversable, self).traverse(key, remaining_path)
 
 
 @interface.implementer(IQEvaluations)
@@ -114,7 +106,7 @@ def evaluations_for_package_path_adapter(package, _):
 
 
 @component.adapter(IQEvaluations, IRequest)
-class PackageEvaluationsTraversable(ContainerAdapterTraversable):
+class EvaluationsTraversable(ContainerAdapterTraversable):
 
     def traverse(self, key, remaining_path):
-        return super(PackageEvaluationsTraversable, self).traverse(key, remaining_path)
+        return super(EvaluationsTraversable, self).traverse(key, remaining_path)

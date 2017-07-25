@@ -37,7 +37,7 @@ from nti.app.assessment.common import get_evaluation_courses
 
 from nti.app.assessment.utils import get_course_from_request
 
-from nti.app.assessment.interfaces import ICourseEvaluations
+from nti.app.assessment.interfaces import IQEvaluations
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
@@ -219,7 +219,7 @@ class AssignmentsByOutlineNodeMixin(AbstractAuthenticatedView):
     @Lazy
     def _lastModified(self):
         instance = ICourseInstance(self.context)
-        result = ICourseEvaluations(instance).lastModified or 0
+        result = IQEvaluations(instance).lastModified or 0
         for package in get_course_packages(instance):
             lastMod = IQAssessmentItemContainer(package).lastModified
             result = max(result, lastMod or 0)

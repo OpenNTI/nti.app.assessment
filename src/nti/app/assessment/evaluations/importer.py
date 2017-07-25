@@ -27,7 +27,7 @@ from nti.app.assessment.evaluations.utils import indexed_iter
 from nti.app.assessment.evaluations.utils import register_context
 from nti.app.assessment.evaluations.utils import import_evaluation_content
 
-from nti.app.assessment.interfaces import ICourseEvaluations
+from nti.app.assessment.interfaces import IQEvaluations
 
 from nti.app.authentication import get_remote_user
 
@@ -98,7 +98,7 @@ class EvaluationsImporter(BaseSectionImporter):
     def is_new(self, obj, course):
         ntiid = self.get_ntiid(obj)
         provided = iface_of_assessment(obj)
-        evaluations = ICourseEvaluations(course)
+        evaluations = IQEvaluations(course)
         return  not ntiid \
             or (ntiid not in evaluations
                 and component.queryUtility(provided, name=ntiid) is None)
@@ -110,7 +110,7 @@ class EvaluationsImporter(BaseSectionImporter):
             provided = iface_of_assessment(obj)
             obj.ntiid = make_evaluation_ntiid(provided, extra=self._extra)
         obj.creator = principal.id  # always seet a creator
-        evaluations = ICourseEvaluations(course)
+        evaluations = IQEvaluations(course)
         if ntiid not in evaluations:
             lifecycleevent.created(obj)
         # gain intid or replace provided the object is the same
@@ -120,7 +120,7 @@ class EvaluationsImporter(BaseSectionImporter):
 
     def get_registered_evaluation(self, obj, course, check_locked=False):
         ntiid = self.get_ntiid(obj)
-        evaluations = ICourseEvaluations(course)
+        evaluations = IQEvaluations(course)
         if ntiid in evaluations:  # replace
             old = evaluations[ntiid]
             if not check_locked or not self.is_locked(obj):

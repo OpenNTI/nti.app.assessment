@@ -5,7 +5,6 @@
 """
 
 from __future__ import print_function, absolute_import, division
-from nti.site.interfaces import IHostPolicyFolder
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -44,7 +43,6 @@ from nti.app.assessment.evaluations.adapters import evaluations_for_course
 from nti.app.assessment.evaluations.utils import validate_structural_edits
 
 from nti.app.assessment.interfaces import IQEvaluations
-from nti.app.assessment.interfaces import ICourseEvaluations
 from nti.app.assessment.interfaces import IQAvoidSolutionCheck
 from nti.app.assessment.interfaces import IQPartChangeAnalyzer
 from nti.app.assessment.interfaces import IRegradeEvaluationEvent
@@ -87,6 +85,8 @@ from nti.recorder.interfaces import IObjectUnlockedEvent
 from nti.recorder.interfaces import IRecordableContainer
 
 from nti.recorder.utils import record_transaction
+
+from nti.site.interfaces import IHostPolicyFolder
 
 from nti.site.utils import unregisterUtility
 
@@ -246,7 +246,7 @@ def _on_editable_evaluation_removed(context, unused_event):
 
 @component.adapter(ICourseInstance, IIntIdRemovedEvent)
 def _on_course_instance_removed(course, unused_event):
-    evaluations = ICourseEvaluations(course, None)
+    evaluations = IQEvaluations(course, None)
     if evaluations is not None:
         registry = get_course_site_registry(course)
         for obj in list(evaluations.values()):

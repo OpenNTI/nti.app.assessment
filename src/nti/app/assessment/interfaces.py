@@ -470,6 +470,12 @@ class ICourseEvaluations(IQEvaluations):
     """
 
 
+class IContentPackageEvaluations(IQEvaluations):
+    """
+    A container for all the evaluation objects in a content package
+    """
+    
+
 class IQPartChangeAnalyzer(interface.Interface):
     """
     Marker interface for a question part adapter to analyze an update to it

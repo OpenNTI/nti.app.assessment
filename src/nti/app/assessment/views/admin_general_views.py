@@ -38,7 +38,7 @@ from nti.app.assessment.common import get_resource_site_name
 from nti.app.assessment.index import get_evaluation_catalog
 from nti.app.assessment.index import get_submission_catalog
 
-from nti.app.assessment.interfaces import ICourseEvaluations
+from nti.app.assessment.interfaces import IQEvaluations
 from nti.app.assessment.interfaces import IUsersCourseInquiries
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
 
@@ -225,7 +225,7 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
                 self.removeIntId(evaluation)
             else:
                 course = ICourseInstance(evaluation, None)
-                evals = ICourseEvaluations(course, None)
+                evals = IQEvaluations(course, None)
                 if evals and ntiid in evals:
                     del evals[ntiid]
 

@@ -34,7 +34,7 @@ from nti.app.assessment.common import has_inquiry_submissions
 from nti.app.assessment.common import get_resource_site_registry
 from nti.app.assessment.common import get_assignments_for_evaluation_object
 
-from nti.app.assessment.interfaces import ICourseEvaluations
+from nti.app.assessment.interfaces import IQEvaluations
 
 from nti.app.base.abstract_views import get_safe_source_filename
 
@@ -311,7 +311,7 @@ def delete_evaluation(evaluation):
 
     # delete from evaluations .. see adapters
     context = evaluation.__parent__.__parent__
-    evaluations = ICourseEvaluations(context, None)
+    evaluations = IQEvaluations(context, None)
     if evaluations and evaluation.ntiid in evaluations:
         del evaluations[evaluation.ntiid]
     evaluation.__home__ = None

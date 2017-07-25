@@ -15,7 +15,7 @@ from zope import interface
 
 from nti.app.assessment.evaluations.utils import export_evaluation_content
 
-from nti.app.assessment.interfaces import ICourseEvaluations
+from nti.app.assessment.interfaces import IQEvaluations
 
 from nti.app.assessment.utils import copy_evaluation
 
@@ -64,7 +64,7 @@ class EvaluationsExporter(BaseSectionExporter):
                 self._change_ntiid(value, salt)
 
     def _output(self, course, target_filer=None, backup=True, salt=None):
-        evaluations = ICourseEvaluations(course)
+        evaluations = IQEvaluations(course)
         order = {i: x for i, x in enumerate(EVALUATION_INTERFACES)}.items()
 
         def _get_key(item):

@@ -6,14 +6,13 @@ Views related to assessment submission/history
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
 import sys
 from numbers import Number
-from urllib import unquote
 from datetime import datetime
 
 from six import StringIO
@@ -71,7 +70,6 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQUploadedFile
 from nti.assessment.interfaces import IQAssignmentSubmission
 
-from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
@@ -82,8 +80,6 @@ from nti.dataserver.interfaces import IUser
 from nti.dataserver.users import User
 
 from nti.dataserver.users.interfaces import IUserProfile
-
-from nti.ntiids.ntiids import find_object_with_ntiid
 
 
 @view_config(route_name="objects.generic.traversal",
@@ -126,11 +122,21 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
         if course is None:
             logger.warn('Submission for assessment without course context (user=%s)',
                         creator)
-            msg = _("Submission for assessment without course context")
-            raise hexc.HTTPUnprocessableEntity(msg)
+            msg = _(u"Submission for assessment without course context")
+            raise_json_error(self.request,
+                             hexc.HTTPUnprocessableEntity,
+                             {
+                                 'message': msg,
+                             },
+                             None)
 
         if not is_assignment_available(self.context, course=course, user=creator):
-            raise hexc.HTTPForbidden(_("Assignment is not available."))
+            raise_json_error(self.request,
+                             hexc.HTTPForbidden,
+                             {
+                                 'message': _(u"Assignment is not available."),
+                             },
+                             None)
 
     def _do_call(self):
         creator = self.remoteUser
@@ -145,8 +151,13 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
                                       'input',
                                       'submission')
                 if not extValue:
-                    msg = _("No submission source was specified")
-                    raise hexc.HTTPUnprocessableEntity(msg)
+                    msg = _(u"No submission source was specified")
+                    raise_json_error(self.request,
+                                     hexc.HTTPUnprocessableEntity,
+                                     {
+                                         'message': msg,
+                                     },
+                                     None)
                 extValue = extValue.read()
                 extValue = read_input_data(extValue, self.request)
                 submission = self.readCreateUpdateContentObject(creator,
@@ -166,8 +177,8 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
             raise_json_error(self.request,
                              hexc.HTTPUnprocessableEntity,
                              {
-                                 u'message': str(e),
-                                 u'code': e.__class__.__name__
+                                 'message': str(e),
+                                 'code': e.__class__.__name__
                              },
                              exc_info[2])
         return result
@@ -229,17 +240,10 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
     """
 
     def _get_course(self, context):
-        result = None
-        course_id = self.request.params.get('course')
-        course_id = unquote(course_id) if course_id else None
-        if course_id:
-            result = find_object_with_ntiid(course_id)
-            result = ICourseInstance(result, None)
+        result = get_course_from_request(self.request)
         if result is None:
             # Ok, pick the first course we find.
-            result = get_course_from_evaluation(context,
-                                                self.remoteUser,
-                                                exc=True)
+            result = get_course_from_evaluation(context, self.remoteUser, exc=True)
         return result
 
     def _string(self, val, sub=''):
@@ -265,8 +269,8 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
     def _get_filename(self, course):
         base_name = self._get_course_name(course)
         assignment_name = self._get_assignment_name()
-        suffix = b'.zip'
-        result = b'%s_%s%s' % (base_name, assignment_name, suffix)
+        suffix = '.zip'
+        result = '%s_%s%s' % (base_name, assignment_name, suffix)
         # strip out any high characters
         result = result.encode('ascii', 'ignore')
         return result
@@ -285,6 +289,29 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
         if realname:
             result = '%s-%s' % (username, realname)
         return result
+
+    def _save_files(self, principal, item, zipfile):
+        # Hmm, if they don't submit or submit in different orders,
+        # numbers won't work. We need to canonicalize this to the
+        # assignment order.
+        for sub_num, sub_part in enumerate(item.Submission.parts or ()):
+            for q_num, q_part in enumerate(sub_part.questions or ()):
+                for qp_num, qp_part in enumerate(q_part.parts or ()):
+                    if IQResponse.providedBy(qp_part):
+                        qp_part = qp_part.value
+                    if IQUploadedFile.providedBy(qp_part):
+                        fn_part = self._get_username_filename_part(principal)
+                        full_filename = "%s-%s-%s-%s-%s" % (fn_part,
+                                                            sub_num,
+                                                            q_num,
+                                                            qp_num,
+                                                            qp_part.filename)
+                        lastModified = qp_part.lastModified
+                        date_time = datetime.utcfromtimestamp(lastModified)
+                        info = ZipInfo(full_filename,
+                                       date_time=date_time.timetuple())
+                        info.compress_type = ZIP_DEFLATED
+                        zipfile.writestr(info, qp_part.data)
 
     def __call__(self):
         context = self.request.context
@@ -311,37 +338,16 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
             history_item = assignment_history.get(assignment_id)
             if history_item is None:
                 continue  # No submission for this assignment
+            self._save_files(principal, history_item, zipfile)
 
-            # Hmm, if they don't submit or submit in different orders,
-            # numbers won't work. We need to canonicalize this to the
-            # assignment order.
-            for sub_num, sub_part in enumerate(history_item.Submission.parts or ()):
-                for q_num, q_part in enumerate(sub_part.questions or ()):
-                    for qp_num, qp_part in enumerate(q_part.parts or ()):
-                        if IQResponse.providedBy(qp_part):
-                            qp_part = qp_part.value
-
-                        if IQUploadedFile.providedBy(qp_part):
-                            fn_part = self._get_username_filename_part(principal)
-                            full_filename = "%s-%s-%s-%s-%s" % (fn_part,
-                                                                sub_num,
-                                                                q_num,
-                                                                qp_num,
-                                                                qp_part.filename)
-                            lastModified = qp_part.lastModified
-                            date_time = datetime.utcfromtimestamp(lastModified)
-                            info = ZipInfo(full_filename,
-                                           date_time=date_time.timetuple())
-                            info.compress_type = ZIP_DEFLATED
-                            zipfile.writestr(info, qp_part.data)
         zipfile.close()
         buf.seek(0)
         self.request.response.body = buf.getvalue()
         filename = self._get_filename(course)
         response = self.request.response
-        response.content_encoding = b'identity'
-        response.content_type = b'application/zip; charset=UTF-8'
-        response.content_disposition = b'attachment; filename="%s"' % filename
+        response.content_encoding = 'identity'
+        response.content_type = 'application/zip; charset=UTF-8'
+        response.content_disposition = 'attachment; filename="%s"' % filename
         return response
 
 
@@ -363,7 +369,7 @@ class AssignmentHistoryGetView(AbstractAuthenticatedView):
 @component.adapter(IUsersCourseAssignmentHistory, IRequest)
 class AssignmentHistoryRequestTraversable(ContainerTraversable):
 
-    def __init__(self, context, request):
+    def __init__(self, context, unused_request):
         ContainerTraversable.__init__(self, context)
 
     def traverse(self, name, further_path):
@@ -397,7 +403,12 @@ class AssignmentHistoryLastViewedPutView(AbstractAuthenticatedView,
 
     def _do_call(self):
         if self.request.context.owner != self.remoteUser:
-            raise hexc.HTTPForbidden(_("Only the student can set lastViewed."))
+            raise_json_error(self.request,
+                             hexc.HTTPForbidden,
+                             {
+                                 'message': _(u"Only the student can set lastViewed."),
+                             },
+                             None)
         ext_input = self.readInput()
         history = self.request.context
         self.request.context.lastViewed = ext_input

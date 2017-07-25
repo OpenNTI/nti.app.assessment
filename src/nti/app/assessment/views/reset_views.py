@@ -96,8 +96,8 @@ class EvaluationResetMixin(ModeledContentUploadRequestUtilsMixin):
         else:
             result = get_course_from_request(self.request)
             if result is None:
-                result = get_course_from_evaluation(self.context, 
-													self.remoteUser)
+                result = get_course_from_evaluation(self.context,
+                                                    self.remoteUser)
         return result
 
     @Lazy
@@ -139,8 +139,8 @@ class EvaluationResetView(AbstractAuthenticatedView,
             raise_json_error(self.request,
                              hexc.HTTPForbidden,
                              {
-                                'message': _(u"Cannot reset evaluation object."),
-                                'code': 'CannotResetEvaluation',
+                                 'message': _(u"Cannot reset evaluation object."),
+                                 'code': 'CannotResetEvaluation',
                              },
                              None)
         elif self._has_submissions(self.context):
@@ -174,7 +174,7 @@ class UserEvaluationResetView(AbstractAuthenticatedView,
             if not IUser.providedBy(user):
                 continue
             for provided in container_interfaces:
-                container = component.queryMultiAdapter((course, user), 
+                container = component.queryMultiAdapter((course, user),
                                                         provided)
                 if container and ntiid in container:
                     del container[ntiid]
@@ -187,8 +187,8 @@ class UserEvaluationResetView(AbstractAuthenticatedView,
             raise_json_error(self.request,
                              hexc.HTTPForbidden,
                              {
-                                'message': _(u"Cannot reset evaluation object."),
-                                'code': 'CannotResetEvaluation',
+                                 'message': _(u"Cannot reset evaluation object."),
+                                 'code': 'CannotResetEvaluation',
                              },
                              None)
 
@@ -202,14 +202,15 @@ class UserEvaluationResetView(AbstractAuthenticatedView,
             raise_json_error(self.request,
                              hexc.HTTPUnprocessableEntity,
                              {
-                                'message': _(u"Must specify a username."),
-                                'code': 'MustSpecifyUsername',
+                                 'message': _(u"Must specify a username."),
+                                 'code': 'MustSpecifyUsername',
                              },
                              None)
 
-        items = self._delete_contained_data(self.course, 
-                                            self.context, 
-                                            usernames)
+        if self.course is not None:
+            items = self._delete_contained_data(self.course,
+                                                self.context,
+                                                usernames)
         result = LocatedExternalDict()
         result[ITEMS] = items
         result[TOTAL] = result[ITEM_COUNT] = len(items)

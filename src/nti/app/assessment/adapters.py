@@ -103,6 +103,8 @@ from nti.dataserver.users import User
 
 from nti.externalization.oids import to_external_oid
 
+from nti.site.interfaces import IHostPolicyFolder
+
 from nti.traversal.traversal import find_interface
 from nti.traversal.traversal import ContainerAdapterTraversable
 
@@ -536,3 +538,9 @@ def _trusted_context_from_feedback(obj):
         catalog_entry = ICourseCatalogEntry(course, None)
         results = (catalog_entry,) if catalog_entry is not None else ()
     return results
+
+
+@component.adapter(IQEvaluation)
+@interface.implementer(IHostPolicyFolder)
+def _evaluation_to_site(resource):
+    return find_interface(resource, IHostPolicyFolder, strict=False)

@@ -428,4 +428,7 @@
 	<!-- Recordables -->
 	<utility factory=".recordables.EvaluationRecordables" name="evaluations" />
 
+	<!-- Site -->
+	<adapter factory="adapters._evaluation_to_site" />
+
 </configure>

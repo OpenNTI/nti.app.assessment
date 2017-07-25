@@ -11,8 +11,6 @@ logger = __import__('logging').getLogger(__name__)
 
 import six
 import copy
-import uuid
-import itertools
 
 from collections import Mapping
 
@@ -24,8 +22,6 @@ from zope import lifecycleevent
 from zope.cachedescriptors.property import Lazy
 
 from zope.event import notify as event_notify
-
-from zope.i18n import translate
 
 from pyramid import httpexceptions as hexc
 
@@ -41,26 +37,20 @@ from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 from nti.app.assessment.common import get_courses
 from nti.app.assessment.common import validate_auto_grade
 from nti.app.assessment.common import get_max_time_allowed
-from nti.app.assessment.common import make_evaluation_ntiid
 from nti.app.assessment.common import get_auto_grade_policy
-from nti.app.assessment.common import get_resource_site_name
 from nti.app.assessment.common import pre_validate_question_change
-from nti.app.assessment.common import is_assignment_non_public_only
 from nti.app.assessment.common import get_assignments_for_evaluation_object
 
 from nti.app.assessment.evaluations.utils import indexed_iter
-from nti.app.assessment.evaluations.utils import register_context
 from nti.app.assessment.evaluations.utils import delete_evaluation
-from nti.app.assessment.evaluations.utils import import_evaluation_content
 
 from nti.app.assessment.interfaces import IQEvaluations
-from nti.app.assessment.interfaces import IQAvoidSolutionCheck
 from nti.app.assessment.interfaces import RegradeQuestionEvent
 
 from nti.app.assessment.utils import get_course_from_request
 
+from nti.app.assessment.views.view_mixins import EvaluationMixin
 from nti.app.assessment.views.view_mixins import AssessmentPutView
-from nti.app.assessment.views.view_mixins import StructuralValidationMixin
 
 from nti.app.assessment.views.view_mixins import get_courses_from_assesment
 
@@ -80,8 +70,6 @@ from nti.appserver.pyramid_authorization import has_permission
 
 from nti.appserver.ugd_edit_views import UGDPutView
 from nti.appserver.ugd_edit_views import UGDPostView
-
-from nti.assessment.common import iface_of_assessment
 
 from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
 from nti.assessment.interfaces import TIMED_ASSIGNMENT_MIME_TYPE
@@ -110,16 +98,11 @@ from nti.assessment.randomized.question import QQuestionBank
 
 from nti.common.string import is_true
 
-from nti.contenttypes.courses.discussions.interfaces import ICourseDiscussion
-
 from nti.contenttypes.courses.interfaces import ICourseInstance
-from nti.contenttypes.courses.interfaces import ICourseSubInstance
 
 from nti.contenttypes.courses.utils import is_course_instructor
 
 from nti.dataserver import authorization as nauth
-
-from nti.dataserver.contenttypes.forums.interfaces import ITopic
 
 from nti.externalization.externalization import to_external_object
 
@@ -133,14 +116,7 @@ from nti.externalization.proxy import removeAllProxies
 
 from nti.mimetype.externalization import decorateMimeType
 
-from nti.ntiids.ntiids import find_object_with_ntiid
-
 from nti.recorder.record import copy_transaction_history
-
-from nti.site.hostpolicy import get_host_site
-
-from nti.site.utils import registerUtility
-from nti.site.utils import unregisterUtility
 
 from nti.traversal.traversal import find_interface
 
@@ -152,357 +128,6 @@ MIMETYPE = StandardExternalFields.MIMETYPE
 ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 
 VERSION = u'Version'
-
-
-class EvaluationMixin(StructuralValidationMixin):
-
-	@Lazy
-	def _extra(self):
-		return str(uuid.uuid4()).split('-')[0].upper()
-
-	def get_ntiid(self, context):
-		if isinstance(context, six.string_types):
-			result = context
-		else:
-			result = getattr(context, 'ntiid', None)
-		return result
-
-	def _index(self, item):
-		lifecycleevent.modified(item)
-
-	def _re_register(self, context, old_iface, new_iface):
-		"""
-		Unregister the context under the given old interface and register
-		under the given new interface.
-		"""
-		ntiid = context.ntiid
-		site_name = get_resource_site_name(context)
-		registry = get_host_site(site_name).getSiteManager()
-		registerUtility(registry, context, provided=new_iface, name=ntiid, event=False)
-		unregisterUtility(registry, provided=old_iface, name=ntiid)
-		# Make sure we re-index.
-		self._index(context)
-
-	def store_evaluation(self, obj, course, user, check_solutions=True):
-		"""
-		Finish initalizing new evaluation object and store persistently.
-		"""
-		provided = iface_of_assessment(obj)
-		evaluations = IQEvaluations(course)
-		obj.ntiid = ntiid = make_evaluation_ntiid(provided, extra=self._extra)
-		obj.creator = getattr(user, 'username', user)
-		lifecycleevent.created(obj)
-		try:
-			# XXX mark to avoid checking solutions
-			if not check_solutions:
-				interface.alsoProvides(obj, IQAvoidSolutionCheck)
-			# XXX mark as editable before storing so proper validation is done
-			interface.alsoProvides(obj, IQEditableEvaluation)
-			evaluations[ntiid] = obj  # gain intid
-		finally:
-			# XXX remove temp interface
-			if not check_solutions:
-				interface.noLongerProvides(obj, IQAvoidSolutionCheck)
-		return obj
-
-	def get_registered_evaluation(self, obj, course):
-		ntiid = self.get_ntiid(obj)
-		evaluations = IQEvaluations(course)
-		if ntiid in evaluations:  # replace
-			obj = evaluations[ntiid]
-		else:
-			obj = find_object_with_ntiid( ntiid )
-		return obj
-
-	def is_new(self, context):
-		ntiid = self.get_ntiid(context)
-		return not ntiid
-
-	def handle_question(self, theObject, course, user, check_solutions=True):
-		if self.is_new(theObject):
-			theObject = self.store_evaluation(theObject, course, user,
-											  check_solutions)
-		else:
-			theObject = self.get_registered_evaluation(theObject, course)
-		[p.ntiid for p in theObject.parts or ()] # set auto part NTIIDs
-		if theObject is None:
-			raise_json_error(self.request,
-							 hexc.HTTPUnprocessableEntity,
-							 {
-								u'message': _("Question does not exists."),
-								u'code': 'QuestionDoesNotExists',
-							 },
-							 None)
-		return theObject
-
-	def handle_poll(self, theObject, course, user):
-		if self.is_new(theObject):
-			theObject = self.store_evaluation(theObject, course, user, False)
-		else:
-			theObject = self.get_registered_evaluation(theObject, course)
-		[p.ntiid for p in theObject.parts or ()] # set auto part NTIIDs
-		if theObject is None:
-			raise_json_error(self.request,
-							 hexc.HTTPUnprocessableEntity,
-							 {
-								u'message': _("Poll does not exists."),
-								u'code': 'PollDoesNotExists',
-							 },
-							 None)
-		return theObject
-
-	def handle_question_set(self, theObject, course, user, check_solutions=True):
-		if self.is_new(theObject):
-			questions = indexed_iter()
-			for question in theObject.questions or ():
-				question = self.handle_question(question, course, user, check_solutions)
-				questions.append(question)
-			theObject.questions = questions
-			theObject = self.store_evaluation(theObject, course, user)
-		else:
-			theObject = self.get_registered_evaluation(theObject, course)
-		if theObject is None:
-			raise_json_error(self.request,
-							 hexc.HTTPUnprocessableEntity,
-							 {
-								u'message': _("QuestionSet does not exists."),
-								u'code': 'QuestionSetDoesNotExists',
-							 },
-							 None)
-
-		return theObject
-
-	def handle_survey(self, theObject, course, user):
-		if self.is_new(theObject):
-			questions = indexed_iter()
-			for poll in theObject.questions or ():
-				poll = self.handle_poll(poll, course, user)
-				questions.append(poll)
-			theObject.questions = questions
-			theObject = self.store_evaluation(theObject, course, user)
-		else:
-			theObject = self.get_registered_evaluation(theObject, course)
-		if theObject is None:
-			raise_json_error(self.request,
-							 hexc.HTTPUnprocessableEntity,
-							 {
-								u'message': _("Survey does not exists."),
-								u'code': 'SurveyDoesNotExists',
-							 },
-							 None)
-		return theObject
-
-	def handle_assignment_part(self, part, course, user):
-		question_set = self.handle_question_set(part.question_set,
-												course,
-												user)
-		part.question_set = question_set
-		return part
-
-	def handle_assignment(self, theObject, course, user):
-		# Make sure we handle any parts that may have been
-		# added to our existing or new assignment.
-		parts = indexed_iter()
-		for part in theObject.parts or ():
-			part = self.handle_assignment_part(part, course, user)
-			parts.append(part)
-		theObject.parts = parts
-		if self.is_new(theObject):
-			theObject = self.store_evaluation(theObject, course, user)
-			[p.ntiid for p in theObject.parts or ()] # set auto part NTIIDs
-		else:
-			theObject = self.get_registered_evaluation(theObject, course)
-		if theObject is None:
-			raise_json_error(self.request,
-							 hexc.HTTPUnprocessableEntity,
-							 {
-								u'message': _("Assignment does not exists."),
-								u'code': 'AssignmentDoesNotExists',
-							 },
-							 None)
-		return theObject
-
-	def handle_discussion_assignment(self, theObject, course, user):
-		"""
-		Validate discussion assignment is valid, ignoring any parts
-		coming in externally.
-		"""
-		assignment = self.handle_assignment(theObject, course, user)
-		if assignment.discussion_ntiid:
-			discussion = find_object_with_ntiid( assignment.discussion_ntiid )
-			if discussion is None:
-				raise_json_error(self.request,
-								 hexc.HTTPUnprocessableEntity,
-								 {
-									u'message': _("Discussion does not exist."),
-									u'code': 'DiscussionDoesNotExist',
-								 },
-								 None)
-			if 		not ICourseDiscussion.providedBy(discussion) \
-				and not ITopic.providedBy( discussion ):
-				raise_json_error(self.request,
-								 hexc.HTTPUnprocessableEntity,
-								 {
-									u'message': _("Must point to valid discussion."),
-									u'code': 'InvalidDiscussionAssignment',
-								 },
-								 None)
-		return theObject
-
-	def handle_evaluation(self, theObject, course, sources, user):
-		if IQuestion.providedBy(theObject):
-			result = self.handle_question(theObject, course, user)
-		elif IQPoll.providedBy(theObject):
-			result = self.handle_poll(theObject, course, user)
-		elif IQuestionSet.providedBy(theObject):
-			result = self.handle_question_set(theObject, course, user)
-		elif IQSurvey.providedBy(theObject):
-			result = self.handle_survey(theObject, course, user)
-		elif IQDiscussionAssignment.providedBy(theObject):
-			result = self.handle_discussion_assignment(theObject, course, user)
-		elif IQAssignment.providedBy(theObject):
-			result = self.handle_assignment(theObject, course, user)
-		else:
-			result = theObject
-
-		# course is the evaluation home
-		theObject.__home__ = course
-		# parse content fields and load sources
-		import_evaluation_content(result, context=course, user=user, sources=sources)
-		# always register
-		register_context(result)
-		return result
-
-	def _validate_section_course_items(self, container, items, additional_contexts=None):
-		"""
-		Validate the given question set does not have any section level questions
-		when the top-level assessment item is in the parent course.
-		"""
-		context_courses = set()
-		for context in itertools.chain( (container,), additional_contexts or () ):
-			context_course = find_interface( context, ICourseInstance, strict=False )
-			if context_course is not None:
-				context_courses.add( context_course )
-
-		if not context_courses:
-			return
-
-		for item in items or ():
-			item_course = find_interface( item, ICourseInstance, strict=False )
-			if 		item_course is not None \
-				and ICourseSubInstance.providedBy( item_course ) \
-				and item_course not in context_courses:
-					# A question that comes from a section course and
-					# that course is not where the qset/assignment were created
-					raise_json_error(self.request,
-									 hexc.HTTPUnprocessableEntity,
-									 {
-										u'message': _("Section course question cannot be inserted in parent course assessment item."),
-										u'code': 'InsertSectionQuestionInParentAssessment',
-									 },
-									 None)
-
-	def _validate_section_course(self, item):
-		"""
-		Section-level API created items cannot be inserted into parent-level assessment
-		items.
-		"""
-		if IQAssignment.providedBy( item ):
-			for part in item.parts or ():
-				if part.question_set is not None:
-					self._validate_section_course_items( part.question_set,
-														 part.question_set.questions,
-														 additional_contexts=(item,) )
-		elif IQuestionSet.providedBy( item ):
-			self._validate_section_course_items( item, item.questions )
-
-	def post_update_check(self, contentObject, externalValue):
-		self._validate_section_course( contentObject )
-
-	def _get_required_question(self, item):
-		"""
-		Fetch and validate we are given a question object or the ntiid
-		of an existing question object.
-		"""
-		question = self.get_registered_evaluation(item, self.course)
-		if not IQuestion.providedBy(question):
-			msg = translate(_("Question ${ntiid} does not exist.",
-							mapping={'ntiid': item}))
-			raise_json_error(self.request,
-							 hexc.HTTPUnprocessableEntity,
-							 {
-								u'message': msg,
-								u'code': 'QuestionDoesNotExist',
-							 },
-							 None)
-		return question
-
-	def _get_required_question_set(self, item):
-		"""
-		Fetch and validate we are given a question_set object or the ntiid
-		of an existing question_set object.
-		"""
-		question_set = self.get_registered_evaluation(item, self.course)
-		if not IQuestionSet.providedBy(question_set):
-			msg = translate(_("QuestionSet ${ntiid} does not exist.",
-							mapping={'ntiid': item}))
-			raise_json_error(self.request,
-							 hexc.HTTPUnprocessableEntity,
-							 {
-								u'message': msg,
-								u'code': 'QuestionSetDoesNotExist',
-							 },
-							 None)
-		return question_set
-
-	def auto_complete_questionset(self, context, externalValue):
-		questions = indexed_iter() if not context.questions else context.questions
-		items = externalValue.get(ITEMS)
-		for item in items or ():
-			question = self._get_required_question( item )
-			questions.append(question)
-		context.questions = questions
-
-	def auto_complete_survey(self, context, externalValue):
-		questions = indexed_iter() if not context.questions else context.questions
-		items = externalValue.get(ITEMS)
-		for item in items or ():
-			poll = self.get_registered_evaluation(item, self.course)
-			if not IQPoll.providedBy(poll):
-				msg = translate(_("Question ${ntiid} does not exists.",
-								mapping={'ntiid': item}))
-				raise_json_error(self.request,
-								 hexc.HTTPUnprocessableEntity,
-								 {
-									u'message': msg,
-									u'code': 'QuestionDoesNotExist',
-								 },
-								 None)
-			else:
-				questions.append(poll)
-		context.questions = questions
-
-	def _default_assignment_public_status(self, context):
-		"""
-		For the given assignment, set our default public status based
-		on whether or not all courses contained by this assignment
-		are non-public.
-		"""
-		is_non_public = is_assignment_non_public_only( context, self.course )
-		context.is_non_public = is_non_public
-
-	def auto_complete_assignment(self, context, externalValue):
-		# Clients are expected to create parts/qsets as needed.
-		parts = indexed_iter() if not context.parts else context.parts
-		for part in parts:
-			# Assuming one part.
-			qset = externalValue.get( 'question_set' )
-			if qset:
-				part.question_set = self._get_required_question_set( qset )
-			if part.question_set is not None:
-				self.auto_complete_questionset(part.question_set, externalValue)
-		context.parts = parts
-		self._default_assignment_public_status( context )
 
 # POST views
 
@@ -546,11 +171,10 @@ class CourseEvaluationsPostView(EvaluationMixin, UGDPostView):
 		evaluation, sources = self.readCreateUpdateContentObject(creator, search_owner=False)
 		evaluation.creator = creator.username  # use username
 		interface.alsoProvides(evaluation, IQEditableEvaluation)
-
 		# validate sources if available
 		if sources:
 			validate_sources(self.remoteUser, evaluation, sources)
-		evaluation = self.handle_evaluation(evaluation, self.course, sources, creator)
+		evaluation = self.handle_evaluation(evaluation, self.composite, sources, creator)
 		self.request.response.status_int = 201
 		return evaluation
 

@@ -19,8 +19,6 @@ from zope import interface
 
 from zope.cachedescriptors.property import Lazy
 
-from zope.security.management import checkPermission
-
 from zope.schema.interfaces import NotUnique
 from zope.schema.interfaces import ConstraintNotSatisfied
 
@@ -155,8 +153,8 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
             raise ex
 
     def _check_submission_before(self, course):
-        beginning = get_available_for_submission_beginning(
-            self.context, course)
+        beginning = get_available_for_submission_beginning(self.context, 
+                                                           course)
         if beginning is not None and datetime.utcnow() < beginning:
             ex = ConstraintNotSatisfied(_(u"Submitting too early."))
             ex.field = IQSubmittable['available_for_submission_beginning']
@@ -267,7 +265,7 @@ class InquirySubmissionsView(AbstractAuthenticatedView, InquiryViewMixin):
 
     def __call__(self):
         course = self.course
-        if not (is_course_instructor(course, self.remoteUser)
+        if not (   is_course_instructor(course, self.remoteUser)
                 or has_permission(nauth.ACT_NTI_ADMIN, course, self.request)):
             raise_json_error(self.request,
                              hexc.HTTPForbidden,
@@ -307,7 +305,7 @@ class InquirySubmissionMetadataCSVView(AbstractAuthenticatedView, InquiryViewMix
 
     def __call__(self):
         course = self.course
-        if not (is_course_instructor(course, self.remoteUser)
+        if not (   is_course_instructor(course, self.remoteUser)
                 or has_permission(nauth.ACT_NTI_ADMIN, course, self.request)):
             raise_json_error(self.request,
                              hexc.HTTPForbidden,
@@ -350,7 +348,7 @@ class InquirySubmissionMetadataCSVView(AbstractAuthenticatedView, InquiryViewMix
 
 def _get_title_for_metadata_download(inquiry_name):
     ascii_str = inquiry_name.encode('ascii', 'ignore')
-    return u'%s_SubmissionMetadata.csv' % ascii_str.replace(' ', '')
+    return '%s_SubmissionMetadata.csv' % ascii_str.replace(' ', '')
 
 
 def _date_str_from_timestamp(timestamp):
@@ -463,7 +461,7 @@ class InquiryAggregatedGetView(AbstractAuthenticatedView, InquiryViewMixin):
             return hexc.HTTPNoContent()
 
         if      IQAggregatedSurvey.providedBy( result ) \
-                and IQPoll.providedBy(self.context):
+            and IQPoll.providedBy(self.context):
             # Asking for question level aggregation for
             # survey submissions.
             for poll_result in result.questions or ():
@@ -513,7 +511,7 @@ def plain_text(s):
     return result.strip()
 
 
-def display_list(data):
+def _display_list(data):
     result = []
     for item in data[:-1]:
         result.append('%s, ' % item)
@@ -532,7 +530,7 @@ def _handle_non_gradable_connecting_part(user_sub_part, poll, part_idx):
     # We look up by key from the response values in order
     # to get the label for this choice.
     result = [part_labels[int(k[0])] for k in response_values]
-    return display_list(result)
+    return _display_list(result)
 
 
 def _handle_multiple_choice_multiple_answer(user_sub_part, poll, part_idx):
@@ -541,7 +539,7 @@ def _handle_multiple_choice_multiple_answer(user_sub_part, poll, part_idx):
     result = [
         plain_text(part_values[int(k)]) for k in response_values
     ]
-    return display_list(result)
+    return _display_list(result)
 
 
 def _handle_multiple_choice_part(user_sub_part, poll, part_idx):
@@ -549,11 +547,11 @@ def _handle_multiple_choice_part(user_sub_part, poll, part_idx):
     return plain_text(part_values[int(user_sub_part)])
 
 
-def _handle_modeled_content_part(user_sub_part, poll, part_idx):
+def _handle_modeled_content_part(user_sub_part, unused_poll, unused_part_idx):
     return user_sub_part.value[0]
 
 
-def _handle_free_response_part(user_sub_part, poll, part_idx):
+def _handle_free_response_part(user_sub_part, unused_poll, unused_part_idx):
     return plain_text(user_sub_part)
 
 
@@ -571,30 +569,25 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
 
     @property
     def question_functions(self):
-        return [(IQNonGradableMultipleChoiceMultipleAnswerPart,
-                 _handle_multiple_choice_multiple_answer),
-                (IQNonGradableConnectingPart,
-                 _handle_non_gradable_connecting_part),
-                (IQNonGradableMultipleChoicePart,
-                 _handle_multiple_choice_part),
-                (IQNonGradableModeledContentPart,
-                 _handle_modeled_content_part),
-                (IQNonGradableFreeResponsePart,
-                 _handle_free_response_part)]
+        return [
+            (IQNonGradableMultipleChoiceMultipleAnswerPart, _handle_multiple_choice_multiple_answer),
+            (IQNonGradableConnectingPart, _handle_non_gradable_connecting_part),
+            (IQNonGradableMultipleChoicePart, _handle_multiple_choice_part),
+            (IQNonGradableModeledContentPart, _handle_modeled_content_part),
+            (IQNonGradableFreeResponsePart, _handle_free_response_part)
+        ]
 
     def _get_function_for_question_type(self, poll_part):
         # look through mapping to find a match
         for iface, factory in self.question_functions:
             if iface.providedBy(poll_part):
                 return factory
-
         # return None if we can't find a match for this question type.
         return None
 
     def __call__(self):
-
         # only instructors or admins should be able to view this.
-        if not (is_course_instructor(self.course, self.remoteUser)
+        if not (   is_course_instructor(self.course, self.remoteUser)
                 or has_permission(nauth.ACT_NTI_ADMIN, self.course, self.request)):
             raise_json_error(self.request,
                              hexc.HTTPForbidden,
@@ -661,11 +654,11 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
                     # Get the correct function for this question type,
                     # if we can find it, and then use that to calculate
                     # the result.
-                    question_handler = self._get_function_for_question_type(
-                        poll_part)
+                    question_handler = self._get_function_for_question_type(poll_part)
                     if question_handler is not None:
-                        result = question_handler(
-                            user_sub_part, poll, part_idx)
+                        result = question_handler(user_sub_part, 
+                                                  poll, 
+                                                  part_idx)
 
                     # add the result for this question to this user's row.
                     responses.append(result)
@@ -682,12 +675,12 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
 
         for row in user_rows:
             csv_writer.writerow(row)
+
         stream.flush()
         stream.seek(0)
-        filename = (self.context.title or self.context.id) + \
-            "_inquiry_report.csv"
-        self.request.response.content_type = 'text/csv; charset=UTF-8'
+        filename = self.context.title or self.context.id
+        filename = filename + "_inquiry_report.csv"
         self.request.response.body_file = stream
-        self.request.response.content_disposition = str(
-            'attachment; filename="%s"' % filename)
+        self.request.response.content_type = 'text/csv; charset=UTF-8'
+        self.request.response.content_disposition = 'attachment; filename="%s"' % filename
         return self.request.response

@@ -417,9 +417,8 @@ class AssessmentPutView(UGDPutView):
         # check context
         context = get_course_from_request(self.request)
         if context is None and IQEditableEvaluation.providedBy(contentObject):
-            context = find_interface(contentObject, ICourseInstance, strict=False)
-            if context is None:
-                context = find_interface(contentObject, IContentPackage, strict=False)
+            context = find_interface(contentObject, ICourseInstance, strict=False) \
+                   or find_interface(contentObject, IContentPackage, strict=False)
 
         if context is None:
             # We want to require a course context when editing an assignment,
@@ -436,7 +435,7 @@ class AssessmentPutView(UGDPutView):
         # XXX: We'll eventually look for a flag that allows us to
         # update all courses in hierarchy.
         if IContentPackage.providedBy(context):
-            courses = get_courses_for_packages(context)
+            courses = get_courses_for_packages(packages=context.ntiid)
         else:
             courses = (context,)
         self.preflight(contentObject, externalValue, courses)
@@ -488,11 +487,22 @@ class StructuralValidationMixin(object):
     """
 
     @Lazy
-    def course(self):
-        # XXX: Evaluation has lineage access to its course.
+    def struct(self):
         result = find_interface(self.context, ICourseInstance, strict=False)
+        if result is None:
+            result = find_interface(self.context, IContentPackage, strict=False)
         return result
 
+    @Lazy
+    def course(self):
+        result = self.struct 
+        if IContentPackage.providedBy(result):
+            result = get_course_from_request()
+            if result is None:
+                courses = get_courses_for_packages(packages=result.ntiid)
+                result = courses[0] if courses else None
+        return result
+    
     def _check_part_structure(self, context, externalValue):
         """
         Determines whether this question part has structural changes.

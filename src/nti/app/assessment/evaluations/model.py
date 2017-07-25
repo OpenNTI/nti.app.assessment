@@ -16,6 +16,7 @@ from zope.location.location import locate
 
 from ZODB.interfaces import IConnection
 
+from nti.app.assessment.interfaces import IQEvaluations
 from nti.app.assessment.interfaces import ICourseEvaluations
 
 from nti.containers.containers import CaseInsensitiveCheckingLastModifiedBTreeContainer
@@ -38,10 +39,10 @@ from nti.intid.common import removeIntId
 from nti.traversal.traversal import find_interface
 
 
-@interface.implementer(ICourseEvaluations)
-class CourseEvaluations(CaseInsensitiveCheckingLastModifiedBTreeContainer):
+@interface.implementer(IQEvaluations)
+class Evaluations(CaseInsensitiveCheckingLastModifiedBTreeContainer):
     """
-    Implementation of the course evaluations.
+    Implementation of the evaluations.
     """
 
     __external_can_create__ = False
@@ -78,6 +79,15 @@ class CourseEvaluations(CaseInsensitiveCheckingLastModifiedBTreeContainer):
             removeIntId(old)
         self._save(ntiid, new)
         return new
+
+
+@interface.implementer(ICourseEvaluations)
+class CourseEvaluations(Evaluations):
+    """
+    Implementation of the course evaluations.
+    """
+
+    __external_can_create__ = False
 
     @property
     def __acl__(self):

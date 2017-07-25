@@ -19,8 +19,6 @@ from nti.app.assessment.interfaces import ICourseEvaluations
 
 from nti.app.assessment.utils import copy_evaluation
 
-from nti.app.products.courseware.resources.utils import get_course_filer
-
 from nti.assessment import EVALUATION_INTERFACES
 
 from nti.assessment.common import is_randomized_question_set
@@ -67,8 +65,6 @@ class EvaluationsExporter(BaseSectionExporter):
 
     def _output(self, course, target_filer=None, backup=True, salt=None):
         evaluations = ICourseEvaluations(course)
-        source_filer = get_course_filer(course)
-
         order = {i: x for i, x in enumerate(EVALUATION_INTERFACES)}.items()
 
         def _get_key(item):
@@ -83,9 +79,7 @@ class EvaluationsExporter(BaseSectionExporter):
                 # Copy evaluation b/c changes in content may be done
                 # during the export
                 evaluation = copy_evaluation(evaluation)
-                export_evaluation_content(evaluation,
-                                          source_filer,
-                                          target_filer)
+                export_evaluation_content(evaluation, target_filer)
             ext_obj = to_external_object(evaluation,
                                          name="exporter",
                                          decorate=False)

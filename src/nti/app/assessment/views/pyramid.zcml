@@ -8,6 +8,7 @@
 
 	<pyramid:scan package=".reset_views" />
 	<pyramid:scan package=".course_views" />
+	<pyramid:scan package=".delete_views" />
 	<pyramid:scan package=".survey_views" />
 	<pyramid:scan package=".history_views" />
 	<pyramid:scan package=".regrade_views" />

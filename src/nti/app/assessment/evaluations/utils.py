@@ -15,7 +15,10 @@ from urlparse import urlparse
 from html5lib import HTMLParser
 from html5lib import treebuilders
 
+from zope import component
 from zope import lifecycleevent
+
+from zope.component.hooks import getSite
 
 from pyramid import httpexceptions as hexc
 
@@ -30,6 +33,8 @@ from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import has_inquiry_submissions
 from nti.app.assessment.common import get_resource_site_registry
 from nti.app.assessment.common import get_assignments_for_evaluation_object
+
+from nti.app.assessment.interfaces import ICourseEvaluations
 
 from nti.app.base.abstract_views import get_safe_source_filename
 
@@ -70,6 +75,8 @@ from nti.contentfragments.interfaces import IHTMLContentFragment
 from nti.contenttypes.courses.interfaces import NTI_COURSE_FILE_SCHEME
 
 from nti.publishing.interfaces import IPublishable
+
+from nti.site.interfaces import IHostPolicyFolder
 
 from nti.site.utils import registerUtility
 from nti.site.utils import unregisterUtility
@@ -172,7 +179,7 @@ def import_evaluation_content(model, context=None, user=None, sources=None,
     return model
 
 
-def export_evaluation_content(model, source_filer, target_filer):
+def export_evaluation_content(model, target_filer):
     for obj, name in get_html_content_fields(model):
         value = getattr(obj, name, None)
         if not value:
@@ -197,9 +204,10 @@ def export_evaluation_content(model, source_filer, target_filer):
                     path = resource.path
                     path = os.path.split(path)[0]  # remove resource name
                     path = path[1:] if path.startswith('/') else path
+                elif is_image(rsrc_name, contentType):
+                    path = IMAGES_FOLDER
                 else:
-                    path = IMAGES_FOLDER if is_image(
-                        rsrc_name, contentType) else DOCUMENTS_FOLDER
+                    path = DOCUMENTS_FOLDER
                 if      not path.startswith(IMAGES_FOLDER) \
                     and not path.startswith(DOCUMENTS_FOLDER):
                     # under assets folder
@@ -250,8 +258,8 @@ def validate_submissions(theObject, course, request=None):
         raise_json_error(request,
                          hexc.HTTPUnprocessableEntity,
                          {
-                            'message': _(u"Evaluation has submissions."),
-                            'code': 'ObjectHasSubmissions',
+                             'message': _(u"Evaluation has submissions."),
+                             'code': 'ObjectHasSubmissions',
                          },
                          None)
 
@@ -262,8 +270,8 @@ def validate_savepoints(theObject, course, request=None):
         raise_json_error(request,
                          hexc.HTTPUnprocessableEntity,
                          {
-                            'message': _(u"Evaluation has savepoints."),
-                            'code': 'ObjectHasSavepoints',
+                             'message': _(u"Evaluation has savepoints."),
+                             'code': 'ObjectHasSavepoints',
                          },
                          None)
 
@@ -274,8 +282,8 @@ def validate_published(theObject, course=None, request=None):
         raise_json_error(request,
                          hexc.HTTPUnprocessableEntity,
                          {
-                            'message': _(u"Evaluation has been published."),
-                            'code': 'ObjectIsPublished',
+                             'message': _(u"Evaluation has been published."),
+                             'code': 'ObjectIsPublished',
                          },
                          None)
 
@@ -289,3 +297,32 @@ def validate_structural_edits(theObject, course, request=None):
     for assignment in assignments:
         validate_savepoints(assignment, course, request)
     validate_submissions(theObject, course, request)
+
+
+def delete_evaluation(evaluation):
+    """
+    Delete the specified editable evaluation
+    """
+    # Clean up question sets under assignments
+    if IQAssignment.providedBy(evaluation):
+        for part in evaluation.parts or ():
+            if part.question_set is not None:
+                delete_evaluation(part.question_set)
+
+    # delete from evaluations .. see adapters
+    context = evaluation.__parent__.__parent__
+    evaluations = ICourseEvaluations(context, None)
+    if evaluations and evaluation.ntiid in evaluations:
+        del evaluations[evaluation.ntiid]
+    evaluation.__home__ = None
+
+    # remove from registry
+    provided = iface_of_assessment(evaluation)
+    registered = component.queryUtility(provided,
+                                        name=evaluation.ntiid)
+    if registered is not None:
+        site = IHostPolicyFolder(context, getSite())
+        registry = site.getSiteManager()
+        unregisterUtility(registry,
+                          provided=provided,
+                          name=evaluation.ntiid)

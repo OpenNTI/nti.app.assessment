@@ -18,13 +18,10 @@ from collections import Mapping
 
 from requests.structures import CaseInsensitiveDict
 
-from zope import component
 from zope import interface
 from zope import lifecycleevent
 
 from zope.cachedescriptors.property import Lazy
-
-from zope.component.hooks import getSite
 
 from zope.event import notify as event_notify
 
@@ -42,24 +39,18 @@ from nti.app.assessment import VIEW_COPY_EVALUATION
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 
 from nti.app.assessment.common import get_courses
-from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import validate_auto_grade
 from nti.app.assessment.common import get_max_time_allowed
 from nti.app.assessment.common import make_evaluation_ntiid
 from nti.app.assessment.common import get_auto_grade_policy
 from nti.app.assessment.common import get_resource_site_name
-from nti.app.assessment.common import has_inquiry_submissions
-from nti.app.assessment.common import delete_evaluation_metadata
-from nti.app.assessment.common import delete_inquiry_submissions
-from nti.app.assessment.common import get_evaluation_containment
 from nti.app.assessment.common import pre_validate_question_change
-from nti.app.assessment.common import delete_evaluation_savepoints
-from nti.app.assessment.common import delete_evaluation_submissions
 from nti.app.assessment.common import is_assignment_non_public_only
 from nti.app.assessment.common import get_assignments_for_evaluation_object
 
 from nti.app.assessment.evaluations.utils import indexed_iter
 from nti.app.assessment.evaluations.utils import register_context
+from nti.app.assessment.evaluations.utils import delete_evaluation
 from nti.app.assessment.evaluations.utils import import_evaluation_content
 
 from nti.app.assessment.interfaces import ICourseEvaluations
@@ -78,15 +69,12 @@ from nti.app.base.abstract_views import AbstractAuthenticatedView
 
 from nti.app.externalization.error import raise_json_error
 
-from nti.app.externalization.internalization import read_body_as_external_object
-
 from nti.app.externalization.view_mixins import BatchingUtilsMixin
 from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
 
 from nti.app.contentfile import validate_sources
 
 from nti.app.products.courseware.views.view_mixins import IndexedRequestMixin
-from nti.app.products.courseware.views.view_mixins import DeleteChildViewMixin
 from nti.app.products.courseware.views.view_mixins import AbstractChildMoveView
 
 from nti.appserver.dataserver_pyramid_views import GenericGetView
@@ -95,7 +83,6 @@ from nti.appserver.pyramid_authorization import has_permission
 
 from nti.appserver.ugd_edit_views import UGDPutView
 from nti.appserver.ugd_edit_views import UGDPostView
-from nti.appserver.ugd_edit_views import UGDDeleteView
 
 from nti.assessment.common import iface_of_assessment
 
@@ -105,7 +92,6 @@ from nti.assessment.interfaces import TIMED_ASSIGNMENT_MIME_TYPE
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQuestion
-from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQEvaluation
@@ -150,8 +136,6 @@ from nti.externalization.internalization import update_from_external_object
 
 from nti.externalization.proxy import removeAllProxies
 
-from nti.links.links import Link
-
 from nti.mimetype.externalization import decorateMimeType
 
 from nti.ntiids.ntiids import find_object_with_ntiid
@@ -167,13 +151,13 @@ from nti.traversal.traversal import find_interface
 
 OID = StandardExternalFields.OID
 ITEMS = StandardExternalFields.ITEMS
-LINKS = StandardExternalFields.LINKS
 NTIID = StandardExternalFields.NTIID
 TOTAL = StandardExternalFields.TOTAL
 MIMETYPE = StandardExternalFields.MIMETYPE
 ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 
 VERSION = u'Version'
+
 
 @view_config(context=ICourseEvaluations)
 @view_defaults(route_name='objects.generic.traversal',
@@ -1292,190 +1276,6 @@ class AssignmentPutView(NewAndLegacyPutView):
 																	externalValue,
 																	set_id, notify)
 		return result
-
-# DELETE views
-
-def delete_evaluation(evaluation):
-	# Clean up question sets under assignments
-	if IQAssignment.providedBy( evaluation ):
-		for part in evaluation.parts or ():
-			if part.question_set is not None:
-				delete_evaluation( part.question_set )
-
-	# delete from evaluations
-	course = find_interface(evaluation, ICourseInstance, strict=False)
-	evaluations = ICourseEvaluations(course, None)
-	if evaluations and evaluation.ntiid in evaluations:
-		del evaluations[evaluation.ntiid]
-	evaluation.__home__ = None
-
-	# remove from registry
-	provided = iface_of_assessment(evaluation)
-	registered = component.queryUtility(provided, name=evaluation.ntiid)
-	if registered is not None:
-		site_name = get_resource_site_name(course) or getSite().__name__
-		registry = get_host_site(site_name).getSiteManager()
-		unregisterUtility(registry, provided=provided, name=evaluation.ntiid)
-
-@view_config(route_name="objects.generic.traversal",
-			 context=IQEvaluation,
-			 renderer='rest',
-			 permission=nauth.ACT_DELETE,
-			 request_method='DELETE')
-class EvaluationDeleteView(UGDDeleteView,
-						   EvaluationMixin):
-
-	def readInput(self, value=None):
-		if self.request.body:
-			result = CaseInsensitiveDict(read_body_as_external_object(self.request))
-		else:
-			result = CaseInsensitiveDict(self.request.params)
-		return result
-
-	def _check_editable(self, theObject):
-		if not IQEditableEvaluation.providedBy(theObject):
-			raise hexc.HTTPForbidden(_("Cannot delete legacy object."))
-
-	def _check_containment(self, theObject):
-		containment = get_evaluation_containment(theObject.ntiid)
-		if containment:
-			raise_json_error(
-						self.request,
-						hexc.HTTPUnprocessableEntity,
-						{
-							u'message': _("Cannot delete a contained object."),
-							u'code': 'CannotDeleteEvaluation',
-						},
-						None)
-
-	def _check_internal(self, theObject):
-		self._check_editable(theObject)
-		self._pre_flight_validation(self.context, structural_change=True)
-		self._check_containment(theObject)
-
-	def _do_delete_object(self, theObject):
-		self._check_internal(theObject)
-		delete_evaluation(theObject)
-		return theObject
-
-@view_config(route_name="objects.generic.traversal",
-			 context=IQuestionSet,
-			 renderer='rest',
-			 permission=nauth.ACT_DELETE,
-			 request_method='DELETE')
-class QuestionSetDeleteView(EvaluationDeleteView):
-
-	def _check_containment(self, theObject):
-		containment = get_evaluation_containment(theObject.ntiid)
-		if containment:
-			values = self.readInput()
-			force = is_true(values.get('force'))
-			if not force:
-				links = (
-					Link(self.request.path, rel='confirm',
-						 params={'force':True}, method='DELETE'),
-				)
-				raise_json_error(
-						self.request,
-						hexc.HTTPConflict,
-						{
-							u'message': _('This question set is being referenced by other assignments.'),
-							u'code': 'QuestionSetIsReferenced',
-							LINKS: to_external_object(links)
-						},
-						None)
-
-@view_config(context=IQPoll)
-@view_config(context=IQSurvey)
-@view_config(context=IQAssignment)
-@view_defaults(route_name='objects.generic.traversal',
-			   renderer='rest',
-			   request_method='DELETE',
-			   permission=nauth.ACT_DELETE)
-class SubmittableDeleteView(EvaluationDeleteView, ModeledContentUploadRequestUtilsMixin):
-
-	def _can_delete_contained_data(self, theObject):
-		return 		is_course_instructor(self.course, self.remoteUser) \
-			   or	has_permission(nauth.ACT_NTI_ADMIN, theObject, self.request)
-
-	def _has_submissions(self, theObject):
-		if IQInquiry.providedBy(theObject):
-			result = has_inquiry_submissions(theObject, self.course)
-		else:
-			courses = get_courses(self.course)
-			result = has_submissions(theObject, courses)
-		return result
-
-	def _delete_contained_data(self, theObject):
-		if IQInquiry.providedBy(theObject):
-			delete_inquiry_submissions(theObject, self.course)
-		else:
-			delete_evaluation_metadata(theObject, self.course)
-			delete_evaluation_savepoints(theObject, self.course)
-			delete_evaluation_submissions(theObject, self.course)
-
-	def _check_internal(self, theObject):
-		self._check_editable(theObject)
-		self._check_containment(theObject)
-
-	def _do_delete_object(self, theObject):
-		self._check_internal(theObject)
-		if not self._can_delete_contained_data(theObject):
-			self._pre_flight_validation(theObject, structural_change=True)
-		elif self._has_submissions(theObject):
-			values = self.readInput()
-			force = is_true(values.get('force'))
-			if not force:
-				links = (
-					Link(self.request.path, rel='confirm',
-						 params={'force':True}, method='DELETE'),
-				)
-				raise_json_error(
-						self.request,
-						hexc.HTTPConflict,
-						{
-							u'message': _('There are submissions for this evaluation object.'),
-							u'code': 'EvaluationHasSubmissions',
-							LINKS: to_external_object(links)
-						},
-						None)
-		self._delete_contained_data(theObject)
-		delete_evaluation(theObject)
-		return theObject
-
-@view_config(route_name='objects.generic.traversal',
-			 renderer='rest',
-			 name=VIEW_QUESTION_SET_CONTENTS,
-			 context=IQuestionSet,
-			 request_method='DELETE',
-			 permission=nauth.ACT_CONTENT_EDIT)
-class QuestionSetDeleteChildView(AbstractAuthenticatedView,
-								 EvaluationMixin,
-								 DeleteChildViewMixin):
-	"""
-	A view to delete a child underneath the given context.
-
-	index
-		This param will be used to indicate which object should be
-		deleted. If the object described by `ntiid` is no longer at
-		this index, the object will still be deleted, as long as it
-		is unambiguous.
-
-	:raises HTTPConflict if state has changed out from underneath user
-	"""
-
-	def _get_children(self):
-		return self.context.questions
-
-	def _remove(self, item=None, index=None):
-		if item is not None:
-			self.context.remove(item)
-		else:
-			self.context.pop(index)
-		event_notify(QuestionRemovedFromContainerEvent(self.context, item, index))
-
-	def _validate(self):
-		self._pre_flight_validation( self.context, structural_change=True)
 
 
 # get views

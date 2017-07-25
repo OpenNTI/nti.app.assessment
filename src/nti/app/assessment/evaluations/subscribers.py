@@ -5,6 +5,7 @@
 """
 
 from __future__ import print_function, absolute_import, division
+from nti.site.interfaces import IHostPolicyFolder
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -42,6 +43,7 @@ from nti.app.assessment.evaluations.adapters import evaluations_for_course
 
 from nti.app.assessment.evaluations.utils import validate_structural_edits
 
+from nti.app.assessment.interfaces import IQEvaluations
 from nti.app.assessment.interfaces import ICourseEvaluations
 from nti.app.assessment.interfaces import IQAvoidSolutionCheck
 from nti.app.assessment.interfaces import IQPartChangeAnalyzer
@@ -67,6 +69,8 @@ from nti.assessment.interfaces import IQuestionInsertedInContainerEvent
 from nti.assessment.interfaces import IQuestionRemovedFromContainerEvent
 
 from nti.assessment.interfaces import UnlockQAssessmentPolicies
+
+from nti.contentlibrary.interfaces import IEditableContentPackage
 
 from nti.contenttypes.courses.common import get_course_site_registry
 
@@ -250,3 +254,14 @@ def _on_course_instance_removed(course, unused_event):
             unregisterUtility(registry, provided=provided, name=obj.ntiid)
         evaluations.clear()
 on_course_instance_removed = _on_course_instance_removed # BWC
+
+
+@component.adapter(IEditableContentPackage, IIntIdRemovedEvent)
+def _on_package_removed(package, unused_event):
+    evaluations = IQEvaluations(package, None)
+    if evaluations is not None:
+        registry = IHostPolicyFolder(package).getSiteManager()
+        for obj in list(evaluations.values()):
+            provided = iface_of_assessment(obj)
+            unregisterUtility(registry, provided=provided, name=obj.ntiid)
+        evaluations.clear()

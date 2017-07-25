@@ -102,3 +102,19 @@ class CourseEvaluations(Evaluations):
         aces.append(ACE_DENY_ALL)
         result = acl_from_aces(aces)
         return result
+
+
+@interface.implementer(IQEvaluations)
+class ContentPackageEvaluations(Evaluations):
+    """
+    Implementation of the content package evaluations.
+    """
+
+    __external_can_create__ = False
+
+    @property
+    def __acl__(self):
+        aces = [ace_allowing(ROLE_ADMIN, ALL_PERMISSIONS, self),
+                ace_allowing(ROLE_CONTENT_ADMIN, ALL_PERMISSIONS, type(self))]
+        result = acl_from_aces(aces)
+        return result

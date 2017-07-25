@@ -13,12 +13,22 @@
 			 provides="zope.traversing.interfaces.IPathAdapter"
 			 name="CourseEvaluations" />
 
+	<adapter factory=".adapters.evaluations_for_course_path_adapter"
+			 for="nti.contentlibrary.interfaces.IEditableContentPackage pyramid.interfaces.IRequest"
+			 provides="zope.traversing.interfaces.IPathAdapter"
+			 name="ContentPackageEvaluations" />
+
 	<adapter factory=".adapters.CourseEvaluationsTraversable" />
+	<adapter factory=".adapters.PackageEvaluationsTraversable" />
 
 	<!-- Adapters -->
 	<adapter factory=".adapters.evaluations_for_course" />
 	<adapter factory=".adapters.course_from_item_lineage" />
 	<adapter factory=".adapters.editable_evaluation_to_course" />
+	
+	<adapter factory=".adapters.evaluations_for_package" />
+	<adapter factory=".adapters.package_from_item_lineage" />
+	<adapter factory=".adapters.editable_evaluation_to_package" />
 
 	<!-- Subscribers -->
 	<subscriber handler=".subscribers._on_course_added" />
@@ -52,6 +62,7 @@
 	<subscriber handler=".subscribers._on_regrade_evaluation_event" />
 	<subscriber handler=".subscribers._on_assessment_policies_modified_event" />
 	
+	<subscriber handler=".subscribers._on_package_removed" />
 	<subscriber handler=".subscribers._on_course_instance_removed" />
 	<subscriber handler=".subscribers._on_editable_evaluation_removed" />
 

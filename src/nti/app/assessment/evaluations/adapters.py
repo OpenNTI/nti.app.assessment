@@ -92,7 +92,7 @@ def evaluations_for_package(package):
         result = package._package_evaluations = ContentPackageEvaluations()
         result.createdTime = time.time()
         result.__parent__ = package
-        result.__name__ = u'_package_evaluations'
+        result.__name__ = '_package_evaluations'
     return result
 
 

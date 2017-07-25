@@ -487,7 +487,7 @@ class StructuralValidationMixin(object):
     """
 
     @Lazy
-    def struct(self):
+    def composite(self):
         result = find_interface(self.context, ICourseInstance, strict=False)
         if result is None:
             result = find_interface(self.context, IContentPackage, strict=False)
@@ -495,7 +495,7 @@ class StructuralValidationMixin(object):
 
     @Lazy
     def course(self):
-        result = self.struct 
+        result = self.composite 
         if IContentPackage.providedBy(result):
             result = get_course_from_request()
             if result is None:

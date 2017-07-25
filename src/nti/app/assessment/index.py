@@ -120,7 +120,7 @@ class ValidatingSite(object):
             return find_interface(obj, IHostPolicyFolder, strict=False)
         return None
 
-    def __init__(self, obj, default=None):
+    def __init__(self, obj, unused_default=None):
         folder = self._folder(obj)
         if folder is not None:
             self.site = text_(folder.__name__)
@@ -147,7 +147,7 @@ class ValidatingCatalogEntryID(object):
             return entry
         return None
 
-    def __init__(self, obj, default=None):
+    def __init__(self, obj, unused_default=None):
         entry = self._entry(obj)
         if entry is not None:
             self.ntiid = text_(entry.ntiid)
@@ -165,7 +165,7 @@ class ValidatingCreatedUsername(object):
 
     __slots__ = ('creator_username',)
 
-    def __init__(self,  obj, default=None):
+    def __init__(self,  obj, unused_default=None):
         if not IUsersCourseSubmissionItem.providedBy(obj):
             return
         try:
@@ -185,7 +185,7 @@ class CreatorRawIndex(RawValueIndex):
     pass
 
 
-def CreatorIndex(family=None):
+def CreatorIndex(family=BTrees.family64):
     return NormalizationWrapper(field_name='creator_username',
                                 interface=ValidatingCreatedUsername,
                                 index=CreatorRawIndex(family=family),
@@ -196,7 +196,7 @@ class ValidatingAssesmentID(object):
 
     __slots__ = ('assesmentId',)
 
-    def __init__(self, obj, default=None):
+    def __init__(self, obj, unused_default=None):
         if IUsersCourseSubmissionItem.providedBy(obj):
             self.assesmentId = obj.__name__  # by definition
 
@@ -225,7 +225,7 @@ class ValidatingAssesmentType(object):
 
     __slots__ = ('type',)
 
-    def __init__(self, obj, default=None):
+    def __init__(self, obj, unused_default=None):
         if IUsersCourseSubmissionItem.providedBy(obj):
             self.type = get_assesment_type(obj)
 
@@ -259,7 +259,7 @@ class ValidatingAssesmentSubmittedType(object):
         result.discard(None)
         return result
 
-    def __init__(self, obj, default=None):
+    def __init__(self, obj, unused_default=None):
         if IUsersCourseSubmissionItem.providedBy(obj):
             self.submitted = self.get_submitted(obj)
 
@@ -368,9 +368,9 @@ class ValidatingEvaluationSite(object):
 
     __slots__ = ('site',)
 
-    def __init__(self, obj, default=None):
+    def __init__(self, obj, unused_default=None):
         if IQEvaluation.providedBy(obj):
-            folder = find_interface(obj, IHostPolicyFolder, strict=False)
+            folder = IHostPolicyFolder(obj, None)
             if folder is not None:
                 self.site = text_(folder.__name__)
 
@@ -387,7 +387,7 @@ class ValidatingMimeType(object):
 
     __slots__ = ('mimeType',)
 
-    def __init__(self, obj, default=None):
+    def __init__(self, obj, unused_default=None):
         if IQEvaluation.providedBy(obj):
             self.mimeType = obj.mimeType
 
@@ -404,7 +404,7 @@ class ValidatingEvaluationNTIID(object):
 
     __slots__ = ('ntiid',)
 
-    def __init__(self, obj, default=None):
+    def __init__(self, obj, unused_default=None):
         if IQEvaluation.providedBy(obj):
             self.ntiid = obj.ntiid
 
@@ -422,8 +422,7 @@ class ValidatingEvaluationContainment(object):
     __slots__ = ('containment',)
 
     def _do_survey_question_set(self, obj):
-        result = {q.ntiid for q in obj.questions}
-        return result
+        return {q.ntiid for q in obj.questions}
 
     def _do_assigment_question_set(self, obj):
         result = set()
@@ -433,7 +432,7 @@ class ValidatingEvaluationContainment(object):
             result.update(self._do_survey_question_set(question_set))
         return result
 
-    def __init__(self, obj, default=None):
+    def __init__(self, obj, unused_default=None):
         if IQSurvey.providedBy(obj) or IQuestionSet.providedBy(obj):
             self.containment = self._do_survey_question_set(obj)
         elif IQAssignment.providedBy(obj):
@@ -482,7 +481,7 @@ class ValidatingEvaluationContainers(object):
         result.discard(None)
         return result
 
-    def __init__(self, obj, default=None):
+    def __init__(self, obj, unused_default=None):
         if IQEvaluation.providedBy(obj):
             self.containers = self._get_containers(obj)
 
@@ -499,7 +498,7 @@ class ValidatingKeywords(object):
 
     __slots__ = ('keywords',)
 
-    def __init__(self, obj, default=None):
+    def __init__(self, obj, unused_default=None):
         if IQEvaluation.providedBy(obj):
             keywords = set(obj.tags or ())
             if IQAssignment.providedBy(obj) and obj.category_name:
@@ -520,7 +519,7 @@ class ValidatingEditable(object):
 
     __slots__ = ('editable',)
 
-    def __init__(self, obj, default=None):
+    def __init__(self, obj, unused_default=None):
         if IQEvaluation.providedBy(obj):
             self.editable = bool(IQEditableEvaluation.providedBy(obj))
 

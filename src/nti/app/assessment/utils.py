@@ -50,6 +50,7 @@ from nti.assessment.randomized.interfaces import IPrincipalSeedSelector
 from nti.assessment.randomized.interfaces import IRandomizedPartGraderUnshuffleValidator
 
 from nti.contentlibrary.interfaces import IContentUnit
+from nti.contentlibrary.interfaces import IContentPackage
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
@@ -240,7 +241,6 @@ def get_course_from_request(request=None, params=None):
     course = ICourseInstance(request, None)
     if course is not None:
         return course
-
     try:
         params = request.params if params is None else params
         ntiid = params.get('course') \
@@ -251,6 +251,26 @@ def get_course_from_request(request=None, params=None):
         if ntiid and is_valid_ntiid_string(ntiid):
             result = find_object_with_ntiid(ntiid)
             result = ICourseInstance(result, None)
+            return result
+    except AttributeError:
+        pass
+    return None
+
+
+def get_package_from_request(request=None, params=None):
+    request = get_current_request() if request is None else request
+    package = IContentPackage(request, None)
+    if package is not None:
+        return package
+    try:
+        params = request.params if params is None else params
+        ntiid = params.get('package') \
+             or params.get('ntiid') \
+             or params.get('context')
+        ntiid = unquote(ntiid) if ntiid else None
+        if ntiid and is_valid_ntiid_string(ntiid):
+            result = find_object_with_ntiid(ntiid)
+            result = IContentPackage(result, None)
             return result
     except AttributeError:
         pass

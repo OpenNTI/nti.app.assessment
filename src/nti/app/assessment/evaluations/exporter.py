@@ -44,7 +44,8 @@ from nti.externalization.interfaces import StandardExternalFields
 
 ITEMS = StandardExternalFields.ITEMS
 NTIID = StandardExternalFields.NTIID
-
+TOTAL = StandardExternalFields.TOTAL
+ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 
 class EvaluationsExporterMixin(object):
 
@@ -111,6 +112,7 @@ class EvaluationsExporterMixin(object):
         items = self.do_evaluations_export(context, filer, backup, salt)
         if items:  # check
             result[ITEMS] = items
+            result[TOTAL] = result[ITEM_COUNT] = len(items)
         return result
 
 

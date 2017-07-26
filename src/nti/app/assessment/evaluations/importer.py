@@ -273,8 +273,8 @@ class EvaluationsImporterMixin(object):
             lifecycleevent.modified(result)
         return result
 
-    def handle_context_items(self, items, context,
-                             check_locked=False, source_filer=None):
+    def handle_evaluation_items(self, items, context,
+                                check_locked=False, source_filer=None):
         for ext_obj in items or ():
             source = copy.deepcopy(ext_obj)
             factory = find_factory_for(ext_obj)
@@ -290,9 +290,9 @@ class EvaluationsImporter(EvaluationsImporterMixin, BaseSectionImporter):
     EVALUATION_INDEX = "evaluation_index.json"
 
     def handle_course_items(self, items, course, check_locked=False, source_filer=None):
-        return self.handle_context_items(items, course, check_locked, source_filer)
+        return self.handle_evaluation_items(items, course, check_locked, source_filer)
 
-    def process_source(self, course, source, check_locked=True, filer=None):
+    def process_source(self, course, source, check_locked=False, filer=None):
         source = self.load(source)
         items = source.get(ITEMS)
         self.handle_course_items(items, course, check_locked, filer)

@@ -32,6 +32,7 @@ from nti.externalization.proxy import removeAllProxies
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseSectionExporter
 
+from nti.contenttypes.courses.exporter import hash_ntiid
 from nti.contenttypes.courses.exporter import BaseSectionExporter
 
 from nti.contenttypes.courses.utils import get_course_hierarchy
@@ -45,8 +46,7 @@ ITEMS = StandardExternalFields.ITEMS
 NTIID = StandardExternalFields.NTIID
 
 
-@interface.implementer(ICourseSectionExporter)
-class EvaluationsExporter(BaseSectionExporter):
+class EvaluationsExporterMixin(object):
 
     def _change_ntiid(self, ext_obj, salt=None):
         if isinstance(ext_obj, Mapping):
@@ -56,15 +56,15 @@ class EvaluationsExporter(BaseSectionExporter):
             for name in (NTIID, NTIID.lower()):
                 ntiid = ext_obj.get(name)
                 if ntiid:
-                    ext_obj[name] = self.hash_ntiid(ntiid, salt)
+                    ext_obj[name] = hash_ntiid(ntiid, salt)
             for value in ext_obj.values():
                 self._change_ntiid(value, salt)
         elif isinstance(ext_obj, (list, tuple, set)):
             for value in ext_obj:
                 self._change_ntiid(value, salt)
 
-    def _output(self, course, target_filer=None, backup=True, salt=None):
-        evaluations = IQEvaluations(course)
+    def _output(self, context, target_filer=None, backup=True, salt=None):
+        evaluations = IQEvaluations(context)
         order = {i: x for i, x in enumerate(EVALUATION_INTERFACES)}.items()
 
         def _get_key(item):
@@ -108,8 +108,7 @@ class EvaluationsExporter(BaseSectionExporter):
 
     def externalize(self, context, filer=None, backup=True, salt=None):
         result = LocatedExternalDict()
-        course = ICourseInstance(context)
-        items = self._output(course,
+        items = self._output(context,
                              target_filer=filer,
                              backup=backup,
                              salt=salt)
@@ -117,10 +116,17 @@ class EvaluationsExporter(BaseSectionExporter):
             result[ITEMS] = items
         return result
 
+
+@interface.implementer(ICourseSectionExporter)
+class EvaluationsExporter(EvaluationsExporterMixin, BaseSectionExporter):
+
+    def externalize(self, context, filer=None, backup=True, salt=None):
+        course = ICourseInstance(context)
+        return super(EvaluationsExporter, self).externalize(course, filer, backup, salt)
+
     def export(self, context, filer, backup=True, salt=None):
         course = ICourseInstance(context)
-        courses = get_course_hierarchy(course)
-        for course in courses:
+        for course in get_course_hierarchy(course):
             bucket = self.course_bucket(course)
             result = self.externalize(course, filer, backup, salt)
             if result:  # check

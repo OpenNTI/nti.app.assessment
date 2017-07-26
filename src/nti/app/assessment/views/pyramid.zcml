@@ -13,6 +13,7 @@
 	<pyramid:scan package=".survey_views" />
 	<pyramid:scan package=".history_views" />
 	<pyramid:scan package=".regrade_views" />
+	<pyramid:scan package=".creation_views" />
 	<pyramid:scan package=".feedback_views" />
 	<pyramid:scan package=".metadata_views" />
 	<pyramid:scan package=".container_views" />

@@ -115,6 +115,8 @@ LINKS = StandardExternalFields.LINKS
 NTIID = StandardExternalFields.NTIID
 MIME_TYPE = StandardExternalFields.MIMETYPE
 
+VERSION = u'Version'
+
 
 def get_courses_from_assesment(assesment):
     course = find_interface(assesment, ICourseInstance, strict=False)

@@ -48,7 +48,7 @@ NTIID = StandardExternalFields.NTIID
 
 class EvaluationsExporterMixin(object):
 
-    def _change_ntiid(self, ext_obj, salt=None):
+    def change_evaluation_ntiid(self, ext_obj, salt=None):
         if isinstance(ext_obj, Mapping):
             # when not backing up make sure we take a hash of the current NTIID and
             # use it as the specific part for a new NTIID to make sure there are
@@ -58,12 +58,12 @@ class EvaluationsExporterMixin(object):
                 if ntiid:
                     ext_obj[name] = hash_ntiid(ntiid, salt)
             for value in ext_obj.values():
-                self._change_ntiid(value, salt)
+                self.change_evaluation_ntiid(value, salt)
         elif isinstance(ext_obj, (list, tuple, set)):
             for value in ext_obj:
-                self._change_ntiid(value, salt)
+                self.change_evaluation_ntiid(value, salt)
 
-    def _output(self, context, target_filer=None, backup=True, salt=None):
+    def do_evaluations_export(self, context, target_filer=None, backup=True, salt=None):
         evaluations = IQEvaluations(context)
         order = {i: x for i, x in enumerate(EVALUATION_INTERFACES)}.items()
 
@@ -100,18 +100,15 @@ class EvaluationsExporterMixin(object):
                         qs_ext['RandomizedPartsType'] = is_randomized_parts_container(qs)
 
             if not backup:
-                self._change_ntiid(ext_obj, salt)
+                self.change_evaluation_ntiid(ext_obj, salt)
             return ext_obj
 
         ordered = sorted(evaluations.values(), key=_get_key)
         return map(_ext, ordered)
 
-    def externalize(self, context, filer=None, backup=True, salt=None):
+    def export_evaluations(self, context, filer=None, backup=True, salt=None):
         result = LocatedExternalDict()
-        items = self._output(context,
-                             target_filer=filer,
-                             backup=backup,
-                             salt=salt)
+        items = self.do_evaluations_export(context, filer, backup, salt)
         if items:  # check
             result[ITEMS] = items
         return result
@@ -122,7 +119,7 @@ class EvaluationsExporter(EvaluationsExporterMixin, BaseSectionExporter):
 
     def externalize(self, context, filer=None, backup=True, salt=None):
         course = ICourseInstance(context)
-        return super(EvaluationsExporter, self).externalize(course, filer, backup, salt)
+        return EvaluationsExporterMixin.export_evaluations(self, course, filer, backup, salt)
 
     def export(self, context, filer, backup=True, salt=None):
         course = ICourseInstance(context)

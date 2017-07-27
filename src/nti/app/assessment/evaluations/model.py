@@ -62,7 +62,8 @@ class Evaluations(CaseInsensitiveCheckingLastModifiedBTreeContainer):
         self._p_changed = True
 
     def __setitem__(self, key, value):
-        self._save(key, value)
+        if key not in self:
+            self._save(key, value)
 
     def _eject(self, key, event=True):
         self._delitemf(key, event=event)

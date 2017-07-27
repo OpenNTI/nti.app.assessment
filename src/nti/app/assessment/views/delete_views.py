@@ -235,8 +235,7 @@ class QuestionSetDeleteChildView(AbstractAuthenticatedView,
             self.context.remove(item)
         else:
             self.context.pop(index)
-        factory = QuestionRemovedFromContainerEvent
-        event_notify(factory(self.context, item, index))
+        event_notify(QuestionRemovedFromContainerEvent(self.context, item, index))
 
     def _validate(self):
         self._pre_flight_validation(self.context, structural_change=True)

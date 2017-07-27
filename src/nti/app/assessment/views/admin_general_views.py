@@ -33,7 +33,7 @@ from nti.app.assessment._integrity_check import check_assessment_integrity
 from nti.app.assessment._question_map import _add_assessment_items_from_new_content
 from nti.app.assessment._question_map import _remove_assessment_items_from_oldcontent
 
-from nti.app.assessment.common import get_resource_site_name
+from nti.app.assessment.common.hostpolicy import get_resource_site_name
 
 from nti.app.assessment.index import get_evaluation_catalog
 from nti.app.assessment.index import get_submission_catalog

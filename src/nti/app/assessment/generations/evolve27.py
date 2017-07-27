@@ -23,7 +23,7 @@ from zope.catalog.interfaces import ICatalog
 
 from zope.intid.interfaces import IIntIds
 
-from nti.app.assessment.common import set_assessed_lineage
+from nti.app.assessment.common.assessed import set_assessed_lineage
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 

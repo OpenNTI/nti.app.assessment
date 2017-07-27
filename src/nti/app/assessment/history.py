@@ -29,9 +29,10 @@ from zope.container.contained import Contained
 
 from zope.location.interfaces import ISublocations
 
-from nti.app.assessment.common import set_submission_lineage
 from nti.app.assessment.common import get_policy_for_assessment
 from nti.app.assessment.common import get_available_for_submission_ending
+
+from nti.app.assessment.common.assessed import set_assessed_lineage
 
 from nti.app.assessment.feedback import UsersCourseAssignmentHistoryItemFeedbackContainer
 
@@ -128,7 +129,7 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
                                                 pendingAssessment=pending)
         pending.__parent__ = item
         submission.__parent__ = item
-        set_submission_lineage(submission)
+        set_assessed_lineage(submission)
 
         lifecycleevent.created(item)
         # fire object added, which is dispatched to sublocations

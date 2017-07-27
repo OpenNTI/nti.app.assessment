@@ -22,8 +22,8 @@ from pyramid.threadlocal import get_current_request
 
 from nti.app.assessment import MessageFactory as _
 
-from nti.app.assessment.common import set_parent
-from nti.app.assessment.common import get_part_value
+from nti.app.assessment.common.assessed import set_parent
+from nti.app.assessment.common.assessed import get_part_value
 
 from nti.app.base.abstract_views import get_source
 
@@ -37,7 +37,7 @@ from nti.assessment.interfaces import IQPollSubmission
 from nti.assessment.interfaces import IQSurveySubmission
 from nti.assessment.interfaces import IInternalUploadedFileRef
 
-from nti.base.interfaces import INamedFile
+from nti.base.interfaces import IFile
 
 
 def check_max_size(part, max_file_size=None):
@@ -47,7 +47,7 @@ def check_max_size(part, max_file_size=None):
         raise_json_error(get_current_request(),
                          hexc.HTTPUnprocessableEntity,
                          {
-                            'message': _(u"Max file size exceeded."),
+                             'message': _(u"Max file size exceeded."),
                          },
                          None)
     return part
@@ -59,7 +59,7 @@ def check_upload_files(submission):
             question = component.getUtility(IQuestion, sub_question.questionId)
             for part, sub_part in zip(question.parts, sub_question.parts):
                 part_value = get_part_value(sub_part)
-                if not INamedFile.providedBy(part_value):
+                if not IFile.providedBy(part_value):
                     continue
 
                 if not IQFilePart.providedBy(part):
@@ -68,7 +68,7 @@ def check_upload_files(submission):
                     raise_json_error(get_current_request(),
                                      hexc.HTTPUnprocessableEntity,
                                      {
-                                        'message': msg,
+                                         'message': msg,
                                      },
                                      None)
                 max_size = part.max_file_size
@@ -82,7 +82,7 @@ def read_multipart_sources(submission, request):
             question = component.getUtility(IQuestion, sub_question.questionId)
             for part, sub_part in zip(question.parts, sub_question.parts):
                 part_value = get_part_value(sub_part)
-                if not INamedFile.providedBy(part_value):
+                if not IFile.providedBy(part_value):
                     continue
 
                 if not IQFilePart.providedBy(part):
@@ -91,7 +91,7 @@ def read_multipart_sources(submission, request):
                     raise_json_error(get_current_request(),
                                      hexc.HTTPUnprocessableEntity,
                                      {
-                                        'message': msg,
+                                         'message': msg,
                                      },
                                      None)
                 max_size = part.max_file_size
@@ -103,7 +103,7 @@ def read_multipart_sources(submission, request):
                     raise_json_error(get_current_request(),
                                      hexc.HTTPUnprocessableEntity,
                                      {
-                                        'message': msg,
+                                         'message': msg,
                                      },
                                      None)
 
@@ -113,9 +113,9 @@ def read_multipart_sources(submission, request):
                     raise_json_error(get_current_request(),
                                      hexc.HTTPUnprocessableEntity,
                                      {
-                                        'message': msg,
+                                         'message': msg,
                                      },
-                                     None)
+                                    None)
 
                 # copy data
                 transfer_data(source, part_value)
@@ -153,7 +153,7 @@ def transfer_submission_file_data(source, target,  force=False):
     """
 
     def _is_internal(source):
-        if not INamedFile.providedBy(source):
+        if not IFile.providedBy(source):
             return False
         if force:
             return True
@@ -188,12 +188,12 @@ def transfer_submission_file_data(source, target,  force=False):
                     # check if the uploaded file has been internalized empty
                     # this is tightly coupled w/ the way IQUploadedFile are
                     # updated.
-                    if INamedFile.providedBy(old_part_value) and _is_internal(part_value):
+                    if IFile.providedBy(old_part_value) and _is_internal(part_value):
                         part_value.data = old_part_value.data
                         part_value.filename = old_part_value.filename
                         part_value.contentType = old_part_value.contentType
                         part_value.name = getattr(old_part_value, 'name', None)
-                        interface.noLongerProvides(part_value, 
+                        interface.noLongerProvides(part_value,
                                                    IInternalUploadedFileRef)
         except POSError:
             logger.exception("Failed to transfer data from savepoints")

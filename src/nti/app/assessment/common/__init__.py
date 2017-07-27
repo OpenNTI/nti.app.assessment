@@ -43,6 +43,10 @@ from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment.assignment_filters import AssessmentPolicyExclusionFilter
 
+from nti.app.assessment.common.assessed import reassess_assignment_history_item
+
+from nti.app.assessment.common.hostpolicy import get_resource_site_name
+
 from nti.app.assessment.evaluations import raise_error
 
 from nti.app.assessment.index import IX_SITE
@@ -183,17 +187,6 @@ DISABLE_AUTO_GRADE_MSG = _("Removing points to auto-gradable assignment. Do you 
 AUTO_GRADE_NO_POINTS_MSG = _("Cannot enable auto-grading without setting a point value.")
 
 
-def get_resource_site_name(context, strict=False):
-    folder = find_interface(context, IHostPolicyFolder, strict=strict)
-    return folder.__name__ if folder is not None else None
-get_course_site = get_resource_site_name
-
-
-def get_resource_site_registry(context, strict=False):
-    folder = find_interface(context, IHostPolicyFolder, strict=strict)
-    return folder.getSiteManager() if folder is not None else None
-
-
 def get_user(user=None, remote=False, request=None):
     if user is None and remote:
         user = get_remote_user(request)
@@ -295,7 +288,7 @@ def get_course_evaluations(context, sites=None, intids=None, mimetypes=None,
                 containers.append(parent_entry.ntiid)
         packages = get_course_packages(course)
         containers.extend((x.ntiid for x in packages))
-        sites = get_course_site(course) if not sites else sites
+        sites = get_resource_site_name(course) if not sites else sites
 
     return get_container_evaluations(containers,
                                      sites=sites,
@@ -1206,91 +1199,6 @@ def pre_validate_question_change(question, externalValue):
                 if analyzer.regrade(change):
                     regrade_parts.append(part)
     return regrade_parts
-
-
-def set_parent(child, parent):
-    if hasattr(child, '__parent__') and child.__parent__ is None:
-        child.__parent__ = parent
-
-
-def get_part_value(part):
-    if IQResponse.providedBy(part):
-        part = part.value
-    return part
-
-
-def set_part_value_lineage(part):
-    part_value = get_part_value(part)
-    if part_value is not part and INamedFile.providedBy(part_value):
-        set_parent(part_value, part)
-
-
-def set_assessed_lineage(assessed):
-    # The constituent parts of these things need parents as well.
-    # It would be nice if externalization took care of this,
-    # but that would be a bigger change
-    creator = getattr(assessed, 'creator', None)
-    for assessed_set in assessed.parts or ():
-        # submission_part e.g. assessed question set
-        set_parent(assessed_set, assessed)
-        assessed_set.creator = creator
-        for assessed_question in assessed_set.questions or ():
-            assessed_question.creator = creator
-            set_parent(assessed_question, assessed_set)
-            for assessed_question_part in assessed_question.parts or ():
-                set_parent(assessed_question_part, assessed_question)
-                set_part_value_lineage(assessed_question_part)
-    return assessed
-set_submission_lineage = set_assessed_lineage  # BWC
-
-
-def assess_assignment_submission(course, assignment, submission):
-    # Ok, now for each part that can be auto graded, do so, leaving all the others
-    # as-they-are
-    new_parts = PersistentList()
-    for submission_part in submission.parts:
-        assignment_part, = [p for p in assignment.parts
-                            if p.question_set.ntiid == submission_part.questionSetId]
-        # Only assess if the part is set to auto_grade.
-        if assignment_part.auto_grade:
-            __traceback_info__ = submission_part
-            submission_part = IQAssessedQuestionSet(submission_part)
-        new_parts.append(submission_part)
-    # create a pending assessment object
-    pending_assessment = QAssignmentSubmissionPendingAssessment(assignmentId=submission.assignmentId,
-                                                                parts=new_parts)
-    pending_assessment.containerId = submission.assignmentId
-    return pending_assessment
-
-
-def reassess_assignment_history_item(item):
-    """
-    Update our submission by re-assessing the changed question.
-    """
-    submission = item.Submission
-    old_pending_assessment = item.pendingAssessment
-    if submission is None or old_pending_assessment is None:
-        return
-
-    # mark old pending assessment as removed
-    lifecycleevent.removed(old_pending_assessment)
-    old_pending_assessment.__parent__ = None  # ground
-
-    assignment = item.Assignment
-    course = find_interface(item, ICourseInstance, strict=False)
-    new_pending_assessment = assess_assignment_submission(course,
-                                                          assignment,
-                                                          submission)
-    old_duration = old_pending_assessment.CreatorRecordedEffortDuration
-    new_pending_assessment.CreatorRecordedEffortDuration = old_duration
-
-    item.pendingAssessment = new_pending_assessment
-    new_pending_assessment.__parent__ = item
-    set_assessed_lineage(new_pending_assessment)
-    lifecycleevent.created(new_pending_assessment)
-
-    # dispatch to sublocations
-    lifecycleevent.modified(item)
 
 
 def regrade_evaluation(context, course):

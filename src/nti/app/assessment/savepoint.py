@@ -33,7 +33,7 @@ from nti.app.assessment._submission import transfer_submission_file_data
 
 from nti.app.assessment.adapters import course_from_context_lineage
 
-from nti.app.assessment.common import set_submission_lineage
+from nti.app.assessment.common.assessed import set_assessed_lineage
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
@@ -120,7 +120,7 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 
         item = UsersCourseAssignmentSavepointItem(Submission=submission)
         submission.__parent__ = item
-        set_submission_lineage(submission)
+        set_assessed_lineage(submission)
 
         # check for removal
         self.removeSubmission(submission, event=event)

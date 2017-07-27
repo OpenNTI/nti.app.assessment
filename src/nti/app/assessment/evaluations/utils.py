@@ -31,10 +31,9 @@ from nti.app.assessment import MessageFactory as _
 from nti.app.assessment.common import has_savepoints
 from nti.app.assessment.common import has_submissions
 from nti.app.assessment.common import has_inquiry_submissions
-from nti.app.assessment.common import get_resource_site_registry
 from nti.app.assessment.common import get_assignments_for_evaluation_object
 
-from nti.app.assessment.interfaces import IQEvaluations
+from nti.app.assessment.common.hostpolicy import get_resource_site_registry
 
 from nti.app.base.abstract_views import get_safe_source_filename
 

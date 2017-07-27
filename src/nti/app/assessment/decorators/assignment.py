@@ -39,21 +39,25 @@ from nti.app.assessment import VIEW_REMOVE_PART_OPTION
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
 
-from nti.app.assessment.common import get_courses
-from nti.app.assessment.common import has_savepoints
-from nti.app.assessment.common import has_submissions
-from nti.app.assessment.common import get_policy_locked
-from nti.app.assessment.common import get_policy_excluded
-from nti.app.assessment.common import get_max_time_allowed
-from nti.app.assessment.common import is_global_evaluation
-from nti.app.assessment.common import get_auto_grade_policy
-from nti.app.assessment.common import get_evaluation_courses
-from nti.app.assessment.common import get_assessment_metadata_item
-from nti.app.assessment.common import is_assignment_non_public_only
-from nti.app.assessment.common import get_available_for_submission_ending
-from nti.app.assessment.common import get_assignments_for_evaluation_object
-from nti.app.assessment.common import get_available_for_submission_beginning
-from nti.app.assessment.common import get_available_assignments_for_evaluation_object
+from nti.app.assessment.common.evaluations import get_max_time_allowed
+from nti.app.assessment.common.evaluations import is_global_evaluation
+from nti.app.assessment.common.evaluations import get_evaluation_courses
+from nti.app.assessment.common.evaluations import is_assignment_non_public_only
+from nti.app.assessment.common.evaluations import get_containers_for_evaluation_object
+from nti.app.assessment.common.evaluations import get_available_assignments_for_evaluation_object
+
+from nti.app.assessment.common.history import has_savepoints
+from nti.app.assessment.common.history import get_assessment_metadata_item
+
+from nti.app.assessment.common.policy import get_policy_locked
+from nti.app.assessment.common.policy import get_policy_excluded
+from nti.app.assessment.common.policy import get_auto_grade_policy
+
+from nti.app.assessment.common.submissions import has_submissions
+
+from nti.app.assessment.common.utils import get_courses
+from nti.app.assessment.common.utils import get_available_for_submission_ending
+from nti.app.assessment.common.utils import get_available_for_submission_beginning
 
 from nti.app.assessment.decorators import _root_url
 from nti.app.assessment.decorators import _get_course_from_evaluation
@@ -530,7 +534,7 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
         savepoints, and submissions.
         """
         # We need to check assignments for our context for submissions.
-        assignments = get_assignments_for_evaluation_object(context)
+        assignments = get_containers_for_evaluation_object(context)
         savepoints = is_available = False
         for assignment in assignments:
             savepoints = savepoints or has_savepoints(assignment, courses)

@@ -18,11 +18,15 @@ from zope.cachedescriptors.property import Lazy
 
 from zope.intid.interfaces import IIntIds
 
-from nti.app.assessment.common import inquiry_submissions
-from nti.app.assessment.common import can_disclose_inquiry
-from nti.app.assessment.common import get_policy_for_assessment
-from nti.app.assessment.common import get_available_for_submission_ending
-from nti.app.assessment.common import get_available_for_submission_beginning
+from nti.app.assessment.common.inquiries import can_disclose_inquiry
+
+from nti.app.assessment.common.policy import get_policy_for_assessment
+
+from nti.app.assessment.common.submissions import inquiry_submissions
+
+from nti.app.assessment.common.utils import get_available_for_submission_ending
+
+from nti.app.assessment.common.utils import get_available_for_submission_beginning
 
 from nti.app.assessment.decorators import _root_url
 from nti.app.assessment.decorators import _get_course_from_evaluation

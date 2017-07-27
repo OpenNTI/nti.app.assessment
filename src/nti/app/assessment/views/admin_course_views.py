@@ -30,7 +30,7 @@ from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment._assessment import move_user_assignment_from_course_to_course
 
-from nti.app.assessment.common import index_course_package_assessments
+from nti.app.assessment.common.containers import index_course_package_assessments
 
 from nti.app.assessment.interfaces import IQEvaluations
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory

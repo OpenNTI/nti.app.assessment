@@ -23,8 +23,8 @@ from pyramid.view import view_config
 
 from nti.app.assessment import MessageFactory as _
 
-from nti.app.assessment.common import get_max_time_allowed
-from nti.app.assessment.common import get_course_from_evaluation
+from nti.app.assessment.common.evaluations import get_max_time_allowed
+from nti.app.assessment.common.evaluations import get_course_from_evaluation
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataItem

@@ -27,14 +27,16 @@ from pyramid import httpexceptions as hexc
 from pyramid.view import view_config
 from pyramid.view import view_defaults
 
-from nti.app.assessment.common import inquiry_submissions
-from nti.app.assessment.common import can_disclose_inquiry
-from nti.app.assessment.common import aggregate_page_inquiry
-from nti.app.assessment.common import get_course_from_inquiry
-from nti.app.assessment.common import aggregate_course_inquiry
-from nti.app.assessment.common import check_submission_version
-from nti.app.assessment.common import get_available_for_submission_ending
-from nti.app.assessment.common import get_available_for_submission_beginning
+from nti.app.assessment.common.inquiries import can_disclose_inquiry
+from nti.app.assessment.common.inquiries import aggregate_page_inquiry
+from nti.app.assessment.common.inquiries import get_course_from_inquiry
+from nti.app.assessment.common.inquiries import aggregate_course_inquiry
+
+from nti.app.assessment.common.submissions import inquiry_submissions
+from nti.app.assessment.common.submissions import check_submission_version
+
+from nti.app.assessment.common.utils import get_available_for_submission_ending
+from nti.app.assessment.common.utils import get_available_for_submission_beginning
 
 from nti.app.assessment.interfaces import IUsersCourseInquiry
 from nti.app.assessment.interfaces import IUsersCourseInquiries

@@ -20,7 +20,7 @@ from zope.component.hooks import site as current_site
 
 from zope.event import notify as event_notify
 
-from nti.app.assessment.common import get_evaluation_courses
+from nti.app.assessment.common.evaluations import get_evaluation_courses
 
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssessmentDateContext

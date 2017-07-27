@@ -19,8 +19,9 @@ from zope import lifecycleevent
 from pyramid.view import view_config
 from pyramid.view import view_defaults
 
-from nti.app.assessment.common import get_course_inquiries
-from nti.app.assessment.common import get_course_assignments
+from nti.app.assessment.common.evaluations import get_course_assignments
+
+from nti.app.assessment.common.inquiries import get_course_inquiries
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 

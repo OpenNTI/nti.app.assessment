@@ -21,7 +21,7 @@ from zope.cachedescriptors.property import Lazy
 
 from zope.security.interfaces import IPrincipal
 
-from nti.app.assessment.common import make_evaluation_ntiid
+from nti.app.assessment.common.utils import make_evaluation_ntiid
 
 from nti.app.assessment.evaluations.utils import indexed_iter
 from nti.app.assessment.evaluations.utils import register_context

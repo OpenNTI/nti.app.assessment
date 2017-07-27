@@ -27,13 +27,15 @@ from pyramid.httpexceptions import HTTPUnprocessableEntity
 
 from nti.app.assessment import MessageFactory as _
 
-from nti.app.assessment.common import get_unit_assessments
-from nti.app.assessment.common import get_course_from_evaluation
-from nti.app.assessment.common import index_course_package_assessments
-from nti.app.assessment.common import get_available_for_submission_ending
-from nti.app.assessment.common import is_discussion_assignment_non_public
+from nti.app.assessment.common.containers import index_course_package_assessments
+
+from nti.app.assessment.common.evaluations import get_unit_assessments
+from nti.app.assessment.common.evaluations import get_course_from_evaluation
+from nti.app.assessment.common.evaluations import is_discussion_assignment_non_public
 
 from nti.app.assessment.common.hostpolicy import get_resource_site_name
+
+from nti.app.assessment.common.utils import get_available_for_submission_ending
 
 from nti.app.assessment.index import IX_SITE
 from nti.app.assessment.index import IX_COURSE

@@ -40,7 +40,7 @@ from persistent.list import PersistentList
 
 from persistent.mapping import PersistentMapping
 
-from nti.app.assessment.common import get_content_packages_assessment_items
+from nti.app.assessment.common.evaluations import get_content_packages_assessment_items
 
 from nti.assessment._question_index import QuestionIndex
 from nti.assessment._question_index import _ntiid_object_hook

@@ -27,14 +27,17 @@ from zope.lifecycleevent.interfaces import IObjectRemovedEvent
 
 from nti.app.assessment import MessageFactory as _
 
-from nti.app.assessment.common import has_submissions
-from nti.app.assessment.common import regrade_evaluation
-from nti.app.assessment.common import get_evaluation_courses
-from nti.app.assessment.common import delete_all_evaluation_data
-from nti.app.assessment.common import get_course_from_evaluation
-from nti.app.assessment.common import get_evaluation_containment
-from nti.app.assessment.common import delete_all_evaluation_policy_data
-from nti.app.assessment.common import get_assignments_for_evaluation_object
+from nti.app.assessment.common.evaluations import get_evaluation_courses
+from nti.app.assessment.common.evaluations import get_course_from_evaluation
+from nti.app.assessment.common.evaluations import get_evaluation_containment
+from nti.app.assessment.common.evaluations import get_containers_for_evaluation_object
+
+from nti.app.assessment.common.grading import regrade_evaluation
+
+from nti.app.assessment.common.history import delete_all_evaluation_data
+from nti.app.assessment.common.history import delete_all_evaluation_policy_data
+
+from nti.app.assessment.common.submissions import has_submissions
 
 from nti.app.assessment.evaluations import raise_error
 
@@ -163,7 +166,7 @@ def _on_question_inserted_in_container(container, unused_event):
     if IRecordableContainer.providedBy(container):
         container.childOrderLock()
     # Now update any assignments for our container
-    assignments = get_assignments_for_evaluation_object(container)
+    assignments = get_containers_for_evaluation_object(container)
     for assignment in assignments or ():
         notify(ObjectModifiedEvent(assignment))
 

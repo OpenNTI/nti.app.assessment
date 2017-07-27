@@ -16,7 +16,7 @@ from zope.location.interfaces import ILocation
 
 from nti.app.assessment import VIEW_QUESTION_CONTAINERS
 
-from nti.app.assessment.common import get_outline_evaluation_containers
+from nti.app.assessment.common.containers import get_outline_evaluation_containers
 
 from nti.app.assessment.decorators import _get_course_from_evaluation
 

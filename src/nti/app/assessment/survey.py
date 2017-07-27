@@ -29,7 +29,7 @@ from nti.app.assessment._submission import set_inquiry_submission_lineage
 
 from nti.app.assessment.adapters import course_from_context_lineage
 
-from nti.app.assessment.common import get_course_inquiries
+from nti.app.assessment.common.inquiries import get_course_inquiries
 
 from nti.app.assessment.interfaces import IUsersCourseInquiry
 from nti.app.assessment.interfaces import ICourseInquiryCatalog

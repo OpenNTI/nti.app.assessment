@@ -22,14 +22,17 @@ from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 
-from nti.app.assessment.common import get_courses
-from nti.app.assessment.common import has_submissions
-from nti.app.assessment.common import has_inquiry_submissions
-from nti.app.assessment.common import delete_evaluation_metadata
-from nti.app.assessment.common import delete_inquiry_submissions
-from nti.app.assessment.common import get_evaluation_containment
-from nti.app.assessment.common import delete_evaluation_savepoints
-from nti.app.assessment.common import delete_evaluation_submissions
+from nti.app.assessment.common.evaluations import get_evaluation_containment
+
+from nti.app.assessment.common.history import delete_evaluation_metadata
+from nti.app.assessment.common.history import delete_inquiry_submissions
+from nti.app.assessment.common.history import delete_evaluation_savepoints
+from nti.app.assessment.common.history import delete_evaluation_submissions
+
+from nti.app.assessment.common.submissions import has_submissions
+from nti.app.assessment.common.submissions import has_inquiry_submissions
+
+from nti.app.assessment.common.utils import get_courses
 
 from nti.app.assessment.evaluations.utils import delete_evaluation
 

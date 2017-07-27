@@ -15,7 +15,7 @@ from pyramid.view import view_defaults
 
 from nti.app.assessment import VIEW_QUESTION_CONTAINERS
 
-from nti.app.assessment.common import get_outline_evaluation_containers
+from nti.app.assessment.common.containers import get_outline_evaluation_containers
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 

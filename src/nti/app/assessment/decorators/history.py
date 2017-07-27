@@ -14,7 +14,7 @@ from zope import interface
 
 from zope.cachedescriptors.property import Lazy
 
-from nti.app.assessment.common import get_assessment_metadata_item
+from nti.app.assessment.common.history import get_assessment_metadata_item
 
 from nti.app.assessment.decorators import _get_course_from_evaluation
 from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator

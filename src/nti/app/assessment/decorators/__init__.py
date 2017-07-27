@@ -16,7 +16,7 @@ from zope.location.interfaces import ILocationInfo
 
 from pyramid.threadlocal import get_current_request
 
-from nti.app.assessment.common import get_course_from_evaluation
+from nti.app.assessment.common.evaluations import get_course_from_evaluation
 
 from nti.app.assessment.utils import get_course_from_request
 
@@ -34,7 +34,7 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 
 class _AbstractTraversableLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
-    def _predicate(self, context, result):
+    def _predicate(self, context, unused_result):
         # We only do this if we can create the traversal path to this object;
         # many times the CourseInstanceEnrollments aren't fully traversable
         # (specifically, for the course roster)

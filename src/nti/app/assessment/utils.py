@@ -24,10 +24,11 @@ from zope.proxy import isProxy
 
 from pyramid.threadlocal import get_current_request
 
-from nti.app.assessment.common import proxy
-from nti.app.assessment.common import get_user
-from nti.app.assessment.common import AssessmentItemProxy
-from nti.app.assessment.common import get_course_from_evaluation
+from nti.app.assessment.common.evaluations import proxy
+from nti.app.assessment.common.evaluations import AssessmentItemProxy
+from nti.app.assessment.common.evaluations import get_course_from_evaluation
+
+from nti.app.assessment.common.utils import get_user
 
 from nti.app.assessment.interfaces import ACT_DOWNLOAD_GRADES
 

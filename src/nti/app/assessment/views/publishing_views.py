@@ -12,7 +12,7 @@ logger = __import__('logging').getLogger(__name__)
 from pyramid.view import view_config
 from pyramid.view import view_defaults
 
-from nti.app.assessment.common import get_courses
+from nti.app.assessment.common.utils import get_courses
 
 from nti.app.assessment.evaluations.utils import register_context
 from nti.app.assessment.evaluations.utils import validate_structural_edits

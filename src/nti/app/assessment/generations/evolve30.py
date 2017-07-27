@@ -18,12 +18,15 @@ from zope.component.hooks import site
 from zope.component.hooks import setHooks
 from zope.component.hooks import site as current_site
 
-from nti.app.assessment.common import get_courses
-from nti.app.assessment.common import regrade_evaluation
-from nti.app.assessment.common import evaluation_submissions
-from nti.app.assessment.common import get_evaluation_courses
+from nti.app.assessment.common.evaluations import get_evaluation_courses
+
+from nti.app.assessment.common.grading import regrade_evaluation
 
 from nti.app.assessment.common.hostpolicy import get_resource_site_name
+
+from nti.app.assessment.common.submissions import evaluation_submissions
+
+from nti.app.assessment.common.utils import get_courses
 
 from nti.assessment.common import iface_of_assessment
 

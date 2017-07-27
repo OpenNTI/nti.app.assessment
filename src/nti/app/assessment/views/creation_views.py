@@ -30,10 +30,12 @@ from nti.app.assessment import VIEW_ASSESSMENT_MOVE
 from nti.app.assessment import VIEW_COPY_EVALUATION
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 
-from nti.app.assessment.common import get_courses
-from nti.app.assessment.common import validate_auto_grade
-from nti.app.assessment.common import get_auto_grade_policy
-from nti.app.assessment.common import get_assignments_for_evaluation_object
+from nti.app.assessment.common.evaluations import get_containers_for_evaluation_object
+
+from nti.app.assessment.common.policy import validate_auto_grade
+from nti.app.assessment.common.policy import get_auto_grade_policy
+
+from nti.app.assessment.common.utils import get_courses
 
 from nti.app.assessment.interfaces import IQEvaluations
 
@@ -254,7 +256,7 @@ class QuestionSetInsertView(AbstractAuthenticatedView,
         """
         # Make sure our auto_grade status still holds.
         courses = self._get_courses(self.context)
-        assignments = get_assignments_for_evaluation_object(self.context)
+        assignments = get_containers_for_evaluation_object(self.context)
         if params:
             override_auto_grade = params.get('overrideAutoGrade')
         else:

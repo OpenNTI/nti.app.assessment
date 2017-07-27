@@ -29,15 +29,18 @@ from zope.interface.common.idatetime import IDateTime
 
 from pyramid import httpexceptions as hexc
 
-from nti.app.assessment.common import get_courses
-from nti.app.assessment.common import regrade_evaluation
-from nti.app.assessment.common import validate_auto_grade
-from nti.app.assessment.common import make_evaluation_ntiid
-from nti.app.assessment.common import validate_auto_grade_points
-from nti.app.assessment.common import is_assignment_non_public_only
-from nti.app.assessment.common import get_available_for_submission_ending
-from nti.app.assessment.common import get_assignments_for_evaluation_object
-from nti.app.assessment.common import get_available_for_submission_beginning
+from nti.app.assessment.common.evaluations import is_assignment_non_public_only
+from nti.app.assessment.common.evaluations import get_containers_for_evaluation_object
+
+from nti.app.assessment.common.grading import regrade_evaluation
+
+from nti.app.assessment.common.policy import validate_auto_grade
+from nti.app.assessment.common.policy import validate_auto_grade_points
+
+from nti.app.assessment.common.utils import get_courses
+from nti.app.assessment.common.utils import make_evaluation_ntiid
+from nti.app.assessment.common.utils import get_available_for_submission_ending
+from nti.app.assessment.common.utils import get_available_for_submission_beginning
 
 from nti.app.assessment.evaluations.utils import indexed_iter
 from nti.app.assessment.evaluations.utils import register_context
@@ -684,7 +687,7 @@ class StructuralValidationMixin(object):
         if structural_change:
             # We have changes, validate and bump version.
             self._validate_structural_edits(context)
-            assignments = get_assignments_for_evaluation_object(context)
+            assignments = get_containers_for_evaluation_object(context)
             for assignment in assignments:
                 assignment.update_version()
 

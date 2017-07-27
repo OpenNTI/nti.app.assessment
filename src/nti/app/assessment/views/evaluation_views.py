@@ -30,9 +30,10 @@ from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 
-from nti.app.assessment.common import get_max_time_allowed
-from nti.app.assessment.common import pre_validate_question_change
-from nti.app.assessment.common import get_assignments_for_evaluation_object
+from nti.app.assessment.common.evaluations import get_max_time_allowed
+from nti.app.assessment.common.evaluations import get_containers_for_evaluation_object
+
+from nti.app.assessment.common.policy import pre_validate_question_change
 
 from nti.app.assessment.evaluations.utils import indexed_iter
 from nti.app.assessment.evaluations.utils import delete_evaluation
@@ -294,7 +295,7 @@ class QuestionSetPutView(EvaluationPutView):
         Update all assignments pointing to our question set.
         Any refs in lessons should still work (since we point to ntiid).
         """
-        assignments = get_assignments_for_evaluation_object(old_obj)
+        assignments = get_containers_for_evaluation_object(old_obj)
         for assignment in assignments:
             for part in assignment.parts or ():
                 if part.question_set.ntiid == old_obj.ntiid:

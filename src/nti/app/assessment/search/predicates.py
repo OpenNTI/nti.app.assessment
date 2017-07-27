@@ -18,8 +18,9 @@ from zope.cachedescriptors.property import Lazy
 
 from pyramid.threadlocal import get_current_request
 
-from nti.app.assessment.common import get_container_evaluations
-from nti.app.assessment.common import get_available_for_submission_beginning
+from nti.app.assessment.common.evaluations import get_container_evaluations
+
+from nti.app.assessment.common.utils import get_available_for_submission_beginning
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedback
 

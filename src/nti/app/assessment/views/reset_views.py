@@ -27,15 +27,18 @@ from nti.app.assessment import MessageFactory as _
 from nti.app.assessment import VIEW_RESET_EVALUATION
 from nti.app.assessment import VIEW_USER_RESET_EVALUATION
 
-from nti.app.assessment.common import get_courses
-from nti.app.assessment.common import has_savepoints
-from nti.app.assessment.common import has_submissions
-from nti.app.assessment.common import has_inquiry_submissions
-from nti.app.assessment.common import delete_evaluation_metadata
-from nti.app.assessment.common import delete_inquiry_submissions
-from nti.app.assessment.common import get_course_from_evaluation
-from nti.app.assessment.common import delete_evaluation_savepoints
-from nti.app.assessment.common import delete_evaluation_submissions
+from nti.app.assessment.common.evaluations import get_course_from_evaluation
+
+from nti.app.assessment.common.history import has_savepoints
+from nti.app.assessment.common.history import delete_evaluation_metadata
+from nti.app.assessment.common.history import delete_inquiry_submissions
+from nti.app.assessment.common.history import delete_evaluation_savepoints
+from nti.app.assessment.common.history import delete_evaluation_submissions
+
+from nti.app.assessment.common.submissions import has_submissions
+from nti.app.assessment.common.submissions import has_inquiry_submissions
+
+from nti.app.assessment.common.utils import get_courses
 
 from nti.app.assessment.interfaces import IUsersCourseInquiry
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory

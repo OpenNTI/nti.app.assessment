@@ -17,7 +17,7 @@ from zope import component
 
 from nti.app.assessment._submission import transfer_submission_file_data
 
-from nti.app.assessment.common import get_course_from_evaluation
+from nti.app.assessment.common.evaluations import get_course_from_evaluation
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint

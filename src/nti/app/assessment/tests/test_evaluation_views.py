@@ -49,8 +49,8 @@ from nti.app.assessment import VIEW_REMOVE_PART_OPTION
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
 
-from nti.app.assessment.common import is_discussion_assignment_non_public
-from nti.app.assessment.common import get_assignments_for_evaluation_object
+from nti.app.assessment.common.evaluations import is_discussion_assignment_non_public
+from nti.app.assessment.common.evaluations import get_containers_for_evaluation_object
 
 from nti.app.assessment.evaluations.exporter import EvaluationsExporter
 
@@ -145,7 +145,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 	def _test_assignments(self, assessment_ntiid, assignment_ntiids=()):
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
 			obj = find_object_with_ntiid( assessment_ntiid )
-			assignments = get_assignments_for_evaluation_object( obj )
+			assignments = get_containers_for_evaluation_object( obj )
 			found_ntiids = tuple(x.ntiid for x in assignments)
 			assert_that( found_ntiids, is_(assignment_ntiids))
 
@@ -847,7 +847,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 	def _validate_assignment_containers( self, obj_ntiid, assignment_ntiids=() ):
 		with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
 			obj = find_object_with_ntiid( obj_ntiid )
-			assignments = get_assignments_for_evaluation_object( obj )
+			assignments = get_containers_for_evaluation_object( obj )
 			found_ntiids = [x.ntiid for x in assignments or ()]
 			assert_that( found_ntiids, contains_inanyorder( *assignment_ntiids ))
 

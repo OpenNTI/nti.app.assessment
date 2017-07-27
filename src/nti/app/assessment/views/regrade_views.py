@@ -21,8 +21,9 @@ from pyramid.view import view_defaults
 from nti.app.assessment import MessageFactory as _
 from nti.app.assessment import VIEW_REGRADE_EVALUATION
 
-from nti.app.assessment.common import regrade_evaluation
-from nti.app.assessment.common import get_evaluation_courses
+from nti.app.assessment.common.evaluations import get_evaluation_courses
+
+from nti.app.assessment.common.grading import regrade_evaluation
 
 from nti.app.assessment.utils import get_course_from_request
 

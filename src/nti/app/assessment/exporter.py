@@ -11,7 +11,7 @@ logger = __import__('logging').getLogger(__name__)
 
 from zope import interface
 
-from nti.app.assessment.common import get_unit_assessments
+from nti.app.assessment.common.evaluations import get_unit_assessments
 
 from nti.assessment.interfaces import IQEditableEvaluation
 

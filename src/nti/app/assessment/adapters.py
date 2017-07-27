@@ -31,18 +31,20 @@ from pyramid.interfaces import IExceptionResponse
 
 from zope.location.interfaces import LocationError
 
-from nti.app.assessment.common import get_course_evaluations
-from nti.app.assessment.common import get_evaluation_courses
-from nti.app.assessment.common import get_course_assignments
-from nti.app.assessment.common import check_submission_version
-from nti.app.assessment.common import get_course_from_evaluation
-from nti.app.assessment.common import get_course_from_assignment
-from nti.app.assessment.common import get_course_self_assessments
-from nti.app.assessment.common import get_outline_evaluation_containers
-from nti.app.assessment.common import get_available_for_submission_beginning
-
 from nti.app.assessment.common.assessed import set_assessed_lineage
 from nti.app.assessment.common.assessed import assess_assignment_submission
+
+from nti.app.assessment.common.containers import get_outline_evaluation_containers
+
+from nti.app.assessment.common.evaluations import get_course_assignments
+from nti.app.assessment.common.evaluations import get_course_evaluations
+from nti.app.assessment.common.evaluations import get_evaluation_courses
+from nti.app.assessment.common.evaluations import get_course_from_evaluation
+from nti.app.assessment.common.evaluations import get_course_self_assessments
+
+from nti.app.assessment.common.submissions import check_submission_version
+
+from nti.app.assessment.common.utils import get_available_for_submission_beginning
 
 from nti.app.assessment.history import UsersCourseAssignmentHistory
 from nti.app.assessment.history import UsersCourseAssignmentHistories
@@ -226,7 +228,7 @@ def _begin_assessment_for_assignment_submission(submission):
 
     course = get_course_from_request()
     if course is None:
-        course = get_course_from_assignment(assignment,
+        course = get_course_from_evaluation(assignment,
                                             submission.creator,
                                             exc=True)
 

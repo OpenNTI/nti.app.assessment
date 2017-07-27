@@ -33,7 +33,7 @@ from nti.app.assessment import VIEW_RESOLVE_TOPIC
 from nti.app.assessment import VIEW_UNLOCK_POLICIES
 from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
 
-from nti.app.assessment.common import get_evaluation_courses
+from nti.app.assessment.common.evaluations import get_evaluation_courses
 
 from nti.app.assessment.utils import get_course_from_request
 

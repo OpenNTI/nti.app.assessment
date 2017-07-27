@@ -46,8 +46,8 @@ from nti.app.assessment._submission import get_source
 from nti.app.assessment._submission import check_upload_files
 from nti.app.assessment._submission import read_multipart_sources
 
-from nti.app.assessment.common import is_assignment_available
-from nti.app.assessment.common import get_course_from_evaluation
+from nti.app.assessment.common.evaluations import is_assignment_available
+from nti.app.assessment.common.evaluations import get_course_from_evaluation
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem

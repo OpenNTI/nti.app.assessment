@@ -16,11 +16,14 @@ from zope.location.interfaces import ILocation
 from nti.app.assessment import VIEW_COPY_EVALUATION
 from nti.app.assessment import VIEW_RESET_EVALUATION
 
-from nti.app.assessment.common import get_courses
-from nti.app.assessment.common import has_savepoints
-from nti.app.assessment.common import has_submissions
-from nti.app.assessment.common import is_global_evaluation
-from nti.app.assessment.common import has_inquiry_submissions
+from nti.app.assessment.common.evaluations import is_global_evaluation
+
+from nti.app.assessment.common.history import has_savepoints
+
+from nti.app.assessment.common.submissions import has_submissions
+from nti.app.assessment.common.submissions import has_inquiry_submissions
+
+from nti.app.assessment.common.utils import get_courses
 
 from nti.app.assessment.decorators import _get_course_from_evaluation
 
@@ -67,7 +70,7 @@ def _has_any_submissions(context, course):
 @interface.implementer(IExternalMappingDecorator)
 class _EvaluationLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
-    def _predicate(self, context, result):
+    def _predicate(self, unused_context, unused_result):
         return self._is_authenticated
 
     def _do_decorate_external(self, context, result):
@@ -118,7 +121,7 @@ class _EvaluationCalendarPublishStateDecorator(LinkRemoverDecorator):
 
     links_to_remove = (VIEW_PUBLISH, VIEW_UNPUBLISH)
 
-    def _predicate(self, context, result):
+    def _predicate(self, context, unused_result):
         # For content-backed items, make sure we do not provide pub/unpub
         # links.
         if not IQEditableEvaluation.providedBy(context):
@@ -133,5 +136,5 @@ class _ContentBackedAssignmentEditLinkRemover(EditLinkRemoverDecorator):
     Removes edit links from content backed assignments.
     """
 
-    def _predicate(self, context, result):
+    def _predicate(self, context, unused_result):
         return not IQEditableEvaluation.providedBy(context)

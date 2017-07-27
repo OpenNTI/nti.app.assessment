@@ -30,19 +30,6 @@ from nti.assessment.interfaces import IQAssessmentDateContext
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 
-def assignment_comparator(a, b):
-    a_end = a.available_for_submission_ending
-    b_end = b.available_for_submission_ending
-    if a_end and b_end:
-        return -1 if a_end < b_end else 1
-
-    a_begin = a.available_for_submission_beginning
-    b_begin = b.available_for_submission_beginning
-    if a_begin and b_begin:
-        return -1 if a_begin < b_begin else 1
-    return 0
-
-
 def get_assessment_metadata_item(context, user, assignment):
     course = ICourseInstance(context, None)
     metadata = component.queryMultiAdapter((course, user),

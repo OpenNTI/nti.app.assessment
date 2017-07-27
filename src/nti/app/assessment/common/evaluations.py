@@ -57,6 +57,9 @@ from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.interfaces import IContentPackage
+from nti.contentlibrary.interfaces import IGlobalContentPackage
+from nti.contentlibrary.interfaces import IContentPackageLibrary
+from nti.contentlibrary.interfaces import IGlobalContentPackageLibrary
 
 from nti.contenttypes.courses.discussions.interfaces import ICourseDiscussion
 
@@ -529,3 +532,13 @@ def is_assignment_non_public_only(context, courses=None):
     is_non_public_only = courses and all(_is_non_public(x) for x in courses)
     is_discussion_non_public = is_discussion_assignment_non_public(context)
     return is_non_public_only or is_discussion_non_public
+
+
+def is_global_evaluation(evaluation):
+    """
+    Returns whether the given evaluation is from a global content-package/course.
+    """
+    package = find_interface(evaluation, IContentPackage, strict=False)
+    library = find_interface(evaluation, IContentPackageLibrary, strict=False)
+    return IGlobalContentPackage.providedBy(package) \
+        or IGlobalContentPackageLibrary.providedBy(library)

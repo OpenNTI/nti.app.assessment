@@ -153,7 +153,8 @@ class EvaluationsImporterMixin(object):
         return the_object
 
     def handle_question_set(self, the_object, source, context, check_locked=False):
-        if not self.is_new(the_object, context):
+        is_new = self.is_new(the_object, context)
+        if not is_new:
             the_object = self.get_registered_evaluation(the_object,
                                                         context,
                                                         check_locked)
@@ -170,12 +171,13 @@ class EvaluationsImporterMixin(object):
                 value = source.get(name) if source else False
                 if value:
                     interface.alsoProvides(the_object, provided)
-            the_object = self.store_evaluation(the_object, context)
-
+            if is_new:
+                the_object = self.store_evaluation(the_object, context)
         return the_object
 
     def handle_survey(self, the_object, context, check_locked=False):
-        if not self.is_new(the_object, context):
+        is_new = self.is_new(the_object, context)
+        if not is_new:
             the_object = self.get_registered_evaluation(the_object,
                                                         context,
                                                         check_locked)
@@ -185,7 +187,8 @@ class EvaluationsImporterMixin(object):
                 poll = self.handle_poll(poll, context)
                 questions.append(poll)
             the_object.questions = questions
-            the_object = self.store_evaluation(the_object, context)
+            if is_new:
+                the_object = self.store_evaluation(the_object, context)
         return the_object
 
     def handle_assignment_part(self, part, source, context, check_locked=False):
@@ -197,7 +200,8 @@ class EvaluationsImporterMixin(object):
         return part
 
     def handle_assignment(self, the_object, source, context, check_locked=False):
-        if not self.is_new(the_object, context):
+        is_new = self.is_new(the_object, context)
+        if not is_new:
             the_object = self.get_registered_evaluation(the_object,
                                                         context,
                                                         check_locked)
@@ -211,7 +215,8 @@ class EvaluationsImporterMixin(object):
                                                    check_locked)
                 parts.append(part)
             the_object.parts = parts
-            the_object = self.store_evaluation(the_object, context)
+            if is_new:
+                the_object = self.store_evaluation(the_object, context)
         [p.ntiid for p in the_object.parts or ()]  # set auto part NTIIDs
         return the_object
 

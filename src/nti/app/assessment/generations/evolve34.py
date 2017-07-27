@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -53,6 +53,7 @@ class MockDataserver(object):
         else:
             return resolver.get_object_by_oid(oid, ignore_creator=ignore_creator)
         return None
+
 
 CONTAINER_INTERFACES = (IUsersCourseInquiries,
                         IUsersCourseAssignmentHistories,
@@ -105,11 +106,11 @@ def do_evolve(context, generation=generation):
     component.provideUtility(mock_ds, IDataserver)
 
     with current_site(ds_folder):
-        assert  component.getSiteManager() == ds_folder.getSiteManager(), \
-                "Hooks not installed?"
+        assert component.getSiteManager() == ds_folder.getSiteManager(), \
+               "Hooks not installed?"
         intids = lsm.getUtility(IIntIds)
         submission_catalog = install_submission_catalog(ds_folder, intids)
-        submission_catalog.clear() # clear all
+        submission_catalog.clear()  # clear all
         # delete creator index
         index = submission_catalog[IX_CREATOR]
         intids.unregister(index)

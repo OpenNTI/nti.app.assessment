@@ -463,7 +463,6 @@ def get_containers_for_evaluation_object(context, sites=None, include_question_s
         if IQEvaluation.providedBy(evaluation):  # extra check
             result.append(evaluation)
     return tuple(result)
-get_assignments_for_evaluation_object = get_containers_for_evaluation_object
 
 
 def get_available_assignments_for_evaluation_object(context):
@@ -472,7 +471,7 @@ def get_available_assignments_for_evaluation_object(context):
     containing the object.
     """
     results = []
-    assignments = get_assignments_for_evaluation_object(context)
+    assignments = get_containers_for_evaluation_object(context)
     for assignment in assignments or ():
         if is_assignment_available(assignment):
             results.append(assignment)

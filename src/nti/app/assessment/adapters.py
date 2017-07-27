@@ -6,7 +6,7 @@ Adapters for application-level events.
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -23,11 +23,12 @@ from zope.annotation.interfaces import IAnnotations
 from zope.schema.interfaces import NotUnique
 from zope.schema.interfaces import ConstraintNotSatisfied
 
-from pyramid import renderers
 from pyramid import httpexceptions as hexc
 
 from pyramid.interfaces import IRequest
 from pyramid.interfaces import IExceptionResponse
+
+from pyramid.renderers import render_to_response
 
 from zope.location.interfaces import LocationError
 
@@ -114,7 +115,7 @@ from nti.traversal.traversal import ContainerAdapterTraversable
 
 @component.adapter(IQuestionSubmission)
 @interface.implementer(INewObjectTransformer)
-def _question_submission_transformer(obj):
+def _question_submission_transformer(_):
     """
     Grade it, by adapting the object into an IAssessedQuestion
     """
@@ -123,7 +124,7 @@ def _question_submission_transformer(obj):
 
 @component.adapter(IQuestionSetSubmission)
 @interface.implementer(INewObjectTransformer)
-def _question_set_submission_transformer(obj):
+def _question_set_submission_transformer(_):
     """
     Grade it, by adapting the object into an IAssessedQuestionSet
     """
@@ -132,7 +133,7 @@ def _question_set_submission_transformer(obj):
 
 @component.adapter(IRequest, IQAssignmentSubmission)
 @interface.implementer(INewObjectTransformer)
-def _assignment_submission_transformer_factory(request, obj):
+def _assignment_submission_transformer_factory(request, _):
     """
     Begin the grading process by adapting it to an IQAssignmentSubmissionPendingAssessment.
     """
@@ -151,24 +152,22 @@ def _assignment_submission_transformer(request, obj):
     interface and raise a Created exception
     """
     pending = IQAssignmentSubmissionPendingAssessment(obj)
-
     result = request.response = hexc.HTTPCreated()
-    # TODO: Shouldn't this be the external NTIID? This is what ugd_edit_views
-    # does though
+    # TODO: Shouldn't this be the external NTIID? 
+    # This is what ugd_edit_views does though
     result.location = request.resource_url(obj.creator,
                                            'Objects',
                                            to_external_oid(pending))
     # TODO: Assuming things about the client and renderer.
     try:
-        renderers.render_to_response('rest', pending, request, response=result)
+        render_to_response('rest', pending, request, response=result)
     except TypeError:
-        # Pyramid 1.5?
-        renderers.render_to_response('rest', pending, request)
+        render_to_response('rest', pending, request)
     raise result
 
 
 def _is_instructor_or_editor(course, user):
-    return     (user is not None and course is not None) \
+    return  (user is not None and course is not None) \
         and (   is_course_instructor_or_editor(course, user)
              or has_permission(ACT_CONTENT_EDIT, course))
 
@@ -233,7 +232,6 @@ def _begin_assessment_for_assignment_submission(submission):
                                             exc=True)
 
     _validate_submission(submission, course, assignment)
-
     assignment_history = component.getMultiAdapter((course, submission.creator),
                                                    IUsersCourseAssignmentHistory)
     if submission.assignmentId in assignment_history:
@@ -310,11 +308,11 @@ def _history_for_user_in_course(course, user, create=True):
     return history
 
 
-def _histories_for_course_path_adapter(course, request):
+def _histories_for_course_path_adapter(course, unused_request):
     return _histories_for_course(course)
 
 
-def _histories_for_courseenrollment_path_adapter(enrollment, request):
+def _histories_for_courseenrollment_path_adapter(enrollment, unused_request):
     return _histories_for_course(ICourseInstance(enrollment))
 
 

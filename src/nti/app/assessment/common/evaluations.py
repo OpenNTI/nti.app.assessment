@@ -31,6 +31,7 @@ from nti.app.assessment.common.hostpolicy import get_resource_site_name
 from nti.app.assessment.common.utils import get_courses
 from nti.app.assessment.common.utils import is_published
 from nti.app.assessment.common.utils import get_policy_field
+from nti.app.assessment.common.utils import get_evaluation_catalog_entry
 from nti.app.assessment.common.utils import get_available_for_submission_beginning
 
 from nti.app.assessment.index import IX_SITE
@@ -64,7 +65,6 @@ from nti.contenttypes.courses.discussions.utils import get_implied_by_scopes
 from nti.contenttypes.courses.interfaces import ES_ALL
 from nti.contenttypes.courses.interfaces import ES_PUBLIC
 
-from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseSubInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
@@ -282,23 +282,6 @@ def find_course_for_evaluation(evaluation, user, exc=True):
 find_course_for_assignment = find_course_for_evaluation  # BWC
 
 
-def _get_evaluation_catalog_entry(evaluation, catalog=None, registry=component):
-    # check if we have the context catalog entry we can use
-    # as reference (.AssessmentItemProxy) this way
-    # instructor can find the correct course when they are looking at a
-    # section.
-    result = None
-    if catalog is None:
-        catalog = registry.getUtility(ICourseCatalog)
-    try:
-        ntiid = evaluation.CatalogEntryNTIID or u''
-        result = find_object_with_ntiid(ntiid) \
-              or catalog.getCatalogEntry(ntiid)
-    except (KeyError, AttributeError):
-        pass
-    return result
-
-
 def get_evaluation_courses(evaluation):
     result = []
     for container in get_evaluation_containers(evaluation):
@@ -308,9 +291,8 @@ def get_evaluation_courses(evaluation):
     return result
 
 
-def get_course_from_evaluation(evaluation, user=None, catalog=None,
-                               registry=component, exc=False):
-    entry = _get_evaluation_catalog_entry(evaluation, catalog, registry)
+def get_course_from_evaluation(evaluation, user=None, catalog=None, exc=False):
+    entry = get_evaluation_catalog_entry(evaluation, catalog)
     result = ICourseInstance(entry, None)
 
     # Try catalog first for speed; only return if single course found.

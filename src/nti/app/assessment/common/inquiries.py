@@ -60,8 +60,8 @@ def find_course_for_inquiry(inquiry, user, exc=True):
     return course
 
 
-def get_course_from_inquiry(inquiry, user=None, registry=component, exc=False):
-    result = get_evaluation_catalog_entry(inquiry, registry=registry)
+def get_course_from_inquiry(inquiry, user=None, exc=False):
+    result = get_evaluation_catalog_entry(inquiry)
     result = ICourseInstance(result, None)
 
     if result is None:

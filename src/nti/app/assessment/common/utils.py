@@ -11,6 +11,8 @@ logger = __import__('logging').getLogger(__name__)
 
 import time
 
+from zope import component
+
 from zope.security.interfaces import IPrincipal
 
 from nti.app.authentication import get_remote_user
@@ -25,6 +27,7 @@ from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssessmentPolicies
 from nti.assessment.interfaces import IQAssessmentDateContext
 
+from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
@@ -40,6 +43,7 @@ from nti.ntiids.ntiids import make_ntiid
 from nti.ntiids.ntiids import get_provider
 from nti.ntiids.ntiids import get_specific
 from nti.ntiids.ntiids import make_specific_safe
+from nti.ntiids.ntiids import find_object_with_ntiid
 
 from nti.publishing.interfaces import IPublishable
 
@@ -82,6 +86,23 @@ def get_entry_ntiids(courses=()):
     courses = to_course_list(courses) or ()
     entries = (ICourseCatalogEntry(x, None) for x in courses)
     return {x.ntiid for x in entries if x is not None}
+
+
+def get_evaluation_catalog_entry(evaluation, catalog=None):
+    # check if we have the context catalog entry we can use
+    # as reference (.AssessmentItemProxy) this way
+    # instructor can find the correct course when they are looking at a
+    # section.
+    result = None
+    if catalog is None:
+        catalog = component.getUtility(ICourseCatalog)
+    try:
+        ntiid = evaluation.CatalogEntryNTIID or u''
+        result = find_object_with_ntiid(ntiid) \
+              or catalog.getCatalogEntry(ntiid)
+    except (KeyError, AttributeError):
+        pass
+    return result
 
 
 def make_evaluation_ntiid(kind, base=None, extra=None):

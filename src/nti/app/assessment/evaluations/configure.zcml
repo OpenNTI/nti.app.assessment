@@ -13,10 +13,10 @@
 			 provides="zope.traversing.interfaces.IPathAdapter"
 			 name="CourseEvaluations" />
 
-	<adapter factory=".adapters.evaluations_for_course_path_adapter"
+	<adapter factory=".adapters.evaluations_for_package_path_adapter"
 			 for="nti.contentlibrary.interfaces.IEditableContentPackage pyramid.interfaces.IRequest"
 			 provides="zope.traversing.interfaces.IPathAdapter"
-			 name="PackageEvaluations" />
+			 name="Evaluations" />
 
 	<adapter factory=".adapters.EvaluationsTraversable" />
 

@@ -13,6 +13,7 @@ generation = 38
 
 from zope import component
 from zope import interface
+from zope import lifecycleevent
 
 from zope.component.hooks import setHooks
 from zope.component.hooks import site as current_site
@@ -78,6 +79,7 @@ def _process_course(context, intids):
             evaluations.replace(obj, registered, False)
             removeIntId(obj)
             obj = registered
+            lifecycleevent.modified(registered)
         # canonicalize
         if IQuestionSet.providedBy(registered):
             importer.canonicalize_question_set(registered, context)

@@ -61,9 +61,8 @@ def _process_course(context, intids):
     evaluations = evaluations_for_course(context, False)
     if not evaluations:
         return
-    items = list(evaluations.values())
     importer = EvaluationsImporterMixin()
-    for obj in sorted(items, key=_get_key):
+    for obj in sorted(evaluations.values(), key=_get_key):
         ntiid = obj.ntiid
         provided = iface_of_assessment(obj)
         registered = component.queryUtility(provided, ntiid)

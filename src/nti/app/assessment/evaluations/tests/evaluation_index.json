@@ -7,11 +7,11 @@
 			"Creator": "carlos.sanchez@nextthought.com",
 			"Last Modified": 1501192479.124779,
 			"MimeType": "application/vnd.nextthought.naquestion",
-			"NTIID": "tag:nextthought.com,2011-10:NTI-NAQ-2EC0F9C78B77C50CB9ACD8B3B73791884DA41E9F39BE9CF4CABFFA094DB9F752_0082",
+			"NTIID": "tag:nextthought.com,2011-10:NTI-NAQ-0082",
 			"content": "<p>Most powerful</p>",
 			"isLocked": true,
 			"isPublished": true,
-			"ntiid": "tag:nextthought.com,2011-10:NTI-NAQ-2EC0F9C78B77C50CB9ACD8B3B73791884DA41E9F39BE9CF4CABFFA094DB9F752_0082",
+			"ntiid": "tag:nextthought.com,2011-10:NTI-NAQ-0082",
 			"parts": [
 				{
 					"Class": "MultipleChoicePart",
@@ -46,12 +46,12 @@
 			"Creator": "carlos.sanchez@nextthought.com",
 			"Last Modified": 1501192456.154407,
 			"MimeType": "application/vnd.nextthought.naquestionset",
-			"NTIID": "tag:nextthought.com,2011-10:NTI-NAQ-0A458204E92A04997E0AE4E67FFB3F17B73C7359764ACCA45E2510526E33AE07_0085",
+			"NTIID": "tag:nextthought.com,2011-10:NTI-NAQ-0083",
 			"Randomized": false,
 			"RandomizedPartsType": false,
 			"isLocked": true,
 			"isPublished": true,
-			"ntiid": "tag:nextthought.com,2011-10:NTI-NAQ-0A458204E92A04997E0AE4E67FFB3F17B73C7359764ACCA45E2510526E33AE07_0085",
+			"ntiid": "tag:nextthought.com,2011-10:NTI-NAQ-0083",
 			"questions": [
 				{
 					"Class": "Question",
@@ -59,9 +59,9 @@
 					"Creator": "carlos.sanchez@nextthought.com",
 					"Last Modified": 1501192479.124779,
 					"MimeType": "application/vnd.nextthought.naquestion",
-					"NTIID": "tag:nextthought.com,2011-10:NTI-NAQ-2EC0F9C78B77C50CB9ACD8B3B73791884DA41E9F39BE9CF4CABFFA094DB9F752_0082",
+					"NTIID": "tag:nextthought.com,2011-10:NTI-NAQ-0082",
 					"content": "<p>Most powerful</p>",
-					"ntiid": "tag:nextthought.com,2011-10:NTI-NAQ-2EC0F9C78B77C50CB9ACD8B3B73791884DA41E9F39BE9CF4CABFFA094DB9F752_0082",
+					"ntiid": "tag:nextthought.com,2011-10:NTI-NAQ-0082",
 					"parts": [
 						{
 							"Class": "MultipleChoicePart",
@@ -100,7 +100,7 @@
 			"Creator": "carlos.sanchez@nextthought.com",
 			"Last Modified": 1501192504.342708,
 			"MimeType": "application/vnd.nextthought.assessment.timedassignment",
-			"NTIID": "tag:nextthought.com,2011-10:NTI-NAQ-DCA3B262ABEBC9BC422A66B46C978DC96350567FF2D40CC26FEEF0DAD74B2367_0084",
+			"NTIID": "tag:nextthought.com,2011-10:NTI-NAQ-0084",
 			"available_for_submission_beginning": null,
 			"available_for_submission_ending": null,
 			"category_name": "default",
@@ -110,7 +110,7 @@
 			"is_non_public": false,
 			"maximum_time_allowed": 60,
 			"no_submit": false,
-			"ntiid": "tag:nextthought.com,2011-10:NTI-NAQ-DCA3B262ABEBC9BC422A66B46C978DC96350567FF2D40CC26FEEF0DAD74B2367_0084",
+			"ntiid": "tag:nextthought.com,2011-10:NTI-NAQ-0084",
 			"parts": [
 				{
 					"Class": "AssignmentPart",
@@ -123,10 +123,10 @@
 						"Creator": "carlos.sanchez@nextthought.com",
 						"Last Modified": 1501192456.154407,
 						"MimeType": "application/vnd.nextthought.naquestionset",
-						"NTIID": "tag:nextthought.com,2011-10:NTI-NAQ-0A458204E92A04997E0AE4E67FFB3F17B73C7359764ACCA45E2510526E33AE07_0085",
+						"NTIID": "tag:nextthought.com,2011-10:NTI-NAQ-0083",
 						"Randomized": false,
 						"RandomizedPartsType": false,
-						"ntiid": "tag:nextthought.com,2011-10:NTI-NAQ-0A458204E92A04997E0AE4E67FFB3F17B73C7359764ACCA45E2510526E33AE07_0085",
+						"ntiid": "tag:nextthought.com,2011-10:NTI-NAQ-0083",
 						"questions": [
 							{
 								"Class": "Question",
@@ -134,14 +134,13 @@
 								"Creator": "carlos.sanchez@nextthought.com",
 								"Last Modified": 1501192479.124779,
 								"MimeType": "application/vnd.nextthought.naquestion",
-								"NTIID": "tag:nextthought.com,2011-10:NTI-NAQ-2EC0F9C78B77C50CB9ACD8B3B73791884DA41E9F39BE9CF4CABFFA094DB9F752_0082",
+								"NTIID": "tag:nextthought.com,2011-10:NTI-NAQ-0082",
 								"content": "<p>Most powerful</p>",
-								"ntiid": "tag:nextthought.com,2011-10:NTI-NAQ-2EC0F9C78B77C50CB9ACD8B3B73791884DA41E9F39BE9CF4CABFFA094DB9F752_0082",
+								"ntiid": "tag:nextthought.com,2011-10:NTI-NAQ-0082",
 								"parts": [
 									{
 										"Class": "MultipleChoicePart",
 										"MimeType": "application/vnd.nextthought.assessment.multiplechoicepart",
-										"NTIID": "tag:nextthought.com,2011-10:NTI-NAQPart-4DF769603E050E5A54F06308DD03FA940A48DC2E7574CD9DCD59C841412415F6_0088",
 										"choices": [
 											"<html><body><p>Ichigo</p></body></html>",
 											"<html><body><p>Aizen</p></body></html>",

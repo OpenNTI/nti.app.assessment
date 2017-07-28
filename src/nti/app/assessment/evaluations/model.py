@@ -39,6 +39,8 @@ from nti.intid.common import removeIntId
 
 from nti.traversal.traversal import find_interface
 
+_SENTINEL = object()
+
 
 @interface.implementer(IQEvaluations)
 class Evaluations(CaseInsensitiveCheckingLastModifiedBTreeContainer):
@@ -62,8 +64,12 @@ class Evaluations(CaseInsensitiveCheckingLastModifiedBTreeContainer):
         self._p_changed = True
 
     def __setitem__(self, key, value):
-        if key not in self:
-            self._save(key, value)
+        old = self.get(key, _SENTINEL)
+        if old is value:
+            return
+        if old is not _SENTINEL:
+            raise KeyError(key)
+        self._save(key, value)
 
     def _eject(self, key, event=True):
         self._delitemf(key, event=event)

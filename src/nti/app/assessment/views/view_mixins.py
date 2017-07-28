@@ -747,7 +747,7 @@ class EvaluationMixin(StructuralValidationMixin):
     def get_registered_evaluation(self, obj, composite):
         ntiid = self.get_ntiid(obj)
         evaluations = IQEvaluations(composite)
-        if ntiid in evaluations:  # replace
+        if ntiid in evaluations:
             obj = evaluations[ntiid]
         else:
             obj = find_object_with_ntiid(ntiid)

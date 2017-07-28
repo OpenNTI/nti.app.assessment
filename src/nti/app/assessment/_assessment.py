@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -22,7 +22,7 @@ def _container_mover(old_container, new_container, verbose=True,
                      user=None, source=None, target=None):
     result = []
     log = logger.info if verbose else logger.debug
-    for k in list(old_container): # we are changing
+    for k in list(old_container):  # we are changing
         item = old_container[k]
 
         del old_container[k]
@@ -36,7 +36,7 @@ def _container_mover(old_container, new_container, verbose=True,
 
         result.append(k)
         new_container[k] = item
-        log("Moved %s for %s from %s to %s", 
+        log("Moved %s for %s from %s to %s",
             k, user, source, target)
     return result
 
@@ -44,10 +44,10 @@ def _container_mover(old_container, new_container, verbose=True,
 def move_user_assignment_from_course_to_course(user, source, target, verbose=True):
     new_history = _history_for_user_in_course(target, user, create=True)
     old_history = _history_for_user_in_course(source, user, create=False) or ()
-    result = _container_mover(old_history, new_history, 
-							  verbose=verbose, 
-							  user=user,
-                              source=source.__name__, 
+    result = _container_mover(old_history, new_history,
+                              verbose=verbose,
+                              user=user,
+                              source=source.__name__,
                               target=target.__name__)
     return result
 
@@ -68,11 +68,11 @@ def move_assignment_histories_from_course_to_course(source, target, verbose=True
 
 def move_user_metadata_from_course_to_course(user, source, target, verbose=True):
     new_metadata = _metadata_for_user_in_course(target, user, create=True)
-    old_metadata = _metadata_for_user_in_course(source, user, create=False) or ()
-    result = _container_mover(old_metadata, new_metadata, 
-							  verbose=verbose, 
-							  user=user,
-                              source=source.__name__, 
+    old_metadata = _metadata_for_user_in_course(source, user, create=False)
+    result = _container_mover(old_metadata or (), new_metadata,
+                              verbose=verbose,
+                              user=user,
+                              source=source.__name__,
                               target=target.__name__)
     return result
 

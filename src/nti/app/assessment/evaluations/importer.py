@@ -104,7 +104,7 @@ class EvaluationsImporterMixin(object):
         if not ntiid:
             provided = iface_of_assessment(obj)
             obj.ntiid = make_evaluation_ntiid(provided, extra=self._extra)
-        obj.creator = principal.id  # always seet a creator
+        obj.creator = principal.id  # always set a creator
         evaluations = IQEvaluations(context)
         if ntiid not in evaluations:
             lifecycleevent.created(obj)
@@ -117,8 +117,8 @@ class EvaluationsImporterMixin(object):
         ntiid = self.get_ntiid(obj)
         evaluations = IQEvaluations(context)
         if ntiid in evaluations:
-            # XXX: Don't replace since validation of structural
-            # changes or submissions must be made
+            # XXX: Don't replace since we are neither doing structural
+            # validations nor checking for submissions
             obj = evaluations[ntiid]
         else:
             provided = iface_of_assessment(obj)

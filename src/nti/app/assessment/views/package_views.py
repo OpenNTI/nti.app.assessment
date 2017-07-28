@@ -13,47 +13,46 @@ from functools import partial
 
 from requests.structures import CaseInsensitiveDict
 
-from zope import component
 from zope import lifecycleevent
 
 from pyramid.view import view_config
 from pyramid.view import view_defaults
 
-from nti.app.assessment.common.evaluations import get_course_assignments
-
-from nti.app.assessment.common.inquiries import get_course_inquiries
+from nti.app.assessment.common.evaluations import get_unit_assessments
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
 from nti.app.externalization.view_mixins import BatchingUtilsMixin
 
-from nti.assessment.common import get_containerId
-
 from nti.assessment.interfaces import IQAssignment
 
-from nti.common.string import is_true
+from nti.contentlibrary.interfaces import IContentUnit
 
-from nti.contenttypes.courses.interfaces import ICourseInstance
-from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
-from nti.contenttypes.courses.interfaces import ICourseAssessmentItemCatalog
+from nti.assessment.interfaces import INQUIRY_MIME_TYPES
+from nti.assessment.interfaces import ALL_ASSIGNMENT_MIME_TYPES
 
 from nti.dataserver import authorization as nauth
 
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
+from nti.recorder.interfaces import IRecordable
+
 ITEMS = StandardExternalFields.ITEMS
 TOTAL = StandardExternalFields.TOTAL
 ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 
 
-class CourseViewMixin(AbstractAuthenticatedView, BatchingUtilsMixin):
+class ContentUnitViewMixin(AbstractAuthenticatedView, BatchingUtilsMixin):
 
     _DEFAULT_BATCH_START = 0
     _DEFAULT_BATCH_SIZE = 30
 
+    def _params(self):
+        return CaseInsensitiveDict(self.request.params)
+    
     def _get_mimeTypes(self):
-        params = CaseInsensitiveDict(self.request.params)
+        params = self._params()
         accept = params.get('accept') or params.get('mimeType')
         accept = accept.split(',') if accept else ()
         if accept and '*/*' not in accept:
@@ -63,13 +62,8 @@ class CourseViewMixin(AbstractAuthenticatedView, BatchingUtilsMixin):
             accept = ()
         return accept
 
-    def _byOutline(self):
-        params = CaseInsensitiveDict(self.request.params)
-        outline = is_true(params.get('byOutline') or params.get('outline'))
-        return outline
-
     def _filterBy(self, item, mimeTypes=()):
-        mt = getattr(item, 'mimeType', None) \
+        mt =   getattr(item, 'mimeType', None) \
             or getattr(item, 'mime_type', None)
         return bool(not mimeTypes or mt in mimeTypes)
 
@@ -79,107 +73,90 @@ class CourseViewMixin(AbstractAuthenticatedView, BatchingUtilsMixin):
         result.__name__ = self.request.view_name
         result.__parent__ = self.request.context
         self.request.acl_decoration = False
-        outline = self._byOutline()
         mimeTypes = self._get_mimeTypes()
-        items = result[ITEMS] = dict() if outline else list()
+        items = result[ITEMS] = list()
         for item in func():
             if not self._filterBy(item, mimeTypes):  # filter by
                 continue
             count += 1
-            if not outline:
-                items.append(item)
-            else:
-                ntiid = get_containerId(item) or 'unparented'
-                items.setdefault(ntiid, []).append(item)
-        if not outline:
-            self._batch_items_iterable(result, items)
-        else:
-            result[ITEM_COUNT] = count
+            items.append(item)
+        self._batch_items_iterable(result, items)
         result[TOTAL] = count
         return result
 
 
-@view_config(context=ICourseInstance)
-@view_config(context=ICourseCatalogEntry)
+@view_config(context=IContentUnit)
 @view_defaults(route_name='objects.generic.traversal',
                renderer='rest',
                permission=nauth.ACT_CONTENT_EDIT,
                request_method='GET',
                name='AssessmentItems')
-class CourseAssessmentItemsCatalogView(CourseViewMixin):
+class ContentUnitAssessmentItemsCatalogView(ContentUnitViewMixin):
 
     def __call__(self):
-        instance = ICourseInstance(self.request.context)
-        catalog = ICourseAssessmentItemCatalog(instance)
-        return self._do_call(catalog.iter_assessment_items)
+        func = partial(get_unit_assessments, self.context)
+        return self._do_call(func)
 
 
-@view_config(context=ICourseInstance)
-@view_config(context=ICourseCatalogEntry)
+@view_config(context=IContentUnit)
 @view_defaults(route_name='objects.generic.traversal',
                renderer='rest',
                permission=nauth.ACT_CONTENT_EDIT,
                request_method='GET',
                name='Assignments')
-class CourseAssignmentsView(CourseViewMixin):
+class ContentUnitAssignmentsView(ContentUnitViewMixin):
 
+    def _params(self):
+        result = CaseInsensitiveDict(self.request.params)
+        result['accept'] = result['mimeType'] = ','.join(ALL_ASSIGNMENT_MIME_TYPES)
+        return result
+        
     def __call__(self):
-        instance = ICourseInstance(self.request.context)
-        params = CaseInsensitiveDict(self.request.params)
-        do_filtering = is_true(params.get('filter'))
-        func = partial(get_course_assignments,
-                       instance,
-                       do_filtering=do_filtering)
+        func = partial(get_unit_assessments, self.context)
         return self._do_call(func)
 
 
-@view_config(context=ICourseInstance)
-@view_config(context=ICourseCatalogEntry)
+@view_config(context=IContentUnit)
 @view_defaults(route_name='objects.generic.traversal',
                renderer='rest',
                permission=nauth.ACT_CONTENT_EDIT,
                request_method='GET',
                name='Inquiries')
-class CourseInquiriesView(CourseViewMixin):
+class CourseInquiriesView(ContentUnitViewMixin):
+
+    def _params(self):
+        result = CaseInsensitiveDict(self.request.params)
+        result['accept'] = result['mimeType'] = ','.join(INQUIRY_MIME_TYPES)
+        return result
 
     def __call__(self):
-        instance = ICourseInstance(self.request.context)
-        func = partial(get_course_inquiries, instance, do_filtering=False)
+        func = partial(get_unit_assessments, self.context)
         return self._do_call(func)
 
 
-@view_config(context=ICourseInstance)
-@view_config(context=ICourseCatalogEntry)
+@view_config(context=IContentUnit)
 @view_defaults(route_name='objects.generic.traversal',
                renderer='rest',
                permission=nauth.ACT_CONTENT_EDIT,
                request_method='GET',
                name='GetLockAssignments')
-class GetLockAssignmentsView(CourseViewMixin):
+class GetLockAssignmentsView(ContentUnitViewMixin):
+
+    def _params(self):
+        result = CaseInsensitiveDict(self.request.params)
+        result['accept'] = result['mimeType'] = ALL_ASSIGNMENT_MIME_TYPES
+        return result
 
     def _filterBy(self, item, mimeTypes=()):
-        result = CourseViewMixin._filterBy(self, item, mimeTypes=mimeTypes)
+        result = ContentUnitViewMixin._filterBy(self, item, mimeTypes=mimeTypes)
         return result and item.isLocked()
 
     def __call__(self):
-        instance = ICourseInstance(self.request.context)
-        func = partial(get_course_assignments, instance, do_filtering=False)
+        func = partial(get_unit_assessments, self.context)
         return self._do_call(func)
 
 
-@view_config(context=ICourseInstance)
-@view_config(context=ICourseCatalogEntry)
-@view_defaults(route_name='objects.generic.traversal',
-               renderer='rest',
-               permission=nauth.ACT_CONTENT_EDIT,
-               request_method='GET',
-               name='GetLockedAssignments')
-class GetLockedAssignmentsView(GetLockAssignmentsView):
-    pass
-
-
-@view_config(context=ICourseInstance)
-@view_config(context=ICourseCatalogEntry)
+@view_config(context=IContentUnit)
 @view_defaults(route_name='objects.generic.traversal',
                renderer='rest',
                permission=nauth.ACT_CONTENT_EDIT,
@@ -190,10 +167,10 @@ class LockAllAssignmentsView(AbstractAuthenticatedView):
     def __call__(self):
         result = LocatedExternalDict()
         items = result[ITEMS] = []
-        course = ICourseInstance(self.context)
-        for item in get_course_assignments(course, sort=False, do_filtering=False):
-            assesment = component.queryUtility(IQAssignment, name=item.ntiid)
-            if assesment is not None and not assesment.isLocked():
+        for assesment in get_unit_assessments(self.context):
+            if not IQAssignment.providedBy(assesment):
+                continue
+            if IRecordable.providedBy(assesment) and not assesment.isLocked():
                 assesment.lock()
                 items.append(assesment.ntiid)
                 lifecycleevent.modified(assesment)
@@ -201,8 +178,7 @@ class LockAllAssignmentsView(AbstractAuthenticatedView):
         return result
 
 
-@view_config(context=ICourseInstance)
-@view_config(context=ICourseCatalogEntry)
+@view_config(context=IContentUnit)
 @view_defaults(route_name='objects.generic.traversal',
                renderer='rest',
                permission=nauth.ACT_CONTENT_EDIT,
@@ -213,10 +189,10 @@ class UnlockAllAssignmentsView(AbstractAuthenticatedView):
     def __call__(self):
         result = LocatedExternalDict()
         items = result[ITEMS] = []
-        course = ICourseInstance(self.context)
-        for item in get_course_assignments(course, sort=False, do_filtering=False):
-            assesment = component.queryUtility(IQAssignment, name=item.ntiid)
-            if assesment is not None and assesment.isLocked():
+        for assesment in get_unit_assessments(self.context):
+            if not IQAssignment.providedBy(assesment):
+                continue
+            if IRecordable.providedBy(assesment) and assesment.isLocked():
                 assesment.unlock()
                 items.append(assesment.ntiid)
                 lifecycleevent.modified(assesment)

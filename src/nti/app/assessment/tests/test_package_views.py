@@ -10,6 +10,7 @@ __docformat__ = "restructuredtext en"
 from hamcrest import is_
 from hamcrest import is_not
 from hamcrest import has_key
+from hamcrest import has_entry
 from hamcrest import has_length
 from hamcrest import assert_that
 does_not = is_not
@@ -63,9 +64,20 @@ class TestPacakgeViews(ApplicationLayerTest):
         res = self.testapp.post_json(href, data, status=201)
         assert_that(res.json_body, has_key('ntiid'))
         q_ntiid = res.json_body['ntiid']
-
+        
         with mock_dataserver.mock_db_trans(self.ds, site_name='platform.ou.edu'):
             package = find_object_with_ntiid(ntiid)
             evals = IQEvaluations(package)
             assert_that(evals, has_key(q_ntiid))
             assert_that(evals, has_length(is_(1)))
+
+        href = '/dataserver2/Library/%s' % ntiid
+        res = self.testapp.get(href, status=200)
+        items_href = self.require_link_href_with_rel(res.json_body, "AssessmentItems")
+        assignments_href = self.require_link_href_with_rel(res.json_body, "Assignments")
+
+        res = self.testapp.get(items_href, status=200)
+        assert_that(res.json_body, has_entry('Items', has_length(1)))
+        
+        res = self.testapp.get(assignments_href, status=200)
+        assert_that(res.json_body, has_entry('Items', has_length(0)))

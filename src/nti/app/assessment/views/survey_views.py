@@ -10,6 +10,7 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 import csv
+import six
 from io import BytesIO
 
 from datetime import datetime
@@ -143,7 +144,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
                                 InquiryViewMixin):
 
     _EXTRA_INPUT_ERRORS = ModeledContentUploadRequestUtilsMixin._EXTRA_INPUT_ERRORS + \
-        (AttributeError,)
+                          (AttributeError,)
 
     content_predicate = IQInquirySubmission.providedBy
 
@@ -234,7 +235,6 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
         result['href'] = "/%s/Objects/%s" % (get_ds2(self.request),
                                              to_external_ntiid_oid(recorded))
         interface.alsoProvides(result, INoHrefInResponse)
-
         return result
 
 
@@ -463,7 +463,7 @@ class InquiryAggregatedGetView(AbstractAuthenticatedView, InquiryViewMixin):
             return hexc.HTTPNoContent()
 
         if      IQAggregatedSurvey.providedBy( result ) \
-                and IQPoll.providedBy(self.context):
+            and IQPoll.providedBy(self.context):
             # Asking for question level aggregation for
             # survey submissions.
             for poll_result in result.questions or ():
@@ -515,7 +515,7 @@ def plain_text(s):
 
 
 def _tx_string(s):
-    if s is not None and isinstance(s, unicode):
+    if s is not None and isinstance(s, six.text_type):
         s = s.encode('utf-8')
     return s
 
@@ -579,10 +579,8 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
     @property
     def question_functions(self):
         return [
-            (IQNonGradableMultipleChoiceMultipleAnswerPart,
-             _handle_multiple_choice_multiple_answer),
-            (IQNonGradableConnectingPart,
-             _handle_non_gradable_connecting_part),
+            (IQNonGradableMultipleChoiceMultipleAnswerPart, _handle_multiple_choice_multiple_answer),
+            (IQNonGradableConnectingPart, _handle_non_gradable_connecting_part),
             (IQNonGradableMultipleChoicePart, _handle_multiple_choice_part),
             (IQNonGradableModeledContentPart, _handle_modeled_content_part),
             (IQNonGradableFreeResponsePart, _handle_free_response_part)
@@ -656,22 +654,18 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
                     # type, or if the user did not submit an answer, we
                     # leave the result blank for this question.
                     result = ''
-
                     if user_sub_part is None:
                         # If the question part is None, the user did not respond
                         # to this question
                         continue
-
                     # Get the correct function for this question type,
                     # if we can find it, and then use that to calculate
                     # the result.
-                    question_handler = self._get_function_for_question_type(
-                        poll_part)
+                    question_handler = self._get_function_for_question_type(poll_part)
                     if question_handler is not None:
                         result = question_handler(user_sub_part,
                                                   poll,
                                                   part_idx)
-
                     # add the result for this question to this user's row.
                     responses.append(result)
                     row.extend(responses)

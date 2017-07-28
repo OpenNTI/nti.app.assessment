@@ -46,6 +46,7 @@ setup(
     install_requires=[
         'setuptools',
         'nti.assessment',
+        'nti.contentlibrary',
         'nti.contenttypes.courses',
         'ordered-set'
     ],

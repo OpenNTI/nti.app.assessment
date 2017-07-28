@@ -155,7 +155,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
             raise ex
 
     def _check_submission_before(self, course):
-        beginning = get_available_for_submission_beginning(self.context, 
+        beginning = get_available_for_submission_beginning(self.context,
                                                            course)
         if beginning is not None and datetime.utcnow() < beginning:
             ex = ConstraintNotSatisfied(_(u"Submitting too early."))
@@ -267,7 +267,7 @@ class InquirySubmissionsView(AbstractAuthenticatedView, InquiryViewMixin):
 
     def __call__(self):
         course = self.course
-        if not (   is_course_instructor(course, self.remoteUser)
+        if not (is_course_instructor(course, self.remoteUser)
                 or has_permission(nauth.ACT_NTI_ADMIN, course, self.request)):
             raise_json_error(self.request,
                              hexc.HTTPForbidden,
@@ -307,7 +307,7 @@ class InquirySubmissionMetadataCSVView(AbstractAuthenticatedView, InquiryViewMix
 
     def __call__(self):
         course = self.course
-        if not (   is_course_instructor(course, self.remoteUser)
+        if not (is_course_instructor(course, self.remoteUser)
                 or has_permission(nauth.ACT_NTI_ADMIN, course, self.request)):
             raise_json_error(self.request,
                              hexc.HTTPForbidden,
@@ -463,7 +463,7 @@ class InquiryAggregatedGetView(AbstractAuthenticatedView, InquiryViewMixin):
             return hexc.HTTPNoContent()
 
         if      IQAggregatedSurvey.providedBy( result ) \
-            and IQPoll.providedBy(self.context):
+                and IQPoll.providedBy(self.context):
             # Asking for question level aggregation for
             # survey submissions.
             for poll_result in result.questions or ():
@@ -509,8 +509,15 @@ class InquirySubmisionPutView(UGDPutView):
 
 
 def plain_text(s):
+    # turn to plain text and to unicode
     result = IPlainTextContentFragment(s) if s else u''
-    return result.strip()
+    return _tx_string(result.strip())
+
+
+def _tx_string(s):
+    if s is not None and isinstance(s, unicode):
+        s = s.encode('utf-8')
+    return s
 
 
 def _display_list(data):
@@ -572,8 +579,10 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
     @property
     def question_functions(self):
         return [
-            (IQNonGradableMultipleChoiceMultipleAnswerPart, _handle_multiple_choice_multiple_answer),
-            (IQNonGradableConnectingPart, _handle_non_gradable_connecting_part),
+            (IQNonGradableMultipleChoiceMultipleAnswerPart,
+             _handle_multiple_choice_multiple_answer),
+            (IQNonGradableConnectingPart,
+             _handle_non_gradable_connecting_part),
             (IQNonGradableMultipleChoicePart, _handle_multiple_choice_part),
             (IQNonGradableModeledContentPart, _handle_modeled_content_part),
             (IQNonGradableFreeResponsePart, _handle_free_response_part)
@@ -589,7 +598,7 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
 
     def __call__(self):
         # only instructors or admins should be able to view this.
-        if not (   is_course_instructor(self.course, self.remoteUser)
+        if not (is_course_instructor(self.course, self.remoteUser)
                 or has_permission(nauth.ACT_NTI_ADMIN, self.course, self.request)):
             raise_json_error(self.request,
                              hexc.HTTPForbidden,
@@ -632,7 +641,7 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
                 row = [item.creator.username]
             else:
                 row = []
-            for question in sorted(subs_questions, key=lambda x: x.inquiryId, reverse=True):
+            for question in sorted(subs_questions, key=lambda x: x.inquiryId, reverse=False):
                 poll = component.queryUtility(IQPoll, name=question.inquiryId)
                 # A question may have multiple parts, so we need to go through
                 # each part. We look at the question parts from the user's
@@ -656,10 +665,11 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
                     # Get the correct function for this question type,
                     # if we can find it, and then use that to calculate
                     # the result.
-                    question_handler = self._get_function_for_question_type(poll_part)
+                    question_handler = self._get_function_for_question_type(
+                        poll_part)
                     if question_handler is not None:
-                        result = question_handler(user_sub_part, 
-                                                  poll, 
+                        result = question_handler(user_sub_part,
+                                                  poll,
                                                   part_idx)
 
                     # add the result for this question to this user's row.

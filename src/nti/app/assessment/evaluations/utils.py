@@ -312,8 +312,8 @@ def delete_evaluation(evaluation):
                 delete_evaluation(part.question_set)
 
     # delete from evaluations .. see adapters
-    container = evaluation.__parent__
-    context = container.__parent__
+    container = getattr(evaluation, '__parent__', None)
+    context = getattr(container, '__parent__', None)
     if container and evaluation.ntiid in container:
         del container[evaluation.ntiid]
     evaluation.__home__ = None

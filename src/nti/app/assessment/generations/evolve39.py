@@ -22,6 +22,8 @@ from zope.intid.interfaces import IIntIds
 
 from nti.app.assessment.evaluations.utils import register_context
 
+from nti.app.assessment.index import get_evaluation_catalog
+
 from nti.assessment.common import iface_of_assessment
 
 from nti.assessment.interfaces import ALL_EVALUATION_MIME_TYPES
@@ -34,8 +36,6 @@ from nti.dataserver.interfaces import IDataserver
 from nti.dataserver.interfaces import IOIDResolver
 
 from nti.dataserver.metadata.index import get_metadata_catalog
-
-from nti.intid.common import removeIntId
 
 from nti.site.interfaces import IHostPolicyFolder
 
@@ -53,7 +53,18 @@ def get_data_items(intids):
         yield (folder, item, uid)
 
 
+def _process_removal(doc_id, item, catalog, intids):
+    try:
+        from nti.metadata import queue_removed
+        queue_removed(item)
+    except ImportError:
+        pass
+    intids.unregister(item)
+    catalog.unindex_doc(doc_id)
+
+
 def _process_items(intids):
+    catalog = get_evaluation_catalog()
     for folder, item, doc_id in get_data_items(intids):
         with current_site(folder):
             registry = component.getSiteManager()
@@ -72,7 +83,7 @@ def _process_items(intids):
                 elif doc_id != uid:
                     logger.warn("Removing duplicate object %s/%s",
                                 doc_id, item.ntiid)
-                    removeIntId(item)
+                    _process_removal(doc_id, item, catalog, intids)
                     lifecycleevent.modified(registered)
 
 

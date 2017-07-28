@@ -66,12 +66,15 @@ def _process_removal(doc_id, item, catalog, intids):
 def _process_items(intids):
     catalog = get_evaluation_catalog()
     for folder, item, doc_id in get_data_items(intids):
+        if folder is None:  # global obj that leaked
+            _process_removal(doc_id, item, catalog, intids)
+            continue
         with current_site(folder):
             registry = component.getSiteManager()
             provided = iface_of_assessment(item)
             registered = component.queryUtility(provided, item.ntiid)
             if registered is None:
-                logger.warn("Registering object %s/%s", 
+                logger.warn("Registering object %s/%s",
                             doc_id, item.ntiid)
                 register_context(item, True, registry)
             else:

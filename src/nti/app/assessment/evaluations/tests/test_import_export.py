@@ -25,6 +25,8 @@ from nti.app.assessment.interfaces import IQEvaluations
 
 from nti.app.assessment.evaluations.importer import EvaluationsImporter
 
+from nti.app.assessment.evaluations.utils import delete_evaluation
+
 from nti.assessment.interfaces import IQEvaluation
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -58,7 +60,7 @@ class TestImportExport(ApplicationLayerTest):
             return fp.read()
 
     @WithSharedApplicationMockDS(testapp=True, users=True)
-    def test_import_export(self):
+    def test_import(self):
         source = self.load_resource("evaluation_index.json")
         with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
             entry = find_object_with_ntiid(self.entry_ntiid)
@@ -78,3 +80,15 @@ class TestImportExport(ApplicationLayerTest):
                 assert_that(evals[key], is_(same_instance(registered)))
                 assert_that(registered,
                             has_property('__home__'), is_(course))
+
+        with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+            entry = find_object_with_ntiid(self.entry_ntiid)
+            course = ICourseInstance(entry)
+            evals = IQEvaluations(course)
+            registered = component.queryUtility(IQEvaluation, name=self.A_NTIID)
+            delete_evaluation(registered)
+            for key in (self.S_NTIID, self.A_NTIID):
+                registered = component.queryUtility(IQEvaluation, name=key)
+                assert_that(registered, is_(none()))
+                assert_that(evals, does_not(has_key(key)))
+            assert_that(evals, has_length(1))

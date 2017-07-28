@@ -316,6 +316,11 @@
 				for="nti.contenttypes.courses.interfaces.ICourseCatalogEntry
 					 pyramid.interfaces.IRequest" />
 
+	<subscriber factory=".contentunit._PackageEditorLinksDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
+				for="nti.contentlibrary.interfaces.IEditableContentPackage
+					 pyramid.interfaces.IRequest" />
+
 	<!-- hrefs -->
 	<!-- NOTE: This is the general implementation; could be better -->
 	<!-- NOTE 2: We must produce OID hrefs for these, not traversal,

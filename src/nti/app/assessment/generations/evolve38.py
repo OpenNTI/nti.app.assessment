@@ -58,6 +58,7 @@ def _process_course(context, intids):
     evaluations = evaluations_for_course(context, False)
     if not evaluations:
         return
+    registry = component.getSiteManager()
     importer = EvaluationsImporterMixin()
     for obj in sorted(evaluations.values(), key=_get_key):
         ntiid = obj.ntiid
@@ -66,7 +67,7 @@ def _process_course(context, intids):
         doc_id = intids.queryId(registered)
         if registered is None or doc_id is None:
             logger.warn("Registering object %s/%s", doc_id, ntiid)
-            register_context(obj, force=True)
+            register_context(obj, True, registry)
             registered = obj
         if obj is not registered:
             logger.warn("Replacing leaked object %s", ntiid)

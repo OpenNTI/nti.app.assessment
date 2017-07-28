@@ -231,10 +231,11 @@ def export_evaluation_content(model, target_filer):
     return model
 
 
-def register_context(context, force=False):
+def register_context(context, force=False, registry=None):
     ntiid = context.ntiid
     provided = iface_of_assessment(context)
-    registry = get_resource_site_registry(context)
+    if registry is None:
+        registry = get_resource_site_registry(context)
     if registry.queryUtility(provided, name=ntiid) is None:
         registerUtility(registry, context, provided, name=ntiid)
     elif force:  # [re]register new object

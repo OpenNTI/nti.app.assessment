@@ -42,7 +42,6 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.dataserver.interfaces import IDataserver
 from nti.dataserver.interfaces import IOIDResolver
 
-from nti.intid.common import addIntId
 from nti.intid.common import removeIntId
 
 from nti.site.hostpolicy import get_all_host_sites
@@ -68,13 +67,11 @@ def _process_course(context, intids):
         registered = component.queryUtility(provided, ntiid)
         doc_id = intids.queryId(registered)
         if registered is None or doc_id is None:
-            logger.warning("Registering missing object %s", ntiid)
-            register_context(obj)
-            if doc_id is None:
-                addIntId(obj)
+            logger.warn("Registering object %s/%s", doc_id, ntiid)
+            register_context(obj, force=True)
             registered = obj
         if obj is not registered:
-            logger.warning("Replacing leaked object %s", ntiid)
+            logger.warn("Replacing leaked object %s", ntiid)
             evaluations.replace(obj, registered, False)
             removeIntId(obj)
             obj = registered

@@ -18,6 +18,7 @@ from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
 
 from nti.appserver.pyramid_authorization import has_permission
 
+from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.interfaces import IEditableContentPackage
 
 from nti.dataserver.authorization import ACT_CONTENT_EDIT
@@ -29,6 +30,26 @@ from nti.links.links import Link
 
 LINKS = StandardExternalFields.LINKS
 
+
+@component.adapter(IContentUnit)
+@interface.implementer(IExternalMappingDecorator)
+class _ContentUnitLinksDecorator(_AbstractTraversableLinkDecorator):
+
+    @Lazy
+    def _acl_decoration(self):
+        return getattr(self.request, 'acl_decoration', True)
+
+    def _predicate(self, context, result):
+        return (    super(_ContentUnitLinksDecorator, self)._predicate(context, result)
+                and self._acl_decoration
+                and has_permission(ACT_CONTENT_EDIT, context, self.request))
+
+    def _do_decorate_external(self, context, result_map):
+        links = result_map.setdefault(LINKS, [])
+        for name in ('Assignments', 'Inquiries', 'AssessmentItems', ):
+            links.append(Link(context, rel=name, elements=('@@%s' % name,)))
+
+
 @component.adapter(IEditableContentPackage)
 @interface.implementer(IExternalMappingDecorator)
 class _PackageEditorLinksDecorator(_AbstractTraversableLinkDecorator):
@@ -38,9 +59,9 @@ class _PackageEditorLinksDecorator(_AbstractTraversableLinkDecorator):
         return getattr(self.request, 'acl_decoration', True)
 
     def _predicate(self, context, result):
-        return (	 super(_PackageEditorLinksDecorator, self)._predicate(context, result)
-                 and self._acl_decoration
-                 and has_permission(ACT_CONTENT_EDIT, context, self.request))
+        return (    super(_PackageEditorLinksDecorator, self)._predicate(context, result)
+                and self._acl_decoration
+                and has_permission(ACT_CONTENT_EDIT, context, self.request))
 
     def _do_decorate_external(self, context, result_map):
         links = result_map.setdefault(LINKS, [])

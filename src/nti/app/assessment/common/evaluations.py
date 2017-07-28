@@ -41,6 +41,8 @@ from nti.app.assessment.index import IX_MIMETYPE as IX_ASSESS_MIMETYPE
 
 from nti.app.assessment.index import get_evaluation_catalog
 
+from nti.app.assessment.interfaces import IQEvaluations
+
 from nti.app.authentication import get_remote_user
 
 from nti.assessment.interfaces import SURVEY_MIME_TYPE
@@ -57,6 +59,7 @@ from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.interfaces import IContentPackage
+from nti.contentlibrary.interfaces import IEditableContentUnit
 from nti.contentlibrary.interfaces import IGlobalContentPackage
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 from nti.contentlibrary.interfaces import IGlobalContentPackageLibrary
@@ -213,11 +216,17 @@ def same_content_unit_file(unit1, unit2):
 
 
 def get_unit_assessments(unit):
+    result = []
     try:
-        result = IQAssessmentItemContainer(unit).assessments()
+        container = IQAssessmentItemContainer(unit)
+        result.extend(container.assessments())
     except TypeError:
-        result = ()
-    return result
+        pass
+    if IEditableContentUnit.providedBy(unit):
+        evals = IQEvaluations(unit, None)
+        if evals is not None:
+            result.extend(evals.values())
+    return result or ()
 
 
 def get_assessment_items_from_unit(contentUnit):

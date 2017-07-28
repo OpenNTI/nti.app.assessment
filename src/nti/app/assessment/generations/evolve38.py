@@ -42,8 +42,6 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.dataserver.interfaces import IDataserver
 from nti.dataserver.interfaces import IOIDResolver
 
-from nti.intid.common import removeIntId
-
 from nti.site.hostpolicy import get_all_host_sites
 
 ORDER = {i: x for i, x in enumerate(EVALUATION_INTERFACES)}.items()
@@ -73,7 +71,6 @@ def _process_course(context, intids):
         if obj is not registered:
             logger.warn("Replacing leaked object %s", ntiid)
             evaluations.replace(obj, registered, False)
-            removeIntId(obj)
             obj = registered
             lifecycleevent.modified(registered)
         # canonicalize

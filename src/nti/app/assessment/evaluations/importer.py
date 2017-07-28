@@ -141,16 +141,19 @@ class EvaluationsImporterMixin(object):
         [p.ntiid for p in the_object.parts or ()]  # set auto part NTIIDs
         return the_object
 
+    def canonicalize_question_set(self, the_object, context):
+        questions = indexed_iter()  # replace questions
+        for question in the_object.questions or ():
+            question = self.handle_question(question, context)
+            questions.append(question)
+        the_object.questions = questions
+
     def handle_question_set(self, the_object, source, context):
         is_new = self.is_new(the_object, context)
         if not is_new:
             the_object = self.get_registered_evaluation(the_object, context)
         else:
-            questions = indexed_iter()  # replace questions
-            for question in the_object.questions or ():
-                question = self.handle_question(question, context)
-                questions.append(question)
-            the_object.questions = questions
+            self.canonicalize_question_set(the_object, context)
             for name, provided in (('Randomized', IRandomizedQuestionSet),
                                    ('RandomizedPartsType', IRandomizedPartsContainer)):
                 value = source.get(name) if source else False
@@ -159,37 +162,44 @@ class EvaluationsImporterMixin(object):
             the_object = self.store_evaluation(the_object, context)
         return the_object
 
+    def canonicalize_survey(self, the_object, context):
+        questions = indexed_iter()  # replace polls
+        for poll in the_object.questions or ():
+            poll = self.handle_poll(poll, context, False)
+            questions.append(poll)
+        the_object.questions = questions
+
     def handle_survey(self, the_object, context):
         is_new = self.is_new(the_object, context)
         if not is_new:
             the_object = self.get_registered_evaluation(the_object, context)
         else:
-            questions = indexed_iter()  # replace polls
-            for poll in the_object.questions or ():
-                poll = self.handle_poll(poll, context, False)
-                questions.append(poll)
-            the_object.questions = questions
+            self.canonicalize_survey(the_object, context)
             the_object = self.store_evaluation(the_object, context)
         return the_object
 
     def handle_assignment_part(self, part, source, context):
+        ext_obj = source.get('question_set') if source else None
         question_set = self.handle_question_set(part.question_set,
-                                                source.get('question_set'),
+                                                ext_obj,
                                                 context)
         part.question_set = question_set  # replace is safe in part
         return part
+
+    def canonicalize_assignment(self, the_object, context, source=None):
+        parts = indexed_iter()
+        for index, part in enumerate(the_object.parts) or ():
+            ext_obj = source['parts'][index] if source else None
+            part = self.handle_assignment_part(part, ext_obj, context)
+            parts.append(part)
+        the_object.parts = parts
 
     def handle_assignment(self, the_object, source, context):
         is_new = self.is_new(the_object, context)
         if not is_new:
             the_object = self.get_registered_evaluation(the_object, context)
         else:
-            parts = indexed_iter()
-            for index, part in enumerate(the_object.parts) or ():
-                ext_obj = source['parts'][index]
-                part = self.handle_assignment_part(part, ext_obj, context)
-                parts.append(part)
-            the_object.parts = parts
+            self.canonicalize_assignment(the_object, context, source)
             the_object = self.store_evaluation(the_object, context)
         [p.ntiid for p in the_object.parts or ()]  # set auto part NTIIDs
         return the_object
@@ -221,7 +231,7 @@ class EvaluationsImporterMixin(object):
             # always register
             register_context(result, force=True)
 
-        is_published = source.get('isPublished')
+        is_published = source.get('isPublished') if source else False
         if is_published:
             if ICalendarPublishable.providedBy(result):
                 result.publish(start=result.publishBeginning,
@@ -230,7 +240,7 @@ class EvaluationsImporterMixin(object):
             else:
                 result.publish(event=False)
 
-        locked = source.get('isLocked')
+        locked = source.get('isLocked') if source else False
         if      locked \
             and IRecordable.providedBy(result):
             the_object.lock(event=False)

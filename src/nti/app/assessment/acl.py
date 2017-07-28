@@ -18,6 +18,7 @@ from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQEditableEvaluation
 
 from nti.contentlibrary.interfaces import IContentPackage
+from nti.contentlibrary.interfaces import IEditableContentPackage
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
@@ -78,4 +79,8 @@ class EvaluationACLProvider(object):
             if IQEditableEvaluation.providedBy(self.context):
                 for editor in get_course_editors(course):
                     result.append(ace_allowing(editor, ACT_DELETE, type(self)))
+        if IQEditableEvaluation.providedBy(self.context):
+            package = find_interface(self.context, IEditableContentPackage, strict=False)
+            if package is not None:
+                result.extend(IACLProvider(package).__acl__)
         return result

@@ -1,0 +1,28 @@
+{
+	"Class": "Question",
+	"MimeType": "application/vnd.nextthought.naquestion",
+	"content": "Bleach most powerful",
+	"parts": [
+		{
+			"Class": "MultipleChoicePart",
+			"MimeType": "application/vnd.nextthought.assessment.multiplechoicepart",
+			"choices": [
+				"Ichigo",
+				"Aizen",
+				"Zaraki",
+				"Toshiro"
+			],
+			"content": "",
+			"explanation": "",
+			"hints": [],
+			"solutions": [
+				{
+					"Class": "MultipleChoiceSolution",
+					"MimeType": "application/vnd.nextthought.assessment.multiplechoicesolution",
+					"value": 0,
+					"weight": 1.0
+				}
+			]
+		}
+	]
+}

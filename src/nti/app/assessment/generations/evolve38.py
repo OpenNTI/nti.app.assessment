@@ -102,6 +102,7 @@ def _process_site(intids, seen):
         seen.add(doc_id)
         _process_course(course, intids)
 
+
 @interface.implementer(IDataserver)
 class MockDataserver(object):
 

@@ -5,8 +5,6 @@
 """
 
 from __future__ import print_function, absolute_import, division
-from nti.assessment.interfaces import IQAssignment
-from nti.assessment.interfaces import IQuestionSet
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -36,7 +34,9 @@ from nti.assessment.common import iface_of_assessment
 
 from nti.assessment.interfaces import ALL_EVALUATION_MIME_TYPES
 
+from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQEvaluation
+from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQAssessmentItemContainer
 

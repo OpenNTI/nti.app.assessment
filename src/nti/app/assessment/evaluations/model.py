@@ -82,6 +82,12 @@ class Evaluations(CaseInsensitiveCheckingLastModifiedBTreeContainer):
         self._save(ntiid, new)
         return new
 
+    def _fix_length(self):
+        kl = len(tuple(self.keys()))
+        if kl != len(self):
+            self._BTreeContainer__len.set(kl)
+            self._p_changed = True
+
 
 @interface.implementer(ICourseEvaluations)
 class CourseEvaluations(Evaluations):

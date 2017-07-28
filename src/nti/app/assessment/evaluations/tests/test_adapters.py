@@ -53,3 +53,4 @@ class TestAdpaters(ApplicationLayerTest):
         assert_that(evals, is_not(None))
         assert_that(evals, 
                     has_property('__parent__', is_(package)))
+        evals._fix_length()

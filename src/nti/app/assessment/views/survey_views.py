@@ -641,7 +641,7 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
                 row = [item.creator.username]
             else:
                 row = []
-            for question in sorted(subs_questions, key=lambda x: x.inquiryId, reverse=False):
+            for question in sorted(subs_questions, key=lambda x: x.inquiryId, reverse=True):
                 poll = component.queryUtility(IQPoll, name=question.inquiryId)
                 # A question may have multiple parts, so we need to go through
                 # each part. We look at the question parts from the user's

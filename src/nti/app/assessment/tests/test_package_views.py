@@ -43,6 +43,8 @@ class TestPacakgeViews(ApplicationLayerTest):
 
     default_origin = 'http://janux.ou.edu'
 
+    pkg_ntiid = u'tag:nextthought.com,2011-10:OU-HTML-CS1323_F_2015_Intro_to_Computer_Programming.introduction_to_computer_programming'
+
     def load_resource(self, resource):
         path = os.path.join(os.path.dirname(__file__), resource)
         with open(path, "r") as fp:
@@ -64,7 +66,7 @@ class TestPacakgeViews(ApplicationLayerTest):
         res = self.testapp.post_json(href, data, status=201)
         assert_that(res.json_body, has_key('ntiid'))
         q_ntiid = res.json_body['ntiid']
-        
+
         with mock_dataserver.mock_db_trans(self.ds, site_name='platform.ou.edu'):
             package = find_object_with_ntiid(ntiid)
             evals = IQEvaluations(package)
@@ -78,6 +80,15 @@ class TestPacakgeViews(ApplicationLayerTest):
 
         res = self.testapp.get(items_href, status=200)
         assert_that(res.json_body, has_entry('Items', has_length(1)))
-        
+
         res = self.testapp.get(assignments_href, status=200)
         assert_that(res.json_body, has_entry('Items', has_length(0)))
+
+    @WithSharedApplicationMockDS(users=True, testapp=True)
+    def test_get_assignments(self):
+        href = '/dataserver2/Library/%s' % self.pkg_ntiid
+        res = self.testapp.get(href, status=200)
+        assignments_href = self.require_link_href_with_rel(res.json_body, "Assignments")
+
+        res = self.testapp.get(assignments_href, status=200)
+        assert_that(res.json_body, has_entry('Total', is_(150)))

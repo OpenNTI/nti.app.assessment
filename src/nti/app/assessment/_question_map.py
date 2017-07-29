@@ -338,8 +338,8 @@ class QuestionMap(QuestionIndex):
 
                         # register in sync results
                         if sync_results is not None:
-                            sync_results.add_assessment(
-                                thing_to_register, False)
+                            sync_results.add_assessment(thing_to_register, 
+                                                        False)
                     elif ntiid and ntiid not in parents_questions:
                         # Child item locked/edited.
                         # Update parent and put in parent container.

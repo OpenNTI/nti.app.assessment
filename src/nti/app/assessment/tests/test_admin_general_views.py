@@ -27,6 +27,8 @@ class TestAdminGeneralViews(ApplicationLayerTest):
 
     default_origin = 'http://janux.ou.edu'
 
+    pkg_ntiid = u'tag:nextthought.com,2011-10:OU-HTML-CS1323_F_2015_Intro_to_Computer_Programming.introduction_to_computer_programming'
+    
     @WithSharedApplicationMockDS(testapp=True, users=True)
     def test_rebuild_eval_catalog(self):
         res = self.testapp.post('/dataserver2/@@RebuildEvaluationCatalog',
@@ -42,3 +44,17 @@ class TestAdminGeneralViews(ApplicationLayerTest):
         assert_that(res.json_body,
                     has_entries('Total', is_(greater_than_or_equal_to(0)),
                                 'ItemCount', is_(greater_than_or_equal_to(0))))
+        
+    @WithSharedApplicationMockDS(testapp=True, users=True)
+    def test_unregister_regiser_items(self):
+        href = '/dataserver2/Objects/%s/@@UnregisterAssessmentItems' % self.pkg_ntiid
+        res = self.testapp.post(href, status=200)
+        assert_that(res.json_body,
+                    has_entries('Total', is_(184),
+                                'ItemCount', is_(184)))
+        
+        href = '/dataserver2/Objects/%s/@@RegisterAssessmentItems' % self.pkg_ntiid
+        res = self.testapp.post(href, status=200)
+        assert_that(res.json_body,
+                    has_entries('Total', is_(184),
+                                'ItemCount', is_(184)))

@@ -30,10 +30,8 @@ from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment._integrity_check import check_assessment_integrity
 
-from nti.app.assessment._question_map import _add_assessment_items_from_new_content
-from nti.app.assessment._question_map import _remove_assessment_items_from_oldcontent
-
-from nti.app.assessment.common.hostpolicy import get_resource_site_name
+from nti.app.assessment.synchronize import add_assessment_items_from_new_content
+from nti.app.assessment.synchronize import remove_assessment_items_from_oldcontent
 
 from nti.app.assessment.index import get_evaluation_catalog
 from nti.app.assessment.index import get_submission_catalog
@@ -60,7 +58,7 @@ from nti.common.string import is_true
 
 from nti.contentlibrary.interfaces import IContentPackage
 
-from nti.contenttypes.courses.interfaces import ICourseCatalog 
+from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver import authorization as nauth
@@ -90,7 +88,7 @@ ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 try:
     from nti.metadata import queue_add as metadata_queue_add
 except ImportError:
-    def metadata_queue_add(unused_obj): 
+    def metadata_queue_add(unused_obj):
         return
 
 
@@ -249,7 +247,7 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
             raise_json_error(self.request,
                              hexc.HTTPUnprocessableEntity,
                              {
-                                'message': _(u"Invalid object NTIID."),
+                                 'message': _(u"Invalid object NTIID."),
                              },
                              None)
 
@@ -260,7 +258,7 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
             raise_json_error(self.request,
                              hexc.HTTPUnprocessableEntity,
                              {
-                                'message': _(u"Invalid Evaluation object."),
+                                 'message': _(u"Invalid Evaluation object."),
                              },
                              None)
 
@@ -268,7 +266,7 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
             raise_json_error(self.request,
                              hexc.HTTPUnprocessableEntity,
                              {
-                                'message': _(u"Evaluation object is locked."),
+                                 'message': _(u"Evaluation object is locked."),
                              },
                              None)
 
@@ -296,7 +294,7 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
             raise_json_error(self.request,
                              hexc.HTTPUnprocessableEntity,
                              {
-                                'message': _(u"Invalid Evaluation site."),
+                                 'message': _(u"Invalid Evaluation site."),
                              },
                              None)
         # do removal
@@ -311,15 +309,14 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
 @view_config(route_name='objects.generic.traversal',
              renderer='rest',
              permission=nauth.ACT_NTI_ADMIN,
-             context=IDataserverFolder,
+             context=IContentPackage,
              name='UnregisterAssessmentItems')
 class UnregisterAssessmentItemsView(AbstractAuthenticatedView,
                                     ModeledContentUploadRequestUtilsMixin):
 
     def readInput(self, value=None):
         if self.request.body:
-            values = super(UnregisterAssessmentItemsView,
-                           self).readInput(value)
+            values = super(UnregisterAssessmentItemsView, self).readInput(value)
         else:
             values = self.request.params
         result = CaseInsensitiveDict(values)
@@ -327,31 +324,10 @@ class UnregisterAssessmentItemsView(AbstractAuthenticatedView,
 
     def _do_call(self):
         values = self.readInput()
-        ntiid = values.get('ntiid') or values.get('package')
-        if not ntiid:
-            raise_json_error(self.request,
-                             hexc.HTTPUnprocessableEntity,
-                             {
-                                'message': _(u"Invalid content package NTIID."),
-                             },
-                             None)
-
         force = is_true(values.get('force'))
-        package = find_object_with_ntiid(ntiid)
-        package = IContentPackage(package, None)
-        if package is None:
-            raise_json_error(self.request,
-                             hexc.HTTPUnprocessableEntity,
-                             {
-                                'message': _(u"Invalid content package."),
-                             },
-                             None)
-
-        name = get_resource_site_name(package)
-        site = get_host_site(name)
+        site = IHostPolicyFolder(self.context)
         with current_site(site):
-            items, unused = _remove_assessment_items_from_oldcontent(package,
-                                                                     force=force)
+            items, unused = remove_assessment_items_from_oldcontent(self.context, force)
         result = LocatedExternalDict()
         result[ITEMS] = sorted(items.keys())
         result[ITEM_COUNT] = result[TOTAL] = len(items)
@@ -361,7 +337,7 @@ class UnregisterAssessmentItemsView(AbstractAuthenticatedView,
 @view_config(route_name='objects.generic.traversal',
              renderer='rest',
              permission=nauth.ACT_NTI_ADMIN,
-             context=IDataserverFolder,
+             context=IContentPackage,
              name='RegisterAssessmentItems')
 class RegisterAssessmentItemsView(AbstractAuthenticatedView,
                                   ModeledContentUploadRequestUtilsMixin):
@@ -375,34 +351,14 @@ class RegisterAssessmentItemsView(AbstractAuthenticatedView,
         return result
 
     def _do_call(self):
-        values = self.readInput()
-        ntiid = values.get('ntiid') or values.get('package')
-        if not ntiid:
-            raise_json_error(self.request,
-                             hexc.HTTPUnprocessableEntity,
-                             {
-                                'message': _(u"Invalid content package NTIID."),
-                             },
-                             None)
-
-        package = find_object_with_ntiid(ntiid)
-        package = IContentPackage(package, None)
-        if package is None:
-            raise_json_error(self.request,
-                             hexc.HTTPUnprocessableEntity,
-                             {
-                                'message': _(u"Invalid content package."),
-                             },
-                             None)
-
         items = ()
+        package = self.context
         result = LocatedExternalDict()
         key = package.does_sibling_entry_exist('assessment_index.json')
         if key is not None:
-            name = get_resource_site_name(package)
-            site = get_host_site(name)
+            site = IHostPolicyFolder(package)
             with current_site(site):
-                items = _add_assessment_items_from_new_content(package, key)
+                items = add_assessment_items_from_new_content(package, key)
                 main_container = IQAssessmentItemContainer(package)
                 main_container.lastModified = key.lastModified
                 result.lastModified = key.lastModified

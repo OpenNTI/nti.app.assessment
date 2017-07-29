@@ -15,12 +15,13 @@ from zope import interface
 
 from zope.component.hooks import site as current_site
 
-from nti.app.assessment._question_map import populate_question_map_json
-from nti.app.assessment._question_map import remove_assessment_items_from_oldcontent
+from nti.app.assessment.synchronize import populate_question_map_json
+from nti.app.assessment.synchronize import remove_assessment_items_from_oldcontent
 
 from nti.cabinet.filer import transfer_to_native_file
 
 from nti.contentlibrary.interfaces import IFilesystemBucket
+from nti.contentlibrary.interfaces import IEditableContentPackage
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseSectionImporter
@@ -40,7 +41,7 @@ class AssessmentsImporter(BaseSectionImporter):
     ASSESSMENT_INDEX = "assessment_index.json"
 
     def remove_assessments(self, package):
-        remove_assessment_items_from_oldcontent(package, force=True)
+        remove_assessment_items_from_oldcontent(package, True)
 
     def process(self, context, filer, writeout=False):
         course = ICourseInstance(context)
@@ -50,6 +51,8 @@ class AssessmentsImporter(BaseSectionImporter):
             result = set()
             source = self.load(source)
             for package in get_course_packages(course):
+                if IEditableContentPackage.providedBy(package):
+                    continue
                 site = IHostPolicyFolder(package)
                 with current_site(site):
                     self.remove_assessments(package)

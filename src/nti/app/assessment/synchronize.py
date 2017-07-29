@@ -11,8 +11,6 @@ logger = __import__('logging').getLogger(__name__)
 
 from zope import component
 
-from zope.component.hooks import getSite
-
 from zope.intid.interfaces import IIntIds
 
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
@@ -20,6 +18,7 @@ from zope.lifecycleevent.interfaces import IObjectRemovedEvent
 from zope.lifecycleevent.interfaces import IObjectModifiedEvent
 
 from nti.app.assessment._question_map import QuestionMap
+from nti.app.assessment._question_map import new_sync_results
 from nti.app.assessment._question_map import get_assess_item_dict
 
 from nti.app.assessment.common.evaluations import get_content_packages_assessment_items
@@ -34,8 +33,6 @@ from nti.contentlibrary.interfaces import IContentPackage
 from nti.contentlibrary.interfaces import IEditableContentPackage
 from nti.contentlibrary.interfaces import IContentPackageSyncResults
 
-from nti.contentlibrary.synchronize import ContentPackageSyncResults
-
 from nti.intid.common import removeIntId
 
 from nti.ntiids.ntiids import find_object_with_ntiid
@@ -48,13 +45,6 @@ from nti.recorder.record import copy_transaction_history
 from nti.recorder.record import remove_transaction_history
 
 from nti.site.utils import unregisterUtility
-
-
-def new_sync_results(package):
-    site = getSite()
-    result = ContentPackageSyncResults(Site=getattr(site, '__name__', None),
-                                       ContentPackageNTIID=package.ntiid)
-    return result
 
 
 def get_sync_results(content_package, event):

@@ -30,9 +30,9 @@ from zope.annotation.interfaces import IAttributeAnnotatable
 from nti.app.assessment._question_map import _AssessmentItemOOBTree
 from nti.app.assessment._question_map import QuestionMap as _QuestionMap
 
-from nti.app.assessment._question_map import _get_last_mod_namespace
-from nti.app.assessment._question_map import _populate_question_map_from_text
-from nti.app.assessment._question_map import _remove_assessment_items_from_oldcontent
+from nti.app.assessment.synchronize import get_last_mod_namespace
+from nti.app.assessment.synchronize import populate_question_map_from_text
+from nti.app.assessment.synchronize import remove_assessment_items_from_oldcontent
 
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
@@ -221,7 +221,7 @@ class TestQuestionMap( AssessmentLayerTest ):
 		mock_content_package = MockEntry()
 
 		# Specify our registry, so we can force index
-		_populate_question_map_from_text( question_map, index_string, mock_content_package)
+		populate_question_map_from_text( question_map, index_string, mock_content_package)
 
 		assm_items = question_map.by_file['tag_nextthought_com_2011-10_testing-HTML-temp_chapter_one.html']
 
@@ -244,7 +244,7 @@ class TestQuestionMap( AssessmentLayerTest ):
 
 		qset_question = qset.questions[0]
 		assert_that( qset_question, is_( question ) )
-		assert_that( qset_question, has_property( 'ntiid',     'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion' ) )
+		assert_that( qset_question, has_property( 'ntiid',	 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion' ) )
 		assert_that( qset_question, has_property( '__name__',  'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testquestion' ) )
 
 		assert_that( question_map[qset_question.ntiid], is_( qset_question ) )
@@ -259,12 +259,12 @@ class TestQuestionMap( AssessmentLayerTest ):
 
 		# Catalogged
 		catalog = get_catalog()
-		last_mod_namespace = _get_last_mod_namespace( mock_content_package )
+		last_mod_namespace = get_last_mod_namespace( mock_content_package )
 		last_modified = catalog.get_last_modified( last_mod_namespace )
 		assert_that( last_modified, not_none() )
 
 		# Remove
-		_remove_assessment_items_from_oldcontent( mock_content_package )
+		remove_assessment_items_from_oldcontent( mock_content_package )
 
 	@WithMockDSTrans
 	@fudge.patch('nti.app.contentlibrary.synchronize.subscribers.get_site_registry')
@@ -330,7 +330,7 @@ class TestQuestionMap( AssessmentLayerTest ):
 
 		question_map = QuestionMap()
 
-		_populate_question_map_from_text( question_map, index_string, MockEntry() )
+		populate_question_map_from_text( question_map, index_string, MockEntry() )
 
 		assert_that( question_map, has_length( 1 ) )
 
@@ -401,7 +401,7 @@ class TestQuestionMap( AssessmentLayerTest ):
 		question_map = QuestionMap()
 
 		entry = MockEntry()
-		_populate_question_map_from_text( question_map, the_text, entry )
+		populate_question_map_from_text( question_map, the_text, entry )
 
 		# Check that they were canonicalizade
 		asg = component.getUtility(IQAssignment, name='tag:nextthought.com,2011-10:testing-NAQ-temp.naq.asg.assignment' )

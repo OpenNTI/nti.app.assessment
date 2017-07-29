@@ -43,7 +43,7 @@ def evaluations_for_course(course, create=True):
     result = None
     annotations = IAnnotations(course)
     try:
-        KEY = 'CourseEvaluations'
+        KEY = u'CourseEvaluations'
         result = annotations[KEY]
     except KeyError:
         if create:
@@ -84,7 +84,7 @@ def evaluations_for_package(package):
         result = package._package_evaluations = ContentPackageEvaluations()
         result.createdTime = time.time()
         result.__parent__ = package
-        result.__name__ = 'Evaluations'
+        result.__name__ = u'Evaluations'
     return result
 
 

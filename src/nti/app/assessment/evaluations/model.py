@@ -12,13 +12,16 @@ logger = __import__('logging').getLogger(__name__)
 from zope import interface
 from zope import lifecycleevent
 
-from zope.location.location import locate
+from zope.cachedescriptors.property import Lazy
 
+from ZODB.interfaces import IBroken
 from ZODB.interfaces import IConnection
 
 from nti.app.assessment.interfaces import IQEvaluations
 from nti.app.assessment.interfaces import ICourseEvaluations
 from nti.app.assessment.interfaces import IContentPackageEvaluations
+
+from nti.assessment.interfaces import IQAssessmentItemContainer
 
 from nti.containers.containers import CaseInsensitiveCheckingLastModifiedBTreeContainer
 
@@ -36,6 +39,8 @@ from nti.dataserver.authorization_acl import ace_allowing
 from nti.dataserver.authorization_acl import acl_from_aces
 
 from nti.intid.common import removeIntId
+
+from nti.property.property import alias
 
 from nti.traversal.traversal import find_interface
 
@@ -56,7 +61,7 @@ class Evaluations(CaseInsensitiveCheckingLastModifiedBTreeContainer):
 
     def _save(self, key, value):
         self._setitemf(key, value)
-        locate(value, parent=self, name=key)
+        value.__parent__ = self
         if IConnection(value, None) is None:
             IConnection(self).add(value)
         lifecycleevent.added(value, self, key)
@@ -72,12 +77,18 @@ class Evaluations(CaseInsensitiveCheckingLastModifiedBTreeContainer):
         self._save(key, value)
 
     def _eject(self, key, event=True):
-        self._delitemf(key, event=event)
+        item = self[key]
+        # eject but don't change contaiment
+        self._delitemf(key, event=False)
+        if event:
+            lifecycleevent.removed(item, self, key)
+        item.__parent__ = None
         self.updateLastMod()
         self._p_changed = True
+        return item
 
     def __delitem__(self, key):
-        self._eject(key)
+        return self._eject(key)
 
     def replace(self, old, new, event=False):
         assert old.ntiid == new.ntiid
@@ -132,3 +143,92 @@ class ContentPackageEvaluations(Evaluations):
                 ace_allowing(ROLE_CONTENT_ADMIN, ALL_PERMISSIONS, type(self))]
         result = acl_from_aces(aces)
         return result
+
+
+@interface.implementer(IContentPackageEvaluations)
+class LegacyContentPackageEvaluations(object):
+
+    __name__ = u'Evaluations'
+
+    context = alias('__parent__')
+
+    def __init__(self, context):
+        self.__parent__ = context
+
+    @Lazy
+    def container(self):
+        return IQAssessmentItemContainer(self.context)
+
+    def updateLastMod(self):
+        try:
+            self.container.updateLastMod()
+        except AttributeError:
+            self.container._p_changed = True
+
+    # IEnumerableMapping
+
+    def __getitem__(self, key):
+        return self.container[key]
+
+    def get(self, key, default=None):
+        return self.container.get(key, default)
+
+    def __contains__(self, key):
+        return key in self.container
+
+    def keys(self):
+        return self.container.keys()
+
+    def __iter__(self):
+        return iter(self.container.keys())
+
+    def values(self):
+        return self.container.values()
+
+    def items(self):
+        return self.container.items()
+
+    def __len__(self):
+        return len(self.container)
+
+    # IWriteContainer
+
+    def _save(self, key, value):
+        self.container[key] = value
+        value.__parent__ = self.context
+        if IConnection(value, None) is None:
+            IConnection(self.context).add(value)
+        lifecycleevent.added(value, self, key)
+        self.updateLastMod()
+
+    def __setitem__(self, key, value):
+        old = self.get(key, _SENTINEL)
+        if old is value:
+            return
+        if old is not _SENTINEL:
+            raise KeyError(key)
+        self._save(key, value)
+
+    def _eject(self, key, event=True):
+        item = self.container[key]
+        del self.container[key]
+        if event:
+            lifecycleevent.removed(item, self.context, key)
+        if not IBroken.providedBy(item):
+            item.__parent__ = None
+        self.updateLastMod()
+        return item
+
+    def __delitem__(self, key):
+        return self._eject(key)
+    
+    # IQEvaluations
+
+    def replace(self, old, new, event=False):
+        assert old.ntiid == new.ntiid
+        ntiid = old.ntiid
+        self._eject(ntiid, event=event)
+        if not event:
+            removeIntId(old)
+        self._save(ntiid, new)
+        return new

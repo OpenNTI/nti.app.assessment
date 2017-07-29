@@ -47,8 +47,6 @@ def get_data_items(intids):
     }
     for uid in catalog.apply(query) or ():
         item = intids.queryObject(uid)
-        if not IQEditableEvaluation.providedBy(item):
-            continue
         folder = IHostPolicyFolder(item, None)
         yield (folder, item, uid)
 
@@ -69,6 +67,14 @@ def _process_items(intids):
         if folder is None:  # global obj that leaked
             _process_removal(doc_id, item, catalog, intids)
             continue
+
+        if '__name__' in item.__dict__ and 'ntiid' in item.__dict__:
+            del item.__dict__['__name__']
+            item._p_changed = True
+
+        if not IQEditableEvaluation.providedBy(item):
+            continue
+
         with current_site(folder):
             registry = component.getSiteManager()
             provided = iface_of_assessment(item)

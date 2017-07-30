@@ -60,6 +60,7 @@ class Evaluations(CaseInsensitiveCheckingLastModifiedBTreeContainer):
         return dict(self)
 
     def _save(self, key, value):
+        assert value.ntiid == key
         self._setitemf(key, value)
         value.__parent__ = self
         if IConnection(value, None) is None:
@@ -195,6 +196,7 @@ class LegacyContentPackageEvaluations(object):
     # IWriteContainer
 
     def _save(self, key, value):
+        assert value.ntiid == key
         self.container[key] = value
         value.__parent__ = self.context
         if IConnection(value, None) is None:

@@ -47,6 +47,8 @@ from nti.assessment.interfaces import SURVEY_MIME_TYPE
 from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
 from nti.assessment.interfaces import QUESTION_SET_MIME_TYPE
 
+from nti.base._compat import text_
+
 from nti.contentlibrary.indexed_data import get_site_registry
 
 from nti.contentlibrary.interfaces import IContentUnit
@@ -246,7 +248,6 @@ class QuestionMap(QuestionIndex):
                              content_package,
                              by_file,
                              level_ntiid=None,
-                             signatures_dict=None,
                              registry=None,
                              sync_results=None,
                              key_lastModified=None):
@@ -256,7 +257,6 @@ class QuestionMap(QuestionIndex):
         """
 
         parent = None
-        signatures_dict = signatures_dict or {}
         intids = component.queryUtility(IIntIds)
         library = component.queryUtility(IContentPackageLibrary)
         parents_questions = IQAssessmentItemContainer(content_package)
@@ -286,6 +286,7 @@ class QuestionMap(QuestionIndex):
             assert factory is not None
 
             obj = factory()
+            ntiid = text_(ntiid)
             provided = iface_of_assessment(obj)
             registered = registry.queryUtility(provided, name=ntiid)
             if registered is None:
@@ -293,7 +294,6 @@ class QuestionMap(QuestionIndex):
                                             notify=False,
                                             object_hook=_ntiid_object_hook)
                 obj.ntiid = ntiid
-                obj.signature = signatures_dict.get(ntiid)
                 self._store_object(ntiid, obj)
 
                 things_to_register = self._explode_object_to_register(obj)
@@ -408,7 +408,6 @@ class QuestionMap(QuestionIndex):
                                           content_package,
                                           by_file,
                                           level_ntiid,
-                                          index.get("Signatures"),
                                           registry=registry,
                                           sync_results=sync_results,
                                           key_lastModified=key_lastModified)

@@ -37,12 +37,16 @@ from nti.base._compat import text_
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 
+from nti.contenttypes.courses.interfaces import ICourseInstance
+
 from nti.dataserver.interfaces import IDataserver
 from nti.dataserver.interfaces import IOIDResolver
 
 from nti.dataserver.metadata.index import get_metadata_catalog
 
 from nti.site.interfaces import IHostPolicyFolder
+
+from nti.traversal.traversal import find_interface
 
 
 def get_data_items(intids):
@@ -89,6 +93,11 @@ def _process_items(intids):
 
         if not IQEditableEvaluation.providedBy(item):
             continue
+        elif not ICourseInstance.providedBy(getattr(item, '__home__', None)):
+            course = find_interface(item, ICourseInstance, strict=False)
+            if course is not None:
+                item.__home__ = course
+                lifecycleevent.modified(item)
 
         with current_site(folder):
             registry = component.getSiteManager()

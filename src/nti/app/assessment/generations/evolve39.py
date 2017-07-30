@@ -30,6 +30,7 @@ from nti.assessment.common import iface_of_assessment
 
 from nti.assessment.interfaces import ALL_EVALUATION_MIME_TYPES
 
+from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQEditableEvaluation
 
 from nti.base._compat import text_
@@ -51,8 +52,9 @@ def get_data_items(intids):
     }
     for uid in catalog.apply(query) or ():
         item = intids.queryObject(uid)
-        folder = IHostPolicyFolder(item, None)
-        yield (folder, item, uid)
+        if IQEvaluation.providedBy(item):
+            folder = IHostPolicyFolder(item, None)
+            yield (folder, item, uid)
 
 
 def _process_removal(doc_id, item, catalog, intids):
@@ -87,6 +89,7 @@ def _process_items(intids):
 
         if not IQEditableEvaluation.providedBy(item):
             continue
+
         with current_site(folder):
             registry = component.getSiteManager()
             provided = iface_of_assessment(item)

@@ -68,19 +68,13 @@ def _process_items(intids):
         if folder is None:  # global obj that leaked
             _process_removal(doc_id, item, catalog, intids)
             continue
-
         if '__name__' in item.__dict__ and 'ntiid' in item.__dict__:
-            logger.warn("Removing __name__ from %s/%s",
-                        doc_id, item.ntiid)
             del item.__dict__['__name__']
             item._p_changed = True
-
         if hasattr(item, 'signature'):
             delattr(item, 'signature')
-
         if not IQEditableEvaluation.providedBy(item):
             continue
-
         with current_site(folder):
             registry = component.getSiteManager()
             provided = iface_of_assessment(item)

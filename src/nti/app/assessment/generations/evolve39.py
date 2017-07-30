@@ -75,6 +75,9 @@ def _process_items(intids):
             del item.__dict__['__name__']
             item._p_changed = True
 
+        if hasattr(item, 'signature'):
+            delattr(item, 'signature')
+
         if not IQEditableEvaluation.providedBy(item):
             continue
 

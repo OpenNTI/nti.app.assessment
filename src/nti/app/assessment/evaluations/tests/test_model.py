@@ -30,9 +30,15 @@ from nti.app.assessment.evaluations.model import LegacyContentPackageEvaluations
 
 from nti.assessment.question import QQuestion
 
+from nti.contentlibrary.interfaces import IContentPackage
+
 from nti.contentlibrary.zodb import RenderableContentPackage
 
+from nti.contenttypes.courses.interfaces import ICourseInstance
+
 from nti.contenttypes.courses.courses import CourseInstance
+
+from nti.traversal.traversal import find_interface
 
 from nti.app.testing.application_webtest import ApplicationLayerTest
 
@@ -43,9 +49,9 @@ from nti.dataserver.tests import mock_dataserver
 
 class TestModel(ApplicationLayerTest):
 
-    def _test_container(self, context, legacy=True):
+    def _test_container(self, context, package=True):
         intids = component.getUtility(IIntIds)
-        if legacy:
+        if package:
             evals = LegacyContentPackageEvaluations(context)
         else:
             evals = IQEvaluations(context, None)
@@ -55,7 +61,7 @@ class TestModel(ApplicationLayerTest):
         assert_that(evals, verifiably_provides(IQEvaluations))
         assert_that(evals,
                     has_property('__parent__', is_(context)))
-        if legacy:
+        if package:
             assert_that(evals,
                         has_property('__name__', is_('Evaluations')))
         assert_that(evals, has_length(0))
@@ -72,12 +78,12 @@ class TestModel(ApplicationLayerTest):
         doc_id = intids.queryId(question)
         assert_that(doc_id, is_not(none()))
         assert_that(question, has_property('__name__', ntiid))
-        if legacy:
-            assert_that(question,
-                        has_property('__parent__', is_(context)))
+        if package:
+            parent = find_interface(question, IContentPackage, strict=False)
+            assert_that(parent, is_not(none()))
         else:
-            assert_that(question,
-                        has_property('__parent__', is_not(none())))
+            parent = find_interface(question, ICourseInstance, strict=False)
+            assert_that(parent, is_not(none()))
 
         assert_that(list(evals), is_([ntiid]))
         assert_that(list(evals.keys()), is_([ntiid]))

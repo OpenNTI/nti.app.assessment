@@ -9,8 +9,6 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-import time
-
 from zope import component
 from zope import interface
 
@@ -23,7 +21,7 @@ from pyramid.interfaces import IRequest
 from nti.app.assessment.adapters import course_from_context_lineage
 
 from nti.app.assessment.evaluations.model import CourseEvaluations
-from nti.app.assessment.evaluations.model import ContentPackageEvaluations
+from nti.app.assessment.evaluations.model import LegacyContentPackageEvaluations
 
 from nti.app.assessment.interfaces import IQEvaluations
 
@@ -78,14 +76,7 @@ def evaluations_for_course_path_adapter(course, _):
 @interface.implementer(IQEvaluations)
 @component.adapter(IEditableContentPackage) 
 def evaluations_for_package(package):
-    try:
-        result = package._package_evaluations
-    except AttributeError:
-        result = package._package_evaluations = ContentPackageEvaluations()
-        result.createdTime = time.time()
-        result.__parent__ = package
-        result.__name__ = u'Evaluations'
-    return result
+    return LegacyContentPackageEvaluations(package)
 
 
 @component.adapter(IQEvaluations)

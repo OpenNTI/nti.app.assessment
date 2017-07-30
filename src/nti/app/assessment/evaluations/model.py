@@ -132,22 +132,6 @@ class CourseEvaluations(Evaluations):
 
 
 @interface.implementer(IContentPackageEvaluations)
-class ContentPackageEvaluations(Evaluations):
-    """
-    Implementation of the content package evaluations.
-    """
-
-    __external_can_create__ = False
-
-    @property
-    def __acl__(self):
-        aces = [ace_allowing(ROLE_ADMIN, ALL_PERMISSIONS, self),
-                ace_allowing(ROLE_CONTENT_ADMIN, ALL_PERMISSIONS, type(self))]
-        result = acl_from_aces(aces)
-        return result
-
-
-@interface.implementer(IContentPackageEvaluations)
 class LegacyContentPackageEvaluations(object):
 
     __name__ = u'Evaluations'
@@ -198,10 +182,10 @@ class LegacyContentPackageEvaluations(object):
     def _save(self, key, value):
         assert value.ntiid == key
         self.container[key] = value
-        value.__parent__ = self.context
+        value.__parent__ = self.container
         if IConnection(value, None) is None:
             IConnection(self.context).add(value)
-        lifecycleevent.added(value, self, key)
+        lifecycleevent.added(value, self.container, key)
         self.updateLastMod()
 
     def __setitem__(self, key, value):
@@ -216,7 +200,7 @@ class LegacyContentPackageEvaluations(object):
         item = self.container[key]
         del self.container[key]
         if event:
-            lifecycleevent.removed(item, self.context, key)
+            lifecycleevent.removed(item, self.container, key)
         if not IBroken.providedBy(item):
             item.__parent__ = None
         self.updateLastMod()
@@ -235,3 +219,10 @@ class LegacyContentPackageEvaluations(object):
             removeIntId(old)
         self._save(ntiid, new)
         return new
+    
+    @property
+    def __acl__(self):
+        aces = [ace_allowing(ROLE_ADMIN, ALL_PERMISSIONS, self),
+                ace_allowing(ROLE_CONTENT_ADMIN, ALL_PERMISSIONS, type(self))]
+        result = acl_from_aces(aces)
+        return result

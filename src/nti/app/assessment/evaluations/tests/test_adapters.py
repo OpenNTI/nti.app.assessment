@@ -17,11 +17,7 @@ from nti.app.assessment.interfaces import IQEvaluations
 
 from nti.contentlibrary.zodb import RenderableContentPackage
 
-from nti.contenttypes.courses.interfaces import ICourseInstance
-
-from nti.ntiids.ntiids import find_object_with_ntiid
-
-from nti.app.products.courseware.tests import InstructedCourseApplicationTestLayer
+from nti.contenttypes.courses.courses import CourseInstance
 
 from nti.app.testing.application_webtest import ApplicationLayerTest
 
@@ -32,17 +28,11 @@ from nti.dataserver.tests import mock_dataserver
 
 class TestAdpaters(ApplicationLayerTest):
 
-    layer = InstructedCourseApplicationTestLayer
-
-    default_origin = 'http://janux.ou.edu'
-
-    entry_ntiid = u'tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2015_CS_1323'
-
-    @WithSharedApplicationMockDS(testapp=True, users=True)
+    @WithSharedApplicationMockDS(testapp=False, users=False)
     def test_evaluations(self):
-        with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
-            entry = find_object_with_ntiid(self.entry_ntiid)
-            course = ICourseInstance(entry)
+        with mock_dataserver.mock_db_trans(self.ds) as conn:
+            course = CourseInstance()
+            conn.add(course)
             evals = IQEvaluations(course, None)
             assert_that(evals, is_not(None))
             assert_that(evals, 
@@ -53,4 +43,3 @@ class TestAdpaters(ApplicationLayerTest):
         assert_that(evals, is_not(None))
         assert_that(evals, 
                     has_property('__parent__', is_(package)))
-        evals._fix_length()

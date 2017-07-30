@@ -26,6 +26,7 @@ from nti.assessment.common import is_randomized_parts_container
 
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
+from nti.assessment.interfaces import IQEditableEvaluation
 
 from nti.externalization.proxy import removeAllProxies
 
@@ -64,8 +65,13 @@ class EvaluationsExporterMixin(object):
             for value in ext_obj:
                 self.change_evaluation_ntiid(value, salt)
 
-    def do_evaluations_export(self, context, target_filer=None, backup=True, salt=None):
+    def evaluations(self, context):
         evaluations = IQEvaluations(context)
+        for item in evaluations.values():
+            if IQEditableEvaluation.providedBy(item):
+                yield item
+
+    def do_evaluations_export(self, context, target_filer=None, backup=True, salt=None):
         order = {i: x for i, x in enumerate(EVALUATION_INTERFACES)}.items()
 
         def _get_key(item):
@@ -104,7 +110,7 @@ class EvaluationsExporterMixin(object):
                 self.change_evaluation_ntiid(ext_obj, salt)
             return ext_obj
 
-        ordered = sorted(evaluations.values(), key=_get_key)
+        ordered = sorted(self.evaluations(context), key=_get_key)
         return map(_ext, ordered)
 
     def export_evaluations(self, context, filer=None, backup=True, salt=None):

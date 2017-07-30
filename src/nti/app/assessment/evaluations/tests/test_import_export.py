@@ -13,16 +13,19 @@ from hamcrest import is_not
 from hamcrest import has_key
 from hamcrest import has_length
 from hamcrest import assert_that
+from hamcrest import has_entries
 from hamcrest import has_property
 from hamcrest import same_instance
 does_not = is_not
 
 import os
+import time
 
 from zope import component
 
 from nti.app.assessment.interfaces import IQEvaluations
 
+from nti.app.assessment.evaluations.exporter import EvaluationsExporter
 from nti.app.assessment.evaluations.importer import EvaluationsImporter
 
 from nti.app.assessment.evaluations.utils import delete_evaluation
@@ -60,7 +63,7 @@ class TestImportExport(ApplicationLayerTest):
             return fp.read()
 
     @WithSharedApplicationMockDS(testapp=True, users=True)
-    def test_import(self):
+    def test_import_export(self):
         source = self.load_resource("evaluation_index.json")
         with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
             entry = find_object_with_ntiid(self.entry_ntiid)
@@ -80,7 +83,13 @@ class TestImportExport(ApplicationLayerTest):
                 assert_that(evals[key], is_(same_instance(registered)))
                 assert_that(registered,
                             has_property('__home__'), is_(course))
-
+                
+                exporter = EvaluationsExporter()
+                result = exporter.export_evaluations(course)
+                assert_that(result, 
+                            has_entries('Items', has_length(3),
+                                        'Total', is_(3)))
+                
         with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
             entry = find_object_with_ntiid(self.entry_ntiid)
             course = ICourseInstance(entry)
@@ -92,3 +101,13 @@ class TestImportExport(ApplicationLayerTest):
                 assert_that(registered, is_(none()))
                 assert_that(evals, does_not(has_key(key)))
             assert_that(evals, has_length(1))
+            
+        with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+            entry = find_object_with_ntiid(self.entry_ntiid)
+            course = ICourseInstance(entry)
+            exporter = EvaluationsExporter()
+            result = exporter.export_evaluations(course, backup=False, 
+                                                 salt=str(time.time()))
+            assert_that(result, 
+                        has_entries('Items', has_length(1),
+                                    'Total', is_(1)))

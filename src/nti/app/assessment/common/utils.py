@@ -144,8 +144,9 @@ def make_evaluation_ntiid(kind, base=None, extra=None):
 def get_policy_field(assignment, course, field):
     policy = IQAssessmentPolicies(course, None)
     assignment_ntiid = getattr(assignment, 'ntiid', assignment)
-    result = policy.get(assignment_ntiid, field, False)
-    return result
+    if policy is not None:
+        return policy.get(assignment_ntiid, field, False)
+    return None
 
 
 def is_published(context):

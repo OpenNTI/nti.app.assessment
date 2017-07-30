@@ -212,6 +212,8 @@ class LegacyContentPackageEvaluations(object):
     # IQEvaluations
 
     def clear(self):
+        if len(self) == 0:
+            return
         for key in list(self.keys()):
             del self[key]
 

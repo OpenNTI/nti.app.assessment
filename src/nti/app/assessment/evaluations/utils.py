@@ -37,6 +37,8 @@ from nti.app.assessment.common.hostpolicy import get_resource_site_registry
 from nti.app.assessment.common.submissions import has_submissions
 from nti.app.assessment.common.submissions import has_inquiry_submissions
 
+from nti.app.assessment.interfaces import IQEvaluations
+
 from nti.app.base.abstract_views import get_safe_source_filename
 
 from nti.app.externalization.error import raise_json_error
@@ -311,11 +313,11 @@ def delete_evaluation(evaluation):
             if part.question_set is not None:
                 delete_evaluation(part.question_set)
 
-    # delete from evaluations .. see adapters
-    container = getattr(evaluation, '__parent__', None)
-    context = getattr(container, '__parent__', None)
-    if container and evaluation.ntiid in container:
-        del container[evaluation.ntiid]
+    # delete from evaluations .. see adapters/model
+    context = evaluation.__parent__.__parent__
+    evaluations = IQEvaluations(context, None)
+    if evaluations and evaluation.ntiid in evaluations:
+        del evaluations[evaluation.ntiid]
     evaluation.__home__ = None
 
     # remove from registry

@@ -81,9 +81,13 @@ class TestModel(ApplicationLayerTest):
         if package:
             parent = find_interface(question, IContentPackage, strict=False)
             assert_that(parent, is_not(none()))
+            assert_that(question,
+                        has_property('__parent__', is_not(context)))
         else:
             parent = find_interface(question, ICourseInstance, strict=False)
             assert_that(parent, is_not(none()))
+            assert_that(question,
+                        has_property('__parent__', is_not(context)))
 
         assert_that(list(evals), is_([ntiid]))
         assert_that(list(evals.keys()), is_([ntiid]))

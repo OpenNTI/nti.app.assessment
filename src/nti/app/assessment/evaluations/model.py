@@ -145,6 +145,13 @@ class LegacyContentPackageEvaluations(object):
     def container(self):
         return IQAssessmentItemContainer(self.context)
 
+    @property
+    def lastModified(self):
+        try:
+            return self.container.lastModified
+        except AttributeError:
+            return 0
+
     def updateLastMod(self):
         try:
             self.container.updateLastMod()

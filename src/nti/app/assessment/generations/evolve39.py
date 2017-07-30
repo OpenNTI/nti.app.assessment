@@ -11,6 +11,8 @@ logger = __import__('logging').getLogger(__name__)
 
 generation = 39
 
+import six
+
 from zope import component
 from zope import interface
 from zope import lifecycleevent
@@ -29,6 +31,8 @@ from nti.assessment.common import iface_of_assessment
 from nti.assessment.interfaces import ALL_EVALUATION_MIME_TYPES
 
 from nti.assessment.interfaces import IQEditableEvaluation
+
+from nti.base._compat import text_
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 
@@ -68,11 +72,19 @@ def _process_items(intids):
         if folder is None:  # global obj that leaked
             _process_removal(doc_id, item, catalog, intids)
             continue
+
+        if      hasattr(item, 'ntiid') \
+            and item.ntiid \
+            and not isinstance(item.ntiid, six.text_type):
+            item.ntiid = text_(item.ntiid)
+
         if '__name__' in item.__dict__ and 'ntiid' in item.__dict__:
             del item.__dict__['__name__']
             item._p_changed = True
+
         if hasattr(item, 'signature'):
             delattr(item, 'signature')
+
         if not IQEditableEvaluation.providedBy(item):
             continue
         with current_site(folder):
@@ -125,7 +137,7 @@ def do_evolve(context, generation=generation):
 
     with current_site(ds_folder):
         assert component.getSiteManager() == ds_folder.getSiteManager(), \
-               "Hooks not installed?"
+            "Hooks not installed?"
 
         library = component.queryUtility(IContentPackageLibrary)
         if library is not None:

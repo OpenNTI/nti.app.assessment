@@ -52,8 +52,11 @@ class CourseViewMixin(AbstractAuthenticatedView, BatchingUtilsMixin):
     _DEFAULT_BATCH_START = 0
     _DEFAULT_BATCH_SIZE = 30
 
+    def _params(self):
+        return CaseInsensitiveDict(self.request.params)
+    
     def _get_mimeTypes(self):
-        params = CaseInsensitiveDict(self.request.params)
+        params = self._params()
         accept = params.get('accept') or params.get('mimeType')
         accept = accept.split(',') if accept else ()
         if accept and '*/*' not in accept:
@@ -64,12 +67,12 @@ class CourseViewMixin(AbstractAuthenticatedView, BatchingUtilsMixin):
         return accept
 
     def _byOutline(self):
-        params = CaseInsensitiveDict(self.request.params)
+        params = self._params()
         outline = is_true(params.get('byOutline') or params.get('outline'))
         return outline
 
     def _filterBy(self, item, mimeTypes=()):
-        mt = getattr(item, 'mimeType', None) \
+        mt =   getattr(item, 'mimeType', None) \
             or getattr(item, 'mime_type', None)
         return bool(not mimeTypes or mt in mimeTypes)
 

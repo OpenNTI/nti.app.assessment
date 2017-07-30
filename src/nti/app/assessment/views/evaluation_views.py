@@ -196,7 +196,7 @@ class EvaluationPutView(EvaluationMixin, UGDPutView):
         sources = get_all_sources(self.request)
         if sources:
             validate_sources(self.remoteUser, result.model, sources)
-        self.handle_evaluation(contentObject, self.course,
+        self.handle_evaluation(contentObject, self.composite,
                                sources, self.remoteUser)
         # validate changes - subscribers
         notifyModified(contentObject, originalSource)
@@ -306,6 +306,7 @@ class QuestionSetPutView(EvaluationPutView):
         Copy fields from one question set to the other, also
         copying transaction history and updating assignment refs.
         """
+        target.__home__ = source.__home__
         target.__parent__ = source.__parent__
         for key, val in source.__dict__.items():
             if not key.startswith('_'):
@@ -313,19 +314,19 @@ class QuestionSetPutView(EvaluationPutView):
         copy_transaction_history(source, target)
         self._update_assignments(source, target)
 
-    def _create_new_object(self, obj, course):
-        evaluations = IQEvaluations(course)
+    def _create_new_object(self, obj, composite):
+        evaluations = IQEvaluations(composite)
         lifecycleevent.created(obj)
         # XXX mark as editable before storing so proper validation is done
         interface.alsoProvides(obj, IQEditableEvaluation)
         evaluations[obj.ntiid] = obj  # gain intid
 
     def _copy_to_new_type(self, old_obj, new_obj):
-        # XXX: Important to get course here before we mangle context.
-        course = self.course
+        # XXX: Important to get composite here before we mangle context.
+        composite = self.composite
         self._copy_question_set(old_obj, new_obj)
         delete_evaluation(old_obj)
-        self._create_new_object(new_obj, course)
+        self._create_new_object(new_obj, composite)
 
     def _transform_to_bank(self, contentObject):
         """
@@ -469,7 +470,7 @@ class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):
             validate_sources(self.remoteUser, result.model, sources)
 
         if IQEditableEvaluation.providedBy(contentObject):
-            self.handle_evaluation(contentObject, self.course, 
+            self.handle_evaluation(contentObject, self.composite, 
                                    sources, self.remoteUser)
         # validate changes, subscribers
         if notify:

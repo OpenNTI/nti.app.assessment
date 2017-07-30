@@ -15,6 +15,8 @@ from nti.app.assessment.common.evaluations import get_unit_assessments
 
 from nti.assessment.interfaces import IQEditableEvaluation
 
+from nti.contentlibrary.interfaces import IEditableContentPackage
+
 from nti.contenttypes.courses.common import get_course_packages
 
 from nti.contenttypes.courses.exporter import BaseSectionExporter
@@ -82,7 +84,8 @@ class AssessmentsExporter(BaseSectionExporter):
         course = get_parent_course(course)
         items = result[ITEMS] = dict()
         for package in get_course_packages(course):
-            self.mapped(package, items)
+            if not IEditableContentPackage.providedBy(package):
+                self.mapped(package, items)
         return result
 
     def export(self, context, filer, backup=True, salt=None):

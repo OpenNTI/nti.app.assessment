@@ -82,7 +82,8 @@ class Evaluations(CaseInsensitiveCheckingLastModifiedBTreeContainer):
         self._delitemf(key, event=False)
         if event:
             lifecycleevent.removed(item, self, key)
-        item.__parent__ = None
+        if not IBroken.providedBy(item):
+            item.__parent__ = None
         self.updateLastMod()
         self._p_changed = True
         return item

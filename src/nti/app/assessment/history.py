@@ -179,7 +179,7 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
     def Feedback(self):
         container = UsersCourseAssignmentHistoryItemFeedbackContainer()
         container.__parent__ = self
-        container.__name__ = 'Feedback'
+        container.__name__ = u'Feedback'
         self._p_changed = True
         return container
 

@@ -49,8 +49,6 @@ from nti.assessment.interfaces import QUESTION_SET_MIME_TYPE
 
 from nti.contentlibrary.indexed_data import get_site_registry
 
-from nti.base._compat import text_
-
 from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 
@@ -296,7 +294,6 @@ class QuestionMap(QuestionIndex):
                                             object_hook=_ntiid_object_hook)
                 obj.ntiid = ntiid
                 obj.signature = signatures_dict.get(ntiid)
-                obj.__name__ = text_(ntiid).encode('utf8').decode('utf8')
                 self._store_object(ntiid, obj)
 
                 things_to_register = self._explode_object_to_register(obj)
@@ -484,12 +481,11 @@ class QuestionMap(QuestionIndex):
             things_to_register.update(parsed)
 
         # register assessment items
-        registered = self._register_and_canonicalize(
-            things_to_register, registry)
-
+        registered = self._register_and_canonicalize(things_to_register,
+                                                    registry)
         # For tests and such, sort
         for questions in by_file.values():
-            questions.sort(key=lambda q: q.__name__)
+            questions.sort(key=lambda q: q.ntiid)
 
         registered = {x.ntiid for x in registered}
         return by_file, registered

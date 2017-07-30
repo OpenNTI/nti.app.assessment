@@ -223,7 +223,7 @@ def _savepoints_for_course(course, create=True):
     result = None
     annotations = IAnnotations(course)
     try:
-        KEY = 'AssignmentSavepoints'
+        KEY = u'AssignmentSavepoints'
         result = annotations[KEY]
     except KeyError:
         if create:

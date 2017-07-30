@@ -267,7 +267,7 @@ def _histories_for_course(course, create=True):
     histories = None
     annotations = IAnnotations(course)
     try:
-        KEY = 'AssignmentHistories'
+        KEY = u'AssignmentHistories'
         histories = annotations[KEY]
     except KeyError:
         if create:

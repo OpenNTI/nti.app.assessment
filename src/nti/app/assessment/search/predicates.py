@@ -58,7 +58,7 @@ from nti.traversal.traversal import find_interface
 @component.adapter(IUsersCourseAssignmentHistoryItemFeedback)
 class _AssignmentFeedbackItemSearchHitPredicate(DefaultSearchHitPredicate):
 
-    __name__ = 'AssignmentFeedback'
+    __name__ = u'AssignmentFeedback'
 
     def allow(self, feedback, score, query=None):
         if self.principal is None:
@@ -78,7 +78,7 @@ class _AssignmentFeedbackItemSearchHitPredicate(DefaultSearchHitPredicate):
 @interface.implementer(ISearchHitPredicate)
 class _EvaluationSearchHitPredicate(DefaultSearchHitPredicate):
 
-    __name__ = 'Evaluation'
+    __name__ = u'Evaluation'
 
     @Lazy
     def request(self):
@@ -112,7 +112,7 @@ class _EvaluationSearchHitPredicate(DefaultSearchHitPredicate):
 @interface.implementer(ISearchHitPredicate)
 class _AssignmentSearchHitPredicate(_EvaluationSearchHitPredicate):
 
-    __name__ = 'Assignment'
+    __name__ = u'Assignment'
 
     def allow(self, item, score, query=None):
         if self.principal is None:
@@ -146,7 +146,7 @@ class _AssignmentSearchHitPredicate(_EvaluationSearchHitPredicate):
 @interface.implementer(ISearchHitPredicate)
 class _ContentUnitAssesmentHitPredicate(DefaultSearchHitPredicate):
 
-    __name__ = 'ContentUnitAssesment'
+    __name__ = u'ContentUnitAssesment'
 
     SEARCH_MTS = ALL_ASSIGNMENT_MIME_TYPES + (SURVEY_MIME_TYPE,)
 

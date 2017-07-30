@@ -44,9 +44,9 @@ class _BaseCourseEvaluationPathAdapter(Contained):
 
 @interface.implementer(IPathAdapter)
 class _CourseAssessmentsPathAdapter(_BaseCourseEvaluationPathAdapter):
-    __name__ = 'Assessments'
+    __name__ = u'Assessments'
 
 
 @interface.implementer(IPathAdapter)
 class _CourseInquiriesPathAdapter(_BaseCourseEvaluationPathAdapter):
-    __name__ = 'CourseInquiries'
+    __name__ = u'CourseInquiries'

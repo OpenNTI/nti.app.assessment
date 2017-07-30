@@ -229,7 +229,7 @@ def _metadatacontainer_for_course(course, create=True):
     result = None
     annotations = IAnnotations(course)
     try:
-        KEY = 'AssignmentMetadata'
+        KEY = u'AssignmentMetadata'
         result = annotations[KEY]
     except KeyError:
         if create:

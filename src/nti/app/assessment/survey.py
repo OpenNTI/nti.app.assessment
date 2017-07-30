@@ -199,7 +199,7 @@ def _inquiries_for_course(course, create=True):
     result = None
     annotations = IAnnotations(course)
     try:
-        KEY = 'Inquiries'
+        KEY = u'Inquiries'
         result = annotations[KEY]
     except KeyError:
         if create:
@@ -298,7 +298,7 @@ class CourseAggregatedSurveys(CheckingLastModifiedBTreeContainer):
 def _aggreated_inquiries_for_course(course):
     annotations = IAnnotations(course)
     try:
-        KEY = 'AggregatedInquiries'
+        KEY = u'AggregatedInquiries'
         result = annotations[KEY]
     except KeyError:
         result = CourseAggregatedSurveys()

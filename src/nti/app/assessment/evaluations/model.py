@@ -211,6 +211,10 @@ class LegacyContentPackageEvaluations(object):
     
     # IQEvaluations
 
+    def clear(self):
+        for key in list(self.keys()):
+            del self[key]
+
     def replace(self, old, new, event=False):
         assert old.ntiid == new.ntiid
         ntiid = old.ntiid

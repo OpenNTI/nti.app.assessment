@@ -462,6 +462,11 @@ class IQEvaluations(IContainer,
         """"
         replace the old evalutation object with the new one
         """
+    
+    def clear():
+        """
+        clear this container
+        """
 
 
 class ICourseEvaluations(IQEvaluations):

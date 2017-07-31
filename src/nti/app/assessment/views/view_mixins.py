@@ -967,7 +967,7 @@ class EvaluationMixin(StructuralValidationMixin):
         """
         question = self.get_registered_evaluation(item, self.composite)
         if not IQuestion.providedBy(question):
-            msg = translate(_("Question ${ntiid} does not exist.",
+            msg = translate(_(u"Question ${ntiid} does not exist.",
                               mapping={'ntiid': item}))
             raise_json_error(self.request,
                              hexc.HTTPUnprocessableEntity,

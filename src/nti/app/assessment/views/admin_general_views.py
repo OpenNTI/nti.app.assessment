@@ -57,6 +57,7 @@ from nti.assessment.interfaces import IQAssessmentItemContainer
 from nti.common.string import is_true
 
 from nti.contentlibrary.interfaces import IContentPackage
+from nti.contentlibrary.interfaces import IEditableContentPackage
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -365,6 +366,21 @@ class RegisterAssessmentItemsView(AbstractAuthenticatedView,
         result[ITEMS] = sorted(items)
         result[ITEM_COUNT] = result[TOTAL] = len(items)
         return result
+
+
+@view_config(route_name='objects.generic.traversal',
+             renderer='rest',
+             permission=nauth.ACT_NTI_ADMIN,
+             request_method='POST',
+             context=IEditableContentPackage,
+             name='RemoveEvaluations')
+class RemoveEvaluationsView(AbstractAuthenticatedView):
+
+    def __call__(self):
+        evaluations = IQEvaluations(self.context, None)
+        if evaluations:
+            evaluations.clear()
+        return hexc.HTTPNoContent()
 
 
 @view_config(route_name='objects.generic.traversal',

@@ -77,6 +77,12 @@ from nti.links.links import Link
 LINKS = StandardExternalFields.LINKS
 
 
+def has_submissions(context):
+    for unused in get_all_submissions(context):
+        return True
+    return False
+
+    
 @view_config(route_name="objects.generic.traversal",
              context=IQEvaluation,
              renderer='rest',
@@ -147,9 +153,7 @@ class SubmittableDeleteView(EvaluationDeleteView,
             return has_permission(nauth.ACT_CONTENT_EDIT, theObject, self.request)
 
     def _has_submissions(self, theObject):
-        for unused in get_all_submissions(theObject):
-            return True
-        return False
+        return has_submissions(theObject)
 
     def _delete_contained_data(self, theObject, course):
         if IQInquiry.providedBy(theObject):

@@ -79,13 +79,13 @@ class TestModel(ApplicationLayerTest):
         assert_that(doc_id, is_not(none()))
         assert_that(question, has_property('__name__', ntiid))
         if package:
-            parent = find_interface(question, IContentPackage, strict=False)
-            assert_that(parent, is_not(none()))
+            content_pkg = find_interface(question, IContentPackage, strict=False)
+            assert_that(content_pkg, is_not(none()))
             assert_that(question,
                         has_property('__parent__', is_not(context)))
         else:
-            parent = find_interface(question, ICourseInstance, strict=False)
-            assert_that(parent, is_not(none()))
+            course = find_interface(question, ICourseInstance, strict=False)
+            assert_that(course, is_not(none()))
             assert_that(question,
                         has_property('__parent__', is_not(context)))
 

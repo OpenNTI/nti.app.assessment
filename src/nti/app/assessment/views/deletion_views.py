@@ -127,33 +127,6 @@ class EvaluationDeleteView(UGDDeleteView,
         return theObject
 
 
-@view_config(route_name="objects.generic.traversal",
-             context=IQuestionSet,
-             renderer='rest',
-             permission=nauth.ACT_DELETE,
-             request_method='DELETE')
-class QuestionSetDeleteView(EvaluationDeleteView):
-
-    def _check_containment(self, theObject):
-        containment = get_evaluation_containment(theObject.ntiid)
-        if containment:
-            values = self.readInput()
-            force = is_true(values.get('force'))
-            if not force:
-                links = (
-                    Link(self.request.path, rel='confirm',
-                         params={'force': True}, method='DELETE'),
-                )
-                raise_json_error(self.request,
-                                 hexc.HTTPConflict,
-                                 {
-                                     'message': _(u'This question set is being referenced by other assignments.'),
-                                     'code': 'QuestionSetIsReferenced',
-                                     LINKS: to_external_object(links)
-                                 },
-                                 None)
-
-
 @view_config(context=IQPoll)
 @view_config(context=IQSurvey)
 @view_config(context=IQAssignment)

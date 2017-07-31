@@ -1320,7 +1320,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 			assert_that(obj, is_(none()))
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
-	@fudge.patch('nti.app.assessment.views.delete_views.has_submissions')
+	@fudge.patch('nti.app.assessment.views.deletion_views.has_submissions')
 	def test_delete_evaluation(self, mock_vhs):
 		course_oid = self._get_course_oid()
 		href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)

@@ -12,10 +12,9 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 import sys
+from io import BytesIO
 from numbers import Number
 from datetime import datetime
-
-from six import StringIO
 
 from zipfile import ZIP_DEFLATED
 
@@ -327,7 +326,7 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
         course = self._get_course(context)
         enrollments = ICourseEnrollments(course)
 
-        buf = StringIO()
+        buf = BytesIO()
         zipfile = ZipFile(buf, 'w')
         for record in enrollments.iter_enrollments():
             principal = IUser(record, None)

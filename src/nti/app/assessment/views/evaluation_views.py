@@ -210,7 +210,7 @@ class EvaluationPutView(EvaluationMixin, UGDPutView):
              renderer='rest')
 class QuestionPutView(EvaluationPutView):
 
-    OBJ_DEF_CHANGE_MSG = _("Cannot change the question definition.")
+    OBJ_DEF_CHANGE_MSG = _(u"Cannot change the question definition.")
 
     def _check_object_constraints(self, obj, externalValue):
         super(QuestionPutView, self)._check_object_constraints(obj, externalValue)

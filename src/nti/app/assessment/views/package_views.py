@@ -9,8 +9,6 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-from itertools import chain
-
 from requests.structures import CaseInsensitiveDict
 
 from zope import lifecycleevent
@@ -29,6 +27,7 @@ from nti.app.externalization.view_mixins import BatchingUtilsMixin
 
 from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.interfaces import IContentPackage
+from nti.contentlibrary.interfaces import IEditableContentPackage
 
 from nti.assessment.interfaces import INQUIRY_MIME_TYPES
 from nti.assessment.interfaces import ALL_ASSIGNMENT_MIME_TYPES
@@ -80,15 +79,15 @@ class ContentUnitViewMixin(AbstractAuthenticatedView, BatchingUtilsMixin):
         return evals.values() if evals else ()
         
     def _all_assessments(self):
-        return chain(self._authored_assessments(), self._unit_assessments())
+        if IEditableContentPackage.providedBy(self.context):
+            return self._authored_assessments()
+        else:
+            return self._unit_assessments()
 
     def _filter_assessments(self):
-        seen = set()
         mimeTypes = self._get_mimeTypes()
         for item in self._all_assessments():
-            ntiid = item.ntiid
-            if self._allowBy(item, mimeTypes) and ntiid not in seen:
-                seen.add(ntiid)
+            if self._allowBy(item, mimeTypes):
                 yield item
             
     def _do_call(self):

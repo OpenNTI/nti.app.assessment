@@ -5,7 +5,6 @@
 """
 
 from __future__ import print_function, absolute_import, division
-from nti.traversal.traversal import find_interface
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -47,6 +46,8 @@ from nti.app.externalization.error import raise_json_error
 from nti.assessment.interfaces import IQEvaluation
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+
+from nti.traversal.traversal import find_interface
 
 
 def has_assigments_submitted(context, user):

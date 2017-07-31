@@ -31,10 +31,8 @@ from nti.app.assessment.common.history import delete_inquiry_submissions
 from nti.app.assessment.common.history import delete_evaluation_savepoints
 from nti.app.assessment.common.history import delete_evaluation_submissions
 
-from nti.app.assessment.common.submissions import has_submissions
-from nti.app.assessment.common.submissions import has_inquiry_submissions
-
-from nti.app.assessment.common.utils import get_courses
+from nti.app.assessment.common.submissions import get_all_submissions
+from nti.app.assessment.common.submissions import get_all_submissions_courses
 
 from nti.app.assessment.evaluations.utils import delete_evaluation
 
@@ -149,20 +147,17 @@ class SubmittableDeleteView(EvaluationDeleteView,
             return has_permission(nauth.ACT_CONTENT_EDIT, theObject, self.request)
 
     def _has_submissions(self, theObject):
-        if IQInquiry.providedBy(theObject):
-            result = has_inquiry_submissions(theObject, self.composite)
-        else:
-            courses = get_courses(self.composite)
-            result = has_submissions(theObject, courses)
-        return result
+        for unused in get_all_submissions(theObject):
+            return True
+        return False
 
-    def _delete_contained_data(self, theObject):
+    def _delete_contained_data(self, theObject, course):
         if IQInquiry.providedBy(theObject):
-            delete_inquiry_submissions(theObject, self.composite)
+            delete_inquiry_submissions(theObject, course)
         else:
-            delete_evaluation_metadata(theObject, self.composite)
-            delete_evaluation_savepoints(theObject, self.composite)
-            delete_evaluation_submissions(theObject, self.composite)
+            delete_evaluation_metadata(theObject, course)
+            delete_evaluation_savepoints(theObject, course)
+            delete_evaluation_submissions(theObject, course)
 
     def _check_internal(self, theObject):
         self._check_editable(theObject)
@@ -172,7 +167,7 @@ class SubmittableDeleteView(EvaluationDeleteView,
         self._check_internal(theObject)
         if not self._can_delete_contained_data(theObject):
             self._pre_flight_validation(theObject, structural_change=True)
-        elif self._is_course and self._has_submissions(theObject):
+        elif self._has_submissions(theObject):
             values = self.readInput()
             force = is_true(values.get('force'))
             if not force:
@@ -188,8 +183,8 @@ class SubmittableDeleteView(EvaluationDeleteView,
                                      LINKS: to_external_object(links)
                                  },
                                  None)
-        if self._is_course:
-            self._delete_contained_data(theObject)
+        for course in get_all_submissions_courses(theObject):
+            self._delete_contained_data(theObject, course)
         delete_evaluation(theObject)
         return theObject
 

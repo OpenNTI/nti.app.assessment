@@ -145,6 +145,15 @@ class LegacyContentPackageEvaluations(object):
     def container(self):
         return IQAssessmentItemContainer(self.context)
 
+    # ILastModified
+
+    @property
+    def createdTime(self):
+        try:
+            return self.container.createdTime
+        except AttributeError:
+            return 0
+        
     @property
     def lastModified(self):
         try:
@@ -156,7 +165,7 @@ class LegacyContentPackageEvaluations(object):
         try:
             self.container.updateLastMod()
         except AttributeError:
-            self.container._p_changed = True
+            pass
 
     # IEnumerableMapping
 

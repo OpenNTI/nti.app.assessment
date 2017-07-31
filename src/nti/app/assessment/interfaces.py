@@ -452,6 +452,7 @@ class ICourseAggregatedInquiries(IContainer,
 
 class IQEvaluations(IContainer,
                     IContained,
+                    ILastModified,
                     IShouldHaveTraversablePath):
     """
     A container for all the evaluation objects in a context

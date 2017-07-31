@@ -55,13 +55,16 @@ class EvaluationsGetView(AbstractAuthenticatedView,
 
     _DEFAULT_BATCH_SIZE = 50
     _DEFAULT_BATCH_START = 0
+    
+    def _params(self):
+        return CaseInsensitiveDict(self.request.params)
 
     def _get_mimeTypes(self):
-        params = CaseInsensitiveDict(self.request.params)
+        params = self._params()
         accept = params.get('accept') or params.get('mimeTypes') or ''
         accept = accept.split(',') if accept else ()
         if accept and '*/*' not in accept:
-            accept = {e.strip().lower() for e in accept if e}
+            accept = {e.strip() for e in accept if e}
             accept.discard('')
         else:
             accept = ()

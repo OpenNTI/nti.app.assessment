@@ -87,20 +87,20 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
             raise_json_error(self.request,
                              hexc.HTTPForbidden,
                              {
-                                'message': _(u"Must be Authenticated."),
+                                 'message': _(u"Must be Authenticated."),
                              },
                              None)
 
         course = get_course_from_request(self.request)
         if course is None:
-            course = get_course_from_evaluation(self.context, 
-                                                creator, 
+            course = get_course_from_evaluation(self.context,
+                                                creator,
                                                 exc=False)
         if course is None:
             raise_json_error(self.request,
                              hexc.HTTPForbidden,
                              {
-                                'message': _(u"Must be enrolled in a course."),
+                                 'message': _(u"Must be enrolled in a course."),
                              },
                              None)
 
@@ -108,7 +108,7 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
             raise_json_error(self.request,
                              hexc.HTTPForbidden,
                              {
-                                'message': _(u"Assignment is not available."),
+                                 'message': _(u"Assignment is not available."),
                              },
                              None)
 
@@ -124,11 +124,11 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
             else:
                 extValue = read_body_as_external_object(self.request)
             if not extValue:
-                msg =  _(u"No submission source was specified.")
+                msg = _(u"No submission source was specified.")
                 raise_json_error(self.request,
                                  hexc.HTTPUnprocessableEntity,
                                  {
-                                    'message': msg,
+                                     'message': msg,
                                  },
                                  None)
             submission = self.readCreateUpdateContentObject(creator,
@@ -148,7 +148,7 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
                 raise_json_error(self.request,
                                  hexc.HTTPClientError,
                                  {
-                                    'message': msg,
+                                     'message': msg,
                                  },
                                  None)
 
@@ -190,20 +190,20 @@ class AssignmentSubmissionSavepointGetView(AbstractAuthenticatedView):
             raise_json_error(self.request,
                              hexc.HTTPForbidden,
                              {
-                                'message': _(u"Must be Authenticated."),
+                                 'message': _(u"Must be Authenticated."),
                              },
                              None)
 
         course = get_course_from_request(self.request)
         if course is None:
-            course = get_course_from_evaluation(self.context, 
-                                                creator, 
+            course = get_course_from_evaluation(self.context,
+                                                creator,
                                                 exc=False)
         if course is None:
             raise_json_error(self.request,
                              hexc.HTTPForbidden,
                              {
-                                'message': _(u"Must be enrolled in a course."),
+                                 'message': _(u"Must be enrolled in a course."),
                              },
                              None)
 

@@ -77,8 +77,8 @@ class QuestionSetRandomizeView(AbstractRandomizeView):
             raise_json_error(self.request,
                              hexc.HTTPUnprocessableEntity,
                              {
-                                'message': msg,
-                                'code': "CannotRandomizeQuestionBank"
+                                 'message': msg,
+                                 'code': "CannotRandomizeQuestionBank"
                              },
                              None)
 
@@ -111,8 +111,8 @@ class QuestionSetUnRandomizeView(AbstractRandomizeView):
             raise_json_error(self.request,
                              hexc.HTTPUnprocessableEntity,
                              {
-                                'message': msg,
-                                'code': "CannotUnrandomizeObject"
+                                 'message': msg,
+                                 'code': "CannotUnrandomizeObject"
                              },
                              None)
 

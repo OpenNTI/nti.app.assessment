@@ -5,6 +5,7 @@
 """
 
 from __future__ import print_function, absolute_import, division
+from nti.traversal.traversal import find_interface
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -88,6 +89,15 @@ def get_all_submissions(context, sites=(), index_name=IX_ASSESSMENT_ID):
         if IUsersCourseSubmissionItem.providedBy(obj):
             yield obj
 
+
+def get_all_submissions_courses(context, sites=(), index_name=IX_ASSESSMENT_ID):
+    result = set()
+    for sub in get_all_submissions(context, sites, index_name):
+        course = find_interface(sub, ICourseInstance, strict=False)
+        result.add(course)
+    result.discard(None)
+    return tuple(result)
+   
 
 def get_submissions(context, courses=(), index_name=IX_ASSESSMENT_ID):
     """

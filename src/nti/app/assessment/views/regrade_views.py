@@ -64,15 +64,15 @@ class RegradeEvaluationView(AbstractAuthenticatedView):
     def _get_instructor(self):
         params = CaseInsensitiveDict(self.request.params)
         username = params.get('user') \
-            	or params.get('username') \
-             	or params.get('instructor')
+                or params.get('username') \
+                or params.get('instructor')
         result = User.get_user(username)
         if result is None:
             raise_json_error(self.request,
                              hexc.HTTPForbidden,
                              {
-                                'message': _(u"No instructor found."),
-                                'code': 'CannotFindInstructor',
+                                 'message': _(u"No instructor found."),
+                                 'code': 'CannotFindInstructor',
                              },
                              None)
         return result
@@ -90,14 +90,14 @@ class RegradeEvaluationView(AbstractAuthenticatedView):
         # Only admins or instructors are able to make this call.
         # Otherwise, make sure the user param passed in is an
         # instructor.
-        if (not self._admin_user
+        if (    not self._admin_user
             and not is_course_instructor(course, self.remoteUser)) \
             or not is_course_instructor(course, user):
             raise_json_error(self.request,
                              hexc.HTTPForbidden,
                              {
-                                'message': _(u"Cannot regrade evaluation."),
-                                'code': 'CannotRegradeEvaluation',
+                                 'message': _(u"Cannot regrade evaluation."),
+                                 'code': 'CannotRegradeEvaluation',
                              },
                              None)
 
@@ -111,8 +111,8 @@ class RegradeEvaluationView(AbstractAuthenticatedView):
             raise_json_error(self.request,
                              hexc.HTTPForbidden,
                              {
-                                'message': _(u"Cannot find evaluation course."),
-                                'code': 'CannotFindEvaluationCourse',
+                                 'message': _(u"Cannot find evaluation course."),
+                                 'code': 'CannotFindEvaluationCourse',
                              },
                              None)
         for course in courses:

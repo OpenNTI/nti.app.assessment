@@ -48,9 +48,11 @@ from nti.dataserver.sharing import AbstractReadableSharedMixin
 from nti.dublincore.datastructures import PersistentCreatedModDateTrackingObject
 
 from nti.namedfile.constraints import FileConstraints
+
 from nti.namedfile.interfaces import IFileConstraints
 
 from nti.schema.field import SchemaConfigured
+
 from nti.schema.fieldproperty import AdaptingFieldProperty
 
 from nti.wref.interfaces import IWeakRef
@@ -156,7 +158,7 @@ class UsersCourseAssignmentHistoryItemFeedbackContainer(PersistentCreatedModDate
     #: We want to inherit the read access for the instructors
     __acl_deny_all__ = False
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, unused_key, value):
         # Choose first available key, starting from the end
         # (optimizing for the case that we're appending).
         # In this way our keys match our sort natural sort order
@@ -188,7 +190,7 @@ class UsersCourseAssignmentHistoryItemFeedbackContainer(PersistentCreatedModDate
 @component.adapter(IUsersCourseAssignmentHistoryItemFeedbackContainer,
                    IContainerModifiedEvent)
 def when_feedback_container_modified_modify_history_item(container,
-                                                         event,
+                                                         unused_event,
                                                          update_mod=True):
     """
     Because we directly surface the 'Feedback' container as an inline

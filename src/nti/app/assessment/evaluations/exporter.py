@@ -11,6 +11,7 @@ logger = __import__('logging').getLogger(__name__)
 
 from collections import Mapping
 
+from zope import component
 from zope import interface
 
 from nti.app.assessment.evaluations.utils import export_evaluation_content
@@ -28,7 +29,8 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQEditableEvaluation
 
-from nti.externalization.proxy import removeAllProxies
+from nti.contentlibrary.interfaces import IEditableContentPackage
+from nti.contentlibrary.interfaces import IContentPackageExporterDecorator
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseSectionExporter
@@ -42,6 +44,8 @@ from nti.externalization.externalization import to_external_object
 
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
+
+from nti.externalization.proxy import removeAllProxies
 
 ITEMS = StandardExternalFields.ITEMS
 NTIID = StandardExternalFields.NTIID
@@ -113,7 +117,7 @@ class EvaluationsExporterMixin(object):
         ordered = sorted(self.evaluations(context), key=_get_key)
         return map(_ext, ordered)
 
-    def export_evaluations(self, context, filer=None, backup=True, salt=None):
+    def export_evaluations(self, context, backup=True, salt=None, filer=None):
         result = LocatedExternalDict()
         items = self.do_evaluations_export(context, filer, backup, salt)
         if items:  # check
@@ -125,17 +129,30 @@ class EvaluationsExporterMixin(object):
 @interface.implementer(ICourseSectionExporter)
 class EvaluationsExporter(EvaluationsExporterMixin, BaseSectionExporter):
 
-    def externalize(self, context, filer=None, backup=True, salt=None):
+    def externalize(self, context, backup=True, salt=None, filer=None):
         course = ICourseInstance(context)
-        return EvaluationsExporterMixin.export_evaluations(self, course, filer, backup, salt)
+        return EvaluationsExporterMixin.export_evaluations(self, course, backup, salt, filer)
 
     def export(self, context, filer, backup=True, salt=None):
         course = ICourseInstance(context)
         for course in get_course_hierarchy(course):
             bucket = self.course_bucket(course)
-            result = self.externalize(course, filer, backup, salt)
+            result = self.externalize(course, backup, salt, filer)
             if result:  # check
                 source = self.dump(result)
                 filer.save("evaluation_index.json", source, bucket=bucket,
                            contentType="application/json", overwrite=True)
         return result
+
+
+@component.adapter(IEditableContentPackage)
+@interface.implementer(IContentPackageExporterDecorator)
+class _EditableContentPackageExporterDecorator(EvaluationsExporterMixin):
+
+    def __init__(self, *args):
+        pass
+    
+    def decorateExternalObject(self, package, external, backup=False, salt=None):
+        evaluations = self.export_evaluations(package, backup, salt)
+        if evaluations:
+            external['Evaluations'] = evaluations

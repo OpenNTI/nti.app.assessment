@@ -106,8 +106,7 @@ class TestImportExport(ApplicationLayerTest):
             entry = find_object_with_ntiid(self.entry_ntiid)
             course = ICourseInstance(entry)
             exporter = EvaluationsExporter()
-            result = exporter.export_evaluations(course, backup=False, 
-                                                 salt=str(time.time()))
+            result = exporter.export_evaluations(course, False, str(time.time()))
             assert_that(result, 
                         has_entries('Items', has_length(1),
                                     'Total', is_(1)))

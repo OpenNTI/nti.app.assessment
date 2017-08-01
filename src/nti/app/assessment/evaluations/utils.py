@@ -280,7 +280,7 @@ def validate_savepoints(theObject, course, request=None):
                          None)
 
 
-def validate_published(theObject, course=None, request=None):
+def validate_published(theObject, unused_course=None, request=None):
     if IPublishable.providedBy(theObject) and theObject.isPublished():
         request = request or get_current_request()
         raise_json_error(request,

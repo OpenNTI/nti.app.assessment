@@ -31,7 +31,7 @@ from nti.app.assessment.interfaces import IQEvaluations
 
 from nti.app.authentication import get_remote_user
 
-from nti.app.products.courseware.resources.utils import get_course_filer
+from nti.app.base.abstract_views import get_source_filer
 
 from nti.assessment.common import iface_of_assessment
 
@@ -50,6 +50,8 @@ from nti.cabinet.filer import transfer_to_native_file
 from nti.coremetadata.utils import current_principal
 
 from nti.contentlibrary.interfaces import IFilesystemBucket
+from nti.contentlibrary.interfaces import IEditableContentPackage
+from nti.contentlibrary.interfaces import IContentPackageImporterUpdater
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseSectionImporter
@@ -222,7 +224,7 @@ class EvaluationsImporterMixin(object):
             # course is the evaluation home
             result.__home__ = context
             remoteUser = get_remote_user()
-            target_filer = get_course_filer(context, remoteUser)
+            target_filer = get_source_filer(context, remoteUser)
             # parse content fields and load sources
             import_evaluation_content(result,
                                       context=context,
@@ -290,3 +292,17 @@ class EvaluationsImporter(EvaluationsImporterMixin, BaseSectionImporter):
         for subinstance in get_course_subinstances(course):
             result = self.do_import(subinstance, filer, writeout) or result
         return result
+
+
+@component.adapter(IEditableContentPackage)
+@interface.implementer(IContentPackageImporterUpdater)
+class _EditableContentPackageImporterUpdater(EvaluationsImporterMixin):
+
+    def __init__(self, *args):
+        pass
+    
+    def updateFromExternalObject(self, package, externalObject, *args, **kwargs):
+        evaluations = externalObject.get('Evaluations')
+        if evaluations:
+            items = evaluations[ITEMS]
+            self.handle_evaluation_items(items, package, kwargs.get('filer'))

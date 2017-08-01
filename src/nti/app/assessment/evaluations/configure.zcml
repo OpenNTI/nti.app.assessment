@@ -87,4 +87,8 @@
 	<utility factory=".importer.EvaluationsImporter" 
 			 provides="nti.contenttypes.courses.interfaces.ICourseEvaluationImporter"  />
 			 
+	<subscriber factory=".importer._EditableContentPackageImporterUpdater"
+				provides="nti.contentlibrary.interfaces.IContentPackageImporterUpdater"
+				for="nti.contentlibrary.interfaces.IEditableContentPackage" />
+
 </configure>

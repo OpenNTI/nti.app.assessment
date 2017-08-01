@@ -20,6 +20,10 @@ from nti.app.assessment.interfaces import IQEvaluations
 
 from nti.app.assessment.utils import copy_evaluation
 
+from nti.app.authentication import get_remote_user
+
+from nti.app.base.abstract_views import get_source_filer
+
 from nti.assessment import EVALUATION_INTERFACES
 
 from nti.assessment.common import is_randomized_question_set
@@ -77,6 +81,9 @@ class EvaluationsExporterMixin(object):
 
     def do_evaluations_export(self, context, target_filer=None, backup=True, salt=None):
         order = {i: x for i, x in enumerate(EVALUATION_INTERFACES)}.items()
+
+        if target_filer is None:
+            target_filer = get_source_filer(context, get_remote_user())
 
         def _get_key(item):
             for i, iface in order:

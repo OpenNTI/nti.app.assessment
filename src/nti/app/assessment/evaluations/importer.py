@@ -206,6 +206,17 @@ class EvaluationsImporterMixin(object):
         [p.ntiid for p in the_object.parts or ()]  # set auto part NTIIDs
         return the_object
 
+    def publish_evaluation(self, the_object, source=None, unused_context=None):
+        is_published = source.get('isPublished') if source else False
+        if is_published:
+            if ICalendarPublishable.providedBy(the_object):
+                the_object.publish(start=the_object.publishBeginning,
+                                   end=the_object.publishEnding,
+                                   event=False)
+            else:
+                the_object.publish(event=False)
+        return the_object
+
     def handle_evaluation(self, the_object, source, context, filer=None):
         if IQuestion.providedBy(the_object):
             result = self.handle_question(the_object, context)
@@ -233,14 +244,7 @@ class EvaluationsImporterMixin(object):
             # always register
             register_context(result, force=True)
 
-        is_published = source.get('isPublished') if source else False
-        if is_published:
-            if ICalendarPublishable.providedBy(result):
-                result.publish(start=result.publishBeginning,
-                               end=result.publishEnding,
-                               event=False)
-            else:
-                result.publish(event=False)
+        self.publish_evaluation(result, source, context)
 
         locked = source.get('isLocked') if source else False
         if      locked \
@@ -301,6 +305,12 @@ class _EditableContentPackageImporterUpdater(EvaluationsImporterMixin):
     def __init__(self, *args):
         pass
     
+    def publish_evaluation(self, the_object, source=None, context=None):
+        if context is not None and context.is_published():
+            EvaluationsImporterMixin.publish_evaluation(self, the_object, 
+                                                        source, context)
+        return the_object
+
     def updateFromExternalObject(self, package, externalObject, *args, **kwargs):
         evaluations = externalObject.get('Evaluations')
         if evaluations:

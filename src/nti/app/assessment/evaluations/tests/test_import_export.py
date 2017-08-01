@@ -21,6 +21,8 @@ does_not = is_not
 import os
 import time
 
+import simplejson
+
 from zope import component
 
 from nti.app.assessment.interfaces import IQEvaluations
@@ -31,6 +33,8 @@ from nti.app.assessment.evaluations.importer import EvaluationsImporter
 from nti.app.assessment.evaluations.utils import delete_evaluation
 
 from nti.assessment.interfaces import IQEvaluation
+
+from nti.contentlibrary.mixins import ContentPackageImporterMixin
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
@@ -62,7 +66,12 @@ class TestImportExport(ApplicationLayerTest):
         with open(path, "r") as fp:
             return fp.read()
 
-    @WithSharedApplicationMockDS(testapp=True, users=True)
+    def prepare_json_text(self, data):
+        if isinstance(data, bytes):
+            data = data.decode('utf-8')
+        return data
+
+    @WithSharedApplicationMockDS(testapp=False, users=False)
     def test_import_export(self):
         source = self.load_resource("evaluation_index.json")
         with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
@@ -83,30 +92,48 @@ class TestImportExport(ApplicationLayerTest):
                 assert_that(evals[key], is_(same_instance(registered)))
                 assert_that(registered,
                             has_property('__home__'), is_(course))
-                
+
                 exporter = EvaluationsExporter()
                 result = exporter.export_evaluations(course)
-                assert_that(result, 
+                assert_that(result,
                             has_entries('Items', has_length(3),
                                         'Total', is_(3)))
-                
+
         with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
             entry = find_object_with_ntiid(self.entry_ntiid)
             course = ICourseInstance(entry)
             evals = IQEvaluations(course)
-            registered = component.queryUtility(IQEvaluation, name=self.A_NTIID)
+            registered = component.queryUtility(IQEvaluation, 
+                                                name=self.A_NTIID)
             delete_evaluation(registered)
             for key in (self.S_NTIID, self.A_NTIID):
                 registered = component.queryUtility(IQEvaluation, name=key)
                 assert_that(registered, is_(none()))
                 assert_that(evals, does_not(has_key(key)))
             assert_that(evals, has_length(1))
-            
+
         with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
             entry = find_object_with_ntiid(self.entry_ntiid)
             course = ICourseInstance(entry)
             exporter = EvaluationsExporter()
-            result = exporter.export_evaluations(course, False, str(time.time()))
-            assert_that(result, 
+            result = exporter.export_evaluations(course, False, 
+                                                 str(time.time()))
+            assert_that(result,
                         has_entries('Items', has_length(1),
                                     'Total', is_(1)))
+
+    @WithSharedApplicationMockDS(testapp=False, users=False)
+    def test_import_updater(self):
+        importer = ContentPackageImporterMixin()
+        source = self.load_resource("content_packages.json")
+        source = simplejson.loads(self.prepare_json_text(source))
+        with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+            items = source['Items']
+            added, modified = importer.handle_packages(items)
+            assert_that(added, has_length(1))
+            assert_that(modified, has_length(0))
+
+            evals = IQEvaluations(added[0])
+            assert_that(evals, has_length(1))
+            question = next(iter(evals.values()))
+            assert_that(question.is_published(), is_(True))

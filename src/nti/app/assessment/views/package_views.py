@@ -160,7 +160,7 @@ class GetLockAssignmentsView(ContentUnitViewMixin):
         return result
 
     def _allowBy(self, item, mimeTypes=()):
-        result = ContentUnitViewMixin._allowBy(self, item, mimeTypes=mimeTypes)
+        result = ContentUnitViewMixin._allowBy(self, item, mimeTypes)
         return result and (IRecordable.providedBy(item) and item.isLocked())
 
 
@@ -178,7 +178,7 @@ class LockAllAssignmentsView(ContentUnitViewMixin):
         return result
     
     def _allowBy(self, item, mimeTypes=()):
-        result = ContentUnitViewMixin._allowBy(self, item, mimeTypes=mimeTypes)
+        result = ContentUnitViewMixin._allowBy(self, item, mimeTypes)
         return result and (IRecordable.providedBy(item) and not item.isLocked())
 
     def __call__(self):
@@ -206,7 +206,7 @@ class UnlockAllAssignmentsView(ContentUnitViewMixin):
         return result
     
     def _allowBy(self, item, mimeTypes=()):
-        result = ContentUnitViewMixin._allowBy(self, item, mimeTypes=mimeTypes)
+        result = ContentUnitViewMixin._allowBy(self, item, mimeTypes)
         return result and (IRecordable.providedBy(item) and item.isLocked())
     
     def __call__(self):

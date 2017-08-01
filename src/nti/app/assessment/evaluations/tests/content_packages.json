@@ -1,0 +1,61 @@
+{
+	"Items": [
+		{
+			"Class": "ContentPackage",
+			"MimeType": "application/vnd.nextthought.renderablecontentpackage",
+			"publishLastModified": 1501611813.199803,
+			"contentType": "text/x-rst",
+			"description": "Bleach",
+			"Creator": "bleach@nextthought.com",
+			"Last Modified": 1501611825.507453,
+			"indexLastModified": 1501611823,
+			"isPublished": true,
+			"isLocked": true,
+			"version": "1501611825.51",
+			"CreatedTime": 1501611801.531332,
+			"title": "Bleach",
+			"Evaluations": {
+				"Items": [
+					{
+						"MimeType": "application/vnd.nextthought.naquestion",
+						"Creator": "carlos.sanchez@nextthought.com",
+						"Last Modified": 1501192479.124779,
+						"content": "<p>Most powerful</p>",
+						"isPublished": true,
+						"isLocked": true,
+						"publishLastModified": 1501611813.199803,
+						"parts": [
+							{
+								"MimeType": "application/vnd.nextthought.assessment.multiplechoicepart",
+								"weight": 1,
+								"explanation": "",
+								"choices": [
+									"<html><body><p>Ichigo</p></body></html>",
+									"<html><body><p>Aizen</p></body></html>",
+									"<html><body><p>Zaraki</p></body></html>",
+									"<html><body><p>Toshiro</p></body></html>"
+								],
+								"content": "",
+								"randomized": false,
+								"solutions": [
+									{
+										"MimeType": "application/vnd.nextthought.assessment.multiplechoicesolution",
+										"weight": 1,
+										"Class": "MultipleChoiceSolution",
+										"value": 0
+									}
+								],
+								"Class": "MultipleChoicePart",
+								"hints": []
+							}
+						],
+						"CreatedTime": 1501192456.157275,
+						"Class": "Question",
+						"tags": []
+					}
+				]
+			},
+			"contents": "eJw1ycENgCAQRNH7VjEVWAAJF28mNrHARIkrEKH/qDH+4/vefwlmo8Zd/A/TBNNAc+5fj6yvQFuzzIRRcZANilhLz31oGbioSYMRRU+iFnTGkZ8vssQ9b1VuzjAkuA=="
+		}
+	]
+}

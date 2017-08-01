@@ -39,6 +39,7 @@ from nti.app.assessment.common.submissions import has_inquiry_submissions
 
 from nti.app.assessment.interfaces import IQEvaluations
 
+from nti.app.base.abstract_views import get_source_filer
 from nti.app.base.abstract_views import get_safe_source_filename
 
 from nti.app.externalization.error import raise_json_error
@@ -49,9 +50,6 @@ from nti.app.products.courseware import DOCUMENTS_FOLDER
 
 from nti.app.products.courseware.resources.filer import is_image
 
-from nti.app.products.courseware.resources.interfaces import ICourseContentResource
-
-from nti.app.products.courseware.resources.utils import get_course_filer
 from nti.app.products.courseware.resources.utils import is_internal_file_link
 from nti.app.products.courseware.resources.utils import get_file_from_external_link
 
@@ -128,7 +126,7 @@ def get_html_content_fields(context):
 def import_evaluation_content(model, context=None, user=None, sources=None,
                               source_filer=None, target_filer=None):
     if source_filer is None:
-        source_filer = get_course_filer(context, user)
+        source_filer = get_source_filer(context, user)
     if target_filer is None:
         target_filer = source_filer
     sources = sources if sources is not None else {}
@@ -166,7 +164,7 @@ def import_evaluation_content(model, context=None, user=None, sources=None,
                         else:
                             logger.error("Missing source %s", href)
                             continue
-                    if source is not None and save_in_filer:
+                    if source is not None and save_in_filer and target_filer is not None:
                         structure = bool(not path)
                         key = get_safe_source_filename(source, name)
                         location = target_filer.save(key, source, overwrite=False,
@@ -202,8 +200,7 @@ def export_evaluation_content(model, target_filer):
                 rsrc_name = resource.name
                 contentType = resource.contentType
 
-                if      ICourseContentResource.providedBy(resource) \
-                    and hasattr(resource, 'path'):
+                if hasattr(resource, 'path'):
                     path = resource.path
                     path = os.path.split(path)[0]  # remove resource name
                     path = path[1:] if path.startswith('/') else path

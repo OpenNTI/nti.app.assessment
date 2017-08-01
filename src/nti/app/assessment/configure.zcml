@@ -358,6 +358,7 @@
 	<subscriber handler=".subscribers.on_evaluation_published" />
 
 	<!-- Package Events -->
+	<subscriber handler=".subscribers.on_course_bundle_updated" />
 	<subscriber handler=".subscribers.on_renderable_package_published" />
 	<subscriber handler=".subscribers.on_renderable_package_unpublished" />
 

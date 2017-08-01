@@ -9,11 +9,13 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+from itertools import chain
 from datetime import datetime
 
 import simplejson
 
 from zope import component
+from zope import lifecycleevent
 
 from zope.container.interfaces import IContainer
 
@@ -67,8 +69,8 @@ from nti.assessment.interfaces import IQuestionMovedEvent
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQDiscussionAssignment
 
-from nti.contentlibrary.interfaces import IEditableContentUnit
 from nti.contentlibrary.interfaces import IContentPackageLibrary
+from nti.contentlibrary.interfaces import IEditableContentPackage
 from nti.contentlibrary.interfaces import IRenderableContentPackage
 
 from nti.contenttypes.courses import get_enrollment_catalog
@@ -299,7 +301,7 @@ def on_discussion_assignment_updated(context, _):
 
 @component.adapter(IQEditableEvaluation, IObjectPublishedEvent)
 def on_evaluation_published(context, _):
-    unit = find_interface(context, IEditableContentUnit, strict=False)
+    unit = find_interface(context, IEditableContentPackage, strict=False)
     if unit is not None and not unit.is_published():
         raise_json_error(get_current_request(),
                          HTTPUnprocessableEntity,
@@ -325,3 +327,18 @@ def on_renderable_package_unpublished(context, _):
         for item in evals.values():
             if IPublishable.providedBy(item):
                 item.unpublish()
+
+
+@component.adapter(ICourseInstance, ICourseBundleUpdatedEvent)
+def on_course_bundle_updated(_, event):
+    """
+    Index the authored evals to update their containers data
+    """
+    packages = chain(event.added_packages or (),
+                     event.removed_packages or ())
+    for package in packages:
+        if not IEditableContentPackage.providedBy(package):
+            continue
+        evals = IQEvaluations(package, None)
+        if evals:
+            map(lifecycleevent.modified, evals.values())

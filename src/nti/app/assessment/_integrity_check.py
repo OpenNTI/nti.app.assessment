@@ -16,8 +16,6 @@ from zope import component
 
 from zope.component.hooks import site as current_site
 
-from zope.interface.adapter import _lookupAll as zopeLookupAll  # Private func
-
 from zope.intid.interfaces import IIntIds
 
 from ZODB.interfaces import IConnection
@@ -25,8 +23,6 @@ from ZODB.interfaces import IConnection
 from nti.app.contentlibrary.utils import yield_sync_content_packages
 
 from nti.app.assessment import get_evaluation_catalog
-
-from nti.assessment import EVALUATION_INTERFACES
 
 from nti.assessment._question_index import QuestionIndex
 
@@ -57,22 +53,7 @@ from nti.site.utils import unregisterUtility
 from nti.traversal.traversal import find_interface
 
 
-def lookup_all_evaluations(site_registry):
-    result = {}
-    required = ()
-    order = len(required)
-    for registry in site_registry.utilities.ro:  # must keep order
-        byorder = registry._adapters
-        if order >= len(byorder):
-            continue
-        components = byorder[order]
-        extendors = EVALUATION_INTERFACES
-        zopeLookupAll(components, required, extendors, result, 0, order)
-        break  # break on first
-    return result
-
-
-def _master_data_collector():
+def _master_data_collector(intids):
     seen = set()
     registered = OrderedDict()
     containers = defaultdict(list)
@@ -91,16 +72,26 @@ def _master_data_collector():
 
     for site in get_all_host_sites():
         registry = site.getSiteManager()
-        for ntiid, item in lookup_all_evaluations(registry).items():
-            key = (ntiid, site.__name__)
-            if key not in registered and ntiid not in legacy:
-                registered[key] = (site, item)
+        for ntiid, item in registry.getUtilitiesFor(IQEvaluation):
+            if ntiid in legacy:
+                continue
+            doc_id = intids.queryId(item)
+            if doc_id in seen:
+                continue
+            if doc_id is not None:
+                seen.add(doc_id)
+            folder = IHostPolicyFolder(item, site)
+            key = (ntiid, folder.__name__)
+            if key not in registered:
+                registered[key] = (folder, item)
 
         with current_site(site):
             for package in yield_sync_content_packages():
-                if package.ntiid not in seen:
-                    seen.add(package.ntiid)
-                    recur(site, package)
+                doc_id = intids.queryId(package)
+                if doc_id is None or doc_id in seen:
+                    continue
+                seen.add(doc_id)
+                recur(site, package)
 
     return registered, containers, legacy
 
@@ -115,9 +106,8 @@ def _get_data_item_counts(intids):
         item = intids.queryObject(uid)
         if not IQEvaluation.providedBy(item):
             continue
-        folder = find_interface(item, IHostPolicyFolder, strict=False)
-        name = getattr(folder, '__name__', None)
-        key = (item.ntiid, name)
+        folder = IHostPolicyFolder(item, None)
+        key = (item.ntiid, getattr(folder, '__name__', None))
         count[key].append(item)
     return count
 
@@ -126,7 +116,7 @@ def check_assessment_integrity(remove=False):
     intids = component.getUtility(IIntIds)
     count = _get_data_item_counts(intids)
     logger.info('%s item(s) counted', len(count))
-    all_registered, all_containers, legacy = _master_data_collector()
+    all_registered, all_containers, legacy = _master_data_collector(intids)
 
     result = 0
     removed = set()
@@ -141,10 +131,10 @@ def check_assessment_integrity(remove=False):
             logger.warn("No registration found for %s", key)
             if not remove:
                 continue
-            # remove from  intid facility
+            # remove from intid facility
             for item in data:
-                iid = intids.queryId(item)
-                if iid is not None:
+                doc_id = intids.queryId(item)
+                if doc_id is not None:
                     removeIntId(item)
                     removed.add(ntiid)
             # remove from containers
@@ -177,8 +167,8 @@ def check_assessment_integrity(remove=False):
             doc_id = intids.getId(item)
             if doc_id != ruid:
                 result += 1
-                item.__parent__ = None
                 removeIntId(item)
+                item.__home__ = item.__parent__ = None
 
         # canonicalize
         QuestionIndex.canonicalize_object(registered, registry)

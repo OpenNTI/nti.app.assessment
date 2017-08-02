@@ -39,7 +39,6 @@ from nti.contentlibrary.interfaces import IContentPackageExporterDecorator
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseSectionExporter
 
-from nti.contenttypes.courses.exporter import hash_ntiid
 from nti.contenttypes.courses.exporter import BaseSectionExporter
 
 from nti.contenttypes.courses.utils import get_course_hierarchy
@@ -50,6 +49,8 @@ from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.externalization.proxy import removeAllProxies
+
+from nti.ntiids.ntiids import hash_ntiid
 
 ITEMS = StandardExternalFields.ITEMS
 NTIID = StandardExternalFields.NTIID

@@ -11,6 +11,7 @@ from hamcrest import is_
 from hamcrest import none
 from hamcrest import is_not
 from hamcrest import has_key
+from hamcrest import has_entry
 from hamcrest import has_length
 from hamcrest import assert_that
 from hamcrest import has_entries
@@ -36,8 +37,11 @@ from nti.assessment.interfaces import IQEvaluation
 
 from nti.contentlibrary.mixins import ContentPackageImporterMixin
 
+from nti.contentlibrary.utils import export_content_package
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
+from nti.ntiids.ntiids import is_ntiid_of_type
 from nti.ntiids.ntiids import find_object_with_ntiid
 
 from nti.app.products.courseware.tests import InstructedCourseApplicationTestLayer
@@ -103,7 +107,7 @@ class TestImportExport(ApplicationLayerTest):
             entry = find_object_with_ntiid(self.entry_ntiid)
             course = ICourseInstance(entry)
             evals = IQEvaluations(course)
-            registered = component.queryUtility(IQEvaluation, 
+            registered = component.queryUtility(IQEvaluation,
                                                 name=self.A_NTIID)
             delete_evaluation(registered)
             for key in (self.S_NTIID, self.A_NTIID):
@@ -116,7 +120,7 @@ class TestImportExport(ApplicationLayerTest):
             entry = find_object_with_ntiid(self.entry_ntiid)
             course = ICourseInstance(entry)
             exporter = EvaluationsExporter()
-            result = exporter.export_evaluations(course, False, 
+            result = exporter.export_evaluations(course, False,
                                                  str(time.time()))
             assert_that(result,
                         has_entries('Items', has_length(1),
@@ -137,3 +141,14 @@ class TestImportExport(ApplicationLayerTest):
             assert_that(evals, has_length(1))
             question = next(iter(evals.values()))
             assert_that(question.is_published(), is_(True))
+
+            ntiid = added[0].ntiid
+            assert_that(is_ntiid_of_type(ntiid, 'HTML'),
+                        is_(True))
+
+        with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+            package = find_object_with_ntiid(ntiid)
+            ext_obj = export_content_package(package, False, str(time.time()))
+            assert_that(ext_obj,
+                        has_entry('Evaluations',
+                                  has_entry('Items', has_length(1))))

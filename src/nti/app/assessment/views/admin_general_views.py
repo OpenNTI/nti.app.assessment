@@ -97,7 +97,6 @@ except ImportError:
              renderer='rest',
              permission=nauth.ACT_NTI_ADMIN,
              context=IDataserverFolder,
-             request_method='POST',
              name='CheckAssessmentIntegrity')
 class CheckAssessmentIntegrityView(AbstractAuthenticatedView,
                                    ModeledContentUploadRequestUtilsMixin):
@@ -107,7 +106,7 @@ class CheckAssessmentIntegrityView(AbstractAuthenticatedView,
             data = super(CheckAssessmentIntegrityView, self).readInput(value)
             result = CaseInsensitiveDict(data)
         else:
-            result = CaseInsensitiveDict()
+            result = CaseInsensitiveDict(self.request.params)
         return result
 
     def _do_call(self):

@@ -197,11 +197,12 @@ def prevent_note_on_assignment_part(note, unused_event):
                         to_external_object(available_for_submission_ending)
                     },
                     ensure_ascii=False)
-                e.content_type = b'application/json'
+                e.content_type = 'application/json'
                 raise e
 
 
 # users
+
 
 CONTAINER_INTERFACES = (IUsersCourseInquiries,
                         IUsersCourseAssignmentHistories,

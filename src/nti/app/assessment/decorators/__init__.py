@@ -5,7 +5,6 @@
 """
 
 from __future__ import print_function, absolute_import, division
-
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -19,6 +18,7 @@ from pyramid.threadlocal import get_current_request
 from nti.app.assessment.common.evaluations import get_course_from_evaluation
 
 from nti.app.assessment.utils import get_course_from_request
+from nti.app.assessment.utils import get_package_from_request
 
 from nti.app.products.courseware.utils import PreviewCourseAccessPredicateDecorator
 
@@ -27,9 +27,12 @@ from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecora
 from nti.contentlibrary.externalization import root_url_of_unit
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
+from nti.contentlibrary.interfaces import IEditableContentPackage
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
+
+from nti.traversal.traversal import find_interface
 
 
 class _AbstractTraversableLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
@@ -68,6 +71,13 @@ def _get_course_from_evaluation(evaluation, user=None, catalog=None, request=Non
         result = get_course_from_evaluation(evaluation=evaluation,
                                             user=user,
                                             catalog=catalog)
+    return result
+
+
+def _get_package_from_evaluation(evaluation, request=None):
+    result = get_package_from_request(request)
+    if result is None:
+        result = find_interface(evaluation, IEditableContentPackage, strict=False)
     return result
 
 

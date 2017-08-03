@@ -471,7 +471,7 @@ class ValidatingEvaluationContainers(object):
             entry = ICourseCatalogEntry(course, None)
             result.add(getattr(entry, 'ntiid', None))
         elif folder is not None:
-            courses = get_courses_for_packages(folder.__name__, result)
+            courses = get_courses_for_packages(result, folder.__name__)
             for course in courses:
                 entry = ICourseCatalogEntry(course, None)
                 result.add(getattr(entry, 'ntiid', None))

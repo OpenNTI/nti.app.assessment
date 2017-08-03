@@ -123,6 +123,7 @@ OID = StandardExternalFields.OID
 LINKS = StandardExternalFields.LINKS
 
 
+@component.adapter(ICourseInstance, IRequest)
 @interface.implementer(IExternalMappingDecorator)
 class _AssignmentsByOutlineNodeDecorator(AbstractAssessmentDecoratorPredicate):
     """
@@ -184,7 +185,7 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
 
     def _predicate(self, context, result):
         if AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result):
-            # XXX Hack
+            # XXX: Hack
             return assignment_download_precondition(context, self.request, self.remoteUser)
 
     def _do_decorate_external(self, context, result):
@@ -204,6 +205,7 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
         links.append(link)
 
 
+@component.adapter(IQAssignment, IRequest)
 class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
     """
     When an assignment is externalized, check for overrides.
@@ -254,6 +256,7 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
         result['excluded'] = get_policy_excluded(assignment, course)
 
 
+@component.adapter(IQTimedAssignment, IRequest)
 class _TimedAssignmentPartStripperDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
     def _do_decorate_external(self, context, result):
@@ -327,13 +330,12 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
     @classmethod
     def needs_stripped(cls, context, request, remoteUser):
         if context is not None:
-            course = _get_course_from_evaluation(
-                context, remoteUser, request=request)
+            course = _get_course_from_evaluation(context, remoteUser, 
+                                                 request=request)
         else:
             course = None
 
         if course is None:
-            logger.warn("Could not adapt %s to course", context)
             return False
 
         if     has_permission(ACT_VIEW_SOLUTIONS, course, request) \
@@ -344,7 +346,6 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
         due_date = get_available_for_submission_ending(context, course)
 
         if not due_date or due_date <= datetime.utcnow():
-
             # If student check if there is a submission for the assignment
             if IQAssignment.providedBy(context):
                 history = component.queryMultiAdapter((course, remoteUser),

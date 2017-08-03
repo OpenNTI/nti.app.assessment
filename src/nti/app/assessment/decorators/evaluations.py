@@ -26,6 +26,7 @@ from nti.app.assessment.common.submissions import has_inquiry_submissions
 from nti.app.assessment.common.utils import get_courses
 
 from nti.app.assessment.decorators import _get_course_from_evaluation
+from nti.app.assessment.decorators import _get_package_from_evaluation
 
 from nti.app.publishing import VIEW_PUBLISH
 from nti.app.publishing import VIEW_UNPUBLISH
@@ -73,15 +74,20 @@ class _EvaluationLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
     def _predicate(self, unused_context, unused_result):
         return self._is_authenticated
 
+    def composite(self, context):
+        result = _get_package_from_evaluation(context, self.request)
+        if result is None:
+            result = _get_course_from_evaluation(context, self.remoteUser,
+                                                 request=self.request)
+        return result
+
     def _do_decorate_external(self, context, result):
         _links = result.setdefault(LINKS, [])
 
-        course = _get_course_from_evaluation(context,
-                                             user=self.remoteUser,
-                                             request=self.request)
+        composite = self.composite(context)
 
-        link_context = context if course is None else course
-        pre_elements = () if course is None else ('Assessments', context.ntiid)
+        link_context = context if composite is None else composite
+        pre_elements = () if composite is None else ('Assessments', context.ntiid)
 
         context_link = Link(link_context, elements=pre_elements)
         interface.alsoProvides(context_link, ILinkExternalHrefOnly)
@@ -98,9 +104,9 @@ class _EvaluationLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
             link.__parent__ = context
             _links.append(link)
 
-        if      course is not None \
-            and is_course_instructor(course, self.remoteUser) \
-            and _has_any_submissions(context, course):
+        if      ICourseInstance.providedBy(composite) \
+            and is_course_instructor(composite, self.remoteUser) \
+            and _has_any_submissions(context, composite):
             link = Link(link_context,
                         rel=VIEW_RESET_EVALUATION,
                         elements=pre_elements +

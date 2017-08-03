@@ -19,6 +19,7 @@ from nti.app.assessment import VIEW_QUESTION_CONTAINERS
 from nti.app.assessment.common.containers import get_outline_evaluation_containers
 
 from nti.app.assessment.decorators import _get_course_from_evaluation
+from nti.app.assessment.decorators import _get_package_from_evaluation
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
@@ -48,16 +49,20 @@ class QuestionContainerDecorator(AbstractAuthenticatedRequestAwareDecorator):
         return  self._is_authenticated \
             and has_permission(ACT_CONTENT_EDIT, context, self.request)
 
+    def composite(self, context):
+        result = _get_package_from_evaluation(context, self.request)
+        if result is None:
+            result = _get_course_from_evaluation(context, self.remoteUser,
+                                                 request=self.request)
+        return result
+
     def _do_decorate_external(self, context, result):
         containers = get_outline_evaluation_containers(context)
         result['AssessmentContainerCount'] = len(containers or ())
 
-        course = _get_course_from_evaluation(context,
-                                             user=self.remoteUser,
-                                             request=self.request)
-
-        link_context = context if course is None else course
-        pre_elements = () if course is None else ('Assessments', context.ntiid)
+        composite = self.composite(context)
+        link_context = context if composite is None else composite
+        pre_elements = () if composite is None else ('Assessments', context.ntiid)
 
         _links = result.setdefault(LINKS, [])
         link = Link(link_context,

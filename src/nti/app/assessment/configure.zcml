@@ -221,23 +221,35 @@
 	<!-- Views -->
 	<include package=".views" />
 
-	<!-- Courses -->
+	<!-- Containers -->
 	<adapter name="Assessments"
 			 for="nti.contenttypes.courses.interfaces.ICourseInstance
 			 	  pyramid.interfaces.IRequest"
-			 factory=".courses._CourseAssessmentsPathAdapter"
+			 factory=".containers._CourseAssessmentsPathAdapter"
 			 provides="zope.traversing.interfaces.IPathAdapter" />
 
 	<adapter name="Assessments"
 			 for="nti.contenttypes.courses.interfaces.ICourseCatalogEntry
 			 	  pyramid.interfaces.IRequest"
-			 factory=".courses._CourseAssessmentsPathAdapter"
+			 factory=".containers._CourseAssessmentsPathAdapter"
 			 provides="zope.traversing.interfaces.IPathAdapter" />
 
 	<adapter name="CourseInquiries"
 			 for="nti.contenttypes.courses.interfaces.ICourseInstance
 			 	  pyramid.interfaces.IRequest"
-			 factory=".courses._CourseInquiriesPathAdapter"
+			 factory=".containers._CourseInquiriesPathAdapter"
+			 provides="zope.traversing.interfaces.IPathAdapter" />
+
+	<adapter name="Assessments"
+			 for="nti.contentlibrary.interfaces.IContentPackage
+			 	  pyramid.interfaces.IRequest"
+			 factory=".containers._ContentPackageAssessmentsPathAdapter"
+			 provides="zope.traversing.interfaces.IPathAdapter" />
+
+	<adapter name="PackageInquiries"
+			 for="nti.contentlibrary.interfaces.IContentPackage
+			 	  pyramid.interfaces.IRequest"
+			 factory=".containers._ContentPackageInquiriesPathAdapter"
 			 provides="zope.traversing.interfaces.IPathAdapter" />
 
 	<!-- Savepoints -->

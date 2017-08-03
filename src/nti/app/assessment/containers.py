@@ -22,15 +22,19 @@ from pyramid import httpexceptions as hexc
 
 from nti.assessment.interfaces import IQEvaluation
 
+from nti.contentlibrary.interfaces import IContentPackage
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 
 class _BaseCourseEvaluationPathAdapter(Contained):
 
+    adapter = None
+
     def __init__(self, context, request=None):
         self.request = request
         self.__parent__ = context
-        self.context = ICourseInstance(context)
+        self.context = self.adapter(context)
 
     def __getitem__(self, key):
         if not key:
@@ -45,8 +49,22 @@ class _BaseCourseEvaluationPathAdapter(Contained):
 @interface.implementer(IPathAdapter)
 class _CourseAssessmentsPathAdapter(_BaseCourseEvaluationPathAdapter):
     __name__ = u'Assessments'
+    adapter = ICourseInstance
 
 
 @interface.implementer(IPathAdapter)
 class _CourseInquiriesPathAdapter(_BaseCourseEvaluationPathAdapter):
     __name__ = u'CourseInquiries'
+    adapter = ICourseInstance
+
+
+@interface.implementer(IPathAdapter)
+class _ContentPackageAssessmentsPathAdapter(_BaseCourseEvaluationPathAdapter):
+    __name__ = u'Assessments'
+    adapter = IContentPackage
+
+
+@interface.implementer(IPathAdapter)
+class _ContentPackageInquiriesPathAdapter(_BaseCourseEvaluationPathAdapter):
+    __name__ = u'PackageInquiries'
+    adapter = IContentPackage

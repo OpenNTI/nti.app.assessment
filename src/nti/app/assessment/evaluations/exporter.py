@@ -140,7 +140,7 @@ class EvaluationsExporter(EvaluationsExporterMixin, BaseSectionExporter):
 
     def externalize(self, context, backup=True, salt=None, filer=None):
         course = ICourseInstance(context)
-        return EvaluationsExporterMixin.export_evaluations(self, course, backup, salt, filer)
+        return self.export_evaluations(course, backup, salt, filer)
 
     def export(self, context, filer, backup=True, salt=None):
         course = ICourseInstance(context)

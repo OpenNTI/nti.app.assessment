@@ -81,11 +81,11 @@ class EvaluationsExporterMixin(object):
             if IQEditableEvaluation.providedBy(item):
                 yield item
 
-    def do_evaluations_export(self, context, target_filer=None, backup=True, salt=None):
+    def do_evaluations_export(self, context, backup=True, salt=None, filer=None):
         order = {i: x for i, x in enumerate(EVALUATION_INTERFACES)}.items()
 
-        if target_filer is None:
-            target_filer = get_source_filer(context, get_remote_user())
+        if filer is None:
+            filer = get_source_filer(context, get_remote_user())
 
         def _get_key(item):
             for i, iface in order:
@@ -95,11 +95,11 @@ class EvaluationsExporterMixin(object):
 
         def _ext(item):
             evaluation = removeAllProxies(item)
-            if target_filer is not None:
+            if filer is not None:
                 # Copy evaluation b/c changes in content may be done
                 # during the export
                 evaluation = copy_evaluation(evaluation)
-                export_evaluation_content(evaluation, target_filer)
+                export_evaluation_content(evaluation, filer)
             ext_obj = to_external_object(evaluation,
                                          name="exporter",
                                          decorate=False)

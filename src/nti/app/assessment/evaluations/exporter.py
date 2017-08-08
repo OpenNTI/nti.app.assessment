@@ -57,6 +57,7 @@ NTIID = StandardExternalFields.NTIID
 TOTAL = StandardExternalFields.TOTAL
 ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 
+
 class EvaluationsExporterMixin(object):
 
     def change_evaluation_ntiid(self, ext_obj, salt=None):
@@ -159,7 +160,7 @@ class _EditableContentPackageExporterDecorator(EvaluationsExporterMixin):
 
     def __init__(self, *args):
         pass
-    
+
     def decorateExternalObject(self, package, external, backup=False, salt=None):
         evaluations = self.export_evaluations(package, backup, salt)
         if evaluations:

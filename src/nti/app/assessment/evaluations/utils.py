@@ -42,11 +42,11 @@ from nti.app.assessment.interfaces import IQEvaluations
 from nti.app.base.abstract_views import get_source_filer
 from nti.app.base.abstract_views import get_safe_source_filename
 
-from nti.app.externalization.error import raise_json_error
+from nti.app.contentfolder import ASSETS_FOLDER
+from nti.app.contentfolder import IMAGES_FOLDER
+from nti.app.contentfolder import DOCUMENTS_FOLDER
 
-from nti.app.products.courseware import ASSETS_FOLDER
-from nti.app.products.courseware import IMAGES_FOLDER
-from nti.app.products.courseware import DOCUMENTS_FOLDER
+from nti.app.externalization.error import raise_json_error
 
 from nti.app.products.courseware.resources.filer import is_image
 

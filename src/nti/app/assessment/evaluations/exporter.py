@@ -128,7 +128,7 @@ class EvaluationsExporterMixin(object):
 
     def export_evaluations(self, context, backup=True, salt=None, filer=None):
         result = LocatedExternalDict()
-        items = self.do_evaluations_export(context, filer, backup, salt)
+        items = self.do_evaluations_export(context, backup, salt, filer)
         if items:  # check
             result[ITEMS] = items
             result[TOTAL] = result[ITEM_COUNT] = len(items)

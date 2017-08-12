@@ -66,8 +66,9 @@ from nti.appserver.ugd_edit_views import UGDDeleteView
 
 from nti.assessment.interfaces import IQResponse
 from nti.assessment.interfaces import IQAssignment
-from nti.assessment.interfaces import IQUploadedFile
 from nti.assessment.interfaces import IQAssignmentSubmission
+
+from nti.base.interfaces import IFile
 
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
@@ -298,7 +299,7 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
                 for qp_num, qp_part in enumerate(q_part.parts or ()):
                     if IQResponse.providedBy(qp_part):
                         qp_part = qp_part.value
-                    if IQUploadedFile.providedBy(qp_part):
+                    if IFile.providedBy(qp_part):
                         fn_part = self._get_username_filename_part(principal)
                         full_filename = "%s-%s-%s-%s-%s" % (fn_part,
                                                             sub_num,

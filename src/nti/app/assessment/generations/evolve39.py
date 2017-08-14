@@ -26,6 +26,8 @@ from nti.app.assessment.evaluations.utils import register_context
 
 from nti.app.assessment.index import get_evaluation_catalog
 
+from nti.app.assessment.interfaces import ICourseEvaluations
+
 from nti.assessment.common import iface_of_assessment
 
 from nti.assessment.interfaces import ALL_EVALUATION_MIME_TYPES
@@ -93,11 +95,11 @@ def _process_items(intids):
 
         if not IQEditableEvaluation.providedBy(item):
             continue
-        elif not ICourseInstance.providedBy(getattr(item, '__home__', None)):
-            course = find_interface(item, ICourseInstance, strict=False)
-            if course is not None:
-                item.__home__ = course
-                lifecycleevent.modified(item)
+
+        course = find_interface(item, ICourseInstance, strict=False)
+        if not ICourseInstance.providedBy(getattr(item, '__home__', None)) and course:
+            item.__home__ = course
+            lifecycleevent.modified(item)
 
         with current_site(folder):
             registry = component.getSiteManager()
@@ -106,10 +108,12 @@ def _process_items(intids):
             if registered is None:
                 logger.warn("Registering object %s/%s",
                             doc_id, item.ntiid)
+                registered = item
                 register_context(item, True, registry)
             else:
                 uid = intids.queryId(registered)
                 if uid is None:
+                    registered = item
                     register_context(item, True, registry)
                     logger.warn("Replacing registration object %s/%s",
                                 doc_id, item.ntiid)
@@ -118,6 +122,18 @@ def _process_items(intids):
                                 doc_id, item.ntiid)
                     _process_removal(doc_id, item, catalog, intids)
                     lifecycleevent.modified(registered)
+
+            ntiid = registered.ntiid
+            evaluations = ICourseEvaluations(course, None)
+            if evaluations is not None:
+                old = evaluations.get(ntiid, None)
+                if old is None:
+                    evaluations.save(ntiid, registered, False)
+                elif old != registered:
+                    logger.warn("Replacing entry for object %s", item.ntiid)
+                    evaluations.replace(old, registered, False)
+                    old.__parent__ = old.__home__ = None
+                    intids.unregister(old)
 
 
 @interface.implementer(IDataserver)

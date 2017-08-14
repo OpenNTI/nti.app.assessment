@@ -72,7 +72,7 @@ def _process_course(context, intids):
 
         doc_id = intids.queryId(registered)
         if doc_id is None:
-            doc_id  = intids.register(registered)
+            doc_id = intids.register(registered)
 
         if obj is not registered:
             logger.warn("Replacing leaked object %s", ntiid)

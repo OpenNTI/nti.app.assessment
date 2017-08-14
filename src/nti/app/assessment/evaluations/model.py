@@ -59,15 +59,17 @@ class Evaluations(CaseInsensitiveCheckingLastModifiedBTreeContainer):
     def Items(self):
         return dict(self)
 
-    def _save(self, key, value):
+    def save(self, key, value, event=True):
         assert value.ntiid == key
         self._setitemf(key, value)
         value.__parent__ = self
         if IConnection(value, None) is None:
             IConnection(self).add(value)
-        lifecycleevent.added(value, self, key)
+        if event:
+            lifecycleevent.added(value, self, key)
         self.updateLastMod()
         self._p_changed = True
+    _save = save
 
     def __setitem__(self, key, value):
         old = self.get(key, _SENTINEL)
@@ -75,7 +77,7 @@ class Evaluations(CaseInsensitiveCheckingLastModifiedBTreeContainer):
             return
         if old is not _SENTINEL:
             raise KeyError(key)
-        self._save(key, value)
+        self.save(key, value)
 
     def _eject(self, key, event=True):
         item = self[key]
@@ -95,10 +97,10 @@ class Evaluations(CaseInsensitiveCheckingLastModifiedBTreeContainer):
     def replace(self, old, new, event=False):
         assert old.ntiid == new.ntiid
         ntiid = old.ntiid
-        self._eject(ntiid, event=event)
+        self._eject(ntiid, event)
         if not event:
             removeIntId(old)
-        self._save(ntiid, new)
+        self.save(ntiid, new, event)
         return new
 
     def _fix_length(self):
@@ -195,14 +197,16 @@ class LegacyContentPackageEvaluations(object):
 
     # IWriteContainer
 
-    def _save(self, key, value):
+    def save(self, key, value, event=True):
         assert value.ntiid == key
         self.container[key] = value
         value.__parent__ = self.container
         if IConnection(value, None) is None:
             IConnection(self.context).add(value)
-        lifecycleevent.added(value, self.container, key)
+        if event:
+            lifecycleevent.added(value, self.container, key)
         self.updateLastMod()
+    _save = save
 
     def __setitem__(self, key, value):
         old = self.get(key, _SENTINEL)
@@ -210,7 +214,7 @@ class LegacyContentPackageEvaluations(object):
             return
         if old is not _SENTINEL:
             raise KeyError(key)
-        self._save(key, value)
+        self.save(key, value)
 
     def _eject(self, key, event=True):
         item = self.container[key]
@@ -236,10 +240,10 @@ class LegacyContentPackageEvaluations(object):
     def replace(self, old, new, event=False):
         assert old.ntiid == new.ntiid
         ntiid = old.ntiid
-        self._eject(ntiid, event=event)
+        self._eject(ntiid, event)
         if not event:
             removeIntId(old)
-        self._save(ntiid, new)
+        self.save(ntiid, new, event)
         return new
     
     @property

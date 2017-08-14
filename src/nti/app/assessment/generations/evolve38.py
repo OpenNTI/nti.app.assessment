@@ -66,13 +66,15 @@ def _process_course(context, intids):
         registered = component.queryUtility(provided, ntiid)
         doc_id = intids.queryId(registered)
         if registered is None:
-            logger.warn("Registering object %s/%s", doc_id, ntiid)
+            logger.warn("Registering object %s", ntiid)
             register_context(obj, True, registry)
             registered = obj
 
         doc_id = intids.queryId(registered)
         if doc_id is None:
+            logger.warn("Gaining intid %s", ntiid)
             doc_id = intids.register(registered)
+            lifecycleevent.modified(registered)
 
         if obj is not registered:
             logger.warn("Replacing leaked object %s", ntiid)

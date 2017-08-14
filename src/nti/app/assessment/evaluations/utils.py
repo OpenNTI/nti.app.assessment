@@ -311,10 +311,14 @@ def delete_evaluation(evaluation):
                 delete_evaluation(part.question_set)
 
     # delete from evaluations .. see adapters/model
-    context = evaluation.__parent__.__parent__
-    evaluations = IQEvaluations(context, None)
-    if evaluations and evaluation.ntiid in evaluations:
-        del evaluations[evaluation.ntiid]
+    context = None
+    try:
+        context = evaluation.__parent__.__parent__
+        evaluations = IQEvaluations(context, None)
+        if evaluations and evaluation.ntiid in evaluations:
+            del evaluations[evaluation.ntiid]
+    except AttributeError:
+        pass
     evaluation.__home__ = None
 
     # remove from registry

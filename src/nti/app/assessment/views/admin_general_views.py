@@ -257,6 +257,7 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
                              hexc.HTTPUnprocessableEntity,
                              {
                                  'message': _(u"Invalid Evaluation object."),
+                                 'ntiid': ntiid
                              },
                              None)
 
@@ -265,6 +266,7 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
                              hexc.HTTPUnprocessableEntity,
                              {
                                  'message': _(u"Evaluation object is locked."),
+                                 'ntiid': ntiid
                              },
                              None)
 
@@ -293,6 +295,7 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
                              hexc.HTTPUnprocessableEntity,
                              {
                                  'message': _(u"Invalid Evaluation site."),
+                                 'ntiid': ntiid
                              },
                              None)
         # do removal

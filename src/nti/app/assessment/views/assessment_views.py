@@ -7,6 +7,7 @@ Views related to assessment.
 """
 
 from __future__ import print_function, unicode_literals, absolute_import, division
+from Finder.Containers_and_folders import container
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -448,7 +449,7 @@ class NonAssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
                 data[container_id][item.ntiid] = item
             else:
                 logger.error("%s is an item without container", item.ntiid)
-
+        
         # Now remove the forbidden
         for ntiid, items in data.items():
             result_items = (items[x]
@@ -457,7 +458,6 @@ class NonAssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
                 result_items = (self._external_object(x) for x in result_items)
             if result_items:
                 result[ntiid] = tuple(result_items)
-
         return result
 
     def __call__(self):

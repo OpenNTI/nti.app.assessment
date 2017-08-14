@@ -392,7 +392,9 @@ def get_course_self_assessments(context, exclude_editable=True):
     query_types = [QUESTION_SET_MIME_TYPE, QUESTION_BANK_MIME_TYPE]
     query_types.extend(ALL_ASSIGNMENT_MIME_TYPES)
     items = get_course_evaluations(context, mimetypes=query_types)
+
     for item in items:
+        container = find_object_with_ntiid(item.containerId)
         if IQAssignment.providedBy(item):
             qsids_to_strip.add(item.ntiid)
             for assignment_part in item.parts:
@@ -406,6 +408,8 @@ def get_course_self_assessments(context, exclude_editable=True):
             # XXX: Seems like eventually we'll want to return these.
             # We probably eventually want to mark question-sets that
             # are self-assessments.
+            qsids_to_strip.add(item.ntiid)
+        elif not IQEvaluation.providedBy(container):
             qsids_to_strip.add(item.ntiid)
         else:
             result.append(item)

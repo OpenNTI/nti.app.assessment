@@ -65,15 +65,21 @@ def _process_course(context, intids):
         provided = iface_of_assessment(obj)
         registered = component.queryUtility(provided, ntiid)
         doc_id = intids.queryId(registered)
-        if registered is None or doc_id is None:
+        if registered is None:
             logger.warn("Registering object %s/%s", doc_id, ntiid)
             register_context(obj, True, registry)
             registered = obj
+
+        doc_id = intids.queryId(registered)
+        if doc_id is None:
+            doc_id  = intids.register(registered)
+
         if obj is not registered:
             logger.warn("Replacing leaked object %s", ntiid)
             evaluations.replace(obj, registered, False)
             obj = registered
             lifecycleevent.modified(registered)
+
         # canonicalize
         if IQuestionSet.providedBy(registered):
             importer.canonicalize_question_set(registered, context)

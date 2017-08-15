@@ -165,7 +165,7 @@ def do_evolve(context, generation=generation):
 
     with current_site(ds_folder):
         assert component.getSiteManager() == ds_folder.getSiteManager(), \
-            "Hooks not installed?"
+               "Hooks not installed?"
 
         library = component.queryUtility(IContentPackageLibrary)
         if library is not None:

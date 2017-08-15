@@ -9,10 +9,13 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+from zope import component
 from zope import interface
 from zope import lifecycleevent
 
 from zope.cachedescriptors.property import Lazy
+
+from zope.intid.interfaces import IIntIds
 
 from ZODB.interfaces import IBroken
 from ZODB.interfaces import IConnection
@@ -38,6 +41,7 @@ from nti.dataserver.authorization import ROLE_CONTENT_ADMIN
 from nti.dataserver.authorization_acl import ace_allowing
 from nti.dataserver.authorization_acl import acl_from_aces
 
+from nti.intid.common import addIntId
 from nti.intid.common import removeIntId
 
 from nti.property.property import alias
@@ -59,6 +63,10 @@ class Evaluations(CaseInsensitiveCheckingLastModifiedBTreeContainer):
     def Items(self):
         return dict(self)
 
+    @Lazy
+    def intids(self):
+        return component.getUtility(IIntIds)
+
     def save(self, key, value, event=True):
         assert value.ntiid == key
         self._setitemf(key, value)
@@ -67,6 +75,8 @@ class Evaluations(CaseInsensitiveCheckingLastModifiedBTreeContainer):
             IConnection(self).add(value)
         if event:
             lifecycleevent.added(value, self, key)
+        elif self.intids.queryId(value) is None:
+            addIntId(value)
         self.updateLastMod()
         self._p_changed = True
     _save = save
@@ -147,6 +157,10 @@ class LegacyContentPackageEvaluations(object):
     def container(self):
         return IQAssessmentItemContainer(self.context)
 
+    @Lazy
+    def intids(self):
+        return component.getUtility(IIntIds)
+
     # ILastModified
 
     @property
@@ -205,6 +219,8 @@ class LegacyContentPackageEvaluations(object):
             IConnection(self.context).add(value)
         if event:
             lifecycleevent.added(value, self.container, key)
+        elif self.intids.queryId(value) is None:
+            addIntId(value)
         self.updateLastMod()
     _save = save
 

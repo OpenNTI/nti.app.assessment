@@ -311,7 +311,7 @@ class _EditableContentPackageImporterUpdater(EvaluationsImporterMixin):
                                                         source, context)
         return the_object
 
-    def updateFromExternalObject(self, package, externalObject, *args, **kwargs):
+    def updateFromExternalObject(self, package, externalObject, *unused_args, **kwargs):
         evaluations = externalObject.get('Evaluations')
         if evaluations:
             items = evaluations[ITEMS]

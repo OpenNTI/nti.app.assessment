@@ -145,7 +145,7 @@ class EvaluationsExporter(EvaluationsExporterMixin, BaseSectionExporter):
     def export(self, context, filer, backup=True, salt=None):
         course = ICourseInstance(context)
         for course in get_course_hierarchy(course):
-            bucket = self.course_bucket(course)
+            filer.default_bucket = bucket = self.course_bucket(course)
             result = self.externalize(course, backup, salt, filer)
             if result:  # check
                 source = self.dump(result)

@@ -161,7 +161,7 @@ class _EditableContentPackageExporterDecorator(EvaluationsExporterMixin):
     def __init__(self, *args):
         pass
 
-    def decorateExternalObject(self, package, external, backup=False, salt=None):
-        evaluations = self.export_evaluations(package, backup, salt)
+    def decorateExternalObject(self, package, external,backup=False, salt=None, filer=None):
+        evaluations = self.export_evaluations(package, backup, salt, filer)
         if evaluations:
             external['Evaluations'] = evaluations

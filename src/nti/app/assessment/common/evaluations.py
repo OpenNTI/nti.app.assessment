@@ -343,7 +343,7 @@ def get_all_course_assignments(context):
     package_items = get_course_assessment_items(context)
     # For API created assignments, get from parent if we're a subinstance.
     course_items = get_course_assignments(context, sort=False,
-                                          do_filtering=False, 
+                                          do_filtering=False,
                                           parent_course=True)
     for item in itertools.chain(package_items, course_items):
         if not IQAssignment.providedBy(item) or item.ntiid in seen:
@@ -385,7 +385,9 @@ def get_course_self_assessments(context, exclude_editable=True):
     defined as top-level question sets that are not used within an assignment
     in the course.
 
-    :param exclude_editable Exclude editable evaluations
+    :param exclude_editable Exclude editable evaluations. Currently editable
+        question sets are only creatable/editable underneath API created
+        assignments.
     """
     result = list()
     qsids_to_strip = set()
@@ -394,7 +396,6 @@ def get_course_self_assessments(context, exclude_editable=True):
     items = get_course_evaluations(context, mimetypes=query_types)
 
     for item in items:
-        container = find_object_with_ntiid(item.containerId)
         if IQAssignment.providedBy(item):
             qsids_to_strip.add(item.ntiid)
             for assignment_part in item.parts:
@@ -408,8 +409,6 @@ def get_course_self_assessments(context, exclude_editable=True):
             # XXX: Seems like eventually we'll want to return these.
             # We probably eventually want to mark question-sets that
             # are self-assessments.
-            qsids_to_strip.add(item.ntiid)
-        elif not IQEvaluation.providedBy(container):
             qsids_to_strip.add(item.ntiid)
         else:
             result.append(item)

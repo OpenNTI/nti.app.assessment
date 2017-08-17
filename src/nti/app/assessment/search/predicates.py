@@ -51,6 +51,8 @@ from nti.dataserver.authorization import ACT_READ
 
 from nti.dataserver.users import User
 
+from nti.publishing.interfaces import IPublishable
+
 from nti.traversal.traversal import find_interface
 
 
@@ -60,7 +62,7 @@ class _AssignmentFeedbackItemSearchHitPredicate(DefaultSearchHitPredicate):
 
     __name__ = u'AssignmentFeedback'
 
-    def allow(self, feedback, score, query=None):
+    def allow(self, feedback, unused_score, unused_query=None):
         if self.principal is None:
             return True
         else:
@@ -84,6 +86,9 @@ class _EvaluationSearchHitPredicate(DefaultSearchHitPredicate):
     def request(self):
         return get_current_request()
 
+    def is_published(self, item):
+        return not IPublishable.providedBy(item) or item.is_published()
+
     def get_courses(self, item):
         course = find_interface(item, ICourseInstance, strict=False)
         if course is not None:
@@ -94,14 +99,16 @@ class _EvaluationSearchHitPredicate(DefaultSearchHitPredicate):
                 return get_courses_for_packages(packages=package.ntiid)
         return ()
 
-    def allow(self, item, score, query=None):
+    def allow(self, item, unused_score, unused_query=None):
         if self.principal is None:
             return True
         else:
+            if not self.is_published(item):
+                return has_permission(ACT_READ, item, self.request)
             courses = self.get_courses(item)
             if not courses:
                 return has_permission(ACT_READ, item, self.request)
-            for course in courses or ():
+            for course in courses:
                 if     is_instructed_by_name(course, self.principal.id) \
                     or is_enrolled(course, self.principal):
                     return True
@@ -114,7 +121,7 @@ class _AssignmentSearchHitPredicate(_EvaluationSearchHitPredicate):
 
     __name__ = u'Assignment'
 
-    def allow(self, item, score, query=None):
+    def allow(self, item, unused_score, unused_query=None):
         if self.principal is None:
             return True
         else:
@@ -150,12 +157,12 @@ class _ContentUnitAssesmentHitPredicate(DefaultSearchHitPredicate):
 
     SEARCH_MTS = ALL_ASSIGNMENT_MIME_TYPES + (SURVEY_MIME_TYPE,)
 
-    def _is_allowed(self, ntiid, query=None):
+    def _is_allowed(self, ntiid, unused_query=None):
         evaluations = get_container_evaluations((ntiid,),
                                                 mimetypes=self.SEARCH_MTS)
         return not bool(evaluations)
 
-    def allow(self, item, score, query=None):
+    def allow(self, item, unused_score, query=None):
         if self.principal is None:
             return True
         return self._is_allowed(item.ntiid, query)

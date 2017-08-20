@@ -53,7 +53,7 @@ from nti.app.products.courseware.resources.filer import is_image
 from nti.app.products.courseware.resources.utils import is_internal_file_link
 from nti.app.products.courseware.resources.utils import get_file_from_external_link
 
-from nti.assessment.common import iface_of_assessment
+from nti.assessment.common import interface_of_assessment
 
 from nti.assessment.interfaces import IQHint
 from nti.assessment.interfaces import IQPart
@@ -232,7 +232,7 @@ def export_evaluation_content(model, target_filer):
 
 def register_context(context, force=False, registry=None):
     ntiid = context.ntiid
-    provided = iface_of_assessment(context)
+    provided = interface_of_assessment(context)
     if registry is None:
         registry = get_resource_site_registry(context)
     if registry.queryUtility(provided, name=ntiid) is None:
@@ -322,7 +322,7 @@ def delete_evaluation(evaluation):
     evaluation.__home__ = None
 
     # remove from registry
-    provided = iface_of_assessment(evaluation)
+    provided = interface_of_assessment(evaluation)
     registered = component.queryUtility(provided,
                                         name=evaluation.ntiid)
     if registered is not None:

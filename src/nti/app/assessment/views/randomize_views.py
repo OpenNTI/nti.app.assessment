@@ -68,7 +68,7 @@ class QuestionSetRandomizeView(AbstractRandomizeView):
     in random order.
     """
 
-    _TYPE_RANDOMIZE_ERROR_MSG = u"Cannot randomize legacy object."
+    _TYPE_RANDOMIZE_ERROR_MSG = _(u"Cannot randomize legacy object.")
 
     def _validate(self):
         super(QuestionSetRandomizeView, self)._validate()
@@ -101,7 +101,7 @@ class QuestionSetUnRandomizeView(AbstractRandomizeView):
     toggle state.
     """
 
-    _TYPE_RANDOMIZE_ERROR_MSG = u"Cannot unrandomize legacy object."
+    _TYPE_RANDOMIZE_ERROR_MSG = _(u"Cannot unrandomize legacy object.")
 
     def _validate(self):
         super(QuestionSetUnRandomizeView, self)._validate()
@@ -137,7 +137,7 @@ class QuestionSetRandomizePartsView(AbstractRandomizeView):
     randomization.
     """
 
-    _TYPE_RANDOMIZE_ERROR_MSG = u"Cannot randomize parts of legacy object."
+    _TYPE_RANDOMIZE_ERROR_MSG = _(u"Cannot randomize parts of legacy object.")
 
     def __call__(self):
         self._validate()
@@ -159,7 +159,7 @@ class QuestionSetUnRandomizePartsView(AbstractRandomizeView):
     randomization.
     """
 
-    _TYPE_RANDOMIZE_ERROR_MSG = u"Cannot unrandomize parts of legacy object."
+    _TYPE_RANDOMIZE_ERROR_MSG = _(u"Cannot unrandomize parts of legacy object.")
 
     def __call__(self):
         self._validate()

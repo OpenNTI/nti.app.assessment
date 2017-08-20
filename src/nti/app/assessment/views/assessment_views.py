@@ -6,7 +6,7 @@ Views related to assessment.
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -44,6 +44,8 @@ from nti.app.base.abstract_views import AbstractAuthenticatedView
 from nti.app.contentlibrary.utils import PAGE_INFO_MT
 from nti.app.contentlibrary.utils import PAGE_INFO_MT_JSON
 from nti.app.contentlibrary.utils import find_page_info_view_helper
+
+from nti.app.externalization.error import raise_json_error
 
 from nti.app.products.courseware.interfaces import ICourseInstanceEnrollment
 
@@ -156,33 +158,34 @@ def pageinfo_from_question_view(request):
     return find_page_info_view_helper(request, content_unit_or_ntiid)
 
 
-@view_config(accept=str('application/vnd.nextthought.link+json'),
+@view_config(accept='application/vnd.nextthought.link+json',
              **_question_view)
-@view_config(accept=str('application/vnd.nextthought.link+json'),
+@view_config(accept='application/vnd.nextthought.link+json',
              **_question_set_view)
-@view_config(accept=str('application/vnd.nextthought.link+json'),
+@view_config(accept='application/vnd.nextthought.link+json',
              **_assignment_view)
-@view_config(accept=str('application/vnd.nextthought.link+json'),
+@view_config(accept='application/vnd.nextthought.link+json',
              **_inquiry_view)
-def get_question_view_link(request):
+def get_question_view_link(unused_request):
     # Not supported.
     return hexc.HTTPBadRequest()
 
 
-@view_config(accept=str(''),  # explicit empty accept, else we get a ConfigurationConflict
+@view_config(accept='',          # explicit empty accept, else we get a ConfigurationConflict
              ** _question_view)  # and/or no-Accept header goes to the wrong place
 @view_config(**_question_view)
-@view_config(accept=str(''),
+@view_config(accept='',
              **_question_set_view)
 @view_config(**_question_set_view)
-@view_config(accept=str(''),
+@view_config(accept='',
              **_assignment_view)
 @view_config(**_assignment_view)
-@view_config(accept=str(''),
+@view_config(accept='',
              **_inquiry_view)
 @view_config(**_inquiry_view)
 def get_question_view(request):
     return request.context
+
 
 del _inquiry_view
 del _question_view
@@ -277,7 +280,7 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
                             node_results.extend(x.ntiid for x in assgs)
                 name = node.LessonOverviewNTIID
                 lesson = component.queryUtility(INTILessonOverview,
-                                                name=name or u'')
+                                                name=name or '')
                 for group in lesson or ():
                     for item in group or ():
                         if INTIAssignmentRef.providedBy(item):
@@ -344,9 +347,9 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
 
         if ILegacyCourseInstance.providedBy(instance):
             result = self._do_legacy_outline(instance,
-											 items,
-											 outline,
-											 reverse_qset)
+                                             items,
+                                             outline,
+                                             reverse_qset)
         else:
             result = self._do_outline(instance, items, outline, reverse_qset)
         return result
@@ -357,7 +360,7 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
     def _build_catalog(self, instance, result):
         catalog = ICourseAssignmentCatalog(instance)
         uber_filter = get_course_assessment_predicate_for_user(self.remoteUser,
-															   instance)
+                                                               instance)
         # Must grab all assigments in our parent (since they may be referenced
         # in shared lessons.
         assignments = catalog.iter_assignments(course_lineage=True)
@@ -367,7 +370,7 @@ class AssignmentsByOutlineNodeView(AssignmentsByOutlineNodeMixin):
                 result.setdefault(container_id, []).append(asg)
             else:
                 logger.error("%s is an assignment without parent container",
-							 asg.ntiid)
+                             asg.ntiid)
         return result
 
     def __call__(self):
@@ -574,7 +577,12 @@ class DiscussionAssignmentResolveTopicView(AbstractAuthenticatedView):
         if username:
             user = User.get_user(username)
             if user is None:
-                raise hexc.HTTPUnprocessableEntity(_("User not found."))
+                raise_json_error(self.request,
+                                 hexc.HTTPUnprocessableEntity,
+                                 {
+                                     'message': _(u"User not found."),
+                                 },
+                                 None)
         else:
             user = self.remoteUser
         return user
@@ -600,5 +608,10 @@ class DiscussionAssignmentResolveTopicView(AbstractAuthenticatedView):
                         user,
                         self.context.discussion_ntiid,
                         type(context))
-            raise hexc.HTTPNotFound(_("No topic found for assessment."))
+            raise_json_error(self.request,
+                             hexc.HTTPNotFound,
+                             {
+                                 'message': _(u"No topic found for assessment."),
+                             },
+                             None)
         return result

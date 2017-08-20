@@ -243,10 +243,10 @@ def register_context(context, force=False, registry=None):
     # process 'children'
     if IQEvaluationItemContainer.providedBy(context):
         for item in context.Items or ():
-            register_context(item)
+            register_context(item, registry=registry)
     elif IQAssignment.providedBy(context):
         for item in context.iter_question_sets():
-            register_context(item)
+            register_context(item, registry=registry)
 
 
 def validate_submissions(theObject, course, request=None):

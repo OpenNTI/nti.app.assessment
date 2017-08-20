@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -29,6 +29,7 @@ from nti.contenttypes.courses.sharing import on_enroll_record_scope_membership
 from nti.dataserver.users import User
 
 from nti.dataserver.utils import run_with_dataserver
+
 from nti.dataserver.utils.base_script import set_site
 from nti.dataserver.utils.base_script import create_context
 
@@ -42,7 +43,7 @@ def fix_enrollment_perms(verbose=True):
             if record.Principal:
                 if verbose:
                     logger.info("Setting scopes for %s in %s",
-                                record.Principal, 
+                                record.Principal,
                                 cat_entry.ProviderUniqueID)
                 on_enroll_record_scope_membership(record, None, course)
 
@@ -91,8 +92,8 @@ def _process_args(site, input_file, dry_run=False, verbose=True, with_library=Tr
 
 def main():
     arg_parser = argparse.ArgumentParser(description="Enrollment fixer")
-    arg_parser.add_argument('-v', '--verbose', help="Be Verbose", 
-							action='store_true', dest='verbose')
+    arg_parser.add_argument('-v', '--verbose', help="Be Verbose",
+                            action='store_true', dest='verbose')
     arg_parser.add_argument('-d', '--dry', action='store_true',
                             dest='dry_run',
                             help="Dry run.")

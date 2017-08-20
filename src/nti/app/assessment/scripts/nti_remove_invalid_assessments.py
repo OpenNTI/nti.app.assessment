@@ -4,7 +4,7 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
@@ -17,7 +17,7 @@ from collections import defaultdict
 from collections import OrderedDict
 
 from zope import component
-from zope import lifecycleevent 
+from zope import lifecycleevent
 
 from zope.component.hooks import site as current_site
 
@@ -46,143 +46,152 @@ from nti.site.hostpolicy import get_all_host_sites
 
 from nti.site.utils import unregisterUtility
 
+
 def _assessment_containers():
-	seen = set()
-	containers = defaultdict(list)
+    seen = set()
+    containers = defaultdict(list)
 
-	def recur(unit):
-		for child in unit.children or ():
-			recur(child)
-		container = IQAssessmentItemContainer(unit)
-		for item in container.assessments():
-			containers[item.ntiid].append(container)
+    def recur(unit):
+        for child in unit.children or ():
+            recur(child)
+        container = IQAssessmentItemContainer(unit)
+        for item in container.assessments():
+            containers[item.ntiid].append(container)
 
-	for site in get_all_host_sites():
-		with current_site(site):
-			for package in yield_sync_content_packages():
-				if package.ntiid not in seen:
-					seen.add(package.ntiid)
-					recur(package)
+    for site in get_all_host_sites():
+        with current_site(site):
+            for package in yield_sync_content_packages():
+                if package.ntiid not in seen:
+                    seen.add(package.ntiid)
+                    recur(package)
 
-	return containers
+    return containers
+
 
 def _lookup_all_assessments(site_registry):
-	result = {}
-	required = ()
-	order = len(required)
-	for registry in site_registry.utilities.ro:  # must keep order
-		byorder = registry._adapters
-		if order >= len(byorder):
-			continue
-		components = byorder[order]
-		extendors = ASSESSMENT_INTERFACES
-		zopeLookupAll(components, required, extendors, result, 0, order)
-		break  # break on first
-	return result
+    result = {}
+    required = ()
+    order = len(required)
+    for registry in site_registry.utilities.ro:  # must keep order
+        byorder = registry._adapters
+        if order >= len(byorder):
+            continue
+        components = byorder[order]
+        extendors = ASSESSMENT_INTERFACES
+        zopeLookupAll(components, required, extendors, result, 0, order)
+        break  # break on first
+    return result
+
 
 def _remove_invalid_assessment(site, provided, ntiid, containers):
-	# remove from current site registry
-	registry = site.getSiteManager()
-	unregisterUtility(registry, provided=provided, name=ntiid)
-	# check containers
-	with current_site(site):
-		registered = component.queryUtility(provided, name=ntiid)
-		for container in containers.get(ntiid) or ():
-			if not IQAssessmentItemContainer.providedBy(container):
-				continue
-			if registered is not None:
-				container[ntiid] = registered
-			else:
-				container.pop(ntiid, None)
+    # remove from current site registry
+    registry = site.getSiteManager()
+    unregisterUtility(registry, provided=provided, name=ntiid)
+    # check containers
+    with current_site(site):
+        registered = component.queryUtility(provided, name=ntiid)
+        for container in containers.get(ntiid) or ():
+            if not IQAssessmentItemContainer.providedBy(container):
+                continue
+            if registered is not None:
+                container[ntiid] = registered
+            else:
+                container.pop(ntiid, None)
+
 
 def remove_site_invalid_assessments(current, containers, intids=None,
-									catalog=None, seen=None):
-	removed = set()
-	site_name = current.__name__
-	registry = current.getSiteManager()
+                                    catalog=None, seen=None):
+    removed = set()
+    site_name = current.__name__
+    registry = current.getSiteManager()
 
-	# get defaults
-	seen = set() if seen is None else seen
-	catalog = get_evaluation_catalog() if catalog is None else catalog
-	intids = component.getUtility(IIntIds) if intids is None else intids
+    # get defaults
+    seen = set() if seen is None else seen
+    catalog = get_evaluation_catalog() if catalog is None else catalog
+    intids = component.getUtility(IIntIds) if intids is None else intids
 
-	# get all assets in site/no hierarchy
-	site_components = _lookup_all_assessments(registry)
-	logger.info("%s assessment(s) found in %s", len(site_components), site_name)
+    # get all assets in site/no hierarchy
+    site_components = _lookup_all_assessments(registry)
+    logger.info("%s assessment(s) found in %s",
+                len(site_components), site_name)
 
-	for ntiid, item in site_components.items():
-		provided = iface_of_assessment(item)
-		doc_id = intids.queryId(item)
+    for ntiid, item in site_components.items():
+        provided = iface_of_assessment(item)
+        doc_id = intids.queryId(item)
 
-		# registration for a removed assessment
-		if doc_id is None:
-			logger.warn("Removing invalid registration (%s,%s) from site %s",
-						provided.__name__, ntiid, site_name)
-			removed.add(ntiid)
-			_remove_invalid_assessment(current, provided, ntiid, containers)
-			continue
+        # registration for a removed assessment
+        if doc_id is None:
+            logger.warn("Removing invalid registration (%s,%s) from site %s",
+                        provided.__name__, ntiid, site_name)
+            removed.add(ntiid)
+            _remove_invalid_assessment(current, provided, ntiid, containers)
+            continue
 
-		# registration not in base site
-		if ntiid in seen:
-			removed.add(ntiid)
-			logger.warn("Unregistering (%s,%s) from site %s",
-						provided.__name__, ntiid, site_name)
-			removeIntId(item)
-			catalog.unindex_doc(doc_id)
-			_remove_invalid_assessment(current, provided, ntiid, containers)
-			continue
+        # registration not in base site
+        if ntiid in seen:
+            removed.add(ntiid)
+            logger.warn("Unregistering (%s,%s) from site %s",
+                        provided.__name__, ntiid, site_name)
+            removeIntId(item)
+            catalog.unindex_doc(doc_id)
+            _remove_invalid_assessment(current, provided, ntiid, containers)
+            continue
 
-		if item.__parent__ is None:
-			for container in containers.get(ntiid) or ():
-				if IQAssessmentItemContainer.providedBy(container):
-					item.__parent__ = container.__parent__  # pick first
-					lifecycleevent.modified(item)
-					break
+        if item.__parent__ is None:
+            for container in containers.get(ntiid) or ():
+                if IQAssessmentItemContainer.providedBy(container):
+                    item.__parent__ = container.__parent__  # pick first
+                    lifecycleevent.modified(item)
+                    break
 
-		seen.add(ntiid)
-	return removed
+        seen.add(ntiid)
+    return removed
+
 
 def remove_all_invalid_assessment(containers):
-	seen = set()
-	result = OrderedDict()
-	catalog = get_evaluation_catalog()
-	intids = component.getUtility(IIntIds)
-	for current in get_all_host_sites():
-		removed = remove_site_invalid_assessments(current,
-												  seen=seen,
-												  intids=intids,
-												  catalog=catalog,
-												  containers=containers)
-		result[current.__name__] = sorted(removed)
-	return result
+    seen = set()
+    result = OrderedDict()
+    catalog = get_evaluation_catalog()
+    intids = component.getUtility(IIntIds)
+    for current in get_all_host_sites():
+        removed = remove_site_invalid_assessments(current,
+                                                  seen=seen,
+                                                  intids=intids,
+                                                  catalog=catalog,
+                                                  containers=containers)
+        result[current.__name__] = sorted(removed)
+    return result
 
-def _process_args(args):
-	library = component.getUtility(IContentPackageLibrary)
-	library.syncContentPackages()
-	logger.info("Loading assesments containers")
-	containers = _assessment_containers()
-	remove_all_invalid_assessment(containers=containers)
+
+def _process_args(unused_args):
+    library = component.getUtility(IContentPackageLibrary)
+    library.syncContentPackages()
+    logger.info("Loading assesments containers")
+    containers = _assessment_containers()
+    remove_all_invalid_assessment(containers=containers)
+
 
 def main():
-	arg_parser = argparse.ArgumentParser(description="Remove invalid assessments")
-	arg_parser.add_argument('-v', '--verbose', help="Be Verbose", action='store_true',
-							dest='verbose')
+    arg_parser = argparse.ArgumentParser(description="Remove invalid assessments")
+    arg_parser.add_argument('-v', '--verbose', help="Be Verbose", action='store_true',
+                            dest='verbose')
 
-	args = arg_parser.parse_args()
-	env_dir = os.getenv('DATASERVER_DIR')
-	if not env_dir or not os.path.exists(env_dir) and not os.path.isdir(env_dir):
-		raise IOError("Invalid dataserver environment root directory")
+    args = arg_parser.parse_args()
+    env_dir = os.getenv('DATASERVER_DIR')
+    if not env_dir or not os.path.exists(env_dir) and not os.path.isdir(env_dir):
+        raise IOError("Invalid dataserver environment root directory")
 
-	conf_packages = ('nti.appserver',)
-	context = create_context(env_dir, with_library=True)
+    conf_packages = ('nti.appserver',)
+    context = create_context(env_dir, with_library=True)
 
-	run_with_dataserver(environment_dir=env_dir,
-						verbose=args.verbose,
-						context=context,
-						minimal_ds=True,
-						xmlconfig_packages=conf_packages,
-						function=lambda: _process_args(args))
-	sys.exit(0)
+    run_with_dataserver(environment_dir=env_dir,
+                        verbose=args.verbose,
+                        context=context,
+                        minimal_ds=True,
+                        xmlconfig_packages=conf_packages,
+                        function=lambda: _process_args(args))
+    sys.exit(0)
+
 
 if __name__ == '__main__':
-	main()
+    main()

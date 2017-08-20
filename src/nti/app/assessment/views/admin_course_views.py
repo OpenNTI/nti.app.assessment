@@ -36,6 +36,10 @@ from nti.app.assessment.interfaces import IQEvaluations
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
 
+from nti.app.assessment.evaluations.utils import delete_evaluation
+
+from nti.app.assessment.common.history import delete_all_evaluation_data
+
 from nti.app.assessment.views import tx_string
 from nti.app.assessment.views import parse_catalog_entry
 
@@ -100,14 +104,14 @@ class MoveUserAssignmentsView(AbstractAuthenticatedView,
             raise_json_error(self.request,
                              hexc.HTTPUnprocessableEntity,
                              {
-                                'message': _(u"Invalid source NTIID."),
+                                 'message': _(u"Invalid source NTIID."),
                              },
                              None)
         if target is None:
             raise_json_error(self.request,
                              hexc.HTTPUnprocessableEntity,
                              {
-                                'message': _(u"Invalid target NTIID."),
+                                 'message': _(u"Invalid target NTIID."),
                              },
                              None)
         if source == target:
@@ -115,7 +119,7 @@ class MoveUserAssignmentsView(AbstractAuthenticatedView,
             raise_json_error(self.request,
                              hexc.HTTPUnprocessableEntity,
                              {
-                                'message': msg,
+                                 'message': msg,
                              },
                              None)
 
@@ -221,7 +225,7 @@ class SetCourseDatePolicy(AbstractAuthenticatedView,
                 raise_json_error(self.request,
                                  hexc.HTTPUnprocessableEntity,
                                  {
-                                    'message': _(u"Invalid input data."),
+                                     'message': _(u"Invalid input data."),
                                  },
                                  None)
         return hexc.HTTPNoContent()
@@ -332,6 +336,10 @@ class RemoveCourseEvaluationsView(AbstractAuthenticatedView):
         course = ICourseInstance(self.context)
         evaluations = IQEvaluations(course, None)
         if evaluations:
+            for item in tuple(evaluations.values()):  # mutating
+                if IQSubmittable.providedBy(item):
+                    delete_all_evaluation_data(item)
+                delete_evaluation(item)
             evaluations.clear()
         return hexc.HTTPNoContent()
 

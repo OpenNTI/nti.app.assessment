@@ -129,6 +129,8 @@ class _AssignmentSearchHitPredicate(_EvaluationSearchHitPredicate):
             user = User.get_user(pid)
             if user is None:
                 return False
+            if not self.is_published(item):
+                return has_permission(ACT_READ, item, self.request)
             now = datetime.datetime.utcnow()
             courses = self.get_courses(item)
             if not courses:

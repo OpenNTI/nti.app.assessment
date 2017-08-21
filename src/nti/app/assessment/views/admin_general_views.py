@@ -89,8 +89,8 @@ ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 try:
     from nti.metadata import queue_add as metadata_queue_add
 except ImportError:
-    def metadata_queue_add(unused_obj):
-        return
+    def metadata_queue_add(obj):
+        pass
 
 
 @view_config(route_name='objects.generic.traversal',
@@ -395,13 +395,13 @@ class RebuildEvaluationCatalogView(AbstractAuthenticatedView):
         intids = component.getUtility(IIntIds)
         # clear indexes
         catalog = get_evaluation_catalog()
-        for index in list(catalog.values()):
+        for index in catalog.values():
             index.clear()
         # reindex
         seen = set()
         for host_site in get_all_host_sites():  # check all sites
             with current_site(host_site):
-                for _, evaluation in list(component.getUtilitiesFor(IQEvaluation)):
+                for _, evaluation in component.getUtilitiesFor(IQEvaluation):
                     doc_id = intids.queryId(evaluation)
                     if doc_id is None or doc_id in seen:
                         continue
@@ -425,8 +425,8 @@ class RebuildSubmissionCatalogView(AbstractAuthenticatedView):
         result = 0
         for provided in (IUsersCourseAssignmentHistories, IUsersCourseInquiries):
             container = provided(course, None) or {}
-            for user_data in list(container.values()):
-                for obj in list(user_data.values()):
+            for user_data in container.values():
+                for obj in user_data.values():
                     doc_id = intids.queryId(obj)
                     if doc_id is not None:
                         index.index_doc(doc_id, obj)
@@ -452,7 +452,7 @@ class RebuildSubmissionCatalogView(AbstractAuthenticatedView):
         intids = component.getUtility(IIntIds)
         # clear indexes
         sub_catalog = get_submission_catalog()
-        for index in list(sub_catalog.values()):
+        for index in sub_catalog.values():
             index.clear()
         # reindex
         seen = set()

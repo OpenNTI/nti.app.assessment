@@ -379,11 +379,13 @@
 	<utility factory=".utils.EvaluationContainerIdGetter" />
 	<utility factory=".utils.RandomizedPartGraderUnshuffleValidator"/>
 
-	<!-- Exporter -->
-	<utility factory=".exporter.AssessmentsExporter" name="010:Assessments" />
-
-	<!-- Importer -->
-	<utility factory=".importer.AssessmentsImporter" name="010:Assessments" />
+	<configure zcml:condition="have testmode">
+		<!-- Exporter -->
+		<utility factory=".exporter.AssessmentsExporter" name="010:Assessments" />
+	
+		<!-- Importer -->
+		<utility factory=".importer.AssessmentsImporter" name="010:Assessments" />
+	</configure>
 
 	<!-- Feedback constraints -->
 	<adapter factory=".feedback._AssignmentHistoryItemFeedbackFileConstraints"

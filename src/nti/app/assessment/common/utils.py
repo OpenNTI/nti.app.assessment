@@ -33,6 +33,8 @@ from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.contenttypes.courses.utils import get_course_hierarchy
 
+from nti.contenttypes.presentation import NTI
+
 from nti.coremetadata.interfaces import SYSTEM_USER_NAME
 
 from nti.dataserver.interfaces import IUser
@@ -49,7 +51,6 @@ from nti.publishing.interfaces import IPublishable
 
 from nti.zodb.containers import time_to_64bit_int
 
-NTI = u'NTI'
 NAQ = NTIID_TYPE
 
 

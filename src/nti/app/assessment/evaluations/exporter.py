@@ -47,6 +47,7 @@ from nti.externalization.externalization import to_external_object
 
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
+from nti.externalization.interfaces import StandardInternalFields
 
 from nti.externalization.proxy import removeAllProxies
 
@@ -57,6 +58,8 @@ NTIID = StandardExternalFields.NTIID
 TOTAL = StandardExternalFields.TOTAL
 ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 
+INTERNAL_NTIID = StandardInternalFields.NTIID
+
 
 class EvaluationsExporterMixin(object):
 
@@ -65,7 +68,7 @@ class EvaluationsExporterMixin(object):
             # when not backing up make sure we take a hash of the current NTIID and
             # use it as the specific part for a new NTIID to make sure there are
             # fewer collisions when importing back
-            for name in (NTIID, NTIID.lower()):
+            for name in (NTIID, INTERNAL_NTIID):
                 ntiid = ext_obj.get(name)
                 if ntiid:
                     ext_obj[name] = hash_ntiid(ntiid, salt)

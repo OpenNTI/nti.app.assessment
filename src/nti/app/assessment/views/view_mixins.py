@@ -97,6 +97,7 @@ from nti.externalization.externalization import to_external_object
 from nti.externalization.internalization import notifyModified
 
 from nti.externalization.interfaces import StandardExternalFields
+from nti.externalization.interfaces import StandardInternalFields
 
 from nti.ntiids.ntiids import find_object_with_ntiid
 
@@ -118,6 +119,8 @@ ITEMS = StandardExternalFields.ITEMS
 LINKS = StandardExternalFields.LINKS
 NTIID = StandardExternalFields.NTIID
 MIME_TYPE = StandardExternalFields.MIMETYPE
+
+INTERNAL_NTIID = StandardInternalFields.NTIID
 
 VERSION = u'Version'
 
@@ -149,7 +152,7 @@ class AssessmentPutView(UGDPutView):
 
     def readInput(self, value=None):
         result = UGDPutView.readInput(self, value=value)
-        [result.pop(x, None) for x in (NTIID, NTIID.lower())]
+        [result.pop(x, None) for x in (NTIID, INTERNAL_NTIID)]
         return result
 
     def _raise_conflict_error(self, code, message, course, ntiid):

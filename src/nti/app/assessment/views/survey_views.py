@@ -524,7 +524,8 @@ def _display_list(data):
     result = []
     for item in data[:-1]:
         result.append('%s, ' % item)
-    result.append('%s' % data[-1])
+    if data:
+        result.append('%s' % data[-1])
     return u''.join(result)
 
 

@@ -105,7 +105,10 @@ class EvaluationsExporterMixin(object):
                 export_evaluation_content(evaluation, filer)
             ext_obj = to_external_object(evaluation,
                                          name="exporter",
-                                         decorate=False)
+                                         decorate=False,
+                                         # export params
+                                         backup=backup,
+                                         salt=salt)
 
             if IQuestionSet.providedBy(evaluation):
                 ext_obj['Randomized'] = is_randomized_question_set(evaluation)

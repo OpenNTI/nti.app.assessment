@@ -123,12 +123,12 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
         set_assessed_lineage(submission)
 
         # check for removal
-        self.removeSubmission(submission, event=event)
+        self.removeSubmission(submission, event)
         if event:
             lifecycleevent.created(item)
         else:
             IConnection(self).add(item)
-        self._append(submission.assignmentId, item, event=event)
+        self._append(submission.assignmentId, item, event)
         return item
     append = recordSubmission
 
@@ -136,12 +136,12 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
         if submission.assignmentId not in self:
             return
         item = self[submission.assignmentId]
-        transfer_submission_file_data(
-            source=item.Submission, target=submission)
+        transfer_submission_file_data(source=item.Submission, 
+                                      target=submission)
         if event:
             del self[submission.assignmentId]
         else:
-            self._delitemf(submission.assignmentId, event=False)
+            self._delitemf(submission.assignmentId, False)
             locate(item, None, None)
 
     def _append(self, key, item, event=False):
@@ -287,7 +287,7 @@ class _UsersCourseAssignmentSavepointTraversable(ContainerAdapterTraversable):
 
 
 @component.adapter(ICourseInstance, IObjectAddedEvent)
-def _on_course_added(course, unused_event):
+def _on_course_added(course, unused_event=None):
     _savepoints_for_course(course)
 
 
@@ -303,10 +303,10 @@ def _delete_assignment_save_point(item):
 
 
 @component.adapter(IUsersCourseAssignmentHistoryItem, IObjectRemovedEvent)
-def _on_assignment_history_item_deleted(item, unused_event):
+def _on_assignment_history_item_deleted(item, unused_event=None):
     _delete_assignment_save_point(item)
 
 
 @component.adapter(IUsersCourseAssignmentHistoryItem, IObjectAddedEvent)
-def _on_assignment_history_item_added(item, unused_event):
+def _on_assignment_history_item_added(item, unused_event=None):
     _delete_assignment_save_point(item)

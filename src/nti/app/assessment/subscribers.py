@@ -289,19 +289,19 @@ def update_assessments_on_course_bundle_update(course, unused_event):
 
 
 @component.adapter(IQDiscussionAssignment, IObjectModifiedEvent)
-def on_discussion_assignment_created(context, _):
+def on_discussion_assignment_created(context, unused_event=None):
     is_non_public = is_discussion_assignment_non_public(context)
     context.is_non_public = is_non_public
 
 
 @component.adapter(IQDiscussionAssignment, IObjectAddedEvent)
-def on_discussion_assignment_updated(context, _):
+def on_discussion_assignment_updated(context, unused_event=None):
     is_non_public = is_discussion_assignment_non_public(context)
     context.is_non_public = is_non_public
 
 
 @component.adapter(IQEditableEvaluation, IObjectPublishedEvent)
-def on_evaluation_published(context, _):
+def on_evaluation_published(context, unused_event=None):
     unit = find_interface(context, IEditableContentPackage, strict=False)
     if unit is not None and not unit.is_published():
         raise_json_error(get_current_request(),
@@ -313,7 +313,7 @@ def on_evaluation_published(context, _):
 
 
 @component.adapter(IRenderableContentPackage, IObjectPublishedEvent)
-def on_renderable_package_published(context, _):
+def on_renderable_package_published(context, unused_event=None):
     evals = IQEvaluations(context, None)
     if evals:
         for item in evals.values():
@@ -322,7 +322,7 @@ def on_renderable_package_published(context, _):
 
 
 @component.adapter(IRenderableContentPackage, IObjectUnpublishedEvent)
-def on_renderable_package_unpublished(context, _):
+def on_renderable_package_unpublished(context, unused_event=None):
     evals = IQEvaluations(context, None)
     if evals:
         for item in evals.values():
@@ -331,7 +331,7 @@ def on_renderable_package_unpublished(context, _):
 
 
 @component.adapter(ICourseInstance, ICourseBundleUpdatedEvent)
-def on_course_bundle_updated(_, event):
+def on_course_bundle_updated(unused_course, event):
     """
     Index the authored evals to update their containers data
     """

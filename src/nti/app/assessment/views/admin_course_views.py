@@ -354,7 +354,10 @@ class RemoveGhostSubmissionsView(AbstractAuthenticatedView):
                 if not IUser.providedBy(user):
                     for iface in self.interfaces:
                         container = iface(course)
-                        del container[username]
+                        try:
+                            del container[username]
+                        except KeyError:
+                            pass
                     items.setdefault(username, [])
                     items[username].append(entry.ntiid)
         result[ITEM_COUNT] = result[TOTAL] = len(items)

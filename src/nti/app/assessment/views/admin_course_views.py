@@ -34,6 +34,7 @@ from nti.app.assessment.common.containers import index_course_package_assessment
 
 from nti.app.assessment.interfaces import IQEvaluations
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
 
 from nti.app.assessment.evaluations.utils import delete_evaluation
@@ -65,7 +66,7 @@ from nti.dataserver import authorization as nauth
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import IDataserverFolder
 
-from nti.dataserver.users import User
+from nti.dataserver.users.users import User
 
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
@@ -135,7 +136,7 @@ class MoveUserAssignmentsView(AbstractAuthenticatedView,
         items = result[ITEMS] = {}
         for username in usernames:
             user = User.get_user(username)
-            if user is None or not IUser.providedBy(user):
+            if not IUser.providedBy(user):
                 logger.info("User %s does not exists", username)
                 continue
             moved = self._do_move(user, source, target)
@@ -321,6 +322,32 @@ class UnmatchedSavePointsView(AbstractAuthenticatedView):
         stream.seek(0)
         response.body_file = stream
         return response
+
+
+@view_config(context=IDataserverFolder)
+@view_config(context=CourseAdminPathAdapter)
+@view_defaults(route_name='objects.generic.traversal',
+               renderer='rest',
+               permission=nauth.ACT_NTI_ADMIN,
+               request_method='POST',
+               name='RemoveGhostSubmissions')
+class RemoveGhostSubmissionsView(AbstractAuthenticatedView):
+
+    def __call__(self):
+        result = LocatedExternalDict()
+        items = result[ITEMS] = {}
+        catalog = component.getUtility(ICourseCatalog)
+        for entry in catalog.iterCatalogEntries():
+            course = ICourseInstance(entry)
+            histories = IUsersCourseAssignmentHistories(course)
+            for username in tuple(histories.keys()): # updating
+                user = User.get_user(username)
+                if not IUser.providedBy(user):
+                    del histories[username]
+                    items.setdefault(username, [])
+                    items[username].append(entry.ntiid)
+        result[ITEM_COUNT] = result[TOTAL] = len(items)
+        return result
 
 
 @view_config(context=ICourseInstance)

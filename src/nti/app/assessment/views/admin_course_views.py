@@ -36,6 +36,8 @@ from nti.app.assessment.interfaces import IQEvaluations
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
+from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
+from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataContainer
 
 from nti.app.assessment.evaluations.utils import delete_evaluation
 
@@ -333,17 +335,26 @@ class UnmatchedSavePointsView(AbstractAuthenticatedView):
                name='RemoveGhostSubmissions')
 class RemoveGhostSubmissionsView(AbstractAuthenticatedView):
 
+    interfaces = (IUsersCourseAssignmentHistories, 
+                  IUsersCourseAssignmentSavepoints,
+                  IUsersCourseAssignmentMetadataContainer)
+
     def __call__(self):
         result = LocatedExternalDict()
         items = result[ITEMS] = {}
         catalog = component.getUtility(ICourseCatalog)
         for entry in catalog.iterCatalogEntries():
+            usernames = set()
             course = ICourseInstance(entry)
-            histories = IUsersCourseAssignmentHistories(course)
-            for username in tuple(histories.keys()): # updating
+            for iface in self.interfaces:
+                container = iface(course)
+                usernames.update(container.keys())
+            for username in usernames:
                 user = User.get_user(username)
                 if not IUser.providedBy(user):
-                    del histories[username]
+                    for iface in self.interfaces:
+                        container = iface(course)
+                        del container[username]
                     items.setdefault(username, [])
                     items[username].append(entry.ntiid)
         result[ITEM_COUNT] = result[TOTAL] = len(items)

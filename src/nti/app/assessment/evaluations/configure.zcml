@@ -75,6 +75,10 @@
 	<!-- Exporter -->
 	<utility factory=".exporter.EvaluationsExporter" name="012:Evaluations" />
 	
+	<adapter factory=".exporter._DiscussionAssignmentExporter"
+			 for="nti.assessment.interfaces.IQDiscussionAssignment"
+			 name="exporter" />
+			 
 	<subscriber factory=".exporter._EditableContentPackageExporterDecorator"
 				provides="nti.contentlibrary.interfaces.IContentPackageExporterDecorator"
 				for="nti.contentlibrary.interfaces.IEditableContentPackage" />

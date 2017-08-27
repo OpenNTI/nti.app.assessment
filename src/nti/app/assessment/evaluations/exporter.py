@@ -29,7 +29,9 @@ from nti.assessment import EVALUATION_INTERFACES
 from nti.assessment.common import is_randomized_question_set
 from nti.assessment.common import is_randomized_parts_container
 
-from nti.assessment.interfaces import IQAssignment
+from nti.assessment.externalization import EvalWithPartsExporter
+
+from nti.assessment.interfaces import IQAssignment, IQDiscussionAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQEditableEvaluation
 
@@ -48,6 +50,7 @@ from nti.externalization.externalization import to_external_object
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import StandardInternalFields
+from nti.externalization.interfaces import IInternalObjectExternalizer
 
 from nti.externalization.proxy import removeAllProxies
 
@@ -171,3 +174,9 @@ class _EditableContentPackageExporterDecorator(EvaluationsExporterMixin):
         evaluations = self.export_evaluations(package, backup, salt, filer)
         if evaluations:
             external['Evaluations'] = evaluations
+
+
+@component.adapter(IQDiscussionAssignment)
+@interface.implementer(IInternalObjectExternalizer)
+class _DiscussionAssignmentExporter(EvalWithPartsExporter):
+    pass

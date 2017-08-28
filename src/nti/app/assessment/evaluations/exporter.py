@@ -57,6 +57,8 @@ from nti.externalization.proxy import removeAllProxies
 
 from nti.ntiids.ntiids import hash_ntiid
 
+from nti.traversal.traversal import find_interface
+
 ITEMS = StandardExternalFields.ITEMS
 NTIID = StandardExternalFields.NTIID
 TOTAL = StandardExternalFields.TOTAL
@@ -111,8 +113,9 @@ class EvaluationsExporterMixin(object):
                                          name="exporter",
                                          decorate=False,
                                          # export params
-                                         backup=backup,
-                                         salt=salt)
+                                         salt=salt,
+                                         filer=filer,
+                                         backup=backup)
 
             if IQuestionSet.providedBy(evaluation):
                 ext_obj['Randomized'] = is_randomized_question_set(evaluation)
@@ -181,6 +184,12 @@ class _EditableContentPackageExporterDecorator(EvaluationsExporterMixin):
 @interface.implementer(IInternalObjectExternalizer)
 class _DiscussionAssignmentExporter(EvalWithPartsExporter):
 
+    def process_discussion(self, result, course):
+        pass
+
     def toExternalObject(self, **kwargs):
         result = EvalWithPartsExporter.toExternalObject(self, **kwargs)
+        course = find_interface(self.evaluation, ICourseInstance, strict=False)
+        if course is not None:
+            self.process_discussion(result, course)
         return result

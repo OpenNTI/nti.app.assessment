@@ -14,6 +14,8 @@ from collections import Mapping
 from zope import component
 from zope import interface
 
+from nti.app.assessment.evaluations.interfaces import ICourseEvaluationsSectionExporter
+
 from nti.app.assessment.evaluations.utils import course_discussions
 from nti.app.assessment.evaluations.utils import export_evaluation_content
 
@@ -43,7 +45,6 @@ from nti.contentlibrary.interfaces import IContentPackageExporterDecorator
 from nti.contenttypes.courses.discussions.interfaces import ICourseDiscussion
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
-from nti.contenttypes.courses.interfaces import ICourseSectionExporter
 
 from nti.contenttypes.courses.exporter import BaseSectionExporter
 
@@ -154,7 +155,7 @@ class EvaluationsExporterMixin(object):
         return result
 
 
-@interface.implementer(ICourseSectionExporter)
+@interface.implementer(ICourseEvaluationsSectionExporter)
 class EvaluationsExporter(EvaluationsExporterMixin, BaseSectionExporter):
 
     def externalize(self, context, backup=True, salt=None, filer=None):

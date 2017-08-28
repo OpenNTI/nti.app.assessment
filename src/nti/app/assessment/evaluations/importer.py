@@ -23,6 +23,8 @@ from zope.security.interfaces import IPrincipal
 
 from nti.app.assessment.common.utils import make_evaluation_ntiid
 
+from nti.app.assessment.evaluations.interfaces import ICourseEvaluationsSectionImporter
+
 from nti.app.assessment.evaluations.utils import indexed_iter
 from nti.app.assessment.evaluations.utils import register_context
 from nti.app.assessment.evaluations.utils import course_discussions
@@ -58,7 +60,6 @@ from nti.contentlibrary.interfaces import IContentPackageImporterUpdater
 from nti.contenttypes.courses.discussions.utils import is_nti_course_bundle
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
-from nti.contenttypes.courses.interfaces import ICourseSectionImporter
 from nti.contenttypes.courses.interfaces import ICourseEvaluationImporter
 
 from nti.contenttypes.courses.importer import BaseSectionImporter
@@ -295,7 +296,7 @@ class EvaluationsImporterMixin(object):
             self.handle_evaluation(the_object, source, context, filer)
 
 
-@interface.implementer(ICourseSectionImporter, ICourseEvaluationImporter)
+@interface.implementer(ICourseEvaluationsSectionImporter, ICourseEvaluationImporter)
 class EvaluationsImporter(EvaluationsImporterMixin, BaseSectionImporter):
 
     EVALUATION_INDEX = "evaluation_index.json"

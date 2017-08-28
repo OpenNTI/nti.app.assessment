@@ -73,7 +73,9 @@
 	<adapter factory=".analyzers._MultipleChoiceMultipleAnswerPartChangeAnalyzer" />
 
 	<!-- Exporter -->
-	<utility factory=".exporter.EvaluationsExporter" name="012:Evaluations" />
+	<utility factory=".exporter.EvaluationsExporter" 
+			 provides=".interfaces.ICourseEvaluationsSectionExporter" 
+			 name="012:Evaluations" />
 	
 	<adapter factory=".exporter._DiscussionAssignmentExporter"
 			 for="nti.assessment.interfaces.IQDiscussionAssignment"
@@ -85,7 +87,7 @@
 				
 	<!-- Importer -->
 	<utility factory=".importer.EvaluationsImporter" 
-			 provides="nti.contenttypes.courses.interfaces.ICourseSectionImporter" 
+			 provides=".interfaces.ICourseEvaluationsSectionImporter" 
 			 name="012:Evaluations" />
 	
 	<utility factory=".importer.EvaluationsImporter" 

@@ -25,6 +25,7 @@ from nti.app.assessment.common.utils import make_evaluation_ntiid
 
 from nti.app.assessment.evaluations.utils import indexed_iter
 from nti.app.assessment.evaluations.utils import register_context
+from nti.app.assessment.evaluations.utils import course_discussions
 from nti.app.assessment.evaluations.utils import import_evaluation_content
 
 from nti.app.assessment.interfaces import IQEvaluations
@@ -41,6 +42,7 @@ from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQEditableEvaluation
+from nti.assessment.interfaces import IQDiscussionAssignment
 
 from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
 from nti.assessment.randomized.interfaces import IRandomizedPartsContainer
@@ -53,6 +55,8 @@ from nti.contentlibrary.interfaces import IFilesystemBucket
 from nti.contentlibrary.interfaces import IEditableContentPackage
 from nti.contentlibrary.interfaces import IContentPackageImporterUpdater
 
+from nti.contenttypes.courses.discussions.utils import is_nti_course_bundle
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseSectionImporter
 from nti.contenttypes.courses.interfaces import ICourseEvaluationImporter
@@ -61,10 +65,17 @@ from nti.contenttypes.courses.importer import BaseSectionImporter
 
 from nti.contenttypes.courses.utils import get_course_subinstances
 
+from nti.dataserver.contenttypes.forums.interfaces import ITopic
+from nti.dataserver.contenttypes.forums.interfaces import IHeadlinePost
+
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.externalization.internalization import find_factory_for
 from nti.externalization.internalization import update_from_external_object
+
+from nti.externalization.oids import to_external_ntiid_oid
+
+from nti.ntiids.ntiids import find_object_with_ntiid
 
 from nti.publishing.interfaces import ICalendarPublishable
 
@@ -206,6 +217,26 @@ class EvaluationsImporterMixin(object):
         [p.ntiid for p in the_object.parts or ()]  # set auto part NTIIDs
         return the_object
 
+    def handle_discussion_assignment(self, the_object, source, context):
+        the_object = self.handle_assignment(the_object, source, context)
+        ntiid = source.get('discussion_ntiid', None)
+        if ICourseInstance.providedBy(context):
+            discussion = None
+            if is_nti_course_bundle(ntiid):
+                discussions = course_discussions(context, False)
+                discussion = discussions.get(ntiid)
+            else:
+                topic = find_object_with_ntiid(ntiid)
+                if IHeadlinePost.providedBy(topic):
+                    topic = topic.__parent__
+                if ITopic.providedBy(topic):
+                    name = topic.__name__
+                    discussions = course_discussions(context)
+                    discussion = discussions.get(name)
+            if discussion is not None:
+                the_object.discussion_ntiid = to_external_ntiid_oid(discussion)
+        return the_object
+    
     def publish_evaluation(self, the_object, source=None, unused_context=None):
         is_published = source.get('isPublished') if source else False
         if is_published:
@@ -226,6 +257,8 @@ class EvaluationsImporterMixin(object):
             result = self.handle_question_set(the_object, source, context)
         elif IQSurvey.providedBy(the_object):
             result = self.handle_survey(the_object, context)
+        elif IQDiscussionAssignment.providedBy(the_object):
+            result = self.handle_discussion_assignment(the_object, source, context)
         elif IQAssignment.providedBy(the_object):
             result = self.handle_assignment(the_object, source, context)
         else:

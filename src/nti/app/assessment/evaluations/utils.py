@@ -15,6 +15,8 @@ from urlparse import urlparse
 from html5lib import HTMLParser
 from html5lib import treebuilders
 
+from ordered_set import OrderedSet
+
 from zope import component
 from zope import lifecycleevent
 
@@ -73,7 +75,13 @@ from nti.contentfragments.html import _html5lib_tostring
 
 from nti.contentfragments.interfaces import IHTMLContentFragment
 
+from nti.contenttypes.courses.discussions.interfaces import ICourseDiscussions
+
+from nti.contenttypes.courses.discussions.utils import get_topic_key
+
 from nti.contenttypes.courses.interfaces import NTI_COURSE_FILE_SCHEME
+
+from nti.contenttypes.courses.utils import get_parent_course
 
 from nti.publishing.interfaces import IPublishable
 
@@ -331,3 +339,18 @@ def delete_evaluation(evaluation):
         unregisterUtility(registry,
                           provided=provided,
                           name=evaluation.ntiid)
+
+
+def course_discussions(course, by_topic_key=True):
+    result = {}
+    courses = OrderedSet((course, get_parent_course(course)))
+    for course in courses:
+        discussions = ICourseDiscussions(course)
+        for discussion in discussions.values():
+            if by_topic_key:
+                key = get_topic_key(discussion)
+            else:
+                key = discussion.id
+            if key not in result:
+                result[key] = discussion
+    return result

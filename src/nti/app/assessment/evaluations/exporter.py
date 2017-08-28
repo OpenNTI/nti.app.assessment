@@ -11,11 +11,10 @@ logger = __import__('logging').getLogger(__name__)
 
 from collections import Mapping
 
-from ordered_set import OrderedSet
-
 from zope import component
 from zope import interface
 
+from nti.app.assessment.evaluations.utils import course_discussions
 from nti.app.assessment.evaluations.utils import export_evaluation_content
 
 from nti.app.assessment.interfaces import IQEvaluations
@@ -42,19 +41,16 @@ from nti.contentlibrary.interfaces import IEditableContentPackage
 from nti.contentlibrary.interfaces import IContentPackageExporterDecorator
 
 from nti.contenttypes.courses.discussions.interfaces import ICourseDiscussion
-from nti.contenttypes.courses.discussions.interfaces import ICourseDiscussions
-
-from nti.contenttypes.courses.discussions.utils import get_topic_key
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseSectionExporter
 
 from nti.contenttypes.courses.exporter import BaseSectionExporter
 
-from nti.contenttypes.courses.utils import get_parent_course
 from nti.contenttypes.courses.utils import get_course_hierarchy
 
 from nti.dataserver.contenttypes.forums.interfaces import ITopic
+from nti.dataserver.contenttypes.forums.interfaces import IHeadlinePost
 
 from nti.externalization.externalization import to_external_object
 
@@ -194,26 +190,17 @@ class _EditableContentPackageExporterDecorator(EvaluationsExporterMixin):
 @interface.implementer(IInternalObjectExternalizer)
 class _DiscussionAssignmentExporter(EvalWithPartsExporter):
 
-    def course_discussions(self, course):
-        result = {}
-        courses = OrderedSet((course, get_parent_course(course)))
-        for course in courses:
-            discussions = ICourseDiscussions(course)
-            for discussion in discussions.values():
-                key = get_topic_key(discussion)
-                if key not in result:
-                    result[key] = discussion
-        return result
-
     def process_discussion(self, result, course):
         ntiid  = self.evaluation.discussion_ntiid
         context = find_object_with_ntiid(ntiid)
         if context is not None:
             if ICourseDiscussion.providedBy(context):
                 result['discussion_ntiid'] = context.id
-            elif ITopic.providedBy(context):
+            elif IHeadlinePost.providedBy(context):
+                context = context.__parent__
+            if ITopic.providedBy(context):
                 name = context.__name__
-                discussions = self.course_discussions(course)
+                discussions = course_discussions(course)
                 discussion = discussions.get(name)
                 if discussion is not None:
                     result['discussion_ntiid'] = discussion.id

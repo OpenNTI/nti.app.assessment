@@ -153,7 +153,7 @@ def _assignment_submission_transformer(request, obj):
     """
     pending = IQAssignmentSubmissionPendingAssessment(obj)
     result = request.response = hexc.HTTPCreated()
-    # TODO: Shouldn't this be the external NTIID? 
+    # TODO: Shouldn't this be the external NTIID?
     # This is what ugd_edit_views does though
     result.location = request.resource_url(obj.creator,
                                            'Objects',
@@ -509,9 +509,14 @@ def _hierarchy_from_obj_and_user(obj, user):
     # Get our top level courses for this object and user
     for course in get_top_level_contexts_for_user(obj, user):
         # Get assignments/question sets so that we can find in outline.
+        # XXX: We'll likely only have a single container (at least for now).
         for container in get_outline_evaluation_containers(obj) or (obj,):
             path = _get_hierarchy_context_for_context(container, course)
-            path = path if path else ((course,),)
+            if not path and container != obj:
+                # If no path, return the path to our container.
+                path = ((course, container),)
+            elif not path:
+                path = ((course,),)
             results.extend(path)
     return results
 

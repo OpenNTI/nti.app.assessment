@@ -13,9 +13,15 @@ import time
 
 from zope import component
 
+from zope.annotation.interfaces import IAnnotations
+
+from zope.component.hooks import getSite
+
 from zope.security.interfaces import IPrincipal
 
 from nti.app.authentication import get_remote_user
+
+from nti.appserver.policies.interfaces import ISitePolicyUserEventListener
 
 from nti.assessment.interfaces import NTIID_TYPE
 
@@ -106,6 +112,15 @@ def get_evaluation_catalog_entry(evaluation, catalog=None):
     return result
 
 
+def get_site_provider():
+    policy = component.queryUtility(ISitePolicyUserEventListener)
+    result = getattr(policy, 'PROVIDER', None)
+    if not result:
+        annontations = IAnnotations(getSite(), {})
+        result = annontations.get('PROVIDER')
+    return result or NTI
+
+
 def make_evaluation_ntiid(kind, base=None, extra=None):
     # get kind
     if IQAssignment.isOrExtends(kind):
@@ -123,7 +138,8 @@ def make_evaluation_ntiid(kind, base=None, extra=None):
 
     creator = SYSTEM_USER_NAME
     current_time = time_to_64bit_int(time.time())
-    provider = get_provider(base) or NTI if base else NTI
+    provider = get_provider(base) if base else None
+    provider = provider or get_site_provider()
 
     specific_base = get_specific(base) if base else None
     if specific_base:

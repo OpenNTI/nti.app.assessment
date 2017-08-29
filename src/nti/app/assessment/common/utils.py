@@ -13,15 +13,11 @@ import time
 
 from zope import component
 
-from zope.annotation.interfaces import IAnnotations
-
-from zope.component.hooks import getSite
-
 from zope.security.interfaces import IPrincipal
 
-from nti.app.authentication import get_remote_user
+from nti.app.assessment.common.hostpolicy import get_site_provider
 
-from nti.appserver.policies.interfaces import ISitePolicyUserEventListener
+from nti.app.authentication import get_remote_user
 
 from nti.assessment.interfaces import NTIID_TYPE
 
@@ -39,13 +35,11 @@ from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
 from nti.contenttypes.courses.utils import get_course_hierarchy
 
-from nti.contenttypes.presentation import NTI
-
 from nti.coremetadata.interfaces import SYSTEM_USER_NAME
 
 from nti.dataserver.interfaces import IUser
 
-from nti.dataserver.users import User
+from nti.dataserver.users.users import User
 
 from nti.ntiids.ntiids import make_ntiid
 from nti.ntiids.ntiids import get_provider
@@ -110,15 +104,6 @@ def get_evaluation_catalog_entry(evaluation, catalog=None):
     except (KeyError, AttributeError):
         pass
     return result
-
-
-def get_site_provider():
-    policy = component.queryUtility(ISitePolicyUserEventListener)
-    result = getattr(policy, 'PROVIDER', None)
-    if not result:
-        annontations = IAnnotations(getSite(), {})
-        result = annontations.get('PROVIDER')
-    return result or NTI
 
 
 def make_evaluation_ntiid(kind, base=None, extra=None):

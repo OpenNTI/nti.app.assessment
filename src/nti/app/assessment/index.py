@@ -23,6 +23,8 @@ from zope.location import locate
 
 import BTrees
 
+from nti.assessment.common import has_submitted_file
+
 from nti.app.assessment.interfaces import IUsersCourseInquiryItem
 from nti.app.assessment.interfaces import IUsersCourseSubmissionItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
@@ -94,6 +96,7 @@ SUBMISSION_CATALOG_NAME = 'nti.dataserver.++etc++assesment-catalog'
 IX_SITE = 'site'
 IX_COURSE = 'course'
 IX_ENTRY = IX_COURSE
+IX_HAS_FILE = 'hasFile'
 IX_SUBMITTED = 'submitted'
 IX_ASSESSMENT_ID = 'assesmentId'
 IX_ASSESSMENT_TYPE = 'assesmentType'
@@ -272,6 +275,23 @@ class AssesmentSubmittedIndex(ExtenedAttributeSetIndex):
     default_interface = ValidatingAssesmentSubmittedType
 
 
+class ValidatingAssesmentHasFileType(object):
+
+    __slots__ = (IX_HAS_FILE,)
+
+    def __init__(self, obj, unused_default=None):
+        if IUsersCourseSubmissionItem.providedBy(obj):
+            self.hasFile = has_submitted_file(obj)
+
+    def __reduce__(self):
+        raise TypeError()
+
+
+class AssesmentHasFileIndex(ValueIndex):
+    default_field_name = IX_HAS_FILE
+    default_interface = ValidatingAssesmentHasFileType
+
+
 @interface.implementer(IMetadataCatalog)
 class MetadataSubmissionCatalog(Catalog):
 
@@ -298,6 +318,7 @@ def create_submission_catalog(catalog=None, family=BTrees.family64):
                         (IX_CREATOR, CreatorIndex),
                         (IX_COURSE, CatalogEntryIDIndex),
                         (IX_ASSESSMENT_ID, AssesmentIdIndex),
+                        (IX_HAS_FILE, AssesmentHasFileIndex),
                         (IX_SUBMITTED, AssesmentSubmittedIndex),
                         (IX_ASSESSMENT_TYPE, AssesmentTypeIndex)):
         index = clazz(family=family)

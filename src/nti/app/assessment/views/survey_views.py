@@ -630,7 +630,15 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
                     header_row.append(plain_text(question.content) + ": " +
                                       plain_text(part.content))
             else:
-                header_row.append(plain_text(question.content))
+                content = plain_text(question.content)
+                part_content = ''
+                if question.parts:
+                    part_content = plain_text(question.parts[0].content)
+                if content and part_content:
+                    content = '%s: %s' % (content, part_content)
+                elif part_content:
+                    content = part_content
+                header_row.append(content)
             question_order[question.ntiid] = question
         return header_row
 

@@ -18,7 +18,7 @@ from nti.assessment.assignment import QAssignmentSubmissionPendingAssessment
 from nti.assessment.interfaces import IQResponse
 from nti.assessment.interfaces import IQAssessedQuestionSet
 
-from nti.base.interfaces import INamedFile
+from nti.base.interfaces import IFile
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
@@ -38,26 +38,26 @@ def get_part_value(part):
 
 def set_part_value_lineage(part):
     part_value = get_part_value(part)
-    if part_value is not part and INamedFile.providedBy(part_value):
+    if part_value is not part and IFile.providedBy(part_value):
         set_parent(part_value, part)
 
 
-def set_assessed_lineage(assessed):
+def set_assessed_lineage(context):
     # The constituent parts of these things need parents as well.
     # It would be nice if externalization took care of this,
     # but that would be a bigger change
-    creator = getattr(assessed, 'creator', None)
-    for assessed_set in assessed.parts or ():
+    creator = getattr(context, 'creator', None)
+    for bundle in context.parts or ():
         # submission_part e.g. assessed question set
-        set_parent(assessed_set, assessed)
-        assessed_set.creator = creator
-        for assessed_question in assessed_set.questions or ():
-            assessed_question.creator = creator
-            set_parent(assessed_question, assessed_set)
-            for assessed_question_part in assessed_question.parts or ():
-                set_parent(assessed_question_part, assessed_question)
-                set_part_value_lineage(assessed_question_part)
-    return assessed
+        set_parent(bundle, context)
+        bundle.creator = creator
+        for question in bundle.questions or ():
+            question.creator = creator
+            set_parent(question, bundle)
+            for part in question.parts or ():
+                set_parent(part, question)
+                set_part_value_lineage(part)
+    return context
 
 
 def assess_assignment_submission(unused_context, assignment, submission):

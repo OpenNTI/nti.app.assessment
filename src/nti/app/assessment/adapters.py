@@ -227,8 +227,7 @@ def _begin_assessment_for_assignment_submission(submission):
 
     course = get_course_from_request()
     if course is None:
-        course = get_course_from_evaluation(assignment,
-                                            submission.creator,
+        course = get_course_from_evaluation(assignment, submission.creator,
                                             exc=True)
 
     _validate_submission(submission, course, assignment)
@@ -243,8 +242,7 @@ def _begin_assessment_for_assignment_submission(submission):
     set_assessed_lineage(submission)
     submission.containerId = submission.assignmentId
 
-    pending_assessment = assess_assignment_submission(course,
-                                                      assignment,
+    pending_assessment = assess_assignment_submission(course, assignment,
                                                       submission)
     set_assessed_lineage(pending_assessment)
     lifecycleevent.created(pending_assessment)

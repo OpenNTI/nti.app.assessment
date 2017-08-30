@@ -54,6 +54,12 @@ from nti.zodb.containers import time_to_64bit_int
 NAQ = NTIID_TYPE
 
 
+def get_creator_username(context):
+    creator = getattr(context, 'creator', context)
+    creator = getattr(creator, 'username', creator)
+    return getattr(creator, 'id', creator)
+
+
 def get_user(user=None, remote=False, request=None):
     if user is None and remote:
         user = get_remote_user(request)

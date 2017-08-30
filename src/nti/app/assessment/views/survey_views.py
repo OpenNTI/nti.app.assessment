@@ -11,9 +11,14 @@ logger = __import__('logging').getLogger(__name__)
 
 import csv
 import six
-from io import BytesIO
+
+from collections import OrderedDict
 
 from datetime import datetime
+
+from io import BytesIO
+
+from requests.structures import CaseInsensitiveDict
 
 from zope import component
 from zope import interface
@@ -558,7 +563,7 @@ def _handle_multiple_choice_part(user_sub_part, poll, part_idx):
 
 
 def _handle_modeled_content_part(user_sub_part, unused_poll, unused_part_idx):
-    return user_sub_part.value[0]
+    return plain_text(' '.join(user_sub_part.value))
 
 
 def _handle_free_response_part(user_sub_part, unused_poll, unused_part_idx):
@@ -595,7 +600,7 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
         # return None if we can't find a match for this question type.
         return None
 
-    def __call__(self):
+    def _check_permission(self):
         # only instructors or admins should be able to view this.
         if not (is_course_instructor(self.course, self.remoteUser)
                 or has_permission(nauth.ACT_NTI_ADMIN, self.course, self.request)):
@@ -606,15 +611,14 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
                              },
                              None)
 
-        params = self.request.params
-        include_usernames = is_true(params.get('include_usernames'))
+    @Lazy
+    def include_usernames(self):
+        params = CaseInsensitiveDict(self.request.params)
+        return is_true(params.get('include_usernames'))
 
-        stream = BytesIO()
-        csv_writer = csv.writer(stream)
-
-        # Construct our header row. Only include
-        # usernames if specified with a param.
-        if include_usernames:
+    def _get_header_row(self, question_order):
+        # Construct our header row. Only include usernames if specified.
+        if self.include_usernames:
             header_row = ['user']
         else:
             header_row = []
@@ -627,28 +631,39 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
                                       plain_text(part.content))
             else:
                 header_row.append(plain_text(question.content))
-        csv_writer.writerow(header_row)
-        user_rows = []
+            question_order[question.ntiid] = question
+        return header_row
 
+    def __call__(self):
+        self._check_permission()
+        stream = BytesIO()
+        csv_writer = csv.writer(stream)
+        question_order = OrderedDict()
+        header_row = self._get_header_row(question_order)
+        column_count = len(header_row)
+        csv_writer.writerow(header_row)
+
+        user_rows = []
         # For each user submission, construct a row with their responses.
         submissions = inquiry_submissions(self.context, self.course)
         for item in submissions:
-            if not IUsersCourseInquiryItem.providedBy(item):  # always check
+            if not IUsersCourseInquiryItem.providedBy(item):
                 continue
-            subs_questions = item.Submission.questions
-            if include_usernames:
+            if self.include_usernames:
                 row = [item.creator.username]
             else:
                 row = []
-            for question in sorted(subs_questions, key=lambda x: x.inquiryId, reverse=True):
-                poll = component.queryUtility(IQPoll, name=question.inquiryId)
+
+            user_question_to_results = {}
+            for sub_question in item.Submission.questions or ():
+                question = component.queryUtility(IQPoll, name=sub_question.inquiryId)
                 # A question may have multiple parts, so we need to go through
                 # each part. We look at the question parts from the user's
                 # submission to get their responses for each part, and we also
                 # look at the question parts from the poll to get labels for the
                 # user's response, if applicable.
-                for part_idx, part in enumerate(zip(question.parts, poll.parts)):
-                    responses = []
+                user_question_results = []
+                for part_idx, part in enumerate(zip(sub_question.parts, question.parts)):
                     user_sub_part, poll_part = part
 
                     # If for some reason we don't recognize the question
@@ -658,26 +673,35 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
                     if user_sub_part is None:
                         # If the question part is None, the user did not respond
                         # to this question
+                        user_question_results.append(result)
                         continue
-                    # Get the correct function for this question type,
-                    # if we can find it, and then use that to calculate
-                    # the result.
+                    # Get the correct function for this question type, then use
+                    # that to calculate the result.
                     question_handler = self._get_function_for_question_type(poll_part)
                     if question_handler is not None:
                         result = question_handler(user_sub_part,
-                                                  poll,
+                                                  question,
                                                   part_idx)
-                    # add the result for this question to this user's row.
-                    responses.append(result)
-                    row.extend(responses)
+                    user_question_results.append(result)
+                if user_question_results:
+                    assert len(user_question_results) == len(question.parts)
+                    user_question_to_results[question.ntiid] = user_question_results
 
-            # When we've finished all the questions for this survey,
-            # add this user's row to the spreadsheet.
+            # Now build our user row via the question order
+            for question_ntiid, question in question_order.items():
+                user_result = user_question_to_results.get(question_ntiid)
+                if user_result is None:
+                    for unused_idx in question.parts or ():
+                        row.append(',')
+                else:
+                    row.extend(user_result)
+
+            assert len(row) == column_count
             user_rows.append(row)
 
         # If we have usernames, we should sort by that column.
         # Otherwise we expect these to be sorted by submission time.
-        if include_usernames:
+        if self.include_usernames:
             user_rows = sorted(user_rows, key=lambda x: x[0])
 
         for row in user_rows:

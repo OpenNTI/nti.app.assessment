@@ -120,6 +120,12 @@ class EvaluationsExporterMixin(object):
                 ext_obj['Randomized'] = is_randomized_question_set(evaluation)
                 ext_obj['RandomizedPartsType'] = is_randomized_parts_container(evaluation)
 
+            if      IQDiscussionAssignment.providedBy(evaluation) \
+                and not ext_obj.get('discussion_ntiid'):
+                # If our discussion assignment does not point to a valid
+                # discussion, exclude it.
+                return
+
             if IQAssignment.providedBy(evaluation):
                 # This is an assignment, so we need to drill down to the actual
                 # question set in order to set randomized attributes.
@@ -136,7 +142,12 @@ class EvaluationsExporterMixin(object):
             return ext_obj
 
         ordered = sorted(self.evaluations(context), key=_get_key)
-        return map(_ext, ordered)
+        result = []
+        for assessment_item in ordered:
+            ext_item = _ext(assessment_item)
+            if ext_item:
+                result.append(ext_item)
+        return result
 
     def export_evaluations(self, context, backup=True, salt=None, filer=None):
         result = LocatedExternalDict()
@@ -197,6 +208,9 @@ class _DiscussionAssignmentExporter(EvalWithPartsExporter):
                 discussion = discussions.get(name)
                 if discussion is not None:
                     result['discussion_ntiid'] = discussion.id
+                else:
+                    # Pointing at user created discussion
+                    result['discussion_ntiid'] = None
         return result
 
     def toExternalObject(self, **kwargs):

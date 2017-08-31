@@ -172,10 +172,7 @@ def get_course_evaluations(context, sites=None, intids=None, mimetypes=None,
         containers.extend((x.ntiid for x in packages))
         sites = get_resource_site_name(course) if not sites else sites
 
-    return get_container_evaluations(containers,
-                                     sites=sites,
-                                     intids=intids,
-                                     mimetypes=mimetypes)
+    return get_container_evaluations(containers, sites, intids, mimetypes)
 
 
 class AssessmentItemProxy(ProxyBase):

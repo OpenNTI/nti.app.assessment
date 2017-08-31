@@ -14,6 +14,8 @@ from collections import Mapping
 from zope import component
 from zope import interface
 
+from nti.app.assessment.common.evaluations import get_course_evaluations
+
 from nti.app.assessment.evaluations.interfaces import ICourseEvaluationsSectionExporter
 
 from nti.app.assessment.evaluations.utils import course_discussions
@@ -31,6 +33,8 @@ from nti.assessment.common import is_randomized_parts_container
 
 from nti.assessment.externalization import EvalWithPartsExporter
 
+from nti.assessment.interfaces import DISCUSSION_ASSIGNMENT_MIME_TYPE
+
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQEditableEvaluation
@@ -40,8 +44,17 @@ from nti.contentlibrary.interfaces import IEditableContentPackage
 from nti.contentlibrary.interfaces import IContentPackageExporterDecorator
 
 from nti.contenttypes.courses.discussions.interfaces import ICourseDiscussion
+from nti.contenttypes.courses.discussions.interfaces import ICourseDiscussionTopic
+from nti.contenttypes.courses.discussions.interfaces import ICourseDiscussionsSectionExporter
+
+from nti.contenttypes.courses.discussions.exporter import user_topic_file_name
+from nti.contenttypes.courses.discussions.exporter import user_topic_dicussion_id
+from nti.contenttypes.courses.discussions.exporter import export_user_topic_as_discussion
+
+from nti.contenttypes.courses.discussions.parser import path_to_discussions
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ICourseSectionExporterExecutedEvent
 
 from nti.contenttypes.courses.exporter import BaseSectionExporter
 
@@ -184,7 +197,7 @@ class _EditableContentPackageExporterDecorator(EvaluationsExporterMixin):
     def __init__(self, *args):
         pass
 
-    def decorateExternalObject(self, package, external,backup=True, salt=None, filer=None):
+    def decorateExternalObject(self, package, external, backup=True, salt=None, filer=None):
         evaluations = self.export_evaluations(package, backup, salt, filer)
         if evaluations:
             external['Evaluations'] = evaluations
@@ -195,7 +208,7 @@ class _EditableContentPackageExporterDecorator(EvaluationsExporterMixin):
 class _DiscussionAssignmentExporter(EvalWithPartsExporter):
 
     def process_discussion(self, result, course):
-        ntiid  = self.evaluation.discussion_ntiid
+        ntiid = self.evaluation.discussion_ntiid
         context = find_object_with_ntiid(ntiid)
         if context is not None:
             if ICourseDiscussion.providedBy(context):
@@ -209,8 +222,7 @@ class _DiscussionAssignmentExporter(EvalWithPartsExporter):
                 if discussion is not None:
                     result['discussion_ntiid'] = discussion.id
                 else:
-                    # Pointing at user created discussion
-                    result['discussion_ntiid'] = None
+                    result['discussion_ntiid'] = user_topic_dicussion_id(context)
         return result
 
     def toExternalObject(self, **kwargs):
@@ -219,3 +231,28 @@ class _DiscussionAssignmentExporter(EvalWithPartsExporter):
         if course is not None:
             self.process_discussion(result, course)
         return result
+
+
+@component.adapter(ICourseInstance, ICourseSectionExporterExecutedEvent)
+def _on_course_section_exported_event(context, event):
+    filer = event.filer
+    exporter = event.exporter
+    if filer is None or not ICourseDiscussionsSectionExporter.providedBy(exporter):
+        return
+    course = ICourseInstance(context)
+    bucket = path_to_discussions(course)
+    mimetypes = (DISCUSSION_ASSIGNMENT_MIME_TYPE,)
+    for evaluation in get_course_evaluations(course, None, None, mimetypes, True):
+        if not IQDiscussionAssignment.providedBy(evaluation):
+            continue
+        ntiid = evaluation.discussion_ntiid
+        topic = find_object_with_ntiid(ntiid)
+        if IHeadlinePost.providedBy(context):
+            topic = context.__parent__
+        if      ITopic.providedBy(topic) \
+            and not ICourseDiscussionTopic.providedBy(topic):
+            ext_obj = export_user_topic_as_discussion(topic)
+            source = exporter.dump(ext_obj)
+            name = user_topic_file_name(topic)
+            filer.save(name, source, contentType="application/json",
+                       bucket=bucket, overwrite=True)

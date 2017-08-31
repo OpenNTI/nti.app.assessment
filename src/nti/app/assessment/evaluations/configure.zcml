@@ -85,6 +85,8 @@
 				provides="nti.contentlibrary.interfaces.IContentPackageExporterDecorator"
 				for="nti.contentlibrary.interfaces.IEditableContentPackage" />
 				
+	<subscriber handler=".exporter._on_course_section_exported_event" />
+
 	<!-- Importer -->
 	<utility factory=".importer.EvaluationsImporter" 
 			 provides=".interfaces.ICourseEvaluationsSectionImporter" 

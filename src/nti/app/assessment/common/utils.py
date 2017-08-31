@@ -29,6 +29,8 @@ from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssessmentPolicies
 from nti.assessment.interfaces import IQAssessmentDateContext
 
+from nti.assessment.randomized.interfaces import IQuestionBank
+
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
@@ -116,7 +118,9 @@ def make_evaluation_ntiid(kind, base=None, extra=None):
     # get kind
     if IQAssignment.isOrExtends(kind):
         kind = u'assignment'
-    elif IQuestionSet.isOrExtends(kind):
+    elif    IQuestionSet.isOrExtends(kind) \
+        or  IQuestionBank.isOrExtends(kind):
+        # These are synonymous since the user can toggle state.
         kind = u'questionset'
     elif IQuestion.isOrExtends(kind):
         kind = u'question'

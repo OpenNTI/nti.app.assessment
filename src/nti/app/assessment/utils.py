@@ -111,8 +111,8 @@ def has_question_bank(a):
 def do_copy(source):
     if isProxy(source, AssessmentItemProxy):
         result = copy.copy(removeAllProxies(source))
-        result = proxy(result, 
-                       source.ContentUnitNTIID, 
+        result = proxy(result,
+                       source.ContentUnitNTIID,
                        source.CatalogEntryNTIID)
     else:
         result = copy.copy(source)
@@ -158,6 +158,7 @@ def copy_questionbank(bank, is_instructor=False, user=None):
     else:
         questions = questionbank_question_chooser(bank, user=user)
         result = bank.copy(questions=questions)
+    result.ntiid = bank.ntiid
     sublocations(result)
     return result
 

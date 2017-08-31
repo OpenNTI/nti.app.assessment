@@ -17,11 +17,8 @@ from zope import interface
 from nti.app.assessment.evaluations.interfaces import ICourseEvaluationsSectionExporter
 
 from nti.app.assessment.evaluations.utils import course_discussions
-from nti.app.assessment.evaluations.utils import export_evaluation_content
 
 from nti.app.assessment.interfaces import IQEvaluations
-
-from nti.app.assessment.utils import copy_evaluation
 
 from nti.app.authentication import get_remote_user
 
@@ -37,7 +34,7 @@ from nti.assessment.externalization import EvalWithPartsExporter
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQEditableEvaluation
-from nti.assessment.interfaces import IQDiscussionAssignment 
+from nti.assessment.interfaces import IQDiscussionAssignment
 
 from nti.contentlibrary.interfaces import IEditableContentPackage
 from nti.contentlibrary.interfaces import IContentPackageExporterDecorator
@@ -111,11 +108,6 @@ class EvaluationsExporterMixin(object):
 
         def _ext(item):
             evaluation = removeAllProxies(item)
-            if filer is not None:
-                # Copy evaluation b/c changes in content may be done
-                # during the export
-                evaluation = copy_evaluation(evaluation)
-                export_evaluation_content(evaluation, filer)
             ext_obj = to_external_object(evaluation,
                                          name="exporter",
                                          decorate=False,

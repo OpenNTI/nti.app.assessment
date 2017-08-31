@@ -41,11 +41,7 @@ from nti.dataserver.interfaces import IUser
 
 from nti.dataserver.users import User
 
-from nti.ntiids.ntiids import find_object_with_ntiid
-
 from nti.app.assessment.tests import AssessmentLayerTest
-
-from nti.dataserver.tests import mock_dataserver
 
 
 class TestSurvey(AssessmentLayerTest):
@@ -393,21 +389,13 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
             '/dataserver2/++etc++hostsites/platform.ou.edu/++etc++site/Courses/Fall2013/CLC3403_LawAndJustice' + \
             '/CourseInquiries/tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.pollid.aristotle.1'
 
-        with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
-            # We need to set a title on our survey question
-            # so that we have a meaningful header row for
-            # our report.
-            survey = find_object_with_ntiid(survey_ntiid)
-            survey_questions = survey.questions
-            question = survey_questions[0]
-            question.content = u'<a name="qid.aristotle.1">Choose an answer</a>'
-
         # If we check this when no students have submitted, we should
         # just get back the header row.
         res = self.testapp.get(survey_href + '/InquiryReport.csv',
                                extra_environ=instructor_environ)
+        question_one_content = "I have a nice, hot apple pie to divide among my four friends. I have to decide how to split up the delicious dessert."
         assert_that(res.body,
-                    is_('Choose an answer\r\n'))
+                    is_('"%s"\r\n' % question_one_content))
 
         # Make sure that we can't get this report if we're a student.
         self.testapp.get(survey_href + '/InquiryReport.csv',
@@ -430,7 +418,7 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         # chose the 0th choice, we expect to get "Distributive" back as the
         # label.
         assert_that(res.body,
-                    is_('Choose an answer\r\nDistributive\r\n'))
+                    is_('"%s"\r\nDistributive\r\n' % question_one_content))
 
         # Submit again as a different student with a different choice
         poll_sub = QPollSubmission(pollId=self.poll_id,
@@ -447,6 +435,6 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         res = self.testapp.get(survey_href + '/InquiryReport.csv?include_usernames=True',
                                extra_environ=instructor_environ)
         assert_that(res.body,
-                    is_('user,Choose an answer\r\noutest75,Distributive\r\ntest_student,Corrective\r\n'))
+                    is_('user,"%s"\r\noutest75,Distributive\r\ntest_student,Corrective\r\n' % question_one_content))
 
         # TODO: add cases for different types of survey questions.

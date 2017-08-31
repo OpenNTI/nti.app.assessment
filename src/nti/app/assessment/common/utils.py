@@ -27,9 +27,8 @@ from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssessmentPolicies
+from nti.assessment.interfaces import IQDiscussionAssignment
 from nti.assessment.interfaces import IQAssessmentDateContext
-
-from nti.assessment.randomized.interfaces import IQuestionBank
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -115,18 +114,17 @@ def get_evaluation_catalog_entry(evaluation, catalog=None):
 
 
 def make_evaluation_ntiid(kind, base=None, extra=None):
-    # get kind
-    if IQAssignment.isOrExtends(kind):
+    if kind.isOrExtends(IQDiscussionAssignment):
+        kind = u'discussionassignment'
+    elif kind.isOrExtends(IQAssignment):
         kind = u'assignment'
-    elif    IQuestionSet.isOrExtends(kind) \
-        or  IQuestionBank.isOrExtends(kind):
-        # These are synonymous since the user can toggle state.
+    elif kind.isOrExtends(IQuestionSet):
         kind = u'questionset'
-    elif IQuestion.isOrExtends(kind):
+    elif kind.isOrExtends(IQuestion):
         kind = u'question'
-    elif IQPoll.isOrExtends(kind):
+    elif kind.isOrExtends(IQPoll):
         kind = u'poll'
-    elif IQSurvey.isOrExtends(kind):
+    elif kind.isOrExtends(IQSurvey):
         kind = u'survey'
     else:
         kind = str(kind)

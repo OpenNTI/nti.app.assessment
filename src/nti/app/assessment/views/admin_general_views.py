@@ -71,6 +71,8 @@ from nti.externalization.interfaces import StandardExternalFields
 
 from nti.intid.common import removeIntId
 
+from nti.metadata import queue_add as metadata_queue_add
+
 from nti.ntiids.ntiids import find_object_with_ntiid
 
 from nti.site.hostpolicy import get_host_site
@@ -85,12 +87,6 @@ from nti.traversal.traversal import find_interface
 ITEMS = StandardExternalFields.ITEMS
 TOTAL = StandardExternalFields.TOTAL
 ITEM_COUNT = StandardExternalFields.ITEM_COUNT
-
-try:
-    from nti.metadata import queue_add as metadata_queue_add
-except ImportError:
-    def metadata_queue_add(obj):
-        pass
 
 
 @view_config(route_name='objects.generic.traversal',

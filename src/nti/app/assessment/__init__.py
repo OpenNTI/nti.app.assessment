@@ -21,6 +21,9 @@ VIEW_ASSESSMENT_MOVE = 'AssessmentMove'
 #: The ordered-contents (insert) view for QuestionSets
 VIEW_QUESTION_SET_CONTENTS = 'ordered-contents'
 
+#: The self-assessments view for QuestionSets
+VIEW_QUESTION_SET_SELF_ASSESSMENTS = 'self-assessments'
+
 #: A view to mark the assessment object as randomized.
 VIEW_RANDOMIZE = 'Randomize'
 

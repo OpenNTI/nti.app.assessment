@@ -272,7 +272,7 @@ class QuestionSetDeleteSelfAssessmentsView(AbstractAuthenticatedView,
                              },
                              None)
             
-        ntiid = self.context.ntiid
+        ntiid = self.context.containerId
         result = LocatedExternalDict()
         items = result[ITEMS] = {}
         for username in set(users):

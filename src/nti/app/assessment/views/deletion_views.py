@@ -9,6 +9,8 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+import six
+
 from requests.structures import CaseInsensitiveDict
 
 from zope.cachedescriptors.property import Lazy
@@ -23,6 +25,7 @@ from pyramid.view import view_defaults
 from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
+from nti.app.assessment import VIEW_QUESTION_SET_SELF_ASSESSMENTS
 
 from nti.app.assessment.common.evaluations import get_evaluation_containment
 
@@ -68,13 +71,21 @@ from nti.contenttypes.courses.utils import is_course_instructor
 
 from nti.dataserver import authorization as nauth
 
+from nti.dataserver.interfaces import IUser
+
+from nti.dataserver.users.users import User
+
 from nti.externalization.externalization import to_external_object
 
+from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.links.links import Link
 
+ITEMS = StandardExternalFields.ITEMS
 LINKS = StandardExternalFields.LINKS
+TOTAL = StandardExternalFields.TOTAL
+ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 
 
 def has_submissions(context):
@@ -226,3 +237,51 @@ class QuestionSetDeleteChildView(AbstractAuthenticatedView,
 
     def _validate(self):
         self._pre_flight_validation(self.context, structural_change=True)
+
+
+@view_config(route_name='objects.generic.traversal',
+             renderer='rest',
+             name=VIEW_QUESTION_SET_SELF_ASSESSMENTS,
+             context=IQuestionSet,
+             request_method='DELETE',
+             permission=nauth.ACT_NTI_ADMIN)
+class QuestionSetDeleteSelfAssessmentsView(AbstractAuthenticatedView,
+                                           ModeledContentUploadRequestUtilsMixin):
+    """
+    A view to delete self-assessments submissions for users
+    """
+
+    def readInput(self, value=None):
+        if self.request.body:
+            data = ModeledContentUploadRequestUtilsMixin.readInput(self, value)
+        else:
+            data = self.request.params
+        return CaseInsensitiveDict(data)
+
+    def __call__(self):
+        values = self.readInput()
+        users = values.get('user') or values.get('users') \
+             or values.get('username') or values.get('usernames')
+        if isinstance(users, six.string_types):
+            users = users.split(',')
+        if not users:
+            raise_json_error(self.request,
+                             hexc.HTTPUnprocessableEntity,
+                             {
+                                 'message': _(u'Must specify a username.'),
+                             },
+                             None)
+            
+        ntiid = self.context.ntiid
+        result = LocatedExternalDict()
+        items = result[ITEMS] = {}
+        for username in set(users):
+            user = User.get_user(username)
+            if not IUser.providedBy(user):
+                continue
+            try:
+                items[username] = user.deleteContainer(ntiid)
+            except KeyError:
+                items[username] = 0
+        result[TOTAL] = result[ITEM_COUNT] = len(items)
+        return result

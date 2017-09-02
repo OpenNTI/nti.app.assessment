@@ -86,6 +86,7 @@ ITEMS = StandardExternalFields.ITEMS
 LINKS = StandardExternalFields.LINKS
 TOTAL = StandardExternalFields.TOTAL
 ITEM_COUNT = StandardExternalFields.ITEM_COUNT
+CONTAINER_ID = StandardExternalFields.CONTAINER_ID
 
 
 def has_submissions(context):
@@ -274,6 +275,7 @@ class QuestionSetDeleteSelfAssessmentsView(AbstractAuthenticatedView,
             
         ntiid = self.context.containerId
         result = LocatedExternalDict()
+        result[CONTAINER_ID] = ntiid
         items = result[ITEMS] = {}
         for username in set(users):
             user = User.get_user(username)

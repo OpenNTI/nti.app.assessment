@@ -53,7 +53,7 @@ from nti.assessment.submission import QuestionSetSubmission
 
 from nti.contentfragments.interfaces import IPlainTextContentFragment
 
-from nti.dataserver.users import User
+from nti.dataserver.users.users import User
 
 from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.externalization import to_external_object
@@ -72,7 +72,7 @@ from nti.app.testing.decorators import WithSharedApplicationMockDS
 
 from nti.dataserver.tests import mock_dataserver
 
-COURSE_NTIID = 'tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice'
+COURSE_NTIID = u'tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice'
 
 
 class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):

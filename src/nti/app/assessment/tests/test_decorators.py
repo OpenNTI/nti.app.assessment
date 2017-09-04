@@ -41,8 +41,8 @@ class TestDecorators(AssessmentLayerTest):
         ext_obj = {
             'MimeType': 'application/vnd.nextthought.assessment.uploadedfile',
             'value': GIF_DATAURL,
-            'filename': u'c:\dir\file.gif',
-            'name': u'ichigo'
+            'filename': u'ichigo.gif',
+            'name': u'ichigo.gif'
         }
         assert_that(find_factory_for(ext_obj), is_(not_none()))
         internal = find_factory_for(ext_obj)()
@@ -60,8 +60,8 @@ class TestDecorators(AssessmentLayerTest):
         ext_obj = {
             'MimeType': 'application/vnd.nextthought.assessment.quploadedfile',
             'value': GIF_DATAURL,
-            'filename': u'c:\dir\file.gif',
-            'name': u'ichigo'
+            'filename': u'ichigo.gif',
+            'name': u'ichigo.gif'
         }
 
         assert_that(find_factory_for(ext_obj), is_(not_none()))

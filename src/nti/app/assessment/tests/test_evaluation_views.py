@@ -1680,3 +1680,21 @@ class TestEvaluationViews(ApplicationLayerTest):
 		self.testapp.post_json( assignment_href, submission, status=403 )
 		self.testapp.post_json( savepoint_href, submission, status=403 )
 		self.testapp.post_json( practice_submission_href, submission )
+
+	@WithSharedApplicationMockDS(testapp=True, users=True)
+	def test_delete_self_assessments(self):
+		course_oid = self._get_course_oid()
+		evaluation_href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
+		qset = self._load_questionset()
+		res = self.testapp.post_json(evaluation_href, qset, status=201)
+		res = res.json_body
+		qset_ntiid = res.get( 'NTIID' )
+		
+		enrolled_student = 'test_student'
+		self._create_and_enroll( enrolled_student, self.entry_ntiid )
+		
+		href = '/dataserver2/Objects/%s/@@self-assessments' % qset_ntiid
+		res = self.testapp.delete_json(href, {'username':enrolled_student}, 
+									   status=200)
+		assert_that(res.json_body, 
+					has_entry('Items', has_entry(enrolled_student, 0)))

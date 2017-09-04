@@ -39,6 +39,8 @@ from nti.app.assessment.common.submissions import get_all_submissions_courses
 
 from nti.app.assessment.evaluations.utils import delete_evaluation
 
+from nti.app.assessment.utils import get_course_from_request
+
 from nti.app.assessment.views.evaluation_views import EvaluationMixin
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
@@ -245,7 +247,7 @@ class QuestionSetDeleteChildView(AbstractAuthenticatedView,
              name=VIEW_QUESTION_SET_SELF_ASSESSMENTS,
              context=IQuestionSet,
              request_method='DELETE',
-             permission=nauth.ACT_NTI_ADMIN)
+             permission=nauth.ACT_READ)
 class QuestionSetDeleteSelfAssessmentsView(AbstractAuthenticatedView,
                                            ModeledContentUploadRequestUtilsMixin):
     """
@@ -259,7 +261,20 @@ class QuestionSetDeleteSelfAssessmentsView(AbstractAuthenticatedView,
             data = self.request.params
         return CaseInsensitiveDict(data)
 
+    def check_access(self):
+        course = get_course_from_request() or ICourseInstance(self.context, None)
+        result = nauth.is_admin(self.remoteUser) \
+              or is_course_instructor(course, self.remoteUser)
+        if not result:
+            raise_json_error(self.request,
+                             hexc.HTTPForbidden,
+                             {
+                                 'message': _(u'Not an admin or instructor.'),
+                             },
+                             None)
+            
     def __call__(self):
+        self.check_access()
         values = self.readInput()
         users = values.get('user') or values.get('users') \
              or values.get('username') or values.get('usernames')

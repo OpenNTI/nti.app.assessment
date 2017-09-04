@@ -1443,8 +1443,8 @@ class TestEvaluationViews(ApplicationLayerTest):
                                           parts=(qs_submission,))
 
         submission = toExternalObject(submission)
-        savepoint_href = '/dataserver2/Objects/%s/AssignmentSavepoints/sjohnson@nextthought.com/%s/Savepoint' % \
-            (course_oid, assignment_ntiid)
+        savepoint_href = '/dataserver2/Objects/%s/AssignmentSavepoints/sjohnson@nextthought.com/%s/Savepoint'
+        savepoint_href = savepoint_href % (course_oid, assignment_ntiid)
         savepoint = self.testapp.post_json(savepoint_href, submission)
         assignment = self.testapp.get(assignment_href)
         self.forbid_link_with_rel(assignment.json_body, VIEW_PUBLISH)
@@ -1719,8 +1719,8 @@ class TestEvaluationViews(ApplicationLayerTest):
                                                                    ASSESSMENT_PRACTICE_SUBMISSION)
         unpublish_href = self.require_link_href_with_rel(res, VIEW_UNPUBLISH)
         assignment_ntiid = res.get('ntiid')
-        savepoint_href = '/dataserver2/Objects/%s/AssignmentSavepoints/sjohnson@nextthought.com/%s/Savepoint' % \
-            (course_oid, assignment_ntiid)
+        savepoint_href = '/dataserver2/Objects/%s/AssignmentSavepoints/sjohnson@nextthought.com/%s/Savepoint'
+        savepoint_href = savepoint_href % (course_oid, assignment_ntiid)
         assert_that(res.get('version'), none())
         old_part = res.get('parts')[0]
         qset = old_part.get('question_set')
@@ -1759,6 +1759,11 @@ class TestEvaluationViews(ApplicationLayerTest):
         self._create_and_enroll(enrolled_student, self.entry_ntiid)
 
         href = '/dataserver2/Objects/%s/@@self-assessments' % qset_ntiid
+        student_environ = self._make_extra_environ(username=enrolled_student)
+        self.testapp.delete_json(href, {'username': enrolled_student},
+							     extra_environ=student_environ,
+                                 status=403)
+        
         res = self.testapp.delete_json(href, {'username': enrolled_student},
                                        status=200)
         assert_that(res.json_body,

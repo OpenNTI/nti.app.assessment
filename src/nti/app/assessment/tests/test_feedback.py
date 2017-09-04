@@ -31,7 +31,7 @@ class TestFeedback(unittest.TestCase):
 
     def test_interfaces(self):
         item = feedback.UsersCourseAssignmentHistoryItemFeedback()
-        item.creator = 'foo'  # anything is accepted eventually
+        item.creator = u'foo'  # anything is accepted eventually
         assert_that(item,
                     validly_provides(interfaces.IUsersCourseAssignmentHistoryItemFeedback))
 

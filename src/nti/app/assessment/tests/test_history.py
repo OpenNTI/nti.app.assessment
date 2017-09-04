@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 # disable: accessing protected members, too many methods
@@ -31,66 +31,72 @@ from nti.assessment.submission import AssignmentSubmission
 
 from nti.dataserver.interfaces import IUser
 
-from nti.dataserver.users import User
+from nti.dataserver.users.users import User
 
 from nti.app.assessment.tests import AssessmentLayerTest
 
 from nti.externalization.tests import externalizes
 
+
 class TestHistory(AssessmentLayerTest):
 
-	# NOTE: We don't actually need all this setup the layer does,
-	# but it saves time when we run in bulk
+    # NOTE: We don't actually need all this setup the layer does,
+    # but it saves time when we run in bulk
 
-	def test_provides(self):
-		histories = UsersCourseAssignmentHistories()
-		history = UsersCourseAssignmentHistory()
-		history.__parent__ = histories
-		# Set an owner; use a python wref instead of the default
-		# adapter to wref as it requires an intid utility
-		history.owner = weakref.ref(User('sjohnson@nextthought.com'))
-		item = UsersCourseAssignmentHistoryItem()
-		item.creator = 'foo'
-		item.__parent__ = history
-		assert_that(item,
-					validly_provides(IUsersCourseAssignmentHistoryItem))
+    def test_provides(self):
+        histories = UsersCourseAssignmentHistories()
+        history = UsersCourseAssignmentHistory()
+        history.__parent__ = histories
+        # Set an owner; use a python wref instead of the default
+        # adapter to wref as it requires an intid utility
+        history.owner = weakref.ref(User(u'sjohnson@nextthought.com'))
+        item = UsersCourseAssignmentHistoryItem()
+        item.creator = u'foo'
+        item.__parent__ = history
+        assert_that(item,
+                    validly_provides(IUsersCourseAssignmentHistoryItem))
 
-		assert_that(history,
-					validly_provides(IUsersCourseAssignmentHistory))
-		user = IUser(item, None)
-		if user is not None:
-			assert_that(user, is_(history.owner))
+        assert_that(history,
+                    validly_provides(IUsersCourseAssignmentHistory))
+        user = IUser(item, None)
+        if user is not None:
+            assert_that(user, is_(history.owner))
 
-		user = IUser(history, None)
-		if user is not None:
-			assert_that(user, is_(history.owner))
+        user = IUser(history, None)
+        if user is not None:
+            assert_that(user, is_(history.owner))
 
-		summ = IUsersCourseAssignmentHistoryItemSummary(item)
-		assert_that(summ,
-					validly_provides(IUsersCourseAssignmentHistoryItemSummary))
+        summ = IUsersCourseAssignmentHistoryItemSummary(item)
+        assert_that(summ,
+                    validly_provides(IUsersCourseAssignmentHistoryItemSummary))
 
-		assert_that(item, externalizes(has_entries('Class', 'UsersCourseAssignmentHistoryItem',
-												   'MimeType', 'application/vnd.nextthought.assessment.userscourseassignmenthistoryitem')))
+        assert_that(item, 
+				    externalizes(has_entries('Class', 'UsersCourseAssignmentHistoryItem',
+                                             'MimeType', 'application/vnd.nextthought.assessment.userscourseassignmenthistoryitem')))
 
-	def test_record(self):
-		history = UsersCourseAssignmentHistory()
-		submission = AssignmentSubmission(assignmentId='b')
-		pending = QAssignmentSubmissionPendingAssessment(assignmentId='b', parts=())
+    def test_record(self):
+        history = UsersCourseAssignmentHistory()
+        submission = AssignmentSubmission(assignmentId=u'b')
+        pending = QAssignmentSubmissionPendingAssessment(assignmentId=u'b', 
+														 parts=())
 
-		item = history.recordSubmission(submission, pending)
-		assert_that(item, has_property('Submission', is_(submission)))
-		assert_that(item, has_property('__name__', is_(submission.assignmentId)))
+        item = history.recordSubmission(submission, pending)
+        assert_that(item, has_property('Submission', is_(submission)))
+        assert_that(item,
+					has_property('__name__', is_(submission.assignmentId)))
 
-		assert_that(item.__parent__, is_(history))
+        assert_that(item.__parent__, is_(history))
 
-		assert_that(history, has_property('lastViewed', 0))
+        assert_that(history, has_property('lastViewed', 0))
 
-	def test_nuclear_option(self):
-		history = UsersCourseAssignmentHistory()
-		submission = AssignmentSubmission(assignmentId='b')
-		pending = QAssignmentSubmissionPendingAssessment(assignmentId='b', parts=())
+    def test_nuclear_option(self):
+        history = UsersCourseAssignmentHistory()
+        submission = AssignmentSubmission(assignmentId=u'b')
+        pending = QAssignmentSubmissionPendingAssessment(assignmentId=u'b', 
+														 parts=())
 
-		item = history.recordSubmission(submission, pending)
+        item = history.recordSubmission(submission, pending)
 
-		# in the absence of info, it's false
-		assert_that(item, has_property('_student_nuclear_reset_capable', is_false()))
+        # in the absence of info, it's false
+        assert_that(item, 
+					has_property('_student_nuclear_reset_capable', is_false()))

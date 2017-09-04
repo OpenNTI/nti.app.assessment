@@ -26,6 +26,7 @@ from nti.app.testing.decorators import WithSharedApplicationMockDS
 
 from nti.dataserver.tests import mock_dataserver
 
+
 class TestRecordables(ApplicationLayerTest):
 
     layer = InstructedCourseApplicationTestLayer
@@ -35,7 +36,7 @@ class TestRecordables(ApplicationLayerTest):
     @WithSharedApplicationMockDS(users=False, testapp=False)
     def test_recordables(self):
         with mock_dataserver.mock_db_trans(self.ds, site_name='janux.ou.edu'):
-            recordables = component.queryUtility(IRecordables, name="evaluations")
+            recordables = component.queryUtility(IRecordables, "evaluations")
             assert_that(recordables, is_not(none()))
             assert_that(list(recordables.iter_objects()),
                         has_length(greater_than(300)))

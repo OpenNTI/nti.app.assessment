@@ -164,7 +164,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         # but because we are not storing them on the user, it doesn't matter...
         # it gets replacen anyway
         # to anything)
-        ext_obj['ContainerId'] = 'tag:nextthought.com,2011-10:mathcounts-HTML-MN.2012.0'
+        ext_obj['ContainerId'] = u'tag:nextthought.com,2011-10:mathcounts-HTML-MN.2012.0'
         res = self.testapp.post_json('/dataserver2/Objects/%s?course=%s' % (self.assignment_id, COURSE_NTIID),
                                      ext_obj)
 

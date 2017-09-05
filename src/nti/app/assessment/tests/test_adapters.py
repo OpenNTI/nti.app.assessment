@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function, unicode_literals, absolute_import, division
+from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
 # disable: accessing protected members, too many methods
@@ -45,6 +45,8 @@ from nti.app.assessment.adapters import _begin_assessment_for_assignment_submiss
 
 from nti.app.assessment.feedback import UsersCourseAssignmentHistoryItemFeedback
 
+from nti.app.contentlibrary import LIBRARY_PATH_GET_VIEW
+
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 
@@ -55,16 +57,15 @@ from nti.contentfragments.interfaces import IPlainTextContentFragment
 
 from nti.dataserver.users.users import User
 
-from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.externalization import to_external_object
+
+from nti.externalization.interfaces import StandardExternalFields
 
 from nti.mimetype.mimetype import nti_mimetype_with_class
 
 from nti.app.assessment.tests import RegisterAssignmentLayer
 from nti.app.assessment.tests import RegisterAssignmentLayerMixin
 from nti.app.assessment.tests import RegisterAssignmentsForEveryoneLayer
-
-from nti.app.contentlibrary import LIBRARY_PATH_GET_VIEW
 
 from nti.app.testing.application_webtest import ApplicationLayerTest
 
@@ -80,12 +81,12 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
     layer = RegisterAssignmentsForEveryoneLayer
     features = ('assignments_for_everyone',)
 
-    default_origin = str('http://janux.ou.edu')
+    default_origin = 'http://janux.ou.edu'
     default_username = 'outest75'
 
     @WithSharedApplicationMockDS
     def test_wrong_id(self):
-        submission = AssignmentSubmission(assignmentId='b')
+        submission = AssignmentSubmission(assignmentId=u'b')
         # A component lookup error for the assignment using adapter syntax
         # turns into a TypeError
         assert_that(calling(IQAssignmentSubmissionPendingAssessment).with_args(submission),
@@ -107,32 +108,28 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
     def test_before_open(self, mock_find):
         from nti.contenttypes.courses.assignment import EmptyAssignmentDateContext
         mock_find.is_callable().returns(EmptyAssignmentDateContext(None))
-        qs_submission = QuestionSetSubmission(
-            questionSetId=self.question_set_id)
+        qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id)
         submission = AssignmentSubmission(
             assignmentId=self.assignment_id, parts=(qs_submission,))
 
         # Open tomorrow
         with mock_dataserver.mock_db_trans(self.ds, site_name='platform.ou.edu'):
-            assignment = component.getUtility(
-                IQAssignment, name=self.assignment_id)
+            assignment = component.getUtility(IQAssignment, self.assignment_id)
             assignment.available_for_submission_beginning = (
-                datetime.datetime.utcnow() + datetime.timedelta(days=1))
+                datetime.datetime.utcnow() + datetime.timedelta(days=1)
+            )
             try:
                 assert_that(calling(IQAssignmentSubmissionPendingAssessment).with_args(submission),
                             raises(ConstraintNotSatisfied, 'early'))
             finally:
-                assignment = component.getUtility(
-                    IQAssignment, name=self.assignment_id)
-
+                assignment = component.getUtility(IQAssignment, self.assignment_id)
                 assignment.available_for_submission_beginning = None
 
     @WithSharedApplicationMockDS(users=True)
     def test_pending(self):
-        qs_submission = QuestionSetSubmission(
-            questionSetId=self.question_set_id)
-        submission = AssignmentSubmission(
-            assignmentId=self.assignment_id, parts=(qs_submission,))
+        qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id)
+        submission = AssignmentSubmission(assignmentId=self.assignment_id,
+                                          parts=(qs_submission,))
 
         with mock_dataserver.mock_db_trans(self.ds, site_name='janux.ou.edu'):
             # No creator
@@ -142,15 +139,13 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
             user = User.get_user(self.extra_environ_default_user)
             submission.creator = user
             pending = IQAssignmentSubmissionPendingAssessment(submission)
-            assert_that(
-                pending, validly_provides(IQAssignmentSubmissionPendingAssessment))
-            #assert_that( pending.parts, contains(qs_submission))
+            assert_that(pending, 
+                        validly_provides(IQAssignmentSubmissionPendingAssessment))
 
         # If we try again, we fail
-        submission = AssignmentSubmission(
-            assignmentId=self.assignment_id, parts=(qs_submission,))
+        submission = AssignmentSubmission(assignmentId=self.assignment_id, 
+                                          parts=(qs_submission,))
         with mock_dataserver.mock_db_trans(self.ds, site_name='janux.ou.edu'):
-
             user = User.get_user(self.extra_environ_default_user)
             submission.creator = user
             assert_that(calling(IQAssignmentSubmissionPendingAssessment).with_args(submission),
@@ -160,19 +155,16 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
     def test_pending_application_user_data(self):
         # Sends an assignment through the application by sending it to the
         # user.
-        qs_submission = QuestionSetSubmission(
-            questionSetId=self.question_set_id)
-        submission = AssignmentSubmission(
-            assignmentId=self.assignment_id, parts=(qs_submission,))
+        qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id)
+        submission = AssignmentSubmission(assignmentId=self.assignment_id,
+                                          parts=(qs_submission,))
 
         ext_obj = to_external_object(submission)
         # If these are posted to the user, they should have a container ID,
         # but because we are not storing them on the user, it doesn't matter...
         # it gets replacen anyway
         # to anything)
-        ext_obj[
-            'ContainerId'] = 'tag:nextthought.com,2011-10:mathcounts-HTML-MN.2012.0'
-
+        ext_obj['ContainerId'] = 'tag:nextthought.com,2011-10:mathcounts-HTML-MN.2012.0'
         res = self.testapp.post_json('/dataserver2/Objects/%s?course=%s' % (self.assignment_id, COURSE_NTIID),
                                      ext_obj)
 
@@ -183,10 +175,9 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
         # Sends an assignment through the application by posting to the assignment,
         # but we're not enrolled in a course using that assignment, so it fails
-        qs_submission = QuestionSetSubmission(
-            questionSetId=self.question_set_id)
-        submission = AssignmentSubmission(
-            assignmentId=self.assignment_id, parts=(qs_submission,))
+        qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id)
+        submission = AssignmentSubmission(assignmentId=self.assignment_id, 
+                                          parts=(qs_submission,))
         ext_obj = to_external_object(submission)
 
         self.testapp.post_json('/dataserver2/Objects/%s' % self.assignment_id,
@@ -198,39 +189,39 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         # Only the owner and instructor can, others cannot
         instructor_environ = self._make_extra_environ(username='harp4162')
         outest_environ = self._make_extra_environ(username='outest5')
-        outest_environ.update({b'HTTP_ORIGIN': b'http://janux.ou.edu'})
+        outest_environ.update({'HTTP_ORIGIN': 'http://janux.ou.edu'})
 
         res = self.testapp.post_json('/dataserver2/users/' + self.default_username + '/Courses/EnrolledCourses',
                                      COURSE_NTIID,
                                      status=201)
 
-        default_enrollment_history_link = self.require_link_href_with_rel(
-            res.json_body, 'AssignmentHistory')
+        default_enrollment_history_link = self.require_link_href_with_rel(res.json_body, 
+                                                                          'AssignmentHistory')
         expected = ('/dataserver2/users/' +
                     self.default_username +
                     '/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentHistories/' +
                     self.default_username)
-        assert_that(
-            unquote(default_enrollment_history_link), is_(unquote(expected)))
+        assert_that(unquote(default_enrollment_history_link), 
+                    is_(unquote(expected)))
 
         res = self.testapp.post_json('/dataserver2/users/outest5/Courses/EnrolledCourses',
                                      COURSE_NTIID,
                                      status=201,
                                      extra_environ=outest_environ)
 
-        user2_enrollment_history_link = self.require_link_href_with_rel(
-            res.json_body, 'AssignmentHistory')
+        user2_enrollment_history_link = self.require_link_href_with_rel(res.json_body,
+                                                                        'AssignmentHistory')
 
         # each can fetch his own
         self.testapp.get(default_enrollment_history_link)
-        self.testapp.get(
-            user2_enrollment_history_link, extra_environ=outest_environ)
+        self.testapp.get(user2_enrollment_history_link, 
+                         extra_environ=outest_environ)
 
         # as can the instructor
-        self.testapp.get(
-            default_enrollment_history_link, extra_environ=instructor_environ)
-        self.testapp.get(
-            user2_enrollment_history_link, extra_environ=instructor_environ)
+        self.testapp.get(default_enrollment_history_link, 
+                         extra_environ=instructor_environ)
+        self.testapp.get(user2_enrollment_history_link,
+                        extra_environ=instructor_environ)
 
         # but they can't get each others
         self.testapp.get(default_enrollment_history_link,
@@ -240,18 +231,19 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
     def _check_submission(self, res, history=None, last_viewed=0):
         assert_that(res.status_int, is_(201))
-        assert_that(res.json_body, has_entry(
-            StandardExternalFields.CREATED_TIME, is_(float)))
-        assert_that(res.json_body, has_entry(
-            StandardExternalFields.LAST_MODIFIED, is_(float)))
-        assert_that(res.json_body, has_entry(StandardExternalFields.MIMETYPE,
-                                             'application/vnd.nextthought.assessment.assignmentsubmissionpendingassessment'))
+        assert_that(res.json_body, 
+                    has_entry(StandardExternalFields.CREATED_TIME, is_(float)))
+        assert_that(res.json_body,
+                    has_entry(StandardExternalFields.LAST_MODIFIED, is_(float)))
+        assert_that(res.json_body, 
+                    has_entry(StandardExternalFields.MIMETYPE,
+                              'application/vnd.nextthought.assessment.assignmentsubmissionpendingassessment'))
 
-        assert_that(
-            res.json_body, has_entry('ContainerId', self.assignment_id))
+        assert_that(res.json_body, 
+                    has_entry('ContainerId', self.assignment_id))
         assert_that(res.json_body, has_key('NTIID'))
-        assert_that(
-            res.json_body, has_entry('href', contains_string('Objects/')))
+        assert_that(res.json_body, 
+                    has_entry('href', contains_string('Objects/')))
 
         assert_that(res, has_property('location', contains_string('Objects/')))
 
@@ -259,16 +251,16 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         if history:
             __traceback_info__ = history
             res = self.testapp.get(history)
-            assert_that(
-                res.json_body, has_entry('href', contains_string(unquote(history))))
+            assert_that(res.json_body, 
+                        has_entry('href', contains_string(unquote(history))))
             assert_that(res.json_body, has_entry('Items', has_length(1)))
             assert_that(res.json_body, has_entry('lastViewed', last_viewed))
         else:
             # Because we're not enrolled...actually, we shouldn't
             # have been able to submit...this is here to make sure something
             # breaks when acls change
-            res = self._fetch_user_url(
-                '/Courses/EnrolledCourses/CLC3403/AssignmentHistories/' + self.default_username, status=404)
+            href = '/Courses/EnrolledCourses/CLC3403/AssignmentHistories/'
+            res = self._fetch_user_url(href + self.default_username, status=404)
 
         return res
 
@@ -280,24 +272,23 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
         # Sends an assignment through the application by posting to the
         # assignment
-        qs_submission = QuestionSetSubmission(
-            questionSetId=self.question_set_id)
-        submission = AssignmentSubmission(
-            assignmentId=self.assignment_id, parts=(qs_submission,))
+        qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id)
+        submission = AssignmentSubmission(assignmentId=self.assignment_id, 
+                                          parts=(qs_submission,))
 
         ext_obj = to_external_object(submission)
         del ext_obj['Class']
-        assert_that(ext_obj, has_entry(
-            'MimeType', 'application/vnd.nextthought.assessment.assignmentsubmission'))
+        assert_that(ext_obj, 
+                    has_entry('MimeType', 'application/vnd.nextthought.assessment.assignmentsubmission'))
         # Make sure we're enrolled
         res = self.testapp.post_json('/dataserver2/users/' + self.default_username + '/Courses/EnrolledCourses',
                                      COURSE_NTIID,
                                      status=201)
 
-        enrollment_history_link = self.require_link_href_with_rel(
-            res.json_body, 'AssignmentHistory')
-        course_history_link = self.require_link_href_with_rel(
-            res.json_body['CourseInstance'], 'AssignmentHistory')
+        enrollment_history_link = self.require_link_href_with_rel(res.json_body, 
+                                                                  'AssignmentHistory')
+        course_history_link = self.require_link_href_with_rel(res.json_body['CourseInstance'],
+                                                              'AssignmentHistory')
         course_instance_link = res.json_body['CourseInstance']['href']
 
         expected = ('/dataserver2/users/' +
@@ -315,26 +306,24 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         # I submit
         for link in course_history_link, enrollment_history_link:
             history_res = self.testapp.get(link)
-            assert_that(
-                history_res.json_body, has_entry('Items', has_length(0)))
+            assert_that(history_res.json_body, 
+                        has_entry('Items', has_length(0)))
 
-        assignment_submit_rel = '%s/%s/%s' % (
-            course_instance_link, 'Assessments', self.assignment_id)
+        assignment_submit_rel = '%s/%s/%s' % (course_instance_link, 
+                                              'Assessments', 
+                                              self.assignment_id)
         res = self.testapp.post_json(assignment_submit_rel, ext_obj)
         self._check_submission(res, enrollment_history_link)
 
         history_res = self._check_submission(res, course_history_link)
-        history_item_href = history_res.json_body[
-            'Items'][self.assignment_id]['href']
-        last_viewed_href = self.require_link_href_with_rel(
-            history_res.json_body, 'lastViewed')
+        history_item_href = history_res.json_body['Items'][self.assignment_id]['href']
+        last_viewed_href = self.require_link_href_with_rel(history_res.json_body,
+                                                            'lastViewed')
         __traceback_info__ = history_res.json_body
-        history_feedback_container_href = history_res.json_body[
-            'Items'].items()[0][1]['Feedback']['href']
+        history_feedback_container_href = history_res.json_body['Items'].items()[0][1]['Feedback']['href']
 
         # The user can send some feedback
-        feedback = UsersCourseAssignmentHistoryItemFeedback(
-            body=['Some feedback'])
+        feedback = UsersCourseAssignmentHistoryItemFeedback(body=[u'Some feedback'])
         ext_feedback = to_external_object(feedback)
         __traceback_info__ = ext_feedback
         res = self.testapp.post_json(history_feedback_container_href,
@@ -342,8 +331,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
                                      status=201)
 
         # Library path gives us course, submission, feedback.
-        library_path = self.require_link_href_with_rel(
-            res.json_body, LIBRARY_PATH_GET_VIEW)
+        library_path = self.require_link_href_with_rel(res.json_body, LIBRARY_PATH_GET_VIEW)
         library_path_res = self.testapp.get(library_path)
         library_path_res = library_path_res.json_body
         assert_that(library_path_res, has_length(1))
@@ -357,10 +345,10 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         assert_that(library_path_res[-1].get('NTIID'), is_(feedback_ntiid))
 
         # He can edit it
-        feedback_item_edit_link = self.require_link_href_with_rel(
-            res.json_body, 'edit')
+        feedback_item_edit_link = self.require_link_href_with_rel(res.json_body, 
+                                                                  'edit')
         new_feedback = dict(res.json_body)
-        new_feedback['body'] = ['Other feedback']
+        new_feedback['body'] = [u'Other feedback']
 
         res = self.testapp.put_json(feedback_item_edit_link, new_feedback)
         assert_that(res.json_body, has_entry('body', ['Other feedback']))
@@ -368,13 +356,13 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         # Both history links are equivalent and work
         for link in course_history_link, enrollment_history_link:
             history_res = self.testapp.get(link)
-            assert_that(
-                history_res.json_body, has_entry('Items', has_length(1)))
+            assert_that(history_res.json_body,
+                        has_entry('Items', has_length(1)))
             item = history_res.json_body['Items'].values()[0]
             feedback = item['Feedback']
             assert_that(feedback, has_entry('Items', has_length(1)))
-            assert_that(
-                feedback['Items'], has_item(has_entry('body', ['Other feedback'])))
+            assert_that(feedback['Items'], 
+                        has_item(has_entry('body', ['Other feedback'])))
             assert_that(feedback['Items'], has_item(has_entry('href',
                                                               ends_with('AssignmentHistories/' +
                                                                         self.default_username +
@@ -387,13 +375,13 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
         # Of course, trying to PUT directly to the object 404s (not 500, we've
         # seen clients attempt this in the wild)
-        self.testapp.put_json(
-            course_history_link + '?_dc=1234/lastViewed', 2345, status=404)
+        self.testapp.put_json(course_history_link + '?_dc=1234/lastViewed', 
+                              2345, status=404)
 
         instructor_environ = self._make_extra_environ(username='harp4162')
 
         outest_environ = self._make_extra_environ(username='outest5')
-        outest_environ.update({b'HTTP_ORIGIN': b'http://janux.ou.edu'})
+        outest_environ.update({'HTTP_ORIGIN': 'http://janux.ou.edu'})
         self.testapp.post_json('/dataserver2/users/outest5/Courses/EnrolledCourses',
                                COURSE_NTIID,
                                status=201,
@@ -405,25 +393,23 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         res = self.testapp.get(activity_link, extra_environ=instructor_environ)
         assert_that(res.json_body, has_entry('TotalItemCount', 2))
         assert_that(res.json_body['Items'],
-                    contains(
-            has_entries('Class', 'UsersCourseAssignmentHistoryItemFeedback',
-                        'AssignmentId', 'tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.asg:QUIZ1_aristotle',
-                        'SubmissionCreator', self.default_username),
-            has_entry('Class', 'AssignmentSubmission')))
+                    contains(has_entries('Class', 'UsersCourseAssignmentHistoryItemFeedback',
+                                         'AssignmentId', 'tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.asg:QUIZ1_aristotle',
+                                         'SubmissionCreator', self.default_username),
+                    has_entry('Class', 'AssignmentSubmission')))
 
         # This feedback should be notable for the instructor
-        notable_res2 = self.fetch_user_recursive_notable_ugd(
-            username='harp4162', extra_environ=instructor_environ)
+        notable_res2 = self.fetch_user_recursive_notable_ugd(username='harp4162', 
+                                                             extra_environ=instructor_environ)
         assert_that(notable_res2.json_body, has_entry('TotalItemCount', 1))
-        assert_that(notable_res2.json_body['Items'], has_item(
-            has_entry('body', has_item('Other feedback'))))
+        assert_that(notable_res2.json_body['Items'], 
+                    has_item(has_entry('body', has_item('Other feedback'))))
 
         # Now delete it before we go on.
         self.testapp.delete(feedback_item_edit_link)
 
         # The instructor can add his own feedback
-        feedback = UsersCourseAssignmentHistoryItemFeedback(
-            body=['A reply to your feedback'])
+        feedback = UsersCourseAssignmentHistoryItemFeedback(body=[u'A reply to your feedback'])
         ext_feedback = to_external_object(feedback)
         inst_feedback_res = self.testapp.post_json(history_feedback_container_href,
                                                    ext_feedback,
@@ -437,18 +423,18 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
                                                      contains(has_entry('Creator', 'harp4162'))))
 
         # ... though not for the instructor...
-        notable_res2 = self.fetch_user_recursive_notable_ugd(
-            username='harp4162', extra_environ=instructor_environ)
+        notable_res2 = self.fetch_user_recursive_notable_ugd(username='harp4162', 
+                                                             extra_environ=instructor_environ)
         assert_that(notable_res2.json_body, has_entry('TotalItemCount', 0))
 
         # ... or any other enrolled user...
-        notable_res3 = self.fetch_user_recursive_notable_ugd(
-            username='outest5', extra_environ=outest_environ)
+        notable_res3 = self.fetch_user_recursive_notable_ugd(username='outest5', 
+                                                             extra_environ=outest_environ)
         assert_that(notable_res3.json_body, has_entry('TotalItemCount', 0))
 
         # (who, BTW, can't see the item)
-        self.testapp.get(
-            history_item_href, extra_environ=outest_environ, status=403)
+        self.testapp.get(history_item_href, 
+                         extra_environ=outest_environ, status=403)
         # although we can
         self.testapp.get(history_item_href)
 
@@ -466,16 +452,16 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         # It's gone from the instructor's activity
         res = self.testapp.get(activity_link, extra_environ=instructor_environ)
         assert_that(res.json_body, has_entry('TotalItemCount', 1))
-        assert_that(res.json_body['Items'], contains(
-            has_entry('Class', 'AssignmentSubmission')))
+        assert_that(res.json_body['Items'], 
+                    contains(has_entry('Class', 'AssignmentSubmission')))
 
         # it's gone as a notable item
         notable_res = self.fetch_user_recursive_notable_ugd()
         assert_that(notable_res.json_body, has_entry('TotalItemCount', 0))
 
         # The instructor can delete our submission
-        self.testapp.delete(
-            item['href'], extra_environ=instructor_environ, status=204)
+        self.testapp.delete(item['href'], 
+                            extra_environ=instructor_environ, status=204)
         # Which empties out the activity
         res = self.testapp.get(activity_link, extra_environ=instructor_environ)
         assert_that(res.json_body, has_entry('TotalItemCount', 0))
@@ -486,8 +472,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         self._check_submission(res, enrollment_history_link, 1234)
 
         # The instructor can reset all submission
-        reset_href = '/dataserver2/Objects/%s/@@Reset' % quote(
-            self.assignment_id)
+        reset_href = '/dataserver2/Objects/%s/@@Reset' % quote(self.assignment_id)
         res = self.testapp.post_json(reset_href,
                                      extra_environ=instructor_environ, status=200)
         assert_that(res.json_body['NTIID'] == self.assignment_id)
@@ -507,19 +492,18 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
         # Sends an assignment through the application by posting to the
         # assignment
-        qs_submission = QuestionSetSubmission(
-            questionSetId=self.question_set_id)
-        submission = AssignmentSubmission(
-            assignmentId=self.assignment_id, parts=(qs_submission,))
+        qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id)
+        submission = AssignmentSubmission(assignmentId=self.assignment_id,
+                                          parts=(qs_submission,))
 
         ext_obj = to_external_object(submission)
         del ext_obj['Class']
-        assert_that(ext_obj, has_entry(
-            'MimeType', 'application/vnd.nextthought.assessment.assignmentsubmission'))
+        assert_that(ext_obj, 
+                    has_entry('MimeType', 'application/vnd.nextthought.assessment.assignmentsubmission'))
 
         history_href = '/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice/AssignmentHistories/harp4162/tag%3Anextthought.com%2C2011-10%3AOU-NAQ-CLC3403_LawAndJustice.naq.asg%3AQUIZ1_aristotle'
-        self.testapp.get(
-            history_href, extra_environ=instructor_environ, status=404)
+        self.testapp.get(history_href, 
+                         extra_environ=instructor_environ, status=404)
 
         # Practice assignment
         assignment = self.testapp.get('/dataserver2/Objects/%s?course=%s' % (self.assignment_id, COURSE_NTIID),
@@ -531,20 +515,20 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
                                      ext_obj,
                                      extra_environ=instructor_environ)
         res = res.json_body
-        assert_that(res.get('MimeType'), is_(
-            'application/vnd.nextthought.assessment.assignmentsubmissionpendingassessment'))
+        assert_that(res.get('MimeType'), 
+                    is_('application/vnd.nextthought.assessment.assignmentsubmissionpendingassessment'))
 
         # Nothing persisted.
-        history_href = self.require_link_href_with_rel(
-            res, 'AssignmentHistoryItem')
-        self.testapp.get(
-            history_href, extra_environ=instructor_environ, status=404)
+        history_href = self.require_link_href_with_rel(res,
+                                                       'AssignmentHistoryItem')
+        self.testapp.get(history_href, 
+                         extra_environ=instructor_environ, status=404)
 
         # Practice assessment
         self_assess = self.testapp.get('/dataserver2/Objects/%s' % self.question_set_id,
                                        extra_environ=instructor_environ)
-        practice_href = self.require_link_href_with_rel(
-            self_assess.json_body, ASSESSMENT_PRACTICE_SUBMISSION)
+        practice_href = self.require_link_href_with_rel(self_assess.json_body, 
+                                                        ASSESSMENT_PRACTICE_SUBMISSION)
 
         ext_obj = to_external_object(qs_submission)
         del ext_obj['Class']
@@ -552,13 +536,13 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
                                      ext_obj,
                                      extra_environ=instructor_environ)
         res = res.json_body
-        assert_that(res.get('MimeType'), is_(
-            'application/vnd.nextthought.assessment.assessedquestionset'))
+        assert_that(res.get('MimeType'),
+                    is_('application/vnd.nextthought.assessment.assessedquestionset'))
 
         # No results for qset.
         qsets_url = '/dataserver2/users/harp4162/Pages(%s)/UserGeneratedData?accept=application,vnd.nextthought.assessment.assessedquestionset' % self.question_set_id
-        self.testapp.get(
-            qsets_url, extra_environ=instructor_environ, status=404)
+        self.testapp.get(qsets_url, 
+                         extra_environ=instructor_environ, status=404)
 
     @WithSharedApplicationMockDS(users=True, testapp=True)
     def test_assignment_items_view(self):
@@ -567,13 +551,13 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         res = self.testapp.post_json('/dataserver2/users/' + self.default_username + '/Courses/EnrolledCourses',
                                      COURSE_NTIID,
                                      status=201)
-        enrollment_history_link = self.require_link_href_with_rel(
-            res.json_body, 'AssignmentHistory')
+        enrollment_history_link = self.require_link_href_with_rel(res.json_body, 
+                                                                  'AssignmentHistory')
 
-        enrollment_assignments = self.require_link_href_with_rel(
-            res.json_body, 'AssignmentsByOutlineNode')
-        self.require_link_href_with_rel(
-            res.json_body['CourseInstance'], 'AssignmentsByOutlineNode')
+        enrollment_assignments = self.require_link_href_with_rel(res.json_body, 
+                                                                 'AssignmentsByOutlineNode')
+        self.require_link_href_with_rel(res.json_body['CourseInstance'], 
+                                        'AssignmentsByOutlineNode')
 
         res = self.testapp.get(enrollment_assignments)
         assert_that(res.json_body['Items'], has_entry(self.lesson_page_id,
@@ -605,11 +589,11 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
         # If we submit...
         from nti.assessment.submission import QuestionSubmission
-        question_id = "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.1"
+        question_id = u"tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.1"
         qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id,
                                               questions=(QuestionSubmission(questionId=question_id, parts=[0]),))
-        submission = AssignmentSubmission(
-            assignmentId=self.assignment_id, parts=(qs_submission,))
+        submission = AssignmentSubmission(assignmentId=self.assignment_id,
+                                          parts=(qs_submission,))
 
         ext_obj = to_external_object(submission)
         res = self.testapp.post_json(assg_href, ext_obj)
@@ -636,12 +620,11 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
         # First, adjust the parts and category
         with mock_dataserver.mock_db_trans(self.ds, site_name='platform.ou.edu'):
-            assignment = component.getUtility(
-                IQAssignment, name=self.assignment_id)
+            assignment = component.getUtility(IQAssignment, self.assignment_id)
             assignment._old_parts = assignment.parts
             old_cat = assignment.category_name
 
-            assignment.category_name = IPlainTextContentFragment('no_submit')
+            assignment.category_name = IPlainTextContentFragment(u'no_submit')
             assignment.parts = ()
 
         try:
@@ -650,18 +633,19 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
                                          COURSE_NTIID,
                                          status=201)
 
-            enrollment_assignments = self.require_link_href_with_rel(
-                res.json_body, 'AssignmentsByOutlineNode')
-            self.require_link_href_with_rel(
-                res.json_body['CourseInstance'], 'AssignmentsByOutlineNode')
+            enrollment_assignments = self.require_link_href_with_rel(res.json_body, 
+                                                                     'AssignmentsByOutlineNode')
+            self.require_link_href_with_rel(res.json_body['CourseInstance'], 
+                                            'AssignmentsByOutlineNode')
 
             res = self.testapp.get(enrollment_assignments,
-                                   extra_environ={b'HTTP_USER_AGENT': b"NTIFoundation DataLoader NextThought/1.1.1/38605 (x86_64; 7.1)"})
+                                   extra_environ={'HTTP_USER_AGENT': "NTIFoundation DataLoader NextThought/1.1.1/38605 (x86_64; 7.1)"})
             assert_that(res.json_body, has_entry(self.lesson_page_id,
                                                  contains(has_entries('Class', 'Assignment',
                                                                       'NTIID', self.assignment_id,
                                                                       'parts', [
-                                                                          {'Class': 'AssignmentPart'}],
+                                                                          {'Class': 'AssignmentPart'}
+                                                                       ],
                                                                       'category_name', 'no_submit'))))
 
             res = self.testapp.get(enrollment_assignments)
@@ -673,9 +657,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
         finally:
             with mock_dataserver.mock_db_trans(self.ds, site_name='platform.ou.edu'):
-                assignment = component.getUtility(
-                    IQAssignment, name=self.assignment_id)
-
+                assignment = component.getUtility(IQAssignment, self.assignment_id)
                 assignment.category_name = old_cat
                 assignment.parts = assignment._old_parts
                 del assignment._old_parts
@@ -684,7 +666,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 class TestAssignmentFiltering(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
     layer = RegisterAssignmentLayer
-    default_origin = str('http://janux.ou.edu')
+    default_origin = 'http://janux.ou.edu'
     # With the feature missing
 
     @WithSharedApplicationMockDS(users=True, testapp=True)
@@ -713,10 +695,10 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin, ApplicationLayerTest
             # the enrollment
             # record_href = '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses/tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/'
 
-            enrollment_assignments = self.require_link_href_with_rel(
-                links_from, 'AssignmentsByOutlineNode')
-            enrollment_non_assignments = self.require_link_href_with_rel(
-                links_from, 'NonAssignmentAssessmentItemsByOutlineNode')
+            enrollment_assignments = self.require_link_href_with_rel(links_from, 
+                                                                     'AssignmentsByOutlineNode')
+            enrollment_non_assignments = self.require_link_href_with_rel(links_from, 
+                                                                         'NonAssignmentAssessmentItemsByOutlineNode')
 
         elif link_kind == 'enrollment_ntiid':
             # The ntiid and mime type are missing, because they would be wrong
@@ -728,10 +710,10 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin, ApplicationLayerTest
             return
         elif link_kind == 'course':
             links_from = res.json_body['CourseInstance']
-            enrollment_assignments = self.require_link_href_with_rel(
-                links_from, 'AssignmentsByOutlineNode')
-            enrollment_non_assignments = self.require_link_href_with_rel(
-                links_from, 'NonAssignmentAssessmentItemsByOutlineNode')
+            enrollment_assignments = self.require_link_href_with_rel(links_from,
+                                                                    'AssignmentsByOutlineNode')
+            enrollment_non_assignments = self.require_link_href_with_rel(links_from, 
+                                                                         'NonAssignmentAssessmentItemsByOutlineNode')
         else:
             raise ValueError(link_kind)
 
@@ -752,7 +734,7 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin, ApplicationLayerTest
                         has_entry(u'href', course_href + '@@AssignmentsByOutlineNode'))
 
             res = self.fetch_by_ntiid(lesson_page_id,
-                                      headers={b'Accept': str(page_info_mt)})
+                                      headers={'Accept': str(page_info_mt)})
             items = res.json_body.get('AssessmentItems', ())
             assert_that(items,
                         does_not(contains(has_entry('Class', 'Assignment'))))
@@ -794,13 +776,13 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin, ApplicationLayerTest
         # When we get the page info, only the assignment comes back,
         # not the things it contains
         res = self.fetch_by_ntiid(lesson_page_id,
-                                  headers={b'Accept': str(page_info_mt)})
+                                  headers={'Accept': str(page_info_mt)})
         items = res.json_body.get('AssessmentItems', ())
         for item in items:
             ntiid_set.add(item.get('NTIID'))
             found_survey = found_survey or item.get('Class') == 'Survey'
-            found_assignment = found_assignment or item.get(
-                'Class') == 'Assignment'
+            found_assignment = found_assignment \
+                            or item.get('Class') == 'Assignment'
         assert_that(found_survey, is_(True))
         assert_that(found_assignment, is_(True))
 
@@ -815,7 +797,8 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin, ApplicationLayerTest
             from nti.assessment.interfaces import IQAssignmentPolicies
             cat = component.getUtility(ICourseCatalog)
             entry, = [
-                x for x in cat.iterCatalogEntries() if x.ProviderUniqueID == 'CLC 3403']
+                x for x in cat.iterCatalogEntries() if x.ProviderUniqueID == 'CLC 3403'
+            ]
             course = ICourseInstance(entry)
             policies = IQAssignmentPolicies(course)
             policies[self.assignment_ntiid] = {'excluded': True}

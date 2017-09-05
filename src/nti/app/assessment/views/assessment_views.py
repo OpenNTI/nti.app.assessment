@@ -94,7 +94,7 @@ from nti.dataserver import authorization as nauth
 
 from nti.dataserver.contenttypes.forums.interfaces import ITopic
 
-from nti.dataserver.users import User
+from nti.dataserver.users.users import User
 
 from nti.externalization.externalization import to_external_object
 

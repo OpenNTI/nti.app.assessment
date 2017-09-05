@@ -103,7 +103,7 @@ from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
 from nti.dataserver.interfaces import IUser
 
-from nti.dataserver.users import User
+from nti.dataserver.users.users import User
 
 from nti.externalization.oids import to_external_oid
 

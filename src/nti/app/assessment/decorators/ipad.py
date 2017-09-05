@@ -56,7 +56,7 @@ class _IPad110NoSubmitPartAdjuster(AbstractAuthenticatedRequestAwareDecorator):
                 "NTIFoundation DataLoader NextThought/1.1.0",
                 "NTIFoundation DataLoader NextThought/1.1.1")
 
-    def _predicate(self, context, result):
+    def _predicate(self, context, unused_result):
         if not context.no_submit or context.parts:
             return False
         ua = self.request.environ.get('HTTP_USER_AGENT', '')
@@ -66,5 +66,5 @@ class _IPad110NoSubmitPartAdjuster(AbstractAuthenticatedRequestAwareDecorator):
             if ua.startswith(bua):
                 return True
 
-    def _do_decorate_external(self, context, result):
+    def _do_decorate_external(self, unused_context, result):
         result['parts'] = [{'Class': 'AssignmentPart'}]

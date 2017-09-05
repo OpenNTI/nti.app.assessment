@@ -57,7 +57,7 @@ from nti.dataserver.interfaces import ACE_DENY_ALL
 from nti.dataserver.interfaces import ALL_PERMISSIONS
 from nti.dataserver.interfaces import EVERYONE_USER_NAME
 
-from nti.dataserver.users import User
+from nti.dataserver.users.users import User
 
 from nti.dublincore.datastructures import PersistentCreatedModDateTrackingObject
 

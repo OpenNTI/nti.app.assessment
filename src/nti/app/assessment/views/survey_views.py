@@ -92,6 +92,7 @@ from nti.contentfragments.interfaces import IPlainTextContentFragment
 from nti.contenttypes.courses.utils import is_course_instructor
 
 from nti.dataserver import authorization as nauth
+
 from nti.dataserver.users.interfaces import IFriendlyNamed
 
 from nti.externalization.externalization import to_external_object

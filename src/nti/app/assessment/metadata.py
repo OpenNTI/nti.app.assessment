@@ -56,7 +56,7 @@ from nti.dataserver.interfaces import IACLProvider
 from nti.dataserver.authorization_acl import ace_allowing
 from nti.dataserver.authorization_acl import acl_from_aces
 
-from nti.dataserver.users import User
+from nti.dataserver.users.users import User
 
 from nti.dublincore.datastructures import PersistentCreatedModDateTrackingObject
 

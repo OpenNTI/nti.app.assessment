@@ -39,7 +39,7 @@ LINKS = StandardExternalFields.LINKS
 
 class _AssignmentSavepointDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
-    def _predicate(self, context, result):
+    def _predicate(self, context, unused_result):
         """
         Do not decorate non-started timed assignments.
         """

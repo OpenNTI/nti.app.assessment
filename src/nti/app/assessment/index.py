@@ -44,8 +44,6 @@ from nti.base._compat import text_
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
-from nti.dataserver.interfaces import IMetadataCatalog
-
 from nti.site.interfaces import IHostPolicyFolder
 
 from nti.traversal.traversal import find_interface
@@ -58,6 +56,8 @@ from nti.zope_catalog.index import AttributeKeywordIndex
 from nti.zope_catalog.index import IntegerAttributeIndex
 from nti.zope_catalog.index import ValueIndex as RawValueIndex
 from nti.zope_catalog.index import AttributeValueIndex as ValueIndex
+
+from nti.zope_catalog.interfaces import IMetadataCatalog
 
 from nti.zope_catalog.string import StringTokenNormalizer
 

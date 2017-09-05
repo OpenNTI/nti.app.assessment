@@ -24,7 +24,7 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
 
 from nti.assessment.interfaces import IQAssignment
 
-from nti.dataserver.users import User
+from nti.dataserver.users.users import User
 
 from nti.dataserver.utils import run_with_dataserver
 

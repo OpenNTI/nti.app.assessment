@@ -52,10 +52,10 @@ class _AbstractNonEditorRandomizingDecorator(AbstractAuthenticatedRequestAwareDe
     an editor, and a non-randomized interface.
     """
 
-    def _predicate(self, context, result):
+    def _predicate(self, context, unused_result):
         user = self.remoteUser
-        course = _get_course_from_evaluation(
-            context, user, request=self.request)
+        course = _get_course_from_evaluation(context, user, 
+                                             request=self.request)
         return   self._is_authenticated \
             and not is_course_instructor_or_editor(course, user) \
             and not has_permission(ACT_CONTENT_EDIT, context, self.request)

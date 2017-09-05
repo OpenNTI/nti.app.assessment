@@ -49,7 +49,7 @@ from nti.contenttypes.courses.utils import get_courses_for_packages
 
 from nti.dataserver.authorization import ACT_READ
 
-from nti.dataserver.users import User
+from nti.dataserver.users.users import User
 
 from nti.publishing.interfaces import IPublishable
 

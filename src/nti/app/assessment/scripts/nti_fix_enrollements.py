@@ -26,7 +26,7 @@ from nti.contenttypes.courses.interfaces import ICourseEnrollments
 
 from nti.contenttypes.courses.sharing import on_enroll_record_scope_membership
 
-from nti.dataserver.users import User
+from nti.dataserver.users.users import User
 
 from nti.dataserver.utils import run_with_dataserver
 

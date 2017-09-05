@@ -82,7 +82,7 @@ from nti.contenttypes.courses.utils import get_parent_course
 
 from nti.dataserver.contenttypes.forums.interfaces import ITopic
 
-from nti.dataserver.users import User
+from nti.dataserver.users.users import User
 
 from nti.ntiids.ntiids import find_object_with_ntiid
 

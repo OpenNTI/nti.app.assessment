@@ -324,7 +324,7 @@ class UsersCourseAssignmentHistoryItemSummary(Contained):
     """
     __external_can_create__ = False
 
-    __slots__ = (b'_history_item',)
+    __slots__ = ('_history_item',)
 
     def __init__(self, history_item):
         self._history_item = history_item

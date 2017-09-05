@@ -42,7 +42,7 @@ from nti.dataserver import authorization as nauth
 
 from nti.dataserver.interfaces import IGroupMember
 
-from nti.dataserver.users import User
+from nti.dataserver.users.users import User
 
 
 @view_config(context=IQuestion)

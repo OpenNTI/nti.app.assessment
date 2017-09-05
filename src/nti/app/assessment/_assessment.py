@@ -15,7 +15,7 @@ from nti.app.assessment.adapters import _history_for_user_in_course
 from nti.app.assessment.metadata import _metadata_for_user_in_course
 from nti.app.assessment.metadata import _metadatacontainer_for_course
 
-from nti.dataserver.users import User
+from nti.dataserver.users.users import User
 
 
 def _container_mover(old_container, new_container, verbose=True,

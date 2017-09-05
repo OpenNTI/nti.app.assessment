@@ -64,7 +64,6 @@ from nti.dataserver.interfaces import IUsernameSubstitutionPolicy
 
 from nti.externalization.proxy import removeAllProxies
 
-from nti.ntiids.ntiids import is_valid_ntiid_string
 from nti.ntiids.ntiids import find_object_with_ntiid
 
 
@@ -179,8 +178,7 @@ def copy_evaluation(context, is_instructor=True):
     if IQAssignment.providedBy(context):
         result = copy_assignment(context)
     elif IQuestionBank.providedBy(context):
-        result = copy_questionbank(context,
-                                   is_instructor=is_instructor)  # all questions
+        result = copy_questionbank(context, is_instructor)
     elif IQuestionSet.providedBy(context):
         result = copy_questionset(context)
     elif IQuestion.providedBy(context):
@@ -250,7 +248,7 @@ def get_course_from_request(request=None, params=None):
              or params.get('ntiid') \
              or params.get('context')
         ntiid = unquote(ntiid) if ntiid else None
-        if ntiid and is_valid_ntiid_string(ntiid):
+        if ntiid:
             result = find_object_with_ntiid(ntiid)
             result = ICourseInstance(result, None)
             return result
@@ -270,7 +268,7 @@ def get_package_from_request(request=None, params=None):
              or params.get('ntiid') \
              or params.get('context')
         ntiid = unquote(ntiid) if ntiid else None
-        if ntiid and is_valid_ntiid_string(ntiid):
+        if ntiid:
             result = find_object_with_ntiid(ntiid)
             result = IContentPackage(result, None)
             return result
@@ -325,6 +323,7 @@ class RandomizedPartGraderUnshuffleValidator(object):
             user = get_remote_user()
             username = getattr(user, 'username', user)
             creator = getattr(creator, 'username', creator)
+            creator = getattr(creator, 'id', creator)
             # If we have a creator, it probably means we're decorating.
             # If we don't have a creator, the remote user is the creator.
             if creator and creator != username:

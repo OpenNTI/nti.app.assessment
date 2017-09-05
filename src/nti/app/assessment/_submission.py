@@ -158,8 +158,10 @@ def transfer_submission_file_data(source, target,  force=False):
         if force:
             return True
         else:
+            filename = getattr(source, 'filename', None)
+            size = getattr(source, 'size', None) or source.getSize()
             result = IInternalUploadedFileRef.providedBy(source) \
-                  or (not source.filename and source.size == 0)
+                  or (not filename and size == 0)
             return result
 
     # extra check
@@ -192,10 +194,11 @@ def transfer_submission_file_data(source, target,  force=False):
                         part_value.data = old_part_value.data
                         part_value.filename = old_part_value.filename
                         part_value.contentType = old_part_value.contentType
-                        part_value.name = getattr(old_part_value, 'name', None)
+                        name = getattr(old_part_value, 'name', None) 
+                        part_value.name = name or part_value.filename
                         interface.noLongerProvides(part_value,
                                                    IInternalUploadedFileRef)
-        except POSError:
+        except (POSError, TypeError):
             logger.exception("Failed to transfer data from savepoints")
             break
     return target

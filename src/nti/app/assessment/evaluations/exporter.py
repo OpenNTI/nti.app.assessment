@@ -257,6 +257,6 @@ def export_user_course_discussions(context, exporter, filer):
 def _on_course_section_exported_event(context, event):
     filer = event.filer
     exporter = event.exporter
-    if filer is not None and ICourseDiscussionsSectionExporter.providedBy(exporter):
+    if ICourseDiscussionsSectionExporter.providedBy(exporter) and filer is not None:
         export_user_course_discussions(context, exporter, filer)
     

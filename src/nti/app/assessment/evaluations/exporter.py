@@ -234,6 +234,7 @@ class _DiscussionAssignmentExporter(EvalWithPartsExporter):
 
 
 def export_user_course_discussions(context, exporter, filer):
+    result = []
     course = ICourseInstance(context)
     bucket = path_to_discussions(course)
     mimetypes = (DISCUSSION_ASSIGNMENT_MIME_TYPE,)
@@ -251,6 +252,8 @@ def export_user_course_discussions(context, exporter, filer):
             name = user_topic_file_name(topic)
             filer.save(name, source, contentType="application/json",
                        bucket=bucket, overwrite=True)
+            result.append(topic)
+    return result
 
 
 @component.adapter(ICourseInstance, ICourseSectionExporterExecutedEvent)
@@ -258,5 +261,6 @@ def _on_course_section_exported_event(context, event):
     filer = event.filer
     exporter = event.exporter
     if ICourseDiscussionsSectionExporter.providedBy(exporter) and filer is not None:
+        logger.info("Exporting discussion assignment course discussions")
         export_user_course_discussions(context, exporter, filer)
     

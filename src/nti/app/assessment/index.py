@@ -281,7 +281,7 @@ class ValidatingAssesmentHasFileType(object):
 
     def __init__(self, obj, unused_default=None):
         if IUsersCourseSubmissionItem.providedBy(obj):
-            self.hasFile = has_submitted_file(obj)
+            self.hasFile = has_submitted_file(obj.Submission)
 
     def __reduce__(self):
         raise TypeError()

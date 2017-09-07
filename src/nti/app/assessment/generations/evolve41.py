@@ -71,14 +71,14 @@ def do_evolve(context, generation=generation):
 
         catalog = install_submission_catalog(ds_folder, intids)
         if not IX_HAS_FILE in catalog:
-            index = AssesmentHasFileIndex(intids.family)
+            index = AssesmentHasFileIndex(family=intids.family)
             locate(index, catalog, IX_HAS_FILE)
             intids.register(index)
             catalog[IX_HAS_FILE] = index
 
             source = catalog[IX_ASSESSMENT_ID]
             for doc_id in source.ids():
-                obj = intids.queryOject(doc_id)
+                obj = intids.queryObject(doc_id)
                 if IUsersCourseSubmissionItem.providedBy(obj):
                     index.index_doc(doc_id, obj)
 

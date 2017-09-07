@@ -30,10 +30,9 @@ from nti.links.links import Link
 @interface.implementer(IEditLinkMaker)
 class AssesmentEditLinkMaker(DefaultEditLinkMaker):
 
-    def make(self, context, request=None,
-             allow_traversable_paths=True, link_method=None):
+    def make(self, context, request=None, allow_traversable_paths=True, link_method=None):
         context = self.context if context is None else context
-        for composite in (get_course_from_request(request), 
+        for composite in (get_course_from_request(request),
                           get_package_from_request(request)):
             if composite is not None:
                 link = Link(composite,
@@ -45,8 +44,5 @@ class AssesmentEditLinkMaker(DefaultEditLinkMaker):
                 interface.alsoProvides(link, ILocation)
                 return link
         # default
-        return DefaultEditLinkMaker.make(self,
-                                         context,
-                                         request=request,
-                                         link_method=link_method,
-                                         allow_traversable_paths=allow_traversable_paths)
+        return DefaultEditLinkMaker.make(self, context, request,
+                                         allow_traversable_paths, link_method)

@@ -216,7 +216,7 @@ class _DiscussionAssignmentExporter(EvalWithPartsExporter):
             elif IHeadlinePost.providedBy(context):
                 context = context.__parent__
             if ITopic.providedBy(context):
-                name = context.__name__
+                name = context.__name__ # by definition
                 discussions = course_discussions(course)
                 discussion = discussions.get(name)
                 if discussion is not None:
@@ -233,12 +233,7 @@ class _DiscussionAssignmentExporter(EvalWithPartsExporter):
         return result
 
 
-@component.adapter(ICourseInstance, ICourseSectionExporterExecutedEvent)
-def _on_course_section_exported_event(context, event):
-    filer = event.filer
-    exporter = event.exporter
-    if filer is None or not ICourseDiscussionsSectionExporter.providedBy(exporter):
-        return
+def export_user_course_discussions(context, exporter, filer):
     course = ICourseInstance(context)
     bucket = path_to_discussions(course)
     mimetypes = (DISCUSSION_ASSIGNMENT_MIME_TYPE,)
@@ -256,3 +251,12 @@ def _on_course_section_exported_event(context, event):
             name = user_topic_file_name(topic)
             filer.save(name, source, contentType="application/json",
                        bucket=bucket, overwrite=True)
+
+
+@component.adapter(ICourseInstance, ICourseSectionExporterExecutedEvent)
+def _on_course_section_exported_event(context, event):
+    filer = event.filer
+    exporter = event.exporter
+    if filer is not None and ICourseDiscussionsSectionExporter.providedBy(exporter):
+        export_user_course_discussions(context, exporter, filer)
+    

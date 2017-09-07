@@ -243,8 +243,7 @@ def _on_assignment_unlock_event(context, unused_event):
 def _on_editable_evaluation_removed(context, unused_event):
     if IQSubmittable.providedBy(context):
         delete_all_evaluation_data(context)
-    else:
-        delete_all_evaluation_policy_data(context)
+    delete_all_evaluation_policy_data(context)
 
 
 @component.adapter(ICourseInstance, IIntIdRemovedEvent)

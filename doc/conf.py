@@ -155,7 +155,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
     (master_doc, 'ntiappassessment', u'nti.app.assessment Documentation',
-     author, 'ntiapp.assessment', 'One line description of project.',
+     author, 'ntiappassessment', 'One line description of project.',
      'Miscellaneous'),
 ]
 

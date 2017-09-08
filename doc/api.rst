@@ -5,7 +5,7 @@
 Adapters
 ========
 
-.. automodule:: nti.app.adapters
+.. automodule:: nti.app.assessment.adapters
 
 History
 =======

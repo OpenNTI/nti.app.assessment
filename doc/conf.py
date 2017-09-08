@@ -106,7 +106,7 @@ html_static_path = ['_static']
 # -- Options for HTMLHelp output ------------------------------------------
 
 # Output file app.assessment name for HTML help builder.
-htmlhelp_app.assessmentname = 'ntiappassessmentdoc'
+htmlhelp_appassessmentname = 'ntiappassessmentdoc'
 
 
 # -- Options for LaTeX output ---------------------------------------------

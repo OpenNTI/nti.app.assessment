@@ -408,9 +408,9 @@ class QuestionMap(QuestionIndex):
                                           content_package,
                                           by_file,
                                           level_ntiid,
-                                          registry=registry,
-                                          sync_results=sync_results,
-                                          key_lastModified=key_lastModified)
+                                          registry,
+                                          sync_results,
+                                          key_lastModified)
         things_to_register.update(items)
 
         for child_item in index.get('Items', {}).values():

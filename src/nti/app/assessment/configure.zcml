@@ -450,6 +450,9 @@
 	<!-- Recordables -->
 	<utility factory=".recordables.EvaluationRecordables" name="evaluations" />
 
+	<!-- Publishables -->
+	<utility factory=".publishables.EvaluationPublishables" name="evaluations" />
+
 	<!-- Site -->
 	<adapter factory=".adapters._evaluation_to_site" />
 

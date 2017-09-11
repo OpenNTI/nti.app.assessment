@@ -42,8 +42,8 @@ from nti.dataserver.interfaces import IUser
 # So for now, we're implementing the filters with brute force
 
 
-@interface.implementer(ICourseAssessmentUserFilter)
 @component.adapter(IUser, ICourseInstance)
+@interface.implementer(ICourseAssessmentUserFilter)
 class UserEnrolledForCreditInCourseOrInstructsFilter(object):
     """
     Allows access to the assignment if the user is enrolled
@@ -66,13 +66,11 @@ class UserEnrolledForCreditInCourseOrInstructsFilter(object):
         record = get_enrollment_in_hierarchy(self.course, self.user)
         return bool(record is not None and record.Scope != ES_PUBLIC)
 
-    def allow_assessment_for_user_in_course(self, asg, user, course):
+    def allow_assessment_for_user_in_course(self, asg, *unused_args, **unused_kwargs):
         if self.TEST_OVERRIDE:
             return True
-
         if not asg.is_non_public:
             return True
-
         # Note implicit assumption that assignment is in course
         # TODO: check if assignment is indeed in the enroll for credit courses
         return self.is_instructor or self.is_enrolled_for_credit
@@ -97,11 +95,9 @@ class AssessmentPolicyExclusionFilter(object):
     def __init__(self, unused_user=None, course=None):
         self.policies = IQAssessmentPolicies(course)
 
-    def allow_assessment_for_user_in_course(self, asg, user=None, course=None):
+    def allow_assessment_for_user_in_course(self, asg, *unused_args, **unused_kwargs):
         return not self.policies.getPolicyForAssessment(asg.ntiid).get('excluded', False)
     allow_assignment_for_user_in_course = allow_assessment_for_user_in_course
-
-
 AssignmentPolicyExclusionFilter = AssessmentPolicyExclusionFilter
 
 
@@ -112,7 +108,7 @@ class AssessmentPublishExclusionFilter(object):
     def __init__(self, user=None, course=None):
         pass
 
-    def allow_assessment_for_user_in_course(self, asg, user=None, course=None):
+    def allow_assessment_for_user_in_course(self, asg, *unused_args, **unused_kwargs):
         return asg.is_published()
     # BWC
     allow_assignment_for_user_in_course = allow_assessment_for_user_in_course

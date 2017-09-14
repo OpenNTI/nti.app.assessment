@@ -72,7 +72,8 @@ from nti.externalization.interfaces import IInternalObjectExternalizer
 
 from nti.externalization.proxy import removeAllProxies
 
-from nti.ntiids.ntiids import hash_ntiid, find_object_with_ntiid
+from nti.ntiids.ntiids import hash_ntiid
+from nti.ntiids.ntiids import find_object_with_ntiid
 
 from nti.traversal.traversal import find_interface
 

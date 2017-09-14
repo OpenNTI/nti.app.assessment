@@ -63,9 +63,9 @@ from nti.dataserver.interfaces import IACLProvider
 
 from nti.dublincore.datastructures import PersistentCreatedModDateTrackingObject
 
-from nti.externalization.oids import to_external_ntiid_oid
-
 from nti.links.links import Link
+
+from nti.ntiids.oids import to_external_ntiid_oid
 
 from nti.property.property import alias
 

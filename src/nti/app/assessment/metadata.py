@@ -62,10 +62,10 @@ from nti.dublincore.datastructures import PersistentCreatedModDateTrackingObject
 
 from nti.externalization.datastructures import InterfaceObjectIO
 
-from nti.externalization.externalization import to_external_ntiid_oid
-
 from nti.externalization.interfaces import IInternalObjectUpdater
 from nti.externalization.interfaces import StandardExternalFields
+
+from nti.ntiids.oids import to_external_ntiid_oid
 
 from nti.property.property import alias
 

@@ -74,9 +74,9 @@ from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.internalization import find_factory_for
 from nti.externalization.internalization import update_from_external_object
 
-from nti.externalization.oids import to_external_ntiid_oid
-
 from nti.ntiids.ntiids import find_object_with_ntiid
+
+from nti.ntiids.oids import to_external_ntiid_oid
 
 from nti.publishing.interfaces import ICalendarPublishable
 

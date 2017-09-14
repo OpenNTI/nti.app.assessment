@@ -107,13 +107,14 @@ from nti.contenttypes.courses.utils import is_course_instructor_or_editor
 from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
 from nti.externalization.externalization import to_external_object
-from nti.externalization.externalization import to_external_ntiid_oid
 
 from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import IExternalObjectDecorator
 from nti.externalization.interfaces import IExternalMappingDecorator
 
 from nti.externalization.singleton import SingletonDecorator
+
+from nti.ntiids.oids import to_external_ntiid_oid
 
 from nti.links.links import Link
 

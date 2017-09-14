@@ -93,11 +93,12 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.dataserver.users.users import User
 
 from nti.externalization.externalization import toExternalObject
-from nti.externalization.externalization import to_external_ntiid_oid
 
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.ntiids.ntiids import find_object_with_ntiid
+
+from nti.ntiids.oids import to_external_ntiid_oid
 
 from nti.recorder.interfaces import ITransactionRecordHistory
 

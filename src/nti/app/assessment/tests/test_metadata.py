@@ -31,7 +31,7 @@ from nti.app.assessment.metadata import UsersCourseAssignmentMetadataContainer
 
 from nti.dataserver.interfaces import IUser
 
-from nti.dataserver.users import User
+from nti.dataserver.users.users import User
 
 from nti.app.assessment.tests import AssessmentLayerTest
 

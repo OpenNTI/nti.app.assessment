@@ -87,9 +87,6 @@ INTERNAL_NTIID = StandardInternalFields.NTIID
 
 class EvaluationsExporterMixin(object):
 
-    def transform(self, obj, *unused_args, **unused_kwargs):
-        return obj
-
     def change_evaluation_ntiid(self, ext_obj, salt=None):
         if isinstance(ext_obj, Mapping):
             # when not backing up make sure we take a hash of the current NTIID and
@@ -125,13 +122,9 @@ class EvaluationsExporterMixin(object):
 
         def _ext(item):
             evaluation = removeAllProxies(item)
-            ext_obj = to_external_object(self.transform(evaluation, filer, backup, salt),
+            ext_obj = to_external_object(evaluation,
                                          name="exporter",
-                                         decorate=False,
-                                         # export params
-                                         salt=salt,
-                                         filer=filer,
-                                         backup=backup)
+                                         decorate=False)
 
             if IQuestionSet.providedBy(evaluation):
                 ext_obj['Randomized'] = is_randomized_question_set(evaluation)
@@ -177,9 +170,6 @@ class EvaluationsExporterMixin(object):
 
 @interface.implementer(ICourseEvaluationsSectionExporter)
 class EvaluationsExporter(EvaluationsExporterMixin, BaseSectionExporter):
-
-    def transform(self, obj, *args, **kwargs):
-        return self.proxy(obj, *args, **kwargs)
 
     def externalize(self, context, backup=True, salt=None, filer=None):
         course = ICourseInstance(context)

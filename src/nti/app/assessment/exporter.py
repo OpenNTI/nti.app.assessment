@@ -53,8 +53,7 @@ class AssessmentsExporter(BaseSectionExporter):
                 evaluation = removeAllProxies(evaluation)
                 if IQEditableEvaluation.providedBy(evaluation):
                     continue
-                proxy = self.proxy(evaluation, filer, backup, salt)
-                ext_obj = to_external_object(proxy,
+                ext_obj = to_external_object(evaluation,
                                              name="exporter",
                                              decorate=False)
                 evaluations[evaluation.ntiid] = ext_obj

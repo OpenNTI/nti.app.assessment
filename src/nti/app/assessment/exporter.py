@@ -42,7 +42,7 @@ NTIID = StandardExternalFields.NTIID
 @interface.implementer(ICourseSectionExporter)
 class AssessmentsExporter(BaseSectionExporter):
 
-    def mapped(self, package, items):
+    def mapped(self, package, items, filer=None, backup=False, salt=None):
 
         def _recur(unit, items):
             # all units have a map
@@ -53,7 +53,8 @@ class AssessmentsExporter(BaseSectionExporter):
                 evaluation = removeAllProxies(evaluation)
                 if IQEditableEvaluation.providedBy(evaluation):
                     continue
-                ext_obj = to_external_object(evaluation,
+                proxy = self.proxy(evaluation, filer, backup, salt)
+                ext_obj = to_external_object(proxy,
                                              name="exporter",
                                              decorate=False)
                 evaluations[evaluation.ntiid] = ext_obj
@@ -78,19 +79,19 @@ class AssessmentsExporter(BaseSectionExporter):
             # XXX: add legacy required for importimg
             items[package.ntiid]['filename'] = 'index.html'
 
-    def externalize(self, context):
+    def externalize(self, context, filer=None, backup=False, salt=None):
         result = LocatedExternalDict()
         course = ICourseInstance(context)
         course = get_parent_course(course)
         items = result[ITEMS] = dict()
         for package in get_course_packages(course):
             if not IEditableContentPackage.providedBy(package):
-                self.mapped(package, items)
+                self.mapped(package, items, filer, backup, salt)
         return result
 
-    def export(self, context, filer, unused_backup=True, unused_salt=None):
+    def export(self, context, filer, backup=True, salt=None):
         filer.default_bucket = None
-        result = self.externalize(context)
+        result = self.externalize(context, filer, backup, salt)
         source = self.dump(result)
         filer.save("assessment_index.json", source,
                    contentType="application/json", overwrite=True)

@@ -42,7 +42,7 @@ NTIID = StandardExternalFields.NTIID
 @interface.implementer(ICourseSectionExporter)
 class AssessmentsExporter(BaseSectionExporter):
 
-    def mapped(self, package, items, filer=None, backup=False, salt=None):
+    def mapped(self, package, items):
 
         def _recur(unit, items):
             # all units have a map
@@ -78,19 +78,19 @@ class AssessmentsExporter(BaseSectionExporter):
             # XXX: add legacy required for importimg
             items[package.ntiid]['filename'] = 'index.html'
 
-    def externalize(self, context, filer=None, backup=False, salt=None):
+    def externalize(self, context):
         result = LocatedExternalDict()
         course = ICourseInstance(context)
         course = get_parent_course(course)
         items = result[ITEMS] = dict()
         for package in get_course_packages(course):
             if not IEditableContentPackage.providedBy(package):
-                self.mapped(package, items, filer, backup, salt)
+                self.mapped(package, items)
         return result
 
-    def export(self, context, filer, backup=True, salt=None):
+    def export(self, context, filer, unused_backup=True, unused_salt=None):
         filer.default_bucket = None
-        result = self.externalize(context, filer, backup, salt)
+        result = self.externalize(context)
         source = self.dump(result)
         filer.save("assessment_index.json", source,
                    contentType="application/json", overwrite=True)

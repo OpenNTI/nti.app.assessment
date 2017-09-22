@@ -10,7 +10,7 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 import os
-from urlparse import urlparse
+from six.moves.urllib_parse import urlparse
 
 from html5lib import HTMLParser
 from html5lib import treebuilders

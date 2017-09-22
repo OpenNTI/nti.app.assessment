@@ -30,9 +30,10 @@ from nti.testing.matchers import validly_provides
 
 import fudge
 import datetime
-import urlparse
 from urllib import quote
 from urllib import unquote
+
+from six.moves import urllib_parse
 
 from zope import component
 
@@ -720,7 +721,7 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin, ApplicationLayerTest
         course_href = res.json_body['CourseInstance']['href']
         if course_href[-1] != '/':
             course_href += '/'
-        course_href = urlparse.unquote(course_href)
+        course_href = urllib_parse.unquote(course_href)
 
         # It's also not on the page info, and the question sets it contains
         # aren't either

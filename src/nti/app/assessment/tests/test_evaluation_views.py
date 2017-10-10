@@ -220,7 +220,7 @@ class TestEvaluationViews(ApplicationLayerTest):
                                         is_(QFilePart.mime_type))
 
     def _test_qset_ext_state(self, qset, creator, assignment_ntiid, **kwargs):
-        self._test_assignments(qset.get(NTIID), 
+        self._test_assignments(qset.get(NTIID),
                                assignment_ntiids=(assignment_ntiid,))
         self._test_external_state(qset, **kwargs)
         assert_that(qset.get("Creator"), is_(creator))
@@ -229,7 +229,7 @@ class TestEvaluationViews(ApplicationLayerTest):
             question_ntiid = question.get(NTIID)
             assert_that(question.get("Creator"), is_(creator))
             assert_that(question_ntiid, not_none())
-            self._test_assignments(question_ntiid, 
+            self._test_assignments(question_ntiid,
                                    assignment_ntiids=(assignment_ntiid,))
             self._test_external_state(question, **kwargs)
 
@@ -331,7 +331,7 @@ class TestEvaluationViews(ApplicationLayerTest):
             part_qset = part.get('question_set')
             qset_href = part_qset.get('href')
             assert_that(qset_href, not_none())
-            self._test_qset_ext_state(part_qset, creator, 
+            self._test_qset_ext_state(part_qset, creator,
                                       assignment_ntiid, available=False)
 
         # Now publish; items are available since they are in a published
@@ -339,7 +339,7 @@ class TestEvaluationViews(ApplicationLayerTest):
         self.testapp.post('%s/@@publish' % assignment_href)
         part_qset = self.testapp.get(qset_href)
         part_qset = part_qset.json_body
-        self._test_qset_ext_state(part_qset, creator, 
+        self._test_qset_ext_state(part_qset, creator,
                                   assignment_ntiid, available=True)
 
         # Post qset
@@ -366,7 +366,7 @@ class TestEvaluationViews(ApplicationLayerTest):
         qset.pop('questions', None)
         questions = qset['Items'] = [p['ntiid'] for p in posted[1:]]
         res = self.testapp.post_json(href, qset, status=201)
-        assert_that(res.json_body, 
+        assert_that(res.json_body,
                     has_entry('questions', has_length(len(questions))))
         qset_href = res.json_body['href']
         qset_ntiid = res.json_body['NTIID']
@@ -398,7 +398,7 @@ class TestEvaluationViews(ApplicationLayerTest):
         res = res.json_body
         assignment_url = res.get('href')
         qset = res.get('parts')[0].get('question_set')
-        qset_contents_href = self.require_link_href_with_rel(qset, 
+        qset_contents_href = self.require_link_href_with_rel(qset,
                                                              VIEW_QUESTION_SET_CONTENTS)
         question_ntiid = qset.get('questions')[0].get('ntiid')
         delete_suffix = self._get_delete_url_suffix(0, question_ntiid)
@@ -548,7 +548,7 @@ class TestEvaluationViews(ApplicationLayerTest):
                                     'hints': [],
                                     'max_file_size': None,
                                     'solutions': []}]}
-        res = self.testapp.post_json(qset_contents_href + '/index/0', 
+        res = self.testapp.post_json(qset_contents_href + '/index/0',
                                      file_question, status=409)
         res = res.json_body
         force_link = self.require_link_href_with_rel(res, 'confirm')
@@ -577,14 +577,16 @@ class TestEvaluationViews(ApplicationLayerTest):
         res = self.testapp.put_json(assignment_url,
                                     data, extra_environ=editor_environ,
                                     status=422)
-        assert_that(res.json_body.get('code'), 
+        assert_that(res.json_body.get('code'),
                     is_('UngradableInAutoGradeAssignment'))
 
     @WithSharedApplicationMockDS(testapp=True, users=True)
-    def test_create_timed(self):
+    @fudge.patch('nti.app.assessment.evaluations.subscribers.has_submissions')
+    def test_create_timed(self, mock_has_submissions):
         """
         Test creating timed assignment.
         """
+        mock_has_submissions.is_callable().returns(False)
         course_oid = self._get_course_oid()
         assignment = self._load_assignment()
         old_parts = assignment['parts']
@@ -603,6 +605,10 @@ class TestEvaluationViews(ApplicationLayerTest):
         res = self.testapp.put_json(assignment_href, data)
         res = res.json_body
         assert_that(res.get('parts'), has_length(1))
+
+        # Can edit timed title even if submissions
+        mock_has_submissions.is_callable().returns(True)
+        self.testapp.put_json(assignment_href, {'title': 'new_title'})
 
     @WithSharedApplicationMockDS(testapp=True, users=True)
     def test_created_discussion_assignment(self):
@@ -773,7 +779,7 @@ class TestEvaluationViews(ApplicationLayerTest):
         res = self.testapp.post_json(href, assignment, status=201)
         res = res.json_body
         qset = res.get('parts')[0].get('question_set')
-        qset_contents_href = self.require_link_href_with_rel(qset, 
+        qset_contents_href = self.require_link_href_with_rel(qset,
                                                              VIEW_QUESTION_SET_CONTENTS)
 
         question_set = self._load_questionset()
@@ -796,14 +802,14 @@ class TestEvaluationViews(ApplicationLayerTest):
 
         # Multiple choice duplicates
         multiple_choice['parts'][0]['choices'] = html_dupes
-        res = self.testapp.post_json(qset_contents_href, 
+        res = self.testapp.post_json(qset_contents_href,
                                      multiple_choice, status=422)
         res = res.json_body
         assert_that(res.get('field'), is_('choices'))
         assert_that(res.get('index'), contains(html_dupe_index))
 
         multiple_choice['parts'][0]['choices'] = dupes
-        res = self.testapp.post_json(qset_contents_href, 
+        res = self.testapp.post_json(qset_contents_href,
                                      multiple_choice, status=422)
         res = res.json_body
         assert_that(res.get('field'), is_('choices'))
@@ -816,7 +822,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 
         # Multiple answer duplicates
         multiple_answer['parts'][0]['choices'] = dupes
-        res = self.testapp.post_json(qset_contents_href, 
+        res = self.testapp.post_json(qset_contents_href,
                                      multiple_answer, status=422)
         res = res.json_body
         assert_that(res.get('field'), is_('choices'))
@@ -965,9 +971,9 @@ class TestEvaluationViews(ApplicationLayerTest):
         qset_ntiid = qset.get('NTIID')
         qset_href = qset.get('href')
         question_ntiid = qset.get('questions')[0].get('ntiid')
-        qset_move_href = self.require_link_href_with_rel(qset, 
+        qset_move_href = self.require_link_href_with_rel(qset,
                                                          VIEW_ASSESSMENT_MOVE)
-        qset_contents_href = self.require_link_href_with_rel(qset, 
+        qset_contents_href = self.require_link_href_with_rel(qset,
                                                              VIEW_QUESTION_SET_CONTENTS)
         self._validate_assignment_containers(qset_ntiid, assignment_ntiids)
         self.testapp.post(publish_href)
@@ -1054,7 +1060,7 @@ class TestEvaluationViews(ApplicationLayerTest):
         self.testapp.put_json(assignment_href, {'parts': new_parts})
         version, old_version = _check_version(version)
         submission.parts = (qs_submission2, qs_submission)
-        self._test_version_submission(assignment_submit_href, savepoint_href, 
+        self._test_version_submission(assignment_submit_href, savepoint_href,
                                       submission, version, old_version)
 
         # Remove assignment part
@@ -1191,19 +1197,19 @@ class TestEvaluationViews(ApplicationLayerTest):
         # Content changes do not affect version
         self.testapp.put_json(assignment_href, {'content': 'new content'})
         _check_version(version, changed=False)
-        self._test_version_submission(assignment_submit_href, 
+        self._test_version_submission(assignment_submit_href,
                                       savepoint_href, submission, version)
 
         self.testapp.put_json(qset_href, {'title': 'new title'})
         _check_version(version, changed=False)
-        self._test_version_submission(assignment_submit_href, 
+        self._test_version_submission(assignment_submit_href,
                                       savepoint_href, submission, version)
 
         for question in questions:
             self.testapp.put_json(question.get('href'),
                                   {'content': 'blehbleh'})
             _check_version(version, changed=False)
-            self._test_version_submission(assignment_submit_href, 
+            self._test_version_submission(assignment_submit_href,
                                           savepoint_href, submission, version)
 
         # Altering choice/labels/values/solutions does not affect version
@@ -1213,14 +1219,14 @@ class TestEvaluationViews(ApplicationLayerTest):
         multiple_choice['parts'][0]['solutions'][0]['value'] = 1
         self.testapp.put_json(multiple_choice_href, multiple_choice)
         _check_version(version, changed=False)
-        self._test_version_submission(assignment_submit_href, 
+        self._test_version_submission(assignment_submit_href,
                                       savepoint_href, submission, version)
 
         multiple_answer['parts'][0]['choices'] = choices
         multiple_answer['parts'][0]['solutions'][0]['value'] = [0, 1]
         self.testapp.put_json(multiple_answer_href, multiple_answer)
         _check_version(version, changed=False)
-        self._test_version_submission(assignment_submit_href, 
+        self._test_version_submission(assignment_submit_href,
                                       savepoint_href, submission, version)
 
         labels = list(choices)
@@ -1231,7 +1237,7 @@ class TestEvaluationViews(ApplicationLayerTest):
         }
         self.testapp.put_json(matching_href, matching)
         _check_version(version, changed=False)
-        self._test_version_submission(assignment_submit_href, savepoint_href, 
+        self._test_version_submission(assignment_submit_href, savepoint_href,
                                       submission, version)
 
     @time_monotonically_increases
@@ -1261,7 +1267,7 @@ class TestEvaluationViews(ApplicationLayerTest):
         question_ntiid = qset.get('questions')[0].get('ntiid')
 
         self.require_link_href_with_rel(qset, VIEW_ASSESSMENT_MOVE)
-        qset_contents_href = self.require_link_href_with_rel(qset, 
+        qset_contents_href = self.require_link_href_with_rel(qset,
                                                              VIEW_QUESTION_SET_CONTENTS)
         self._validate_assignment_containers(qset_ntiid, assignment_ntiids)
         enrolled_student = 'test_student'
@@ -1500,12 +1506,12 @@ class TestEvaluationViews(ApplicationLayerTest):
         course_oid = self._get_course_oid()
         course = self.testapp.get('/dataserver2/Objects/%s' % course_oid)
         course = course.json_body
-        evaluations_href = self.require_link_href_with_rel(course, 
+        evaluations_href = self.require_link_href_with_rel(course,
                                                            'CourseEvaluations')
         qset = self._load_questionset()
         qset = self.testapp.post_json(evaluations_href, qset, status=201)
         qset_ntiid = qset.json_body.get('NTIID')
-        move_href = self.require_link_href_with_rel(qset.json_body, 
+        move_href = self.require_link_href_with_rel(qset.json_body,
                                                     VIEW_ASSESSMENT_MOVE)
         qset_question_ntiids = self._get_question_ntiids(ext_obj=qset.json_body)
         assignment = self._load_assignment()
@@ -1514,7 +1520,7 @@ class TestEvaluationViews(ApplicationLayerTest):
         assignment1 = assignment1.json_body
         qset2 = assignment1.get('parts')[0].get('question_set')
         qset2_ntiid = qset2.get('NTIID')
-        qset2_move_href = self.require_link_href_with_rel(qset2, 
+        qset2_move_href = self.require_link_href_with_rel(qset2,
                                                           VIEW_ASSESSMENT_MOVE)
 
         # Move last question to first.
@@ -1522,7 +1528,7 @@ class TestEvaluationViews(ApplicationLayerTest):
         move_json = self._get_move_json(moved_ntiid, qset_ntiid, 0)
         self.testapp.post_json(move_href, move_json)
         new_question_ntiids = self._get_question_ntiids(qset_ntiid)
-        assert_that(new_question_ntiids, 
+        assert_that(new_question_ntiids,
                     is_(qset_question_ntiids[-1:] + qset_question_ntiids[:-1]))
         self._test_transaction_history(moved_ntiid, count=1)
 
@@ -1558,7 +1564,7 @@ class TestEvaluationViews(ApplicationLayerTest):
         ext_question = qset.get('questions')[0]
         qset = self.testapp.post_json(evaluations_href, qset, status=201)
         qset = qset.json_body
-        contents_href = self.require_link_href_with_rel(qset, 
+        contents_href = self.require_link_href_with_rel(qset,
                                                         VIEW_QUESTION_SET_CONTENTS)
         qset_ntiid = qset.get('NTIID')
         original_question_ntiids = self._get_question_ntiids(ext_obj=qset)
@@ -1567,7 +1573,7 @@ class TestEvaluationViews(ApplicationLayerTest):
         new_question = self.testapp.post_json(evaluations_href,
                                               ext_question, status=201)
         question_ntiid1 = new_question.json_body.get('NTIID')
-        new_question = self.testapp.post_json(evaluations_href, 
+        new_question = self.testapp.post_json(evaluations_href,
                                               ext_question, status=201)
         question_ntiid2 = new_question.json_body.get('NTIID')
 
@@ -1585,7 +1591,7 @@ class TestEvaluationViews(ApplicationLayerTest):
         assert_that(question_ntiids, is_(original_question_ntiids))
 
         # Prepend
-        inserted_question = self.testapp.post_json(contents_href + '/index/0', 
+        inserted_question = self.testapp.post_json(contents_href + '/index/0',
                                                    ext_question)
         new_question_ntiid2 = inserted_question.json_body.get('NTIID')
         original_question_ntiids = [new_question_ntiid2] + original_question_ntiids
@@ -1636,13 +1642,13 @@ class TestEvaluationViews(ApplicationLayerTest):
         course_oid = self._get_course_oid()
         course = self.testapp.get('/dataserver2/Objects/%s' % course_oid)
         course = course.json_body
-        evaluations_href = self.require_link_href_with_rel(course, 
+        evaluations_href = self.require_link_href_with_rel(course,
                                                           'CourseEvaluations')
         qset = self._load_questionset()
         ext_question = qset.get('questions')[0]
         qset = self.testapp.post_json(evaluations_href, qset, status=201)
         qset = qset.json_body
-        contents_href = self.require_link_href_with_rel(qset, 
+        contents_href = self.require_link_href_with_rel(qset,
                                                         VIEW_QUESTION_SET_CONTENTS)
         qset_ntiid = qset.get('NTIID')
         original_question_ntiids = self._get_question_ntiids(ext_obj=qset)
@@ -1651,7 +1657,7 @@ class TestEvaluationViews(ApplicationLayerTest):
         inserted_question = self.testapp.post_json(contents_href, ext_question)
         new_question_ntiid = inserted_question.json_body.get('NTIID')
         question_ntiids = self._get_question_ntiids(qset_ntiid)
-        assert_that(question_ntiids, 
+        assert_that(question_ntiids,
                     is_(original_question_ntiids + [new_question_ntiid]))
 
         # Now delete (incorrect index).
@@ -1665,7 +1671,7 @@ class TestEvaluationViews(ApplicationLayerTest):
                     is_(original_question_ntiids))
 
         # Delete first object
-        delete_suffix = self._get_delete_url_suffix(0, 
+        delete_suffix = self._get_delete_url_suffix(0,
                                                     original_question_ntiids[0])
         self.testapp.delete(contents_href + delete_suffix)
         assert_that(self._get_question_ntiids(qset_ntiid),
@@ -1686,7 +1692,7 @@ class TestEvaluationViews(ApplicationLayerTest):
         res = res.json_body
         assignment_ntiid = res.get('ntiid')
         enrolled_student = 'test_student'
-        student_environ = self._create_and_enroll(enrolled_student, 
+        student_environ = self._create_and_enroll(enrolled_student,
                                                   course_ntiid)
         self.testapp.get('/dataserver2/LibraryPath?objectId=%s' % assignment_ntiid,
                          extra_environ=student_environ)
@@ -1764,7 +1770,7 @@ class TestEvaluationViews(ApplicationLayerTest):
         self.testapp.delete_json(href, {'username': enrolled_student},
 							     extra_environ=student_environ,
                                  status=403)
-        
+
         res = self.testapp.delete_json(href, {'username': enrolled_student},
                                        status=200)
         assert_that(res.json_body,

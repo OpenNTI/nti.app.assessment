@@ -183,7 +183,7 @@ class EvaluationPutView(EvaluationMixin, UGDPutView):
     def _get_post_update_source(self, externalValue):
         return externalValue, copy.deepcopy(externalValue)
 
-    def updateContentObject(self, contentObject, externalValue, 
+    def updateContentObject(self, contentObject, externalValue,
                             set_id=False, notify=True):
         originalSource = copy.deepcopy(externalValue)
         externalValue, update_source = self._get_post_update_source(externalValue)
@@ -366,7 +366,7 @@ class QuestionSetPutView(EvaluationPutView):
                 and contentObject.draw is not None \
                 and contentObject.draw != draw:
                 # Changing draw counts; validate structurally.
-                self._pre_flight_validation(contentObject, 
+                self._pre_flight_validation(contentObject,
                                             structural_change=True)
             # Update our context
             self.context = contentObject
@@ -470,7 +470,7 @@ class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):
             validate_sources(self.remoteUser, result.model, sources)
 
         if IQEditableEvaluation.providedBy(contentObject):
-            self.handle_evaluation(contentObject, self.composite, 
+            self.handle_evaluation(contentObject, self.composite,
                                    sources, self.remoteUser)
         # validate changes, subscribers
         if notify:
@@ -622,7 +622,8 @@ class AssignmentPutView(NewAndLegacyPutView):
         current_time_allowed = None
         if IQTimedAssignment.providedBy(contentObject):
             current_time_allowed = get_max_time_allowed(contentObject, self.course)
-        if max_time_allowed != current_time_allowed:
+        if      'maximum_time_allowed' in externalValue \
+            and max_time_allowed != current_time_allowed:
             if IQEditableEvaluation.providedBy(contentObject):
                 self._pre_flight_validation(contentObject, externalValue,
                                             structural_change=True)

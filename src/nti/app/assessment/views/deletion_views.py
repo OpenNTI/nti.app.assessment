@@ -34,7 +34,7 @@ from nti.app.assessment.common.history import delete_inquiry_submissions
 from nti.app.assessment.common.history import delete_evaluation_savepoints
 from nti.app.assessment.common.history import delete_evaluation_submissions
 
-from nti.app.assessment.common.submissions import get_all_submissions
+from nti.app.assessment.common.submissions import has_submissions
 from nti.app.assessment.common.submissions import get_all_submissions_courses
 
 from nti.app.assessment.evaluations.utils import delete_evaluation
@@ -91,12 +91,6 @@ ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 CONTAINER_ID = StandardExternalFields.CONTAINER_ID
 
 
-def has_submissions(context):
-    for unused in get_all_submissions(context):
-        return True
-    return False
-
-    
 @view_config(route_name="objects.generic.traversal",
              context=IQEvaluation,
              renderer='rest',
@@ -166,9 +160,6 @@ class SubmittableDeleteView(EvaluationDeleteView,
         else:
             return has_permission(nauth.ACT_CONTENT_EDIT, theObject, self.request)
 
-    def _has_submissions(self, theObject):
-        return has_submissions(theObject)
-
     def _delete_contained_data(self, theObject, course):
         if IQInquiry.providedBy(theObject):
             delete_inquiry_submissions(theObject, course)
@@ -185,7 +176,7 @@ class SubmittableDeleteView(EvaluationDeleteView,
         self._check_internal(theObject)
         if not self._can_delete_contained_data(theObject):
             self._pre_flight_validation(theObject, structural_change=True)
-        elif self._has_submissions(theObject):
+        elif has_submissions(theObject):
             values = self.readInput()
             force = is_true(values.get('force'))
             if not force:
@@ -272,7 +263,7 @@ class QuestionSetDeleteSelfAssessmentsView(AbstractAuthenticatedView,
                                  'message': _(u'Not an admin or instructor.'),
                              },
                              None)
-            
+
     def __call__(self):
         self.check_access()
         values = self.readInput()
@@ -287,7 +278,7 @@ class QuestionSetDeleteSelfAssessmentsView(AbstractAuthenticatedView,
                                  'message': _(u'Must specify a username.'),
                              },
                              None)
-            
+
         ntiid = self.context.containerId
         result = LocatedExternalDict()
         result[CONTAINER_ID] = ntiid

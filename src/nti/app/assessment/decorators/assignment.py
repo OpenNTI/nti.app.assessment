@@ -331,7 +331,7 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
     @classmethod
     def needs_stripped(cls, context, request, remoteUser):
         if context is not None:
-            course = _get_course_from_evaluation(context, remoteUser, 
+            course = _get_course_from_evaluation(context, remoteUser,
                                                  request=request)
         else:
             course = None
@@ -678,24 +678,14 @@ class _DiscussionAssignmentResolveTopicDecorator(AbstractAuthenticatedRequestAwa
 
 
 @interface.implementer(IExternalMappingDecorator)
-class _PartAutoGradeStatus(AbstractAuthenticatedRequestAwareDecorator):
+class _PartAutoGradeStatus(object):
     """
     Mark question parts as auto-gradable.
     """
 
-    @Lazy
-    def _acl_decoration(self):
-        result = getattr(self.request, 'acl_decoration', True)
-        return result
+    __metaclass__ = SingletonDecorator
 
-    def _predicate(self, context, result):
-        # IQParts are not IQEditableEvaluations (we can check lineage if
-        # needed).
-        return  self._acl_decoration \
-            and self._is_authenticated \
-            and has_permission(ACT_CONTENT_EDIT, context, self.request)
-
-    def _do_decorate_external(self, context, result):
+    def decorateExternalMapping(self, context, result):
         result['AutoGradable'] = is_part_auto_gradable(context)
 
 

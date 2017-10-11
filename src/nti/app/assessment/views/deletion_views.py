@@ -175,8 +175,11 @@ class SubmittableDeleteView(EvaluationDeleteView,
     def _do_delete_object(self, theObject):
         self._check_internal(theObject)
         if not self._can_delete_contained_data(theObject):
+            # If the user cannot delete submissions, we validate
+            # that the assignment has submissions (or we 422).
             self._pre_flight_validation(theObject, structural_change=True)
         elif has_submissions(theObject):
+            # If we have submissions, we inform the users that can reset.
             values = self.readInput()
             force = is_true(values.get('force'))
             if not force:

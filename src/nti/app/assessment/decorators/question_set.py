@@ -4,10 +4,9 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
-
-logger = __import__('logging').getLogger(__name__)
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 from zope import component
 from zope import interface
@@ -17,17 +16,17 @@ from nti.assessment.interfaces import IQuestionSet
 from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import IExternalObjectDecorator
 
-from nti.externalization.singleton import SingletonDecorator
+from nti.externalization.singleton import Singleton
 
 OID = StandardExternalFields.OID
 LINKS = StandardExternalFields.LINKS
 
+logger = __import__('logging').getLogger(__name__)
+
 
 @component.adapter(IQuestionSet)
 @interface.implementer(IExternalObjectDecorator)
-class _NTIQuestionSetCountDecorator(object):
-
-    __metaclass__ = SingletonDecorator
+class _NTIQuestionSetCountDecorator(Singleton):
 
     def decorateExternalObject(self, original, external):
         external.pop('question_count', None)

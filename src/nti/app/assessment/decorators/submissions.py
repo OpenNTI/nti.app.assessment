@@ -4,10 +4,9 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
-
-logger = __import__('logging').getLogger(__name__)
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 from zope import interface
 
@@ -15,16 +14,16 @@ from nti.assessment.interfaces import IPlaceholderAssignmentSubmission
 
 from nti.externalization.interfaces import IExternalMappingDecorator
 
-from nti.externalization.singleton import SingletonDecorator
+from nti.externalization.singleton import Singleton
+
+logger = __import__('logging').getLogger(__name__)
 
 
 @interface.implementer(IExternalMappingDecorator)
-class _SyntheticSubmissionDecorator(object):
+class _SyntheticSubmissionDecorator(Singleton):
     """
     Decorate placeholder submissions as synthetic submissions.
     """
-
-    __metaclass__ = SingletonDecorator
 
     def decorateExternalMapping(self, item, result_map):
         submission = item.Submission

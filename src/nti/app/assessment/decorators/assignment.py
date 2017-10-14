@@ -4,10 +4,9 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
-
-logger = __import__('logging').getLogger(__name__)
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 from datetime import datetime
 from collections import Mapping
@@ -112,7 +111,7 @@ from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import IExternalObjectDecorator
 from nti.externalization.interfaces import IExternalMappingDecorator
 
-from nti.externalization.singleton import SingletonDecorator
+from nti.externalization.singleton import Singleton
 
 from nti.ntiids.oids import to_external_ntiid_oid
 
@@ -122,6 +121,8 @@ from nti.traversal.traversal import find_interface
 
 OID = StandardExternalFields.OID
 LINKS = StandardExternalFields.LINKS
+
+logger = __import__('logging').getLogger(__name__)
 
 
 @component.adapter(ICourseInstance, IRequest)
@@ -377,7 +378,7 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
         if AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result):
             return self.needs_stripped(context, self.request, self.remoteUser)
 
-    def _do_decorate_external(self, context, result):
+    def _do_decorate_external(self, unused_context, result):
         for part in result.get('parts') or ():
             question_set = part.get('question_set')
             if question_set:
@@ -400,15 +401,13 @@ class _AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper(Abstra
             assg = component.queryUtility(IQAssignment, context.assignmentId)
             return _AssignmentBeforeDueDateSolutionStripper.needs_stripped(assg, self.request, self.remoteUser)
 
-    def _do_decorate_external(self, context, result):
+    def _do_decorate_external(self, unused_context, result):
         for part in result.get('parts') or ():
             _AssignmentBeforeDueDateSolutionStripper.strip_qset(part)
 
 
 @interface.implementer(IExternalObjectDecorator)
-class _QuestionSetDecorator(object):
-
-    __metaclass__ = SingletonDecorator
+class _QuestionSetDecorator(Singleton):
 
     def decorateExternalObject(self, original, external):
         oid = getattr(original, 'oid', None)
@@ -417,13 +416,11 @@ class _QuestionSetDecorator(object):
 
 
 @interface.implementer(IExternalObjectDecorator)
-class _AssignmentPartDecorator(object):
+class _AssignmentPartDecorator(Singleton):
     """
     The underlying QuestionSet may not always be externalized, so
     decorate the QuestionSetId on externalization for clients.
     """
-
-    __metaclass__ = SingletonDecorator
 
     def decorateExternalObject(self, original, external):
         if original.question_set is not None:
@@ -431,13 +428,11 @@ class _AssignmentPartDecorator(object):
 
 
 @interface.implementer(IExternalObjectDecorator)
-class QuestionSetRandomizedDecorator(object):
+class QuestionSetRandomizedDecorator(Singleton):
     """
     Decorate the randomized state of question sets, since links may not be
     present.
     """
-
-    __metaclass__ = SingletonDecorator
 
     def decorateExternalObject(self, original, external):
         external['Randomized'] = is_randomized_question_set(original)
@@ -479,7 +474,7 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
         assignments = get_available_assignments_for_evaluation_object(context)
         return bool(assignments)
 
-    def _predicate(self, context, result):
+    def _predicate(self, context, unused_result):
         # `IQDiscussionAssignment` objects are handled elsewhere.
         return  self._is_authenticated \
             and not IQDiscussionAssignment.providedBy(context) \
@@ -616,7 +611,7 @@ class _DiscussionAssignmentEditorDecorator(_AssessmentEditorDecorator):
     Provides editor link and info on `IQDiscussionAssignment' objects.
     """
 
-    def _predicate(self, context, result):
+    def _predicate(self, context, unused_result):
         return self._is_authenticated \
            and has_permission(ACT_CONTENT_EDIT, context, self.request)
 
@@ -678,12 +673,10 @@ class _DiscussionAssignmentResolveTopicDecorator(AbstractAuthenticatedRequestAwa
 
 
 @interface.implementer(IExternalMappingDecorator)
-class _PartAutoGradeStatus(object):
+class _PartAutoGradeStatus(Singleton):
     """
     Mark question parts as auto-gradable.
     """
-
-    __metaclass__ = SingletonDecorator
 
     def decorateExternalMapping(self, context, result):
         result['AutoGradable'] = is_part_auto_gradable(context)
@@ -727,7 +720,7 @@ class AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
         """
         return self.is_editor(context) or self.is_instructor
 
-    def _predicate(self, context, result):
+    def _predicate(self, context, unused_result):
         """
         Course policy edits can only occur on non-global assignments.
         """
@@ -799,7 +792,7 @@ class _AssessmentPracticeLinkDecorator(AbstractAuthenticatedRequestAwareDecorato
     Give editors and instructors the practice submission link.
     """
 
-    def _predicate(self, context, result):
+    def _predicate(self, context, unused_result):
         user = self.remoteUser
         course = _get_course_from_evaluation(context,
                                              user,
@@ -833,12 +826,10 @@ class _AssessmentPracticeLinkDecorator(AbstractAuthenticatedRequestAwareDecorato
 
 @component.adapter(IQAssessment)
 @interface.implementer(IExternalMappingDecorator)
-class _AssessmentLibraryPathLinkDecorator(object):
+class _AssessmentLibraryPathLinkDecorator(Singleton):
     """
     Create a `LibraryPath` link to our container id.
     """
-
-    __metaclass__ = SingletonDecorator
 
     def decorateExternalMapping(self, context, result):
         external_ntiid = to_external_ntiid_oid(context)

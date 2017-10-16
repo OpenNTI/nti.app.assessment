@@ -4,10 +4,9 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
-
-logger = __import__('logging').getLogger(__name__)
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 import os
 from six.moves.urllib_parse import urlparse
@@ -89,6 +88,8 @@ from nti.site.interfaces import IHostPolicyFolder
 
 from nti.site.utils import registerUtility
 from nti.site.utils import unregisterUtility
+
+logger = __import__('logging').getLogger(__name__)
 
 
 def indexed_iter():

@@ -4,12 +4,11 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
-logger = __import__('logging').getLogger(__name__)
-
-from urllib import unquote
+from six.moves.urllib_parse import unquote
 
 from zope import component
 from zope import interface
@@ -25,6 +24,8 @@ from nti.assessment.interfaces import IQEvaluation
 from nti.contentlibrary.interfaces import IContentPackage
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+
+logger = __import__('logging').getLogger(__name__)
 
 
 class _BaseCourseEvaluationPathAdapter(Contained):

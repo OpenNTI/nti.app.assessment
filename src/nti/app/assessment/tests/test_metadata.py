@@ -90,7 +90,7 @@ class TestMetadata(AssessmentLayerTest):
 		assert_that(item, has_property('StartTime', is_(1.0)))
 
 import fudge
-from urllib import unquote
+from six.moves.urllib_parse import unquote
 
 from nti.externalization.externalization import to_external_object
 

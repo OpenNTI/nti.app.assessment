@@ -23,9 +23,9 @@ does_not = is_not
 import time
 import fudge
 from six import StringIO
-from urllib import unquote
 from zipfile import ZipFile
 from datetime import datetime
+from six.moves.urllib_parse import unquote
 
 from zope import component
 

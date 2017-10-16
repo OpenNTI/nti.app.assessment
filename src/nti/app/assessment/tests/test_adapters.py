@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 # disable: accessing protected members, too many methods
 # pylint: disable=W0212,R0904
@@ -30,10 +31,9 @@ from nti.testing.matchers import validly_provides
 
 import fudge
 import datetime
-from urllib import quote
-from urllib import unquote
-
 from six.moves import urllib_parse
+from six.moves.urllib_parse import quote
+from six.moves.urllib_parse import unquote
 
 from zope import component
 

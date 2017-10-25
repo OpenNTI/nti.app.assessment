@@ -215,7 +215,7 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
                                               questions=(q_sub,))
         asg_submission = AssignmentSubmission(assignmentId=self.assignment_id,
                                               parts=(qs_submission,))
-        GIF_DATAURL = b'data:image/gif;base64,R0lGODlhCwALAIAAAAAA3pn/ZiH5BAEAAAEALAAAAAALAAsAAAIUhA+hkcuO4lmNVindo7qyrIXiGBYAOw=='
+        GIF_DATAURL = 'data:image/gif;base64,R0lGODlhCwALAIAAAAAA3pn/ZiH5BAEAAAEALAAAAAALAAsAAAIUhA+hkcuO4lmNVindo7qyrIXiGBYAOw=='
 
         ext_obj = to_external_object(asg_submission)
         ext_obj['parts'][0]['questions'][0]['parts'][0]['value'] = GIF_DATAURL

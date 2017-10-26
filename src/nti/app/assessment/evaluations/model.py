@@ -4,10 +4,9 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
-
-logger = __import__('logging').getLogger(__name__)
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 from zope import component
 from zope import interface
@@ -19,6 +18,8 @@ from zope.intid.interfaces import IIntIds
 
 from ZODB.interfaces import IBroken
 from ZODB.interfaces import IConnection
+
+from nti.app.assessment.evaluations.utils import sort_evaluation_key
 
 from nti.app.assessment.interfaces import IQEvaluations
 from nti.app.assessment.interfaces import ICourseEvaluations
@@ -49,6 +50,8 @@ from nti.property.property import alias
 from nti.traversal.traversal import find_interface
 
 _SENTINEL = object()
+
+logger = __import__('logging').getLogger(__name__)
 
 
 @interface.implementer(IQEvaluations)
@@ -118,6 +121,12 @@ class Evaluations(CaseInsensitiveCheckingLastModifiedBTreeContainer):
         if kl != len(self):
             self._BTreeContainer__len.set(kl)
             self._p_changed = True
+
+    def clear(self):
+        if len(self) == 0:
+            return
+        for obj in sorted(self.values(), key=sort_evaluation_key, reverse=True):
+            del self[obj.__name__]
 
 
 @interface.implementer(ICourseEvaluations)
@@ -250,8 +259,8 @@ class LegacyContentPackageEvaluations(object):
     def clear(self):
         if len(self) == 0:
             return
-        for key in list(self.keys()):
-            del self[key]
+        for obj in sorted(self.values(), key=sort_evaluation_key, reverse=True):
+            del self[obj.__name__]
 
     def replace(self, old, new, event=False):
         assert old.ntiid == new.ntiid

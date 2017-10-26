@@ -4,10 +4,9 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
-
-logger = __import__('logging').getLogger(__name__)
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 from collections import Mapping
 
@@ -19,14 +18,13 @@ from nti.app.assessment.common.evaluations import get_course_evaluations
 from nti.app.assessment.evaluations.interfaces import ICourseEvaluationsSectionExporter
 
 from nti.app.assessment.evaluations.utils import course_discussions
+from nti.app.assessment.evaluations.utils import sort_evaluation_key
 
 from nti.app.assessment.interfaces import IQEvaluations
 
 from nti.app.authentication import get_remote_user
 
 from nti.app.base.abstract_views import get_source_filer
-
-from nti.assessment import EVALUATION_INTERFACES
 
 from nti.assessment.common import is_randomized_question_set
 from nti.assessment.common import is_randomized_parts_container
@@ -84,6 +82,8 @@ ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 
 INTERNAL_NTIID = StandardInternalFields.NTIID
 
+logger = __import__('logging').getLogger(__name__)
+
 
 class EvaluationsExporterMixin(object):
 
@@ -109,16 +109,8 @@ class EvaluationsExporterMixin(object):
                 yield item
 
     def do_evaluations_export(self, context, backup=True, salt=None, filer=None):
-        order = {i: x for i, x in enumerate(EVALUATION_INTERFACES)}.items()
-
         if filer is None:
             filer = get_source_filer(context, get_remote_user())
-
-        def _get_key(item):
-            for i, iface in order:
-                if iface.providedBy(item):
-                    return i
-            return 0
 
         def _ext(item):
             evaluation = removeAllProxies(item)
@@ -151,7 +143,7 @@ class EvaluationsExporterMixin(object):
                 self.change_evaluation_ntiid(ext_obj, salt)
             return ext_obj
 
-        ordered = sorted(self.evaluations(context), key=_get_key)
+        ordered = sorted(self.evaluations(context), key=sort_evaluation_key)
         result = []
         for assessment_item in ordered:
             ext_item = _ext(assessment_item)

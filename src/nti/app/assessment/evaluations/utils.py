@@ -54,6 +54,8 @@ from nti.app.externalization.error import raise_json_error
 
 from nti.app.products.courseware.resources.filer import is_image
 
+from nti.assessment import EVALUATION_INTERFACES
+
 from nti.assessment.common import interface_of_assessment
 
 from nti.assessment.interfaces import IQHint
@@ -355,3 +357,15 @@ def course_discussions(course, by_topic_key=True):
             if key not in result:
                 result[key] = discussion
     return result
+
+
+EVALUATION_SORT_ORDER = {
+    i: x for i, x in enumerate(EVALUATION_INTERFACES)
+}.items()
+
+
+def sort_evaluation_key(item):
+    for i, iface in EVALUATION_SORT_ORDER:
+        if iface.providedBy(item):
+            return i
+    return 0

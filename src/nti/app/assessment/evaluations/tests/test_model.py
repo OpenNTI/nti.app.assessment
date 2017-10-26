@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 # disable: accessing protected members, too many methods
 # pylint: disable=W0212,R0904
@@ -28,6 +29,10 @@ from nti.app.assessment.interfaces import IQEvaluations
 
 from nti.app.assessment.evaluations.model import LegacyContentPackageEvaluations
 
+from nti.app.testing.application_webtest import ApplicationLayerTest
+
+from nti.app.testing.decorators import WithSharedApplicationMockDS
+
 from nti.assessment.question import QQuestion
 
 from nti.contentlibrary.interfaces import IContentPackage
@@ -38,13 +43,9 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.contenttypes.courses.courses import CourseInstance
 
-from nti.traversal.traversal import find_interface
-
-from nti.app.testing.application_webtest import ApplicationLayerTest
-
-from nti.app.testing.decorators import WithSharedApplicationMockDS
-
 from nti.dataserver.tests import mock_dataserver
+
+from nti.traversal.traversal import find_interface
 
 
 class TestModel(ApplicationLayerTest):
@@ -120,6 +121,13 @@ class TestModel(ApplicationLayerTest):
         assert_that(replacement, has_property('ntiid', is_(ntiid)))
         assert_that(replacement,
                     has_property('__parent__', is_(none())))
+        
+        question = QQuestion()
+        question.ntiid = ntiid
+        evals[ntiid] = question
+        assert_that(evals, has_length(1))
+        evals.clear()
+        assert_that(evals, has_length(0))
 
     @WithSharedApplicationMockDS(testapp=False, users=False)
     def test_evaluations(self):

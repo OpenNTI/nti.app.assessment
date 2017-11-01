@@ -4,10 +4,9 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
-
-logger = __import__('logging').getLogger(__name__)
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 from zope import component
 
@@ -31,6 +30,8 @@ from nti.dataserver.interfaces import ISystemUserPrincipal
 from nti.dataserver.metadata.predicates import BasePrincipalObjects
 
 from nti.dataserver.users.users import User
+
+logger = __import__('logging').getLogger(__name__)
 
 
 def get_courses_from_enrollments(user, provided, method):

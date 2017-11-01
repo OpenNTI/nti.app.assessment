@@ -6,10 +6,9 @@ Adapters for application-level events.
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
-
-logger = __import__('logging').getLogger(__name__)
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 import datetime
 from functools import partial
@@ -20,6 +19,8 @@ from zope import lifecycleevent
 
 from zope.annotation.interfaces import IAnnotations
 
+from zope.location.interfaces import LocationError
+
 from zope.schema.interfaces import NotUnique
 from zope.schema.interfaces import ConstraintNotSatisfied
 
@@ -29,8 +30,6 @@ from pyramid.interfaces import IRequest
 from pyramid.interfaces import IExceptionResponse
 
 from pyramid.renderers import render_to_response
-
-from zope.location.interfaces import LocationError
 
 from nti.app.assessment.common.assessed import set_assessed_lineage
 from nti.app.assessment.common.assessed import assess_assignment_submission
@@ -111,6 +110,8 @@ from nti.site.interfaces import IHostPolicyFolder
 
 from nti.traversal.traversal import find_interface
 from nti.traversal.traversal import ContainerAdapterTraversable
+
+logger = __import__('logging').getLogger(__name__)
 
 
 @component.adapter(IQuestionSubmission)

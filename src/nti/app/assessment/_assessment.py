@@ -4,10 +4,9 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
-
-logger = __import__('logging').getLogger(__name__)
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 from nti.app.assessment.adapters import _histories_for_course
 from nti.app.assessment.adapters import _history_for_user_in_course
@@ -16,6 +15,8 @@ from nti.app.assessment.metadata import _metadata_for_user_in_course
 from nti.app.assessment.metadata import _metadatacontainer_for_course
 
 from nti.dataserver.users.users import User
+
+logger = __import__('logging').getLogger(__name__)
 
 
 def _container_mover(old_container, new_container, verbose=True,

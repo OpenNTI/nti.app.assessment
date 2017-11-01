@@ -4,10 +4,9 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
-
-logger = __import__('logging').getLogger(__name__)
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 import six
 import time
@@ -78,6 +77,8 @@ from nti.traversal.traversal import ContainerAdapterTraversable
 from nti.wref.interfaces import IWeakRef
 
 LINKS = StandardExternalFields.LINKS
+
+logger = __import__('logging').getLogger(__name__)
 
 
 @interface.implementer(IUsersCourseAssignmentMetadataContainer)

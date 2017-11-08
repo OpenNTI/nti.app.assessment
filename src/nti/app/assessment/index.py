@@ -48,6 +48,7 @@ from nti.site.interfaces import IHostPolicyFolder
 from nti.traversal.traversal import find_interface
 
 from nti.zope_catalog.catalog import Catalog
+from nti.zope_catalog.catalog import DeferredCatalog
 
 from nti.zope_catalog.index import AttributeSetIndex
 from nti.zope_catalog.index import NormalizationWrapper
@@ -56,7 +57,7 @@ from nti.zope_catalog.index import IntegerAttributeIndex
 from nti.zope_catalog.index import ValueIndex as RawValueIndex
 from nti.zope_catalog.index import AttributeValueIndex as ValueIndex
 
-from nti.zope_catalog.interfaces import IMetadataCatalog
+from nti.zope_catalog.interfaces import IDeferredCatalog
 
 from nti.zope_catalog.string import StringTokenNormalizer
 
@@ -293,23 +294,19 @@ class AssesmentHasFileIndex(ValueIndex):
     default_interface = ValidatingAssesmentHasFileType
 
 
-@interface.implementer(IMetadataCatalog)
-class MetadataSubmissionCatalog(Catalog):
+@interface.implementer(IDeferredCatalog)
+class MetadataSubmissionCatalog(DeferredCatalog):
 
     family = BTrees.family64
 
-    super_index_doc = Catalog.index_doc
-
-    def index_doc(self, docid, ob):
-        pass
-
-    def force_index_doc(self, docid, ob):
-        self.super_index_doc(docid, ob)
+    def force_index_doc(self, docid, ob): # BWC
+        self.index_doc(docid, ob)
 MetadataAssesmentCatalog = MetadataSubmissionCatalog # BWC
 
 
 def get_submission_catalog(registry=component):
-    return registry.queryUtility(IMetadataCatalog, name=SUBMISSION_CATALOG_NAME)
+    return registry.queryUtility(IDeferredCatalog, 
+                                 name=SUBMISSION_CATALOG_NAME)
 
 
 def create_submission_catalog(catalog=None, family=BTrees.family64):
@@ -339,7 +336,7 @@ def install_submission_catalog(site_manager_container, intids=None):
     locate(catalog, site_manager_container, SUBMISSION_CATALOG_NAME)
     intids.register(catalog)
     lsm.registerUtility(catalog,
-                        provided=IMetadataCatalog,
+                        provided=IDeferredCatalog,
                         name=SUBMISSION_CATALOG_NAME)
 
     for index in catalog.values():

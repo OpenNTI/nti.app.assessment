@@ -26,6 +26,7 @@ from nti.contenttypes.courses.utils import content_unit_to_courses
 
 from nti.dataserver.authorization import ACT_DELETE
 from nti.dataserver.authorization import ROLE_ADMIN
+from nti.dataserver.authorization import ROLE_SITE_ADMIN
 from nti.dataserver.authorization import ROLE_CONTENT_ADMIN
 
 from nti.dataserver.authorization_acl import ace_allowing
@@ -71,6 +72,7 @@ class EvaluationACLProvider(object):
     @Lazy
     def __acl__(self):
         aces = [ace_allowing(ROLE_ADMIN, ALL_PERMISSIONS, type(self)),
+                ace_allowing(ROLE_SITE_ADMIN, ALL_PERMISSIONS, type(self)),
                 ace_allowing(ROLE_CONTENT_ADMIN, ALL_PERMISSIONS, type(self))]
         result = acl_from_aces(aces)
         # Extend with any course acls.

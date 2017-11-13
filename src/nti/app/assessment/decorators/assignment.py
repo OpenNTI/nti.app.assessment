@@ -567,7 +567,7 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
             # the full object.
             result['CanInsertQuestions'] = not in_progress
 
-        rels = ['schema', ]
+        rels = ['schema',]
         # We provide the edit link no matter the status of the assessment
         # object. Some edits (textual changes) will be allowed no matter what.
         if not self._has_edit_link(_links):

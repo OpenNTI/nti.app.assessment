@@ -89,7 +89,7 @@ class EvaluationsImporterMixin(object):
 
     @property
     def _extra(self):
-        return str(uuid.uuid4().get_time_low())
+        return str(uuid.uuid4().time_low)
 
     def is_locked(self, obj):
         return IRecordable.providedBy(obj) and obj.is_locked()

@@ -701,7 +701,7 @@ class EvaluationMixin(StructuralValidationMixin):
 
     @Lazy
     def _extra(self):
-        return str(uuid.uuid4().get_time_low())
+        return str(uuid.uuid4().time_low)
 
     def get_ntiid(self, context):
         if isinstance(context, six.string_types):

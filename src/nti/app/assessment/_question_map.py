@@ -21,19 +21,11 @@ from zope.component.hooks import getSite
 
 from zope.container.contained import Contained
 
-from zope.container.btree import BTreeContainer
-
-from zope.deprecation import deprecated
-
 from zope.intid.interfaces import IIntIds
 
 from ZODB.interfaces import IConnection
 
 from BTrees.OOBTree import OOBTree
-
-from persistent.list import PersistentList
-
-from persistent.mapping import PersistentMapping
 
 from nti.assessment._question_index import QuestionIndex
 
@@ -78,23 +70,16 @@ NTIID = StandardExternalFields.NTIID
 
 logger = __import__('logging').getLogger(__name__)
 
+import zope.deferredimport
+zope.deferredimport.initialize()
 
-deprecated('_AssessmentItemContainer', 'Replaced with a persistent mapping')
-class _AssessmentItemContainer(PersistentList):
-    pass
-
-
-deprecated('_AssessmentItemStore', 'Deprecated Storage Mode')
-class _AssessmentItemStore(BTreeContainer):
-    pass
-
-
-deprecated('_AssessmentItemBucket', 'Deprecated Storage Mode')
-class _AssessmentItemBucket(PersistentMapping,
-                            PersistentCreatedAndModifiedTimeObject,
-                            Contained):
-    assessments = PersistentMapping.values
-
+zope.deferredimport.deprecatedFrom(
+    "Moved to nti.app.assessment",
+    "nti.app.assessment",
+    "_AssessmentItemContainer",
+    "_AssessmentItemStore",
+    "_AssessmentItemBucket",
+)
 
 @component.adapter(IContentUnit)
 @interface.implementer(IQAssessmentItemContainer)

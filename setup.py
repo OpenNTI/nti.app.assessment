@@ -85,6 +85,7 @@ setup(
         'zope.cachedescriptors',
         'zope.component',
         'zope.container',
+        'zope.deferredimport',
         'zope.deprecation',
         'zope.generations',
         'zope.i18n',

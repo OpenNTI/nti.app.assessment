@@ -36,7 +36,6 @@ from persistent.list import PersistentList
 from persistent.mapping import PersistentMapping
 
 from nti.assessment._question_index import QuestionIndex
-from nti.assessment._question_index import _ntiid_object_hook
 
 from nti.assessment.common import iface_of_assessment
 
@@ -212,8 +211,7 @@ class QuestionMap(QuestionIndex):
 
     def _register_and_canonicalize(self, things_to_register, registry=None):
         registry = self._get_registry(registry)
-        result = QuestionIndex._register_and_canonicalize(self,
-                                                          things_to_register,
+        result = QuestionIndex._register_and_canonicalize(self, things_to_register,
                                                           registry)
         return result
 
@@ -293,9 +291,8 @@ class QuestionMap(QuestionIndex):
             registered = registry.queryUtility(provided, name=ntiid)
             if registered is None:
                 update_from_external_object(obj, v, require_updater=True,
-                                            notify=False,
-                                            object_hook=_ntiid_object_hook)
-                obj.ntiid = ntiid
+                                            notify=False)
+                obj.__name__ = obj.ntiid = ntiid
                 self._store_object(ntiid, obj)
 
                 things_to_register = self._explode_object_to_register(obj)

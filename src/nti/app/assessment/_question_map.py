@@ -11,6 +11,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
+# pylint: disable=W0212,W0221
+
 import time
 from collections import OrderedDict
 
@@ -80,6 +82,7 @@ zope.deferredimport.deprecatedFrom(
     "_AssessmentItemStore",
     "_AssessmentItemBucket",
 )
+
 
 @component.adapter(IContentUnit)
 @interface.implementer(IQAssessmentItemContainer)
@@ -181,10 +184,10 @@ class QuestionMap(QuestionIndex):
     def _store_object(self, k, v):
         pass
 
-    def _registry_utility(self, registry, component, provided, name, event=False):
-        if not IWeakRef.providedBy(component):  # no weak refs
+    def _registry_utility(self, registry, obj, provided, name, event=False):
+        if not IWeakRef.providedBy(obj):  # no weak refs
             registerUtility(registry,
-                            component,
+                            obj,
                             provided=provided,
                             name=name,
                             event=event)
@@ -265,6 +268,7 @@ class QuestionMap(QuestionIndex):
 
         assess_dict = get_assess_item_dict(assessment_item_dict)
         for ntiid, v in assess_dict.items():
+            # pylint: disable=W0612
             __traceback_info__ = ntiid, v
 
             factory = find_factory_for(v)
@@ -294,10 +298,8 @@ class QuestionMap(QuestionIndex):
                         result.add(thing_to_register)
 
                         # register assesment
-                        self._registry_utility(registry,
-                                               component=thing_to_register,
-                                               provided=provided,
-                                               name=ntiid)
+                        self._registry_utility(registry, thing_to_register,
+                                               provided, ntiid)
                         # We are only partially supporting having question/sets
                         # used multiple places. When we get to that point, we need to
                         # handle it by noting on each assessment object where it is
@@ -319,7 +321,7 @@ class QuestionMap(QuestionIndex):
 
                         # register in sync results
                         if sync_results is not None:
-                            sync_results.add_assessment(thing_to_register, 
+                            sync_results.add_assessment(thing_to_register,
                                                         False)
                     elif ntiid and ntiid not in parents_questions:
                         # Child item locked/edited.
@@ -378,7 +380,7 @@ class QuestionMap(QuestionIndex):
                     logger.warn("Duplicate 'index.html' entry in %s; update content",
                                 content_package)
                 else:
-                    __traceback_info__ = index_key, key_for_this_level
+                    __traceback_info__ = index_key, key_for_this_level  # pylint: disable=W0612
                     logger.warn("Second entry for the same file %s,%s",
                                 index_key, key_for_this_level)
 
@@ -420,7 +422,7 @@ class QuestionMap(QuestionIndex):
         The top-level is handled specially: ``index.html`` is never allowed to have
         assessment items.
         """
-        __traceback_info__ = assessment_index_json, content_package
+        __traceback_info__ = assessment_index_json, content_package  # pylint: disable=W0612
 
         assert 'Items' in assessment_index_json, "Root must contain 'Items'"
 
@@ -447,7 +449,7 @@ class QuestionMap(QuestionIndex):
             # (skips levels) and/or jacked-up themes/configurations  that split incorrectly.
             # 6.2017 - this constraint may no longer be necessary; so let's
             # just warn.
-            if     'filename' not in child_index \
+            if    'filename' not in child_index \
                 or not child_index['filename'] \
                 or child_index['filename'].startswith('index.html#'):
                 logger.warn("Invalid child with invalid filename '%s'; cannot contain assessments: %s",
@@ -465,7 +467,7 @@ class QuestionMap(QuestionIndex):
 
         # register assessment items
         registered = self._register_and_canonicalize(things_to_register,
-                                                    registry)
+                                                     registry)
         # For tests and such, sort
         for questions in by_file.values():
             questions.sort(key=lambda q: q.ntiid)

@@ -74,8 +74,8 @@ import zope.deferredimport
 zope.deferredimport.initialize()
 
 zope.deferredimport.deprecatedFrom(
-    "Moved to nti.app.assessment",
-    "nti.app.assessment",
+    "Moved to nti.app.assessment._deprecated",
+    "nti.app.assessment._deprecated",
     "_AssessmentItemContainer",
     "_AssessmentItemStore",
     "_AssessmentItemBucket",
@@ -246,7 +246,7 @@ class QuestionMap(QuestionIndex):
         library = component.queryUtility(IContentPackageLibrary)
         parents_questions = IQAssessmentItemContainer(content_package)
 
-        # XXX: remove
+        # remove
         hierarchy_ntiids = set()
         hierarchy_ntiids.add(content_package.ntiid)
 
@@ -298,7 +298,7 @@ class QuestionMap(QuestionIndex):
                                                component=thing_to_register,
                                                provided=provided,
                                                name=ntiid)
-                        # TODO: We are only partially supporting having question/sets
+                        # We are only partially supporting having question/sets
                         # used multiple places. When we get to that point, we need to
                         # handle it by noting on each assessment object where it is
                         # registered

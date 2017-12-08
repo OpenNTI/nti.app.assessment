@@ -4,10 +4,9 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
-
-logger = __import__('logging').getLogger(__name__)
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 import six
 
@@ -79,6 +78,8 @@ ITEMS = StandardExternalFields.ITEMS
 TOTAL = StandardExternalFields.TOTAL
 ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 
+logger = __import__('logging').getLogger(__name__)
+
 
 class EvaluationResetMixin(ModeledContentUploadRequestUtilsMixin):
 
@@ -148,6 +149,7 @@ class EvaluationResetView(AbstractAuthenticatedView,
                              None)
         elif self.course is not None and self._has_submissions(self.context):
             self._delete_contained_data(self.context)
+        # pylint: disable=no-member
         self.context.update_version()
         return self.context
 

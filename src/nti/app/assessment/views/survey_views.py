@@ -4,10 +4,9 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
-
-logger = __import__('logging').getLogger(__name__)
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 import csv
 import six
@@ -106,6 +105,8 @@ ITEMS = StandardExternalFields.ITEMS
 TOTAL = StandardExternalFields.TOTAL
 CREATOR = StandardExternalFields.CREATOR
 ITEM_COUNT = StandardExternalFields.ITEM_COUNT
+
+logger = __import__('logging').getLogger(__name__)
 
 
 def allow_to_disclose_inquiry(context, course, user):
@@ -224,6 +225,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
             ex.value = submission.inquiryId
             raise ex
 
+        # pylint: disable=no-member
         version = self.context.version
         if version is not None:  # record version
             submission.version = version
@@ -258,6 +260,7 @@ class InquirySubmissionGetView(AbstractAuthenticatedView, InquiryViewMixin):
         course_inquiry = component.getMultiAdapter((course, creator),
                                                    IUsersCourseInquiry)
         try:
+            # pylint: disable=no-member
             return course_inquiry[self.context.ntiid]
         except KeyError:
             return hexc.HTTPNotFound()
@@ -326,6 +329,7 @@ class InquirySubmissionMetadataCSVView(AbstractAuthenticatedView, InquiryViewMix
         response = self.request.response
         response.content_encoding = 'identity'
         response.content_type = 'text/csv; charset=UTF-8'
+        # pylint: disable=no-member
         metadata = _get_title_for_metadata_download(self.context.title)
         response.content_disposition = 'attachment; filename="%s"' % metadata
 
@@ -412,6 +416,7 @@ class InquiryCloseView(AbstractAuthenticatedView, InquiryViewMixin):
         self.context.closed = True
         result = aggregate_course_inquiry(self.context, course)
         container = ICourseAggregatedInquiries(course)
+        # pylint: disable=no-member
         container[self.context.ntiid] = result
         return result
 
@@ -437,6 +442,7 @@ class InquiryOpenView(AbstractAuthenticatedView, InquiryViewMixin):
         self.context.closed = False
         try:
             container = ICourseAggregatedInquiries(course)
+            # pylint: disable=no-member
             del container[self.context.ntiid]
         except KeyError:
             pass
@@ -452,6 +458,7 @@ class InquiryOpenView(AbstractAuthenticatedView, InquiryViewMixin):
 class InquiryAggregatedGetView(AbstractAuthenticatedView, InquiryViewMixin):
 
     def __call__(self):
+        # pylint: disable=no-member
         course = self.course
         if not allow_to_disclose_inquiry(self.context, course, self.remoteUser):
             raise_json_error(self.request,
@@ -488,6 +495,7 @@ class InquirySubmisionPostView(UGDPostView):
 
     def __call__(self):
         result = super(InquirySubmisionPostView, self).__call__()
+        # pylint: disable=no-member
         inquiry = component.getUtility(IQInquiry, name=self.context.inquiryId)
         if can_disclose_inquiry(inquiry):
             mimeType = self.context.mimeType
@@ -581,6 +589,7 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
 
     @property
     def questions(self):
+        # pylint: disable=no-member
         return self.context.questions
 
     @property
@@ -718,6 +727,7 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
 
         stream.flush()
         stream.seek(0)
+        # pylint: disable=no-member
         filename = self.context.title or self.context.id
         filename = filename + "_inquiry_report.csv"
         self.request.response.body_file = stream

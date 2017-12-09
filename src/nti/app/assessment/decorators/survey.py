@@ -4,10 +4,11 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
-logger = __import__('logging').getLogger(__name__)
+# pylint: disable=arguments-differ
 
 from datetime import datetime
 
@@ -35,6 +36,8 @@ from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
 
 from nti.app.assessment.interfaces import IUsersCourseInquiry
 from nti.app.assessment.interfaces import IUsersCourseInquiryItem
+
+from nti.app.assessment.utils import get_course_from_request
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
@@ -69,6 +72,8 @@ from nti.traversal.traversal import find_interface
 
 LINKS = StandardExternalFields.LINKS
 CREATOR = StandardExternalFields.CREATOR
+
+logger = __import__('logging').getLogger(__name__)
 
 
 class _InquiryContentRootURLAdder(AbstractAuthenticatedRequestAwareDecorator):
@@ -154,12 +159,14 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
         # ref lineage to distinguish between multiple courses. Ideally, we'll want
         # to make sure we have a course context wherever this ref is being accessed
         # (lesson overview) to handle subinstances correctly.
-        course = find_interface(context, ICourseInstance, strict=False)
+        course = get_course_from_request()
         if course is None:
-            course = _get_course_from_evaluation(context,
-                                                 user,
-                                                 self._catalog,
-                                                 request=self.request)
+            course = find_interface(context, ICourseInstance, strict=False)
+            if course is None:
+                course = _get_course_from_evaluation(context,
+                                                     user,
+                                                     self._catalog,
+                                                     request=self.request)
         return course
 
     def _do_decorate_external(self, context, result_map):
@@ -183,6 +190,7 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
             submission_count = self._submissions(ref_course, context)
             available = []
             now = datetime.utcnow()
+            # pylint: disable=too-many-function-args
             dates = IQAssessmentDateContext(course).of(context)
             for k, func in (
                     ('available_for_submission_beginning', get_available_for_submission_beginning),
@@ -206,6 +214,7 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
 
             result_map['submissions'] = submission_count
 
+        # pylint: disable=no-member
         elements = ('Inquiries', user.username, context.ntiid)
 
         course_inquiry = component.queryMultiAdapter((course, user),

@@ -4,10 +4,11 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
-logger = __import__('logging').getLogger(__name__)
+# pylint: disable=abstract-method
 
 from zope import component
 
@@ -34,6 +35,8 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.traversal.traversal import find_interface
 
+logger = __import__('logging').getLogger(__name__)
+
 
 class _AbstractTraversableLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
@@ -46,6 +49,7 @@ class _AbstractTraversableLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
                 return False  # Short circuit
             try:
                 loc_info = ILocationInfo(context)
+                # pylint: disable=too-many-function-args
                 loc_info.getParents()
             except TypeError:
                 return False
@@ -61,8 +65,8 @@ class AbstractAssessmentDecoratorPredicate(PreviewCourseAccessPredicateDecorator
     """
 
     def _predicate(self, context, result):
-        return  super(AbstractAssessmentDecoratorPredicate, self)._predicate(context, result) \
-            and self._is_traversable(context, result)
+        return super(AbstractAssessmentDecoratorPredicate, self)._predicate(context, result) \
+           and self._is_traversable(context, result)
 
 
 def _get_course_from_evaluation(evaluation, user=None, catalog=None, request=None):
@@ -88,6 +92,6 @@ def _root_url(ntiid):
         package = paths[0] if paths else None
         try:
             return root_url_of_unit(package) if package is not None else None
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             pass
     return None

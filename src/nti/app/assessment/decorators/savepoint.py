@@ -4,10 +4,9 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
-
-logger = __import__('logging').getLogger(__name__)
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 from zope import interface
 
@@ -36,6 +35,8 @@ from nti.links.links import Link
 
 LINKS = StandardExternalFields.LINKS
 
+logger = __import__('logging').getLogger(__name__)
+
 
 class _AssignmentSavepointDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
@@ -58,10 +59,12 @@ class _AssignmentSavepointDecorator(AbstractAuthenticatedRequestAwareDecorator):
             result = bool(item is not None and item.StartTime)
         return result
 
+    # pylint: disable=arguments-differ
     def _do_decorate_external(self, assignment, result):
         user = self.remoteUser
         course = _get_course_from_evaluation(assignment, user, request=self.request)
         if course is not None and user != None:
+            # pylint: disable=no-member
             links = result.setdefault(LINKS, [])
             links.append(Link(course,
                               rel='Savepoint',
@@ -72,6 +75,7 @@ class _AssignmentSavepointDecorator(AbstractAuthenticatedRequestAwareDecorator):
 @interface.implementer(IExternalMappingDecorator)
 class _AssignmentSavepointsDecorator(AbstractAssessmentDecoratorPredicate):
 
+    # pylint: disable=arguments-differ
     def _do_decorate_external(self, context, result_map):
         links = result_map.setdefault(LINKS, [])
         user = IUser(context, self.remoteUser)
@@ -89,6 +93,7 @@ class _AssignmentSavepointItemDecorator(AbstractAuthenticatedRequestAwareDecorat
                 and creator is not None
                 and creator == self.remoteUser)
 
+    # pylint: disable=arguments-differ
     def _do_decorate_external(self, context, result_map):
         try:
             link = Link(context)

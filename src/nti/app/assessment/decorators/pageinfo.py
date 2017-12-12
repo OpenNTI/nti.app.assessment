@@ -4,10 +4,9 @@
 .. $Id$
 """
 
-from __future__ import print_function, unicode_literals, absolute_import, division
-__docformat__ = "restructuredtext en"
-
-logger = __import__('logging').getLogger(__name__)
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 from zope import component
 from zope import interface
@@ -50,6 +49,8 @@ from nti.ntiids.oids import to_external_ntiid_oid
 TOTAL = StandardExternalFields.TOTAL
 ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 
+logger = __import__('logging').getLogger(__name__)
+
 
 @component.adapter(IContentUnitInfo)
 @interface.implementer(IExternalMappingDecorator)
@@ -79,6 +80,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
                   or has_permission(ACT_CONTENT_EDIT, course)
         return result
 
+    # pylint: disable=arguments-differ
     def _do_decorate_external(self, context, result_map):
         entry_ntiid = None
         qsids_to_strip = set()
@@ -97,10 +99,10 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
             if not unit_ntiid:
                 unit_ntiid = to_external_ntiid_oid(course)
             # Only things in context of a course should have assignments
-            assignment_predicate = \
-                get_course_assessment_predicate_for_user(user, course)
+            predicate = get_course_assessment_predicate_for_user(user, course)
             entry = ICourseCatalogEntry(course, None)
             entry_ntiid = getattr(entry, 'ntiid', None)
+            assignment_predicate = predicate
 
         new_result = {}
         is_instructor = self._is_instructor_or_editor(course, user)
@@ -124,8 +126,8 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
                 qsids_to_strip.update(poll.ntiid for poll in x.questions)
             elif IQAssignment.providedBy(x):
                 if assignment_predicate is None:
-                    logger.warn("Found assignment (%s) outside of course context "
-                                "in %s; dropping", x, context.contentUnit)
+                    logger.warning("Found assignment (%s) outside of course context "
+                                   "in %s; dropping", x, context.contentUnit)
                 elif assignment_predicate(x) or is_instructor:
                     # Yay, keep the assignment
                     x = check_assignment(x, user)
@@ -136,7 +138,7 @@ class _ContentUnitAssessmentItemDecorator(AbstractAuthenticatedRequestAwareDecor
                 # it contains as top-level items.
                 # We are assuming that these are on the same page
                 # for now and that they are only referenced by
-                # this assignment. # XXX FIXME: Bad limitation
+                # this assignment. We need to fix this
                 for assignment_part in x.parts or ():
                     question_set = assignment_part.question_set
                     qsids_to_strip.add(question_set.ntiid)

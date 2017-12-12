@@ -4,10 +4,9 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
-
-logger = __import__('logging').getLogger(__name__)
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 from zope import component
 from zope import interface
@@ -45,6 +44,8 @@ from nti.traversal.traversal import find_interface
 
 LINKS = StandardExternalFields.LINKS
 
+logger = __import__('logging').getLogger(__name__)
+
 
 @interface.implementer(IExternalMappingDecorator)
 class _AssignmentsAvailableAssignmentHistoryDecorator(AbstractAuthenticatedRequestAwareDecorator):
@@ -55,6 +56,7 @@ class _AssignmentsAvailableAssignmentHistoryDecorator(AbstractAuthenticatedReque
     def _user_predicate(self, user, course):
         return get_course_assessment_predicate_for_user(user, course)
 
+    # pylint: disable=arguments-differ
     def _do_decorate_external(self, context, result_map):
         user = context.owner
         courses = set()
@@ -87,9 +89,10 @@ class _CourseAssignmentHistoryDecorator(AbstractAssessmentDecoratorPredicate):
     # Note: We do not specify what we adapt, there are too many
     # things with no common ancestor.
 
+    # pylint: disable=arguments-differ
     def _do_decorate_external(self, context, result_map):
         links = result_map.setdefault(LINKS, [])
-        # XXX: If the context provides a user, that's the one we want,
+        # If the context provides a user, that's the one we want,
         # otherwise we want the current user
         user = IUser(context, self.remoteUser)
         links.append(Link(context,
@@ -103,7 +106,7 @@ class _LastViewedAssignmentHistoryDecorator(AbstractAuthenticatedRequestAwareDec
     we add a link to point to the 'lastViewed' update spot.
     """
 
-    def _predicate(self, context, result):
+    def _predicate(self, context, unused_result):
         return (    self._is_authenticated
                 and context.owner is not None
                 and context.owner == self.remoteUser)
@@ -124,6 +127,7 @@ class _AssignmentHistoryLinkDecorator(AbstractAuthenticatedRequestAwareDecorator
         result = component.getUtility(ICourseCatalog)
         return result
 
+    # pylint: disable=arguments-differ
     def _do_decorate_external(self, context, result_map):
         user = self.remoteUser
         course = _get_course_from_evaluation(context,
@@ -133,6 +137,7 @@ class _AssignmentHistoryLinkDecorator(AbstractAuthenticatedRequestAwareDecorator
         history = component.queryMultiAdapter((course, user),
                                               IUsersCourseAssignmentHistory)
         if history and context.ntiid in history:
+            # pylint: disable=no-member
             links = result_map.setdefault(LINKS, [])
             links.append(Link(course,
                               rel='History',
@@ -144,6 +149,7 @@ class _AssignmentHistoryLinkDecorator(AbstractAuthenticatedRequestAwareDecorator
 @interface.implementer(IExternalMappingDecorator)
 class _AssignmentHistoryItemDecorator(_AbstractTraversableLinkDecorator):
 
+    # pylint: disable=arguments-differ
     def _do_decorate_external(self, context, result_map):
         creator = context.creator
         remoteUser = self.remoteUser

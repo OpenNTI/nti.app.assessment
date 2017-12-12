@@ -4,10 +4,9 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
-
-logger = __import__('logging').getLogger(__name__)
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 from zope import component
 from zope import interface
@@ -45,7 +44,10 @@ from nti.externalization.externalization import to_external_object
 from nti.externalization.interfaces import IExternalObjectDecorator
 from nti.externalization.interfaces import IExternalMappingDecorator
 
+logger = __import__('logging').getLogger(__name__)
 
+
+# pylint: disable=abstract-method
 class _AbstractNonEditorRandomizingDecorator(AbstractAuthenticatedRequestAwareDecorator):
     """
     An abstract decorator that only randomizes if we do not have an instructor or
@@ -61,6 +63,7 @@ class _AbstractNonEditorRandomizingDecorator(AbstractAuthenticatedRequestAwareDe
             and not has_permission(ACT_CONTENT_EDIT, context, self.request)
 
 
+# pylint: disable=abstract-method
 class _AbstractNonEditorRandomizingPartDecorator(_AbstractNonEditorRandomizingDecorator):
     """
     An abstract decorator that only randomizes if we have a randomized part.
@@ -97,9 +100,9 @@ class _QRandomizedMultipleChoicePartDecorator(_AbstractNonEditorRandomizingPartD
 
     def _predicate(self, context, result):
         # Cannot handle these types of IQMultipleChoiceParts
-        # XXX: Should this implement IQMultipleChoicePart then?
-        return  not IQMultipleChoiceMultipleAnswerPart.providedBy(context) \
-            and super(_QRandomizedMultipleChoicePartDecorator, self)._predicate(context, result)
+        # Should this implement IQMultipleChoicePart then?
+        return not IQMultipleChoiceMultipleAnswerPart.providedBy(context) \
+           and super(_QRandomizedMultipleChoicePartDecorator, self)._predicate(context, result)
 
     def _do_decorate_external(self, context, result):
         generator = randomize(context=context)
@@ -153,7 +156,7 @@ class _QuestionSetRandomizedPartsDecorator(_AbstractNonEditorRandomizingDecorato
                 for part in question.parts or ():
                     try:
                         interface.noLongerProvides(part, IQRandomizedPart)
-                    except ValueError:
+                    except ValueError:  # pragma: no cover
                         # Concrete randomized type already.
                         pass
 

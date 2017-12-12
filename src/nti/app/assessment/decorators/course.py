@@ -4,10 +4,9 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
-
-logger = __import__('logging').getLogger(__name__)
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 from zope import interface
 
@@ -28,6 +27,8 @@ from nti.links.links import Link
 
 LINKS = StandardExternalFields.LINKS
 
+logger = __import__('logging').getLogger(__name__)
+
 
 @interface.implementer(IExternalMappingDecorator)
 class _CourseEditorLinksDecorator(_AbstractTraversableLinkDecorator):
@@ -42,6 +43,7 @@ class _CourseEditorLinksDecorator(_AbstractTraversableLinkDecorator):
                  and (	  is_course_editor(context, self.remoteUser)
                        or has_permission(ACT_CONTENT_EDIT, context, self.request)))
 
+    # pylint: disable=arguments-differ
     def _do_decorate_external(self, context, result_map):
         links = result_map.setdefault(LINKS, [])
         for name in ('Assignments', 'Inquiries', 'AssessmentItems', ):
@@ -54,6 +56,7 @@ class _CourseEditorLinksDecorator(_AbstractTraversableLinkDecorator):
 @interface.implementer(IExternalMappingDecorator)
 class _CourseEvaluationSubmissionLinksDecorator(_AbstractTraversableLinkDecorator):
 
+    # pylint: disable=arguments-differ
     def _do_decorate_external(self, context, result_map):
         for rel in ('Assessments', 'CourseInquiries'):
             links = result_map.setdefault(LINKS, [])

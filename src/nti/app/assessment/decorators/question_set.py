@@ -13,13 +13,9 @@ from zope import interface
 
 from nti.assessment.interfaces import IQuestionSet
 
-from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import IExternalObjectDecorator
 
 from nti.externalization.singleton import Singleton
-
-OID = StandardExternalFields.OID
-LINKS = StandardExternalFields.LINKS
 
 logger = __import__('logging').getLogger(__name__)
 

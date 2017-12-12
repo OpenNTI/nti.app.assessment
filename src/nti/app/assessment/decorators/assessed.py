@@ -97,7 +97,7 @@ def _is_randomized_question_set(context):
 @component.adapter(IQAssessedPart)
 class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
-    def _do_decorate_external(self, context, result_map):
+    def _do_decorate_external(self, context, result_map):  # pylint: disable=arguments-differ
         course = find_interface(context, ICourseInstance, strict=False)
         if course is None or not is_course_instructor(course, self.remoteUser):
             return
@@ -126,6 +126,7 @@ class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):
             or _is_randomized_question_set(context):
             response = context.submittedResponse
             if response is not None:
+                # pylint: disable=unused-variable
                 __traceback_info__ = type(response), response, question_part
                 grader = grader_for_response(question_part, response)
                 if grader is None:
@@ -148,6 +149,7 @@ class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):
 @component.adapter(IQuestionSubmission)
 class _QuestionSubmissionDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
+    # pylint: disable=arguments-differ
     def _do_decorate_external(self, context, result_map):
         course = find_interface(context, ICourseInstance, strict=False)
         if course is None or not is_course_instructor(course, self.remoteUser):
@@ -167,7 +169,7 @@ class _QuestionSubmissionDecorator(AbstractAuthenticatedRequestAwareDecorator):
             return  # old question?
 
         if len(question.parts) != len(context.parts):
-            logger.warn("Not all question parts were submitted")
+            logger.warning("Not all question parts were submitted")
 
         # CS: We need the user that submitted the question in
         # order to unshuffle the response
@@ -182,6 +184,7 @@ class _QuestionSubmissionDecorator(AbstractAuthenticatedRequestAwareDecorator):
             else:
                 response = ext_sub_part = sub_part
                 if sub_part is not None:
+                    # pylint: disable=unused-variable
                     __traceback_info__ = sub_part, question_part
                     grader = grader_for_response(question_part, sub_part)
                     if grader is not None:
@@ -247,11 +250,13 @@ class _QAssessedQuestionExplanationSolutionAdder(Singleton):
 class _QAssignmentSubmissionPendingAssessmentDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
     def _predicate(self, context, result):
+        # pylint: disable=no-member
         creator = getattr(context.__parent__, 'creator', None)
         return (    AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
                 and creator is not None
                 and creator == self.remoteUser)
 
+    # pylint: disable=arguments-differ
     def _do_decorate_external(self, context, result_map):
         item = find_interface(context,
                               IUsersCourseAssignmentHistoryItem,

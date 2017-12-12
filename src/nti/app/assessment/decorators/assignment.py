@@ -145,7 +145,7 @@ class _AssignmentsByOutlineNodeDecorator(AbstractAssessmentDecoratorPredicate):
         Returns a true value if the course should show the links [Non] assignments
         by outline node links
         """
-        # TODO: We will remove when a preference course/user? policy is in
+        # We will remove when a preference course/user? policy is in
         # place.
         vendor_info = get_course_vendor_info(course, False) or {}
         try:
@@ -163,6 +163,7 @@ class _AssignmentsByOutlineNodeDecorator(AbstractAssessmentDecoratorPredicate):
                     ignore_properties_of_target=True)
         return link
 
+    # pylint: disable=arguments-differ
     def _do_decorate_external(self, context, result_map):
         course = ICourseInstance(context, context)
 
@@ -187,7 +188,7 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
 
     def _predicate(self, context, result):
         if AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result):
-            # XXX: Hack
+            # Hack
             return assignment_download_precondition(context, self.request, self.remoteUser)
 
     def _do_decorate_external(self, context, result):
@@ -218,6 +219,7 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
         result = component.getUtility(ICourseCatalog)
         return result
 
+    # pylint: disable=arguments-differ
     def _do_decorate_external(self, assignment, result):
         course = _get_course_from_evaluation(assignment,
                                              self.remoteUser,

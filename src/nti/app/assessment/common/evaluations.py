@@ -170,7 +170,6 @@ def get_course_evaluations(context, sites=None, intids=None, mimetypes=None,
                 containers.append(parent_entry.ntiid)
         packages = get_course_packages(course)
         containers.extend((x.ntiid for x in packages))
-        sites = get_resource_site_name(course) if not sites else sites
 
     return get_container_evaluations(containers, sites, intids, mimetypes)
 

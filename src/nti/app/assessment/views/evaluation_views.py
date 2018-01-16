@@ -80,7 +80,10 @@ from nti.assessment.randomized.interfaces import IQuestionBank
 
 from nti.assessment.randomized.question import QQuestionBank
 
+from nti.common.string import is_true
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ICourseEnrollments
 
 from nti.contenttypes.courses.utils import is_course_instructor
 
@@ -632,9 +635,28 @@ class AssignmentPutView(NewAndLegacyPutView):
                 # assignments that might be shared between courses.
                 self._validate_structural_edits(contentObject)
 
+    def _validate_non_public(self, contentObject, externalValue):
+        """
+        Validate that, when making is_non_public changes, we have users
+        enrolled in that scope (or we force it).
+        """
+        new_non_public = externalValue.get('is_non_public')
+        new_non_public = new_non_public and is_true(new_non_public)
+        if      new_non_public \
+            and new_non_public != contentObject.is_non_public \
+            and not is_true(self.request.params.get('force_is_non_public', False)):
+            enrollments = ICourseEnrollments(self.course)
+            if not enrollments.count_legacy_forcredit_enrollments():
+                self._raise_conflict_error('InvalidNonPublicAssignmentScope',
+                                           _(u'No users enrolled for credit in this course. Please confirm.'),
+                                           self.course,
+                                           contentObject.ntiid,
+                                           force_flag_name='force_is_non_public')
+
     def updateContentObject(self, contentObject, externalValue, set_id=False, notify=True):
         # Must toggle types first (if necessary) before calling super;
         # so everything validates.
+        self._validate_non_public(contentObject, externalValue)
         self._validate_timed(contentObject, externalValue)
         self._update_timed_status(externalValue, contentObject)
         result = super(AssignmentPutView, self).updateContentObject(contentObject,

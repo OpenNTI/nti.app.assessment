@@ -500,7 +500,7 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
         """
         result = [VIEW_MOVE_PART, VIEW_INSERT_PART,
                   VIEW_REMOVE_PART, VIEW_DELETE]
-        if self._can_toggle_is_non_public(context, courses):
+        if self._can_toggle_is_non_public(context):
             result.append(VIEW_IS_NON_PUBLIC)
         return result
 
@@ -543,13 +543,13 @@ class _AssessmentEditorDecorator(AbstractAuthenticatedRequestAwareDecorator):
                               has_submissions=submissions,
                               is_available=is_available)
 
-    def _can_toggle_is_non_public(self, context, courses):
+    def _can_toggle_is_non_public(self, context):
         """
         It can be toggled only if it is not in progress and all of its
         contained courses are not ForCredit only. We don't yet have a way to
         determine if a course is Public only.
         """
-        return not is_assignment_non_public_only(context, courses)
+        return not is_assignment_non_public_only(context)
 
     def _do_decorate_external(self, context, result):
         _links = result.setdefault(LINKS, [])
@@ -629,8 +629,7 @@ class _DiscussionAssignmentEditorDecorator(_AssessmentEditorDecorator):
         if not self._has_edit_link(_links):
             rels.append('edit')
 
-        courses = self.get_courses(context)
-        if self._can_toggle_is_non_public(context, courses):
+        if self._can_toggle_is_non_public(context):
             rels.append(VIEW_IS_NON_PUBLIC)
 
         # chose link context according to the presence of a course

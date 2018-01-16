@@ -26,9 +26,6 @@ from ZODB import loglevels
 
 from nti.app.assessment.assignment_filters import AssessmentPolicyExclusionFilter
 
-from nti.app.assessment.common.hostpolicy import get_resource_site_name
-
-from nti.app.assessment.common.utils import get_courses
 from nti.app.assessment.common.utils import is_published
 from nti.app.assessment.common.utils import get_policy_field
 from nti.app.assessment.common.utils import get_evaluation_catalog_entry
@@ -71,8 +68,6 @@ from nti.contenttypes.courses.interfaces import ES_PUBLIC
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseSubInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
-from nti.contenttypes.courses.interfaces import IDenyOpenEnrollment
-from nti.contenttypes.courses.interfaces import INonPublicCourseInstance
 
 from nti.contenttypes.courses.legacy_catalog import ILegacyCourseInstance
 
@@ -515,24 +510,15 @@ def is_discussion_assignment_non_public(assignment):
     return is_non_public
 
 
-def is_assignment_non_public_only(context, courses=None):
+def is_assignment_non_public_only(context):
     """
-    For the given assignment, return if its courses are only
-    non-public courses.
+    For the given assignment, return if it should be non-public only.
     """
-    if ICourseInstance.providedBy(courses):
-        courses = (courses,)
-    if courses is None:
-        course = get_course_from_evaluation(context)
-        courses = get_courses(course)
-
-    def _is_non_public(course):
-        return INonPublicCourseInstance.providedBy(course) \
-            or IDenyOpenEnrollment.providedBy(course)
-
-    is_non_public_only = courses and all(_is_non_public(x) for x in courses)
-    is_discussion_non_public = is_discussion_assignment_non_public(context)
-    return is_non_public_only or is_discussion_non_public
+    # We used to check course non-public status, but some courses are
+    # only available by invitation only. Thus, we only can designate
+    # non-public only if we point to a non-public discussion as a
+    # dicsussion assignment.
+    return is_discussion_assignment_non_public(context)
 
 
 def is_global_evaluation(evaluation):

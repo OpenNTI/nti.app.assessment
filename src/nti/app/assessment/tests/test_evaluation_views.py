@@ -190,11 +190,10 @@ class TestEvaluationViews(ApplicationLayerTest):
             submission_rel_checks.extend((VIEW_MOVE_PART,
                                           VIEW_INSERT_PART,
                                           VIEW_REMOVE_PART,
+                                          VIEW_IS_NON_PUBLIC,
                                           'date-edit-start',
                                           'maximum-time-allowed'))
             self.require_link_href_with_rel(ext_obj, 'date-edit-end')
-            # Our course is non-public, so this should not be togglable.
-            self.forbid_link_with_rel(ext_obj, VIEW_IS_NON_PUBLIC)
         elif ext_mime == QUESTION_SET_MIME_TYPE:
             # Randomize is context sensitive and tested elsewhere.
             submission_rel_checks.extend((VIEW_QUESTION_SET_CONTENTS,
@@ -580,6 +579,16 @@ class TestEvaluationViews(ApplicationLayerTest):
                                     status=422)
         assert_that(res.json_body.get('code'),
                     is_('UngradableInAutoGradeAssignment'))
+
+        # Toggle is_non_public
+        # Without ForCredit students, this will 409 until we force it
+        data = {'is_non_public': 'True'}
+        res = self.testapp.put_json(assignment_url,
+                                    data, extra_environ=editor_environ,
+                                    status=409)
+        confirm_href = self.require_link_href_with_rel(res.json_body, 'confirm')
+        self.testapp.put_json(confirm_href,
+                              data, extra_environ=editor_environ)
 
     @WithSharedApplicationMockDS(testapp=True, users=True)
     @fudge.patch('nti.app.assessment.evaluations.subscribers.has_submissions')

@@ -155,14 +155,14 @@ class AssessmentPutView(UGDPutView):
         [result.pop(x, None) for x in (NTIID, INTERNAL_NTIID)]
         return result
 
-    def _raise_conflict_error(self, code, message, course, ntiid):
+    def _raise_conflict_error(self, code, message, course, ntiid, force_flag_name='force'):
         entry = ICourseCatalogEntry(course)
-        logger.info('Attempting to change assignment availability (%s) (%s) (%s)',
+        logger.info('Attempting to change assignment (%s) (%s) (%s)',
                     code,
                     ntiid,
                     entry.ntiid)
         params = dict(self.request.params)
-        params['force'] = True
+        params[force_flag_name] = True
         links = (
             Link(self.request.path, rel='confirm',
                  params=params, method='PUT'),
@@ -199,7 +199,7 @@ class AssessmentPutView(UGDPutView):
             and  (
                    (new_start_date
                     and cls._is_date_in_range(old_start_date, new_start_date, now))
-                 or 
+                 or
                    (old_start_date
                     and cls._is_date_in_range(new_start_date, old_start_date, now)))
 
@@ -533,8 +533,8 @@ class StructuralValidationMixin(object):
     def composite(self):
         result = find_interface(self.context, ICourseInstance, strict=False)
         if result is None:
-            result = find_interface(self.context, 
-                                    IContentPackage, 
+            result = find_interface(self.context,
+                                    IContentPackage,
                                     strict=False)
         return result
 
@@ -799,7 +799,7 @@ class EvaluationMixin(StructuralValidationMixin):
         if self.is_new(theObject):
             questions = indexed_iter()
             for question in theObject.questions or ():
-                question = self.handle_question(question, composite, 
+                question = self.handle_question(question, composite,
                                                 user, check_solutions)
                 questions.append(question)
             theObject.questions = questions
@@ -1033,7 +1033,7 @@ class EvaluationMixin(StructuralValidationMixin):
         are non-public.
         """
         if self.course is not None:
-            is_non_public = is_assignment_non_public_only(context, self.course)
+            is_non_public = is_assignment_non_public_only(context)
             context.is_non_public = is_non_public
 
     def auto_complete_assignment(self, context, externalValue):
@@ -1045,7 +1045,7 @@ class EvaluationMixin(StructuralValidationMixin):
             if qset:
                 part.question_set = self._get_required_question_set(qset)
             if part.question_set is not None:
-                self.auto_complete_questionset(part.question_set, 
+                self.auto_complete_questionset(part.question_set,
                                                externalValue)
         context.parts = parts
         self._default_assignment_public_status(context)

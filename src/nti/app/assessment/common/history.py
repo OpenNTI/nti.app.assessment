@@ -4,10 +4,9 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
-
-logger = __import__('logging').getLogger(__name__)
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 from zope import component
 
@@ -28,6 +27,8 @@ from nti.assessment.interfaces import IQAssessmentPolicies
 from nti.assessment.interfaces import IQAssessmentDateContext
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+
+logger = __import__('logging').getLogger(__name__)
 
 
 def get_assessment_metadata_item(context, user, assignment):
@@ -77,6 +78,7 @@ def has_savepoints(context, courses=()):
     context_ntiid = getattr(context, 'ntiid', context)
     for course in to_course_list(courses) or ():
         savepoints = IUsersCourseAssignmentSavepoints(course, None)
+        # pylint: disable=too-many-function-args
         if savepoints is not None and savepoints.has_assignment(context_ntiid):
             return True
     return False

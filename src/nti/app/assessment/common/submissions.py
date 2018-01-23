@@ -4,20 +4,19 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
-
-logger = __import__('logging').getLogger(__name__)
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 import six
-
-from zope import component
-
-from zope.intid.interfaces import IIntIds
 
 from pyramid import httpexceptions as hexc
 
 from pyramid.threadlocal import get_current_request
+
+from zope import component
+
+from zope.intid.interfaces import IIntIds
 
 from nti.app.assessment import MessageFactory as _
 
@@ -48,6 +47,8 @@ from nti.assessment.interfaces import IQEvaluation
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.traversal.traversal import find_interface
+
+logger = __import__('logging').getLogger(__name__)
 
 
 def has_assigments_submitted(context, user):

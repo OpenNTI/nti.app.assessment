@@ -4,14 +4,15 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
-
-logger = __import__('logging').getLogger(__name__)
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 import six
 import itertools
 from datetime import datetime
+
+from ZODB import loglevels
 
 from zope import component
 
@@ -21,8 +22,6 @@ from zope.proxy import isProxy
 from zope.proxy import ProxyBase
 
 from zope.schema.interfaces import RequiredMissing
-
-from ZODB import loglevels
 
 from nti.app.assessment.assignment_filters import AssessmentPolicyExclusionFilter
 
@@ -84,6 +83,8 @@ from nti.ntiids.ntiids import find_object_with_ntiid
 from nti.site.site import get_component_hierarchy_names
 
 from nti.traversal.traversal import find_interface
+
+logger = __import__('logging').getLogger(__name__)
 
 
 def get_evaluation_containment(ntiid, sites=None, intids=None):
@@ -171,6 +172,8 @@ def get_course_evaluations(context, sites=None, intids=None, mimetypes=None,
 
 class AssessmentItemProxy(ProxyBase):
 
+    # pylint: disable=property-on-old-class
+
     ContentUnitNTIID = property(
         lambda s: s.__dict__.get('_v_content_unit'),
         lambda s, v: s.__dict__.__setitem__('_v_content_unit', v))
@@ -183,6 +186,7 @@ class AssessmentItemProxy(ProxyBase):
         return ProxyBase.__new__(cls, base)
 
     def __init__(self, base, content_unit=None, catalog_entry=None):
+        # pylint: disable=non-parent-init-called
         ProxyBase.__init__(self, base)
         self.ContentUnitNTIID = content_unit
         self.CatalogEntryNTIID = catalog_entry
@@ -207,6 +211,7 @@ def get_unit_assessments(unit):
     result = []
     try:
         container = IQAssessmentItemContainer(unit)
+        # pylint: disable=too-many-function-args
         result.extend(container.assessments())
     except TypeError:
         pass
@@ -263,7 +268,7 @@ def find_course_for_evaluation(evaluation, user, exc=True):
         # For BWC, we also check to see if we can just get
         # one based on the content package of the assignment, not
         # checking enrollment.
-        # TODO: Drop this
+        # 1) Drop this
         package = find_interface(evaluation, IContentPackage, strict=False)
         course = ICourseInstance(package, None)
         if course is not None:
@@ -397,7 +402,7 @@ def get_course_self_assessments(context, exclude_editable=True):
         elif not IQuestionSet.providedBy(item):
             qsids_to_strip.add(item.ntiid)
         elif exclude_editable and IQEditableEvaluation.providedBy(item):
-            # XXX: Seems like eventually we'll want to return these.
+            # Seems like eventually we'll want to return these.
             # We probably eventually want to mark question-sets that
             # are self-assessments.
             qsids_to_strip.add(item.ntiid)

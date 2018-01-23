@@ -4,16 +4,15 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
-
-logger = __import__('logging').getLogger(__name__)
-
-from requests.structures import CaseInsensitiveDict
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 from pyramid import httpexceptions as hexc
 
 from pyramid.threadlocal import get_current_request
+
+from requests.structures import CaseInsensitiveDict
 
 from nti.app.assessment import MessageFactory as _
 
@@ -54,10 +53,13 @@ AUTO_GRADE_NO_POINTS_MSG = _(
     u"Cannot enable auto-grading without setting a point value."
 )
 
+logger = __import__('logging').getLogger(__name__)
+
 
 def get_policy_for_assessment(asm_id, context):
     course = ICourseInstance(context)
     policies = IQAssessmentPolicies(course)
+    # pylint: disable=too-many-function-args
     policy = policies.getPolicyForAssessment(asm_id)
     return policy
 
@@ -192,7 +194,8 @@ def pre_validate_question_change(question, externalValue):
         for part, change in zip(question.parts, parts):
             analyzer = IQPartChangeAnalyzer(part, None)
             if analyzer is not None:
-                if not analyzer.allow(change, check_solutions=check_solutions):
+                # pylint: disable=too-many-function-args
+                if not analyzer.allow(change, check_solutions):
                     raise_json_error(get_current_request(),
                                      hexc.HTTPUnprocessableEntity,
                                      {

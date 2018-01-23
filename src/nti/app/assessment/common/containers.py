@@ -4,10 +4,9 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
-
-logger = __import__('logging').getLogger(__name__)
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 from zope import component
 
@@ -19,6 +18,8 @@ from nti.app.assessment.common.evaluations import get_containers_for_evaluation_
 from nti.app.assessment.index import get_evaluation_catalog
 
 from nti.assessment.interfaces import IQAssignment
+
+logger = __import__('logging').getLogger(__name__)
 
 
 def get_outline_evaluation_containers(obj):

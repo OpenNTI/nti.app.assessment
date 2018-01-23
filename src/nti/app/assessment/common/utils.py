@@ -4,10 +4,9 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
-
-logger = __import__('logging').getLogger(__name__)
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 import time
 
@@ -53,6 +52,8 @@ from nti.publishing.interfaces import IPublishable
 from nti.zodb.containers import time_to_64bit_int
 
 NAQ = NTIID_TYPE
+
+logger = __import__('logging').getLogger(__name__)
 
 
 def get_creator_username(context):
@@ -155,6 +156,7 @@ def get_policy_field(assignment, course, field):
     policy = IQAssessmentPolicies(course, None)
     assignment_ntiid = getattr(assignment, 'ntiid', assignment)
     if policy is not None:
+        # pylint: disable=too-many-function-args
         return policy.get(assignment_ntiid, field, False)
     return None
 
@@ -167,6 +169,7 @@ def get_available_for_submission_beginning(assesment, context=None):
     course = ICourseInstance(context, None)
     dates = IQAssessmentDateContext(course, None)
     if dates is not None:
+        # pylint: disable=too-many-function-args
         result = dates.of(assesment).available_for_submission_beginning
     else:
         result = assesment.available_for_submission_beginning
@@ -177,6 +180,7 @@ def get_available_for_submission_ending(assesment, context=None):
     course = ICourseInstance(context, None)
     dates = IQAssessmentDateContext(course, None)
     if dates is not None:
+        # pylint: disable=too-many-function-args
         result = dates.of(assesment).available_for_submission_ending
     else:
         result = assesment.available_for_submission_ending

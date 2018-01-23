@@ -4,10 +4,9 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
-
-logger = __import__('logging').getLogger(__name__)
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 import itertools
 
@@ -50,6 +49,8 @@ from nti.dataserver.metadata.index import IX_CONTAINERID
 from nti.dataserver.metadata.index import get_metadata_catalog
 
 from nti.zope_catalog.catalog import ResultSet
+
+logger = __import__('logging').getLogger(__name__)
 
 
 def find_course_for_inquiry(inquiry, user, exc=True):

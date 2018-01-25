@@ -290,13 +290,19 @@ def update_assessments_on_course_bundle_update(course, unused_event):
 
 
 @component.adapter(IQDiscussionAssignment, IObjectModifiedEvent)
-def on_discussion_assignment_created(context, unused_event=None):
-    is_non_public = is_discussion_assignment_non_public(context)
-    context.is_non_public = is_non_public
+def on_discussion_assignment_updated(context, event=None):
+    """
+    We may set the public status of this assignment, but only if the topic
+    we're pointing at changes.
+    """
+    external_value = getattr(event, 'external_value', {})
+    if 'discussion_ntiid' in external_value:
+        is_non_public = is_discussion_assignment_non_public(context)
+        context.is_non_public = is_non_public
 
 
 @component.adapter(IQDiscussionAssignment, IObjectAddedEvent)
-def on_discussion_assignment_updated(context, unused_event=None):
+def on_discussion_assignment_created(context, unused_event=None):
     is_non_public = is_discussion_assignment_non_public(context)
     context.is_non_public = is_non_public
 

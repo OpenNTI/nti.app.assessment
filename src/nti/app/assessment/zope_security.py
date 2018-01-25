@@ -39,7 +39,7 @@ class AssignmentHistoriesRolePermissionManager(AnnotationRolePermissionManager):
 
     def getRolesForPermission(self, perm):
         result = []
-        super_roles = super(AssignmentHistoriesRolePermissionManager, self).getRolesForPermission(perm)
+        super_roles = AnnotationRolePermissionManager.getRolesForPermission(self, perm)
         for role, setting in super_roles:
             if role != ROLE_CONTENT_ADMIN_NAME:
                 result.append((role, setting))

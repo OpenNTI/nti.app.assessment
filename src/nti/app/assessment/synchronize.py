@@ -84,6 +84,7 @@ def populate_question_map_json(asm_index_json,
             sync_results = new_sync_results(content_package)
 
         question_map = QuestionMap() if question_map is None else question_map
+        # pylint: disable=protected-access
         result = question_map._from_root_index(asm_index_json,
                                                content_package,
                                                registry=registry,
@@ -177,7 +178,7 @@ def remove_assessment_items_from_oldcontent(package, force=False, sync_results=N
     # Unregister the things from the component registry.
     # We SHOULD be run in the registry where the library item was initially
     # loaded. (We use the context argument to check)
-    # FIXME: This doesn't properly handle the case of
+    # 1) This doesn't properly handle the case of
     # having references in different content units; we approximate
     sm = component.getSiteManager()
     if component.getSiteManager(package) is not sm:
@@ -225,7 +226,7 @@ def remove_assessment_items_from_oldcontent(package, force=False, sync_results=N
                 provided = iface_of_assessment(item)
                 logger.warn("Object (%s,%s) is locked cannot be removed during sync",
                             provided.__name__, name)
-                # XXX: Make sure we add to the ignore list all items that are exploded
+                # Make sure we add to the ignore list all items that are exploded
                 # so they are not processed
                 exploded = QuestionMap.explode_object_to_register(item)
                 to_ignore_accum.update(x.ntiid for x in exploded or ())
@@ -284,6 +285,7 @@ def transfer_locked_items_to_content_package(package, added_items, locked_ntiids
         if item_parent is None:
             item_parent = package
         parents_questions = IQAssessmentItemContainer(item_parent)
+        # pylint: disable=too-many-function-args
         parents_questions.append(missing_item)
         missing_item.__parent__ = item_parent
 

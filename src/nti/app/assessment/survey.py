@@ -134,6 +134,7 @@ class UsersCourseInquiry(CheckingLastModifiedBTreeContainer):
         course = ICourseInstance(self, None)
         instructors = getattr(course, 'instructors', ())  # already principals
         aces = [ace_allowing(self.owner, ACT_READ, type(self))]
+        # pylint: disable=not-an-iterable
         for instructor in instructors or ():
             aces.append(ace_allowing(instructor, ALL_PERMISSIONS, type(self)))
         aces.append(ACE_DENY_ALL)
@@ -179,6 +180,7 @@ class UsersCourseInquiryItem(PersistentCreatedModDateTrackingObject,
         course = ICourseInstance(self, None)
         instructors = getattr(course, 'instructors', ())  # already principals
         aces = [ace_allowing(self.creator, ACT_READ, type(self))]
+        # pylint: disable=not-an-iterable
         for instructor in instructors or ():
             aces.append(ace_allowing(instructor, ALL_PERMISSIONS, type(self)))
         aces.append(ACE_DENY_ALL)
@@ -287,7 +289,8 @@ class CourseAggregatedSurveys(CheckingLastModifiedBTreeContainer):
     @property
     def __acl__(self):
         course = ICourseInstance(self, None)
-        instructors = getattr(course, 'instructors', ())  # already principals
+        instructors = getattr(course, 'instructors', ()) # already principals
+        # pylint: disable=not-an-iterable
         aces = [ace_allowing(i, ALL_PERMISSIONS, type(self))
                 for i in instructors or ()]
         aces.append(ace_allowing(EVERYONE_USER_NAME, ACT_READ))
@@ -323,11 +326,12 @@ def _on_course_added(course, unused_event):
 
 
 @component.adapter(IUsersCourseInquiryItem, IObjectAddedEvent)
-def _on_course_inquiry_item_added(item, event):
+def _on_course_inquiry_item_added(unused_item, unused_event):
     pass
 
 
 def aggregate_survey_submission(storage, submission):
+    # pylint: disable=not-an-iterable
     aggregated_inquiry = IQAggregatedSurvey(submission)
     for aggregated_poll in aggregated_inquiry.questions:
         pollId = aggregated_poll.pollId

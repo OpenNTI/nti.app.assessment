@@ -110,6 +110,7 @@ def add_object_to_course_activity(submission, unused_event):
 
     course = find_interface(submission, ICourseInstance)
     activity = ICourseInstanceActivity(course)
+    # pylint: disable=too-many-function-args
     activity.append(submission)
 
 
@@ -123,6 +124,7 @@ def remove_object_from_course_activity(submission, unused_event):
 
     course = find_interface(submission, ICourseInstance)
     activity = ICourseInstanceActivity(course)
+    # pylint: disable=too-many-function-args
     activity.remove(submission)
 
 

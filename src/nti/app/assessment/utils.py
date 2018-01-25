@@ -10,7 +10,7 @@ from __future__ import absolute_import
 
 import os
 import copy
-from six.moves.urllib_parse import unquote
+from six.moves import urllib_parse
 
 import simplejson
 
@@ -78,6 +78,7 @@ def r47694():
     so we introduce this patch to force sha224 randomizer for those students/
     assessment pairs. We now use the orginal randomizer for legacy purposes
     """
+    # pylint: disable=global-statement
     global _r47694_map
     if _r47694_map is None:
         path = os.path.join(os.path.dirname(__file__), "hacks/r47694.json")
@@ -248,7 +249,8 @@ def get_course_from_request(request=None, params=None):
              or params.get('entry') \
              or params.get('ntiid') \
              or params.get('context')
-        ntiid = unquote(ntiid) if ntiid else None
+        # pylint: disable=too-many-function-args
+        ntiid = urllib_parse.unquote(ntiid) if ntiid else None
         if ntiid:
             result = find_object_with_ntiid(ntiid)
             result = ICourseInstance(result, None)
@@ -268,7 +270,8 @@ def get_package_from_request(request=None, params=None):
         ntiid = params.get('package') \
              or params.get('ntiid') \
              or params.get('context')
-        ntiid = unquote(ntiid) if ntiid else None
+        # pylint: disable=too-many-function-args
+        ntiid = urllib_parse.unquote(ntiid) if ntiid else None
         if ntiid:
             result = find_object_with_ntiid(ntiid)
             result = IContentPackage(result, None)
@@ -318,7 +321,7 @@ class RandomizedPartGraderUnshuffleValidator(object):
         """
         result = True
         # Need to have at least a question here for this to work
-        # XXX: This only returns a single course.
+        # This only returns a single course.
         course = get_course_from_evaluation(context)
         if course is not None:
             user = get_remote_user()

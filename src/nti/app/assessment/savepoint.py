@@ -8,6 +8,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
+# pylint: disable=too-many-function-args
+
 from zope import component
 from zope import interface
 from zope import lifecycleevent
@@ -128,6 +130,7 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
         if event:
             lifecycleevent.created(item)
         else:
+            # pylint: disable=too-many-function-args
             IConnection(self).add(item)
         self._append(submission.assignmentId, item, event)
         return item
@@ -169,7 +172,8 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
     def __acl__(self):
         aces = [ace_allowing(self.owner, ALL_PERMISSIONS, type(self))]
         course = ICourseInstance(self, None)
-        for instructor in getattr(course, 'instructors', ()):  # already principals
+        # pylint: disable=not-an-iterable
+        for instructor in getattr(course, 'instructors', None) or ():  # already principals
             aces.append(ace_allowing(instructor, ACT_READ, type(self)))
         aces.append(ACE_DENY_ALL)
         return acl_from_aces(aces)

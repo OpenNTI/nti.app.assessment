@@ -32,6 +32,7 @@ from nti.dataserver.authorization import ROLE_CONTENT_ADMIN
 from nti.dataserver.authorization_acl import ace_allowing
 from nti.dataserver.authorization_acl import acl_from_aces
 
+from nti.dataserver.interfaces import ACE_DENY_ALL
 from nti.dataserver.interfaces import ALL_PERMISSIONS
 
 from nti.dataserver.interfaces import IACLProvider
@@ -86,4 +87,8 @@ class EvaluationACLProvider(object):
             package = find_interface(self.context, IEditableContentPackage, strict=False)
             if package is not None:
                 result.extend(IACLProvider(package).__acl__)
+            # Editable evaluations can only be viewed if the user has course
+            # permissions.
+            result.append(ACE_DENY_ALL)
+        # Package backed evaluations end up getting permission based on the package ACL.
         return result

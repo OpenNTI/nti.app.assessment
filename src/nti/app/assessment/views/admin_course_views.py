@@ -7,11 +7,14 @@
 from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
-logger = __import__('logging').getLogger(__name__)
-
 import csv
 from io import BytesIO
 from datetime import datetime
+
+from pyramid import httpexceptions as hexc
+
+from pyramid.view import view_config
+from pyramid.view import view_defaults
 
 from requests.structures import CaseInsensitiveDict
 
@@ -20,11 +23,6 @@ from zope import component
 from zope.interface.common.idatetime import IDateTime
 
 from zope.security.interfaces import IPrincipal
-
-from pyramid import httpexceptions as hexc
-
-from pyramid.view import view_config
-from pyramid.view import view_defaults
 
 from nti.app.assessment import MessageFactory as _
 
@@ -78,6 +76,8 @@ from nti.ntiids.ntiids import find_object_with_ntiid
 ITEMS = StandardExternalFields.ITEMS
 TOTAL = StandardExternalFields.TOTAL
 ITEM_COUNT = StandardExternalFields.ITEM_COUNT
+
+logger = __import__('logging').getLogger(__name__)
 
 
 @view_config(context=IDataserverFolder)

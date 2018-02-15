@@ -4,10 +4,15 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
-logger = __import__('logging').getLogger(__name__)
+from persistent.list import PersistentList
+
+from pyramid import httpexceptions as hexc
+
+from pyramid.view import view_config
 
 from requests.structures import CaseInsensitiveDict
 
@@ -19,12 +24,6 @@ from zope.intid.interfaces import IIntIds
 
 from zope.security.management import endInteraction
 from zope.security.management import restoreInteraction
-
-from persistent.list import PersistentList
-
-from pyramid import httpexceptions as hexc
-
-from pyramid.view import view_config
 
 from nti.app.assessment import MessageFactory as _
 
@@ -87,6 +86,8 @@ from nti.traversal.traversal import find_interface
 ITEMS = StandardExternalFields.ITEMS
 TOTAL = StandardExternalFields.TOTAL
 ITEM_COUNT = StandardExternalFields.ITEM_COUNT
+
+logger = __import__('logging').getLogger(__name__)
 
 
 @view_config(route_name='objects.generic.traversal',
@@ -182,6 +183,7 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
         required = ()
         order = len(required)
         for registry in site_registry.utilities.ro:  # must keep order
+            # pylint: disable=protected-access
             byorder = registry._adapters
             if order >= len(byorder):
                 continue
@@ -266,11 +268,13 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
                              },
                              None)
 
-        folder = find_interface(evaluation, IHostPolicyFolder, strict=False)
-        if folder is None:
-            site = None
-            name = values.get('site')
-            if not name:
+        name = values.get('site')
+        if name:
+            site = get_host_site(name)
+        else:
+            folder = find_interface(evaluation, IHostPolicyFolder, strict=False)
+            if folder is None:
+                site = None
                 for host_site in get_all_host_sites():  # check all sites
                     with current_site(host_site):
                         obj = component.queryUtility(IQEvaluation,
@@ -282,9 +286,7 @@ class UnregisterAssessmentView(AbstractAuthenticatedView,
                             site = host_site
                             break
             else:
-                site = get_host_site(name)
-        else:
-            site = get_host_site(folder.__name__)
+                site = get_host_site(folder.__name__)
 
         if site is None:
             raise_json_error(self.request,
@@ -324,7 +326,8 @@ class UnregisterAssessmentItemsView(AbstractAuthenticatedView,
         force = is_true(values.get('force'))
         site = IHostPolicyFolder(self.context)
         with current_site(site):
-            items, unused = remove_assessment_items_from_oldcontent(self.context, force)
+            # pylint: disable=unused-variable
+            items, unused_ntiids = remove_assessment_items_from_oldcontent(self.context, force)
         result = LocatedExternalDict()
         result[ITEMS] = sorted(items.keys())
         result[ITEM_COUNT] = result[TOTAL] = len(items)
@@ -351,6 +354,7 @@ class RegisterAssessmentItemsView(AbstractAuthenticatedView,
         items = ()
         package = self.context
         result = LocatedExternalDict()
+        # pylint: disable=no-member
         key = package.does_sibling_entry_exist('assessment_index.json')
         if key is not None:
             site = IHostPolicyFolder(package)
@@ -375,6 +379,7 @@ class RemoveEvaluationsView(AbstractAuthenticatedView):
     def __call__(self):
         evaluations = IQEvaluations(self.context, None)
         if evaluations:
+            # pylint: disable=too-many-function-args
             evaluations.clear()
         return hexc.HTTPNoContent()
 

@@ -7,11 +7,16 @@
 from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
-logger = __import__('logging').getLogger(__name__)
+# pylint: disable=too-many-function-args
 
 import csv
 from io import BytesIO
 from datetime import datetime
+
+from pyramid import httpexceptions as hexc
+
+from pyramid.view import view_config
+from pyramid.view import view_defaults
 
 from requests.structures import CaseInsensitiveDict
 
@@ -20,11 +25,6 @@ from zope import component
 from zope.interface.common.idatetime import IDateTime
 
 from zope.security.interfaces import IPrincipal
-
-from pyramid import httpexceptions as hexc
-
-from pyramid.view import view_config
-from pyramid.view import view_defaults
 
 from nti.app.assessment import MessageFactory as _
 
@@ -79,6 +79,8 @@ ITEMS = StandardExternalFields.ITEMS
 TOTAL = StandardExternalFields.TOTAL
 ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 
+logger = __import__('logging').getLogger(__name__)
+
 
 @view_config(context=IDataserverFolder)
 @view_config(context=CourseAdminPathAdapter)
@@ -132,6 +134,7 @@ class MoveUserAssignmentsView(AbstractAuthenticatedView,
         if usernames:
             usernames = usernames.split(',')
         else:
+            # pylint: disable=too-many-function-args
             usernames = tuple(ICourseEnrollments(source).iter_principals())
 
         result = LocatedExternalDict()
@@ -170,14 +173,14 @@ class SetCourseDatePolicy(AbstractAuthenticatedView,
                 pass
         try:
             return IDateTime(x)
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             pass
         return None
 
     def _process_row(self, course, evaluation, beginning=None, ending=None):
-        course = ICourseInstance(find_object_with_ntiid(course or ''), None)
-        evaluation = component.queryUtility(IQSubmittable,
-                                            name=evaluation or '')
+        course = find_object_with_ntiid(course or '')
+        course = ICourseInstance(course, None)
+        evaluation = component.queryUtility(IQSubmittable, name=evaluation or '')
         if course is None or evaluation is None:
             return False
 
@@ -194,6 +197,7 @@ class SetCourseDatePolicy(AbstractAuthenticatedView,
                                    'available_for_submission_ending')):
             value = dates[idx]
             if value is not None:
+                # pylint: disable=too-many-function-args
                 context.set(evaluation.ntiid, key, value)
         return True
 
@@ -254,6 +258,7 @@ class RemovedMatchedSavePointsView(AbstractAuthenticatedView,
         for entry in catalog.iterCatalogEntries():
             course = ICourseInstance(entry)
             enrollments = ICourseEnrollments(course)
+            # pylint: disable=too-many-function-args
             for record in enrollments.iter_enrollments():
                 principal = record.Principal
                 history = component.queryMultiAdapter((course, principal),
@@ -264,6 +269,7 @@ class RemovedMatchedSavePointsView(AbstractAuthenticatedView,
                     continue
                 for assignmentId in set(history.keys()):  # snapshot
                     if assignmentId in savepoint:
+                        # pylint: disable=protected-access
                         savepoint._delitemf(assignmentId, event=False)
                         assignments = items.setdefault(principal.username, [])
                         assignments.append(assignmentId)
@@ -302,6 +308,7 @@ class UnmatchedSavePointsView(AbstractAuthenticatedView):
             ntiid = entry.ntiid
             course = ICourseInstance(entry)
             enrollments = ICourseEnrollments(course)
+            # pylint: disable=too-many-function-args
             for record in enrollments.iter_enrollments():
                 principal = record.Principal
                 if IPrincipal(principal, None) is None:
@@ -335,7 +342,7 @@ class UnmatchedSavePointsView(AbstractAuthenticatedView):
                name='RemoveGhostSubmissions')
 class RemoveGhostSubmissionsView(AbstractAuthenticatedView):
 
-    interfaces = (IUsersCourseAssignmentHistories, 
+    interfaces = (IUsersCourseAssignmentHistories,
                   IUsersCourseAssignmentSavepoints,
                   IUsersCourseAssignmentMetadataContainer)
 
@@ -381,6 +388,7 @@ class RemoveCourseEvaluationsView(AbstractAuthenticatedView):
                 if IQSubmittable.providedBy(item):
                     delete_all_evaluation_data(item)
                 delete_evaluation(item)
+            # pylint: disable=too-many-function-args
             evaluations.clear()
         return hexc.HTTPNoContent()
 

@@ -369,6 +369,34 @@
 	<!-- Eval Events -->
 	<subscriber handler=".subscribers.on_evaluation_published" />
 
+    <!-- Completion -->
+    <subscriber handler=".subscribers._self_assessment_progress" />
+    <subscriber handler=".subscribers._assignment_progress" />
+
+    <adapter factory=".completion._self_assessment_progress"
+             provides="nti.contenttypes.completion.interfaces.IProgress"
+             for="nti.dataserver.interfaces.IUser
+                  nti.assessment.interfaces.IQuestionSet
+                  nti.contenttypes.courses.interfaces.ICourseInstance" />
+
+    <adapter factory=".completion._assignment_completion_policy"
+             provides="nti.contenttypes.completion.interfaces.ICompletableItemCompletionPolicy"
+             for="nti.assessment.interfaces.IQAssignment
+                  nti.contenttypes.courses.interfaces.ICourseInstance" />
+
+    <adapter factory=".completion._self_assessment_completion_policy"
+             provides="nti.contenttypes.completion.interfaces.ICompletableItemCompletionPolicy"
+             for="nti.assessment.interfaces.IQuestionSet
+                  nti.contenttypes.courses.interfaces.ICourseInstance" />
+
+    <adapter factory=".completion.DefaultAssignmentCompletionPolicy"
+             provides="nti.contenttypes.completion.interfaces.ICompletableItemCompletionPolicy"
+             for="nti.assessment.interfaces.IQAssignment" />
+
+    <adapter factory=".completion.DefaultSelfAssessmentCompletionPolicy"
+             provides="nti.contenttypes.completion.interfaces.ICompletableItemCompletionPolicy"
+             for="nti.assessment.interfaces.IQuestionSet" />
+
 	<!-- Package Events -->
 	<subscriber handler=".subscribers.on_course_bundle_updated" />
 	<subscriber handler=".subscribers.on_renderable_package_published" />
@@ -443,9 +471,17 @@
 					 nti.dataserver.interfaces.IUser"/>
 
 	<!-- Wref -->
-	<adapter factory="nti.intid.wref.NoCachingArbitraryOrderableWeakRef"
-			 provides="nti.wref.interfaces.IWeakRef"
-			 for="nti.assessment.interfaces.IQEvaluation" />
+	<configure zcml:condition="not-have testmode">
+        <adapter factory="nti.intid.wref.NoCachingArbitraryOrderableWeakRef"
+                 provides="nti.wref.interfaces.IWeakRef"
+                 for="nti.assessment.interfaces.IQEvaluation" />
+    </configure>
+
+    <configure zcml:condition="have testmode">
+        <adapter factory=".wref._evaluation_wref"
+                 provides="nti.wref.interfaces.IWeakRef"
+                 for="nti.assessment.interfaces.IQEvaluation" />
+    </configure>
 
 	<!-- Recordables -->
 	<utility factory=".recordables.EvaluationRecordables" name="evaluations" />

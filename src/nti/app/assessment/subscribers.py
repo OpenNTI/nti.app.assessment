@@ -13,6 +13,8 @@ from datetime import datetime
 
 import simplejson
 
+from zc.intid.interfaces import IAfterIdAddedEvent
+
 from zope import component
 from zope import lifecycleevent
 
@@ -47,8 +49,10 @@ from nti.app.assessment.index import get_submission_catalog
 
 from nti.app.assessment.interfaces import IQEvaluations
 from nti.app.assessment.interfaces import IUsersCourseInquiries
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepointItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataContainer
 
@@ -66,6 +70,7 @@ from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionMovedEvent
 from nti.assessment.interfaces import IQEditableEvaluation
+from nti.assessment.interfaces import IQAssessedQuestionSet
 from nti.assessment.interfaces import IQDiscussionAssignment
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
@@ -76,15 +81,28 @@ from nti.contenttypes.courses import get_enrollment_catalog
 
 from nti.contenttypes.courses.index import IX_USERNAME
 
+from nti.contenttypes.completion.completion import CompletedItem
+
+from nti.contenttypes.completion.interfaces import IProgress
+from nti.contenttypes.completion.interfaces import IUserProgressUpdatedEvent
+from nti.contenttypes.completion.interfaces import ICompletableItemCompletionPolicy
+from nti.contenttypes.completion.interfaces import IPrincipalCompletedItemContainer
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 from nti.contenttypes.courses.interfaces import ICourseBundleUpdatedEvent
 
+from nti.coremetadata.interfaces import IContainerContext
+
 from nti.dataserver.interfaces import IUser
+
+from nti.dataserver.users import User
 
 from nti.dataserver.users.interfaces import IWillDeleteEntityEvent
 
 from nti.externalization.externalization import to_external_object
+
+from nti.ntiids.ntiids import find_object_with_ntiid
 
 from nti.publishing.interfaces import IPublishable
 from nti.publishing.interfaces import IObjectPublishedEvent
@@ -352,3 +370,55 @@ def on_course_bundle_updated(unused_course, event):
         evals = IQEvaluations(package, None)
         if evals:
             map(lifecycleevent.modified, evals.values())
+
+
+def _update_completion(obj, ntiid, user, context, created):
+    principal_container = component.queryMultiAdapter((user, context),
+                                                       IPrincipalCompletedItemContainer)
+    if ntiid not in principal_container:
+        policy = component.getMultiAdapter((obj, context),
+                                           ICompletableItemCompletionPolicy)
+        progress = component.queryMultiAdapter((user, obj, context),
+                                               IProgress)
+        if progress and policy.is_complete(progress):
+            completed_item = CompletedItem(Item=obj,
+                                           Principal=user,
+                                           CompletedDate=created)
+            principal_container[ntiid] = completed_item
+
+
+@component.adapter(IQAssessedQuestionSet, IAfterIdAddedEvent)
+def _self_assessment_progress(submission, unused_event):
+    """
+    On a self-assessment assessed, broadcast progress updated.
+    """
+    # We'll have creator for self-assessments, but not for assignments,
+    # which we throw away anyway.
+    history_item = find_interface(submission,
+                                  IUsersCourseAssignmentHistoryItem,
+                                  strict=False)
+    if history_item is None:
+        question_set = find_object_with_ntiid(submission.questionSetId)
+        # Seems like we should fail fast here too
+        container_context = IContainerContext(question_set, None)
+        if container_context is not None:
+            context_id = container_context.context_id
+            context = find_object_with_ntiid(context_id)
+            _update_completion(question_set, submission.questionSetId,
+                               submission.creator, context, submission.created)
+
+
+@component.adapter(IQAssignment, IUserProgressUpdatedEvent)
+def _assignment_progress(assignment, event):
+    """
+    On an assignment submission, update progress as needed.
+    """
+    histories = component.getMultiAdapter((event.context, event.user),
+                                           IUsersCourseAssignmentHistory)
+    history_item = histories.get(assignment.ntiid)
+    assert history_item is not None
+    _update_completion(assignment,
+                       assignment.ntiid,
+                       history_item.creator,
+                       event.context,
+                       history_item.created)

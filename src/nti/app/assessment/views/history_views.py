@@ -23,7 +23,11 @@ from zipfile import ZipInfo
 
 from zope import component
 
+from zope.cachedescriptors.property import Lazy
+
 from zope.container.traversal import ContainerTraversable
+
+from zope.event import notify
 
 from zope.location.interfaces import LocationError
 
@@ -69,6 +73,8 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssignmentSubmission
 
 from nti.base.interfaces import IFile
+
+from nti.contenttypes.completion.interfaces import UserProgressUpdatedEvent
 
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
@@ -116,10 +122,13 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 
     content_predicate = IQAssignmentSubmission.providedBy
 
+    @Lazy
+    def course(self):
+        return get_course_from_request(self.request)
+
     def _validate_submission(self):
         creator = self.remoteUser
-        course = get_course_from_request(self.request)
-        if course is None:
+        if self.course is None:
             logger.warn('Submission for assessment without course context (user=%s)',
                         creator)
             msg = _(u"Submission for assessment without course context")
@@ -130,7 +139,7 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
                              },
                              None)
 
-        if not is_assignment_available(self.context, course=course, user=creator):
+        if not is_assignment_available(self.context, course=self.course, user=creator):
             raise_json_error(self.request,
                              hexc.HTTPForbidden,
                              {
@@ -140,6 +149,7 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
 
     def _do_call(self):
         creator = self.remoteUser
+        submission = None
         try:
             self._validate_submission()
             if not self.request.POST:
@@ -181,6 +191,9 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
                                  'code': e.__class__.__name__
                              },
                              exc_info[2])
+        notify(UserProgressUpdatedEvent(self.context,
+                                        creator,
+                                        self.course))
         return result
 
 

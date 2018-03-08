@@ -24,7 +24,7 @@
 	<adapter factory=".adapters.evaluations_for_course" />
 	<adapter factory=".adapters.course_from_item_lineage" />
 	<adapter factory=".adapters.editable_evaluation_to_course" />
-	
+
 	<adapter factory=".adapters.evaluations_for_package" />
 	<adapter factory=".adapters.package_from_item_lineage" />
 	<adapter factory=".adapters.editable_evaluation_to_package" />
@@ -60,7 +60,7 @@
 	<subscriber handler=".subscribers._on_assignment_unlock_event" />
 	<subscriber handler=".subscribers._on_regrade_evaluation_event" />
 	<subscriber handler=".subscribers._on_assessment_policies_modified_event" />
-	
+
 	<subscriber handler=".subscribers._on_package_removed" />
 	<subscriber handler=".subscribers._on_course_instance_removed" />
 	<subscriber handler=".subscribers._on_editable_evaluation_removed" />
@@ -73,28 +73,30 @@
 	<adapter factory=".analyzers._MultipleChoiceMultipleAnswerPartChangeAnalyzer" />
 
 	<!-- Exporter -->
-	<utility factory=".exporter.EvaluationsExporter" 
-			 provides=".interfaces.ICourseEvaluationsSectionExporter" 
+	<utility factory=".exporter.EvaluationsExporter"
+			 provides=".interfaces.ICourseEvaluationsSectionExporter"
 			 name="012:Evaluations" />
-	
+
 	<adapter factory=".exporter._DiscussionAssignmentExporter"
 			 for="nti.assessment.interfaces.IQDiscussionAssignment"
 			 name="exporter" />
-			 
+
 	<subscriber factory=".exporter._EditableContentPackageExporterDecorator"
 				provides="nti.contentlibrary.interfaces.IContentPackageExporterDecorator"
 				for="nti.contentlibrary.interfaces.IEditableContentPackage" />
-				
+
+    <!-- Disable for now JZ 3.2018
 	<subscriber handler=".exporter._on_course_section_exported_event" />
+	-->
 
 	<!-- Importer -->
-	<utility factory=".importer.EvaluationsImporter" 
-			 provides=".interfaces.ICourseEvaluationsSectionImporter" 
+	<utility factory=".importer.EvaluationsImporter"
+			 provides=".interfaces.ICourseEvaluationsSectionImporter"
 			 name="012:Evaluations" />
-	
-	<utility factory=".importer.EvaluationsImporter" 
+
+	<utility factory=".importer.EvaluationsImporter"
 			 provides="nti.contenttypes.courses.interfaces.ICourseEvaluationImporter"  />
-			 
+
 	<subscriber factory=".importer._EditableContentPackageImporterUpdater"
 				provides="nti.contentlibrary.interfaces.IContentPackageImporterUpdater"
 				for="nti.contentlibrary.interfaces.IEditableContentPackage" />

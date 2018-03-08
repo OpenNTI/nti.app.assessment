@@ -247,9 +247,9 @@ def export_user_course_discussions(context, exporter, filer):
 
 @component.adapter(ICourseInstance, ICourseSectionExporterExecutedEvent)
 def _on_course_section_exported_event(context, event):
+    # Disabled JZ 3.2018
     filer = event.filer
     exporter = event.exporter
     if ICourseDiscussionsSectionExporter.providedBy(exporter) and filer is not None:
         logger.info("Exporting discussion assignment course discussions")
         export_user_course_discussions(context, exporter, filer)
-    

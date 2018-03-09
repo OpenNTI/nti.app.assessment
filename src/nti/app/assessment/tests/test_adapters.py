@@ -559,7 +559,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         enrollment_history_link = self.require_link_href_with_rel(res.json_body,
                                                                   'AssignmentHistory')
 
-        enrollment_assignments = self.require_link_href_with_rel(res.json_body,
+        enrollment_assignments = self.require_link_href_with_rel(res.json_body['CourseInstance'],
                                                                  'AssignmentsByOutlineNode')
         self.require_link_href_with_rel(res.json_body['CourseInstance'],
                                         'AssignmentsByOutlineNode')
@@ -638,7 +638,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
                                          COURSE_NTIID,
                                          status=201)
 
-            enrollment_assignments = self.require_link_href_with_rel(res.json_body,
+            enrollment_assignments = self.require_link_href_with_rel(res.json_body['CourseInstance'],
                                                                      'AssignmentsByOutlineNode')
             self.require_link_href_with_rel(res.json_body['CourseInstance'],
                                             'AssignmentsByOutlineNode')
@@ -676,17 +676,6 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin, ApplicationLayerTest
 
     @WithSharedApplicationMockDS(users=True, testapp=True)
     def test_assignment_items_view_links_in_enrollments(self):
-        self._do_test_assignment_items_view('enrollment')
-
-    @WithSharedApplicationMockDS(users=True, testapp=True)
-    def test_assignment_items_view_links_in_enrollment_ntiid(self):
-        self._do_test_assignment_items_view('enrollment_ntiid')
-
-    @WithSharedApplicationMockDS(users=True, testapp=True)
-    def test_assignment_items_view_links_from_instance(self):
-        self._do_test_assignment_items_view('course')
-
-    def _do_test_assignment_items_view(self, link_kind):
 
         # Make sure we're enrolled
         res = self.testapp.post_json('/dataserver2/users/' + self.default_username + '/Courses/EnrolledCourses',
@@ -694,33 +683,12 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin, ApplicationLayerTest
                                      status=201)
 
         enrollment_oid = res.json_body['NTIID']
-        if link_kind == 'enrollment':
-            links_from = res.json_body
-            # Note that we now expect these to point through the course, not
-            # the enrollment
-            # record_href = '/dataserver2/users/'+self.default_username+'/Courses/EnrolledCourses/tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/'
-
-            enrollment_assignments = self.require_link_href_with_rel(links_from,
-                                                                     'AssignmentsByOutlineNode')
-            enrollment_non_assignments = self.require_link_href_with_rel(links_from,
-                                                                         'NonAssignmentAssessmentItemsByOutlineNode')
-
-        elif link_kind == 'enrollment_ntiid':
-            # The ntiid and mime type are missing, because they would be wrong
-            # (pointing to the enrollment record)
-            for k in 'AssignmentsByOutlineNode', 'NonAssignmentAssessmentItemsByOutlineNode':
-                link = self.link_with_rel(res.json_body, k)
-                assert_that(link, does_not(has_key('ntiid')))
-                assert_that(link, does_not(has_key('type')))
-            return
-        elif link_kind == 'course':
-            links_from = res.json_body['CourseInstance']
-            enrollment_assignments = self.require_link_href_with_rel(links_from,
-                                                                    'AssignmentsByOutlineNode')
-            enrollment_non_assignments = self.require_link_href_with_rel(links_from,
-                                                                         'NonAssignmentAssessmentItemsByOutlineNode')
-        else:
-            raise ValueError(link_kind)
+       
+        links_from = res.json_body['CourseInstance']
+        enrollment_assignments = self.require_link_href_with_rel(links_from,
+                                                                 'AssignmentsByOutlineNode')
+        enrollment_non_assignments = self.require_link_href_with_rel(links_from,
+                                                                     'NonAssignmentAssessmentItemsByOutlineNode')
 
         course_href = res.json_body['CourseInstance']['href']
         if course_href[-1] != '/':

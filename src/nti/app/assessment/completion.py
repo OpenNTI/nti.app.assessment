@@ -89,17 +89,15 @@ def _self_assessment_progress(user, question_set, unused_course):
     :class:`IContainerContext`.
     """
     items = user.getContainer(question_set.containerId)
-    submitted = False
-    submitted_date = None
-    if items is not None:
-        submitted = bool(len(items))
+    progress = None
+    if items:
         # First submission date
-        submitted_date = submitted and items.values()[0].createdTime
-    # What would we possibly want to do here besides return True/False if we
-    # have a submission.
-    progress = Progress(NTIID=question_set.ntiid,
-                        AbsoluteProgress=None,
-                        MaxPossibleProgress=None,
-                        LastModified=submitted_date,
-                        HasProgress=submitted)
+        submitted_date = items.values()[0].createdTime
+        # What would we possibly want to do here besides return True/False if we
+        # have a submission.
+        progress = Progress(NTIID=question_set.ntiid,
+                            AbsoluteProgress=None,
+                            MaxPossibleProgress=None,
+                            LastModified=submitted_date,
+                            HasProgress=True)
     return progress

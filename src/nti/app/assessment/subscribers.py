@@ -81,12 +81,9 @@ from nti.contenttypes.courses import get_enrollment_catalog
 
 from nti.contenttypes.courses.index import IX_USERNAME
 
-from nti.contenttypes.completion.completion import CompletedItem
-
-from nti.contenttypes.completion.interfaces import IProgress
 from nti.contenttypes.completion.interfaces import IUserProgressUpdatedEvent
-from nti.contenttypes.completion.interfaces import ICompletableItemCompletionPolicy
-from nti.contenttypes.completion.interfaces import IPrincipalCompletedItemContainer
+
+from nti.contenttypes.completion.utils import update_completion
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
@@ -95,8 +92,6 @@ from nti.contenttypes.courses.interfaces import ICourseBundleUpdatedEvent
 from nti.coremetadata.interfaces import IContainerContext
 
 from nti.dataserver.interfaces import IUser
-
-from nti.dataserver.users import User
 
 from nti.dataserver.users.interfaces import IWillDeleteEntityEvent
 
@@ -372,25 +367,10 @@ def on_course_bundle_updated(unused_course, event):
             map(lifecycleevent.modified, evals.values())
 
 
-def _update_completion(obj, ntiid, user, context, created):
-    principal_container = component.queryMultiAdapter((user, context),
-                                                       IPrincipalCompletedItemContainer)
-    if ntiid not in principal_container:
-        policy = component.getMultiAdapter((obj, context),
-                                           ICompletableItemCompletionPolicy)
-        progress = component.queryMultiAdapter((user, obj, context),
-                                               IProgress)
-        if progress and policy.is_complete(progress):
-            completed_item = CompletedItem(Item=obj,
-                                           Principal=user,
-                                           CompletedDate=created)
-            principal_container[ntiid] = completed_item
-
-
 @component.adapter(IQAssessedQuestionSet, IAfterIdAddedEvent)
 def _self_assessment_progress(submission, unused_event):
     """
-    On a self-assessment assessed, broadcast progress updated.
+    On a self-assessment assessed, update completion state as needed.
     """
     # We'll have creator for self-assessments, but not for assignments,
     # which we throw away anyway.
@@ -404,21 +384,21 @@ def _self_assessment_progress(submission, unused_event):
         if container_context is not None:
             context_id = container_context.context_id
             context = find_object_with_ntiid(context_id)
-            _update_completion(question_set, submission.questionSetId,
-                               submission.creator, context, submission.created)
+            update_completion(question_set, submission.questionSetId,
+                              submission.creator, context, submission.created)
 
 
 @component.adapter(IQAssignment, IUserProgressUpdatedEvent)
 def _assignment_progress(assignment, event):
     """
-    On an assignment submission, update progress as needed.
+    On an assignment submission, update completion state as needed.
     """
     histories = component.getMultiAdapter((event.context, event.user),
                                            IUsersCourseAssignmentHistory)
     history_item = histories.get(assignment.ntiid)
     assert history_item is not None
-    _update_completion(assignment,
-                       assignment.ntiid,
-                       history_item.creator,
-                       event.context,
-                       history_item.created)
+    update_completion(assignment,
+                      assignment.ntiid,
+                      history_item.creator,
+                      event.context,
+                      history_item.created)

@@ -56,6 +56,7 @@ setup(
         'setuptools',
         'BTrees',
         'nti.app.contentlibrary',
+        'nti.app.contenttypes.completion',
         'nti.assessment',
         'nti.base',
         'nti.containers',

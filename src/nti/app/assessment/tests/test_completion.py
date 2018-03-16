@@ -64,7 +64,8 @@ class TestCompletion(ApplicationLayerTest):
         res = self.testapp.get(href).json_body
         container = res['Items'].values()
         for assignment in chain(*container):
-            assert_that(assignment[u'CompletionDefaultState'], is_(True))
+            assert_that(assignment[u'CompletionDefaultState'], is_(False))
+            assert_that(assignment[u'IsCompletionDefaultState'], is_(True))
             assert_that(assignment[u'CompletionRequired'], is_(False))
 
         with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
@@ -79,9 +80,11 @@ class TestCompletion(ApplicationLayerTest):
         for assignment in chain(*container):
             if assignment['MimeType'] == ASSIGNMENT_MIME_TYPE:
                 assert_that(assignment[u'CompletionDefaultState'], is_(True))
+                assert_that(assignment[u'IsCompletionDefaultState'], is_(True))
                 assert_that(assignment[u'CompletionRequired'], is_(True))
             else:
-                assert_that(assignment[u'CompletionDefaultState'], is_(True))
+                assert_that(assignment[u'CompletionDefaultState'], is_(False))
+                assert_that(assignment[u'IsCompletionDefaultState'], is_(True))
                 assert_that(assignment[u'CompletionRequired'], is_(False))
 
         assignment_ntiid = 'tag:nextthought.com,2011-10:OU-NAQ-CS1323_F_2015_Intro_to_Computer_Programming.naq.asg.assignment:Project_1'
@@ -95,13 +98,16 @@ class TestCompletion(ApplicationLayerTest):
         container = res['Items'].values()
         for assignment in chain(*container):
             if assignment['ntiid'] == assignment_ntiid:
-                assert_that(assignment[u'CompletionDefaultState'], is_(False))
+                assert_that(assignment[u'CompletionDefaultState'], is_(True))
+                assert_that(assignment[u'IsCompletionDefaultState'], is_(False))
                 assert_that(assignment[u'CompletionRequired'], is_(False))
             elif assignment['MimeType'] == ASSIGNMENT_MIME_TYPE:
                 assert_that(assignment[u'CompletionDefaultState'], is_(True))
+                assert_that(assignment[u'IsCompletionDefaultState'], is_(True))
                 assert_that(assignment[u'CompletionRequired'], is_(True))
             else:
-                assert_that(assignment[u'CompletionDefaultState'], is_(True))
+                assert_that(assignment[u'CompletionDefaultState'], is_(False))
+                assert_that(assignment[u'IsCompletionDefaultState'], is_(True))
                 assert_that(assignment[u'CompletionRequired'], is_(False))
 
         # Back to required
@@ -110,11 +116,14 @@ class TestCompletion(ApplicationLayerTest):
         container = res['Items'].values()
         for assignment in chain(*container):
             if assignment['ntiid'] == assignment_ntiid:
-                assert_that(assignment[u'CompletionDefaultState'], is_(False))
+                assert_that(assignment[u'CompletionDefaultState'], is_(True))
+                assert_that(assignment[u'IsCompletionDefaultState'], is_(False))
                 assert_that(assignment[u'CompletionRequired'], is_(True))
             elif assignment['MimeType'] == ASSIGNMENT_MIME_TYPE:
                 assert_that(assignment[u'CompletionDefaultState'], is_(True))
+                assert_that(assignment[u'IsCompletionDefaultState'], is_(True))
                 assert_that(assignment[u'CompletionRequired'], is_(True))
             else:
-                assert_that(assignment[u'CompletionDefaultState'], is_(True))
+                assert_that(assignment[u'CompletionDefaultState'], is_(False))
+                assert_that(assignment[u'IsCompletionDefaultState'], is_(True))
                 assert_that(assignment[u'CompletionRequired'], is_(False))

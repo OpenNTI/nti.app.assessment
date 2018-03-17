@@ -4,8 +4,9 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 # pylint: disable=too-many-function-args
 
@@ -19,6 +20,8 @@ from pyramid.view import view_config
 from pyramid.view import view_defaults
 
 from requests.structures import CaseInsensitiveDict
+
+import transaction
 
 from zope import component
 
@@ -180,7 +183,8 @@ class SetCourseDatePolicy(AbstractAuthenticatedView,
     def _process_row(self, course, evaluation, beginning=None, ending=None):
         course = find_object_with_ntiid(course or '')
         course = ICourseInstance(course, None)
-        evaluation = component.queryUtility(IQSubmittable, name=evaluation or '')
+        evaluation = component.queryUtility(IQSubmittable,
+                                            name=evaluation or '')
         if course is None or evaluation is None:
             return False
 
@@ -313,7 +317,6 @@ class UnmatchedSavePointsView(AbstractAuthenticatedView):
                 principal = record.Principal
                 if IPrincipal(principal, None) is None:
                     continue
-
                 history = component.queryMultiAdapter((course, principal),
                                                       IUsersCourseAssignmentHistory)
 
@@ -381,13 +384,19 @@ class RemoveGhostSubmissionsView(AbstractAuthenticatedView):
 class RemoveCourseEvaluationsView(AbstractAuthenticatedView):
 
     def __call__(self):
+        count = 0
         course = ICourseInstance(self.context)
         evaluations = IQEvaluations(course, None)
         if evaluations:
+            logger.warning("Removing %s evaluation(s)", len(evaluations))
             for item in tuple(evaluations.values()):  # mutating
+                count += 1
                 if IQSubmittable.providedBy(item):
                     delete_all_evaluation_data(item)
                 delete_evaluation(item)
+                if count % 50 == 0:
+                    transaction.savepoint(optimistic=True)
+            # clear container
             # pylint: disable=too-many-function-args
             evaluations.clear()
         return hexc.HTTPNoContent()

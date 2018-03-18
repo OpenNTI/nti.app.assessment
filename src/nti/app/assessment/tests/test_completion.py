@@ -48,11 +48,11 @@ class TestCompletion(ApplicationLayerTest):
     def _set_completion_policy(self):
         aggregate_mimetype = CompletableItemAggregateCompletionPolicy.mime_type
         full_data = {u'percentage': None,
-                     u'count': None,
                      u'MimeType': aggregate_mimetype}
-
-        url = '%s/%s' % (self.course_url, COMPLETION_POLICY_VIEW_NAME)
-        self.testapp.put_json(url, full_data)
+        course_res = self.testapp.get(self.course_url).json_body
+        policy_url = self.require_link_href_with_rel(course_res,
+                                                     COMPLETION_POLICY_VIEW_NAME)
+        return self.testapp.put_json(policy_url, full_data).json_body
 
     @WithSharedApplicationMockDS(users=True, testapp=True)
     def test_assignments(self):
@@ -60,7 +60,7 @@ class TestCompletion(ApplicationLayerTest):
         Test required state on assignments.
         """
         href = self.course_url + '/@@AssignmentSummaryByOutlineNode'
-        self._set_completion_policy()
+        policy_res = self._set_completion_policy()
         res = self.testapp.get(href).json_body
         container = res['Items'].values()
         for assignment in chain(*container):
@@ -89,8 +89,10 @@ class TestCompletion(ApplicationLayerTest):
 
         assignment_ntiid = 'tag:nextthought.com,2011-10:OU-NAQ-CS1323_F_2015_Intro_to_Computer_Programming.naq.asg.assignment:Project_1'
 
-        required_url = '%s/%s' % (self.course_url, COMPLETION_REQUIRED_VIEW_NAME)
-        not_required_url = '%s/%s' % (self.course_url, COMPLETION_NOT_REQUIRED_VIEW_NAME)
+        required_url = self.require_link_href_with_rel(policy_res,
+                                                       COMPLETION_REQUIRED_VIEW_NAME)
+        not_required_url = self.require_link_href_with_rel(policy_res,
+                                                       COMPLETION_NOT_REQUIRED_VIEW_NAME)
         # Mark an assignment optional
         self.testapp.put_json(not_required_url, {u'ntiid': assignment_ntiid})
 

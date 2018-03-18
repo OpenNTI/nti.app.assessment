@@ -4,20 +4,19 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
-
-logger = __import__('logging').getLogger(__name__)
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 from functools import partial
+
+from pyramid.view import view_config
+from pyramid.view import view_defaults
 
 from requests.structures import CaseInsensitiveDict
 
 from zope import component
 from zope import lifecycleevent
-
-from pyramid.view import view_config
-from pyramid.view import view_defaults
 
 from nti.app.assessment.common.evaluations import get_course_assignments
 
@@ -46,6 +45,8 @@ ITEMS = StandardExternalFields.ITEMS
 TOTAL = StandardExternalFields.TOTAL
 ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 
+logger = __import__('logging').getLogger(__name__)
+
 
 class CourseViewMixin(AbstractAuthenticatedView, BatchingUtilsMixin):
 
@@ -72,9 +73,9 @@ class CourseViewMixin(AbstractAuthenticatedView, BatchingUtilsMixin):
         return outline
 
     def _filterBy(self, item, mimeTypes=()):
-        mt =   getattr(item, 'mimeType', None) \
-            or getattr(item, 'mime_type', None)
-        return bool(not mimeTypes or mt in mimeTypes)
+        mimeType = getattr(item, 'mimeType', None) \
+                or getattr(item, 'mime_type', None)
+        return bool(not mimeTypes or mimeType in mimeTypes)
 
     def _do_call(self, func):
         count = 0

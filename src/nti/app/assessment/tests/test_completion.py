@@ -47,8 +47,7 @@ class TestCompletion(ApplicationLayerTest):
 
     def _set_completion_policy(self):
         aggregate_mimetype = CompletableItemAggregateCompletionPolicy.mime_type
-        full_data = {u'percentage': None,
-                     u'MimeType': aggregate_mimetype}
+        full_data = {u'MimeType': aggregate_mimetype}
         course_res = self.testapp.get(self.course_url).json_body
         policy_url = self.require_link_href_with_rel(course_res,
                                                      COMPLETION_POLICY_VIEW_NAME)

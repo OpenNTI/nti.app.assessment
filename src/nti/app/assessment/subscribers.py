@@ -385,7 +385,7 @@ def _self_assessment_progress(submission, unused_event):
             context_id = container_context.context_id
             context = find_object_with_ntiid(context_id)
             update_completion(question_set, submission.questionSetId,
-                              submission.creator, context, submission.created)
+                              submission.creator, context)
 
 
 @component.adapter(IQAssignment, IUserProgressUpdatedEvent)
@@ -400,5 +400,4 @@ def _assignment_progress(assignment, event):
     update_completion(assignment,
                       assignment.ntiid,
                       history_item.creator,
-                      event.context,
-                      history_item.created)
+                      event.context)

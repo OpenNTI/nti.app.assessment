@@ -16,6 +16,8 @@ from zope import interface
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 
+from nti.contenttypes.completion.completion import CompletedItem
+
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.contenttypes.completion.interfaces import IProgress
@@ -38,7 +40,12 @@ class _DefaultSubmissionCompletionPolicy(object):
         self.assessment = obj
 
     def is_complete(self, progress):
-        return progress is not None and progress.HasProgress
+        result = None
+        if progress is not None and progress.HasProgress:
+            result = CompletedItem(Item=progress.Item,
+                                   Principal=progress.User,
+                                   CompletedDate=progress.LastModified)
+        return result
 
 
 @component.adapter(IQAssignment)
@@ -93,11 +100,13 @@ def _self_assessment_progress(user, question_set, unused_course):
     if items:
         # First submission date
         submitted_date = items.values()[0].createdTime
-        # What would we possibly want to do here besides return True/False if we
-        # have a submission.
+        # What would we possibly want to do here besides return True/False if
+        # we have a submission?
         progress = Progress(NTIID=question_set.ntiid,
                             AbsoluteProgress=None,
                             MaxPossibleProgress=None,
                             LastModified=submitted_date,
+                            User=user,
+                            Item=question_set,
                             HasProgress=True)
     return progress

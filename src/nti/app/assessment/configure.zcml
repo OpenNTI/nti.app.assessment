@@ -397,6 +397,11 @@
              provides="nti.contenttypes.completion.interfaces.ICompletableItemCompletionPolicy"
              for="nti.assessment.interfaces.IQuestionSet" />
 
+    <subscriber factory=".completion._AssessmentItemProvider"
+                provides="nti.contenttypes.completion.interfaces.ICompletableItemProvider"
+                for="nti.dataserver.interfaces.IUser
+                     nti.contenttypes.courses.interfaces.ICourseInstance" />
+
 	<!-- Package Events -->
 	<subscriber handler=".subscribers.on_course_bundle_updated" />
 	<subscriber handler=".subscribers.on_renderable_package_published" />

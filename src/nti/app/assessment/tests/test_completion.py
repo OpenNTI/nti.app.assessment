@@ -6,12 +6,18 @@ from __future__ import print_function
 from __future__ import absolute_import
 
 from hamcrest import is_
+from hamcrest import none
 from hamcrest import is_not
+from hamcrest import has_items
 from hamcrest import has_length
 from hamcrest import assert_that
+from hamcrest import has_property
+from hamcrest import greater_than_or_equal_to
 does_not = is_not
 
 from itertools import chain
+
+from zope import component
 
 from nti.app.contenttypes.completion import COMPLETION_POLICY_VIEW_NAME
 from nti.app.contenttypes.completion import COMPLETION_REQUIRED_VIEW_NAME
@@ -25,6 +31,8 @@ from nti.app.testing.decorators import WithSharedApplicationMockDS
 
 from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
 
+from nti.contenttypes.completion.interfaces import IProgress
+from nti.contenttypes.completion.interfaces import ICompletableItemProvider
 from nti.contenttypes.completion.interfaces import ICompletableItemDefaultRequiredPolicy
 
 from nti.contenttypes.completion.policies import CompletableItemAggregateCompletionPolicy
@@ -32,6 +40,8 @@ from nti.contenttypes.completion.policies import CompletableItemAggregateComplet
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver.tests import mock_dataserver
+
+from nti.dataserver.users import User
 
 from nti.ntiids.ntiids import find_object_with_ntiid
 
@@ -128,3 +138,27 @@ class TestCompletion(ApplicationLayerTest):
                 assert_that(assignment[u'CompletionDefaultState'], is_(False))
                 assert_that(assignment[u'IsCompletionDefaultState'], is_(True))
                 assert_that(assignment[u'CompletionRequired'], is_(False))
+
+        # Completable item provider
+        self.testapp.put_json(not_required_url, {u'ntiid': assignment_ntiid})
+        with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+            user = User.get_user('sjohnson@nextthought.com')
+            course = find_object_with_ntiid(self.course_ntiid)
+            course = ICourseInstance(course)
+            providers = component.subscribers((user, course),
+                                               ICompletableItemProvider)
+            providers = tuple(providers)
+            assert_that(providers, has_length(greater_than_or_equal_to(1)))
+            items = set()
+            for provider in providers:
+                items.update(provider.iter_items())
+            assert_that(items, has_length(greater_than_or_equal_to(33)))
+            assert_that(items, has_items(has_property('mime_type',
+                                                      ASSIGNMENT_MIME_TYPE),
+                                         does_not(
+                                            has_property('ntiid', assignment_ntiid))))
+            progress = component.queryMultiAdapter((user,course), IProgress)
+            assert_that(progress.AbsoluteProgress, is_(0))
+            assert_that(progress.MaxPossibleProgress, is_(33))
+            assert_that(progress.HasProgress, is_(False))
+            assert_that(progress.LastModified, none())

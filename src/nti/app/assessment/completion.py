@@ -19,12 +19,17 @@ from nti.assessment.interfaces import IQuestionSet
 from nti.contenttypes.completion.completion import CompletedItem
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ICourseAssignmentCatalog
+from nti.contenttypes.courses.interfaces import get_course_assessment_predicate_for_user
 
 from nti.contenttypes.completion.interfaces import IProgress
+from nti.contenttypes.completion.interfaces import ICompletableItemProvider
 from nti.contenttypes.completion.interfaces import ICompletableItemCompletionPolicy
 from nti.contenttypes.completion.interfaces import ICompletionContextCompletionPolicyContainer
 
 from nti.contenttypes.completion.progress import Progress
+
+from nti.contenttypes.completion.utils import is_item_required
 
 from nti.dataserver.interfaces import IUser
 
@@ -110,3 +115,24 @@ def _self_assessment_progress(user, question_set, unused_course):
                             Item=question_set,
                             HasProgress=True)
     return progress
+
+
+@component.adapter(IUser, ICourseInstance)
+@interface.implementer(ICompletableItemProvider)
+class _AssessmentItemProvider(object):
+    """
+    Return the :class:`ICompletableItem` items for this user/course.
+    """
+
+    def __init__(self, user, course):
+        self.user = user
+        self.course = course
+
+    def iter_items(self):
+        catalog = ICourseAssignmentCatalog(self.course)
+        uber_filter = get_course_assessment_predicate_for_user(self.user,
+                                                               self.course)
+        # Must grab all assignments in our parent
+        assignments = catalog.iter_assignments(course_lineage=True)
+        return (x for x in assignments
+                if uber_filter(x) and is_item_required(x, self.course))

@@ -32,7 +32,7 @@ from nti.app.testing.decorators import WithSharedApplicationMockDS
 from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
 
 from nti.contenttypes.completion.interfaces import IProgress
-from nti.contenttypes.completion.interfaces import ICompletableItemProvider
+from nti.contenttypes.completion.interfaces import IRequiredCompletableItemProvider
 from nti.contenttypes.completion.interfaces import ICompletableItemDefaultRequiredPolicy
 
 from nti.contenttypes.completion.policies import CompletableItemAggregateCompletionPolicy
@@ -146,7 +146,7 @@ class TestCompletion(ApplicationLayerTest):
             course = find_object_with_ntiid(self.course_ntiid)
             course = ICourseInstance(course)
             providers = component.subscribers((user, course),
-                                               ICompletableItemProvider)
+                                               IRequiredCompletableItemProvider)
             providers = tuple(providers)
             assert_that(providers, has_length(greater_than_or_equal_to(1)))
             items = set()

@@ -398,7 +398,7 @@
              for="nti.assessment.interfaces.IQuestionSet" />
 
     <subscriber factory=".completion._AssessmentItemProvider"
-                provides="nti.contenttypes.completion.interfaces.ICompletableItemProvider"
+                provides="nti.contenttypes.completion.interfaces.IRequiredCompletableItemProvider"
                 for="nti.dataserver.interfaces.IUser
                      nti.contenttypes.courses.interfaces.ICourseInstance" />
 

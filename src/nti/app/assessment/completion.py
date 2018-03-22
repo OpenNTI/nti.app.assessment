@@ -23,7 +23,7 @@ from nti.contenttypes.courses.interfaces import ICourseAssignmentCatalog
 from nti.contenttypes.courses.interfaces import get_course_assessment_predicate_for_user
 
 from nti.contenttypes.completion.interfaces import IProgress
-from nti.contenttypes.completion.interfaces import ICompletableItemProvider
+from nti.contenttypes.completion.interfaces import IRequiredCompletableItemProvider
 from nti.contenttypes.completion.interfaces import ICompletableItemCompletionPolicy
 from nti.contenttypes.completion.interfaces import ICompletionContextCompletionPolicyContainer
 
@@ -118,7 +118,7 @@ def _self_assessment_progress(user, question_set, unused_course):
 
 
 @component.adapter(IUser, ICourseInstance)
-@interface.implementer(ICompletableItemProvider)
+@interface.implementer(IRequiredCompletableItemProvider)
 class _AssessmentItemProvider(object):
     """
     Return the :class:`ICompletableItem` items for this user/course.

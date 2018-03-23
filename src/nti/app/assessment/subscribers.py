@@ -20,10 +20,13 @@ from zope import lifecycleevent
 
 from zope.container.interfaces import IContainer
 
+from zope.event import notify
+
 from zope.intid.interfaces import IIntIds
 from zope.intid.interfaces import IIntIdRemovedEvent
 
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
+from zope.lifecycleevent.interfaces import IObjectRemovedEvent
 from zope.lifecycleevent.interfaces import IObjectModifiedEvent
 
 from pyramid.httpexceptions import HTTPUnprocessableEntity
@@ -80,6 +83,7 @@ from nti.contenttypes.courses import get_enrollment_catalog
 
 from nti.contenttypes.courses.index import IX_USERNAME
 
+from nti.contenttypes.completion.interfaces import UserProgressRemovedEvent
 from nti.contenttypes.completion.interfaces import IUserProgressUpdatedEvent
 
 from nti.contenttypes.completion.utils import update_completion
@@ -387,6 +391,23 @@ def _self_assessment_progress(submission, unused_event):
                               submission.creator, context)
 
 
+@component.adapter(IQAssessedQuestionSet, IObjectRemovedEvent)
+def _self_assessment_submission_deleted(submission, unused_event):
+    history_item = find_interface(submission,
+                                  IUsersCourseAssignmentHistoryItem,
+                                  strict=False)
+    if history_item is None:
+        question_set = find_object_with_ntiid(submission.questionSetId)
+        # Seems like we should fail fast here too
+        container_context = IContainerContext(question_set, None)
+        if container_context is not None:
+            context_id = container_context.context_id
+            context = find_object_with_ntiid(context_id)
+            notify(UserProgressRemovedEvent(question_set,
+                                            submission.creator,
+                                            context))
+
+
 @component.adapter(IQAssignment, IUserProgressUpdatedEvent)
 def _assignment_progress(assignment, event):
     """
@@ -396,3 +417,12 @@ def _assignment_progress(assignment, event):
                       assignment.ntiid,
                       event.user,
                       event.context)
+
+
+@component.adapter(IUsersCourseAssignmentHistoryItem, IObjectRemovedEvent)
+def _on_assignment_history_item_deleted(item, unused_event):
+    course = ICourseInstance(item)
+    notify(UserProgressRemovedEvent(item.Assignment,
+                                    item.creator,
+                                    course))
+

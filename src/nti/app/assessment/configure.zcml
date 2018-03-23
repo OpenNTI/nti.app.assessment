@@ -370,6 +370,8 @@
 	<subscriber handler=".subscribers.on_evaluation_published" />
 
     <!-- Completion -->
+    <subscriber handler=".subscribers._self_assessment_submission_deleted" />
+    <subscriber handler=".subscribers._on_assignment_history_item_deleted" />
     <subscriber handler=".subscribers._self_assessment_progress" />
     <subscriber handler=".subscribers._assignment_progress" />
 

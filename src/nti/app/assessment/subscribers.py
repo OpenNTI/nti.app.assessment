@@ -49,7 +49,6 @@ from nti.app.assessment.index import get_submission_catalog
 
 from nti.app.assessment.interfaces import IQEvaluations
 from nti.app.assessment.interfaces import IUsersCourseInquiries
-from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
@@ -393,11 +392,7 @@ def _assignment_progress(assignment, event):
     """
     On an assignment submission, update completion state as needed.
     """
-    histories = component.getMultiAdapter((event.context, event.user),
-                                           IUsersCourseAssignmentHistory)
-    history_item = histories.get(assignment.ntiid)
-    assert history_item is not None
     update_completion(assignment,
                       assignment.ntiid,
-                      history_item.creator,
+                      event.user,
                       event.context)

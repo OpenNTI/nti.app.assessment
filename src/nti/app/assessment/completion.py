@@ -93,7 +93,7 @@ def _self_assessment_completion_policy(question_set, course):
 
 @component.adapter(IUser, IQuestionSet, ICourseInstance)
 @interface.implementer(IProgress)
-def _self_assessment_progress(user, question_set, unused_course):
+def _self_assessment_progress(user, question_set, course):
     """
     Fetch the :class:`IProgress` for this user, question_set, course.
 
@@ -113,6 +113,7 @@ def _self_assessment_progress(user, question_set, unused_course):
                             LastModified=submitted_date,
                             User=user,
                             Item=question_set,
+                            CompletionContext=course,
                             HasProgress=True)
     return progress
 

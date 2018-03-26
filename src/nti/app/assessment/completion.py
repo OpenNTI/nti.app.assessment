@@ -31,6 +31,8 @@ from nti.contenttypes.completion.progress import Progress
 
 from nti.contenttypes.completion.utils import is_item_required
 
+from nti.contenttypes.courses.utils import get_enrollment_record
+
 from nti.dataserver.interfaces import IUser
 
 logger = __import__('logging').getLogger(__name__)
@@ -118,22 +120,28 @@ def _self_assessment_progress(user, question_set, course):
     return progress
 
 
-@component.adapter(IUser, ICourseInstance)
+@component.adapter(ICourseInstance)
 @interface.implementer(IRequiredCompletableItemProvider)
 class _AssessmentItemProvider(object):
     """
     Return the :class:`ICompletableItem` items for this user/course.
     """
 
-    def __init__(self, user, course):
-        self.user = user
+    def __init__(self, course):
         self.course = course
+        self._scope_to_items = dict()
 
-    def iter_items(self):
-        catalog = ICourseAssignmentCatalog(self.course)
-        uber_filter = get_course_assessment_predicate_for_user(self.user,
-                                                               self.course)
-        # Must grab all assignments in our parent
-        assignments = catalog.iter_assignments(course_lineage=True)
-        return (x for x in assignments
-                if uber_filter(x) and is_item_required(x, self.course))
+    def iter_items(self, user):
+        record = get_enrollment_record(self.course, user)
+        scope = record.Scope if record is not None else 'ALL'
+        result = self._scope_to_items.get(scope)
+        if result is None:
+            catalog = ICourseAssignmentCatalog(self.course)
+            uber_filter = get_course_assessment_predicate_for_user(user,
+                                                                   self.course)
+            # Must grab all assignments in our parent
+            assignments = catalog.iter_assignments(course_lineage=True)
+            result = [x for x in assignments
+                      if uber_filter(x) and is_item_required(x, self.course)]
+            self._scope_to_items[scope] = result
+        return result

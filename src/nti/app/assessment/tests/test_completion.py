@@ -145,13 +145,13 @@ class TestCompletion(ApplicationLayerTest):
             user = User.get_user('sjohnson@nextthought.com')
             course = find_object_with_ntiid(self.course_ntiid)
             course = ICourseInstance(course)
-            providers = component.subscribers((user, course),
-                                               IRequiredCompletableItemProvider)
+            providers = component.subscribers((course,),
+                                              IRequiredCompletableItemProvider)
             providers = tuple(providers)
             assert_that(providers, has_length(greater_than_or_equal_to(1)))
             items = set()
             for provider in providers:
-                items.update(provider.iter_items())
+                items.update(provider.iter_items(user))
             assert_that(items, has_length(greater_than_or_equal_to(33)))
             assert_that(items, has_items(has_property('mime_type',
                                                       ASSIGNMENT_MIME_TYPE),

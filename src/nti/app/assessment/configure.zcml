@@ -401,8 +401,7 @@
 
     <subscriber factory=".completion._AssessmentItemProvider"
                 provides="nti.contenttypes.completion.interfaces.IRequiredCompletableItemProvider"
-                for="nti.dataserver.interfaces.IUser
-                     nti.contenttypes.courses.interfaces.ICourseInstance" />
+                for="nti.contenttypes.courses.interfaces.ICourseInstance" />
 
 	<!-- Package Events -->
 	<subscriber handler=".subscribers.on_course_bundle_updated" />

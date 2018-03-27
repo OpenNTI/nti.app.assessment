@@ -35,6 +35,8 @@ from nti.contenttypes.courses.utils import get_enrollment_record
 
 from nti.dataserver.interfaces import IUser
 
+from nti.externalization.proxy import removeAllProxies
+
 logger = __import__('logging').getLogger(__name__)
 
 
@@ -141,7 +143,7 @@ class _AssessmentItemProvider(object):
                                                                    self.course)
             # Must grab all assignments in our parent
             assignments = catalog.iter_assignments(course_lineage=True)
-            result = [x for x in assignments
+            result = [removeAllProxies(x) for x in assignments
                       if uber_filter(x) and is_item_required(x, self.course)]
             self._scope_to_items[scope] = result
         return result

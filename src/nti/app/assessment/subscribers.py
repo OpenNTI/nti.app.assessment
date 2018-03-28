@@ -70,6 +70,7 @@ from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQSurveySubmission
 from nti.assessment.interfaces import IQuestionMovedEvent
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQAssessedQuestionSet
@@ -83,6 +84,7 @@ from nti.contenttypes.courses import get_enrollment_catalog
 
 from nti.contenttypes.courses.index import IX_USERNAME
 
+from nti.contenttypes.completion.interfaces import ICompletionContext
 from nti.contenttypes.completion.interfaces import UserProgressRemovedEvent
 from nti.contenttypes.completion.interfaces import IUserProgressUpdatedEvent
 
@@ -389,6 +391,20 @@ def _self_assessment_progress(submission, unused_event):
             context = find_object_with_ntiid(context_id)
             update_completion(question_set, submission.questionSetId,
                               submission.creator, context)
+
+
+@component.adapter(IQSurveySubmission, IObjectAddedEvent)
+def _survey_progress(submission, unused_event):
+    """
+    On a survey submission, update completion state as needed.
+    """
+    survey = find_object_with_ntiid(submission.surveyId)
+    context = ICompletionContext(survey, None)
+    if context is not None:
+        update_completion(survey,
+                          survey.ntiid,
+                          submission.creator,
+                          context)
 
 
 @component.adapter(IQAssessedQuestionSet, IObjectRemovedEvent)

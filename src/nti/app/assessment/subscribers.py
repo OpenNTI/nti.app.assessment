@@ -383,7 +383,7 @@ def _self_assessment_progress(submission, unused_event):
     if history_item is None:
         question_set = find_object_with_ntiid(submission.questionSetId)
         # Seems like we should fail fast here too
-        container_context = IContainerContext(question_set, None)
+        container_context = IContainerContext(submission, None)
         if container_context is not None:
             context_id = container_context.context_id
             context = find_object_with_ntiid(context_id)

@@ -13,6 +13,9 @@ from __future__ import absolute_import
 from zope import component
 from zope import interface
 
+from nti.app.assessment.common.submissions import inquiry_submissions
+
+from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 
@@ -69,9 +72,16 @@ class DefaultSelfAssessmentCompletionPolicy(_DefaultSubmissionCompletionPolicy):
     pass
 
 
+@component.adapter(IQSurvey)
+@interface.implementer(ICompletableItemCompletionPolicy)
+class DefaultSurveyCompletionPolicy(_DefaultSubmissionCompletionPolicy):
+    pass
+
+
 def _assessment_completion_policy(assessment, course):
     """
-    Fetch the :class:`ICompletableItemCompletionPolicy` for this assessment, course.
+    Fetch the :class:`ICompletableItemCompletionPolicy` for this assessment
+    and course.
     """
     # First see if we have a specific policy set on our context.
     context_policies = ICompletionContextCompletionPolicyContainer(course)
@@ -95,14 +105,17 @@ def _self_assessment_completion_policy(question_set, course):
     return _assessment_completion_policy(question_set, course)
 
 
+@component.adapter(IQSurvey, ICourseInstance)
+@interface.implementer(ICompletableItemCompletionPolicy)
+def _survey_completion_policy(question_set, course):
+    return _assessment_completion_policy(question_set, course)
+
+
 @component.adapter(IUser, IQuestionSet, ICourseInstance)
 @interface.implementer(IProgress)
 def _self_assessment_progress(user, question_set, course):
     """
     Fetch the :class:`IProgress` for this user, question_set, course.
-
-    Note: we're not using the course yet, but we could via the
-    :class:`IContainerContext`.
     """
     items = user.getContainer(question_set.containerId)
     progress = None
@@ -117,6 +130,30 @@ def _self_assessment_progress(user, question_set, course):
                             LastModified=submitted_date,
                             User=user,
                             Item=question_set,
+                            CompletionContext=course,
+                            HasProgress=True)
+    return progress
+
+
+@component.adapter(IUser, IQSurvey, ICourseInstance)
+@interface.implementer(IProgress)
+def _survey_progress(user, survey, course):
+    """
+    Fetch the :class:`IProgress` for this user, survey, course.
+    """
+    progress = None
+    submissions = inquiry_submissions(survey, course)
+    if submissions:
+        # First submission date
+        submitted_date = tuple(submissions)[0].created
+        # What would we possibly want to do here besides return True/False if
+        # we have a submission?
+        progress = Progress(NTIID=survey.ntiid,
+                            AbsoluteProgress=None,
+                            MaxPossibleProgress=None,
+                            LastModified=submitted_date,
+                            User=user,
+                            Item=survey,
                             CompletionContext=course,
                             HasProgress=True)
     return progress

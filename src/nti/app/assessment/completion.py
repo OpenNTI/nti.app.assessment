@@ -13,7 +13,7 @@ from __future__ import absolute_import
 from zope import component
 from zope import interface
 
-from nti.app.assessment.common.submissions import inquiry_submissions
+from nti.app.assessment.interfaces import IUsersCourseInquiry
 
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQAssignment
@@ -142,16 +142,16 @@ def _survey_progress(user, survey, course):
     Fetch the :class:`IProgress` for this user, survey, course.
     """
     progress = None
-    submissions = inquiry_submissions(survey, course)
-    if submissions:
-        # First submission date
-        submitted_date = tuple(submissions)[0].created
+    histories = component.getMultiAdapter((course, user),
+                                          IUsersCourseInquiry)
+    submission = histories.get(survey.ntiid)
+    if submission:
         # What would we possibly want to do here besides return True/False if
         # we have a submission?
         progress = Progress(NTIID=survey.ntiid,
                             AbsoluteProgress=None,
                             MaxPossibleProgress=None,
-                            LastModified=submitted_date,
+                            LastModified=submission.created,
                             User=user,
                             Item=survey,
                             CompletionContext=course,

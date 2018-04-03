@@ -32,6 +32,7 @@ from nti.app.testing.decorators import WithSharedApplicationMockDS
 from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
 
 from nti.contenttypes.completion.interfaces import IProgress
+from nti.contenttypes.completion.interfaces import ICompletableItemProvider
 from nti.contenttypes.completion.interfaces import IRequiredCompletableItemProvider
 from nti.contenttypes.completion.interfaces import ICompletableItemDefaultRequiredPolicy
 
@@ -83,6 +84,16 @@ class TestCompletion(ApplicationLayerTest):
             default_required = ICompletableItemDefaultRequiredPolicy(course)
             assert_that(default_required.mime_types, has_length(0))
             default_required.mime_types.add(ASSIGNMENT_MIME_TYPE)
+
+            user = User.get_user('sjohnson@nextthought.com')
+            providers = component.subscribers((course,),
+                                              ICompletableItemProvider)
+            providers = tuple(providers)
+            assert_that(providers, has_length(greater_than_or_equal_to(1)))
+            possible_items = set()
+            for provider in providers:
+                possible_items.update(provider.iter_items(user))
+            assert_that(possible_items, has_length(greater_than_or_equal_to(33)))
 
         res = self.testapp.get(href).json_body
         container = res['Items'].values()

@@ -416,6 +416,10 @@
              for="nti.assessment.interfaces.IQSurvey" />
 
     <subscriber factory=".completion._AssessmentItemProvider"
+                provides="nti.contenttypes.completion.interfaces.ICompletableItemProvider"
+                for="nti.contenttypes.courses.interfaces.ICourseInstance" />
+
+    <subscriber factory=".completion._AssessmentRequiredItemProvider"
                 provides="nti.contenttypes.completion.interfaces.IRequiredCompletableItemProvider"
                 for="nti.contenttypes.courses.interfaces.ICourseInstance" />
 

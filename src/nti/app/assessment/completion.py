@@ -26,6 +26,7 @@ from nti.contenttypes.courses.interfaces import ICourseAssignmentCatalog
 from nti.contenttypes.courses.interfaces import get_course_assessment_predicate_for_user
 
 from nti.contenttypes.completion.interfaces import IProgress
+from nti.contenttypes.completion.interfaces import ICompletableItemProvider
 from nti.contenttypes.completion.interfaces import IRequiredCompletableItemProvider
 from nti.contenttypes.completion.interfaces import ICompletableItemCompletionPolicy
 from nti.contenttypes.completion.interfaces import ICompletionContextCompletionPolicyContainer
@@ -160,7 +161,7 @@ def _survey_progress(user, survey, course):
 
 
 @component.adapter(ICourseInstance)
-@interface.implementer(IRequiredCompletableItemProvider)
+@interface.implementer(ICompletableItemProvider)
 class _AssessmentItemProvider(object):
     """
     Return the :class:`ICompletableItem` items for this user/course.
@@ -169,6 +170,9 @@ class _AssessmentItemProvider(object):
     def __init__(self, course):
         self.course = course
         self._scope_to_items = dict()
+
+    def _include_item(self, unused_item):
+        return True
 
     def iter_items(self, user):
         record = get_enrollment_record(self.course, user)
@@ -181,6 +185,17 @@ class _AssessmentItemProvider(object):
             # Must grab all assignments in our parent
             assignments = catalog.iter_assignments(course_lineage=True)
             result = [removeAllProxies(x) for x in assignments
-                      if uber_filter(x) and is_item_required(x, self.course)]
+                      if uber_filter(x) and self._include_item(x)]
             self._scope_to_items[scope] = result
         return result
+
+
+@component.adapter(ICourseInstance)
+@interface.implementer(IRequiredCompletableItemProvider)
+class _AssessmentRequiredItemProvider(_AssessmentItemProvider):
+    """
+    Return the required :class:`ICompletableItem` items for this user/course.
+    """
+
+    def _include_item(self, item):
+        return is_item_required(item, self.course)

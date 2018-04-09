@@ -104,6 +104,8 @@ from nti.app.testing.application_webtest import ApplicationLayerTest
 from nti.app.testing.decorators import WithSharedApplicationMockDS
 
 COURSE_NTIID = 'tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice'
+COURSE_URL = u'/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice'
+
 
 class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
@@ -125,7 +127,7 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 									 status=201)
 
 		default_enrollment_metadata_link = self.require_link_href_with_rel(res.json_body, 'AssignmentMetadata')
-		
+
 		expected = ('/dataserver2/users/' +
 					self.default_username +
 					'/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentMetadata/' +
@@ -192,8 +194,9 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
  									 COURSE_NTIID,
  									 status=201)
 
+		course_res = self.testapp.get(COURSE_URL).json_body
 		enrollment_metadata_link = self.require_link_href_with_rel(res.json_body, 'AssignmentMetadata')
-		course_metadata_link = self.require_link_href_with_rel(res.json_body['CourseInstance'], 'AssignmentMetadata')
+		course_metadata_link = self.require_link_href_with_rel(course_res, 'AssignmentMetadata')
 
 		expected = ('/dataserver2/users/' +
 					self.default_username +

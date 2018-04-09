@@ -91,6 +91,7 @@ from nti.app.testing.decorators import WithSharedApplicationMockDS
 from nti.app.testing.application_webtest import ApplicationLayerTest
 
 COURSE_NTIID = u'tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice'
+COURSE_URL = u'/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice'
 
 
 class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
@@ -191,19 +192,17 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
                                      COURSE_NTIID,
                                      status=201)
 
+        course_res = self.testapp.get(COURSE_URL).json_body
         enrollment_inquiries_link = \
             self.require_link_href_with_rel(res.json_body, 'InquiryHistory')
 
         course_inquiries_history_link = \
-            self.require_link_href_with_rel(
-                res.json_body['CourseInstance'], 'InquiryHistory')
+            self.require_link_href_with_rel(course_res, 'InquiryHistory')
 
         course_inquiries_link = \
-            self.require_link_href_with_rel(
-                res.json_body['CourseInstance'], 'CourseInquiries')
+            self.require_link_href_with_rel(course_res, 'CourseInquiries')
 
         submission_href = '%s/%s' % (course_inquiries_link, item_id)
-        _ = res.json_body['CourseInstance']['href']
 
         expected = ('/dataserver2/users/' +
                     self.default_username +

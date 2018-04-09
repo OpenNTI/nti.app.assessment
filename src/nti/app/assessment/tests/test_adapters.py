@@ -79,6 +79,7 @@ from nti.app.testing.decorators import WithSharedApplicationMockDS
 from nti.dataserver.tests import mock_dataserver
 
 COURSE_NTIID = u'tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice'
+COURSE_URL = u'/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice'
 
 
 class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
@@ -290,11 +291,12 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
                                      COURSE_NTIID,
                                      status=201)
 
+        course_res = self.testapp.get(COURSE_URL).json_body
         enrollment_history_link = self.require_link_href_with_rel(res.json_body,
                                                                   'AssignmentHistory')
-        course_history_link = self.require_link_href_with_rel(res.json_body['CourseInstance'],
+        course_history_link = self.require_link_href_with_rel(course_res,
                                                               'AssignmentHistory')
-        course_instance_link = res.json_body['CourseInstance']['href']
+        course_instance_link = course_res['href']
 
         expected = ('/dataserver2/users/' +
                     self.default_username +
@@ -559,9 +561,10 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         enrollment_history_link = self.require_link_href_with_rel(res.json_body,
                                                                   'AssignmentHistory')
 
-        enrollment_assignments = self.require_link_href_with_rel(res.json_body['CourseInstance'],
+        course_res = self.testapp.get(COURSE_URL).json_body
+        enrollment_assignments = self.require_link_href_with_rel(course_res,
                                                                  'AssignmentsByOutlineNode')
-        self.require_link_href_with_rel(res.json_body['CourseInstance'],
+        self.require_link_href_with_rel(course_res,
                                         'AssignmentsByOutlineNode')
 
         res = self.testapp.get(enrollment_assignments)
@@ -638,9 +641,10 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
                                          COURSE_NTIID,
                                          status=201)
 
-            enrollment_assignments = self.require_link_href_with_rel(res.json_body['CourseInstance'],
+            course_res = self.testapp.get(COURSE_URL).json_body
+            enrollment_assignments = self.require_link_href_with_rel(course_res,
                                                                      'AssignmentsByOutlineNode')
-            self.require_link_href_with_rel(res.json_body['CourseInstance'],
+            self.require_link_href_with_rel(course_res,
                                             'AssignmentsByOutlineNode')
 
             res = self.testapp.get(enrollment_assignments,
@@ -683,14 +687,15 @@ class TestAssignmentFiltering(RegisterAssignmentLayerMixin, ApplicationLayerTest
                                      status=201)
 
         enrollment_oid = res.json_body['NTIID']
-       
-        links_from = res.json_body['CourseInstance']
+
+        course_res = self.testapp.get(COURSE_URL).json_body
+        links_from = course_res
         enrollment_assignments = self.require_link_href_with_rel(links_from,
                                                                  'AssignmentsByOutlineNode')
         enrollment_non_assignments = self.require_link_href_with_rel(links_from,
                                                                      'NonAssignmentAssessmentItemsByOutlineNode')
 
-        course_href = res.json_body['CourseInstance']['href']
+        course_href = course_res['href']
         if course_href[-1] != '/':
             course_href += '/'
         course_href = urllib_parse.unquote(course_href)

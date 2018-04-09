@@ -104,7 +104,7 @@ class _RegisterFileAssignmentLayer(InstructedCourseApplicationTestLayer):
                                      name=cls.question_set_id)
 
             # Works with auto_grade true or false.
-            assignment_part = QAssignmentPart(question_set=question_set, 
+            assignment_part = QAssignmentPart(question_set=question_set,
                                               auto_grade=False)
             assignment = QAssignment(parts=(assignment_part,))
             cls.assignment = assignment
@@ -173,26 +173,26 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 
     def _check_submission(self, res, history=None):
         assert_that(res.status_int, is_(201))
-        assert_that(res.json_body, 
+        assert_that(res.json_body,
                     has_entry(StandardExternalFields.CREATED_TIME, is_(float)))
-        assert_that(res.json_body, 
+        assert_that(res.json_body,
                     has_entry(StandardExternalFields.LAST_MODIFIED, is_(float)))
-        assert_that(res.json_body, 
+        assert_that(res.json_body,
                     has_entry(StandardExternalFields.MIMETYPE,
                               'application/vnd.nextthought.assessment.assignmentsubmissionpendingassessment'))
 
-        assert_that(res.json_body, 
+        assert_that(res.json_body,
                     has_entry('ContainerId', self.assignment_id))
         assert_that(res.json_body, has_key('NTIID'))
 
-        assert_that(res, 
+        assert_that(res,
                     has_property('location', contains_string('Objects/')))
 
         # This object can be found in my history
         if history:
             __traceback_info__ = history
             res = self.testapp.get(history)
-            assert_that(res.json_body, 
+            assert_that(res.json_body,
                         has_entry('href', contains_string(unquote(history))))
             assert_that(res.json_body, has_entry('Items', has_length(1)))
             assert_that(res.json_body, has_entry('lastViewed', 0))
@@ -220,18 +220,21 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
         ext_obj = to_external_object(asg_submission)
         ext_obj['parts'][0]['questions'][0]['parts'][0]['value'] = GIF_DATAURL
 
-        assert_that(internalization.find_factory_for(ext_obj),  
+        assert_that(internalization.find_factory_for(ext_obj),
                     is_(not_none()))
 
         # Make sure we're enrolled
         res = self.testapp.post_json('/dataserver2/users/' + self.default_username + '/Courses/EnrolledCourses',
                                      course_id,
                                      status=201)
+
+        course_rel = self.require_link_href_with_rel(res.json_body, 'CourseInstance')
+        course_res = self.testapp.get(course_rel).json_body
         enrollment_history_link = self.require_link_href_with_rel(
             res.json_body, 'AssignmentHistory')
-        self.require_link_href_with_rel(res.json_body['CourseInstance'], 
+        self.require_link_href_with_rel(course_res,
                                        'AssignmentHistory')
-        assessments_rel = self.require_link_href_with_rel(res.json_body['CourseInstance'],
+        assessments_rel = self.require_link_href_with_rel(course_res,
                                                           'Assessments')
 
         res = self.testapp.post_json('%s/%s' % (assessments_rel, self.assignment_id),
@@ -257,7 +260,7 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
         download_res = self.testapp.get(submitted_file_part['url'])
         assert_that(download_res, has_property('content_type', 'image/gif'))
         assert_that(download_res, has_property('content_length', 61))
-        assert_that(download_res, 
+        assert_that(download_res,
                     has_property('content_disposition', is_not(none())))
 
         # Then for download, both directly and without the trailing /view
@@ -270,19 +273,19 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
         for path in paths:
             download_res = self.testapp.get(path)
             assert_that(download_res, has_property('content_length', 61))
-            assert_that(download_res, 
+            assert_that(download_res,
                            has_property('content_type', 'image/gif'))
-            assert_that(download_res, 
+            assert_that(download_res,
                            has_property('content_disposition', not_none()))
 
         # Our default user happens to have admin perms to fetch the files
         res = self.testapp.get('%s/%s' % (assessments_rel, self.assignment_id))
-        bulk_href = self.require_link_href_with_rel(res.json_body, 
+        bulk_href = self.require_link_href_with_rel(res.json_body,
                                                    'ExportFiles')
 
         res = self.testapp.get(bulk_href)
 
-        assert_that(res.content_disposition, 
+        assert_that(res.content_disposition,
                     is_('attachment; filename="CLC3403_assignment.zip"'))
 
         data = res.body
@@ -293,7 +296,7 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
         assert_that(zipfile.namelist(), contains(name))
         info = zipfile.getinfo(name)
         # Rounding means the second data may not be accurate
-        assert_that(info.date_time[:5], 
+        assert_that(info.date_time[:5],
                     is_(download_res.last_modified.timetuple()[:5]))
 
     @WithSharedApplicationMockDS(users=True, testapp=True)
@@ -389,11 +392,11 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
         with mock_dataserver.mock_db_trans(self.ds):
             user = User.get_user('content_admin')
             assert_that(user, not_none())
-            principalRoleManager.assignRoleToPrincipal(ROLE_CONTENT_ADMIN.id, 
-                                                       'content_admin', 
+            principalRoleManager.assignRoleToPrincipal(ROLE_CONTENT_ADMIN.id,
+                                                       'content_admin',
                                                        check=False)
 
         # Global content admin cannot fetch history item or feedback
         self.testapp.get(item_href, extra_environ=admin_environ, status=403)
-        self.testapp.get(feedback_href, 
+        self.testapp.get(feedback_href,
                          extra_environ=admin_environ, status=403)

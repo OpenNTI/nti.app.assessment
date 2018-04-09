@@ -42,6 +42,7 @@ from nti.dataserver.tests import mock_dataserver
 from nti.dataserver.tests.mock_dataserver import WithMockDSTrans
 
 COURSE_NTIID = u'tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice'
+COURSE_URL = u'/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice'
 
 
 class TestSavepoint(AssessmentLayerTest):
@@ -204,9 +205,10 @@ class TestSavepointViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
                                      COURSE_NTIID,
                                      status=201)
 
+        course_res = self.testapp.get(COURSE_URL).json_body
         enrollment_savepoints_link = self.require_link_href_with_rel(res.json_body,
                                                                      'AssignmentSavepoints')
-        course_savepoints_link = self.require_link_href_with_rel(res.json_body['CourseInstance'],
+        course_savepoints_link = self.require_link_href_with_rel(course_res,
                                                                  'AssignmentSavepoints')
 
         expected = ('/dataserver2/users/' +

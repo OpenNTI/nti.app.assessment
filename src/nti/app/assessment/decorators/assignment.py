@@ -206,6 +206,18 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
                         rel='ExportFiles',
                         elements=('@@BulkFilePartDownload',))
         links.append(link)
+        
+        
+@component.adapter(ICourseInstance, IRequest)
+@interface.implementer(IExternalObjectDecorator)
+class _CourseAssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
+    
+    def _do_decorate_external(self, context, result):
+        links = result.setdefault(LINKS, [])
+        link = Link(context, 
+                    rel='ExportFiles',
+                    elements=('@@CourseBulkFilePartDownload',))
+        links.append(link)
 
 
 @component.adapter(IQAssignment, IRequest)

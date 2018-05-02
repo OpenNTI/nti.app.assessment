@@ -11,10 +11,13 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+import os
 import sys
 from io import BytesIO
 from numbers import Number
 from datetime import datetime
+
+from slugify import slugify_filename
 
 from zipfile import ZIP_DEFLATED
 
@@ -49,6 +52,7 @@ from nti.app.assessment._submission import get_source
 from nti.app.assessment._submission import check_upload_files
 from nti.app.assessment._submission import read_multipart_sources
 
+from nti.app.assessment.common.evaluations import get_course_assignments
 from nti.app.assessment.common.evaluations import is_assignment_available
 from nti.app.assessment.common.evaluations import get_course_from_evaluation
 
@@ -76,6 +80,7 @@ from nti.base.interfaces import IFile
 
 from nti.contenttypes.completion.interfaces import UserProgressUpdatedEvent
 
+from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEnrollments
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 
@@ -352,6 +357,142 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
             if history_item is None:
                 continue  # No submission for this assignment
             self._save_files(principal, history_item, zipfile)
+
+        zipfile.close()
+        buf.seek(0)
+        self.request.response.body = buf.getvalue()
+        filename = self._get_filename(course)
+        response = self.request.response
+        response.content_encoding = 'identity'
+        response.content_type = 'application/zip; charset=UTF-8'
+        response.content_disposition = 'attachment; filename="%s"' % filename
+        return response
+    
+    
+@view_config(route_name="objects.generic.traversal",
+             context=ICourseInstance,
+             renderer='rest',
+             request_method='GET',
+             name='CourseBulkFilePartDownload')
+class CourseAssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
+    """
+    A view that returns a ZIP file containing all
+    the files submitted by any student in the course for
+    any file part in all assignments in the course.
+
+    The ZIP has the following structure::
+
+    <assignment-name>/
+            <student-username>/
+                    <part-num>/
+                            <question-num>/
+                                    <submitted-file-name>
+
+    For the convenience of people who don't understand directories
+    and how to work with them, the part of the structure
+    following the assignment-name is flattened using dashes.
+
+    .. note:: An easy extension to this would be to accept
+            a query param giving a list of usernames to include.
+
+    .. note:: The current implementation does not stream;
+            the entire ZIP is buffered (potentially in memory) before being
+            transmitted. Streaming while building a ZIP is somewhat
+            complicated in the ZODB/WSGI combination. It may be possible
+            to do something with app_iter and stream in \"chunks\".
+    """
+
+    def _string(self, val, sub=''):
+        if val:
+            val = val.replace(' ', sub)
+        return val
+
+    def _get_course_name(self, course):
+        entry = ICourseCatalogEntry(course, None)
+        if entry is not None:
+            base_name = entry.ProviderUniqueID
+            base_name = self._string(base_name)
+        if not base_name:
+            base_name = course.__name__
+        return base_name
+
+    def _get_assignment_name(self):
+        context = self.context
+        result = getattr(context, 'title', context.__name__)
+        result = self._string(result, '_')
+        return result or 'assignment'
+
+    def _get_filename(self, course):
+        base_name = self._get_course_name(course)
+        assignment_name = self._get_assignment_name()
+        suffix = '.zip'
+        result = '%s_%s%s' % (base_name, assignment_name, suffix)
+        # strip out any high characters
+        result = result.encode('ascii', 'ignore')
+        return result
+
+    def _get_username_filename_part(self, principal):
+        user = User.get_entity(principal.id)
+        profile = IUserProfile(user)
+        realname = profile.realname or ''
+        realname = realname.replace(' ', '_')
+        username = replace_username(user.username)
+        result = username
+        if realname:
+            result = '%s-%s' % (username, realname)
+        return result
+
+    def _save_files(self, principal, item, zipfile):
+        # Hmm, if they don't submit or submit in different orders,
+        # numbers won't work. We need to canonicalize this to the
+        # assignment order.
+        assignment_name = slugify_filename(item.Assignment.__name__)
+        for sub_num, sub_part in enumerate(item.Submission.parts or ()):
+            for q_num, q_part in enumerate(sub_part.questions or ()):
+                for qp_num, qp_part in enumerate(q_part.parts or ()):
+                    if IQResponse.providedBy(qp_part):
+                        qp_part = qp_part.value
+                    if IFile.providedBy(qp_part):
+                        fn_part = self._get_username_filename_part(principal)
+                        full_filename = "%s-%s-%s-%s-%s" % (fn_part,
+                                                            sub_num,
+                                                            q_num,
+                                                            qp_num,
+                                                            qp_part.filename)
+                        full_filename = os.path.join(assignment_name, full_filename)
+                        lastModified = qp_part.lastModified
+                        date_time = datetime.utcfromtimestamp(lastModified)
+                        info = ZipInfo(full_filename,
+                                       date_time=date_time.timetuple())
+                        info.compress_type = ZIP_DEFLATED
+                        zipfile.writestr(info, qp_part.data)
+                        
+    def _save_assignment_submissions(self, zipfile, assignment, course, enrollments):
+        assignment_id = assignment.__name__
+
+        for record in enrollments.iter_enrollments():
+            principal = IUser(record, None)
+            if principal is None:  # dup enrollment ?
+                continue
+            assignment_history = component.getMultiAdapter((course, principal),
+                                                           IUsersCourseAssignmentHistory)
+            history_item = assignment_history.get(assignment_id)
+            if history_item is None:
+                continue  # No submission for this assignment
+            self._save_files(principal, history_item, zipfile)
+
+    def __call__(self):
+        course = self.request.context
+
+        assignments = get_course_assignments(course)
+        assignments = filter(assignment_download_precondition, assignments)
+        enrollments = ICourseEnrollments(course)
+        
+        buf = BytesIO()
+        zipfile = ZipFile(buf, 'w')
+        
+        for assignment in assignments:
+            self._save_assignment_submissions(zipfile, assignment, course, enrollments)
 
         zipfile.close()
         buf.seek(0)

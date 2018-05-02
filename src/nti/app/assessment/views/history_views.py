@@ -47,6 +47,7 @@ from pyramid.view import view_defaults
 
 from nti.app.assessment import MessageFactory as _
 from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
+from nti.app.assessment import VIEW_COURSE_ASSIGNMENT_BULK_FILE_PART_DOWNLOAD
 
 from nti.app.assessment._submission import get_source
 from nti.app.assessment._submission import check_upload_files
@@ -373,7 +374,7 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
              context=ICourseInstance,
              renderer='rest',
              request_method='GET',
-             name='CourseBulkFilePartDownload')
+             name=VIEW_COURSE_ASSIGNMENT_BULK_FILE_PART_DOWNLOAD)
 class CourseAssignmentSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
     """
     A view that returns a ZIP file containing all

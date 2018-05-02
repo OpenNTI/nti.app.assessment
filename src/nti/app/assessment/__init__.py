@@ -80,6 +80,9 @@ VIEW_QUESTION_CONTAINERS = 'Assessments'
 #: A view to fetch the topic associated with an IQDiscussionAssignment
 VIEW_RESOLVE_TOPIC = 'ResolveTopic'
 
+#: A view to download the submitted assignment file-parts of a course.
+VIEW_COURSE_ASSIGNMENT_BULK_FILE_PART_DOWNLOAD = 'CourseAssignmentBulkFilePartDownload'
+
 from nti.app.assessment.index import EVALUATION_CATALOG_NAME
 from nti.app.assessment.index import SUBMISSION_CATALOG_NAME
 

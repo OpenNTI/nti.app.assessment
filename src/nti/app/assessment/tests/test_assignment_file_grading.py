@@ -65,6 +65,8 @@ from nti.externalization.externalization import to_external_object
 
 from nti.externalization.interfaces import StandardExternalFields
 
+from nti.app.assessment import VIEW_COURSE_ASSIGNMENT_BULK_FILE_PART_DOWNLOAD
+
 from nti.app.products.courseware.tests import InstructedCourseApplicationTestLayer
 
 from nti.app.testing.application_webtest import ApplicationTestLayer
@@ -241,11 +243,16 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
                                      ext_obj)
         history_res = self._check_submission(res, enrollment_history_link)
 
-        return history_res, assessments_rel
+        return history_res, assessments_rel, course_rel
 
     @WithSharedApplicationMockDS(users=True, testapp=True)
-    def test_posting_and_bulk_downloading_file(self):
-        history_res, assessments_rel = self._create_and_enroll()
+    @fudge.patch('nti.app.assessment.views.history_views.CourseAssignmentSubmissionBulkFileDownloadView._get_assignments')
+    def test_posting_and_bulk_downloading_file(self, mock_get_assignments):
+        fake_assignment = fudge.Fake()
+        fake_assignment.has_attr(__name__=self.assignment_id)
+        mock_get_assignments.is_callable().returns([fake_assignment])
+        
+        history_res, assessments_rel, course_rel = self._create_and_enroll()
 
         # Now we should be able to find and download our data
         submission = history_res.json_body['Items'].values()[0]['Submission']
@@ -298,6 +305,26 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
         # Rounding means the second data may not be accurate
         assert_that(info.date_time[:5],
                     is_(download_res.last_modified.timetuple()[:5]))
+        
+        # Test the course-level download
+        course_res = self.testapp.get(course_rel).json_body
+        bulk_href = self.require_link_href_with_rel(course_res, VIEW_COURSE_ASSIGNMENT_BULK_FILE_PART_DOWNLOAD)
+        
+        res = self.testapp.get(bulk_href)
+
+        assert_that(res.content_disposition,
+                    is_('attachment; filename="CLC3403_CLC3403_LawAndJustice.zip"'))
+        
+        data = res.body
+        io = StringIO(data)
+        zipfile = ZipFile(io, 'r')
+
+        name = 'tag_nextthought.com_2011-10_OU-NAQ-CLC3403_LawAndJustice.naq.asg_QUIZ1_aristotle/sjohnson@nextthought.com-0-0-0-image.gif'
+        assert_that(zipfile.namelist(), contains(name))
+        info = zipfile.getinfo(name)
+        # Rounding means the second data may not be accurate
+        assert_that(info.date_time[:5],
+                    is_(download_res.last_modified.timetuple()[:5]))
 
     @WithSharedApplicationMockDS(users=True, testapp=True)
     @fudge.patch('nti.app.assessment.history.get_policy_for_assessment',
@@ -312,7 +339,7 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 
         # Enroll in section 1, which lets this happen for this object
         cid = u'tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice_SubInstances_01'
-        history_res, _ = self._create_and_enroll(course_id=cid)
+        history_res, _, _ = self._create_and_enroll(course_id=cid)
 
         item = history_res.json_body['Items'][self.assignment_id]
         item_href = item['href']
@@ -364,7 +391,7 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 
         # Enroll and get our history item and feedback
         cid = u'tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice_SubInstances_01'
-        history_res, _ = self._create_and_enroll(course_id=cid)
+        history_res, _, _ = self._create_and_enroll(course_id=cid)
 
         item = history_res.json_body['Items'][self.assignment_id]
         item_href = item['href']

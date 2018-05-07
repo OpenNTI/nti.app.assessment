@@ -247,7 +247,7 @@ class AbstractSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
             base_name = course.__name__
         return base_name
 
-    def _get_assignment_name(self):
+    def _get_context_name(self):
         context = self.context
         result = getattr(context, 'title', context.__name__)
         result = self._string(result, '_')
@@ -255,7 +255,7 @@ class AbstractSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 
     def _get_filename(self, course):
         base_name = self._get_course_name(course)
-        assignment_name = self._get_assignment_name()
+        assignment_name = self._get_context_name()
         suffix = '.zip'
         result = '%s_%s%s' % (base_name, assignment_name, suffix)
         # strip out any high characters
@@ -439,6 +439,14 @@ class CourseAssignmentSubmissionBulkFileDownloadView(AbstractSubmissionBulkFileD
     
     def _get_course(self, context):
         return context
+    
+    def _get_filename(self, course):
+        course_name = self._get_context_name()
+        suffix = '.zip'
+        result = '%s%s' % (course_name, suffix)
+        # strip out any high characters
+        result = result.encode('ascii', 'ignore')
+        return result
                         
     def _submission_filename(self, item, fn_part, sub_num, q_num, qp_num, qp_part):
         assignment_name = slugify_filename(item.Assignment.__name__)

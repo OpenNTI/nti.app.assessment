@@ -238,26 +238,23 @@ class AbstractSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
             val = val.replace(' ', sub)
         return val
 
-    def _get_course_name(self, course):
-        entry = ICourseCatalogEntry(course, None)
-        if entry is not None:
-            base_name = entry.ProviderUniqueID
-            base_name = self._string(base_name)
-        if not base_name:
-            base_name = course.__name__
-        return base_name
-
     def _get_context_name(self):
         context = self.context
         result = getattr(context, 'title', context.__name__)
         result = self._string(result, '_')
         return result or 'assignment'
+    
+    def _get_filename_base(self, course):
+        """
+        Subclasses should override to return the base filename;
+        that is, the name of the file excluding the extension.
+        """
+        pass
 
     def _get_filename(self, course):
-        base_name = self._get_course_name(course)
-        assignment_name = self._get_context_name()
+        base_name = self._get_filename_base(course)
         suffix = '.zip'
-        result = '%s_%s%s' % (base_name, assignment_name, suffix)
+        result = '%s%s' % (base_name, suffix)
         # strip out any high characters
         result = result.encode('ascii', 'ignore')
         return result
@@ -394,7 +391,21 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractSubmissionBulkFileDownloa
             # Ok, pick the first course we find.
             result = get_course_from_evaluation(context, self.remoteUser, exc=True)
         return result
-
+    
+    def _get_course_name(self, course):
+        entry = ICourseCatalogEntry(course, None)
+        if entry is not None:
+            base_name = entry.ProviderUniqueID
+            base_name = self._string(base_name)
+        if not base_name:
+            base_name = course.__name__
+        return base_name
+    
+    def _get_filename_base(self, course):
+        base_name = self._get_course_name(course)
+        assignment_name = self._get_context_name()
+        return '%s_%s' % (base_name, assignment_name)
+        
     @classmethod
     def _precondition(cls, context, request, remoteUser):
         return assignment_download_precondition(context, request, remoteUser)
@@ -440,13 +451,8 @@ class CourseAssignmentSubmissionBulkFileDownloadView(AbstractSubmissionBulkFileD
     def _get_course(self, context):
         return context
     
-    def _get_filename(self, course):
-        course_name = self._get_context_name()
-        suffix = '.zip'
-        result = '%s%s' % (course_name, suffix)
-        # strip out any high characters
-        result = result.encode('ascii', 'ignore')
-        return result
+    def _get_filename_base(self, course):
+        return self._get_context_name()
                         
     def _submission_filename(self, item, fn_part, sub_num, q_num, qp_num, qp_part):
         assignment_name = slugify_filename(item.Assignment.__name__)

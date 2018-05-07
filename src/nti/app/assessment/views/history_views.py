@@ -449,10 +449,13 @@ class CourseAssignmentSubmissionBulkFileDownloadView(AbstractSubmissionBulkFileD
                                                                                                     qp_num,
                                                                                                     qp_part)
         return os.path.join(assignment_name, filename)
+    
+    def _get_assignments(self, course):
+        assignments = get_course_assignments(course)
+        return filter(assignment_download_precondition, assignments)
 
     def _save_submissions(self, course, enrollments, zipfile):
-        assignments = get_course_assignments(course)
-        assignments = filter(assignment_download_precondition, assignments)
+        assignments = self._get_assignments(course)
         for assignment in assignments:
             self._save_assignment_submissions(zipfile, assignment, course, enrollments)
 

@@ -37,6 +37,7 @@ from nti.app.assessment import VIEW_INSERT_PART_OPTION
 from nti.app.assessment import VIEW_REMOVE_PART_OPTION
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
+from nti.app.assessment import VIEW_COURSE_ASSIGNMENT_BULK_FILE_PART_DOWNLOAD
 
 from nti.app.assessment.common.evaluations import get_max_time_allowed
 from nti.app.assessment.common.evaluations import is_global_evaluation
@@ -205,6 +206,18 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
             link = Link(context,
                         rel='ExportFiles',
                         elements=('@@BulkFilePartDownload',))
+        links.append(link)
+        
+        
+@component.adapter(ICourseInstance, IRequest)
+@interface.implementer(IExternalObjectDecorator)
+class _CourseAssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
+    
+    def _do_decorate_external(self, context, result):
+        links = result.setdefault(LINKS, [])
+        link = Link(context, 
+                    rel=VIEW_COURSE_ASSIGNMENT_BULK_FILE_PART_DOWNLOAD,
+                    elements=('@@' + VIEW_COURSE_ASSIGNMENT_BULK_FILE_PART_DOWNLOAD,))
         links.append(link)
 
 

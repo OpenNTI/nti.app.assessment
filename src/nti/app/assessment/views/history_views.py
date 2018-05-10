@@ -17,7 +17,7 @@ from io import BytesIO
 from numbers import Number
 from datetime import datetime
 
-from slugify import slugify_filename
+from slugify import UniqueSlugify
 
 from zipfile import ZIP_DEFLATED
 
@@ -455,23 +455,27 @@ class CourseAssignmentSubmissionBulkFileDownloadView(AbstractSubmissionBulkFileD
         return self._get_context_name()
                         
     def _submission_filename(self, item, fn_part, sub_num, q_num, qp_num, qp_part):
-        assignment_name = slugify_filename(item.Assignment.__name__)
+        # Prepend the assignment directory to the submission filename
         filename = super(CourseAssignmentSubmissionBulkFileDownloadView, self)._submission_filename(item,
                                                                                                     fn_part,
                                                                                                     sub_num,
                                                                                                     q_num,
                                                                                                     qp_num,
                                                                                                     qp_part)
-        return os.path.join(assignment_name, filename)
+        return os.path.join(self._current_directory_name, filename)
     
     def _get_assignments(self, course):
         assignments = get_course_assignments(course)
         return filter(assignment_download_precondition, assignments)
 
     def _save_submissions(self, course, enrollments, zipfile):
+        slugify_unique = UniqueSlugify(separator='_')
         assignments = self._get_assignments(course)
         for assignment in assignments:
+            # Directory names need to be unique
+            self._current_directory_name = slugify_unique(assignment.title)
             self._save_assignment_submissions(zipfile, assignment, course, enrollments)
+        self._current_directory_name = None
 
 
 @view_defaults(route_name="objects.generic.traversal",

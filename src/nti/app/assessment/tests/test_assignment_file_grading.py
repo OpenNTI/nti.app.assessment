@@ -249,6 +249,7 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
     @fudge.patch('nti.app.assessment.views.history_views.CourseAssignmentSubmissionBulkFileDownloadView._get_assignments')
     def test_posting_and_bulk_downloading_file(self, mock_get_assignments):
         fake_assignment = fudge.Fake()
+        fake_assignment.has_attr(title=u'Quiz 1: Aristotle')
         fake_assignment.has_attr(__name__=self.assignment_id)
         mock_get_assignments.is_callable().returns([fake_assignment])
         
@@ -319,7 +320,7 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
         io = StringIO(data)
         zipfile = ZipFile(io, 'r')
 
-        name = 'tag_nextthought.com_2011-10_OU-NAQ-CLC3403_LawAndJustice.naq.asg_QUIZ1_aristotle/sjohnson@nextthought.com-0-0-0-image.gif'
+        name = 'Quiz_1_Aristotle/sjohnson@nextthought.com-0-0-0-image.gif'
         assert_that(zipfile.namelist(), contains(name))
         info = zipfile.getinfo(name)
         # Rounding means the second data may not be accurate

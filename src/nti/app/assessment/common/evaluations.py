@@ -11,6 +11,7 @@ from __future__ import absolute_import
 import six
 import itertools
 from datetime import datetime
+from datetime import timedelta
 
 from ZODB import loglevels
 
@@ -27,7 +28,9 @@ from nti.app.assessment.assignment_filters import AssessmentPolicyExclusionFilte
 
 from nti.app.assessment.common.utils import is_published
 from nti.app.assessment.common.utils import get_policy_field
+from nti.app.assessment.common.utils import get_policy_for_assessment
 from nti.app.assessment.common.utils import get_evaluation_catalog_entry
+from nti.app.assessment.common.utils import get_available_for_submission_ending
 from nti.app.assessment.common.utils import get_available_for_submission_beginning
 
 from nti.app.assessment.index import IX_SITE
@@ -478,6 +481,24 @@ def is_assignment_available(assignment, course=None, user=None):
     start_date = get_available_for_submission_beginning(assignment, course)
     if not start_date or start_date < datetime.utcnow():
         result = True
+    return result
+
+
+def is_assignment_available_for_submission(assignment, course, user=None):
+    """
+    For the given assignment, determines if it is available for submission
+    via the assignment policy.
+    """
+    if not is_assignment_available(assignment, course, user):
+        return False
+    result = True
+    policy = get_policy_for_assessment(assignment.ntiid, course)
+    end_date = get_available_for_submission_ending(assignment, course)
+    submission_buffer = policy.get('submission_buffer')
+    if end_date and (submission_buffer is not None):
+        submission_buffer = int(submission_buffer)
+        cutoff_date = end_date + timedelta(seconds=submission_buffer)
+        result = datetime.utcnow() < cutoff_date
     return result
 
 

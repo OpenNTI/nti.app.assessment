@@ -161,14 +161,6 @@ def get_policy_field(assignment, course, field):
     return None
 
 
-def get_policy_for_assessment(asm_id, context):
-    course = ICourseInstance(context)
-    policies = IQAssessmentPolicies(course)
-    # pylint: disable=too-many-function-args
-    policy = policies.getPolicyForAssessment(asm_id)
-    return policy
-
-
 def is_published(context):
     return not IPublishable.providedBy(context) or context.is_published()
 

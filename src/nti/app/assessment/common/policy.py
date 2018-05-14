@@ -19,6 +19,7 @@ from nti.app.assessment import MessageFactory as _
 from nti.app.assessment.common.submissions import has_submissions
 
 from nti.app.assessment.common.utils import get_policy_field
+from nti.app.assessment.common.utils import get_policy_for_assessment
 
 from nti.app.assessment.interfaces import IQAvoidSolutionCheck
 from nti.app.assessment.interfaces import IQPartChangeAnalyzer
@@ -55,13 +56,7 @@ AUTO_GRADE_NO_POINTS_MSG = _(
 
 logger = __import__('logging').getLogger(__name__)
 
-
-def get_policy_for_assessment(asm_id, context):
-    course = ICourseInstance(context)
-    policies = IQAssessmentPolicies(course)
-    # pylint: disable=too-many-function-args
-    policy = policies.getPolicyForAssessment(asm_id)
-    return policy
+get_policy_for_assessment = get_policy_for_assessment
 
 
 def get_auto_grade_policy(assignment, course):

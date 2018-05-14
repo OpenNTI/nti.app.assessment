@@ -26,6 +26,7 @@ from nti.app.assessment._submission import read_multipart_sources
 
 from nti.app.assessment.common.evaluations import is_assignment_available
 from nti.app.assessment.common.evaluations import get_course_from_evaluation
+from nti.app.assessment.common.evaluations import is_assignment_available_for_submission
 
 from nti.app.assessment.common.history import get_assessment_metadata_item
 
@@ -110,6 +111,15 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
                              {
                                  'message': _(u"Assignment is not available."),
                              },
+                             None)
+            
+        if not is_assignment_available_for_submission(self.context, course=course, user=creator):
+            raise_json_error(self.request, 
+                             hexc.HTTPForbidden, 
+                             {
+                                 'message': _(u"Assignment is not available for submission."),
+                                 'code': u'SubmissionPastDueDateError'
+                             }, 
                              None)
 
         if not self.request.POST:

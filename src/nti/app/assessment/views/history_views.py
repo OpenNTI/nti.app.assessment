@@ -16,6 +16,7 @@ import sys
 from io import BytesIO
 from numbers import Number
 from datetime import datetime
+from datetime import timedelta
 
 from slugify import slugify_filename
 
@@ -56,6 +57,7 @@ from nti.app.assessment._submission import read_multipart_sources
 from nti.app.assessment.common.evaluations import get_course_assignments
 from nti.app.assessment.common.evaluations import is_assignment_available
 from nti.app.assessment.common.evaluations import get_course_from_evaluation
+from nti.app.assessment.common.evaluations import is_assignment_available_for_submission
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
@@ -151,6 +153,15 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
                              {
                                  'message': _(u"Assignment is not available."),
                              },
+                             None)
+            
+        if not is_assignment_available_for_submission(self.context, course=self.course, user=creator):
+            raise_json_error(self.request, 
+                             hexc.HTTPForbidden, 
+                             {
+                                 'message': _(u"Assignment is not available for submission."),
+                                 'code': u'SubmissionPastDueDateError'
+                             }, 
                              None)
 
     def _do_call(self):

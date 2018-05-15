@@ -28,7 +28,6 @@ from nti.app.assessment.assignment_filters import AssessmentPolicyExclusionFilte
 
 from nti.app.assessment.common.utils import is_published
 from nti.app.assessment.common.utils import get_policy_field
-from nti.app.assessment.common.utils import get_policy_for_assessment
 from nti.app.assessment.common.utils import get_evaluation_catalog_entry
 from nti.app.assessment.common.utils import get_available_for_submission_ending
 from nti.app.assessment.common.utils import get_available_for_submission_beginning
@@ -492,10 +491,9 @@ def is_assignment_available_for_submission(assignment, course, user=None):
     if not is_assignment_available(assignment, course, user):
         return False
     result = True
-    policy = get_policy_for_assessment(assignment.ntiid, course)
     end_date = get_available_for_submission_ending(assignment, course)
-    submission_buffer = policy.get('submission_buffer')
-    if end_date and (submission_buffer is not None):
+    submission_buffer = get_policy_field(assignment, course, 'submission_buffer')
+    if end_date and submission_buffer is not None and submission_buffer is not False:
         submission_buffer = int(submission_buffer)
         cutoff_date = end_date + timedelta(seconds=submission_buffer)
         result = datetime.utcnow() < cutoff_date

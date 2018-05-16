@@ -8,6 +8,8 @@ from __future__ import absolute_import
 # disable: accessing protected members, too many methods
 # pylint: disable=W0212,R0904
 
+from datetime import datetime
+
 from hamcrest import is_
 from hamcrest import none
 from hamcrest import is_not
@@ -1762,6 +1764,64 @@ class TestEvaluationViews(ApplicationLayerTest):
         self.testapp.post_json(assignment_href, submission, status=403)
         self.testapp.post_json(savepoint_href, submission, status=403)
         self.testapp.post_json(practice_submission_href, submission)
+    
+    @time_monotonically_increases
+    @WithSharedApplicationMockDS(testapp=True, users=True)
+    def test_overdue_submissions_with_submission_buffer(self):
+        """
+        We can't submit of an assignment is overdue and past the submission buffer.
+        """
+        # Create base assessment object, enroll student, and set up vars for test
+        editor_environ = self._make_extra_environ(username="sjohnson@nextthought.com")
+        course_oid = self._get_course_oid()
+        href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
+        assignment = self._load_assignment()
+        res = self.testapp.post_json(href, assignment, status=201)
+        res = res.json_body
+        publish_href = self.require_link_href_with_rel(res, VIEW_PUBLISH)
+        assignment_href = res.get('href')
+        assignment_href = '%s?ntiid=%s' % (assignment_href, course_oid)
+        assignment_ntiid = res.get('ntiid')
+        savepoint_href = '/dataserver2/Objects/%s/AssignmentSavepoints/sjohnson@nextthought.com/%s/Savepoint'
+        savepoint_href = savepoint_href % (course_oid, assignment_ntiid)
+        assert_that(res.get('version'), none())
+        old_part = res.get('parts')[0]
+        qset = old_part.get('question_set')
+        qset_ntiid = qset.get('NTIID')
+        question_ntiid = qset.get('questions')[0].get('ntiid')
+        
+        # Set the assignment end date and publish
+        end_field = 'available_for_submission_ending'
+        end_date_str = datetime.utcnow().isoformat()
+        data = { end_field: end_date_str }
+        res = self.testapp.put_json(assignment_href,
+                                    data, extra_environ=editor_environ)
+        self.testapp.post(publish_href)
+        
+        # Prepare submission
+        upload_submission = QUploadedFile(data=b'1234',
+                                          contentType=b'image/gif',
+                                          filename=u'foo.pdf')
+        q_sub = QuestionSubmission(questionId=question_ntiid,
+                                   parts=(upload_submission,))
+
+        qs_submission = QuestionSetSubmission(questionSetId=qset_ntiid,
+                                              questions=(q_sub,))
+        submission = AssignmentSubmission(assignmentId=assignment_ntiid,
+                                          parts=(qs_submission,))
+        submission = toExternalObject(submission)
+        
+        # Savepoints should work without a submission-buffer
+        self.testapp.post_json(savepoint_href, submission)
+        
+        # Set the submission-buffer
+        data = { 'submission_buffer': 0 }
+        assignment = self.testapp.put_json(assignment_href,
+                                    data, extra_environ=editor_environ)
+        
+        # Overdue savepoints and submissions should fail 
+        self.testapp.post_json(savepoint_href, submission, status=403)
+        self.testapp.post_json(assignment_href, submission, status=403)
 
     @WithSharedApplicationMockDS(testapp=True, users=True)
     def test_delete_self_assessments(self):

@@ -99,6 +99,18 @@ def get_auto_grade_policy_state(assignment, course):
     return result
 
 
+def get_submission_buffer_policy(assignment, course):
+    """
+    For a given assignment (or ntiid), return the 'submission_buffer' policy
+    for the given course.
+    
+    The submission buffer is the number of seconds an assignment may be 
+    submitted past its due-date, beyond which time submissions should be 
+    prevented.
+    """
+    return get_policy_field(assignment, course, 'submission_buffer')
+
+
 def validate_auto_grade(assignment, course, request=None, challenge=False, raise_exc=True):
     """
     Validate the assignment has the proper state for auto-grading, if

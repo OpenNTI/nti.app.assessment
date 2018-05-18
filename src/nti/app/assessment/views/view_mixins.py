@@ -148,7 +148,7 @@ class AssessmentPutView(UGDPutView):
     TO_UNAVAILABLE_MSG = None
     DUE_DATE_CONFIRM_MSG = _(u'Are you sure you want to change the due date?')
 
-    NON_DATE_POLICY_KEYS = ("auto_grade", 'total_points', 'maximum_time_allowed')
+    NON_DATE_POLICY_KEYS = ("auto_grade", 'total_points', 'maximum_time_allowed', 'submission_buffer')
 
     def readInput(self, value=None):
         result = UGDPutView.readInput(self, value=value)

@@ -263,7 +263,8 @@ class TestAssignmentViews(ApplicationLayerTest):
 		assert_that( assignment.get( 'policy_locked'), is_( False ))
 		assert_that( assignment.get( 'auto_grade'), is_( False ))
 		assert_that( assignment.get( 'total_points'), none())
-		for rel in ('date-edit', 'auto-grade', 'total-points'):
+		assert_that( assignment.get( 'submission_buffer'), is_(False))
+		for rel in ('date-edit', 'auto-grade', 'total-points', 'submission-buffer'):
 			self.require_link_href_with_rel(assignment, rel)
 		# Can only toggle API created assignments to timed.
 		self.forbid_link_with_rel(assignment, 'maximum-time-allowed')
@@ -405,14 +406,17 @@ class TestAssignmentViews(ApplicationLayerTest):
 		assert_that( assignment.get( 'policy_locked'), is_( True ))
 		assert_that( assignment.get( 'auto_grade'), is_( False ))
 		assert_that( assignment.get( 'total_points'), none())
+		assert_that( assignment.get( 'submission_buffer'), is_(False))
 
-		data = { 'total_points': 100 }
+		data = { 'total_points': 100,
+				 'submission_buffer': 300 }
 		assignment = self.testapp.put_json(assignment_url,
 									data, extra_environ=editor_environ)
 		assignment = assignment.json_body
 		assert_that( assignment.get( 'policy_locked'), is_( True ))
 		assert_that( assignment.get( 'auto_grade'), is_( False ))
 		assert_that( assignment.get( 'total_points'), is_( 100 ))
+		assert_that( assignment.get( 'submission_buffer'), is_(300))
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_no_context(self):

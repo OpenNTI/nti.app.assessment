@@ -52,6 +52,7 @@ from nti.app.assessment.common.history import get_assessment_metadata_item
 from nti.app.assessment.common.policy import get_policy_locked
 from nti.app.assessment.common.policy import get_policy_excluded
 from nti.app.assessment.common.policy import get_auto_grade_policy
+from nti.app.assessment.common.policy import get_submission_buffer_policy
 
 from nti.app.assessment.common.submissions import has_submissions
 
@@ -271,6 +272,7 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
             result['total_points'] = None
         result['policy_locked'] = get_policy_locked(assignment, course)
         result['excluded'] = get_policy_excluded(assignment, course)
+        result['submission_buffer'] = get_submission_buffer_policy(assignment, course)
 
 
 @component.adapter(IQTimedAssignment, IRequest)
@@ -772,6 +774,13 @@ class AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
                 # timed assignment.
                 result = True
         return result
+    
+    def _assignment_has_end_date(self, context, course):
+        result = False
+        if      IQAssignment.providedBy(context) \
+            and get_available_for_submission_ending(context, course):
+            result = True
+        return result
 
     def _do_decorate_external(self, context, result):
         context = self.get_context(context)
@@ -790,6 +799,9 @@ class AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
         course = self.request_course
         link_context = context if course is None else course
         elements = None if course is None else ('Assessments', context.ntiid)
+        
+        if self._assignment_has_end_date(context, course):
+            names.append('submission-buffer')
 
         # loop through name and create links
         for name in names:

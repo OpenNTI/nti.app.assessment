@@ -263,8 +263,6 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
         policy = get_policy_for_assessment(asg_id, course)
         if not policy.get('student_nuclear_reset_capable', False):
             # Not allowed!
-            # TODO: could probably push this off to syncronization
-            # time...have that process apply marker interfaces
             return False
 
         due_date = get_available_for_submission_ending(assignment, course)

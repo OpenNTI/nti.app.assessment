@@ -492,8 +492,8 @@ def is_assignment_available_for_submission(assignment, course, user=None):
         return False
     result = True
     end_date = get_available_for_submission_ending(assignment, course)
-    submission_buffer = get_policy_field(assignment, course, 'submission_buffer')
-    if end_date and submission_buffer is not None and submission_buffer is not False:
+    submission_buffer = get_policy_field(assignment, course, 'submission_buffer', default=None)
+    if end_date and submission_buffer is not None:
         submission_buffer = int(submission_buffer)
         cutoff_date = end_date + timedelta(seconds=submission_buffer)
         result = datetime.utcnow() < cutoff_date

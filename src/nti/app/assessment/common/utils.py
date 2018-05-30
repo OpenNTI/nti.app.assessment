@@ -152,12 +152,12 @@ def make_evaluation_ntiid(kind, base=None, extra=None):
     return ntiid
 
 
-def get_policy_field(assignment, course, field):
+def get_policy_field(assignment, course, field, default=False):
     policy = IQAssessmentPolicies(course, None)
     assignment_ntiid = getattr(assignment, 'ntiid', assignment)
     if policy is not None:
         # pylint: disable=too-many-function-args
-        return policy.get(assignment_ntiid, field, False)
+        return policy.get(assignment_ntiid, field, default)
     return None
 
 

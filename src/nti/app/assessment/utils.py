@@ -231,6 +231,19 @@ def assignment_download_precondition(context, request=None, remoteUser=None):
     return False
 
 
+def course_assignments_download_precondition(course, request=None, remoteUser=None):
+    request = request if request is not None else get_current_request()
+    remoteUser = remoteUser if remoteUser is not None else get_remote_user(request)
+    username = request.authenticated_userid
+    if not username:
+        return False
+    
+    if course is None or not has_permission(ACT_DOWNLOAD_GRADES, course, request):
+        return False
+    
+    return True
+
+
 def replace_username(username):
     policy = component.queryUtility(IUsernameSubstitutionPolicy)
     if policy is not None:

@@ -65,6 +65,7 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 from nti.app.assessment.utils import replace_username
 from nti.app.assessment.utils import get_course_from_request
 from nti.app.assessment.utils import assignment_download_precondition
+from nti.app.assessment.utils import course_assignments_download_precondition
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
@@ -272,7 +273,7 @@ class AbstractSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
     
     @classmethod
     def _precondition(cls, unused_context, unused_request, unused_remoteUser):
-        return True
+        return False
 
     def _get_username_filename_part(self, principal):
         user = User.get_entity(principal.id)
@@ -478,6 +479,10 @@ class CourseAssignmentSubmissionBulkFileDownloadView(AbstractSubmissionBulkFileD
     def _get_assignments(self, course):
         assignments = get_course_assignments(course)
         return filter(assignment_download_precondition, assignments)
+    
+    @classmethod
+    def _precondition(cls, context, request, remoteUser):
+        return course_assignments_download_precondition(context, request, remoteUser)
 
     def _save_submissions(self, course, enrollments, zipfile):
         slugify_unique = UniqueSlugify(separator='_')

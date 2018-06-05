@@ -326,6 +326,12 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
         # Rounding means the second data may not be accurate
         assert_that(info.date_time[:5],
                     is_(download_res.last_modified.timetuple()[:5]))
+        
+        # Make sure students cannot access bulk-downloads
+        with mock_dataserver.mock_db_trans():
+            self._create_user('bhoke')
+        student_env = self._make_extra_environ(username='bhoke')
+        res = self.testapp.get(bulk_href, extra_environ=student_env, status=403)
 
     @WithSharedApplicationMockDS(users=True, testapp=True)
     @fudge.patch('nti.app.assessment.history.get_policy_for_assessment',

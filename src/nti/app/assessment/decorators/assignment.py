@@ -65,6 +65,7 @@ from nti.app.assessment.decorators import _get_course_from_evaluation
 from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
 
 from nti.app.assessment.interfaces import ACT_VIEW_SOLUTIONS
+from nti.app.assessment.interfaces import ACT_DOWNLOAD_GRADES
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 
@@ -185,12 +186,11 @@ class _AssignmentsByOutlineNodeDecorator(AbstractAssessmentDecoratorPredicate):
 class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
     """
     When an instructor fetches an assignment that contains a file part
-    somewhere, provide access to the link do download it.
+    somewhere, provide access to the link to download it.
     """
 
     def _predicate(self, context, result):
         if AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result):
-            # Hack
             return assignment_download_precondition(context, self.request, self.remoteUser)
 
     def _do_decorate_external(self, context, result):
@@ -208,15 +208,22 @@ class _AssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestA
                         rel='ExportFiles',
                         elements=('@@BulkFilePartDownload',))
         links.append(link)
-        
-        
+
+
 @component.adapter(ICourseInstance, IRequest)
 @interface.implementer(IExternalObjectDecorator)
 class _CourseAssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
-    
+    """
+    Allow instructors and admins to download all file uploads for the course context.
+    """
+
+    def _predicate(self, context, result):
+        if AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result):
+            return has_permission(ACT_DOWNLOAD_GRADES, context, self.request)
+
     def _do_decorate_external(self, context, result):
         links = result.setdefault(LINKS, [])
-        link = Link(context, 
+        link = Link(context,
                     rel=VIEW_COURSE_ASSIGNMENT_BULK_FILE_PART_DOWNLOAD,
                     elements=('@@' + VIEW_COURSE_ASSIGNMENT_BULK_FILE_PART_DOWNLOAD,))
         links.append(link)
@@ -774,7 +781,7 @@ class AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
                 # timed assignment.
                 result = True
         return result
-    
+
     def _assignment_has_end_date(self, context, course):
         result = False
         if      IQAssignment.providedBy(context) \
@@ -799,7 +806,7 @@ class AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
         course = self.request_course
         link_context = context if course is None else course
         elements = None if course is None else ('Assessments', context.ntiid)
-        
+
         if self._assignment_has_end_date(context, course):
             names.append('submission-buffer')
 

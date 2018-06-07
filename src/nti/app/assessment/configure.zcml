@@ -55,12 +55,20 @@
 		role="nti.roles.course_ta" />
 
 	<grant
+        permission="nti.actions.assessment.download_grades"
+        role="role:nti.dataserver.site-admin" />
+
+	<grant
 		permission="nti.actions.assessment.view_solutions"
 		role="nti.roles.course_instructor" />
 
 	<grant
 		permission="nti.actions.assessment.view_solutions"
 		role="nti.roles.course_ta" />
+
+    <grant
+        permission="nti.actions.assessment.view_solutions"
+        role="role:nti.dataserver.site-admin" />
 
 	<configure zcml:condition="have testmode">
 

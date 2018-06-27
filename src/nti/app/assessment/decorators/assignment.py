@@ -65,12 +65,12 @@ from nti.app.assessment.decorators import _get_course_from_evaluation
 from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
 
 from nti.app.assessment.interfaces import ACT_VIEW_SOLUTIONS
-from nti.app.assessment.interfaces import ACT_DOWNLOAD_GRADES
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 
 from nti.app.assessment.utils import get_course_from_request
 from nti.app.assessment.utils import assignment_download_precondition
+from nti.app.assessment.utils import course_assignments_download_precondition
 
 from nti.app.contentlibrary import LIBRARY_PATH_GET_VIEW
 
@@ -219,7 +219,7 @@ class _CourseAssignmentWithFilePartDownloadLinkDecorator(AbstractAuthenticatedRe
 
     def _predicate(self, context, result):
         if AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result):
-            return has_permission(ACT_DOWNLOAD_GRADES, context, self.request)
+            return course_assignments_download_precondition(context, self.request)
 
     def _do_decorate_external(self, context, result):
         links = result.setdefault(LINKS, [])

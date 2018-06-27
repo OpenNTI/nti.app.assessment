@@ -155,14 +155,14 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
                                  'message': _(u"Assignment is not available."),
                              },
                              None)
-            
+
         if not is_assignment_available_for_submission(self.context, course=self.course, user=creator):
-            raise_json_error(self.request, 
-                             hexc.HTTPForbidden, 
+            raise_json_error(self.request,
+                             hexc.HTTPForbidden,
                              {
                                  'message': _(u"Assignment is not available for submission."),
                                  'code': u'SubmissionPastDueDateError'
-                             }, 
+                             },
                              None)
 
     def _do_call(self):
@@ -234,14 +234,14 @@ class AssignmentPracticeSubmissionPostView(AssignmentSubmissionPostView):
             return super(AssignmentPracticeSubmissionPostView, self)._do_call()
         finally:
             self.request.environ['nti.commit_veto'] = 'abort'
-            
+
 
 class AbstractSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
     """
-    An abstract view that provides capabilities for downloading 
-    submitted assignment file-submissions. 
+    An abstract view that provides capabilities for downloading
+    submitted assignment file-submissions.
     """
-    
+
     def _get_course(self, unused_context):
         return None
 
@@ -255,7 +255,7 @@ class AbstractSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
         result = getattr(context, 'title', context.__name__)
         result = self._string(result, '_')
         return result or 'assignment'
-    
+
     def _get_filename_base(self, course):
         """
         Subclasses should override to return the base filename;
@@ -270,7 +270,7 @@ class AbstractSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
         # strip out any high characters
         result = result.encode('ascii', 'ignore')
         return result
-    
+
     @classmethod
     def _precondition(cls, unused_context, unused_request, unused_remoteUser):
         return False
@@ -297,8 +297,8 @@ class AbstractSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
                         qp_part = qp_part.value
                     if IFile.providedBy(qp_part):
                         fn_part = self._get_username_filename_part(principal)
-                        full_filename = self._submission_filename(item, 
-                                                                  fn_part, 
+                        full_filename = self._submission_filename(item,
+                                                                  fn_part,
                                                                   sub_num,
                                                                   q_num,
                                                                   qp_num,
@@ -309,14 +309,14 @@ class AbstractSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
                                        date_time=date_time.timetuple())
                         info.compress_type = ZIP_DEFLATED
                         zipfile.writestr(info, qp_part.data)
-                        
+
     def _submission_filename(self, unused_item, fn_part, sub_num, q_num, qp_num, qp_part):
         return "%s-%s-%s-%s-%s" % (fn_part,
                                    sub_num,
                                    q_num,
                                    qp_num,
                                    qp_part.filename)
-                        
+
     def _save_assignment_submissions(self, zipfile, assignment, course, enrollments):
         assignment_id = assignment.__name__
 
@@ -330,7 +330,7 @@ class AbstractSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
             if history_item is None:
                 continue  # No submission for this assignment
             self._save_files(principal, history_item, zipfile)
-            
+
     def _save_submissions(self, course, enrollments, zipfile):
         """
         Subclasses should override to save the relevant assignment file-submissions.
@@ -348,7 +348,7 @@ class AbstractSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
         zipfile = ZipFile(buf, 'w')
         course = self._get_course(context)
         enrollments = ICourseEnrollments(course)
-        
+
         # We're assuming we'll find some submitted files.
         # What should we do if we don't?
         self._save_submissions(course, enrollments, zipfile)
@@ -403,7 +403,7 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractSubmissionBulkFileDownloa
             # Ok, pick the first course we find.
             result = get_course_from_evaluation(context, self.remoteUser, exc=True)
         return result
-    
+
     def _get_course_name(self, course):
         entry = ICourseCatalogEntry(course, None)
         if entry is not None:
@@ -412,21 +412,21 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractSubmissionBulkFileDownloa
         if not base_name:
             base_name = course.__name__
         return base_name
-    
+
     def _get_filename_base(self, course):
         base_name = self._get_course_name(course)
         assignment_name = self._get_context_name()
         return '%s_%s' % (base_name, assignment_name)
-        
+
     @classmethod
     def _precondition(cls, context, request, remoteUser):
         return assignment_download_precondition(context, request, remoteUser)
-                        
+
     def _save_submissions(self, course, enrollments, zipfile):
         assignment = self.request.context
         self._save_assignment_submissions(zipfile, assignment, course, enrollments)
-            
-    
+
+
 @view_config(route_name="objects.generic.traversal",
              context=ICourseInstance,
              renderer='rest',
@@ -459,13 +459,13 @@ class CourseAssignmentSubmissionBulkFileDownloadView(AbstractSubmissionBulkFileD
             complicated in the ZODB/WSGI combination. It may be possible
             to do something with app_iter and stream in \"chunks\".
     """
-    
+
     def _get_course(self, context):
         return context
-    
+
     def _get_filename_base(self, course):
         return self._get_context_name()
-                        
+
     def _submission_filename(self, item, fn_part, sub_num, q_num, qp_num, qp_part):
         # Prepend the assignment directory to the submission filename
         filename = super(CourseAssignmentSubmissionBulkFileDownloadView, self)._submission_filename(item,
@@ -475,11 +475,11 @@ class CourseAssignmentSubmissionBulkFileDownloadView(AbstractSubmissionBulkFileD
                                                                                                     qp_num,
                                                                                                     qp_part)
         return os.path.join(self._current_directory_name, filename)
-    
+
     def _get_assignments(self, course):
         assignments = get_course_assignments(course)
         return filter(assignment_download_precondition, assignments)
-    
+
     @classmethod
     def _precondition(cls, context, request, remoteUser):
         return course_assignments_download_precondition(context, request, remoteUser)

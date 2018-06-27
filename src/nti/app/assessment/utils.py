@@ -25,6 +25,7 @@ from pyramid.threadlocal import get_current_request
 
 from nti.app.assessment.common.evaluations import proxy
 from nti.app.assessment.common.evaluations import AssessmentItemProxy
+from nti.app.assessment.common.evaluations import get_course_assignments
 from nti.app.assessment.common.evaluations import get_course_from_evaluation
 
 from nti.app.assessment.common.utils import get_user
@@ -210,6 +211,16 @@ def check_assignment(assignment, user=None):
     return result
 
 
+def assignment_has_file_part(assignment):
+    for assignment_part in assignment.parts or ():
+        question_set = assignment_part.question_set
+        for question in question_set.Items:
+            for question_part in question.parts or ():
+                if IQFilePart.providedBy(question_part):
+                    return True
+    return False
+
+
 def assignment_download_precondition(context, request=None, remoteUser=None):
     request = request if request is not None else get_current_request()
     remoteUser = remoteUser if remoteUser is not None else get_remote_user(request)
@@ -222,20 +233,25 @@ def assignment_download_precondition(context, request=None, remoteUser=None):
         return False
 
     # Does it have a file part?
-    for assignment_part in context.parts or ():
-        question_set = assignment_part.question_set
-        for question in question_set.Items:
-            for question_part in question.parts or ():
-                if IQFilePart.providedBy(question_part):
-                    return True
-    return False
+    return assignment_has_file_part(context)
 
 
 def course_assignments_download_precondition(course, request=None, remoteUser=None):
     request = request if request is not None else get_current_request()
     remoteUser = remoteUser if remoteUser is not None else get_remote_user(request)
-    return  request.authenticated_userid \
-        and has_permission(ACT_DOWNLOAD_GRADES, course, request)
+    username = request.authenticated_userid
+    if not username:
+        return False
+
+    if course is None or not has_permission(ACT_DOWNLOAD_GRADES, course, request):
+        return False
+
+    # Is there at least one file part in the assignments?
+    assignments = get_course_assignments(course, parent_course=True)
+    for assignment in assignments:
+        if assignment_has_file_part(assignment):
+            return True
+    return False
 
 
 def replace_username(username):

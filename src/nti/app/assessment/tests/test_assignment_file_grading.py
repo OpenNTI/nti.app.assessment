@@ -246,13 +246,17 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
         return history_res, assessments_rel, course_rel
 
     @WithSharedApplicationMockDS(users=True, testapp=True)
-    @fudge.patch('nti.app.assessment.views.history_views.CourseAssignmentSubmissionBulkFileDownloadView._get_assignments')
-    def test_posting_and_bulk_downloading_file(self, mock_get_assignments):
+    @fudge.patch('nti.app.assessment.views.history_views.CourseAssignmentSubmissionBulkFileDownloadView._get_assignments',
+                 'nti.app.assessment.decorators.assignment._CourseAssignmentWithFilePartDownloadLinkDecorator._predicate',
+                 'nti.app.assessment.views.history_views.course_assignments_download_precondition')
+    def test_posting_and_bulk_downloading_file(self, mock_get_assignments, mock_decorator, mock_precondition):
+        mock_decorator.is_callable().returns(True)
+        mock_precondition.is_callable().returns(True)
         fake_assignment = fudge.Fake()
         fake_assignment.has_attr(title=u'Quiz 1: Aristotle')
         fake_assignment.has_attr(__name__=self.assignment_id)
         mock_get_assignments.is_callable().returns([fake_assignment])
-        
+
         history_res, assessments_rel, course_rel = self._create_and_enroll()
 
         # Now we should be able to find and download our data
@@ -306,16 +310,17 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
         # Rounding means the second data may not be accurate
         assert_that(info.date_time[:5],
                     is_(download_res.last_modified.timetuple()[:5]))
-        
+
         # Test the course-level download
         course_res = self.testapp.get(course_rel).json_body
-        bulk_href = self.require_link_href_with_rel(course_res, VIEW_COURSE_ASSIGNMENT_BULK_FILE_PART_DOWNLOAD)
-        
+        bulk_href = self.require_link_href_with_rel(course_res,
+                                                    VIEW_COURSE_ASSIGNMENT_BULK_FILE_PART_DOWNLOAD)
+
         res = self.testapp.get(bulk_href)
 
         assert_that(res.content_disposition,
                     is_('attachment; filename="CLC3403_LawAndJustice.zip"'))
-        
+
         data = res.body
         io = StringIO(data)
         zipfile = ZipFile(io, 'r')
@@ -326,12 +331,13 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
         # Rounding means the second data may not be accurate
         assert_that(info.date_time[:5],
                     is_(download_res.last_modified.timetuple()[:5]))
-        
+
         # Make sure students cannot access bulk-downloads
         with mock_dataserver.mock_db_trans():
             self._create_user('bhoke')
+        mock_precondition.is_callable().returns(False)
         student_env = self._make_extra_environ(username='bhoke')
-        res = self.testapp.get(bulk_href, extra_environ=student_env, status=403)
+        self.testapp.get(bulk_href, extra_environ=student_env, status=403)
 
     @WithSharedApplicationMockDS(users=True, testapp=True)
     @fudge.patch('nti.app.assessment.history.get_policy_for_assessment',

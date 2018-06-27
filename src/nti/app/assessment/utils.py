@@ -242,12 +242,12 @@ def course_assignments_download_precondition(course, request=None, remoteUser=No
     username = request.authenticated_userid
     if not username:
         return False
-    
+
     if course is None or not has_permission(ACT_DOWNLOAD_GRADES, course, request):
         return False
-    
+
     # Is there at least one file part in the assignments?
-    assignments = get_course_assignments(course)
+    assignments = get_course_assignments(course, parent_course=True)
     for assignment in assignments:
         if assignment_has_file_part(assignment):
             return True

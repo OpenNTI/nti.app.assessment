@@ -13,10 +13,10 @@ logger = __import__('logging').getLogger(__name__)
 
 import os
 import sys
+
 from io import BytesIO
 from numbers import Number
 from datetime import datetime
-from datetime import timedelta
 
 from slugify import UniqueSlugify
 
@@ -319,6 +319,7 @@ class AbstractSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
 
     def _save_assignment_submissions(self, zipfile, assignment, course, enrollments):
         assignment_id = assignment.__name__
+        did_save = False
 
         for record in enrollments.iter_enrollments():
             principal = IUser(record, None)
@@ -330,6 +331,8 @@ class AbstractSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
             if history_item is None:
                 continue  # No submission for this assignment
             self._save_files(principal, history_item, zipfile)
+            did_save = True
+        return did_save
 
     def _save_submissions(self, course, enrollments, zipfile):
         """
@@ -349,9 +352,16 @@ class AbstractSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
         course = self._get_course(context)
         enrollments = ICourseEnrollments(course)
 
-        # We're assuming we'll find some submitted files.
-        # What should we do if we don't?
-        self._save_submissions(course, enrollments, zipfile)
+        did_save = self._save_submissions(course, enrollments, zipfile)
+        if not did_save:
+            # No submissions, raise a 404
+            raise_json_error(self.request,
+                             hexc.HTTPNotFound,
+                             {
+                                 'message': _(u"No file upload submissions."),
+                                 'code': 'NoFileUploadSubmissionsError'
+                             },
+                             None)
 
         zipfile.close()
         buf.seek(0)
@@ -424,7 +434,7 @@ class AssignmentSubmissionBulkFileDownloadView(AbstractSubmissionBulkFileDownloa
 
     def _save_submissions(self, course, enrollments, zipfile):
         assignment = self.request.context
-        self._save_assignment_submissions(zipfile, assignment, course, enrollments)
+        return self._save_assignment_submissions(zipfile, assignment, course, enrollments)
 
 
 @view_config(route_name="objects.generic.traversal",
@@ -487,11 +497,14 @@ class CourseAssignmentSubmissionBulkFileDownloadView(AbstractSubmissionBulkFileD
     def _save_submissions(self, course, enrollments, zipfile):
         slugify_unique = UniqueSlugify(separator='_')
         assignments = self._get_assignments(course)
+        did_save = False
         for assignment in assignments:
             # Directory names need to be unique
             self._current_directory_name = slugify_unique(assignment.title)
-            self._save_assignment_submissions(zipfile, assignment, course, enrollments)
+            did_save_assigment = self._save_assignment_submissions(zipfile, assignment, course, enrollments)
+            did_save = did_save or did_save_assigment
         self._current_directory_name = None
+        return did_save
 
 
 @view_defaults(route_name="objects.generic.traversal",

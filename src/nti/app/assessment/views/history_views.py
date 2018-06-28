@@ -352,16 +352,9 @@ class AbstractSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
         course = self._get_course(context)
         enrollments = ICourseEnrollments(course)
 
-        did_save = self._save_submissions(course, enrollments, zipfile)
-        if not did_save:
-            # No submissions, raise a 404
-            raise_json_error(self.request,
-                             hexc.HTTPNotFound,
-                             {
-                                 'message': _(u"No file upload submissions."),
-                                 'code': 'NoFileUploadSubmissionsError'
-                             },
-                             None)
+        self._save_submissions(course, enrollments, zipfile)
+        # We could raise a 404 here, but do not currently until clients
+        # could handle it, preferring to return an empty zip.
 
         zipfile.close()
         buf.seek(0)

@@ -230,8 +230,8 @@ class _QAssessedQuestionExplanationSolutionAdder(Singleton):
             return  # old?
 
         remoteUser = get_remote_user()
-        course = find_interface(context, ICourseInstance, strict=False)
-        is_instructor = _is_instructor_or_editor(context, course, remoteUser)
+        course = find_interface(question, ICourseInstance, strict=False)
+        is_instructor = _is_instructor_or_editor(question, course, remoteUser)
         is_randomized_qset = _is_randomized_question_set(context)
         for question_part, external_part in zip(question.parts, mapping['parts']):
             if not is_instructor:

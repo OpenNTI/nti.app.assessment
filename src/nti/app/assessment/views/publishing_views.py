@@ -4,10 +4,9 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
-
-logger = __import__('logging').getLogger(__name__)
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 from pyramid.view import view_config
 from pyramid.view import view_defaults
@@ -36,6 +35,8 @@ from nti.publishing.interfaces import ICalendarPublishable
 
 from nti.traversal.traversal import find_interface
 
+logger = __import__('logging').getLogger(__name__)
+
 
 def publish_context(context, start=None, end=None):
     # publish
@@ -63,7 +64,7 @@ def publish_context(context, start=None, end=None):
                request_method='POST')
 class EvaluationPublishView(CalendarPublishView):
 
-    def _do_provide(self, context):
+    def _do_provide(self, context):  # pylint: disable=arguments-differ
         if IQEditableEvaluation.providedBy(context):
             start, end = self._get_dates()
             publish_context(context, start, end)

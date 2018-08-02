@@ -83,6 +83,7 @@ class TestCompletion(ApplicationLayerTest):
             course = ICourseInstance(course)
             default_required = ICompletableItemDefaultRequiredPolicy(course)
             assert_that(default_required.mime_types, has_length(0))
+            # pylint: disable=no-member
             default_required.mime_types.add(ASSIGNMENT_MIME_TYPE)
 
             user = User.get_user('sjohnson@nextthought.com')

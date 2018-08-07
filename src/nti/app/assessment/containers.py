@@ -8,6 +8,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
+from pyramid import httpexceptions as hexc
+
 from six.moves.urllib_parse import unquote
 
 from zope import component
@@ -16,8 +18,6 @@ from zope import interface
 from zope.container.contained import Contained
 
 from zope.traversing.interfaces import IPathAdapter
-
-from pyramid import httpexceptions as hexc
 
 from nti.assessment.interfaces import IQEvaluation
 
@@ -35,6 +35,7 @@ class _BaseCourseEvaluationPathAdapter(Contained):
     def __init__(self, context, request=None):
         self.request = request
         self.__parent__ = context
+        # pylint: disable=not-callable
         self.context = self.adapter(context)
 
     def __getitem__(self, key):

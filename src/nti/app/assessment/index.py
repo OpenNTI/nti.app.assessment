@@ -71,6 +71,7 @@ def to_iterable(value):
         result = (value,) if value is not None else ()
     return result
 
+# pylint: disable=inconsistent-mro
 
 class ExtenedAttributeSetIndex(AttributeSetIndex):
 

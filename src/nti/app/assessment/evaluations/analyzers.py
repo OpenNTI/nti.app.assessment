@@ -202,6 +202,10 @@ class _MultipleChoiceMultipleAnswerPartChangeAnalyzer(_MultipleChoicePartChangeA
 
     def validate_solutions(self, part):
         solutions = part.solutions
+        if not solutions and is_gradable(part):
+            raise_error({'message': _(u"Must specify a solution set."),
+                         'field': 'solutions',
+                         'code': 'MissingSolutions'})
         for solution in solutions or ():
             if not solution or not solution.value:
                 raise_error({'message': _(u"Solution set cannot be empty."),
@@ -232,10 +236,6 @@ class _FreeResponsePartChangeAnalyzer(_BasicPartChangeAnalyzer):
 
     def validate_solutions(self, part):
         solutions = part.solutions
-        if not solutions and is_gradable(part):
-            raise_error({'message': _(u"Must specify a solution."),
-                         'field': 'solutions',
-                         'code': 'MissingSolutions'})
         for solution in solutions or ():
             if not solution or not solution.value:
                 raise_error({'message': _(u"Solution cannot be empty."),

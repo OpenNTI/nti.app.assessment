@@ -69,14 +69,14 @@ class AssessmentsExporter(BaseSectionExporter):
             else:
                 if not evaluations:
                     items[unit.ntiid].pop('AssessmentItems', None)
-                # XXX: add legacy required for importimg
+                # Add legacy required for importimg
                 items[unit.ntiid][NTIID] = unit.ntiid
                 filename = safe_filename(unit.ntiid) + '.html'
                 items[unit.ntiid]['filename'] = filename
 
         _recur(package, items)
         if package.ntiid in items:
-            # XXX: add legacy required for importimg
+            # Add legacy required for importimg
             items[package.ntiid]['filename'] = 'index.html'
 
     def externalize(self, context):

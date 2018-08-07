@@ -8,6 +8,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
+# pylint: disable=inherit-non-class,expression-not-assigned
+
 from zope import interface
 
 from zope.container.constraints import contains
@@ -268,8 +270,7 @@ class IUsersCourseAssignmentHistoryItemSummary(IContained,
                                    default=0.0)
 
 
-class IUsersCourseAssignmentHistoryItemFeedback(IContained,
-                                                ITitledContent,
+class IUsersCourseAssignmentHistoryItemFeedback(ITitledContent,
                                                 IModeledContent,
                                                 IFileConstrained,
                                                 IUserGeneratedData,

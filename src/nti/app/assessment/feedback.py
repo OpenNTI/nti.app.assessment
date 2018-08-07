@@ -89,6 +89,7 @@ class UsersCourseAssignmentHistoryItemFeedback(PersistentCreatedModDateTrackingO
 
     @creator.setter
     def creator(self, nv):
+        # pylint: disable=attribute-defined-outside-init
         if nv is None:
             if 'creator' in self.__dict__:
                 del self.__dict__['creator']
@@ -112,6 +113,7 @@ class UsersCourseAssignmentHistoryItemFeedback(PersistentCreatedModDateTrackingO
         results.append(creator)
         course = ICourseInstance(self, None)
         if course is not None:
+            # pylint: disable=not-an-iterable
             instructors = (IUser(i, None) for i in course.instructors or ())
             results.extend(x for x in instructors if x is not None)
         if self.__parent__ is not None:
@@ -130,6 +132,7 @@ class UsersCourseAssignmentHistoryItemFeedback(PersistentCreatedModDateTrackingO
         # read access for the instructors
         course = ICourseInstance(self, None)
         if course is not None:
+            # pylint: disable=not-an-iterable
             aces.extend(ace_allowing(i, ACT_READ, type(self))
                         for i in course.instructors or ())
         # read access to the container feedback owner

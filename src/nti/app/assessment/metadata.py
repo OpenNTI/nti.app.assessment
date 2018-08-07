@@ -8,8 +8,11 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
-import six
 import time
+
+from pyramid.interfaces import IRequest
+
+import six
 
 from zope import component
 from zope import interface
@@ -24,8 +27,6 @@ from zope.location.location import locate
 
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
 from zope.lifecycleevent.interfaces import IObjectRemovedEvent
-
-from pyramid.interfaces import IRequest
 
 from nti.app.assessment.adapters import course_from_context_lineage
 
@@ -193,6 +194,7 @@ class UsersCourseAssignmentMetadataItem(PersistentCreatedModDateTrackingObject,
                 ace_allowing(creator, ACT_UPDATE, type(self))]
 
         course = ICourseInstance(self, None)
+        # pylint: disable=not-an-iterable
         for instructor in getattr(course, 'instructors', ()):  # already principals
             aces.append(ace_allowing(instructor, ALL_PERMISSIONS, type(self)))
 
@@ -306,7 +308,8 @@ def _on_assignment_history_item_added(item, unused_event):
                                                       IUsersCourseAssignmentMetadata)
     if assignment_metadata is not None:
         meta_item = assignment_metadata.get_or_create(
-            item.assignmentId, time.time())
+            item.assignmentId, time.time()
+        )
         meta_item.Duration = time.time() - meta_item.StartTime
         meta_item.updateLastMod()
 

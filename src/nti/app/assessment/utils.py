@@ -10,9 +10,12 @@ from __future__ import absolute_import
 
 import os
 import copy
-from six.moves import urllib_parse
+
+from pyramid.threadlocal import get_current_request
 
 import simplejson
+
+from six.moves import urllib_parse
 
 from zope import component
 from zope import interface
@@ -20,8 +23,6 @@ from zope import interface
 from zope.intid.interfaces import IIntIds
 
 from zope.proxy import isProxy
-
-from pyramid.threadlocal import get_current_request
 
 from nti.app.assessment.common.evaluations import proxy
 from nti.app.assessment.common.evaluations import AssessmentItemProxy

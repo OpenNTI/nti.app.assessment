@@ -91,6 +91,7 @@ class _AssignmentHistoryPrincipalObjects(BasePrincipalObjects):
         result = []
         for course in self.get_instructed_courses(self.user):
             enrollments = ICourseEnrollments(course)
+            # pylint: disable=too-many-function-args
             for record in enrollments.iter_enrollments():
                 student = IPrincipal(record, None)
                 if student is None:

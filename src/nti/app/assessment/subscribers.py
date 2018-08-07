@@ -11,6 +11,10 @@ from __future__ import absolute_import
 from itertools import chain
 from datetime import datetime
 
+from pyramid.httpexceptions import HTTPUnprocessableEntity
+
+from pyramid.threadlocal import get_current_request
+
 import simplejson
 
 from zc.intid.interfaces import IAfterIdAddedEvent
@@ -28,10 +32,6 @@ from zope.intid.interfaces import IIntIdRemovedEvent
 from zope.lifecycleevent.interfaces import IObjectAddedEvent
 from zope.lifecycleevent.interfaces import IObjectRemovedEvent
 from zope.lifecycleevent.interfaces import IObjectModifiedEvent
-
-from pyramid.httpexceptions import HTTPUnprocessableEntity
-
-from pyramid.threadlocal import get_current_request
 
 from nti.app.assessment import MessageFactory as _
 
@@ -343,7 +343,7 @@ def on_evaluation_published(context, unused_event=None):
 def on_renderable_package_published(context, unused_event=None):
     evals = IQEvaluations(context, None)
     if evals:
-        for item in evals.values():
+        for item in evals.values():  # pylint: disable=too-many-function-args
             if IPublishable.providedBy(item):
                 item.publish()
 
@@ -352,7 +352,7 @@ def on_renderable_package_published(context, unused_event=None):
 def on_renderable_package_unpublished(context, unused_event=None):
     evals = IQEvaluations(context, None)
     if evals:
-        for item in evals.values():
+        for item in evals.values():  # pylint: disable=too-many-function-args
             if IPublishable.providedBy(item):
                 item.unpublish()
 
@@ -369,6 +369,7 @@ def on_course_bundle_updated(unused_course, event):
             continue
         evals = IQEvaluations(package, None)
         if evals:
+            # pylint: disable=too-many-function-args
             map(lifecycleevent.modified, evals.values())
 
 

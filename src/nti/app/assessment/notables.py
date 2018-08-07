@@ -41,6 +41,7 @@ class AssignmentFeedbackNotableFilter(object):
             submission = history_item.Submission
             course = ICourseInstance(self.context)
             instructors = course.instructors or ()
+            # pylint: disable=unsupported-membership-test
             result =     (submission.creator == user or user in instructors) \
                      and obj.creator != user
         return result

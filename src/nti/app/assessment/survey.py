@@ -8,6 +8,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
+from pyramid.interfaces import IRequest
+
 from zope import component
 from zope import interface
 
@@ -21,8 +23,6 @@ from zope.lifecycleevent.interfaces import IObjectAddedEvent
 
 from zope.location.interfaces import ISublocations
 from zope.location.interfaces import LocationError
-
-from pyramid.interfaces import IRequest
 
 from nti.app.assessment._submission import set_inquiry_submission_lineage
 

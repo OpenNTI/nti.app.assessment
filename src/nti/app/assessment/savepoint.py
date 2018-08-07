@@ -10,6 +10,10 @@ from __future__ import absolute_import
 
 # pylint: disable=too-many-function-args
 
+from pyramid.interfaces import IRequest
+
+from ZODB.interfaces import IConnection
+    
 from zope import component
 from zope import interface
 from zope import lifecycleevent
@@ -25,10 +29,6 @@ from zope.location.interfaces import LocationError
 from zope.location.interfaces import ISublocations
 
 from zope.location.location import locate
-
-from ZODB.interfaces import IConnection
-
-from pyramid.interfaces import IRequest
 
 from nti.app.assessment._submission import transfer_submission_file_data
 
@@ -130,7 +130,6 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
         if event:
             lifecycleevent.created(item)
         else:
-            # pylint: disable=too-many-function-args
             IConnection(self).add(item)
         self._append(submission.assignmentId, item, event)
         return item

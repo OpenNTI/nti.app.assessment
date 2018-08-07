@@ -157,6 +157,7 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
         course = ICourseInstance(self, None)
         instructors = getattr(course, 'instructors', None)
         aces = [ace_allowing(self.owner, ACT_READ, type(self))]
+        # pylint: disable=not-an-iterable
         for instructor in instructors or ():
             aces.append(ace_allowing(instructor, ALL_PERMISSIONS, type(self)))
         aces.append(ACE_DENY_ALL)
@@ -181,7 +182,7 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
         container = UsersCourseAssignmentHistoryItemFeedbackContainer()
         container.__parent__ = self
         container.__name__ = u'Feedback'
-        self._p_changed = True
+        self._p_changed = True  # pylint: disable=attribute-defined-outside-init
         return container
 
     def has_feedback(self):
@@ -297,7 +298,7 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
         if self._student_nuclear_reset_capable:
             aces.append(ace_allowing(self.creator, ACT_DELETE,
                                      UsersCourseAssignmentHistoryItem))
-        for instructor in instructors or ():
+        for instructor in instructors or ():  # pylint: disable=not-an-iterable
             aces.append(ace_allowing(instructor, ALL_PERMISSIONS, type(self)))
         aces.append(ACE_DENY_ALL)
         return acl_from_aces(aces)

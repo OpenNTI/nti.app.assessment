@@ -48,6 +48,7 @@ from nti.app.assessment.views.creation_views import QuestionSetInsertView
 from nti.app.assessment.views.view_mixins import VERSION
 from nti.app.assessment.views.view_mixins import EvaluationMixin
 from nti.app.assessment.views.view_mixins import AssessmentPutView
+from nti.app.assessment.views.view_mixins import ValidateAutoGradeMixin
 
 from nti.app.base.abstract_views import get_all_sources
 
@@ -211,7 +212,7 @@ class EvaluationPutView(EvaluationMixin, UGDPutView):
              request_method='PUT',
              permission=nauth.ACT_CONTENT_EDIT,
              renderer='rest')
-class QuestionPutView(EvaluationPutView):
+class QuestionPutView(EvaluationPutView, ValidateAutoGradeMixin):
 
     OBJ_DEF_CHANGE_MSG = _(u"Cannot change the question definition.")
 
@@ -229,6 +230,7 @@ class QuestionPutView(EvaluationPutView):
         # Only regrade after our content object is updated.
         if part_regrades:
             event_notify(RegradeQuestionEvent(result, part_regrades))
+        self._validate_auto_grade(CaseInsensitiveDict(self.request.params))
         return result
 
 

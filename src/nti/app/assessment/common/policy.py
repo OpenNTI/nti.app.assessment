@@ -103,15 +103,15 @@ def get_submission_buffer_policy(assignment, course):
     """
     For a given assignment (or ntiid), return the 'submission_buffer' policy
     for the given course.
-    
-    The submission buffer is the number of seconds an assignment may be 
-    submitted past its due-date, beyond which time submissions should be 
+
+    The submission buffer is the number of seconds an assignment may be
+    submitted past its due-date, beyond which time submissions should be
     prevented.
     """
     return get_policy_field(assignment, course, 'submission_buffer')
 
 
-def validate_auto_grade(assignment, course, request=None, challenge=False, raise_exc=True):
+def validate_auto_grade(assignment, course, request=None, challenge=False, raise_exc=True, method=POST):
     """
     Validate the assignment has the proper state for auto-grading, if
     necessary. If not raising/challenging, returns a bool indicating
@@ -136,7 +136,8 @@ def validate_auto_grade(assignment, course, request=None, challenge=False, raise
             # No, so inserting essay (e.g.) into autogradable.
             links = (
                 Link(request.path, rel='confirm',
-                     params={'overrideAutoGrade': True}, method='POST'),
+                     params={'overrideAutoGrade': True},
+                     method=method),
             )
             raise_json_error(request,
                              hexc.HTTPConflict,

@@ -1097,6 +1097,7 @@ class ValidateAutoGradeMixin(object):
             for assignment in assignments or ():
                 is_valid = validate_auto_grade(assignment, course, self.request,
                                                challenge=True,
-                                               raise_exc=not override_auto_grade)
+                                               raise_exc=not override_auto_grade,
+                                               method=self.request.method)
                 if not is_valid and override_auto_grade:
                     self._disable_auto_grade(assignment, course)

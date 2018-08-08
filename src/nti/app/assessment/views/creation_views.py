@@ -44,6 +44,7 @@ from nti.app.assessment.utils import get_package_from_request
 
 from nti.app.assessment.views.view_mixins import VERSION
 from nti.app.assessment.views.view_mixins import EvaluationMixin
+from nti.app.assessment.views.view_mixins import ValidateAutoGradeMixin
 
 from nti.app.assessment.views.view_mixins import get_courses_from_assesment
 
@@ -203,7 +204,8 @@ class EvaluationCopyView(AbstractAuthenticatedView, EvaluationMixin):
 class QuestionSetInsertView(AbstractAuthenticatedView,
                             ModeledContentUploadRequestUtilsMixin,
                             EvaluationMixin,
-                            IndexedRequestMixin):
+                            IndexedRequestMixin,
+                            ValidateAutoGradeMixin):
     """
     Creates a question at the given index path, if supplied.
     Otherwise, append to our context.
@@ -236,40 +238,6 @@ class QuestionSetInsertView(AbstractAuthenticatedView,
             new_question = self.handle_evaluation(new_question, self.composite,
                                                   sources, creator)
         return new_question
-
-    def _get_courses(self, context):
-        result = find_interface(context, ICourseInstance, strict=False)
-        return get_courses(result) if result else ()
-
-    def _disable_auto_grade(self, assignment, course):
-        policy = get_auto_grade_policy(assignment, course)
-        policy['disable'] = True
-        factory = QAssessmentPoliciesModified
-        event_notify(factory(course, assignment.ntiid, 'auto_grade', False))
-
-    def _validate_auto_grade(self, params):
-        """
-        Will validate and raise a challenge if the user wants to disable auto-grading
-        and add the non-auto-gradable question to this question set. If overridden,
-        we will insert the question and disable auto-grade for all assignments
-        referencing this question set.
-        """
-        # Make sure our auto_grade status still holds.
-        courses = self._get_courses(self.context)
-        assignments = get_containers_for_evaluation_object(self.context)
-        if params:
-            override_auto_grade = params.get('overrideAutoGrade')
-        else:
-            override_auto_grade = False
-        is_valid = None
-        override_auto_grade = is_true(override_auto_grade)
-        for course in courses or ():
-            for assignment in assignments or ():
-                is_valid = validate_auto_grade(assignment, course, self.request,
-                                               challenge=True, 
-                                               raise_exc=not override_auto_grade)
-                if not is_valid and override_auto_grade:
-                    self._disable_auto_grade(assignment, course)
 
     def _validate(self, params):
         self._validate_auto_grade(params)

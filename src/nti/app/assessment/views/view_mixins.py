@@ -16,8 +16,6 @@ import itertools
 from datetime import datetime
 from collections import Mapping
 
-from requests.structures import CaseInsensitiveDict
-
 from zope import interface
 from zope import lifecycleevent
 
@@ -31,6 +29,7 @@ from zope.interface.common.idatetime import IDateTime
 
 from pyramid import httpexceptions as hexc
 
+from nti.app.assessment.common.evaluations import get_evaluation_courses
 from nti.app.assessment.common.evaluations import is_assignment_non_public_only
 from nti.app.assessment.common.evaluations import get_containers_for_evaluation_object
 
@@ -1063,8 +1062,15 @@ class ValidateAutoGradeMixin(object):
     """
 
     def _get_courses(self, context):
-        result = find_interface(context, ICourseInstance, strict=False)
-        return get_courses(result) if result else ()
+        course = find_interface(context, ICourseInstance, strict=False)
+        if course is None:
+            courses = get_evaluation_courses(context)
+        else:
+            courses = (course,)
+        result = set()
+        for course in courses or ():
+            result.update(get_courses(course))
+        return result
 
     def _disable_auto_grade(self, assignment, course):
         policy = get_auto_grade_policy(assignment, course)

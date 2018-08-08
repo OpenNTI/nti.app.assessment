@@ -111,7 +111,7 @@ def get_submission_buffer_policy(assignment, course):
     return get_policy_field(assignment, course, 'submission_buffer')
 
 
-def validate_auto_grade(assignment, course, request=None, challenge=False, raise_exc=True, method=POST):
+def validate_auto_grade(assignment, course, request=None, challenge=False, raise_exc=True, method='POST'):
     """
     Validate the assignment has the proper state for auto-grading, if
     necessary. If not raising/challenging, returns a bool indicating

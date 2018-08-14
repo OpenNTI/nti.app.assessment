@@ -369,3 +369,18 @@ def sort_evaluation_key(item):
         if iface.providedBy(item):
             return i
     return 0
+
+
+def re_register_assessment_object(context, old_iface, new_iface):
+    """
+    Unregister the assessment context under the given old interface and register
+    under the given new interface.
+    """
+    ntiid = context.ntiid
+    folder = IHostPolicyFolder(context)
+    registry = folder.getSiteManager()
+    registerUtility(registry, context, provided=new_iface,
+                    name=ntiid, event=False)
+    unregisterUtility(registry, provided=old_iface, name=ntiid)
+    # Make sure we re-index.
+    lifecycleevent.modified(context)

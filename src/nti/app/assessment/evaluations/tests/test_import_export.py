@@ -25,6 +25,7 @@ import time
 import simplejson
 
 from zope import component
+from zope import interface
 
 from nti.app.assessment.interfaces import IQEvaluations
 
@@ -34,6 +35,7 @@ from nti.app.assessment.evaluations.importer import EvaluationsImporter
 from nti.app.assessment.evaluations.utils import delete_evaluation
 
 from nti.assessment.interfaces import IQEvaluation
+from nti.assessment.interfaces import IQTimedAssignment
 
 from nti.contentlibrary.mixins import ContentPackageImporterMixin
 
@@ -83,6 +85,12 @@ class TestImportExport(ApplicationLayerTest):
             course = ICourseInstance(entry)
             importer = EvaluationsImporter()
             importer.process_source(course, source, None)
+
+            # Timed assignment is marker interface
+            timed_assignment = component.queryUtility(IQEvaluation,
+                                                      name=self.A_NTIID)
+            interface.noLongerProvides(timed_assignment, IQTimedAssignment)
+            interface.alsoProvides(timed_assignment, IQTimedAssignment)
 
         with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
             entry = find_object_with_ntiid(self.entry_ntiid)

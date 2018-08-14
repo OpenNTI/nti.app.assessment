@@ -29,6 +29,7 @@ from nti.app.assessment.evaluations.utils import indexed_iter
 from nti.app.assessment.evaluations.utils import register_context
 from nti.app.assessment.evaluations.utils import course_discussions
 from nti.app.assessment.evaluations.utils import import_evaluation_content
+from nti.app.assessment.evaluations.utils import re_register_assessment_object
 
 from nti.app.assessment.interfaces import IQEvaluations
 
@@ -38,11 +39,15 @@ from nti.app.base.abstract_views import get_source_filer
 
 from nti.assessment.common import iface_of_assessment
 
+from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
+from nti.assessment.interfaces import TIMED_ASSIGNMENT_MIME_TYPE
+
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
+from nti.assessment.interfaces import IQTimedAssignment
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQDiscussionAssignment
 
@@ -237,7 +242,7 @@ class EvaluationsImporterMixin(object):
             if discussion is not None:
                 the_object.discussion_ntiid = to_external_ntiid_oid(discussion)
         return the_object
-    
+
     def publish_evaluation(self, the_object, source=None, unused_context=None):
         is_published = source.get('isPublished') if source else False
         if is_published:
@@ -289,11 +294,25 @@ class EvaluationsImporterMixin(object):
 
     def handle_evaluation_items(self, items, context, filer=None):
         for ext_obj in items or ():
+            # For timed assignments, they must be built as regular assignments
+            # so that users can toggle timed state.
+            mime_type = ext_obj.get('MimeType')
+            max_time_allowed = ext_obj.pop('maximum_time_allowed', None)
+            if mime_type == TIMED_ASSIGNMENT_MIME_TYPE:
+                ext_obj['MimeType'] = ASSIGNMENT_MIME_TYPE
             source = copy.deepcopy(ext_obj)
             factory = find_factory_for(ext_obj)
             the_object = factory()
             update_from_external_object(the_object, ext_obj, notify=False)
-            self.handle_evaluation(the_object, source, context, filer)
+            new_assessment = self.handle_evaluation(the_object, source, context, filer)
+            # After building, update our object and mark as timed. We only want
+            # to do this if our object is the same as what we gave.
+            if      mime_type == TIMED_ASSIGNMENT_MIME_TYPE \
+                and the_object is new_assessment:
+                the_object.mimeType = the_object.mime_type = TIMED_ASSIGNMENT_MIME_TYPE
+                interface.alsoProvides(the_object, IQTimedAssignment)
+                the_object.maximum_time_allowed = max_time_allowed
+                re_register_assessment_object(the_object, IQAssignment, IQTimedAssignment)
 
 
 @interface.implementer(ICourseEvaluationsSectionImporter, ICourseEvaluationImporter)
@@ -338,10 +357,10 @@ class _EditableContentPackageImporterUpdater(EvaluationsImporterMixin):
 
     def __init__(self, *args):
         pass
-    
+
     def publish_evaluation(self, the_object, source=None, context=None):
         if context is not None and context.is_published():
-            EvaluationsImporterMixin.publish_evaluation(self, the_object, 
+            EvaluationsImporterMixin.publish_evaluation(self, the_object,
                                                         source, context)
         return the_object
 

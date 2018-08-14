@@ -48,6 +48,7 @@ from nti.app.assessment.evaluations.utils import indexed_iter
 from nti.app.assessment.evaluations.utils import register_context
 from nti.app.assessment.evaluations.utils import import_evaluation_content
 from nti.app.assessment.evaluations.utils import validate_structural_edits
+from nti.app.assessment.evaluations.utils import re_register_assessment_object
 
 from nti.app.assessment.interfaces import IQEvaluations
 from nti.app.assessment.interfaces import IQAvoidSolutionCheck
@@ -712,22 +713,12 @@ class EvaluationMixin(StructuralValidationMixin):
             result = getattr(context, 'ntiid', None)
         return result
 
-    def _index(self, item):
-        lifecycleevent.modified(item)
-
     def _re_register(self, context, old_iface, new_iface):
         """
         Unregister the context under the given old interface and register
         under the given new interface.
         """
-        ntiid = context.ntiid
-        folder = IHostPolicyFolder(context)
-        registry = folder.getSiteManager()
-        registerUtility(registry, context, provided=new_iface,
-                        name=ntiid, event=False)
-        unregisterUtility(registry, provided=old_iface, name=ntiid)
-        # Make sure we re-index.
-        self._index(context)
+        re_register_assessment_object(context, old_iface, new_iface)
 
     def store_evaluation(self, obj, composite, user, check_solutions=True):
         """

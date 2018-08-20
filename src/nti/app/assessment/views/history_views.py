@@ -466,7 +466,7 @@ class CourseAssignmentSubmissionBulkFileDownloadView(AbstractSubmissionBulkFileD
     def _get_course(self, context):
         return context
 
-    def _get_filename_base(self, course):
+    def _get_filename_base(self, unused_course):
         return self._get_context_name()
 
     def _submission_filename(self, item, fn_part, sub_num, q_num, qp_num, qp_part):

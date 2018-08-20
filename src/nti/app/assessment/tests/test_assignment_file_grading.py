@@ -319,7 +319,7 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
         res = self.testapp.get(bulk_href)
 
         assert_that(res.content_disposition,
-                    is_('attachment; filename="CLC3403_LawAndJustice.zip"'))
+                    is_('attachment; filename="Law_and_Justice.zip"'))
 
         data = res.body
         io = StringIO(data)

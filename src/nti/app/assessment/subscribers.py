@@ -8,6 +8,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
+import time
 from itertools import chain
 from datetime import datetime
 
@@ -95,6 +96,7 @@ from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 from nti.contenttypes.courses.interfaces import ICourseBundleUpdatedEvent
 
 from nti.coremetadata.interfaces import IContainerContext
+from nti.coremetadata.interfaces import UserProcessedContextsEvent
 
 from nti.dataserver.interfaces import IUser
 
@@ -103,6 +105,8 @@ from nti.dataserver.users.interfaces import IWillDeleteEntityEvent
 from nti.externalization.externalization import to_external_object
 
 from nti.ntiids.ntiids import find_object_with_ntiid
+
+from nti.ntiids.oids import to_external_ntiid_oid
 
 from nti.publishing.interfaces import IPublishable
 from nti.publishing.interfaces import IObjectPublishedEvent
@@ -443,3 +447,12 @@ def _on_assignment_history_item_deleted(item, unused_event):
                                     item.creator,
                                     course))
 
+
+@component.adapter(IUsersCourseAssignmentHistoryItem, IObjectAddedEvent)
+def _on_assignment_history_item_added(item, unused_event):
+    course = ICourseInstance(item)
+    request = get_current_request()
+    contexts = (to_external_ntiid_oid(course),)
+    notify(UserProcessedContextsEvent(item.creator, contexts, 
+                                      time.time(), request))
+    

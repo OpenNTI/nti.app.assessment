@@ -5,8 +5,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
-# disable: accessing protected members, too many methods
-# pylint: disable=W0212,R0904
+# pylint: disable=protected-access,too-many-public-methods
 
 from hamcrest import is_
 from hamcrest import none
@@ -23,6 +22,7 @@ from nti.testing.matchers import validly_provides
 import weakref
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
+from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepointItem
 
 from nti.app.assessment.savepoint import UsersCourseAssignmentSavepoint
@@ -31,15 +31,19 @@ from nti.app.assessment.savepoint import UsersCourseAssignmentSavepointItem
 
 from nti.assessment.submission import AssignmentSubmission
 
-from nti.dataserver.interfaces import IUser
-
-from nti.dataserver.users.users import User
-
 from nti.app.assessment.tests import AssessmentLayerTest
+
+from nti.contenttypes.courses.interfaces import ICourseInstance
+
+from nti.dataserver.interfaces import IUser
 
 from nti.dataserver.tests import mock_dataserver
 
 from nti.dataserver.tests.mock_dataserver import WithMockDSTrans
+
+from nti.dataserver.users.users import User
+
+from nti.ntiids.ntiids import find_object_with_ntiid
 
 COURSE_NTIID = u'tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice'
 COURSE_URL = u'/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice'
@@ -171,7 +175,6 @@ class TestSavepointViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
         # This object can be found in my savepoints
         if savepoint:
-            __traceback_info__ = savepoint
             savepoint_res = self.testapp.get(savepoint)
             assert_that(savepoint_res.json_body,
                         has_entry('href', contains_string(unquote(savepoint))))
@@ -271,3 +274,9 @@ class TestSavepointViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         res = self.testapp.post_json('/dataserver2/Objects/' + self.assignment_id + '/Savepoint',
                                      ext_obj)
         self._check_submission(res, enrollment_savepoints_link)
+
+        with mock_dataserver.mock_db_trans(self.ds, site_name='janux.ou.edu'):
+            course = ICourseInstance(find_object_with_ntiid(COURSE_NTIID))
+            savepoints = IUsersCourseAssignmentSavepoints(course)
+            savepoints.clear()
+            assert_that(savepoints, has_length(0))

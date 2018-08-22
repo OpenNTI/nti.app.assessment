@@ -5,8 +5,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
-# disable: accessing protected members, too many methods
-# pylint: disable=W0212,R0904
+# pylint: disable=protected-access,too-many-public-methods
 
 from hamcrest import is_
 from hamcrest import is_not
@@ -47,8 +46,6 @@ from nti.app.assessment.adapters import _begin_assessment_for_assignment_submiss
 from nti.app.assessment.feedback import UsersCourseAssignmentHistoryItemFeedback
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
-
-from nti.app.assessment.subscribers import delete_course_data
 
 from nti.app.assessment.tests import RegisterAssignmentLayer
 from nti.app.assessment.tests import RegisterAssignmentLayerMixin
@@ -261,7 +258,6 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
         # This object can be found in my history
         if history:
-            __traceback_info__ = history
             res = self.testapp.get(history)
             assert_that(res.json_body,
                         has_entry('href', contains_string(unquote(history))))
@@ -331,14 +327,13 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         history_res = self._check_submission(res, course_history_link)
         history_item_href = history_res.json_body['Items'][self.assignment_id]['href']
         last_viewed_href = self.require_link_href_with_rel(history_res.json_body,
-                                                            'lastViewed')
-        __traceback_info__ = history_res.json_body
+                                                           'lastViewed')
         history_feedback_container_href = history_res.json_body['Items'].items()[0][1]['Feedback']['href']
 
         # The user can send some feedback
         feedback = UsersCourseAssignmentHistoryItemFeedback(body=[u'Some feedback'])
         ext_feedback = to_external_object(feedback)
-        __traceback_info__ = ext_feedback
+
         res = self.testapp.post_json(history_feedback_container_href,
                                      ext_feedback,
                                      status=201)
@@ -452,8 +447,8 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         self.testapp.get(history_item_href)
 
         # We can each delete our own feedback item and it vanishes completely
-        # TODO: Wouldn't a deleted object placeholder be better?
-#         self.testapp.delete(feedback_item_edit_link)
+        # Wouldn't a deleted object placeholder be better?
+        # self.testapp.delete(feedback_item_edit_link)
         self.testapp.delete(self.require_link_href_with_rel(inst_feedback_res.json_body, 'edit'),
                             extra_environ=instructor_environ)
         for link in course_history_link, enrollment_history_link:
@@ -631,8 +626,8 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         
         with mock_dataserver.mock_db_trans(self.ds, site_name='janux.ou.edu'):
             course = ICourseInstance(find_object_with_ntiid(COURSE_NTIID))
-            delete_course_data(course)
             histories = IUsersCourseAssignmentHistories(course)
+            histories.clear()
             assert_that(histories, has_length(0))
 
     @WithSharedApplicationMockDS(users=True, testapp=True)

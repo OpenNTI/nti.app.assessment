@@ -46,7 +46,19 @@ from nti.app.assessment.adapters import _begin_assessment_for_assignment_submiss
 
 from nti.app.assessment.feedback import UsersCourseAssignmentHistoryItemFeedback
 
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
+
+from nti.app.assessment.subscribers import delete_course_data
+
+from nti.app.assessment.tests import RegisterAssignmentLayer
+from nti.app.assessment.tests import RegisterAssignmentLayerMixin
+from nti.app.assessment.tests import RegisterAssignmentsForEveryoneLayer
+
 from nti.app.contentlibrary import LIBRARY_PATH_GET_VIEW
+
+from nti.app.testing.application_webtest import ApplicationLayerTest
+
+from nti.app.testing.decorators import WithSharedApplicationMockDS
 
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssignmentPolicies
@@ -60,6 +72,8 @@ from nti.contentfragments.interfaces import IPlainTextContentFragment
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
+from nti.dataserver.tests import mock_dataserver
+
 from nti.dataserver.users.users import User
 
 from nti.externalization.externalization import to_external_object
@@ -68,15 +82,7 @@ from nti.externalization.interfaces import StandardExternalFields
 
 from nti.mimetype.mimetype import nti_mimetype_with_class
 
-from nti.app.assessment.tests import RegisterAssignmentLayer
-from nti.app.assessment.tests import RegisterAssignmentLayerMixin
-from nti.app.assessment.tests import RegisterAssignmentsForEveryoneLayer
-
-from nti.app.testing.application_webtest import ApplicationLayerTest
-
-from nti.app.testing.decorators import WithSharedApplicationMockDS
-
-from nti.dataserver.tests import mock_dataserver
+from nti.ntiids.ntiids import find_object_with_ntiid
 
 COURSE_NTIID = u'tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice'
 COURSE_URL = u'/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice'
@@ -622,6 +628,12 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
         pending = history_item['pendingAssessment']
         _check_pending(pending)
+        
+        with mock_dataserver.mock_db_trans(self.ds, site_name='janux.ou.edu'):
+            course = ICourseInstance(find_object_with_ntiid(COURSE_NTIID))
+            delete_course_data(course)
+            histories = IUsersCourseAssignmentHistories(course)
+            assert_that(histories, has_length(0))
 
     @WithSharedApplicationMockDS(users=True, testapp=True)
     def test_ipad_hack(self):

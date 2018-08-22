@@ -88,6 +88,13 @@ class UsersCourseAssignmentMetadataContainer(CaseInsensitiveCheckingLastModified
     Implementation of the course assignment metadata for all users in a course.
     """
 
+    def clear(self):
+        if len(self) == 0:
+            return
+        for key, value in list(self.items()):
+            value.clear()
+            del self[key]
+
 
 @interface.implementer(IUsersCourseAssignmentMetadata)
 class UsersCourseAssignmentMetadata(CheckingLastModifiedBTreeContainer):

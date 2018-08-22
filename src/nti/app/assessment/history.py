@@ -86,6 +86,13 @@ class UsersCourseAssignmentHistories(CaseInsensitiveCheckingLastModifiedBTreeCon
     Implementation of the course assignment histories for all users in a course.
     """
 
+    def clear(self):
+        if len(self) == 0:
+            return
+        for key, value in list(self.items()):
+            value.clear()
+            del self[key]
+
 
 @interface.implementer(IUsersCourseAssignmentHistory)
 class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):

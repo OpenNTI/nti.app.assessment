@@ -81,6 +81,14 @@ class UsersCourseInquiries(CaseInsensitiveCheckingLastModifiedBTreeContainer):
     """
     Implementation of the course inquirys for all users in a course.
     """
+
+    def clear(self):
+        if len(self) == 0:
+            return
+        for key, value in list(self.items()):
+            value.clear()
+            del self[key]
+        
 UsersCourseSurveys = UsersCourseInquiries  # BWC
 
 

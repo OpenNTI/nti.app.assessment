@@ -13,18 +13,18 @@ from zope import interface
 
 from nti.assessment.interfaces import IQEvaluation
 
-from nti.recorder.interfaces import IRecordable
-from nti.recorder.interfaces import IRecordables
+from nti.contenttypes.completion.interfaces import ICompletables
+from nti.contenttypes.completion.interfaces import ICompletableItem
 
 logger = __import__('logging').getLogger(__name__)
 
 
-@interface.implementer(IRecordables)
-class EvaluationRecordables(object):
+@interface.implementer(ICompletables)
+class EvaluationCompletables(object):
 
     __slots__ = ()
 
     def iter_objects(self):
         for unused_name, obj in component.getUtilitiesFor(IQEvaluation):
-            if IRecordable.providedBy(obj):
+            if ICompletableItem.providedBy(obj):
                 yield obj

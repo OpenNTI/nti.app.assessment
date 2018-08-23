@@ -25,6 +25,6 @@ class EvaluationPublishables(object):
     __slots__ = ()
 
     def iter_objects(self):
-        for _, obj in component.getUtilitiesFor(IQEditableEvalutation):
+        for unused_name, obj in component.getUtilitiesFor(IQEditableEvalutation):
             if IPublishable.providedBy(obj):
                 yield obj

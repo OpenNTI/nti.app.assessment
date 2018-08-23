@@ -524,6 +524,9 @@
 	<!-- Publishables -->
 	<utility factory=".publishables.EvaluationPublishables" name="evaluations" />
 
+	<!-- Completables -->
+	<utility factory=".completables.EvaluationCompletables" name="evaluations" />
+
 	<!-- Site -->
 	<adapter factory=".adapters._evaluation_to_site" />
 

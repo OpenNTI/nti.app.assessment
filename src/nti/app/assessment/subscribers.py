@@ -450,9 +450,10 @@ def _on_assignment_history_item_deleted(item, unused_event):
 
 @component.adapter(IUsersCourseAssignmentHistoryItem, IObjectAddedEvent)
 def _on_assignment_history_item_added(item, unused_event):
-    course = ICourseInstance(item)
-    request = get_current_request()
-    contexts = (to_external_ntiid_oid(course),)
-    notify(UserProcessedContextsEvent(item.creator, contexts, 
-                                      time.time(), request))
-    
+    # None in tests
+    course = ICourseInstance(item, None)
+    if course is not None:
+        request = get_current_request()
+        contexts = (to_external_ntiid_oid(course),)
+        notify(UserProcessedContextsEvent(item.creator, contexts,
+                                          time.time(), request))

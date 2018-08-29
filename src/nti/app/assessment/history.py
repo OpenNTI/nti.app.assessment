@@ -340,7 +340,12 @@ class UsersCourseAssignmentHistoryItemSummary(Contained):
         raise TypeError()
 
     def __conform__(self, iface):
-        return iface(self._history_item, None)
+        # Adapters specifically for us take priority, otherwise
+        # see if what we're adapting has an adapter.
+        result = component.queryAdapter(self, iface)
+        if result is None:
+            result = iface(self._history_item, None)
+        return result
 
     def __acl__(self):
         return self._history_item.__acl__

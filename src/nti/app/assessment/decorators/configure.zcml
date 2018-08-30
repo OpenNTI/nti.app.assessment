@@ -127,7 +127,7 @@
 					 pyramid.interfaces.IRequest" />
 
 	<subscriber factory=".history._AssignmentHistoryLinkDecorator"
-				provides="nti.externalization.interfaces.IExternalObjectDecorator"
+				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.assessment.interfaces.IQAssignment
 					 pyramid.interfaces.IRequest" />
 

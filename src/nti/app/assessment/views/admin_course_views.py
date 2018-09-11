@@ -21,6 +21,8 @@ from pyramid.view import view_defaults
 
 from requests.structures import CaseInsensitiveDict
 
+import six
+
 import transaction
 
 from zope import component
@@ -45,6 +47,8 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataContaine
 from nti.app.assessment.evaluations.utils import delete_evaluation
 
 from nti.app.assessment.common.history import delete_all_evaluation_data
+
+from nti.app.assessment.subscribers import delete_course_user_data
 
 from nti.app.assessment.views import tx_string
 from nti.app.assessment.views import parse_catalog_entry
@@ -421,3 +425,36 @@ class ReindexCoursePackageAssessmentsView(AbstractAuthenticatedView):
         count = index_course_package_assessments(course)
         result[TOTAL] = result['IndexedCount'] = count
         return result
+
+
+@view_config(context=ICourseInstance)
+@view_config(context=ICourseCatalogEntry)
+@view_defaults(route_name='objects.generic.traversal',
+               renderer='rest',
+               permission=nauth.ACT_NTI_ADMIN,
+               request_method='POST',
+               name='RemoveUserCourseEvaluationData')
+class RemoveUserCourseEvaluationDataView(AbstractAuthenticatedView,
+                                         ModeledContentUploadRequestUtilsMixin):
+
+    def readInput(self, value=None):
+        result = ModeledContentUploadRequestUtilsMixin.readInput(self, value)
+        return CaseInsensitiveDict(result)
+
+    def __call__(self):
+        values = self.readInput()
+        usernames = values.get('username') or values.get('usernames')
+        if isinstance(usernames, six.string_types):
+            usernames = usernames.split(',')
+        if not usernames:
+            raise_json_error(self.request,
+                             hexc.HTTPUnprocessableEntity,
+                             {
+                                 'message': _(u"Must specify a username."),
+                             },
+                             None)
+        course = ICourseInstance(self.context)
+        for username in usernames:
+            logger.warning("Deleting course evaluation data for user %s", username)
+            delete_course_user_data(course, username)
+        return hexc.HTTPNoContent()

@@ -235,6 +235,16 @@ CONTAINER_INTERFACES = (IUsersCourseInquiries,
                         IUsersCourseAssignmentMetadataContainer)
 
 
+def delete_course_user_data(course, username):
+    for iface in CONTAINER_INTERFACES:
+        user_data = iface(course, None)
+        if user_data is not None and username in user_data:
+            container = user_data[username]
+            if IContainer.providedBy(container):
+                container.clear()
+            del user_data[username]
+
+
 def delete_user_data(user):
     username = user.username
     catalog = get_enrollment_catalog()
@@ -243,15 +253,8 @@ def delete_user_data(user):
     for uid in catalog.apply(query) or ():
         context = intids.queryObject(uid)
         course = ICourseInstance(context, None)
-        if course is None:
-            continue
-        for iface in CONTAINER_INTERFACES:
-            user_data = iface(course, None)
-            if user_data is not None and username in user_data:
-                container = user_data[username]
-                if IContainer.providedBy(container):
-                    container.clear()
-                del user_data[username]
+        if course is not None:
+            delete_course_user_data(course, username)
 
 
 def unindex_user_data(user):

@@ -30,6 +30,7 @@ get_course_site = get_resource_site_name
 
 
 def get_resource_site_registry(context):
+    # pylint: disable=too-many-function-args
     folder = IHostPolicyFolder(context, None)
     return folder.getSiteManager() if folder is not None else None
 

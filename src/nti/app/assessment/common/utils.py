@@ -68,7 +68,7 @@ def get_user(user=None, remote=False, request=None):
     elif IPrincipal.providedBy(user):
         user = user.id
     if user is not None and not IUser.providedBy(user):
-        user = User.get_user(str(user))
+        user = User.get_user(user)
     return user
 
 

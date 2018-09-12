@@ -32,7 +32,8 @@ from nti.assessment.interfaces import IQAssessmentPolicies
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.externalization.externalization import to_external_object
-from nti.externalization.externalization import StandardExternalFields
+
+from nti.externalization.interfaces import StandardExternalFields
 
 from nti.links.links import Link
 

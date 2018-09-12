@@ -8,10 +8,11 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
-import six
 import itertools
 from datetime import datetime
 from datetime import timedelta
+
+import six
 
 from ZODB import loglevels
 

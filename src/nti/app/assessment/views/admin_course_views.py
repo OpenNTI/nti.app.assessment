@@ -38,6 +38,7 @@ from nti.app.assessment._assessment import move_user_assignment_from_course_to_c
 from nti.app.assessment.common.containers import index_course_package_assessments
 
 from nti.app.assessment.interfaces import IQEvaluations
+from nti.app.assessment.interfaces import IUsersCourseInquiries
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
@@ -349,7 +350,8 @@ class UnmatchedSavePointsView(AbstractAuthenticatedView):
                name='RemoveGhostSubmissions')
 class RemoveGhostSubmissionsView(AbstractAuthenticatedView):
 
-    interfaces = (IUsersCourseAssignmentHistories,
+    interfaces = (IUsersCourseInquiries,
+                  IUsersCourseAssignmentHistories,
                   IUsersCourseAssignmentSavepoints,
                   IUsersCourseAssignmentMetadataContainer)
 

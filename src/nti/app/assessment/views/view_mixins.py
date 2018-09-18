@@ -27,6 +27,8 @@ from zope.i18n import translate
 
 from zope.interface.common.idatetime import IDateTime
 
+from zope.schema.interfaces import InvalidValue
+
 from pyramid import httpexceptions as hexc
 
 from nti.app.assessment.common.evaluations import get_evaluation_courses
@@ -104,16 +106,9 @@ from nti.externalization.interfaces import StandardInternalFields
 
 from nti.ntiids.ntiids import find_object_with_ntiid
 
-from nti.site.interfaces import IHostPolicyFolder
-
-from nti.site.utils import registerUtility
-from nti.site.utils import unregisterUtility
-
 from nti.links.links import Link
 
 from nti.recorder.utils import record_transaction
-
-from nti.schema.interfaces import InvalidValue
 
 from nti.traversal.traversal import find_interface
 

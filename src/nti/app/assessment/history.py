@@ -26,6 +26,10 @@ from zope.cachedescriptors.property import CachedProperty
 
 from zope.container.contained import Contained
 
+from zope.container.ordered import OrderedContainer
+
+from zope.intid.interfaces import IIntIds
+
 from zope.location.interfaces import ISublocations
 
 from nti.app.assessment.common.assessed import set_assessed_lineage
@@ -40,6 +44,7 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemSummary
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemContainer
 
 from nti.assessment.interfaces import IQAssignment
 
@@ -61,6 +66,8 @@ from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import IACLProvider
 
 from nti.dublincore.datastructures import PersistentCreatedModDateTrackingObject
+
+from nti.intid.common import addIntId
 
 from nti.links.links import Link
 
@@ -130,6 +137,10 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
     def Items(self):
         return dict(self)
 
+    @Lazy
+    def intids(self):
+        return component.getUtility(IIntIds)
+
     def recordSubmission(self, submission, pending):
         if submission.__parent__ is not None or pending.__parent__ is not None:
             raise ValueError("Objects already parented")
@@ -140,9 +151,16 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
         submission.__parent__ = item
         set_assessed_lineage(submission)
 
+        intids = component.getUtility(IIntIds)
+        if intids.queryId(item) is None:
+            addIntId(item)
         lifecycleevent.created(item)
+        submission_container = self.get(submission.assignmentId)
+        if submission_container is None:
+            submission_container = UsersCourseAssignmentHistoryItemContainer()
+            self[submission.assignmentId] = submission_container
         # fire object added, which is dispatched to sublocations
-        self[submission.assignmentId] = item
+        submission_container[item.ntiid] = item
         return item
 
     def __conform__(self, iface):
@@ -169,6 +187,26 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
             aces.append(ace_allowing(instructor, ALL_PERMISSIONS, type(self)))
         aces.append(ACE_DENY_ALL)
         return acl_from_aces(aces)
+
+
+@interface.implementer(IUsersCourseAssignmentHistoryItemContainer)
+class UsersCourseAssignmentHistoryItemContainer(PersistentCreatedModDateTrackingObject,
+                                                OrderedContainer,
+                                                Contained,
+                                                SchemaConfigured):
+
+    createDirectFieldProperties(IUsersCourseAssignmentHistoryItemContainer)
+
+    __external_can_create__ = False
+
+    def reset(self, event=True):
+        keys = list(self)
+        for k in keys:
+            if event:
+                del self[k]  # pylint: disable=unsupported-delete-operation
+            else:
+                self._delitemf(k)
+    clear = reset
 
 
 @interface.implementer(IUsersCourseAssignmentHistoryItem,
@@ -219,6 +257,10 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
     def creator(self, nv):
         # Ignored
         pass
+
+    @property
+    def ntiid(self):
+        return to_external_ntiid_oid(self)
 
     @readproperty
     def Assignment(self):

@@ -110,6 +110,7 @@ from nti.site.interfaces import IHostPolicyFolder
 
 from nti.traversal.traversal import find_interface
 from nti.traversal.traversal import ContainerAdapterTraversable
+from nti.app.assessment.common.policy import get_policy_max_submissions
 
 logger = __import__('logging').getLogger(__name__)
 
@@ -234,11 +235,21 @@ def _begin_assessment_for_assignment_submission(submission):
     _validate_submission(submission, course, assignment)
     assignment_history = component.getMultiAdapter((course, submission.creator),
                                                    IUsersCourseAssignmentHistory)
+
     if submission.assignmentId in assignment_history:
-        ex = NotUnique("Assignment already submitted")
-        ex.field = IQAssignmentSubmission['assignmentId']
-        ex.value = submission.assignmentId
-        raise ex
+        max_submissions = get_policy_max_submissions(assignment, course)
+        ex = None
+        if max_submissions is None or max_submissions < 2:
+            ex = NotUnique("Assignment already submitted")
+        else:
+            submission_container = assignment_history.get(submission.assignmentId)
+            if len(submission_container) >= max_submissions:
+                msg = _(u"Submission exceeds submission attempts for assignment.")
+                ex = ConstraintNotSatisfied(msg)
+        if ex is not None:
+            ex.field = IQAssignmentSubmission['assignmentId']
+            ex.value = submission.assignmentId
+            raise ex
 
     set_assessed_lineage(submission)
     submission.containerId = submission.assignmentId

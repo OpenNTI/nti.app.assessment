@@ -17,6 +17,7 @@ from zope.container.constraints import containers
 
 from zope.container.interfaces import IContained
 from zope.container.interfaces import IContainer
+from zope.container.interfaces import IOrderedContainer
 from zope.container.interfaces import IContainerNamesContainer
 
 from zope.interface.interfaces import ObjectEvent
@@ -88,12 +89,12 @@ class IUsersCourseAssignmentSavepoint(IContainer,
     containers(IUsersCourseAssignmentSavepoints)
     __setitem__.__doc__ = None
 
-    owner = Object(IUser, 
-                   required=False, 
+    owner = Object(IUser,
+                   required=False,
                    title=u"The user this save point is for.")
     owner.setTaggedValue('_ext_excluded_out', True)
 
-    Items = Dict(title=u'For externalization only, a copy of the items', 
+    Items = Dict(title=u'For externalization only, a copy of the items',
                  readonly=True)
 
     def recordSubmission(submission, event=False):
@@ -154,7 +155,7 @@ class IUsersCourseAssignmentHistory(IContainer,
     object are :class:`IAssignment` IDs (this class may or may not
     enforce that the assignment ID is actually scoped to the course it
     is registered for). The values are instances of
-    :class:`.IUsersCourseAssignmentHistoryItem`.
+    :class:`.IUsersCourseAssignmentHistoryItemContainer`.
 
     Implementations of this object are typically found as a
     multi-adapter between a particular :class:`.ICourseInstance` and
@@ -170,12 +171,12 @@ class IUsersCourseAssignmentHistory(IContainer,
     will be the history item which in turn will be parented by this object.)
     """
 
-    contains('.IUsersCourseAssignmentHistoryItem')
+    contains('.IUsersCourseAssignmentHistoryItemContainer')
     containers(IUsersCourseAssignmentHistories)
     __setitem__.__doc__ = None
 
     owner = Object(IUser,
-				   required=False, 
+				   required=False,
 				   title=u"The user this history is for.")
     owner.setTaggedValue('_ext_excluded_out', True)
 
@@ -224,16 +225,27 @@ class IUsersCourseSubmissionItem(IContained, IShouldHaveTraversablePath):
     Marker interface for course submission items
     """
 
+class IUsersCourseAssignmentHistoryItemContainer(ICreated,
+                                                 ILastModified,
+                                                 IOrderedContainer):
+    """
+    An ordered container for storing one or more
+    :class:`IUsersCourseAssignmentHistoryItem` submissions for a user,
+    course, and assignment.
+    """
+
+    containers(IUsersCourseAssignmentHistory)
+    __parent__.required = False
+
 
 class IUsersCourseAssignmentHistoryItem(ICreated,
                                         ILastModified,
                                         IUsersCourseSubmissionItem):
     """
     A record of something being submitted for an assignment.
-
-    .. note:: This will probably grow much.
     """
-    containers(IUsersCourseAssignmentHistory)
+
+    containers(IUsersCourseAssignmentHistoryItemContainer)
     __parent__.required = False
 
     # Recall that the implementation of AssignmentSubmission is NOT Persistent.
@@ -248,7 +260,7 @@ class IUsersCourseAssignmentHistoryItem(ICreated,
 
     FeedbackCount = Int(title=u"How many feedback items", default=0)
 
-    Assignment = Object(IQAssignment, 
+    Assignment = Object(IQAssignment,
 						title=u"The assigment that generated this item",
                         required=False)
     Assignment.setTaggedValue('_ext_excluded_out', True)
@@ -315,12 +327,12 @@ class IUsersCourseAssignmentMetadata(IContainer,
     containers(IUsersCourseAssignmentMetadataContainer)
     __setitem__.__doc__ = None
 
-    owner = Object(IUser, 
-				   required=False, 
+    owner = Object(IUser,
+				   required=False,
 				   title=u"The user this metadata is for.")
     owner.setTaggedValue('_ext_excluded_out', True)
 
-    Items = Dict(title=u'For externalization only, a copy of the items', 
+    Items = Dict(title=u'For externalization only, a copy of the items',
 				 readonly=True)
 
 
@@ -412,7 +424,7 @@ class IUsersCourseInquiryItem(ICreated,
     # Recall that the implementation of IQInquirySubmission is NOT Persistent.
     Submission = Object(IQInquirySubmission, required=False)
 
-    Inquiry = Object(IQInquiry, 
+    Inquiry = Object(IQInquiry,
                      title=u"The inquiry that generated this item",
                      required=False)
     Inquiry.setTaggedValue('_ext_excluded_out', True)
@@ -465,7 +477,7 @@ class IQEvaluations(IContainer,
         """"
         replace the old evalutation object with the new one
         """
-    
+
     def clear():
         """
         clear this container
@@ -482,7 +494,7 @@ class IContentPackageEvaluations(IQEvaluations):
     """
     A container for all the evaluation objects in a content package
     """
-    
+
 
 class IQPartChangeAnalyzer(interface.Interface):
     """

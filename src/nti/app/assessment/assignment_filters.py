@@ -74,7 +74,7 @@ class UserEnrolledForCreditInCourseOrInstructsFilter(object):
         if not asg.is_non_public:
             return True
         # Note implicit assumption that assignment is in course
-        # TODO: check if assignment is indeed in the enroll for credit courses
+        # Warning !!! check if assignment is indeed in the enroll for credit courses
         return self.is_instructor or self.is_enrolled_for_credit
     # BWC
     allow_assignment_for_user_in_course = allow_assessment_for_user_in_course
@@ -98,6 +98,7 @@ class AssessmentPolicyExclusionFilter(object):
         self.policies = IQAssessmentPolicies(course)
 
     def allow_assessment_for_user_in_course(self, asg, *unused_args, **unused_kwargs):
+        # pylint: disable=too-many-function-args
         return not self.policies.getPolicyForAssessment(asg.ntiid).get('excluded', False)
     allow_assignment_for_user_in_course = allow_assessment_for_user_in_course
 AssignmentPolicyExclusionFilter = AssessmentPolicyExclusionFilter

@@ -199,6 +199,9 @@ class UsersCourseAssignmentHistoryItemContainer(PersistentCreatedModDateTracking
 
     __external_can_create__ = False
 
+    def sublocations(self):
+        return tuple(self.values())
+
     def reset(self, event=True):
         keys = list(self)
         for k in keys:

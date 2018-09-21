@@ -261,7 +261,7 @@ class IUsersCourseAssignmentHistoryItem(ICreated,
     FeedbackCount = Int(title=u"How many feedback items", default=0)
 
     Assignment = Object(IQAssignment,
-						title=u"The assigment that generated this item",
+						title=u"The assignment that generated this item",
                         required=False)
     Assignment.setTaggedValue('_ext_excluded_out', True)
 

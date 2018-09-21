@@ -263,10 +263,9 @@ def _begin_assessment_for_assignment_submission(submission):
     if version is not None:  # record version
         pending_assessment.version = submission.version = version
 
-    # Now record the submission. This will broadcast created and
-    # added events for the HistoryItem and an added event for the pending assessment.
-    # The HistoryItem will have
-    # the course in its lineage.
+    # Now record the submission. This will broadcast created and added events
+    # for the HistoryItem and an added event for the pending assessment.
+    # The HistoryItem will have the course in its lineage.
     assignment_history.recordSubmission(submission, pending_assessment)
     return pending_assessment
 

@@ -4,19 +4,18 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
-
-logger = __import__('logging').getLogger(__name__)
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 import datetime
+
+from pyramid.threadlocal import get_current_request
 
 from zope import component
 from zope import interface
 
 from zope.cachedescriptors.property import Lazy
-
-from pyramid.threadlocal import get_current_request
 
 from nti.app.assessment.common.evaluations import get_container_evaluations
 
@@ -49,11 +48,15 @@ from nti.contenttypes.courses.utils import get_courses_for_packages
 
 from nti.dataserver.authorization import ACT_READ
 
+from nti.dataserver.interfaces import IUser
+
 from nti.dataserver.users.users import User
 
 from nti.publishing.interfaces import IPublishable
 
 from nti.traversal.traversal import find_interface
+
+logger = __import__('logging').getLogger(__name__)
 
 
 @interface.implementer(ISearchHitPredicate)
@@ -62,7 +65,7 @@ class _AssignmentFeedbackItemSearchHitPredicate(DefaultSearchHitPredicate):
 
     __name__ = u'AssignmentFeedback'
 
-    def allow(self, feedback, unused_score, unused_query=None):
+    def allow(self, feedback, unused_score, unused_query=None):  # pylint: disable=arguments-differ
         if self.principal is None:
             return True
         else:
@@ -70,7 +73,7 @@ class _AssignmentFeedbackItemSearchHitPredicate(DefaultSearchHitPredicate):
             user = User.get_user(pid)
             owner = feedback.creator
             course = find_interface(feedback, ICourseInstance, strict=False)
-            if      user is not None \
+            if      IUser.providedBy(user) \
                 and (owner == user is not None or is_instructed_by_name(course, pid)):
                 return True
         return False
@@ -99,7 +102,7 @@ class _EvaluationSearchHitPredicate(DefaultSearchHitPredicate):
                 return get_courses_for_packages(packages=package.ntiid)
         return ()
 
-    def allow(self, item, unused_score, unused_query=None):
+    def allow(self, item, unused_score, unused_query=None):  # pylint: disable=arguments-differ
         if self.principal is None:
             return True
         else:
@@ -127,7 +130,7 @@ class _AssignmentSearchHitPredicate(_EvaluationSearchHitPredicate):
         else:
             pid = self.principal.id
             user = User.get_user(pid)
-            if user is None:
+            if not IUser.providedBy(user):
                 return False
             if not self.is_published(item):
                 return has_permission(ACT_READ, item, self.request)
@@ -164,7 +167,7 @@ class _ContentUnitAssesmentHitPredicate(DefaultSearchHitPredicate):
                                                 mimetypes=self.SEARCH_MTS)
         return not bool(evaluations)
 
-    def allow(self, item, unused_score, query=None):
+    def allow(self, item, unused_score, query=None):  # pylint: disable=arguments-differ
         if self.principal is None:
             return True
         return self._is_allowed(item.ntiid, query)

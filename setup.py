@@ -59,6 +59,7 @@ setup(
         'nti.app.contenttypes.completion',
         'nti.assessment',
         'nti.base',
+        'nti.common',
         'nti.containers',
         'nti.contentlibrary',
         'nti.contenttypes.courses',

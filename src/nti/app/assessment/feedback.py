@@ -50,9 +50,9 @@ from nti.namedfile.constraints import FileConstraints
 
 from nti.namedfile.interfaces import IFileConstraints
 
-from nti.schema.field import SchemaConfigured
-
 from nti.schema.fieldproperty import AdaptingFieldProperty
+
+from nti.schema.schema import SchemaConfigured
 
 from nti.wref.interfaces import IWeakRef
 

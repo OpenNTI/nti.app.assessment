@@ -183,8 +183,8 @@ class _AssessmentItemProvider(object):
             uber_filter = get_course_assessment_predicate_for_user(user,
                                                                    self.course)
             # Must grab all assignments in our parent
-            # pylint: disable=redundant-keyword-arg
-            assignments = catalog.iter_assignments(course_lineage=True)
+            # pylint: disable=too-many-function-args
+            assignments = catalog.iter_assignments(True)
             result = [removeAllProxies(x) for x in assignments
                       if uber_filter(x) and self._include_item(x)]
             self._scope_to_items[scope] = result

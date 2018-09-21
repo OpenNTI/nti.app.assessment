@@ -8,8 +8,9 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
+import BTrees
+
 import six
-from collections import Set
 
 from zope import component
 from zope import interface
@@ -19,8 +20,6 @@ from zope.deprecation import deprecated
 from zope.intid.interfaces import IIntIds
 
 from zope.location import locate
-
-import BTrees
 
 from nti.assessment.common import has_submitted_file
 
@@ -39,6 +38,8 @@ from nti.assessment.interfaces import IQAssignmentSubmission
 from nti.assessment.interfaces import IQDiscussionAssignment
 
 from nti.base._compat import text_
+
+from nti.common.iterables import is_nonstr_iterable
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
@@ -65,7 +66,7 @@ logger = __import__('logging').getLogger(__name__)
 
 
 def to_iterable(value):
-    if isinstance(value, (list, tuple, Set)):
+    if is_nonstr_iterable(value):
         result = value
     else:
         result = (value,) if value is not None else ()
@@ -358,13 +359,11 @@ IX_CONTAINERS = 'containers'
 IX_CONTAINMENT = 'containment'
 IX_DISCUSSION_NTIID = 'discussion_ntiid'
 
-from six import integer_types
-
-from zope.catalog.interfaces import ICatalog
+from pyramid.location import lineage
 
 from zc.catalog.index import SetIndex as ZC_SetIndex
 
-from pyramid.location import lineage
+from zope.catalog.interfaces import ICatalog
 
 from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.interfaces import IContentPackage
@@ -375,7 +374,7 @@ from nti.externalization.proxy import removeAllProxies
 
 
 def get_uid(item, intids=None):
-    if not isinstance(item, integer_types):
+    if not isinstance(item, six.integer_types):
         item = removeAllProxies(item)
         intids = component.getUtility(IIntIds) if intids is None else intids
         result = intids.queryId(item)

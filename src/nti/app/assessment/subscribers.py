@@ -407,7 +407,7 @@ def _survey_progress(submission, unused_event):
     On a survey submission, update completion state as needed.
     """
     survey = find_object_with_ntiid(submission.surveyId)
-    context = ICompletionContext(survey, None)
+    context = component.queryAdapter(survey, ICompletionContext, name="CompletionContext")
     if context is not None:
         update_completion(survey,
                           survey.ntiid,

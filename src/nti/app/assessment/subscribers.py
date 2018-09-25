@@ -85,7 +85,7 @@ from nti.contenttypes.courses import get_enrollment_catalog
 
 from nti.contenttypes.courses.index import IX_USERNAME
 
-from nti.contenttypes.completion.interfaces import ICompletionContext
+from nti.contenttypes.completion.interfaces import ICompletionContextProvider
 from nti.contenttypes.completion.interfaces import UserProgressRemovedEvent
 from nti.contenttypes.completion.interfaces import IUserProgressUpdatedEvent
 
@@ -407,7 +407,8 @@ def _survey_progress(submission, unused_event):
     On a survey submission, update completion state as needed.
     """
     survey = find_object_with_ntiid(submission.surveyId)
-    context = ICompletionContext(survey, None)
+    provider = ICompletionContextProvider(survey, None)
+    context = provider() if provider else None
     if context is not None:
         update_completion(survey,
                           survey.ntiid,

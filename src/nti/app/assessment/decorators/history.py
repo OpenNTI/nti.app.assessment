@@ -14,6 +14,7 @@ from zope import interface
 from zope.cachedescriptors.property import Lazy
 
 from nti.app.assessment.common.history import get_assessment_metadata_item
+from nti.app.assessment.common.history import get_most_recent_history_item
 
 from nti.app.assessment.decorators import _get_course_from_evaluation
 from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
@@ -121,6 +122,11 @@ class _LastViewedAssignmentHistoryDecorator(AbstractAuthenticatedRequestAwareDec
 
 @interface.implementer(IExternalMappingDecorator)
 class _AssignmentHistoryLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
+    """
+    A rel to get the history item for this assignment and user. Now that we may
+    multiple submissions for a user/course/assignment, we return a rel pointing
+    to the most recent submission for bwc.
+    """
 
     @Lazy
     def _catalog(self):
@@ -134,16 +140,16 @@ class _AssignmentHistoryLinkDecorator(AbstractAuthenticatedRequestAwareDecorator
                                              user,
                                              self._catalog,
                                              request=self.request)
-        history = component.queryMultiAdapter((course, user),
-                                              IUsersCourseAssignmentHistory)
-        if history and context.ntiid in history:
+        history_item = get_most_recent_history_item(user, course, context.ntiid)
+        if history_item is not None:
             # pylint: disable=no-member
             links = result_map.setdefault(LINKS, [])
             links.append(Link(course,
                               rel='History',
-                              elements=('AssignmentHistories', 
+                              elements=('AssignmentHistories',
                                         user.username,
-                                        context.ntiid)))
+                                        context.ntiid,
+                                        history_item.ntiid)))
 
 
 @interface.implementer(IExternalMappingDecorator)

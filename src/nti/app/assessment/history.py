@@ -189,7 +189,8 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
         return acl_from_aces(aces)
 
 
-@interface.implementer(IUsersCourseAssignmentHistoryItemContainer)
+@interface.implementer(IUsersCourseAssignmentHistoryItemContainer,
+                       ISublocations)
 class UsersCourseAssignmentHistoryItemContainer(PersistentCreatedModDateTrackingObject,
                                                 OrderedContainer,
                                                 Contained,

@@ -526,6 +526,7 @@ class AssignmentHistoryRequestTraversable(ContainerTraversable):
             # Stop traversal here so our named view
             # gets to handle this
             raise LocationError(self._container, name)
+        from IPython.terminal.debugger import set_trace;set_trace()
         return ContainerTraversable.traverse(self, name, further_path)
 
 

@@ -21,6 +21,7 @@ from zope.annotation.interfaces import IAnnotations
 
 from zope.location.interfaces import LocationError
 
+from zope.schema.interfaces import TooLong
 from zope.schema.interfaces import NotUnique
 from zope.schema.interfaces import ConstraintNotSatisfied
 
@@ -242,14 +243,16 @@ def _begin_assessment_for_assignment_submission(submission):
         ex = None
         if max_submissions is None or max_submissions < 2:
             ex = NotUnique("Assignment already submitted")
+            ex = ex.with_field_and_value(IQAssignmentSubmission['assignmentId'],
+                                         submission.assignmentId)
         else:
             submission_container = assignment_history.get(submission.assignmentId)
             if len(submission_container) >= max_submissions:
                 msg = _(u"Submission exceeds submission attempts for assignment.")
-                ex = ConstraintNotSatisfied(msg)
+                ex = TooLong(msg)
+                ex = ex.with_field_and_value(IQAssignmentSubmission['assignmentId'],
+                                             len(submission_container))
         if ex is not None:
-            ex.field = IQAssignmentSubmission['assignmentId']
-            ex.value = submission.assignmentId
             raise ex
 
     set_assessed_lineage(submission)

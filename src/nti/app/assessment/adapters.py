@@ -248,9 +248,8 @@ def _begin_assessment_for_assignment_submission(submission):
         else:
             submission_container = assignment_history.get(submission.assignmentId)
             if len(submission_container) >= max_submissions:
-                msg = _(u"Submission exceeds submission attempts for assignment.")
-                ex = TooLong(msg)
-                ex = ex.with_field_and_value(IQAssignmentSubmission['assignmentId'],
+                ex = TooLong(len(submission_container), max_submissions)
+                ex = ex.with_field_and_value('submission_container',
                                              len(submission_container))
         if ex is not None:
             raise ex

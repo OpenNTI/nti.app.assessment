@@ -26,9 +26,9 @@ from zope.cachedescriptors.property import CachedProperty
 
 from zope.container.contained import Contained
 
-from zope.container.ordered import OrderedContainer
+from zope.container.interfaces import INameChooser
 
-from zope.intid.interfaces import IIntIds
+from zope.container.ordered import OrderedContainer
 
 from zope.location.interfaces import ISublocations
 
@@ -66,8 +66,6 @@ from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import IACLProvider
 
 from nti.dublincore.datastructures import PersistentCreatedModDateTrackingObject
-
-from nti.intid.common import addIntId
 
 from nti.links.links import Link
 
@@ -137,10 +135,6 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
     def Items(self):
         return dict(self)
 
-    @Lazy
-    def intids(self):
-        return component.getUtility(IIntIds)
-
     def recordSubmission(self, submission, pending):
         if submission.__parent__ is not None or pending.__parent__ is not None:
             raise ValueError("Objects already parented")
@@ -151,16 +145,15 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
         submission.__parent__ = item
         set_assessed_lineage(submission)
 
-        intids = component.getUtility(IIntIds)
-        if intids.queryId(item) is None:
-            addIntId(item)
         lifecycleevent.created(item)
         submission_container = self.get(submission.assignmentId)
         if submission_container is None:
             submission_container = UsersCourseAssignmentHistoryItemContainer()
             self[submission.assignmentId] = submission_container
+        chooser = INameChooser(submission_container)
+        key = chooser.chooseName('', item)
         # fire object added, which is dispatched to sublocations
-        submission_container[item.ntiid] = item
+        submission_container[key] = item
         return item
 
     def __conform__(self, iface):
@@ -248,7 +241,9 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
         if IUser.isOrExtends(iface):
             # If the user is deleted, we will not be able to do this
             try:
-                return iface(self.__parent__)
+                submission_container = self.__parent__
+                histories = submission_container.__parent__
+                return iface(histories, None) or iface(submission_container)
             except (AttributeError, TypeError):
                 return None
 
@@ -261,10 +256,6 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
     def creator(self, nv):
         # Ignored
         pass
-
-    @property
-    def ntiid(self):
-        return to_external_ntiid_oid(self)
 
     @readproperty
     def Assignment(self):

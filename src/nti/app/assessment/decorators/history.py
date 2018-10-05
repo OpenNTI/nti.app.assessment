@@ -126,6 +126,8 @@ class _AssignmentHistoryLinkDecorator(AbstractAuthenticatedRequestAwareDecorator
     A rel to get the history item for this assignment and user. Now that we may
     multiple submissions for a user/course/assignment, we return a rel pointing
     to the most recent submission for bwc.
+
+    Also decorate a `Histories` rel to return all submissions.
     """
 
     @Lazy
@@ -144,12 +146,12 @@ class _AssignmentHistoryLinkDecorator(AbstractAuthenticatedRequestAwareDecorator
         if history_item is not None:
             # pylint: disable=no-member
             links = result_map.setdefault(LINKS, [])
+            links.append(Link(history_item), rel='History')
             links.append(Link(course,
-                              rel='History',
+                              rel='Histories',
                               elements=('AssignmentHistories',
                                         user.username,
-                                        context.ntiid,
-                                        history_item.ntiid)))
+                                        context.ntiid)))
 
 
 @interface.implementer(IExternalMappingDecorator)

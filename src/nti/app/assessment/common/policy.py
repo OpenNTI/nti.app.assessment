@@ -68,10 +68,15 @@ def get_policy_for_assessment(asm_id, context):
 def get_policy_submission_priority(assignment, course):
     """
     For a given assignment (or ntiid), return the policy `submission_priority`
-    {'highest_grade', 'most_recent'}. This is only needed for assigments
+    {'highest_grade', 'most_recent'}. This is only needed for assignments
     configured for multiple submissions (`max_submissions`).
     """
-    return get_policy_field(assignment, course, 'submission_priority')
+    return get_policy_field(assignment, course, 'submission_priority') or 'most_recent'
+
+
+def is_most_recent_submission_priority(assignment, course):
+    submission_priority = get_policy_submission_priority(assignment, course)
+    return submission_priority == 'most_recent'
 
 
 def get_policy_max_submissions(assignment, course):
@@ -79,7 +84,7 @@ def get_policy_max_submissions(assignment, course):
     For a given assignment (or ntiid), return the policy `max_submissions`
     state for the given course.
     """
-    return get_policy_field(assignment, course, 'max_submissions')
+    return get_policy_field(assignment, course, 'max_submissions') or 1
 
 
 def get_auto_grade_policy(assignment, course):

@@ -325,10 +325,12 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         self._check_submission(res, enrollment_history_link)
 
         history_res = self._check_submission(res, course_history_link)
-        history_item_href = history_res.json_body['Items'][self.assignment_id]['href']
+        container = history_res.json_body['Items'][self.assignment_id]
+        history_item_href = container['Items'].values()[0]['href']
         last_viewed_href = self.require_link_href_with_rel(history_res.json_body,
                                                            'lastViewed')
-        history_feedback_container_href = history_res.json_body['Items'].items()[0][1]['Feedback']['href']
+        container = history_res.json_body['Items'].values()[0]
+        history_feedback_container_href = container['Items'].values()[0]['Feedback']['href']
 
         # The user can send some feedback
         feedback = UsersCourseAssignmentHistoryItemFeedback(body=[u'Some feedback'])
@@ -366,7 +368,9 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
             history_res = self.testapp.get(link)
             assert_that(history_res.json_body,
                         has_entry('Items', has_length(1)))
-            item = history_res.json_body['Items'].values()[0]
+            container = history_res.json_body['Items'].values()[0]
+            assert_that(container['Items'], has_length(1))
+            item = container['Items'].values()[0]
             feedback = item['Feedback']
             assert_that(feedback, has_entry('Items', has_length(1)))
             assert_that(feedback['Items'],
@@ -374,7 +378,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
             assert_that(feedback['Items'], has_item(has_entry('href',
                                                               ends_with('AssignmentHistories/' +
                                                                         self.default_username +
-                                                                        unquote('/tag%3Anextthought.com%2C2011-10%3AOU-NAQ-CLC3403_LawAndJustice.naq.asg%3AQUIZ1_aristotle/Feedback/0')))))
+                                                                        unquote('/tag%3Anextthought.com%2C2011-10%3AOU-NAQ-CLC3403_LawAndJustice.naq.asg%3AQUIZ1_aristotle/UsersCourseAssignmentHistoryItem/Feedback/0')))))
 
         # We can modify the view date by putting to the field
         res = self.testapp.put_json(last_viewed_href, 1234)
@@ -453,7 +457,8 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
                             extra_environ=instructor_environ)
         for link in course_history_link, enrollment_history_link:
             history_res = self.testapp.get(link)
-            item = history_res.json_body['Items'].values()[0]
+            submission_container = history_res.json_body['Items'].values()[0]
+            item = submission_container['Items'].values()[0]
             feedback = item['Feedback']
             assert_that(feedback, has_entry('Items', has_length(0)))
 
@@ -618,12 +623,13 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         # ... and get history
         history_res = self._check_submission(res, enrollment_history_link)
 
-        # ... the assessd parts are also stripped
+        # ... the assessed parts are also stripped
         history_item = next(iter(history_res.json_body['Items'].values()))
+        history_item = next(iter(history_item['Items'].values()))
 
         pending = history_item['pendingAssessment']
         _check_pending(pending)
-        
+
         with mock_dataserver.mock_db_trans(self.ds, site_name='janux.ou.edu'):
             course = ICourseInstance(find_object_with_ntiid(COURSE_NTIID))
             histories = IUsersCourseAssignmentHistories(course)

@@ -146,7 +146,7 @@ class _AssignmentHistoryLinkDecorator(AbstractAuthenticatedRequestAwareDecorator
         if history_item is not None:
             # pylint: disable=no-member
             links = result_map.setdefault(LINKS, [])
-            links.append(Link(history_item), rel='History')
+            links.append(Link(history_item, rel='History'))
             links.append(Link(course,
                               rel='Histories',
                               elements=('AssignmentHistories',

@@ -193,6 +193,10 @@ class UsersCourseAssignmentHistoryItemContainer(PersistentCreatedModDateTracking
 
     __external_can_create__ = False
 
+    @property
+    def Items(self):
+        return dict(self)
+
     def sublocations(self):
         return tuple(self.values())
 
@@ -259,12 +263,13 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 
     @readproperty
     def Assignment(self):
-        result = component.queryUtility(IQAssignment, name=self.__name__ or '')
+        result = component.queryUtility(IQAssignment, name=self.assignmentId or '')
         return result
 
     @property
     def assignmentId(self):
-        return self.__name__
+        # Our submission container key
+        return self.__parent__.__name__
 
     @property
     def _has_grade(self):
@@ -299,7 +304,7 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 
         course = ICourseInstance(self, None)
         # our name is the assignment id
-        asg_id = self.__name__
+        asg_id = self.assignmentId
         assignment = component.queryUtility(IQAssignment, name=asg_id)
         if course is None or assignment is None:
             # Not enough information, bail

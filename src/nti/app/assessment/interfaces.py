@@ -227,7 +227,8 @@ class IUsersCourseSubmissionItem(IContained, IShouldHaveTraversablePath):
 
 class IUsersCourseAssignmentHistoryItemContainer(ICreated,
                                                  ILastModified,
-                                                 IOrderedContainer):
+                                                 IOrderedContainer,
+                                                 IShouldHaveTraversablePath):
     """
     An ordered container for storing one or more
     :class:`IUsersCourseAssignmentHistoryItem` submissions for a user,
@@ -236,6 +237,9 @@ class IUsersCourseAssignmentHistoryItemContainer(ICreated,
 
     containers(IUsersCourseAssignmentHistory)
     __parent__.required = False
+
+    Items = Dict(title=u'For externalization only, a copy of the items',
+                 readonly=True)
 
 
 class IUsersCourseAssignmentHistoryItem(ICreated,

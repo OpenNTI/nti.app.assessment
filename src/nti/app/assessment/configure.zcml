@@ -123,6 +123,7 @@
 						 .interfaces.IUsersCourseAssignmentHistoryItem
 						 .interfaces.IUsersCourseAssignmentHistoryItemSummary
 						 .interfaces.IUsersCourseAssignmentHistoryItemFeedback
+						 .interfaces.IUsersCourseAssignmentHistoryItemContainer
 						 .interfaces.IUsersCourseAssignmentHistoryItemFeedbackContainer"
 		modules=".history .feedback" />
 

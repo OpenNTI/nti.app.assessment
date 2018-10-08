@@ -260,7 +260,8 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
         history_res, assessments_rel, course_rel = self._create_and_enroll()
 
         # Now we should be able to find and download our data
-        submission = history_res.json_body['Items'].values()[0]['Submission']
+        container = history_res.json_body['Items'].values()[0]
+        submission = container['Items'].values()[0]['Submission']
         submitted_file_part = submission['parts'][0]['questions'][0]['parts'][0]
         assert_that(submitted_file_part, has_key('url'))
         assert_that(submitted_file_part, has_key('value'))
@@ -354,7 +355,8 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
         cid = u'tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice_SubInstances_01'
         history_res, _, _ = self._create_and_enroll(course_id=cid)
 
-        item = history_res.json_body['Items'][self.assignment_id]
+        container = history_res.json_body['Items'][self.assignment_id]
+        item = container['Items'].values()[0]
         item_href = item['href']
         # Initially, we have the ability to delete it ourself
         link = self.link_with_rel(item, 'edit')

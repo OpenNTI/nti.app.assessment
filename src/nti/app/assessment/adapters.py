@@ -247,11 +247,10 @@ def _begin_assessment_for_assignment_submission(submission):
             ex = ex.with_field_and_value(IQAssignmentSubmission['assignmentId'],
                                          submission.assignmentId)
         else:
-
             if len(submission_container) >= max_submissions:
-                ex = TooLong(len(submission_container), max_submissions)
-                ex = ex.with_field_and_value('submission_container',
-                                             len(submission_container))
+                ex = TooLong(submission_container, max_submissions)
+                ex = ex.with_field_and_value(submission_container,
+                                             max_submissions)
         if ex is not None:
             raise ex
 

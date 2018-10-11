@@ -13,14 +13,15 @@ from zope import interface
 
 from zope.cachedescriptors.property import Lazy
 
+from nti.app.assessment.common.history import get_user_submission_count
 from nti.app.assessment.common.history import get_assessment_metadata_item
 from nti.app.assessment.common.history import get_most_recent_history_item
+
+from nti.app.assessment.common.policy import get_policy_max_submissions
 
 from nti.app.assessment.decorators import _get_course_from_evaluation
 from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
 from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
-
-from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
@@ -138,21 +139,33 @@ class _AssignmentHistoryLinkDecorator(AbstractAuthenticatedRequestAwareDecorator
     # pylint: disable=arguments-differ
     def _do_decorate_external(self, context, result_map):
         user = self.remoteUser
+        links = result_map.setdefault(LINKS, [])
         course = _get_course_from_evaluation(context,
                                              user,
                                              self._catalog,
                                              request=self.request)
         history_item = get_most_recent_history_item(user, course, context.ntiid)
+        submission_count = get_user_submission_count(user,
+                                                     course,
+                                                     context)
+
+        # Check submission count
+        result_map['submission_count'] = submission_count
+        max_submissions = get_policy_max_submissions(context, course)
+        if not submission_count or max_submissions > submission_count:
+            # The user can submit; note we do not check admin status here
+            link = Link(course,
+                        rel='Submit',
+                        method='POST',
+                        elements=('Assessments', context.ntiid))
+            links.append(link)
         if history_item is not None:
-            # pylint: disable=no-member
-            links = result_map.setdefault(LINKS, [])
             links.append(Link(history_item, rel='History'))
             links.append(Link(course,
                               rel='Histories',
                               elements=('AssignmentHistories',
                                         user.username,
                                         context.ntiid)))
-
 
 @interface.implementer(IExternalMappingDecorator)
 class _AssignmentHistoryItemDecorator(_AbstractTraversableLinkDecorator):
@@ -171,3 +184,6 @@ class _AssignmentHistoryItemDecorator(_AbstractTraversableLinkDecorator):
         item = get_assessment_metadata_item(course, user, context.assignmentId)
         if item is not None:
             result_map['Metadata'] = to_external_object(item)
+        result_map['submission_count'] = get_user_submission_count(remoteUser,
+                                                                   course,
+                                                                   context.assignmentId)

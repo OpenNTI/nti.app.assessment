@@ -47,7 +47,6 @@ from nti.app.assessment.common.evaluations import get_containers_for_evaluation_
 from nti.app.assessment.common.evaluations import get_available_assignments_for_evaluation_object
 
 from nti.app.assessment.common.history import has_savepoints
-from nti.app.assessment.common.history import get_user_submission_count
 from nti.app.assessment.common.history import get_assessment_metadata_item
 
 from nti.app.assessment.common.policy import get_policy_locked
@@ -273,7 +272,6 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
         # Max submissions
         result['max_submissions'] = get_policy_max_submissions(assignment, course)
         result['submission_priority'] = get_policy_submission_priority(assignment, course)
-        result['submission_count'] = get_user_submission_count(self.remoteUser, course, assignment)
 
         # auto_grade/total_points
         auto_grade = get_auto_grade_policy(assignment, course)

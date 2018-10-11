@@ -327,7 +327,7 @@ class AbstractSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
             principal = IUser(record, None)
             if principal is None:  # dup enrollment ?
                 continue
-            # TODO: Is this correct? What do we do for mutiple submissions?
+            # TODO: Is this correct? What do we do for multiple submissions?
             history_item = get_most_recent_history_item(principal, course, assignment_id)
             if history_item is None:
                 continue  # No submission for this assignment
@@ -527,7 +527,6 @@ class AssignmentHistoryRequestTraversable(ContainerTraversable):
             # Stop traversal here so our named view
             # gets to handle this
             raise LocationError(self._container, name)
-        #from IPython.terminal.debugger import set_trace;set_trace()
         return ContainerTraversable.traverse(self, name, further_path)
 
 

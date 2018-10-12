@@ -148,7 +148,7 @@ class AssessmentPutView(UGDPutView):
 
     NON_DATE_POLICY_KEYS = ("auto_grade", 'total_points',
                             'maximum_time_allowed', 'submission_buffer',
-                            'max_submssions', 'submission_priority')
+                            'max_submissions', 'submission_priority')
 
     def readInput(self, value=None):
         result = UGDPutView.readInput(self, value=value)
@@ -420,6 +420,10 @@ class AssessmentPutView(UGDPutView):
                                   field='maximum_time_allowed')
         elif key == 'max_submissions':
             value = notify_value = self._get_value(int, value, key)
+            if value < 1:
+                self._raise_error('InvalidValue',
+                                  _(u'Max submissions must be at least 1.'),
+                                  field='max_submissions')
         elif key == 'submission_priority':
             value = notify_value = value.lower()
             if value not in ('most_recent', 'highest_grade'):

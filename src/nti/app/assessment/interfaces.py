@@ -225,8 +225,8 @@ class IUsersCourseSubmissionItem(IContained, IShouldHaveTraversablePath):
     Marker interface for course submission items
     """
 
-class IUsersCourseAssignmentHistoryItemContainer(ICreated,
-                                                 ILastModified,
+class IUsersCourseAssignmentHistoryItemContainer(ILastModified,
+                                                 IContained,
                                                  IOrderedContainer,
                                                  IShouldHaveTraversablePath):
     """

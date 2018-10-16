@@ -164,13 +164,13 @@ class TestCompletion(ApplicationLayerTest):
             items = set()
             for provider in providers:
                 items.update(provider.iter_items(user))
-            assert_that(items, has_length(greater_than_or_equal_to(33)))
+            assert_that(items, has_length(greater_than_or_equal_to(43)))
             assert_that(items, has_items(has_property('mime_type',
                                                       ASSIGNMENT_MIME_TYPE),
                                          does_not(
                                             has_property('ntiid', assignment_ntiid))))
             progress = component.queryMultiAdapter((user,course), IProgress)
             assert_that(progress.AbsoluteProgress, is_(0))
-            assert_that(progress.MaxPossibleProgress, is_(33))
+            assert_that(progress.MaxPossibleProgress, is_(43))
             assert_that(progress.HasProgress, is_(False))
             assert_that(progress.LastModified, none())

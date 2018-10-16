@@ -91,4 +91,4 @@ class TestPacakgeViews(ApplicationLayerTest):
         assignments_href = self.require_link_href_with_rel(res.json_body, "Assignments")
 
         res = self.testapp.get(assignments_href, status=200)
-        assert_that(res.json_body, has_entry('Total', is_(150)))
+        assert_that(res.json_body, has_entry('Total', is_(170)))

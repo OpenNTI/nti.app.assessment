@@ -53,6 +53,6 @@ class TestImporter(ApplicationLayerTest):
                 exporter.export(course, filer)
                 importer = AssessmentsImporter()
                 result = importer.process(course, filer)
-                assert_that(result, has_length(184))
+                assert_that(result, has_length(214))
             finally:
                 shutil.rmtree(tmp_dir, True)

@@ -16,6 +16,7 @@ from nti.app.assessment.common.utils import get_courses
 from nti.app.assessment.common.utils import to_course_list
 
 from nti.app.assessment.interfaces import IUsersCourseInquiries
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
@@ -29,6 +30,37 @@ from nti.assessment.interfaces import IQAssessmentDateContext
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 logger = __import__('logging').getLogger(__name__)
+
+
+def get_most_recent_history_item(user, course, assignment):
+    """
+    For bwc, it's necessary to get a single submission rather than one or
+    more possible submissions.
+    """
+    result = None
+    assignment_ntiid = getattr(assignment, 'ntiid', assignment)
+    container = component.queryMultiAdapter((course, user),
+                                            IUsersCourseAssignmentHistory)
+    if container is not None:
+        submission_container = container.get(assignment_ntiid)
+        if submission_container:
+            result = tuple(submission_container.values())[-1]
+    return result
+
+
+def get_user_submission_count(user, course, assignment):
+    """
+    Return the submission count for a user, course and assignment_ntiid.
+    """
+    result = 0
+    assignment_ntiid = getattr(assignment, 'ntiid', assignment)
+    container = component.queryMultiAdapter((course, user),
+                                            IUsersCourseAssignmentHistory)
+    if container is not None:
+        submission_container = container.get(assignment_ntiid)
+        if submission_container:
+            result = len(submission_container)
+    return result
 
 
 def get_assessment_metadata_item(context, user, assignment):

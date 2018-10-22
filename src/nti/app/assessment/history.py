@@ -26,6 +26,10 @@ from zope.cachedescriptors.property import CachedProperty
 
 from zope.container.contained import Contained
 
+from zope.container.interfaces import INameChooser
+
+from zope.container.ordered import OrderedContainer
+
 from zope.location.interfaces import ISublocations
 
 from nti.app.assessment.common.assessed import set_assessed_lineage
@@ -40,6 +44,7 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemSummary
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemContainer
 
 from nti.assessment.interfaces import IQAssignment
 
@@ -141,8 +146,14 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
         set_assessed_lineage(submission)
 
         lifecycleevent.created(item)
+        submission_container = self.get(submission.assignmentId)
+        if submission_container is None:
+            submission_container = UsersCourseAssignmentHistoryItemContainer()
+            self[submission.assignmentId] = submission_container
+        chooser = INameChooser(submission_container)
+        key = chooser.chooseName('', item)
         # fire object added, which is dispatched to sublocations
-        self[submission.assignmentId] = item
+        submission_container[key] = item
         return item
 
     def __conform__(self, iface):
@@ -169,6 +180,34 @@ class UsersCourseAssignmentHistory(CheckingLastModifiedBTreeContainer):
             aces.append(ace_allowing(instructor, ALL_PERMISSIONS, type(self)))
         aces.append(ACE_DENY_ALL)
         return acl_from_aces(aces)
+
+
+@interface.implementer(IUsersCourseAssignmentHistoryItemContainer,
+                       ISublocations)
+class UsersCourseAssignmentHistoryItemContainer(PersistentCreatedModDateTrackingObject,
+                                                OrderedContainer,
+                                                Contained,
+                                                SchemaConfigured):
+
+    createDirectFieldProperties(IUsersCourseAssignmentHistoryItemContainer)
+
+    __external_can_create__ = False
+
+    @property
+    def Items(self):
+        return dict(self)
+
+    def sublocations(self):
+        return tuple(self.values())
+
+    def reset(self, event=True):
+        keys = list(self)
+        for k in keys:
+            if event:
+                del self[k]  # pylint: disable=unsupported-delete-operation
+            else:
+                self._delitemf(k)
+    clear = reset
 
 
 @interface.implementer(IUsersCourseAssignmentHistoryItem,
@@ -206,7 +245,9 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
         if IUser.isOrExtends(iface):
             # If the user is deleted, we will not be able to do this
             try:
-                return iface(self.__parent__)
+                submission_container = self.__parent__
+                histories = submission_container.__parent__
+                return iface(histories, None) or iface(submission_container)
             except (AttributeError, TypeError):
                 return None
 
@@ -222,12 +263,13 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 
     @readproperty
     def Assignment(self):
-        result = component.queryUtility(IQAssignment, name=self.__name__ or '')
+        result = component.queryUtility(IQAssignment, name=self.assignmentId or '')
         return result
 
     @property
     def assignmentId(self):
-        return self.__name__
+        # Our submission container key
+        return self.__parent__.__name__
 
     @property
     def _has_grade(self):
@@ -262,7 +304,7 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 
         course = ICourseInstance(self, None)
         # our name is the assignment id
-        asg_id = self.__name__
+        asg_id = self.assignmentId
         assignment = component.queryUtility(IQAssignment, name=asg_id)
         if course is None or assignment is None:
             # Not enough information, bail

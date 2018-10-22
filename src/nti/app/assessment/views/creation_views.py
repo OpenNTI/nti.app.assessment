@@ -30,13 +30,6 @@ from nti.app.assessment import VIEW_ASSESSMENT_MOVE
 from nti.app.assessment import VIEW_COPY_EVALUATION
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 
-from nti.app.assessment.common.evaluations import get_containers_for_evaluation_object
-
-from nti.app.assessment.common.policy import validate_auto_grade
-from nti.app.assessment.common.policy import get_auto_grade_policy
-
-from nti.app.assessment.common.utils import get_courses
-
 from nti.app.assessment.interfaces import IQEvaluations
 
 from nti.app.assessment.utils import get_course_from_request
@@ -68,14 +61,9 @@ from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQEditableEvaluation
 
-from nti.assessment.interfaces import QAssessmentPoliciesModified
 from nti.assessment.interfaces import QuestionInsertedInContainerEvent
 
 from nti.assessment.interfaces import QuestionMovedEvent
-
-from nti.common.string import is_true
-
-from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver import authorization as nauth
 
@@ -89,8 +77,6 @@ from nti.externalization.internalization import update_from_external_object
 from nti.externalization.proxy import removeAllProxies
 
 from nti.mimetype.externalization import decorateMimeType
-
-from nti.traversal.traversal import find_interface
 
 OID = StandardExternalFields.OID
 ITEMS = StandardExternalFields.ITEMS

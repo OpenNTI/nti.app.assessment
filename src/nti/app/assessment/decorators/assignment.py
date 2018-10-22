@@ -47,12 +47,15 @@ from nti.app.assessment.common.evaluations import get_containers_for_evaluation_
 from nti.app.assessment.common.evaluations import get_available_assignments_for_evaluation_object
 
 from nti.app.assessment.common.history import has_savepoints
+from nti.app.assessment.common.history import get_most_recent_history_item
 from nti.app.assessment.common.history import get_assessment_metadata_item
 
 from nti.app.assessment.common.policy import get_policy_locked
 from nti.app.assessment.common.policy import get_policy_excluded
 from nti.app.assessment.common.policy import get_auto_grade_policy
+from nti.app.assessment.common.policy import get_policy_max_submissions
 from nti.app.assessment.common.policy import get_submission_buffer_policy
+from nti.app.assessment.common.policy import get_policy_submission_priority
 
 from nti.app.assessment.common.submissions import has_submissions
 
@@ -267,6 +270,10 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
         else:
             result['IsTimedAssignment'] = False
 
+        # Max submissions
+        result['max_submissions'] = get_policy_max_submissions(assignment, course)
+        result['submission_priority'] = get_policy_submission_priority(assignment, course)
+
         # auto_grade/total_points
         auto_grade = get_auto_grade_policy(assignment, course)
         if auto_grade:
@@ -374,10 +381,9 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
         if not due_date or due_date <= datetime.utcnow():
             # If student check if there is a submission for the assignment
             if IQAssignment.providedBy(context):
-                history = component.queryMultiAdapter((course, remoteUser),
-                                                      IUsersCourseAssignmentHistory)
+                history_item = get_most_recent_history_item(remoteUser, course, context)
                 # there is a submission
-                if history and context.ntiid in history:
+                if history_item is not None:
                     return False
 
             # Nothing done always strip

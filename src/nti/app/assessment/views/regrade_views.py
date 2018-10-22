@@ -11,8 +11,6 @@ logger = __import__('logging').getLogger(__name__)
 
 from requests.structures import CaseInsensitiveDict
 
-from zope import component
-
 from pyramid import httpexceptions as hexc
 
 from pyramid.view import view_config
@@ -40,7 +38,7 @@ from nti.contenttypes.courses.utils import is_course_instructor
 
 from nti.dataserver import authorization as nauth
 
-from nti.dataserver.interfaces import IGroupMember
+from nti.dataserver.authorization import is_admin
 
 from nti.dataserver.users.users import User
 
@@ -56,10 +54,7 @@ class RegradeEvaluationView(AbstractAuthenticatedView):
 
     @property
     def _admin_user(self):
-        result = set()
-        for _, adapter in component.getAdapters((self.remoteUser,), IGroupMember):
-            result.update(adapter.groups)
-        return nauth.ROLE_ADMIN in result
+        return is_admin(self.remoteUser)
 
     def _get_instructor(self):
         params = CaseInsensitiveDict(self.request.params)

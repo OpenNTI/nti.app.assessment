@@ -422,17 +422,30 @@ class RebuildEvaluationCatalogView(AbstractAuthenticatedView):
              name='RebuildSubmissionCatalog')
 class RebuildSubmissionCatalogView(AbstractAuthenticatedView):
 
+    def _index_item(self, obj, index, intids):
+        result = False
+        doc_id = intids.queryId(obj)
+        if doc_id is not None:
+            index.index_doc(doc_id, obj)
+            metadata_queue_add(obj)
+            result = True
+        return result
+
     def _process_course(self, course, index, intids):
         result = 0
         for provided in (IUsersCourseAssignmentHistories, IUsersCourseInquiries):
             container = provided(course, None) or {}
             for user_data in container.values():
                 for obj in user_data.values():
-                    doc_id = intids.queryId(obj)
-                    if doc_id is not None:
-                        index.index_doc(doc_id, obj)
-                        metadata_queue_add(obj)
+                    if self._index_item(obj, index, intids):
                         result += 1
+                    try:
+                        # Assignment histories now in containers
+                        for submission in obj.values():
+                            if self._index_item(submission, index, intids):
+                                result += 1
+                    except AttributeError:
+                        pass
         return result
 
     def _process_site(self, index, intids, seen):

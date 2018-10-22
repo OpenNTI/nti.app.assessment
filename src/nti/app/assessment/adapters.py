@@ -21,6 +21,7 @@ from zope.annotation.interfaces import IAnnotations
 
 from zope.location.interfaces import LocationError
 
+from zope.schema.interfaces import TooLong
 from zope.schema.interfaces import NotUnique
 from zope.schema.interfaces import ConstraintNotSatisfied
 
@@ -110,6 +111,7 @@ from nti.site.interfaces import IHostPolicyFolder
 
 from nti.traversal.traversal import find_interface
 from nti.traversal.traversal import ContainerAdapterTraversable
+from nti.app.assessment.common.policy import get_policy_max_submissions
 
 logger = __import__('logging').getLogger(__name__)
 
@@ -234,11 +236,22 @@ def _begin_assessment_for_assignment_submission(submission):
     _validate_submission(submission, course, assignment)
     assignment_history = component.getMultiAdapter((course, submission.creator),
                                                    IUsersCourseAssignmentHistory)
-    if submission.assignmentId in assignment_history:
-        ex = NotUnique("Assignment already submitted")
-        ex.field = IQAssignmentSubmission['assignmentId']
-        ex.value = submission.assignmentId
-        raise ex
+
+    submission_container = assignment_history.get(submission.assignmentId)
+    if submission_container:
+        max_submissions = get_policy_max_submissions(assignment, course)
+        ex = None
+        if max_submissions is None or max_submissions < 2:
+            ex = NotUnique("Assignment already submitted")
+            ex = ex.with_field_and_value(IQAssignmentSubmission['assignmentId'],
+                                         submission.assignmentId)
+        else:
+            if len(submission_container) >= max_submissions:
+                ex = TooLong(submission_container, max_submissions)
+                ex = ex.with_field_and_value(submission_container,
+                                             max_submissions)
+        if ex is not None:
+            raise ex
 
     set_assessed_lineage(submission)
     submission.containerId = submission.assignmentId
@@ -252,10 +265,9 @@ def _begin_assessment_for_assignment_submission(submission):
     if version is not None:  # record version
         pending_assessment.version = submission.version = version
 
-    # Now record the submission. This will broadcast created and
-    # added events for the HistoryItem and an added event for the pending assessment.
-    # The HistoryItem will have
-    # the course in its lineage.
+    # Now record the submission. This will broadcast created and added events
+    # for the HistoryItem and an added event for the pending assessment.
+    # The HistoryItem will have the course in its lineage.
     assignment_history.recordSubmission(submission, pending_assessment)
     return pending_assessment
 

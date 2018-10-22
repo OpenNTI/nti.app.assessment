@@ -59,6 +59,8 @@ from nti.app.assessment.common.evaluations import is_assignment_available
 from nti.app.assessment.common.evaluations import get_course_from_evaluation
 from nti.app.assessment.common.evaluations import is_assignment_available_for_submission
 
+from nti.app.assessment.common.history import get_most_recent_history_item
+
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 
@@ -325,9 +327,8 @@ class AbstractSubmissionBulkFileDownloadView(AbstractAuthenticatedView):
             principal = IUser(record, None)
             if principal is None:  # dup enrollment ?
                 continue
-            assignment_history = component.getMultiAdapter((course, principal),
-                                                           IUsersCourseAssignmentHistory)
-            history_item = assignment_history.get(assignment_id)
+            # TODO: Is this correct? What do we do for multiple submissions?
+            history_item = get_most_recent_history_item(principal, course, assignment_id)
             if history_item is None:
                 continue  # No submission for this assignment
             self._save_files(principal, history_item, zipfile)

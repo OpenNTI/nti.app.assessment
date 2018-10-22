@@ -205,7 +205,10 @@ class ValidatingAssesmentID(object):
 
     def __init__(self, obj, unused_default=None):
         if IUsersCourseSubmissionItem.providedBy(obj):
-            self.assesmentId = obj.__name__  # by definition
+            try:
+                self.assesmentId = obj.assignmentId
+            except AttributeError:
+                self.assesmentId = obj.__name__
 
     def __reduce__(self):
         raise TypeError()
@@ -307,7 +310,7 @@ MetadataAssesmentCatalog = MetadataSubmissionCatalog # BWC
 
 
 def get_submission_catalog(registry=component):
-    return registry.queryUtility(IDeferredCatalog, 
+    return registry.queryUtility(IDeferredCatalog,
                                  name=SUBMISSION_CATALOG_NAME)
 
 

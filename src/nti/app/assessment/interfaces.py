@@ -20,6 +20,8 @@ from zope.container.interfaces import IContainer
 from zope.container.interfaces import IOrderedContainer
 from zope.container.interfaces import IContainerNamesContainer
 
+from zope.deprecation import deprecated
+
 from zope.interface.interfaces import ObjectEvent
 from zope.interface.interfaces import IObjectEvent
 
@@ -307,6 +309,75 @@ class IUsersCourseAssignmentHistoryItemFeedback(ITitledContent,
     body = ExtendedCompoundModeledContentBody()
 
 
+class ICourseAssignmentAttemptMetadata(IContainer,
+                                       IContained,
+                                       IShouldHaveTraversablePath):
+    """
+    A container for all the assignment metadata in a course, keyed by username.
+    """
+    contains('.IUsersCourseAssignmentAttemptMetadata')
+
+
+class IUsersCourseAssignmentAttemptMetadata(ILastModified,
+                                            IContained,
+                                            IContainer,
+                                            IShouldHaveTraversablePath):
+    """
+    An ordered container for storing one or more
+    :class:`IUsersCourseAssignmentAttemptMetadata` attempt metadata for a user,
+    course, and assignment.
+    """
+
+    containers(ICourseAssignmentAttemptMetadata)
+    contains('.IUsersCourseAssignmentAttemptMetadataContainer')
+    __parent__.required = False
+
+
+class IUsersCourseAssignmentAttemptMetadataContainer(IContained,
+                                                     IOrderedContainer,
+                                                     IShouldHaveTraversablePath):
+    """
+    A :class:`IContainer`-like object that stores metadata of
+    assignments for a particular user in a course. The keys of this
+    object are :class:`IAssignment` IDs (this class may or may not
+    enforce that the assignment ID is actually scoped to the course it
+    is registered for). The values are instances of :class:`.IUsersCourseAssignmentMetadataItem`.
+    """
+
+    containers(IUsersCourseAssignmentAttemptMetadata)
+    contains('.IUsersCourseAssignmentAttemptMetadataItem')
+
+    owner = Object(IUser,
+                   required=False,
+                   title=u"The user this metadata is for.")
+    owner.setTaggedValue('_ext_excluded_out', True)
+
+    Items = Dict(title=u'For externalization only, a copy of the items',
+                 readonly=True)
+
+
+class IUsersCourseAssignmentAttemptMetadataItem(IContained,
+                                                IShouldHaveTraversablePath):
+    """
+    A :class:`IContainer`-like object that stores metadata of
+    assignments for a particular user in a course. The keys of this
+    object are :class:`IAssignment` IDs (this class may or may not
+    enforce that the assignment ID is actually scoped to the course it
+    is registered for). The values are instances of :class:`.IUsersCourseAssignmentMetadataItem`.
+    """
+
+    containers(IUsersCourseAssignmentAttemptMetadataContainer)
+
+    StartTime = Float(title=u"Assignment Start time", required=False)
+    Duration = Float(title=u"Assignment Duration", required=False)
+    SubmitTime = Float(title=u"Assignment submission time", required=False)
+    Seed = ValidTextLine(title=u"Randomization seed", required=False)
+    HistoryItem = Object(IUsersCourseAssignmentHistoryItem,
+                         title=u'The user history item for this attempt',
+                         required=False)
+
+
+deprecated("IUsersCourseAssignmentMetadataContainer", "no longer used")
 class IUsersCourseAssignmentMetadataContainer(IContainer,
                                               IContained,
                                               IShouldHaveTraversablePath):
@@ -316,6 +387,7 @@ class IUsersCourseAssignmentMetadataContainer(IContainer,
     contains('.IUsersCourseAssignmentMetadata')
 
 
+deprecated("IUsersCourseAssignmentMetadata", "no longer used")
 class IUsersCourseAssignmentMetadata(IContainer,
                                      IContained,
                                      IShouldHaveTraversablePath):
@@ -340,6 +412,7 @@ class IUsersCourseAssignmentMetadata(IContainer,
 				 readonly=True)
 
 
+deprecated("IUsersCourseAssignmentMetadataItem", "no longer used")
 class IUsersCourseAssignmentMetadataItem(interface.Interface):
     containers(IUsersCourseAssignmentMetadata)
     __parent__.required = False

@@ -331,10 +331,11 @@ class _CourseMetadataAttemptContainerTraversable(ContainerAdapterTraversable):
             raise
 
 
-@component.adapter(IUsersCourseAssignmentMetadata, IRequest)
-class _UsersCourseMetadataTraversable(ContainerAdapterTraversable):
+@component.adapter(IUsersCourseAssignmentAttemptMetadata, IRequest)
+class _UsersCourseMetadataAttemptTraversable(ContainerAdapterTraversable):
 
     def traverse(self, key, unused_remaining_path):
+        # FIXME is this right?
         assesment = component.queryUtility(IQAssessment, name=key)
         if assesment is not None:
             return assesment
@@ -342,7 +343,7 @@ class _UsersCourseMetadataTraversable(ContainerAdapterTraversable):
 
 
 @component.adapter(ICourseInstance, IObjectAddedEvent)
-def _on_course_added(course, unused_event):
+def _attempt_meta_on_course_added(course, unused_event):
     _metadata_for_course(course)
 
 

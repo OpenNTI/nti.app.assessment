@@ -324,8 +324,8 @@ class IUsersCourseAssignmentAttemptMetadata(ILastModified,
                                             IShouldHaveTraversablePath):
     """
     An ordered container for storing one or more
-    :class:`IUsersCourseAssignmentAttemptMetadata` attempt metadata for a user,
-    course, and assignment.
+    :class:`IUsersCourseAssignmentAttemptMetadataItemContainer` attempt metadata for a user,
+    course, keyed by assignment ntiid.
     """
 
     containers(ICourseAssignmentAttemptMetadata)
@@ -337,11 +337,9 @@ class IUsersCourseAssignmentAttemptMetadataItemContainer(IContained,
                                                          IOrderedContainer,
                                                          IShouldHaveTraversablePath):
     """
-    A :class:`IContainer`-like object that stores metadata of
-    assignments for a particular user in a course. The keys of this
-    object are :class:`IAssignment` IDs (this class may or may not
-    enforce that the assignment ID is actually scoped to the course it
-    is registered for). The values are instances of :class:`.IUsersCourseAssignmentMetadataItem`.
+    A :class:`IContainer`-like object that stores ordered metadata items of
+    a particular for a user, course, and assignment. The values are instances
+    of :class:`.IUsersCourseAssignmentAttemptMetadataItem`.
     """
 
     containers(IUsersCourseAssignmentAttemptMetadata)

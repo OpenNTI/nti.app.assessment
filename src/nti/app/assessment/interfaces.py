@@ -329,13 +329,13 @@ class IUsersCourseAssignmentAttemptMetadata(ILastModified,
     """
 
     containers(ICourseAssignmentAttemptMetadata)
-    contains('.IUsersCourseAssignmentAttemptMetadataContainer')
+    contains('.IUsersCourseAssignmentAttemptMetadataItemContainer')
     __parent__.required = False
 
 
-class IUsersCourseAssignmentAttemptMetadataContainer(IContained,
-                                                     IOrderedContainer,
-                                                     IShouldHaveTraversablePath):
+class IUsersCourseAssignmentAttemptMetadataItemContainer(IContained,
+                                                         IOrderedContainer,
+                                                         IShouldHaveTraversablePath):
     """
     A :class:`IContainer`-like object that stores metadata of
     assignments for a particular user in a course. The keys of this
@@ -366,7 +366,7 @@ class IUsersCourseAssignmentAttemptMetadataItem(IContained,
     is registered for). The values are instances of :class:`.IUsersCourseAssignmentMetadataItem`.
     """
 
-    containers(IUsersCourseAssignmentAttemptMetadataContainer)
+    containers(IUsersCourseAssignmentAttemptMetadataItemContainer)
 
     StartTime = Float(title=u"Assignment Start time", required=False)
     Duration = Float(title=u"Assignment Duration", required=False)

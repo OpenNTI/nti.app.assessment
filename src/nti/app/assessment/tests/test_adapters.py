@@ -633,6 +633,13 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         with mock_dataserver.mock_db_trans(self.ds, site_name='janux.ou.edu'):
             course = ICourseInstance(find_object_with_ntiid(COURSE_NTIID))
             histories = IUsersCourseAssignmentHistories(course)
+            user_container = histories.get(self.default_username)
+            submission_container = user_container.get(self.assignment_id)
+            assert_that(submission_container, has_length(1))
+            item = submission_container.values()[0]
+            assignment = item.Assignment
+            assert_that(assignment, not_none())
+            assert_that(assignment.ntiid, is_(self.assignment_id))
             histories.clear()
             assert_that(histories, has_length(0))
 

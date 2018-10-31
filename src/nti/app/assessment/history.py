@@ -268,8 +268,12 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
 
     @property
     def assignmentId(self):
-        # Our submission container key
-        return self.__parent__.__name__
+        try:
+            # Our submission container key
+            return self.__parent__.__name__
+        except AttributeError:
+            # Only occurs during init
+            pass
 
     @property
     def _has_grade(self):

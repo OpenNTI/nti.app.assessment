@@ -184,6 +184,7 @@ class _AssignmentHistoryItemDecorator(_AbstractTraversableLinkDecorator):
         item = get_assessment_metadata_item(course, user, context.assignmentId)
         if item is not None:
             result_map['Metadata'] = to_external_object(item)
+        result_map['AssignmentId'] = item.assignmentId
         result_map['submission_count'] = get_user_submission_count(remoteUser,
                                                                    course,
                                                                    context.assignmentId)

@@ -354,10 +354,10 @@ def _attempt_on_assignment_history_item_added(item, unused_event):
     assignment_metadata = component.queryMultiAdapter((course, user),
                                                       IUsersCourseAssignmentAttemptMetadata)
     if assignment_metadata is not None:
-        # FIXME: We should already have an attempt here
-        # Store weakref to item here
-        meta_item = assignment_metadata.get_or_create(item.assignmentId, time.time())
-        meta_item.Duration = time.time() - meta_item.StartTime
+        # FIXME: Store weakref to item here
+        meta_item = assignment_metadata.get(item.assignmentId)
+        meta_item.SubmitTime = time.time()
+        meta_item.Duration = meta_item.SubmitTime - meta_item.StartTime
         meta_item.updateLastMod()
 
 

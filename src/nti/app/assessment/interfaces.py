@@ -353,6 +353,12 @@ class IUsersCourseAssignmentAttemptMetadataItemContainer(IContained,
     Items = Dict(title=u'For externalization only, a copy of the items',
                  readonly=True)
 
+    def add_attempt(self, attempt):
+        """
+        Add the :class:`.IUsersCourseAssignmentAttemptMetadataItem` to this
+        ordered container.
+        """
+
 
 class IUsersCourseAssignmentAttemptMetadataItem(IContained,
                                                 IShouldHaveTraversablePath):

@@ -14,12 +14,16 @@ from pyramid.interfaces import IRequest
 
 import six
 
+from ZODB.interfaces import IConnection
+
 from zope import component
 from zope import interface
 
 from zope.annotation.interfaces import IAnnotations
 
 from zope.container.contained import Contained
+
+from zope.container.interfaces import INameChooser
 
 from zope.container.ordered import OrderedContainer
 
@@ -126,14 +130,12 @@ class UsersCourseAssignmentAttemptMetadata(CheckingLastModifiedBTreeContainer,
     def Items(self):
         return dict(self)
 
-    def get_or_create(self, assignmentId, start_time=None):
-        # FIXME
-        if assignmentId not in self:
-            start_time = float(start_time) if start_time is not None else start_time
+    def get_or_create(self, assignmentId):
+        try:
+            result = self[assignmentId]
+        except KeyError:
             result = UsersCourseAssignmentAttemptMetadataItemContainer()
             self.append(assignmentId, result)
-        else:
-            result = self[assignmentId]
         return result
     getOrCreate = get_or_create
 
@@ -182,6 +184,14 @@ class UsersCourseAssignmentAttemptMetadataItemContainer(PersistentCreatedModDate
     @property
     def Items(self):
         return dict(self)
+
+    def add_attempt(self, attempt):
+        chooser = INameChooser(self)
+        key = chooser.chooseName('', attempt)
+        # fire object added, which is dispatched to sublocations
+        self[key] = attempt
+        return attempt
+    append = add_attempt
 
     def reset(self, event=True):
         keys = list(self)
@@ -247,38 +257,13 @@ class UsersCourseAssignmentAttemptMetadataItem(PersistentCreatedModDateTrackingO
         return result
 
 
-@interface.implementer(IInternalObjectUpdater)
-@component.adapter(IUsersCourseAssignmentAttemptMetadataItem)
-class _UsersCourseAssignmentAttemptMetadataItemUpdater(object):
-
-    __slots__ = ('item',)
-
-    def __init__(self, item):
-        self.item = item
-
-    def updateFromExternalObject(self, parsed, *args, **kwargs):
-        # TODO: Do we need this?
-        start_time = parsed.get('StartTime', None)
-        if self.item.StartTime is None:
-            if isinstance(start_time, six.string_types):
-                parsed['StartTime'] = float(start_time)
-        else:
-            parsed.pop('StartTime', None)
-
-        result = InterfaceObjectIO(
-                    self.item,
-                    IUsersCourseAssignmentAttemptMetadataItem).updateFromExternalObject(parsed, *args, **kwargs)
-        return result
-
-
 @component.adapter(ICourseInstance)
 @interface.implementer(ICourseAssignmentAttemptMetadata)
 def _metadata_for_course(course, create=True):
-    # FIXME add to connection like in other places
     result = None
     annotations = IAnnotations(course)
     try:
-        KEY = u'AssignmentMetadata'
+        KEY = u'AssignmentAttemptMetadata'
         result = annotations[KEY]
     except KeyError:
         if create:
@@ -286,6 +271,10 @@ def _metadata_for_course(course, create=True):
             annotations[KEY] = result
             result.__name__ = KEY
             result.__parent__ = course
+            # Deterministically add to our course db.
+            # Sectioned courses would give us multiple
+            # db error for some reason.
+            IConnection(course).add(result)
     return result
 
 
@@ -335,7 +324,8 @@ class _CourseMetadataAttemptContainerTraversable(ContainerAdapterTraversable):
 class _UsersCourseMetadataAttemptTraversable(ContainerAdapterTraversable):
 
     def traverse(self, key, unused_remaining_path):
-        # FIXME is this right?
+        # Is this right? We traverse to the assignment object itself from our
+        # meta...
         assesment = component.queryUtility(IQAssessment, name=key)
         if assesment is not None:
             return assesment
@@ -355,7 +345,11 @@ def _attempt_on_assignment_history_item_added(item, unused_event):
                                                       IUsersCourseAssignmentAttemptMetadata)
     if assignment_metadata is not None:
         # FIXME: Store weakref to item here
+        # Must have an assignment here
         meta_item = assignment_metadata.get(item.assignmentId)
+        # FIXME: disable until more functional
+        if meta_item is None:
+            return
         meta_item.SubmitTime = time.time()
         meta_item.Duration = meta_item.SubmitTime - meta_item.StartTime
         meta_item.updateLastMod()
@@ -390,6 +384,7 @@ def _assignment_history_item_to_metadata_attempt(item):
         for attempt_meta in assignment_metadata.values():
             if attempt_meta.HistoryItem == item:
                 return attempt_meta
+
 
 # ----------------------------------------
 

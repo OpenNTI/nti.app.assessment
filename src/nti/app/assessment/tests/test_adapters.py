@@ -326,11 +326,11 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
         history_res = self._check_submission(res, course_history_link)
         container = history_res.json_body['Items'][self.assignment_id]
-        history_item_href = container['Items'].values()[0]['href']
+        history_item_href = container['Items'][0]['href']
         last_viewed_href = self.require_link_href_with_rel(history_res.json_body,
                                                            'lastViewed')
         container = history_res.json_body['Items'].values()[0]
-        history_feedback_container_href = container['Items'].values()[0]['Feedback']['href']
+        history_feedback_container_href = container['Items'][0]['Feedback']['href']
 
         # The user can send some feedback
         feedback = UsersCourseAssignmentHistoryItemFeedback(body=[u'Some feedback'])
@@ -370,7 +370,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
                         has_entry('Items', has_length(1)))
             container = history_res.json_body['Items'].values()[0]
             assert_that(container['Items'], has_length(1))
-            item = container['Items'].values()[0]
+            item = container['Items'][0]
             feedback = item['Feedback']
             assert_that(feedback, has_entry('Items', has_length(1)))
             assert_that(feedback['Items'],
@@ -458,7 +458,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         for link in course_history_link, enrollment_history_link:
             history_res = self.testapp.get(link)
             submission_container = history_res.json_body['Items'].values()[0]
-            item = submission_container['Items'].values()[0]
+            item = submission_container['Items'][0]
             feedback = item['Feedback']
             assert_that(feedback, has_entry('Items', has_length(0)))
 
@@ -625,7 +625,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
         # ... the assessed parts are also stripped
         history_item = next(iter(history_res.json_body['Items'].values()))
-        history_item = next(iter(history_item['Items'].values()))
+        history_item = next(iter(history_item['Items']))
 
         pending = history_item['pendingAssessment']
         _check_pending(pending)

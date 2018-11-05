@@ -261,7 +261,7 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
 
         # Now we should be able to find and download our data
         container = history_res.json_body['Items'].values()[0]
-        submission = container['Items'].values()[0]['Submission']
+        submission = container['Items'][0]['Submission']
         submitted_file_part = submission['parts'][0]['questions'][0]['parts'][0]
         assert_that(submitted_file_part, has_key('url'))
         assert_that(submitted_file_part, has_key('value'))
@@ -356,7 +356,7 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
         history_res, _, _ = self._create_and_enroll(course_id=cid)
 
         container = history_res.json_body['Items'][self.assignment_id]
-        item = container['Items'].values()[0]
+        item = container['Items'][0]
         item_href = item['href']
         # Initially, we have the ability to delete it ourself
         link = self.link_with_rel(item, 'edit')

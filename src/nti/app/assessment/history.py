@@ -195,7 +195,7 @@ class UsersCourseAssignmentHistoryItemContainer(PersistentCreatedModDateTracking
 
     @property
     def Items(self):
-        return dict(self)
+        return list(self.values())
 
     def sublocations(self):
         return tuple(self.values())

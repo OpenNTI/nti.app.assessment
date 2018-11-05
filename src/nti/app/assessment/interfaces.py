@@ -238,7 +238,7 @@ class IUsersCourseAssignmentHistoryItemContainer(ILastModified,
     containers(IUsersCourseAssignmentHistory)
     __parent__.required = False
 
-    Items = Dict(title=u'For externalization only, a copy of the items',
+    Items = List(title=u'For externalization only, a copy of the history items',
                  readonly=True)
 
 

@@ -10,7 +10,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
-generation = 42
+generation = 43
 
 from zope import component
 from zope import interface
@@ -18,14 +18,9 @@ from zope import interface
 from zope.component.hooks import site
 from zope.component.hooks import setHooks
 
-from zope.container.interfaces import INameChooser
-
 from zope.intid.interfaces import IIntIds
 
-from nti.app.assessment.history import UsersCourseAssignmentHistoryItemContainer
-
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
-from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemContainer
 
 from nti.dataserver.interfaces import IDataserver
 from nti.dataserver.interfaces import IOIDResolver
@@ -75,37 +70,10 @@ def do_evolve(context, generation=generation):
         for doc_id in item_intids or ():
             item = intids.queryObject(doc_id)
             if IUsersCourseAssignmentHistoryItem.providedBy(item):
-                user_history = item.__parent__
-                if user_history is None:
-                    logger.warn('History item without lineage (%s)', item)
-                    continue
-                if IUsersCourseAssignmentHistoryItemContainer.providedBy(user_history):
-                    # Idempotent
-                    continue
-                total += 1
-                if total % 100 == 0:
-                    logger.info('%s history item containers added', total)
-
-                try:
-                    item.Feedback._order
-                except AttributeError:
-                    # seen in prod, a container without an `_order` attr
-                    logger.info('Invalid feedback container (%s) (%s)', item, item.Feedback)
-                    delattr(item, 'Feedback')
-
-                # Of course we should only have one submission per assignment
-                # at the time of this migration.
-                # XXX: Must use __name__ here since AssignmentId is derived incorrectly
-                # until we update lineage.
-                submission_container = user_history._delitemf(item.__name__, event=False)
-                if not IUsersCourseAssignmentHistoryItemContainer.providedBy(submission_container):
-                    submission_container = UsersCourseAssignmentHistoryItemContainer()
-                user_history[item.__name__] = submission_container
-                assert submission_container.__parent__ is not None
-                chooser = INameChooser(submission_container)
-                key = chooser.chooseName('', item)
-                submission_container[key] = item
-                assert item.__parent__ is submission_container
+                if 'Assignment' in item.__dict__:
+                    del item.__dict__['Assignment']
+                    item._p_changed = True
+                    total += 1
 
     component.getGlobalSiteManager().unregisterUtility(mock_ds, IDataserver)
     logger.info('Assessment evolution %s done; %s items(s) updated',
@@ -114,8 +82,7 @@ def do_evolve(context, generation=generation):
 
 def evolve(context):
     """
-    Evolve to generation 42 to put all IUsersCourseAssignmentHistoryItem
-    objects in IUsersCourseAssignmentHistoryItemContainer objects for
-    multiple submissions.
+    Evolve to generation 43 to fix concrete `Assignment` attrs in some history
+    items (should only be in alpha).
     """
     do_evolve(context)

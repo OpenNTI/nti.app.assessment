@@ -10,6 +10,7 @@ from hamcrest import none
 from hamcrest import is_not
 from hamcrest import has_items
 from hamcrest import has_length
+from hamcrest import has_entries
 from hamcrest import assert_that
 from hamcrest import has_property
 from hamcrest import greater_than_or_equal_to
@@ -31,9 +32,16 @@ from nti.app.testing.decorators import WithSharedApplicationMockDS
 
 from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
 
+from nti.assessment.assignment import QAssignment
+
+from nti.assessment.question import QQuestionSet
+
+from nti.assessment.survey import QSurvey
+
 from nti.contenttypes.completion.interfaces import IProgress
 from nti.contenttypes.completion.interfaces import ICompletableItemProvider
 from nti.contenttypes.completion.interfaces import IRequiredCompletableItemProvider
+from nti.contenttypes.completion.interfaces import ICompletableItemCompletionPolicy
 from nti.contenttypes.completion.interfaces import ICompletableItemDefaultRequiredPolicy
 
 from nti.contenttypes.completion.policies import CompletableItemAggregateCompletionPolicy
@@ -43,6 +51,8 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.dataserver.tests import mock_dataserver
 
 from nti.dataserver.users import User
+
+from nti.externalization.externalization import to_external_object
 
 from nti.ntiids.ntiids import find_object_with_ntiid
 
@@ -174,3 +184,21 @@ class TestCompletion(ApplicationLayerTest):
             assert_that(progress.MaxPossibleProgress, is_(43))
             assert_that(progress.HasProgress, is_(False))
             assert_that(progress.LastModified, none())
+
+class TestExternalization(ApplicationLayerTest):
+
+    def test_completion_policy(self):
+        assignment = QAssignment(title=u'ok')
+        policy = ICompletableItemCompletionPolicy(assignment)
+        assert_that(policy, is_not(None))
+        assert_that(to_external_object(policy), has_entries({'Class': 'DefaultAssignmentCompletionPolicy'}))
+
+        question_set = QQuestionSet(title=u'ok')
+        policy = ICompletableItemCompletionPolicy(question_set)
+        assert_that(policy, is_not(None))
+        assert_that(to_external_object(policy), has_entries({'Class': 'DefaultSelfAssessmentCompletionPolicy'}))
+
+        survey = QSurvey(title=u'ok')
+        policy = ICompletableItemCompletionPolicy(survey)
+        assert_that(policy, is_not(None))
+        assert_that(to_external_object(policy), has_entries({'Class': 'DefaultSurveyCompletionPolicy'}))

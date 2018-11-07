@@ -16,7 +16,7 @@ does_not = is_not
 from zope import component
 from zope import interface
 
-from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
+from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadata
 
 from nti.assessment.interfaces import IQTimedAssignment
 
@@ -58,10 +58,12 @@ class TestTimedAssignments(ApplicationLayerTest):
         res = self.testapp.post(href)
         res = res.json_body
 
+        meta_attempt = res.get('MetadataAttemptItem')
+        assert_that(meta_attempt, not_none())
         self.forbid_link_with_rel(res, 'Commence')
         self.require_link_href_with_rel(res, 'Metadata')
-        start_href = self.require_link_href_with_rel(res, 'StartTime')
-        remaining_href = self.require_link_href_with_rel(res, 'TimeRemaining')
+        start_href = self.require_link_href_with_rel(meta_attempt, 'StartTime')
+        remaining_href = self.require_link_href_with_rel(meta_attempt, 'TimeRemaining')
 
         # Start time
         start_res = self.testapp.get(start_href)
@@ -85,10 +87,10 @@ class TestTimedAssignments(ApplicationLayerTest):
             course = ICourseInstance(course)
             user = User.get_user('sjohnson@nextthought.com')
             container = component.getMultiAdapter((course, user),
-                                                  IUsersCourseAssignmentMetadata)
+                                                  IUsersCourseAssignmentAttemptMetadata)
 
             metadata = container[self.assignment_id]
-            metadata.StartTime = metadata.StartTime - 30
+            metadata.values()[0].StartTime = metadata.values()[0].StartTime - 30
 
         # Start time has changed
         start_res = self.testapp.get(start_href)

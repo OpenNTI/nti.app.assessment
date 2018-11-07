@@ -96,7 +96,7 @@ class AssignmentSubmissionStartPostView(AbstractAuthenticatedView):
 
         return result
 
-    def _do_call(self):
+    def __call__(self):
         # TODO: do we need to validate the size of the container?
         # I dont think so.
         self._validate()
@@ -233,13 +233,15 @@ class AssignmentMetadataItemPutView(UGDPutView):
     """
 
 
-# FIXME
 @view_config(route_name="objects.generic.traversal",
              context=IUsersCourseAssignmentAttemptMetadataItem,
              renderer='rest',
-             permission=nauth.ACT_DELETE,
+             permission=nauth.ACT_NTI_ADMIN,
              request_method='DELETE')
 class AssignmentMetadataItemDeleteView(UGDDeleteView):
+    """
+    NT Admins can delete metadata attempt items.
+    """
 
     def _do_delete_object(self, theObject):
         del theObject.__parent__[theObject.__name__]

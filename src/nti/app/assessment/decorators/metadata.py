@@ -8,10 +8,13 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
+from zope import component
 from zope import interface
 
 from nti.app.assessment.decorators import _get_course_from_evaluation
 from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
+
+from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadata
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
@@ -26,6 +29,7 @@ from nti.externalization.interfaces import IExternalMappingDecorator
 from nti.links.links import Link
 
 from nti.ntiids.ntiids import find_object_with_ntiid
+from nti.app.assessment.common.policy import get_policy_max_submissions
 
 LINKS = StandardExternalFields.LINKS
 
@@ -55,12 +59,26 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
                           rel='Metadata',
                           elements=elements + ('Metadata',)))
 
+        user_container = component.queryMultiAdapter((course, user),
+                                                     IUsersCourseAssignmentAttemptMetadata)
+        meta_container = user_container.get(assignment.ntiid)
+        meta_count = 0
+        if meta_container:
+            # Get the currently in-progress attempt, if it exists.
+            meta_count = len(meta_container)
+            for meta_item in meta_container.values():
+                if not meta_item.SubmitTime:
+                    result['MetadataAttemptItem'] = meta_item
+                    break
+
         # All assignments can commence
-        # Always have a Start rel
-        links.append(Link(course,
-                          method='POST',
-                          rel='Commence',
-                          elements=elements + ('@@Commence',)))
+        max_submissions = get_policy_max_submissions(assignment, course)
+        if max_submissions and max_submissions > meta_count:
+            # Always have a Start rel if they have not exceeded threshold
+            links.append(Link(course,
+                              method='POST',
+                              rel='Commence',
+                              elements=elements + ('@@Commence',)))
 
 
 class _AssignmentAttemptMetadataItemDecorator(AbstractAuthenticatedRequestAwareDecorator):

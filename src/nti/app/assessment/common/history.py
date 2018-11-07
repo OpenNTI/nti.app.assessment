@@ -64,6 +64,7 @@ def get_user_submission_count(user, course, assignment):
 
 
 def get_assessment_metadata_item(context, user, assignment):
+    # FIXME
     course = ICourseInstance(context, None)
     metadata = component.queryMultiAdapter((course, user),
                                            IUsersCourseAssignmentMetadata)

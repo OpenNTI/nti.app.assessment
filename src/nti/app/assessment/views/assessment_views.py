@@ -151,6 +151,8 @@ _inquiry_view.update(_read_view_defaults)
 @view_config(accept=str(PAGE_INFO_MT),
              **_assignment_view)
 def pageinfo_from_question_view(request):
+    if not request.accept:
+        from IPython.terminal.debugger import set_trace;set_trace()
     assert request.accept
     # questions are now generally held within their containing IContentUnit,
     # but some old tests don't parent them correctly, using strings

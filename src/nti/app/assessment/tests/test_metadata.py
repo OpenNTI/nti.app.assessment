@@ -134,11 +134,11 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
                                      COURSE_NTIID,
                                      status=201)
 
-        default_enrollment_metadata_link = self.require_link_href_with_rel(res.json_body, 'AssignmentMetadata')
+        default_enrollment_metadata_link = self.require_link_href_with_rel(res.json_body, 'AssignmentAttemptMetadata')
 
         expected = ('/dataserver2/users/' +
                     self.default_username +
-                    '/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentMetadata/' +
+                    '/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentAttemptMetadata/' +
                     self.default_username)
         assert_that(unquote(default_enrollment_metadata_link),
                     is_(unquote(expected)))
@@ -148,7 +148,7 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
                                      status=201,
                                      extra_environ=outest_environ)
 
-        user2_enrollment_history_link = self.require_link_href_with_rel(res.json_body, 'AssignmentMetadata')
+        user2_enrollment_history_link = self.require_link_href_with_rel(res.json_body, 'AssignmentAttemptMetadata')
 
         # each can fetch his own
         self.testapp.get(default_enrollment_metadata_link)
@@ -163,17 +163,17 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
     def _check_metadata(self, res, metadata_link=None):
         assert_that(res.status_int, is_(201))
-        assert_that(res.json_body, 
+        assert_that(res.json_body,
                 	has_entry(StandardExternalFields.CREATED_TIME, is_(float)))
         assert_that(res.json_body,
                     has_entry(StandardExternalFields.LAST_MODIFIED, is_(float)))
         assert_that(res.json_body, has_entry(StandardExternalFields.MIMETYPE,
-                                             'application/vnd.nextthought.assessment.userscourseassignmentmetadataitem'))
+                                             'application/vnd.nextthought.assessment.userscourseassignmentattemptmetadataitem'))
 
         assert_that(res.json_body, has_entry('href', is_not(none())))
         assert_that(res.json_body, has_key('NTIID'))
         assert_that(res.json_body, has_entry('StartTime', is_not(none())))
-        assert_that(res.json_body, 
+        assert_that(res.json_body,
                     has_entry('ContainerId', self.assignment_id))
         assert_that(res.json_body,
                     has_entry(StandardExternalFields.CREATED_TIME, is_(float)))
@@ -182,7 +182,7 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
         if metadata_link:
             metadata_res = self.testapp.get(metadata_link)
-            assert_that(metadata_res.json_body, 
+            assert_that(metadata_res.json_body,
                         has_entry('href', contains_string(unquote(metadata_link))))
             assert_that(metadata_res.json_body,
                         has_entry('Items', has_length(1)))
@@ -190,7 +190,7 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
             items = list(metadata_res.json_body['Items'].values())
             assert_that(items[0], has_key('href'))
         else:
-            self._fetch_user_url('/Courses/EnrolledCourses/CLC3403/AssignmentMetadata' +
+            self._fetch_user_url('/Courses/EnrolledCourses/CLC3403/AssignmentAttemptMetadata' +
                                  self.default_username, status=404)
         return res.json_body
 
@@ -202,7 +202,7 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         item = UsersCourseAssignmentMetadataItem(StartTime=time.time())
         ext_obj = to_external_object(item)
         assert_that(ext_obj,
-                    has_entry('MimeType', 'application/vnd.nextthought.assessment.userscourseassignmentmetadataitem'))
+                    has_entry('MimeType', 'application/vnd.nextthought.assessment.userscourseassignmentattemptmetadataitem'))
 
         # Make sure we're enrolled
         res = self.testapp.post_json('/dataserver2/users/' + self.default_username + '/Courses/EnrolledCourses',
@@ -210,17 +210,17 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
                                      status=201)
 
         course_res = self.testapp.get(COURSE_URL).json_body
-        enrollment_metadata_link = self.require_link_href_with_rel(res.json_body, 'AssignmentMetadata')
-        course_metadata_link = self.require_link_href_with_rel(course_res, 'AssignmentMetadata')
+        enrollment_metadata_link = self.require_link_href_with_rel(res.json_body, 'AssignmentAttemptMetadata')
+        course_metadata_link = self.require_link_href_with_rel(course_res, 'AssignmentAttemptMetadata')
 
         expected = ('/dataserver2/users/' +
                     self.default_username +
-                    '/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentMetadata/' +
+                    '/Courses/EnrolledCourses/tag%3Anextthought.com%2C2011-10%3ANTI-CourseInfo-Fall2013_CLC3403_LawAndJustice/AssignmentAttemptMetadata/' +
                     self.default_username)
         assert_that(unquote(enrollment_metadata_link),
                     is_(unquote(expected)))
 
-        expected = ('/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice/AssignmentMetadata/' +
+        expected = ('/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice/AssignmentAttemptMetadata/' +
                     self.default_username)
         assert_that(unquote(course_metadata_link),
                     is_(unquote(expected)))
@@ -252,7 +252,7 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
             metadata_res = self.testapp.get(link)
             assert_that(metadata_res.json_body,
                         has_entry('Items', has_length(1)))
-            assert_that(metadata_res.json_body, 
+            assert_that(metadata_res.json_body,
                         has_entry('Items', has_key(self.assignment_id)))
 
         # simply adding get us to an item

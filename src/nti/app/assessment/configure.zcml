@@ -320,7 +320,7 @@
 	<adapter factory=".metadata._metadata_attempts_for_user_in_course" />
     <adapter factory=".metadata._course_from_metadata_attempt_item_lineage" />
     <adapter factory=".metadata._assignment_history_item_to_metadata_attempt" />
-	<adapter factory=".metadata._UsersCourseMetadataAttemptTraversable" />
+	<!-- <adapter factory=".metadata._UsersCourseMetadataAttemptTraversable" /> -->
 	<adapter factory=".metadata._CourseMetadataAttemptContainerTraversable" />
 
 	<subscriber handler=".metadata._attempt_meta_on_course_added" />

@@ -320,16 +320,17 @@ class _CourseMetadataAttemptContainerTraversable(ContainerAdapterTraversable):
             raise
 
 
-@component.adapter(IUsersCourseAssignmentAttemptMetadata, IRequest)
-class _UsersCourseMetadataAttemptTraversable(ContainerAdapterTraversable):
-
-    def traverse(self, key, unused_remaining_path):
-        # Is this right? We traverse to the assignment object itself from our
-        # meta...
-        assesment = component.queryUtility(IQAssessment, name=key)
-        if assesment is not None:
-            return assesment
-        raise LocationError(self.context, key)
+# @component.adapter(IUsersCourseAssignmentAttemptMetadata, IRequest)
+# class _UsersCourseMetadataAttemptTraversable(ContainerAdapterTraversable):
+#
+#     def traverse(self, key, unused_remaining_path):
+#         # Is this right? We traverse to the assignment object itself from our
+#         # meta...
+#         # Nope, we now need to traverse to our container
+#         assesment = component.queryUtility(IQAssessment, name=key)
+#         if assesment is not None:
+#             return assesment
+#         raise LocationError(self.context, key)
 
 
 @component.adapter(ICourseInstance, IObjectAddedEvent)

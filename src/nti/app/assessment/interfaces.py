@@ -375,7 +375,7 @@ class IUsersCourseAssignmentAttemptMetadataItem(IContained,
     StartTime = Float(title=u"Assignment Start time", required=False)
     Duration = Float(title=u"Assignment Duration", required=False)
     SubmitTime = Float(title=u"Assignment submission time", required=False)
-    Seed = ValidTextLine(title=u"Randomization seed", required=False)
+    Seed = ValidTextLine(title=u"Randomization seed", required=False, readonly=True)
     HistoryItem = Object(IUsersCourseAssignmentHistoryItem,
                          title=u'The user history item for this attempt',
                          required=False)

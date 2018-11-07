@@ -4,14 +4,12 @@
 .. $Id$
 """
 
-from __future__ import print_function, absolute_import, division
-__docformat__ = "restructuredtext en"
-
-logger = __import__('logging').getLogger(__name__)
+from __future__ import division
+from __future__ import print_function
+from __future__ import absolute_import
 
 import time
 
-from zope import component
 from zope import interface
 from zope import lifecycleevent
 
@@ -26,11 +24,10 @@ from nti.app.assessment import MessageFactory as _
 from nti.app.assessment.common.evaluations import get_max_time_allowed
 from nti.app.assessment.common.evaluations import get_course_from_evaluation
 
-from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
-from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataItem
-from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataContainer
+from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadataItem
+from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadataItemContainer
 
-from nti.app.assessment.metadata import UsersCourseAssignmentMetadataItem
+from nti.app.assessment.metadata import UsersCourseAssignmentAttemptMetadataItem
 
 from nti.app.assessment.utils import get_course_from_request
 
@@ -38,14 +35,11 @@ from nti.app.assessment.views import get_ds2
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
-from nti.app.externalization.view_mixins import ModeledContentUploadRequestUtilsMixin
-
 from nti.app.renderers.interfaces import INoHrefInResponse
 
 from nti.appserver.ugd_edit_views import UGDPutView
 from nti.appserver.ugd_edit_views import UGDDeleteView
 
-from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQTimedAssignment
 
 from nti.dataserver import authorization as nauth
@@ -54,22 +48,29 @@ from nti.externalization.externalization import to_external_object
 
 from nti.externalization.interfaces import LocatedExternalDict
 
+from nti.ntiids.ntiids import find_object_with_ntiid
+
 from nti.ntiids.oids import to_external_ntiid_oid
+
+logger = __import__('logging').getLogger(__name__)
 
 
 @view_config(route_name="objects.generic.traversal",
-             context=IQAssignment,
+             context=IUsersCourseAssignmentAttemptMetadataItemContainer,
              renderer='rest',
              request_method='POST',
              permission=nauth.ACT_READ,
-             name="Metadata")
-class AssignmentSubmissionMetataPostView(AbstractAuthenticatedView,
-                                         ModeledContentUploadRequestUtilsMixin):
+             name="Commence")
+class AssignmentSubmissionStartPostView(AbstractAuthenticatedView):
+    """
+    The `start` of an assignment (timed or regular). This will create a
+    :class:`IUsersCourseAssignmentAttemptMetadataItem` object it and
+    store it in our :class:`IUsersCourseAssignmentAttemptMetadataItemContainer`.
+    """
 
-    _EXTRA_INPUT_ERRORS = ModeledContentUploadRequestUtilsMixin._EXTRA_INPUT_ERRORS + \
-                          (AttributeError,)
-
-    content_predicate = IUsersCourseAssignmentMetadataItem.providedBy
+    @Lazy
+    def assignment(self):
+        return find_object_with_ntiid(self.context.__name__)
 
     def _validate(self):
         creator = self.remoteUser
@@ -77,75 +78,59 @@ class AssignmentSubmissionMetataPostView(AbstractAuthenticatedView,
             raise hexc.HTTPForbidden(_(u"Must be Authenticated."))
         course = get_course_from_request(self.request)
         if course is None:
-            course = get_course_from_evaluation(self.context,
+            course = get_course_from_evaluation(self.assignment,
                                                 creator,
                                                 exc=False)
         if course is None:
             raise hexc.HTTPForbidden(_(u"Must be enrolled in a course."))
         return creator, course
 
-    def _process(self, creator=None, course=None, item=None):
-        if creator is None or course is None:
-            creator, course = self._validate()
-        if item is None:
-            item = self.readCreateUpdateContentObject(creator)
+    def _process(self, item):
         lifecycleevent.created(item)
-
         self.request.response.status_int = 201
-
-        assignmentId = self.context.ntiid
-        metadata = component.getMultiAdapter((course, creator),
-                                             IUsersCourseAssignmentMetadata)
-        item.containerId = assignmentId
-        result = recorded = metadata.append(assignmentId, item)
-
-        result = to_external_object(result)
+        item.containerId = self.context.__name__
+        result = to_external_object(item)
         result['href'] = "/%s/Objects/%s" % (get_ds2(self.request),
-                                             to_external_ntiid_oid(recorded))
+                                             to_external_ntiid_oid(item))
         interface.alsoProvides(result, INoHrefInResponse)
 
         return result
 
     def _do_call(self):
-        return self._process()
-
-
-@view_config(route_name="objects.generic.traversal",
-             context=IQAssignment,
-             renderer='rest',
-             request_method='POST',
-             permission=nauth.ACT_READ,
-             name="Commence")
-class AssignmentSubmissionStartPostView(AssignmentSubmissionMetataPostView):
-
-    def _do_call(self):
-        creator, course = self._validate()
-        container = component.getMultiAdapter((course, creator),
-                                              IUsersCourseAssignmentMetadata)
-        try:
-            item = container[self.context.ntiid]
-        except KeyError:
-            item = UsersCourseAssignmentMetadataItem()
-            self._process(creator=creator, course=course, item=item)
+        # TODO: do we need to validate the size of the container?
+        # I dont think so.
+        self._validate()
+        item = UsersCourseAssignmentAttemptMetadataItem()
+        self.context.add_attempt(item)
+        self._process(item)
         if not item.StartTime:
             item.StartTime = time.time()
-        # return assignment
-        return self.context
+        # FIXME: need seed
+        # Must return assignment here, since the new metadata item may
+        # drive randomization.
+        return self.assignment
 
 
 @view_config(route_name="objects.generic.traversal",
-             context=IQAssignment,
+             context=IUsersCourseAssignmentAttemptMetadataItemContainer,
              renderer='rest',
              request_method='GET',
-             permission=nauth.ACT_READ,
-             name="Metadata")
+             permission=nauth.ACT_READ)
 class AssignmentSubmissionMetadataGetView(AbstractAuthenticatedView):
+    """
+    Return the metadata item container for this user, course and assignment.
+    """
+
+    @Lazy
+    def assignment(self):
+        return find_object_with_ntiid(self.context.__name__)
 
     @Lazy
     def course(self):
         course = get_course_from_request(self.request)
         if course is None:
-            course = get_course_from_evaluation(self.context,
+            evaluation = find_object_with_ntiid(self.context.__name__)
+            course = get_course_from_evaluation(evaluation,
                                                 self.remoteUser,
                                                 exc=False)
         return course
@@ -157,59 +142,58 @@ class AssignmentSubmissionMetadataGetView(AbstractAuthenticatedView):
 
         if self.course is None:
             raise hexc.HTTPForbidden(_(u"Must be enrolled in a course."))
-
-        container = component.getMultiAdapter((self.course, creator),
-                                              IUsersCourseAssignmentMetadata)
-
-        result = container[self.context.ntiid]
-        return result
+        return self.context
 
     def __call__(self):
-        try:
-            result = self._do_call()
-            return result
-        except KeyError:
-            return hexc.HTTPNotFound()
+        return self._do_call()
 
 
 @view_config(route_name="objects.generic.traversal",
-             context=IQAssignment,
+             context=IUsersCourseAssignmentAttemptMetadataItem,
              renderer='rest',
              request_method='GET',
              permission=nauth.ACT_READ,
              name="StartTime")
 class AssignmentSubmissionStartGetView(AssignmentSubmissionMetadataGetView):
+    """
+    Return the :class:`IUsersCourseAssignmentAttemptMetadataItem` StartTime.
+    """
 
     def __call__(self):
         try:
-            item = self._do_call()
-            result = LocatedExternalDict({'StartTime': item.StartTime})
+            self._do_call()
+            result = LocatedExternalDict({'StartTime':
+                                          self.context.StartTime})
             return result
         except KeyError:
             return hexc.HTTPNotFound()
 
 
 @view_config(route_name="objects.generic.traversal",
-             context=IQTimedAssignment,
+             context=IUsersCourseAssignmentAttemptMetadataItem,
              renderer='rest',
              request_method='GET',
              permission=nauth.ACT_READ,
              name="TimeRemaining")
-class AssignmentTimeRemainingGetView(AssignmentSubmissionMetadataGetView):
+class MetadataItemTimeRemainingGetView(AssignmentSubmissionMetadataGetView):
     """
     Return the time remaining in seconds until this `IQTimedAssignment` is
     due. We may return negative numbers to indicate past due status.
     """
 
-    def _get_time_remaining(self, metadata):
+    @Lazy
+    def assignment(self):
+        return find_object_with_ntiid(self.context.__parent__.__name__)
+
+    def _get_time_remaining(self, metadata_item):
         # We return None if the assignment is not yet started.
         result = None
-        if metadata.StartTime:
-            max_time_allowed = get_max_time_allowed(self.context, self.course)
+        if metadata_item.StartTime:
+            max_time_allowed = get_max_time_allowed(self.assignment, self.course)
             if max_time_allowed:
                 now = time.time()
                 # Both in seconds
-                end_point = metadata.StartTime + max_time_allowed
+                end_point = metadata_item.StartTime + max_time_allowed
                 result = end_point - now
         return result
 
@@ -224,31 +208,34 @@ class AssignmentTimeRemainingGetView(AssignmentSubmissionMetadataGetView):
 
 
 @view_config(route_name="objects.generic.traversal",
+             context=IUsersCourseAssignmentAttemptMetadataItem,
              renderer='rest',
-             context=IUsersCourseAssignmentMetadataContainer,
+             request_method='GET',
              permission=nauth.ACT_READ,
-             request_method='GET')
-class AssignmentMetadataGetView(AbstractAuthenticatedView):
+             name="HistoryItem")
+class MetadataItemHistoryItemGetView(AssignmentSubmissionMetadataGetView):
     """
-    Students can view their assignment metadata  as ``path/to/course/AssignmentMetadata``
+    Return the history item associated with this metadata attempt item.
     """
 
     def __call__(self):
-        container = self.request.context
-        return container
+        return self.context.HistoryItem
 
 
 @view_config(route_name="objects.generic.traversal",
-             context=IUsersCourseAssignmentMetadataItem,
+             context=IUsersCourseAssignmentAttemptMetadataItem,
              renderer='rest',
-             permission=nauth.ACT_UPDATE,
+             permission=nauth.ACT_NTI_ADMIN,
              request_method='PUT')
 class AssignmentMetadataItemPutView(UGDPutView):
-    pass
+    """
+    NT Admins can edit metadata attempt items.
+    """
 
 
+# FIXME
 @view_config(route_name="objects.generic.traversal",
-             context=IUsersCourseAssignmentMetadataItem,
+             context=IUsersCourseAssignmentAttemptMetadataItem,
              renderer='rest',
              permission=nauth.ACT_DELETE,
              request_method='DELETE')

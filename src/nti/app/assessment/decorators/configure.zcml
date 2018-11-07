@@ -33,7 +33,7 @@
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.assessment.interfaces.IQAssignment
 					 pyramid.interfaces.IRequest" />
-					 
+
 	<subscriber factory=".assignment._CourseAssignmentWithFilePartDownloadLinkDecorator"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.contenttypes.courses.interfaces.ICourseInstance
@@ -203,17 +203,12 @@
 
 	<subscriber factory=".metadata._AssignmentMetadataContainerDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
-				for="nti.contenttypes.courses.interfaces.ICourseInstance
-					 pyramid.interfaces.IRequest" />
-
-	<subscriber factory=".metadata._AssignmentMetadataContainerDecorator"
-				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.app.products.courseware.interfaces.ICourseInstanceEnrollment
 					 pyramid.interfaces.IRequest" />
 
-	<subscriber factory=".metadata._AssignmentMetadataItemDecorator"
+	<subscriber factory=".metadata._AssignmentAttemptMetadataItemDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
-				for="..interfaces.IUsersCourseAssignmentMetadataItem
+				for="..interfaces.IUsersCourseAssignmentAttemptMetadataItem
 					 pyramid.interfaces.IRequest" />
 
 	<!-- survey -->
@@ -241,7 +236,7 @@
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.assessment.interfaces.IQInquiry
 					 pyramid.interfaces.IRequest" />
-					 
+
 	<subscriber factory=".survey._InquirySubmissionMetadataDecorator"
                 provides="nti.externalization.interfaces.IExternalObjectDecorator"
                 for="nti.assessment.interfaces.IQInquiry

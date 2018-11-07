@@ -20,17 +20,34 @@ from hamcrest import contains_string
 from nti.testing.matchers import validly_provides
 
 import time
+import fudge
 import weakref
+
+from six.moves.urllib_parse import unquote
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataContainer
+from nti.app.assessment.interfaces import ICourseAssignmentAttemptMetadata
+from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadata
+from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadataItem
+from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadataItemContainer
 
 from nti.app.assessment.metadata import UsersCourseAssignmentMetadata
 from nti.app.assessment.metadata import UsersCourseAssignmentMetadataItem
 from nti.app.assessment.metadata import UsersCourseAssignmentMetadataContainer
+from nti.app.assessment.metadata import CourseAssignmentAttemptMetadata
+from nti.app.assessment.metadata import UsersCourseAssignmentAttemptMetadata
+from nti.app.assessment.metadata import UsersCourseAssignmentAttemptMetadataItem
+from nti.app.assessment.metadata import UsersCourseAssignmentAttemptMetadataItemContainer
 
 from nti.app.assessment.tests import AssessmentLayerTest
+from nti.app.assessment.tests import RegisterAssignmentLayerMixin
+from nti.app.assessment.tests import RegisterAssignmentsForEveryoneLayer
+
+from nti.app.testing.application_webtest import ApplicationLayerTest
+
+from nti.app.testing.decorators import WithSharedApplicationMockDS
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
@@ -41,6 +58,10 @@ from nti.dataserver.tests import mock_dataserver
 from nti.dataserver.tests.mock_dataserver import WithMockDSTrans
 
 from nti.dataserver.users.users import User
+
+from nti.externalization.externalization import to_external_object
+
+from nti.externalization.interfaces import StandardExternalFields
 
 from nti.ntiids.ntiids import find_object_with_ntiid
 
@@ -96,20 +117,49 @@ class TestMetadata(AssessmentLayerTest):
         item = metadata.get_or_create('foo', 100.0)
         assert_that(item, has_property('StartTime', is_(1.0)))
 
+    @WithMockDSTrans
+    def test_attempt_provides(self):
+        metadata = UsersCourseAssignmentAttemptMetadata()
+        container = UsersCourseAssignmentAttemptMetadataItemContainer()
+        container.__parent__ = metadata
+        # Set an owner; use a python wref instead of the default
+        # adapter to wref as it requires an intid utility
+        user = User.create_user(username=u'sjohnson@nextthought.com')
+        metadata.owner = weakref.ref(user)
+        item = UsersCourseAssignmentAttemptMetadataItem(StartTime=100.0)
+        item.creator = u'foo'
+        item.__parent__ = container
+        assert_that(item,
+                    validly_provides(IUsersCourseAssignmentAttemptMetadataItem))
 
-import fudge
-from six.moves.urllib_parse import unquote
+        assert_that(metadata,
+                    validly_provides(IUsersCourseAssignmentAttemptMetadata))
 
-from nti.app.assessment.tests import RegisterAssignmentLayerMixin
-from nti.app.assessment.tests import RegisterAssignmentsForEveryoneLayer
+        assert_that(IUser(item), is_(metadata.owner))
+        assert_that(IUser(metadata), is_(metadata.owner))
 
-from nti.app.testing.application_webtest import ApplicationLayerTest
+    @WithMockDSTrans
+    def test_attempt_record(self):
+        connection = mock_dataserver.current_transaction
+        metadata = UsersCourseAssignmentAttemptMetadataItemContainer()
+        connection.add(metadata)
+        item = UsersCourseAssignmentAttemptMetadataItem()
+        item.StartTime = time.time()
+        metadata.add_attempt(item)
 
-from nti.app.testing.decorators import WithSharedApplicationMockDS
+        assert_that(item, has_property('StartTime', is_not(none())))
+        assert_that(item, has_property('__name__', is_('UsersCourseAssignmentAttemptMetadataItem')))
+        assert_that(item.__parent__, is_(metadata))
+        assert_that(metadata, has_length(1))
 
-from nti.externalization.externalization import to_external_object
+    @WithMockDSTrans
+    def test_attempt_get_or_create(self):
+        connection = mock_dataserver.current_transaction
+        metadata = UsersCourseAssignmentAttemptMetadata()
+        connection.add(metadata)
+        item = metadata.get_or_create(u'foo')
+        assert_that(item, is_not(none()))
 
-from nti.externalization.interfaces import StandardExternalFields
 
 COURSE_NTIID = u'tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice'
 COURSE_URL = u'/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice'

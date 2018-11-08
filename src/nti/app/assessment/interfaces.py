@@ -56,6 +56,7 @@ from nti.schema.field import List
 from nti.schema.field import Float
 from nti.schema.field import Number
 from nti.schema.field import Object
+from nti.schema.field import ListOrTuple
 from nti.schema.field import ValidTextLine
 
 ACT_VIEW_SOLUTIONS = Permission('nti.actions.assessment.view_solutions')
@@ -332,6 +333,9 @@ class IUsersCourseAssignmentAttemptMetadata(ILastModified,
     contains('.IUsersCourseAssignmentAttemptMetadataItemContainer')
     __parent__.required = False
 
+    Items = Dict(title=u'For externalization only, a copy of the items',
+                 readonly=True)
+
 
 class IUsersCourseAssignmentAttemptMetadataItemContainer(IContained,
                                                          IOrderedContainer,
@@ -344,14 +348,15 @@ class IUsersCourseAssignmentAttemptMetadataItemContainer(IContained,
 
     containers(IUsersCourseAssignmentAttemptMetadata)
     contains('.IUsersCourseAssignmentAttemptMetadataItem')
+    __parent__.required = False
 
     owner = Object(IUser,
                    required=False,
                    title=u"The user this metadata is for.")
     owner.setTaggedValue('_ext_excluded_out', True)
 
-    Items = Dict(title=u'For externalization only, a copy of the items',
-                 readonly=True)
+    Items = ListOrTuple(title=u'For externalization only, a copy of the items',
+                        readonly=True)
 
     def add_attempt(self, attempt):
         """
@@ -371,6 +376,7 @@ class IUsersCourseAssignmentAttemptMetadataItem(IContained,
     """
 
     containers(IUsersCourseAssignmentAttemptMetadataItemContainer)
+    __parent__.required = False
 
     StartTime = Float(title=u"Assignment Start time", required=False)
     Duration = Float(title=u"Assignment Duration", required=False)

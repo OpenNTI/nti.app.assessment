@@ -115,7 +115,7 @@ class TestCoursePreviewExternalization(ApplicationLayerTest):
 
         for rel in ('AssignmentSavepoints', 'AssignmentHistory',
                     'AssignmentsByOutlineNode', 'NonAssignmentAssessmentItemsByOutlineNode',
-                    'AssignmentAttemptMetadata', 'InquiryHistory'):
+                    'InquiryHistory'):
             link_check(course_ext, rel)
 
     @WithSharedApplicationMockDS(users=('test_student',), testapp=True)

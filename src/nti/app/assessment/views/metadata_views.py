@@ -35,12 +35,12 @@ from nti.app.assessment.views import get_ds2
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
+from nti.app.externalization.error import raise_json_error
+
 from nti.app.renderers.interfaces import INoHrefInResponse
 
 from nti.appserver.ugd_edit_views import UGDPutView
 from nti.appserver.ugd_edit_views import UGDDeleteView
-
-from nti.assessment.interfaces import IQTimedAssignment
 
 from nti.dataserver import authorization as nauth
 
@@ -73,17 +73,31 @@ class AssignmentSubmissionStartPostView(AbstractAuthenticatedView):
         return find_object_with_ntiid(self.context.__name__)
 
     def _validate(self):
-        creator = self.remoteUser
-        if not creator:
-            raise hexc.HTTPForbidden(_(u"Must be Authenticated."))
         course = get_course_from_request(self.request)
         if course is None:
             course = get_course_from_evaluation(self.assignment,
-                                                creator,
+                                                self.remoteUser,
                                                 exc=False)
         if course is None:
-            raise hexc.HTTPForbidden(_(u"Must be enrolled in a course."))
-        return creator, course
+            # Code error
+            raise_json_error(self.request,
+                             hexc.HTTPUnprocessableEntity,
+                            {
+                            'message': _("Must have a course for this assignment"),
+                            'code': u'CannotFindCourseError'
+                            },
+                            None)
+        # Check for ongoing attempt
+        for item in self.context.values():
+            if item.StartTime and not item.SubmitTime:
+                raise_json_error(self.request,
+                                 hexc.HTTPUnprocessableEntity,
+                                 {
+                                  'message': _("Cannot start a new assignment until the previous attempt has been completed"),
+                                  'code': u'IncompleteAssignmentAttemptError'
+                                  },
+                                 None)
+        return self.remoteUser, course
 
     def _process(self, item):
         lifecycleevent.created(item)
@@ -97,7 +111,7 @@ class AssignmentSubmissionStartPostView(AbstractAuthenticatedView):
         return result
 
     def __call__(self):
-        # TODO: do we need to validate the size of the container?
+        # Do we need to validate the size of the container?
         # I dont think so.
         self._validate()
         item = UsersCourseAssignmentAttemptMetadataItem()
@@ -136,16 +150,26 @@ class AssignmentSubmissionMetadataGetView(AbstractAuthenticatedView):
         return course
 
     def _do_call(self):
-        creator = self.remoteUser
-        if not creator:
-            raise hexc.HTTPForbidden(_(u"Must be Authenticated."))
-
         if self.course is None:
-            raise hexc.HTTPForbidden(_(u"Must be enrolled in a course."))
+            # Code error
+            raise_json_error(self.request,
+                             hexc.HTTPUnprocessableEntity,
+                            {
+                            'message': _("Must have a course for this assignment"),
+                            'code': u'CannotFindCourseError'
+                            },
+                            None)
         return self.context
 
     def __call__(self):
         return self._do_call()
+
+
+class AssignmentMetadataItemMixin(AssignmentSubmissionMetadataGetView):
+
+    @Lazy
+    def assignment(self):
+        return find_object_with_ntiid(self.context.__parent__.__name__)
 
 
 @view_config(route_name="objects.generic.traversal",
@@ -154,7 +178,7 @@ class AssignmentSubmissionMetadataGetView(AbstractAuthenticatedView):
              request_method='GET',
              permission=nauth.ACT_READ,
              name="StartTime")
-class AssignmentSubmissionStartGetView(AssignmentSubmissionMetadataGetView):
+class AssignmentSubmissionStartGetView(AssignmentMetadataItemMixin):
     """
     Return the :class:`IUsersCourseAssignmentAttemptMetadataItem` StartTime.
     """
@@ -175,15 +199,11 @@ class AssignmentSubmissionStartGetView(AssignmentSubmissionMetadataGetView):
              request_method='GET',
              permission=nauth.ACT_READ,
              name="TimeRemaining")
-class MetadataItemTimeRemainingGetView(AssignmentSubmissionMetadataGetView):
+class MetadataItemTimeRemainingGetView(AssignmentMetadataItemMixin):
     """
     Return the time remaining in seconds until this `IQTimedAssignment` is
     due. We may return negative numbers to indicate past due status.
     """
-
-    @Lazy
-    def assignment(self):
-        return find_object_with_ntiid(self.context.__parent__.__name__)
 
     def _get_time_remaining(self, metadata_item):
         # We return None if the assignment is not yet started.
@@ -213,13 +233,31 @@ class MetadataItemTimeRemainingGetView(AssignmentSubmissionMetadataGetView):
              request_method='GET',
              permission=nauth.ACT_READ,
              name="HistoryItem")
-class MetadataItemHistoryItemGetView(AssignmentSubmissionMetadataGetView):
+class MetadataItemHistoryItemGetView(AssignmentMetadataItemMixin):
+    """
+    Return the assignment state associated with this metadata attempt item.
+    """
+
+    def __call__(self):
+        result = self.context.HistoryItem
+        if result is None:
+            raise hexc.HTTPNotFound()
+        return result
+
+
+@view_config(route_name="objects.generic.traversal",
+             context=IUsersCourseAssignmentAttemptMetadataItem,
+             renderer='rest',
+             request_method='GET',
+             permission=nauth.ACT_READ,
+             name="Assignment")
+class MetadataItemAssignmentGetView(AssignmentMetadataItemMixin):
     """
     Return the history item associated with this metadata attempt item.
     """
 
     def __call__(self):
-        return self.context.HistoryItem
+        return self.assignment
 
 
 @view_config(route_name="objects.generic.traversal",

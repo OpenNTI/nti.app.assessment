@@ -183,7 +183,7 @@ class UsersCourseAssignmentAttemptMetadataItemContainer(PersistentCreatedModDate
 
     @property
     def Items(self):
-        return dict(self)
+        return tuple(self.values())
 
     def add_attempt(self, attempt):
         chooser = INameChooser(self)
@@ -250,7 +250,7 @@ class UsersCourseAssignmentAttemptMetadataItem(PersistentCreatedModDateTrackingO
         course = ICourseInstance(self, None)
         # pylint: disable=not-an-iterable
         for instructor in getattr(course, 'instructors', ()):  # already principals
-            aces.append(ace_allowing(instructor, ALL_PERMISSIONS, type(self)))
+            aces.append(ace_allowing(instructor, ACT_READ, type(self)))
 
         aces.append(ACE_DENY_ALL)
         result = acl_from_aces(aces)

@@ -55,9 +55,10 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
         elements = ('AssignmentAttemptMetadata', user.username, assignment.ntiid)
 
         links = result.setdefault(LINKS, [])
+        # Remote user metadata for this course/assignment
         links.append(Link(course,
                           rel='Metadata',
-                          elements=elements + ('Metadata',)))
+                          elements=elements))
 
         user_container = component.queryMultiAdapter((course, user),
                                                      IUsersCourseAssignmentAttemptMetadata)
@@ -120,19 +121,19 @@ class _AssignmentAttemptMetadataItemDecorator(AbstractAuthenticatedRequestAwareD
                     evaluation.ntiid,
                     metadata_item.__name__)
 
+        rels = ('Assignment',)
+        if metadata_item.HistoryItem is not None:
+            rels = ('Assignment', "HistoryItem")
+
+        if IQTimedAssignment.providedBy(evaluation):
+            rels = rels + ('StartTime', 'TimeRemaining')
+
         links = result.setdefault(LINKS, [])
-        for rel in ('HistoryItem', 'Assignment'):
+        for rel in rels:
             links.append(Link(course,
                               method='GET',
                               rel=rel,
                               elements=elements + ('@@' + rel,)))
-
-        if IQTimedAssignment.providedBy(evaluation):
-            for rel in ('StartTime', 'TimeRemaining'):
-                links.append(Link(course,
-                                  method='GET',
-                                  rel=rel,
-                                  elements=elements + ('@@' + rel,)))
 
 
 @interface.implementer(IExternalMappingDecorator)

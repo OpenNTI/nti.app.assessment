@@ -536,6 +536,10 @@
                  for="nti.assessment.interfaces.IQEvaluation" />
     </configure>
 
+    <adapter factory=".wref._history_item_wref"
+             provides="nti.wref.interfaces.IWeakRef"
+             for="nti.app.assessment.interfaces.IUsersCourseAssignmentHistoryItem" />
+
 	<!-- Recordables -->
 	<utility factory=".recordables.EvaluationRecordables" name="evaluations" />
 

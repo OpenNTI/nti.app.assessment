@@ -10,10 +10,13 @@ from __future__ import absolute_import
 
 import time
 
+from zope import component
 from zope import interface
 from zope import lifecycleevent
 
 from zope.cachedescriptors.property import Lazy
+
+from zope.intid.interfaces import IIntIds
 
 from pyramid import httpexceptions as hexc
 
@@ -110,16 +113,26 @@ class AssignmentSubmissionStartPostView(AbstractAuthenticatedView):
 
         return result
 
+    def get_seed(self):
+        intids = component.getUtility(IIntIds)
+        user_intid = intids.getId(self.remoteUser)
+        if len(self.context) < 1:
+            # This exactly matches our legacy seed
+            result = bytes(user_intid)
+        else:
+            result = bytes(user_intid + int(time.time()))
+        return result
+
     def __call__(self):
         # Do we need to validate the size of the container?
         # I dont think so.
         self._validate()
         item = UsersCourseAssignmentAttemptMetadataItem()
+        seed = self.get_seed()
+        item.Seed = seed
         self.context.add_attempt(item)
         self._process(item)
-        if not item.StartTime:
-            item.StartTime = time.time()
-        # FIXME: need seed
+        item.StartTime = time.time()
         # Must return assignment here, since the new metadata item may
         # drive randomization.
         return self.assignment

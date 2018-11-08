@@ -16,6 +16,8 @@ from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadata
 
+from nti.app.assessment.utils import get_current_metadata_attempt_item
+
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
 from nti.assessment.interfaces import IQTimedAssignment
@@ -67,10 +69,9 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
         if meta_container:
             # Get the currently in-progress attempt, if it exists.
             meta_count = len(meta_container)
-            for meta_item in meta_container.values():
-                if not meta_item.SubmitTime:
-                    result['MetadataAttemptItem'] = meta_item
-                    break
+            current_attempt = get_current_metadata_attempt_item(user, course, assignment.ntiid)
+            if current_attempt is not None:
+                result['MetadataAttemptItem'] = current_attempt
 
         # All assignments can commence
         max_submissions = get_policy_max_submissions(assignment, course)

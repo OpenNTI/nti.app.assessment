@@ -46,6 +46,8 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataContainer
 
+from nti.app.assessment.utils import get_current_metadata_attempt_item
+
 from nti.assessment.interfaces import IQAssessment
 
 from nti.containers.containers import CheckingLastModifiedBTreeContainer
@@ -135,15 +137,9 @@ class UsersCourseAssignmentAttemptMetadata(CheckingLastModifiedBTreeContainer,
             result = self[assignmentId]
         except KeyError:
             result = UsersCourseAssignmentAttemptMetadataItemContainer()
-            self.append(assignmentId, result)
+            self[assignmentId] = result
         return result
     getOrCreate = get_or_create
-
-    def append(self, assignmentId, item):
-        if item.__parent__ is not None:
-            raise ValueError("Object already with a parent")
-        self[assignmentId] = item
-        return item
 
     def remove(self, assignmentId, event=False):
         if assignmentId not in self:
@@ -211,7 +207,8 @@ class UsersCourseAssignmentAttemptMetadataItem(PersistentCreatedModDateTrackingO
 
     createDirectFieldProperties(IUsersCourseAssignmentAttemptMetadataItem)
 
-    __external_can_create__ = True
+    __external_can_create__ = False
+    _history_item = None
 
     @property
     def id(self):
@@ -238,6 +235,17 @@ class UsersCourseAssignmentAttemptMetadataItem(PersistentCreatedModDateTrackingO
     @property
     def assignmentId(self):
         return self.__parent__.__name__
+
+    @property
+    def HistoryItem(self):
+        result = None
+        if self._history_item is not None:
+            result = self._history_item()
+        return result
+
+    @HistoryItem.setter
+    def HistoryItem(self, value):
+        self._history_item = IWeakRef(value)
 
     @property
     def __acl__(self):
@@ -337,20 +345,20 @@ def _attempt_meta_on_course_added(course, unused_event):
 
 @component.adapter(IUsersCourseAssignmentHistoryItem, IObjectAddedEvent)
 def _attempt_on_assignment_history_item_added(item, unused_event):
+    """
+    Fill out our metadata attempt item details once the user submits.
+    """
     user = IUser(item, None)
-    course = find_interface(item, ICourseInstance, strict=False)
-    assignment_metadata = component.queryMultiAdapter((course, user),
-                                                      IUsersCourseAssignmentAttemptMetadata)
-    if assignment_metadata is not None:
-        # FIXME: Store weakref to item here
-        # Must have an assignment here
-        meta_item = assignment_metadata.get(item.assignmentId)
-        # FIXME: disable until more functional
-        if meta_item is None:
-            return
-        meta_item.SubmitTime = time.time()
-        meta_item.Duration = meta_item.SubmitTime - meta_item.StartTime
-        meta_item.updateLastMod()
+    course = find_interface(item, ICourseInstance)
+    current_attempt = get_current_metadata_attempt_item(user, course, item.assignmentId)
+    # FIXME
+    #assert current_attempt is not None, "Must have ongoing metadata attempt"
+    # Floats (duration is an int
+    if current_attempt is not None:
+        current_attempt.SubmitTime = item.createdTime
+        current_attempt.Duration = int(current_attempt.SubmitTime - current_attempt.StartTime)
+        current_attempt.HistoryItem = item
+        current_attempt.updateLastMod()
 
 
 @component.adapter(IUsersCourseAssignmentHistoryItem, IObjectRemovedEvent)

@@ -67,6 +67,7 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 from nti.app.assessment.utils import replace_username
 from nti.app.assessment.utils import get_course_from_request
 from nti.app.assessment.utils import assignment_download_precondition
+from nti.app.assessment.utils import get_current_metadata_attempt_item
 from nti.app.assessment.utils import course_assignments_download_precondition
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
@@ -166,6 +167,16 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
                                  'code': u'SubmissionPastDueDateError'
                              },
                              None)
+        # FIXME
+#         if not get_current_metadata_attempt_item(creator, self.course, self.context.ntiid):
+#             # Code error
+#             raise_json_error(self.request,
+#                              hexc.HTTPUnprocessableEntity,
+#                              {
+#                                  'message': _('Must have metadata attempt currently in progress'),
+#                                  'code': 'MissingMetadataAttemptInProgressError'
+#                              },
+#                              None)
 
     def _do_call(self):
         creator = self.remoteUser

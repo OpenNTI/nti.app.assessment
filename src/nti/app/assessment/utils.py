@@ -33,6 +33,8 @@ from nti.app.assessment.common.utils import get_user
 
 from nti.app.assessment.interfaces import ACT_DOWNLOAD_GRADES
 
+from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadata
+
 from nti.app.authentication import get_remote_user
 
 from nti.appserver.pyramid_authorization import has_permission
@@ -254,6 +256,18 @@ def course_assignments_download_precondition(course, request=None, remoteUser=No
             return True
     return False
 
+
+def get_current_metadata_attempt_item(user, course, assignment_ntiid):
+    """
+    For the user/course/assignment, return *the* currently ongoing attempt,
+    if any.
+    """
+    assignment_metadata = component.queryMultiAdapter((course, user),
+                                                      IUsersCourseAssignmentAttemptMetadata)
+    item_container = assignment_metadata.get_or_create(assignment_ntiid)
+    for item in item_container.values():
+        if item.StartTime and not item.SubmitTime:
+            return item
 
 def replace_username(username):
     policy = component.queryUtility(IUsernameSubstitutionPolicy)

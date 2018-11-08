@@ -58,6 +58,7 @@ from nti.schema.field import Number
 from nti.schema.field import Object
 from nti.schema.field import ListOrTuple
 from nti.schema.field import ValidTextLine
+from nti.schema.field import ValidBytesLine
 
 ACT_VIEW_SOLUTIONS = Permission('nti.actions.assessment.view_solutions')
 ACT_DOWNLOAD_GRADES = Permission('nti.actions.assessment.download_grades')
@@ -379,9 +380,9 @@ class IUsersCourseAssignmentAttemptMetadataItem(IContained,
     __parent__.required = False
 
     StartTime = Float(title=u"Assignment Start time", required=False)
-    Duration = Float(title=u"Assignment Duration", required=False)
+    Duration = Int(title=u"Assignment Duration", required=False)
     SubmitTime = Float(title=u"Assignment submission time", required=False)
-    Seed = ValidTextLine(title=u"Randomization seed", required=False, readonly=True)
+    Seed = ValidBytesLine(title=u"Randomization seed", required=False, readonly=True)
     HistoryItem = Object(IUsersCourseAssignmentHistoryItem,
                          title=u'The user history item for this attempt',
                          required=False)

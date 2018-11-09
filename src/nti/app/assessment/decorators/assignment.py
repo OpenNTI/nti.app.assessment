@@ -48,7 +48,6 @@ from nti.app.assessment.common.evaluations import get_available_assignments_for_
 
 from nti.app.assessment.common.history import has_savepoints
 from nti.app.assessment.common.history import get_most_recent_history_item
-from nti.app.assessment.common.history import get_assessment_metadata_item
 
 from nti.app.assessment.common.policy import get_policy_locked
 from nti.app.assessment.common.policy import get_policy_excluded
@@ -69,10 +68,9 @@ from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
 
 from nti.app.assessment.interfaces import ACT_VIEW_SOLUTIONS
 
-from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
-
 from nti.app.assessment.utils import get_course_from_request
 from nti.app.assessment.utils import assignment_download_precondition
+from nti.app.assessment.utils import get_current_metadata_attempt_item
 from nti.app.assessment.utils import course_assignments_download_precondition
 
 from nti.app.contentlibrary import LIBRARY_PATH_GET_VIEW
@@ -301,30 +299,11 @@ class _TimedAssignmentPartStripperDecorator(AbstractAuthenticatedRequestAwareDec
             or is_course_instructor(course, self.remoteUser) \
             or has_permission(ACT_CONTENT_EDIT, course, self.request):
             return
-        item = get_assessment_metadata_item(course,
-                                            self.remoteUser,
-                                            context.ntiid)
-        if item is None or not item.StartTime:
+        item = get_current_metadata_attempt_item(self.remoteUser,
+                                                 course,
+                                                 context.ntiid)
+        if item is None:
             result['parts'] = None
-
-
-class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
-
-    def _do_decorate_external(self, context, result):
-        course = _get_course_from_evaluation(context,
-                                             user=self.remoteUser,
-                                             request=self.request)
-        if     course is None \
-            or is_course_instructor(course, self.remoteUser) \
-            or has_permission(ACT_CONTENT_EDIT, course, self.request):
-            return
-        item = get_assessment_metadata_item(course,
-                                            self.remoteUser,
-                                            context.ntiid)
-        if item is not None:
-            metadata = {'Duration': item.Duration,
-                        'StartTime': item.StartTime}
-            result['Metadata'] = metadata
 
 
 class _AssignmentQuestionContentRootURLAdder(AbstractAuthenticatedRequestAwareDecorator):

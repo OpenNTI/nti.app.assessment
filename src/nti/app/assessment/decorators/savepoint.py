@@ -10,10 +10,10 @@ from __future__ import absolute_import
 
 from zope import interface
 
-from nti.app.assessment.common.history import get_assessment_metadata_item
-
 from nti.app.assessment.decorators import _get_course_from_evaluation
 from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
+
+from nti.app.assessment.utils import get_current_metadata_attempt_item
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
@@ -55,7 +55,9 @@ class _AssignmentSavepointDecorator(AbstractAuthenticatedRequestAwareDecorator):
         if      result \
             and IQTimedAssignment.providedBy(context) \
             and course is not None:
-            item = get_assessment_metadata_item(course, user, context.ntiid)
+            item = get_current_metadata_attempt_item(user,
+                                                     course,
+                                                     context.ntiid)
             result = bool(item is not None and item.StartTime)
         return result
 

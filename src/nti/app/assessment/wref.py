@@ -17,6 +17,8 @@ from zc.intid import IIntIds
 from zope import component
 from zope import interface
 
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
+
 from nti.assessment.interfaces import IQEvaluation
 
 from nti.assessment.wref import ItemWeakRef
@@ -39,3 +41,9 @@ def _evaluation_wref(evaluation):
     else:
         result = ItemWeakRef(evaluation)
     return result
+
+
+@component.adapter(IUsersCourseAssignmentHistoryItem)
+@interface.implementer(IWeakRef)
+def _history_item_wref(history_item):
+    return NoCachingArbitraryOrderableWeakRef(history_item)

@@ -943,13 +943,16 @@ class TestEvaluationViews(ApplicationLayerTest):
 
     @time_monotonically_increases
     @WithSharedApplicationMockDS(testapp=True, users=True)
-    def test_assignment_versioning(self):
+    @fudge.patch('nti.app.assessment.views.savepoint_views.get_current_metadata_attempt_item')
+    def test_assignment_versioning(self, fudge_meta):
         """
         Validate various edits bump an assignment's version and
         may not be allowed if there are savepoints or submissions.
 
         XXX: AssignmentParts set below are not auto_grade...
         """
+        # Must have meta attempt when dealing with timed assignments
+        fudge_meta.is_callable().returns(True)
         # Create base assessment object, enroll student, and set up vars for
         # test.
         course_oid = self._get_course_oid()
@@ -1308,6 +1311,10 @@ class TestEvaluationViews(ApplicationLayerTest):
         # Student submits and the edit state changes
         submission = toExternalObject(submission)
         submission['version'] = None
+        assignment_res = self.testapp.get(assignment_href, extra_environ=student_environ)
+        start_href = self.require_link_href_with_rel(assignment_res.json_body,
+                                                     'Commence')
+        self.testapp.post(start_href, extra_environ=student_environ)
         self.testapp.post_json(assignment_post_href, submission,
                                extra_environ=student_environ)
 
@@ -1472,6 +1479,10 @@ class TestEvaluationViews(ApplicationLayerTest):
 
         # Submission
         self.testapp.delete(savepoint.json_body.get('href'))
+        assignment_res = self.testapp.get(assignment_href, extra_environ=student_environ)
+        start_href = self.require_link_href_with_rel(assignment_res.json_body,
+                                                     'Commence')
+        self.testapp.post(start_href, extra_environ=student_environ)
         self.testapp.post_json(assignment_href, submission,
                                extra_environ=student_environ)
         assignment = self.testapp.get(assignment_href)
@@ -1764,7 +1775,7 @@ class TestEvaluationViews(ApplicationLayerTest):
         self.testapp.post_json(assignment_href, submission, status=403)
         self.testapp.post_json(savepoint_href, submission, status=403)
         self.testapp.post_json(practice_submission_href, submission)
-    
+
     @time_monotonically_increases
     @WithSharedApplicationMockDS(testapp=True, users=True)
     def test_overdue_submissions_with_submission_buffer(self):
@@ -1789,7 +1800,7 @@ class TestEvaluationViews(ApplicationLayerTest):
         qset = old_part.get('question_set')
         qset_ntiid = qset.get('NTIID')
         question_ntiid = qset.get('questions')[0].get('ntiid')
-        
+
         # Set the assignment end date and publish
         end_field = 'available_for_submission_ending'
         end_date_str = datetime.utcnow().isoformat()
@@ -1797,7 +1808,7 @@ class TestEvaluationViews(ApplicationLayerTest):
         res = self.testapp.put_json(assignment_href,
                                     data, extra_environ=editor_environ)
         self.testapp.post(publish_href)
-        
+
         # Prepare submission
         upload_submission = QUploadedFile(data=b'1234',
                                           contentType=b'image/gif',
@@ -1810,16 +1821,16 @@ class TestEvaluationViews(ApplicationLayerTest):
         submission = AssignmentSubmission(assignmentId=assignment_ntiid,
                                           parts=(qs_submission,))
         submission = toExternalObject(submission)
-        
+
         # Savepoints should work without a submission-buffer
         self.testapp.post_json(savepoint_href, submission)
-        
+
         # Set the submission-buffer
         data = { 'submission_buffer': 0 }
         assignment = self.testapp.put_json(assignment_href,
                                     data, extra_environ=editor_environ)
-        
-        # Overdue savepoints and submissions should fail 
+
+        # Overdue savepoints and submissions should fail
         self.testapp.post_json(savepoint_href, submission, status=403)
         self.testapp.post_json(assignment_href, submission, status=403)
 

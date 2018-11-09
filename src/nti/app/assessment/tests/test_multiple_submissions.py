@@ -54,6 +54,11 @@ class TestMultipleSubmissions(ApplicationLayerTest):
         ext_obj = to_external_object(submission)
         if version:
             ext_obj['version'] = version
+        # Need to start
+        assignment_res = self.testapp.get(self.assignment_url, extra_environ=environ)
+        start_href = self.require_link_href_with_rel(assignment_res.json_body,
+                                                     'Commence')
+        self.testapp.post(start_href, extra_environ=environ)
         res = self.testapp.post_json(submission_rel,
                                      ext_obj,
                                      extra_environ=environ,
@@ -139,9 +144,10 @@ class TestMultipleSubmissions(ApplicationLayerTest):
         assert_that(res[CLASS], is_('UsersCourseAssignmentHistoryItemContainer'))
         assert_that(res[ITEMS], has_length(2))
 
-        # Another submission fails
-        res = self._do_submit(submission_rel, outest_environ, status=422)
-        assert_that(res.json_body['code'], is_('TooLong'))
+        # Another submission fails, no commence rel
+        assignment_res = self.testapp.get(self.assignment_url,
+                                          extra_environ=outest_environ)
+        self.forbid_link_with_rel(assignment_res.json_body, 'Commence')
 
         # Reset
         self.testapp.post('%s/@@%s' % (self.assignment_url, VIEW_RESET_EVALUATION))

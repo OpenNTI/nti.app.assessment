@@ -11,7 +11,7 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-generation = 43
+generation = 44
 
 from zope.generations.generations import SchemaManager
 

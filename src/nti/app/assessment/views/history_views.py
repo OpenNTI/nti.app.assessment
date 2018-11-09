@@ -67,6 +67,7 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 from nti.app.assessment.utils import replace_username
 from nti.app.assessment.utils import get_course_from_request
 from nti.app.assessment.utils import assignment_download_precondition
+from nti.app.assessment.utils import get_current_metadata_attempt_item
 from nti.app.assessment.utils import course_assignments_download_precondition
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
@@ -108,6 +109,8 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
     """
     Students can POST to the assignment to create their submission.
     """
+
+    METADATA_ATTEMPT_VALIDATION = True
 
     # If the user submits a badly formed submission, we can get
     # this, especially if we try to autograde. (That particular case
@@ -164,6 +167,16 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
                              {
                                  'message': _(u"Assignment is not available for submission."),
                                  'code': u'SubmissionPastDueDateError'
+                             },
+                             None)
+        if      self.METADATA_ATTEMPT_VALIDATION \
+            and not get_current_metadata_attempt_item(creator, self.course, self.context.ntiid):
+            # Code error
+            raise_json_error(self.request,
+                             hexc.HTTPUnprocessableEntity,
+                             {
+                                 'message': _('Must have metadata attempt currently in progress'),
+                                 'code': 'MissingMetadataAttemptInProgressError'
                              },
                              None)
 
@@ -227,6 +240,8 @@ class AssignmentPracticeSubmissionPostView(AssignmentSubmissionPostView):
     A practice assignment submission view that will submit/grade results
     but not persist.
     """
+
+    METADATA_ATTEMPT_VALIDATION = False
 
     def _validate_submission(self):
         pass

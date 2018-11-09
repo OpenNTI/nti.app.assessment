@@ -8,7 +8,11 @@ from __future__ import absolute_import
 # pylint: disable=protected-access,too-many-public-methods
 
 from hamcrest import is_
+from hamcrest import none
 from hamcrest import is_not
+from hamcrest import has_item
+from hamcrest import not_none
+from hamcrest import has_entry
 from hamcrest import has_length
 from hamcrest import assert_that
 does_not = is_not
@@ -58,7 +62,22 @@ class TestMultipleSubmissions(ApplicationLayerTest):
         assignment_res = self.testapp.get(self.assignment_url, extra_environ=environ)
         start_href = self.require_link_href_with_rel(assignment_res.json_body,
                                                      'Commence')
-        self.testapp.post(start_href, extra_environ=environ)
+        res = self.testapp.post(start_href, extra_environ=environ)
+        res = res.json_body
+        # Validate metadata item state
+        meta_item = res.get('CurrentMetadataAttemptItem')
+        assert_that(meta_item, not_none())
+        assert_that(meta_item, has_entry('MimeType',
+                                         'application/vnd.nextthought.assessment.userscourseassignmentattemptmetadataitem'))
+        assert_that(meta_item, has_entry('Creator',
+                                         'outest55'))
+        assert_that(meta_item, has_entry('Duration', none()))
+        assert_that(meta_item, has_entry('SubmitTime', none()))
+        assert_that(meta_item, does_not(has_item('Seed')))
+        assert_that(meta_item, does_not(has_item('HistoryItem')))
+        self.require_link_href_with_rel(meta_item, 'Assignment')
+        self.forbid_link_with_rel(meta_item, 'HistoryItem')
+
         res = self.testapp.post_json(submission_rel,
                                      ext_obj,
                                      extra_environ=environ,
@@ -66,7 +85,7 @@ class TestMultipleSubmissions(ApplicationLayerTest):
         return res
 
     @WithSharedApplicationMockDS(users=True, testapp=True)
-    def test_policy_edits(self):
+    def test_multiple_submissions(self):
         res = self.testapp.get(self.assignment_url)
         res = res.json_body
         assert_that(res['max_submissions'], is_(1))
@@ -93,9 +112,9 @@ class TestMultipleSubmissions(ApplicationLayerTest):
         outest_environ = self._make_extra_environ(username='outest55')
 
         self.testapp.post_json('/dataserver2/CourseAdmin/UserCourseEnroll',
-                                     {'ntiid': self.course_ntiid,
-                                      'username': 'outest55',
-                                      'scope': 'ForCredit'})
+                               {'ntiid': self.course_ntiid,
+                                'username': 'outest55',
+                                'scope': 'ForCredit'})
 
         res = self.testapp.get(self.assignment_url, extra_environ=outest_environ)
         res = res.json_body

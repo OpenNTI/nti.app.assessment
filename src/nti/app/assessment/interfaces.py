@@ -380,12 +380,18 @@ class IUsersCourseAssignmentAttemptMetadataItem(IContained,
     __parent__.required = False
 
     StartTime = Float(title=u"Assignment Start time", required=False)
+
     Duration = Int(title=u"Assignment Duration", required=False)
+
     SubmitTime = Float(title=u"Assignment submission time", required=False)
+
     Seed = ValidBytesLine(title=u"Randomization seed", required=False, readonly=True)
+    Seed.setTaggedValue('_ext_excluded_out', True)
+
     HistoryItem = Object(IUsersCourseAssignmentHistoryItem,
                          title=u'The user history item for this attempt',
                          required=False)
+    HistoryItem.setTaggedValue('_ext_excluded_out', True)
 
 
 deprecated("IUsersCourseAssignmentMetadataContainer", "no longer used")

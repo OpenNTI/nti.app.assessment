@@ -59,7 +59,7 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
         links = result.setdefault(LINKS, [])
         # Remote user metadata for this course/assignment
         links.append(Link(course,
-                          rel='Metadata',
+                          rel='MetadataAttempts',
                           elements=elements))
 
         user_container = component.queryMultiAdapter((course, user),
@@ -71,7 +71,7 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
             meta_count = len(meta_container)
             current_attempt = get_current_metadata_attempt_item(user, course, assignment.ntiid)
             if current_attempt is not None:
-                result['MetadataAttemptItem'] = current_attempt
+                result['CurrentMetadataAttemptItem'] = current_attempt
 
         # All assignments can commence
         max_submissions = get_policy_max_submissions(assignment, course)

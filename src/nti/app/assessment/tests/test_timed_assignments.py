@@ -50,7 +50,7 @@ class TestTimedAssignments(ApplicationLayerTest):
         timed_assignment = timed_assignment.json_body
 
         href = self.require_link_href_with_rel(timed_assignment, 'Commence')
-        self.require_link_href_with_rel(timed_assignment, 'Metadata')
+        self.require_link_href_with_rel(timed_assignment, 'MetadataAttempts')
         self.forbid_link_with_rel(timed_assignment, 'StartTime')
         self.forbid_link_with_rel(timed_assignment, 'TimeRemaining')
 
@@ -58,10 +58,10 @@ class TestTimedAssignments(ApplicationLayerTest):
         res = self.testapp.post(href)
         res = res.json_body
 
-        meta_attempt = res.get('MetadataAttemptItem')
+        meta_attempt = res.get('CurrentMetadataAttemptItem')
         assert_that(meta_attempt, not_none())
         self.forbid_link_with_rel(res, 'Commence')
-        self.require_link_href_with_rel(res, 'Metadata')
+        self.require_link_href_with_rel(res, 'MetadataAttempts')
         start_href = self.require_link_href_with_rel(meta_attempt, 'StartTime')
         remaining_href = self.require_link_href_with_rel(meta_attempt, 'TimeRemaining')
 

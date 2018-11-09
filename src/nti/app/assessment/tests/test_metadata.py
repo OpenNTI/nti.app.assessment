@@ -267,7 +267,7 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         assignment_href = '%s/Assessments/%s' % (COURSE_URL, self.assignment_id)
         assignment_res = self.testapp.get(assignment_href)
         assignment_res = assignment_res.json_body
-        self.require_link_href_with_rel(assignment_res, 'Metadata')
+        self.require_link_href_with_rel(assignment_res, 'MetadataAttempts')
 
         commence_href = self.require_link_href_with_rel(assignment_res, 'Commence')
         self.testapp.get(commence_href, status=404)
@@ -276,7 +276,7 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         res = self.testapp.post_json(commence_href)
         assert_that(res.json_body, has_entry('Class', is_('Assignment')))
 
-        meta_item = res.json_body['MetadataAttemptItem']
+        meta_item = res.json_body['CurrentMetadataAttemptItem']
         assert_that(meta_item, has_entry('StartTime', is_not(none())))
         metadata_item_href = meta_item.get('href')
         self._check_metadata(meta_item, enrollment_metadata_link)
@@ -329,7 +329,7 @@ class TestMetadataViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         # Cannot start a new attempt until the previous is complete
         self.testapp.post_json(commence_href, status=422)
 
-        meta_item = res.json_body['MetadataAttemptItem']
+        meta_item = res.json_body['CurrentMetadataAttemptItem']
         # Regular assignments do not have timed rels
         for rel in ('StartTime', 'TimeRemaining'):
             self.forbid_link_with_rel(meta_item, rel)

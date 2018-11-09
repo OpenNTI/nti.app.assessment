@@ -41,8 +41,9 @@ from nti.app.assessment.common.utils import get_courses
 
 from nti.app.assessment.interfaces import IUsersCourseInquiry
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
-from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
+from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadata
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemContainer
 
 from nti.app.assessment.utils import get_course_from_request
 
@@ -171,7 +172,7 @@ class UserEvaluationResetView(AbstractAuthenticatedView,
             container_interfaces = (IUsersCourseInquiry,)
         else:
             container_interfaces = (IUsersCourseAssignmentHistory,
-                                    IUsersCourseAssignmentMetadata,
+                                    IUsersCourseAssignmentAttemptMetadata,
                                     IUsersCourseAssignmentSavepoint)
         # remove user data
         for username in usernames or ():
@@ -220,3 +221,42 @@ class UserEvaluationResetView(AbstractAuthenticatedView,
         result[ITEMS] = items
         result[TOTAL] = result[ITEM_COUNT] = len(items)
         return result
+
+
+@view_config(context=IUsersCourseAssignmentHistoryItemContainer)
+@view_defaults(route_name='objects.generic.traversal',
+               renderer='rest',
+               name=VIEW_RESET_EVALUATION,
+               request_method='POST',
+               permission=ACT_READ)
+class UserHistoryItemResetView(AbstractAuthenticatedView,
+                               EvaluationResetMixin):
+
+    def _delete_contained_data(self, course, assignment_ntiid):
+        container_interfaces = (IUsersCourseAssignmentHistory,
+                                IUsersCourseAssignmentAttemptMetadata,
+                                IUsersCourseAssignmentSavepoint)
+        # remove user data
+        user = IUser(self.context)
+        for provided in container_interfaces:
+            container = component.queryMultiAdapter((course, user),
+                                                    provided)
+            if container and assignment_ntiid in container:
+                del container[assignment_ntiid]
+        logger.info('Reset assigment data for user (%s) (%s)',
+                    user.username, assignment_ntiid)
+
+    def __call__(self):
+        if not self._can_delete_contained_data:
+            raise_json_error(self.request,
+                             hexc.HTTPForbidden,
+                             {
+                                 'message': _(u"Cannot reset evaluation object."),
+                                 'code': 'CannotResetEvaluation',
+                             },
+                             None)
+
+        if self.course is not None:
+            self._delete_contained_data(self.course,
+                                        self.context.__name__)
+        return hexc.HTTPNoContent()

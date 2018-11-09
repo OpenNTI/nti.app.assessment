@@ -110,11 +110,13 @@ class TestMultipleSubmissions(ApplicationLayerTest):
         with mock_dataserver.mock_db_trans():
             self._create_user('outest55')
         outest_environ = self._make_extra_environ(username='outest55')
+        instructor_environ = self._make_extra_environ(username='tryt3968')
 
-        self.testapp.post_json('/dataserver2/CourseAdmin/UserCourseEnroll',
-                               {'ntiid': self.course_ntiid,
-                                'username': 'outest55',
-                                'scope': 'ForCredit'})
+        record = self.testapp.post_json('/dataserver2/CourseAdmin/UserCourseEnroll',
+                                       {'ntiid': self.course_ntiid,
+                                        'username': 'outest55',
+                                        'scope': 'ForCredit'})
+        user_history_href = self.require_link_href_with_rel(record.json_body, 'AssignmentHistory')
 
         res = self.testapp.get(self.assignment_url, extra_environ=outest_environ)
         res = res.json_body
@@ -144,6 +146,7 @@ class TestMultipleSubmissions(ApplicationLayerTest):
         res = res.json_body
         assert_that(res[CLASS], is_('UsersCourseAssignmentHistoryItemContainer'))
         assert_that(res[ITEMS], has_length(1))
+        self.forbid_link_with_rel(res, VIEW_RESET_EVALUATION)
 
         history_item = res[ITEMS][0]
         meta_item1 = history_item.get('MetadataAttemptItem')
@@ -182,11 +185,13 @@ class TestMultipleSubmissions(ApplicationLayerTest):
         self.forbid_link_with_rel(assignment_res.json_body, 'Commence')
 
         # Reset
-        self.testapp.post('%s/@@%s' % (self.assignment_url, VIEW_RESET_EVALUATION))
+        user_history = self.testapp.get(user_history_href, extra_environ=instructor_environ)
+        user_history = user_history.json_body
+        reset_url = self.require_link_href_with_rel(user_history[ITEMS][self.assignment_id], VIEW_RESET_EVALUATION)
+        self.testapp.post(reset_url, extra_environ=instructor_environ)
         res = self.testapp.get(self.assignment_url, extra_environ=outest_environ)
         res = res.json_body
         assert_that(res['max_submissions'], is_(2))
         assert_that(res['submission_count'], is_(0))
         submission_rel = self.require_link_href_with_rel(res, 'Submit')
-        self._do_submit(submission_rel, outest_environ, version=res['version'])
-
+        self._do_submit(submission_rel, outest_environ)

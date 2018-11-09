@@ -209,6 +209,15 @@ class UsersCourseAssignmentHistoryItemContainer(PersistentCreatedModDateTracking
                 self._delitemf(k)
     clear = reset
 
+    def __conform__(self, iface):
+        if IUser.isOrExtends(iface):
+            # If the user is deleted, we will not be able to do this
+            try:
+                submission_container = self.__parent__
+                return iface(submission_container)
+            except (AttributeError, TypeError):
+                return None
+
 
 @interface.implementer(IUsersCourseAssignmentHistoryItem,
                        IACLProvider,

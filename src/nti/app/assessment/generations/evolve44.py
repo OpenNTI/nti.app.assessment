@@ -64,7 +64,8 @@ def get_user(obj):
     result = obj.creator
     if not IUser.providedBy(result):
         result = User.get_user(result)
-    assert IUser.providedBy(result), obj.creator
+    if result is None:
+        logger.warn('History item without a creator (%s)', obj)
     return result
 
 
@@ -124,6 +125,8 @@ def do_evolve(context, generation=generation):
                     logger.warn('History item without lineage (%s)', item)
                     continue
                 user = get_user(item)
+                if user is None:
+                    continue
                 create_meta_attempt(user, item, intids)
                 if IUsersCourseAssignmentHistoryItemContainer.providedBy(user_history):
                     # Idempotent

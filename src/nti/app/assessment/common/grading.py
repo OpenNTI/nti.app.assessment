@@ -12,6 +12,8 @@ from zope.event import notify
 
 from nti.app.assessment.common.assessed import reassess_assignment_history_item
 
+from nti.app.assessment.common.policy import get_policy_submission_priority
+
 from nti.app.assessment.common.submissions import evaluation_submissions
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
@@ -23,7 +25,13 @@ logger = __import__('logging').getLogger(__name__)
 
 def regrade_evaluation(context, course):
     result = []
-    for item in evaluation_submissions(context, course):
+    submissions = evaluation_submissions(context, course)
+    # For multiple submissions, we want to make sure we re-grade in the order
+    # of submission so that we store the grade appropriately (most_recent vs
+    # highest_grade).
+    if get_policy_submission_priority(context, course) == 'most_recent':
+        submissions = sorted(submissions, key=lambda x: x.createdTime)
+    for item in submissions:
         if IUsersCourseAssignmentHistoryItem.providedBy(item):
             logger.info('Regrading (%s) (user=%s)',
                         item.Submission.assignmentId, item.creator)

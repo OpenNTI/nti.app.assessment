@@ -71,12 +71,12 @@ def get_policy_submission_priority(assignment, course):
     {'highest_grade', 'most_recent'}. This is only needed for assignments
     configured for multiple submissions (`max_submissions`).
     """
-    return get_policy_field(assignment, course, 'submission_priority') or 'most_recent'
+    return get_policy_field(assignment, course, 'submission_priority') or 'highest_grade'
 
 
 def is_most_recent_submission_priority(assignment, course):
     submission_priority = get_policy_submission_priority(assignment, course)
-    return submission_priority == 'most_recent'
+    return submission_priority == 'highest_grade'
 
 
 def get_policy_max_submissions(assignment, course):

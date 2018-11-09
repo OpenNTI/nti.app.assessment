@@ -87,8 +87,8 @@ def create_meta_attempt(user, item, intids):
         # All floats (int duration)
         # Legacy submissions will not have durations
         attempt.Duration = duration = getattr(item.Submission, 'CreatorRecordedEffortDuration', -1)
-        attempt.StartTime = item.createdTime - duration if duration > 0 else 0
-        attempt.SubmitTime = item.createdTime
+        attempt.StartTime = float(item.createdTime - duration if duration > 0 else 0)
+        attempt.SubmitTime = float(item.createdTime)
         attempt.HistoryItem = item
         item_container.add_attempt(attempt)
 

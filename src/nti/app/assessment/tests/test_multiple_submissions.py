@@ -89,7 +89,7 @@ class TestMultipleSubmissions(ApplicationLayerTest):
         res = self.testapp.get(self.assignment_url)
         res = res.json_body
         assert_that(res['max_submissions'], is_(1))
-        assert_that(res['submission_priority'], is_('most_recent'))
+        assert_that(res['submission_priority'], is_('highest_grade'))
 
         for bad_value in ('-1', '0', 'a'):
             data =  {'max_submissions': bad_value}

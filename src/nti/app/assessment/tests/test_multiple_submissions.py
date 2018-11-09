@@ -131,6 +131,7 @@ class TestMultipleSubmissions(ApplicationLayerTest):
         res = res.json_body
         assert_that(res['max_submissions'], is_(2))
         assert_that(res['submission_count'], is_(1))
+        # XXX: Submit rel API is probably obsolete
         self.require_link_href_with_rel(res, 'Submit')
 
         history_rel = self.require_link_href_with_rel(res, 'History')
@@ -143,6 +144,15 @@ class TestMultipleSubmissions(ApplicationLayerTest):
         res = res.json_body
         assert_that(res[CLASS], is_('UsersCourseAssignmentHistoryItemContainer'))
         assert_that(res[ITEMS], has_length(1))
+
+        history_item = res[ITEMS][0]
+        meta_item1 = history_item.get('MetadataAttemptItem')
+        assert_that(meta_item1, not_none())
+        assert_that(meta_item1, has_entry('StartTime', not_none()))
+        assert_that(meta_item1, has_entry('Duration', not_none()))
+        assert_that(meta_item1, has_entry('SubmitTime', not_none()))
+        self.require_link_href_with_rel(meta_item1, 'Assignment')
+        self.require_link_href_with_rel(meta_item1, 'HistoryItem')
 
         # Second submission
         self._do_submit(submission_rel, outest_environ)
@@ -162,6 +172,9 @@ class TestMultipleSubmissions(ApplicationLayerTest):
         res = res.json_body
         assert_that(res[CLASS], is_('UsersCourseAssignmentHistoryItemContainer'))
         assert_that(res[ITEMS], has_length(2))
+        meta_ntiids = {x['MetadataAttemptItem']['NTIID'] for x in res[ITEMS]}
+        assert_that(meta_ntiids, has_length(2))
+        assert_that(meta_ntiids, has_item(meta_item1['NTIID']))
 
         # Another submission fails, no commence rel
         assignment_res = self.testapp.get(self.assignment_url,

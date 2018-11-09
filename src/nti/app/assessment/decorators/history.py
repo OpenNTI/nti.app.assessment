@@ -22,7 +22,7 @@ from nti.app.assessment.decorators import _get_course_from_evaluation
 from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
 from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
 
-from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadata
+from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadataItem
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
@@ -32,11 +32,8 @@ from nti.contenttypes.courses.interfaces import ICourseAssignmentCatalog
 from nti.contenttypes.courses.interfaces import get_course_assessment_predicate_for_user
 
 from nti.contenttypes.courses.utils import get_parent_course
-from nti.contenttypes.courses.utils import is_course_instructor
 
 from nti.dataserver.interfaces import IUser
-
-from nti.externalization.externalization import to_external_object
 
 from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import IExternalMappingDecorator
@@ -173,24 +170,12 @@ class _AssignmentHistoryItemDecorator(_AbstractTraversableLinkDecorator):
 
     # pylint: disable=arguments-differ
     def _do_decorate_external(self, context, result_map):
-        creator = context.creator
         remoteUser = self.remoteUser
         course = find_interface(context, ICourseInstance, strict=False)
         if course is None:
             return
-        if is_course_instructor(course, remoteUser):
-            user = creator
-        else:
-            user = remoteUser
-
         # Get the metadata attempt for this history item
-        assignment_metadata = component.queryMultiAdapter((course, user),
-                                                          IUsersCourseAssignmentAttemptMetadata)
-        item_container = assignment_metadata.get_or_create(context.assignmentId)
-        for item in item_container.values():
-            if item.HistoryItem == context:
-                result_map['Metadata'] = to_external_object(item)
-                break
+        result_map['MetadataAttemptItem'] = IUsersCourseAssignmentAttemptMetadataItem(context, None)
         result_map['AssignmentId'] = context.assignmentId
         result_map['submission_count'] = get_user_submission_count(remoteUser,
                                                                    course,

@@ -8,8 +8,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
-import time
-
 from pyramid.interfaces import IRequest
 
 import six
@@ -383,7 +381,7 @@ def _attempt_on_assignment_history_item_deleted(item, unused_event):
 @interface.implementer(IUsersCourseAssignmentAttemptMetadataItem)
 def _assignment_history_item_to_metadata_attempt(item):
     """
-    Find the attempt metadata associated with this hitory item.
+    Find the attempt metadata associated with this history item.
     """
     user = IUser(item, None)
     course = find_interface(item, ICourseInstance, strict=False)

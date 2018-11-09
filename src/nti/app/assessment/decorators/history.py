@@ -14,7 +14,6 @@ from zope import interface
 from zope.cachedescriptors.property import Lazy
 
 from nti.app.assessment.common.history import get_user_submission_count
-from nti.app.assessment.common.history import get_assessment_metadata_item
 from nti.app.assessment.common.history import get_most_recent_history_item
 
 from nti.app.assessment.common.policy import get_policy_max_submissions
@@ -22,6 +21,8 @@ from nti.app.assessment.common.policy import get_policy_max_submissions
 from nti.app.assessment.decorators import _get_course_from_evaluation
 from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
 from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
+
+from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadata
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
@@ -181,9 +182,15 @@ class _AssignmentHistoryItemDecorator(_AbstractTraversableLinkDecorator):
             user = creator
         else:
             user = remoteUser
-        item = get_assessment_metadata_item(course, user, context.assignmentId)
-        if item is not None:
-            result_map['Metadata'] = to_external_object(item)
+
+        # Get the metadata attempt for this history item
+        assignment_metadata = component.queryMultiAdapter((course, user),
+                                                          IUsersCourseAssignmentAttemptMetadata)
+        item_container = assignment_metadata.get_or_create(context.assignmentId)
+        for item in item_container.values():
+            if item.HistoryItem == context:
+                result_map['Metadata'] = to_external_object(item)
+                break
         result_map['AssignmentId'] = context.assignmentId
         result_map['submission_count'] = get_user_submission_count(remoteUser,
                                                                    course,

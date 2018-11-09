@@ -54,11 +54,6 @@
 				for="nti.assessment.interfaces.IQAssignmentSubmissionPendingAssessment
 					 pyramid.interfaces.IRequest" />
 
-	<subscriber factory=".assignment._AssignmentMetadataDecorator"
-				provides="nti.externalization.interfaces.IExternalObjectDecorator"
-				for="nti.assessment.interfaces.IQAssignment
-					 pyramid.interfaces.IRequest" />
-
 	<subscriber factory=".assignment._TimedAssignmentPartStripperDecorator"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.assessment.interfaces.IQTimedAssignment

@@ -349,12 +349,12 @@ def _attempt_on_assignment_history_item_added(item, unused_event):
     Fill out our metadata attempt item details once the user submits.
     """
     user = IUser(item, None)
-    course = find_interface(item, ICourseInstance)
+    course = find_interface(item, ICourseInstance, strict=False)
     current_attempt = get_current_metadata_attempt_item(user, course, item.assignmentId)
-    # FIXME
-    #assert current_attempt is not None, "Must have ongoing metadata attempt"
-    # Floats (duration is an int
+    # Easier for tests if we are lenient (also instructors' practice submissions
+    # will not have meta attempt items)
     if current_attempt is not None:
+        # Floats (duration is an int)
         current_attempt.SubmitTime = item.createdTime
         current_attempt.Duration = int(current_attempt.SubmitTime - current_attempt.StartTime)
         current_attempt.HistoryItem = item
@@ -368,11 +368,14 @@ def _attempt_on_assignment_history_item_deleted(item, unused_event):
     """
     user = IUser(item, None)
     course = find_interface(item, ICourseInstance, strict=False)
-    assignment_metadata = component.queryMultiAdapter((course, user),
-                                                      IUsersCourseAssignmentAttemptMetadata)
+    user_meta = component.queryMultiAdapter((course, user),
+                                            IUsersCourseAssignmentAttemptMetadata)
+    assignment_metadata = user_meta.get_or_create(item.assignmentId)
     if assignment_metadata is not None:
         for attempt_meta in assignment_metadata.values():
-            if attempt_meta.HistoryItem == item:
+            # Submitted and Weakref no longer resolves
+            if      attempt_meta.SubmitTime is not None \
+                and attempt_meta.HistoryItem is None:
                 del assignment_metadata[attempt_meta.__name__]
 
 
@@ -384,14 +387,16 @@ def _assignment_history_item_to_metadata_attempt(item):
     """
     user = IUser(item, None)
     course = find_interface(item, ICourseInstance, strict=False)
-    assignment_metadata = component.queryMultiAdapter((course, user),
-                                                      IUsersCourseAssignmentAttemptMetadata)
+    user_meta = component.queryMultiAdapter((course, user),
+                                            IUsersCourseAssignmentAttemptMetadata)
+    assignment_metadata = user_meta.get_or_create(item.assignmentId)
     if assignment_metadata is not None:
         for attempt_meta in assignment_metadata.values():
             if attempt_meta.HistoryItem == item:
                 return attempt_meta
 
 
+# deprecated below
 # ----------------------------------------
 
 
@@ -618,41 +623,3 @@ class _UsersCourseMetadataTraversable(ContainerAdapterTraversable):
 @component.adapter(ICourseInstance, IObjectAddedEvent)
 def _on_course_added(course, unused_event):
     _metadatacontainer_for_course(course)
-
-
-@component.adapter(IUsersCourseAssignmentHistoryItem, IObjectAddedEvent)
-def _on_assignment_history_item_added(item, unused_event):
-    user = IUser(item, None)
-    course = find_interface(item, ICourseInstance, strict=False)
-    assignment_metadata = component.queryMultiAdapter((course, user),
-                                                      IUsersCourseAssignmentMetadata)
-    if assignment_metadata is not None:
-        meta_item = assignment_metadata.get_or_create(
-            item.assignmentId, time.time()
-        )
-        meta_item.Duration = time.time() - meta_item.StartTime
-        meta_item.updateLastMod()
-
-
-@component.adapter(IUsersCourseAssignmentHistoryItem, IObjectRemovedEvent)
-def _on_assignment_history_item_deleted(item, unused_event):
-    user = IUser(item, None)
-    course = find_interface(item, ICourseInstance, strict=False)
-    assignment_metadata = component.queryMultiAdapter((course, user),
-                                                      IUsersCourseAssignmentMetadata)
-    if assignment_metadata is not None:
-        assignment_metadata.remove(item.assignmentId)
-
-
-@component.adapter(IUsersCourseAssignmentHistoryItem)
-@interface.implementer(IUsersCourseAssignmentMetadataItem)
-def _assignment_history_item_2_metadata(item):
-    user = IUser(item, None)
-    course = find_interface(item, ICourseInstance, strict=False)
-    metadata = component.queryMultiAdapter((course, user),
-                                           IUsersCourseAssignmentMetadata)
-    try:
-        result = metadata[item.assignmentId] if metadata else None
-    except KeyError:
-        result = None
-    return result

@@ -264,10 +264,12 @@ def get_current_metadata_attempt_item(user, course, assignment_ntiid):
     """
     assignment_metadata = component.queryMultiAdapter((course, user),
                                                       IUsersCourseAssignmentAttemptMetadata)
-    item_container = assignment_metadata.get_or_create(assignment_ntiid)
-    for item in item_container.values():
-        if item.StartTime and not item.SubmitTime:
-            return item
+    # None due to no course given (tests or instructor practice submissions))
+    if assignment_metadata is not None:
+        item_container = assignment_metadata.get_or_create(assignment_ntiid)
+        for item in item_container.values():
+            if item.StartTime and not item.SubmitTime:
+                return item
 
 def replace_username(username):
     policy = component.queryUtility(IUsernameSubstitutionPolicy)

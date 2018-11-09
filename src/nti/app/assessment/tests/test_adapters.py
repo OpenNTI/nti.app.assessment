@@ -161,7 +161,9 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
                         raises(NotUnique, 'already submitted'))
 
     @WithSharedApplicationMockDS(users=True, testapp=True)
-    def test_pending_application_user_data(self):
+    @fudge.patch('nti.app.assessment.views.history_views.get_current_metadata_attempt_item')
+    def test_pending_application_user_data(self, fudge_meta):
+        fudge_meta.is_callable().returns(True)
         # Sends an assignment through the application by sending it to the
         # user.
         qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id)
@@ -321,6 +323,11 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         assignment_submit_rel = '%s/%s/%s' % (course_instance_link,
                                               'Assessments',
                                               self.assignment_id)
+        # Need to start
+        assignment_res = self.testapp.get(assignment_submit_rel)
+        start_href = self.require_link_href_with_rel(assignment_res.json_body,
+                                                     'Commence')
+        self.testapp.post(start_href)
         res = self.testapp.post_json(assignment_submit_rel, ext_obj)
         self._check_submission(res, enrollment_history_link)
 
@@ -481,6 +488,10 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         assert_that(res.json_body, has_entry('Items', is_empty()))
 
         # Whereupon we can submit again
+        # Need to start
+        assignment_res = self.testapp.get(assignment_submit_rel)
+        start_href = self.require_link_href_with_rel(assignment_res.json_body,
+                                                     'Commence')
         res = self.testapp.post_json(assignment_submit_rel, ext_obj)
         self._check_submission(res, enrollment_history_link, 1234)
 
@@ -610,6 +621,11 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
                                           parts=(qs_submission,))
 
         ext_obj = to_external_object(submission)
+        # Need to start
+        assignment_res = self.testapp.get(assg_href)
+        start_href = self.require_link_href_with_rel(assignment_res.json_body,
+                                                     'Commence')
+        self.testapp.post(start_href)
         res = self.testapp.post_json(assg_href, ext_obj)
 
         def _check_pending(pending):

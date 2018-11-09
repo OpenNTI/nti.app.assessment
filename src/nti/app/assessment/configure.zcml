@@ -291,18 +291,6 @@
 	<include package=".evaluations" file="configure.zcml" />
 
 	<!-- Metadata -->
-	<!-- deprecated -->
-	<adapter factory=".metadata._metadata_for_user_in_course" />
-	<adapter factory=".metadata._metadatacontainer_for_course" />
-	<adapter factory=".metadata._course_from_metadataitem_lineage" />
-	<adapter factory=".metadata._assignment_history_item_2_metadata" />
-	<adapter factory=".metadata._UsersCourseMetadataTraversable" />
-	<adapter factory=".metadata._UsersCourseMetadataContainerTraversable" />
-
-	<subscriber handler=".metadata._on_course_added" />
-    <subscriber handler=".metadata._on_assignment_history_item_added" />
-    <subscriber handler=".metadata._on_assignment_history_item_deleted" />
-
     <!-- current -->
     <adapter factory=".metadata._metadata_attempt_container_for_course_path_adapter"
              for="nti.contenttypes.courses.interfaces.ICourseInstance

@@ -9,8 +9,6 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
-import time
-
 from zope import component
 from zope import interface
 
@@ -28,16 +26,14 @@ from nti.app.assessment.common.evaluations import is_assignment_available
 from nti.app.assessment.common.evaluations import get_course_from_evaluation
 from nti.app.assessment.common.evaluations import is_assignment_available_for_submission
 
-from nti.app.assessment.common.history import get_assessment_metadata_item
-
 from nti.app.assessment.common.submissions import check_submission_version
 
-from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepointItem
 
 from nti.app.assessment.utils import get_course_from_request
+from nti.app.assessment.utils import get_current_metadata_attempt_item
 
 from nti.app.assessment.views import get_ds2
 
@@ -112,14 +108,14 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
                                  'message': _(u"Assignment is not available."),
                              },
                              None)
-            
+
         if not is_assignment_available_for_submission(self.context, course=course, user=creator):
-            raise_json_error(self.request, 
-                             hexc.HTTPForbidden, 
+            raise_json_error(self.request,
+                             hexc.HTTPForbidden,
                              {
                                  'message': _(u"Assignment is not available for submission."),
                                  'code': u'SubmissionPastDueDateError'
-                             }, 
+                             },
                              None)
 
         if not self.request.POST:
@@ -150,10 +146,10 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 
         # No savepoints unless the timed assignment has been started
         if IQTimedAssignment.providedBy(self.context):
-            item = get_assessment_metadata_item(course,
-                                                self.remoteUser,
-                                                self.context.ntiid)
-            if item is None or not item.StartTime:
+            item = get_current_metadata_attempt_item(self.remoteUser,
+                                                     course,
+                                                     self.context.ntiid)
+            if item is None:
                 msg = _(u"Cannot savepoint timed assignment unless started.")
                 raise_json_error(self.request,
                                  hexc.HTTPClientError,
@@ -165,12 +161,6 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
         savepoint = component.getMultiAdapter((course, submission.creator),
                                               IUsersCourseAssignmentSavepoint)
         submission.containerId = submission.assignmentId
-
-        # for legacy purposes we assume the start time as the first savepoint
-        # submitted
-        metadata = component.getMultiAdapter((course, submission.creator),
-                                             IUsersCourseAssignmentMetadata)
-        metadata.get_or_create(submission.assignmentId, time.time())
 
         version = self.context.version
         if version is not None:  # record version

@@ -17,13 +17,11 @@ from nti.app.assessment.common.utils import to_course_list
 
 from nti.app.assessment.interfaces import IUsersCourseInquiries
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
-from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataContainer
 
 from nti.assessment.interfaces import IQInquiry
-from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssessmentPolicies
 from nti.assessment.interfaces import IQAssessmentDateContext
 
@@ -61,21 +59,6 @@ def get_user_submission_count(user, course, assignment):
         if submission_container:
             result = len(submission_container)
     return result
-
-
-def get_assessment_metadata_item(context, user, assignment):
-    # FIXME
-    course = ICourseInstance(context, None)
-    metadata = component.queryMultiAdapter((course, user),
-                                           IUsersCourseAssignmentMetadata)
-    if metadata is not None:
-        if IQAssignment.providedBy(assignment):
-            ntiid = assignment.ntiid
-        else:
-            ntiid = str(assignment)
-        if ntiid in metadata:
-            return metadata[ntiid]
-    return None
 
 
 def delete_context_contained_data(container_iface, context, course, subinstances=True):

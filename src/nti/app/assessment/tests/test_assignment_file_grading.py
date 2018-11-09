@@ -239,6 +239,11 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
         assessments_rel = self.require_link_href_with_rel(course_res,
                                                           'Assessments')
 
+        # Need to start
+        assignment_res = self.testapp.get('%s/%s' % (assessments_rel, self.assignment_id))
+        start_href = self.require_link_href_with_rel(assignment_res.json_body,
+                                                     'Commence')
+        self.testapp.post(start_href)
         res = self.testapp.post_json('%s/%s' % (assessments_rel, self.assignment_id),
                                      ext_obj)
         history_res = self._check_submission(res, enrollment_history_link)

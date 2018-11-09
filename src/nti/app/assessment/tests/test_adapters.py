@@ -492,6 +492,7 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         assignment_res = self.testapp.get(assignment_submit_rel)
         start_href = self.require_link_href_with_rel(assignment_res.json_body,
                                                      'Commence')
+        self.testapp.post(start_href)
         res = self.testapp.post_json(assignment_submit_rel, ext_obj)
         self._check_submission(res, enrollment_history_link, 1234)
 

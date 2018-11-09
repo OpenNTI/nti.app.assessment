@@ -13,6 +13,10 @@ from zope import interface
 
 from zope.cachedescriptors.property import Lazy
 
+from zope.location.interfaces import ILocation
+
+from nti.app.assessment import VIEW_RESET_EVALUATION
+
 from nti.app.assessment.common.history import get_user_submission_count
 from nti.app.assessment.common.history import get_most_recent_history_item
 
@@ -32,6 +36,7 @@ from nti.contenttypes.courses.interfaces import ICourseAssignmentCatalog
 from nti.contenttypes.courses.interfaces import get_course_assessment_predicate_for_user
 
 from nti.contenttypes.courses.utils import get_parent_course
+from nti.contenttypes.courses.utils import is_course_instructor
 
 from nti.dataserver.interfaces import IUser
 
@@ -165,6 +170,7 @@ class _AssignmentHistoryLinkDecorator(AbstractAuthenticatedRequestAwareDecorator
                                         user.username,
                                         context.ntiid)))
 
+
 @interface.implementer(IExternalMappingDecorator)
 class _AssignmentHistoryItemDecorator(_AbstractTraversableLinkDecorator):
 
@@ -180,3 +186,27 @@ class _AssignmentHistoryItemDecorator(_AbstractTraversableLinkDecorator):
         result_map['submission_count'] = get_user_submission_count(remoteUser,
                                                                    course,
                                                                    context.assignmentId)
+
+
+@interface.implementer(IExternalMappingDecorator)
+class _AssignmentHistoryItemContainerDecorator(_AbstractTraversableLinkDecorator):
+
+    def _predicate(self, context, unused_result):
+        return len(context)
+
+    # pylint: disable=arguments-differ
+    def _do_decorate_external(self, context, result_map):
+        course = find_interface(context, ICourseInstance, strict=False)
+        if course is None:
+            return
+        if      ICourseInstance.providedBy(course) \
+            and is_course_instructor(course, self.remoteUser):
+            _links = result_map.setdefault(LINKS, [])
+            link = Link(context,
+                        rel=VIEW_RESET_EVALUATION,
+                        elements=('@@' + VIEW_RESET_EVALUATION,),
+                        method='POST')
+            interface.alsoProvides(link, ILocation)
+            link.__name__ = ''
+            link.__parent__ = context
+            _links.append(link)

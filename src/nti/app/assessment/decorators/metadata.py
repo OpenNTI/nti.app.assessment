@@ -44,6 +44,10 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
     user/course/assignment as well as the commence rels.
     """
 
+    def _predicate(self, context, result):
+        return (     AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result)
+                 and not context.no_submit)
+
     # pylint: disable=arguments-differ
     def _do_decorate_external(self, assignment, result):
         user = self.remoteUser

@@ -68,9 +68,10 @@ from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
 
 from nti.app.assessment.interfaces import ACT_VIEW_SOLUTIONS
 
+from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadataItem
+
 from nti.app.assessment.utils import get_course_from_request
 from nti.app.assessment.utils import assignment_download_precondition
-from nti.app.assessment.utils import get_current_metadata_attempt_item
 from nti.app.assessment.utils import course_assignments_download_precondition
 
 from nti.app.contentlibrary import LIBRARY_PATH_GET_VIEW
@@ -299,10 +300,10 @@ class _TimedAssignmentPartStripperDecorator(AbstractAuthenticatedRequestAwareDec
             or is_course_instructor(course, self.remoteUser) \
             or has_permission(ACT_CONTENT_EDIT, course, self.request):
             return
-        item = get_current_metadata_attempt_item(self.remoteUser,
-                                                 course,
-                                                 context.ntiid)
-        if item is None:
+        # Only return timed assignment parts if coming through a meta attempt item.
+        # They've either started or have already submitted (non-instructor/editor).
+        meta_item = IUsersCourseAssignmentAttemptMetadataItem(self.request, None)
+        if meta_item is None:
             result['parts'] = None
 
 

@@ -14,6 +14,7 @@ from zope import component
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
+from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadataItem
 
 from nti.app.authentication import get_remote_user
 
@@ -107,6 +108,11 @@ class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):
                                      strict=False)
         if uca_history is None or uca_history.creator == self.remoteUser:
             return
+
+        history_item = find_interface(context,
+                                      IUsersCourseAssignmentHistoryItem,
+                                      strict=False)
+        meta_attempt = IUsersCourseAssignmentAttemptMetadataItem(history_item)
         # find question
         assessed_question = context.__parent__
         question_id = assessed_question.questionId
@@ -136,7 +142,8 @@ class _QAssessedPartDecorator(AbstractAuthenticatedRequestAwareDecorator):
                 creator = uca_history.creator
                 response = grader.unshuffle(response,
                                             user=creator,
-                                            context=question_part)
+                                            context=question_part,
+                                            seed=meta_attempt.Seed)
                 if isinstance(response, (numbers.Real, basestring)):
                     ext_response = response
                 else:
@@ -162,6 +169,10 @@ class _QuestionSubmissionDecorator(AbstractAuthenticatedRequestAwareDecorator):
         if uca_history is None or uca_history.creator == self.remoteUser:
             return
 
+        history_item = find_interface(context,
+                                      IUsersCourseAssignmentHistoryItem,
+                                      strict=False)
+        meta_attempt = IUsersCourseAssignmentAttemptMetadataItem(history_item)
         # find question
         question_id = context.questionId
         question = component.queryUtility(IQuestion, name=question_id)
@@ -190,7 +201,8 @@ class _QuestionSubmissionDecorator(AbstractAuthenticatedRequestAwareDecorator):
                     if grader is not None:
                         response = grader.unshuffle(sub_part,
                                                     user=creator,
-                                                    context=question_part)
+                                                    context=question_part,
+                                                    seed=meta_attempt.Seed)
                     else:
                         logger.warn("Part %s does not correspond submission %s",
                                     question_part, sub_part)

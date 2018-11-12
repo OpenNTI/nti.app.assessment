@@ -34,6 +34,7 @@ from nti.app.assessment.common.utils import get_user
 from nti.app.assessment.interfaces import ACT_DOWNLOAD_GRADES
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadata
+from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadataItem
 
 from nti.app.authentication import get_remote_user
 
@@ -329,10 +330,19 @@ def get_uid(context):
 class PrincipalSeedSelector(object):
 
     def __call__(self, principal=None):
-        user = get_user(principal, True)
-        if user is not None:
-            return get_uid(user)
-        return None
+        """
+        With multiple submissions, all requests for assignment/assessed items
+        (which may need to be randomized/unshuffled need to be requested in
+        the context of a metadata attempt item, which stores the randomization
+        seed for that particular attempt.
+        """
+        request = get_current_request()
+        meta_item = IUsersCourseAssignmentAttemptMetadataItem(request)
+        return meta_item.Seed
+#         user = get_user(principal, True)
+#         if user is not None:
+#             return get_uid(user)
+#         return None
 
 
 @interface.implementer(IQEvaluationContainerIdGetter)

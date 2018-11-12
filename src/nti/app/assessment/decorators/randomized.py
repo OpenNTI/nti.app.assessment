@@ -43,6 +43,7 @@ from nti.externalization.externalization import to_external_object
 
 from nti.externalization.interfaces import IExternalObjectDecorator
 from nti.externalization.interfaces import IExternalMappingDecorator
+from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadataItem
 
 logger = __import__('logging').getLogger(__name__)
 
@@ -56,11 +57,16 @@ class _AbstractNonEditorRandomizingDecorator(AbstractAuthenticatedRequestAwareDe
 
     def _predicate(self, context, unused_result):
         user = self.remoteUser
-        course = _get_course_from_evaluation(context, user, 
+        course = _get_course_from_evaluation(context, user,
                                              request=self.request)
+        # XXX: Not sure this is what we want here, regarding the meta attempt
+        # We cannot randomize correctly without it; a better solution might be
+        # to never return questions/parts for assignments for non-editors
+        # without a meta attempt item.
         return   self._is_authenticated \
             and not is_course_instructor_or_editor(course, user) \
-            and not has_permission(ACT_CONTENT_EDIT, context, self.request)
+            and not has_permission(ACT_CONTENT_EDIT, context, self.request) \
+            and IUsersCourseAssignmentAttemptMetadataItem(self.request, None) is not None
 
 
 # pylint: disable=abstract-method

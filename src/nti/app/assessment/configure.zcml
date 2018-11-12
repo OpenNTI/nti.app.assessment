@@ -291,7 +291,6 @@
 	<include package=".evaluations" file="configure.zcml" />
 
 	<!-- Metadata -->
-    <!-- current -->
     <adapter factory=".metadata._metadata_attempt_container_for_course_path_adapter"
              for="nti.contenttypes.courses.interfaces.ICourseInstance
                   pyramid.interfaces.IRequest"
@@ -304,6 +303,10 @@
              provides="zope.traversing.interfaces.IPathAdapter"
              name="AssignmentAttemptMetadata" />
 
+    <adapter factory=".adapters._attempt_item_from_request"
+             provides="nti.app.assessment.interfaces.IUsersCourseAssignmentAttemptMetadataItem"
+             for="pyramid.interfaces.IRequest" />
+
     <adapter factory=".metadata._metadata_for_course" />
 	<adapter factory=".metadata._metadata_attempts_for_user_in_course" />
     <adapter factory=".metadata._course_from_metadata_attempt_item_lineage" />
@@ -311,6 +314,7 @@
 	<adapter factory=".metadata._UsersCourseMetadataAttemptTraversable" />
 	<adapter factory=".metadata._CourseMetadataAttemptContainerTraversable" />
 
+    <subscriber handler=".subscribers.meta_attempt_item_context_subscriber" />
 	<subscriber handler=".metadata._attempt_meta_on_course_added" />
     <subscriber handler=".metadata._attempt_on_assignment_history_item_added" />
     <subscriber handler=".metadata._attempt_on_assignment_history_item_deleted" />

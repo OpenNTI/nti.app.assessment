@@ -34,6 +34,8 @@ from zope.lifecycleevent.interfaces import IObjectAddedEvent
 from zope.lifecycleevent.interfaces import IObjectRemovedEvent
 from zope.lifecycleevent.interfaces import IObjectModifiedEvent
 
+from zope.traversing.interfaces import IBeforeTraverseEvent
+
 from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment.common.containers import index_course_package_assessments
@@ -58,6 +60,7 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepointItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataContainer
+from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadataItem
 
 from nti.app.externalization.error import raise_json_error
 
@@ -461,3 +464,16 @@ def _on_assignment_history_item_added(item, unused_event):
         contexts = (to_external_ntiid_oid(course),)
         notify(UserProcessedContextsEvent(item.creator, contexts,
                                           time.time(), request))
+
+
+@component.adapter(IUsersCourseAssignmentAttemptMetadataItem, IBeforeTraverseEvent)
+def meta_attempt_item_context_subscriber(meta_attempt_item, unused_event):
+    """
+    Store the meta attempt item in our request during traversal; this
+    is useful when fetching history items or assignments in the context
+    of a meta attempt item, giving us access to the randomization seed
+    we need.
+    """
+    request = get_current_request()
+    if request is not None:
+        request.meta_attempt_item_traversal_context = meta_attempt_item

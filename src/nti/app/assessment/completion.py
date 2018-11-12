@@ -20,6 +20,7 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 
 from nti.contenttypes.completion.completion import CompletedItem
+from nti.contenttypes.completion.policies import AbstractCompletableItemCompletionPolicy
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseAssignmentCatalog
@@ -41,10 +42,13 @@ from nti.dataserver.interfaces import IUser
 
 from nti.externalization.proxy import removeAllProxies
 
+from nti.externalization.persistence import NoPickle
+
 logger = __import__('logging').getLogger(__name__)
 
 
-class _DefaultSubmissionCompletionPolicy(object):
+@NoPickle
+class _DefaultSubmissionCompletionPolicy(AbstractCompletableItemCompletionPolicy):
     """
     A simple completion policy that only cares about submissions for completion.
     """

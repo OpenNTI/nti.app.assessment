@@ -337,12 +337,8 @@ class PrincipalSeedSelector(object):
         seed for that particular attempt.
         """
         request = get_current_request()
-        meta_item = IUsersCourseAssignmentAttemptMetadataItem(request)
-        return meta_item.Seed
-#         user = get_user(principal, True)
-#         if user is not None:
-#             return get_uid(user)
-#         return None
+        meta_item = IUsersCourseAssignmentAttemptMetadataItem(request, None)
+        return getattr(meta_item, 'Seed', None)
 
 
 @interface.implementer(IQEvaluationContainerIdGetter)

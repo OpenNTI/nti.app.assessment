@@ -53,6 +53,7 @@ from nti.app.assessment.history import UsersCourseAssignmentHistories
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
+from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadataItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemFeedback
 
 from nti.app.assessment.utils import get_course_from_request
@@ -561,3 +562,16 @@ def _trusted_context_from_feedback(obj):
 @interface.implementer(IHostPolicyFolder)
 def _evaluation_to_site(resource):
     return find_interface(resource, IHostPolicyFolder, strict=False)
+
+
+@component.adapter(IRequest)
+@interface.implementer(IUsersCourseAssignmentAttemptMetadataItem)
+def _attempt_item_from_request(request):
+    """
+    Retrieve the meta attempt traversal context, if we have it. This
+    is probably fetched for randomization purposes.
+    """
+    try:
+        return request.meta_attempt_item_traversal_context
+    except AttributeError:
+        return None

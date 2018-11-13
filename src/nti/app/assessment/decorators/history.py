@@ -26,7 +26,8 @@ from nti.app.assessment.decorators import _get_course_from_evaluation
 from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
 from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
 
-from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadataItem
+from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadataItem,\
+    IUsersCourseAssignmentHistoryItemContainer
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
@@ -210,3 +211,13 @@ class _AssignmentHistoryItemContainerDecorator(_AbstractTraversableLinkDecorator
             link.__name__ = ''
             link.__parent__ = context
             _links.append(link)
+
+
+@interface.implementer(IExternalMappingDecorator)
+class _AssignmentHistoryItemSummaryDecorator(_AssignmentHistoryItemContainerDecorator):
+
+    # pylint: disable=arguments-differ
+    def _do_decorate_external(self, context, result_map):
+        item_container = find_interface(context, IUsersCourseAssignmentHistoryItemContainer, strict=False)
+        if len(item_container):
+            super(_AssignmentHistoryItemSummaryDecorator, self)._do_decorate_external(item_container, result_map)

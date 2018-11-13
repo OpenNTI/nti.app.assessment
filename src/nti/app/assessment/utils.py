@@ -335,10 +335,20 @@ class PrincipalSeedSelector(object):
         (which may need to be randomized/unshuffled need to be requested in
         the context of a metadata attempt item, which stores the randomization
         seed for that particular attempt.
+
+        For self-assessments, instructor submissions, we will not have a meta
+        attempt and should just default to the user intid.
         """
+        result = None
         request = get_current_request()
         meta_item = IUsersCourseAssignmentAttemptMetadataItem(request, None)
-        return getattr(meta_item, 'Seed', None)
+        if meta_item:
+            result = meta_item.Seed
+        else:
+            user = get_user(principal, True)
+            if user is not None:
+                result = get_uid(user)
+        return result
 
 
 @interface.implementer(IQEvaluationContainerIdGetter)

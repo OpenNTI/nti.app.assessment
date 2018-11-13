@@ -26,8 +26,8 @@ from nti.app.assessment.decorators import _get_course_from_evaluation
 from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
 from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
 
-from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadataItem,\
-    IUsersCourseAssignmentHistoryItemContainer
+from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadataItem
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemContainer
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 

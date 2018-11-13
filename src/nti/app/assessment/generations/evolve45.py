@@ -119,13 +119,13 @@ def clean_submission_container(user, item_container):
             to_delete = to_delete[:-1]
 
         # Update our meta item history item reference
-        course = find_interface(history_item, ICourseInstance)
+        course = find_interface(good_history_item, ICourseInstance)
         user_meta = component.queryMultiAdapter((course, user),
-                                    IUsersCourseAssignmentAttemptMetadata)
-        item_container = user_meta.get_or_create(history_item.assignmentId)
-        assert len(item_container) == 1
-        meta_item = item_container.values()[0]
-        meta_item.HistoryItem = history_item
+                                                IUsersCourseAssignmentAttemptMetadata)
+        meta_container = user_meta.get_or_create(good_history_item.assignmentId)
+        assert len(meta_container) == 1
+        meta_item = meta_container.values()[0]
+        meta_item.HistoryItem = good_history_item
 
         for bad_history_item in to_delete:
             del item_container[bad_history_item.__name__]

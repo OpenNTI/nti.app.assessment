@@ -185,6 +185,11 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
         submission = None
         try:
             self._validate_submission()
+            # We validate this is non-none and set on the request
+            # The seed/randomization logic requires us to know our attempt
+            # item in order to randomize correctly.
+            attempt_item = get_current_metadata_attempt_item(creator, self.course, self.context.ntiid)
+            self.request.meta_attempt_item_traversal_context = attempt_item
             if not self.request.POST:
                 submission = self.readCreateUpdateContentObject(creator)
                 check_upload_files(submission)

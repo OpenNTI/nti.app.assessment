@@ -221,6 +221,16 @@ class _AssignmentHistoryItemSummaryDecorator(_AssignmentHistoryItemContainerDeco
 
     # pylint: disable=arguments-differ
     def _do_decorate_external(self, context, result_map):
-        item_container = find_interface(context, IUsersCourseAssignmentHistoryItemContainer, strict=False)
+        item_container = find_interface(context,
+                                        IUsersCourseAssignmentHistoryItemContainer,
+                                        strict=False)
         if len(item_container):
             super(_AssignmentHistoryItemSummaryDecorator, self)._do_decorate_external(item_container, result_map)
+        # Decorate a rel to the container itself
+        _links = result_map.setdefault(LINKS, [])
+        link = Link(item_container,
+                    rel='HistoryItemContainer')
+        interface.alsoProvides(link, ILocation)
+        link.__name__ = ''
+        link.__parent__ = context
+        _links.append(link)

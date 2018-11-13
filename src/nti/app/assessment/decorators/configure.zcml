@@ -111,6 +111,11 @@
                 for="..interfaces.IUsersCourseAssignmentHistoryItemContainer
                      pyramid.interfaces.IRequest" />
 
+    <subscriber factory=".history._AssignmentHistoryItemSummaryDecorator"
+                provides="nti.externalization.interfaces.IExternalMappingDecorator"
+                for="..interfaces.IUsersCourseAssignmentHistoryItemSummary
+                     pyramid.interfaces.IRequest" />
+
 	<subscriber factory=".history._CourseAssignmentHistoryDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.contenttypes.courses.interfaces.ICourseInstance

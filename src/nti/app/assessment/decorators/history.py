@@ -216,6 +216,9 @@ class _AssignmentHistoryItemContainerDecorator(_AbstractTraversableLinkDecorator
 @interface.implementer(IExternalMappingDecorator)
 class _AssignmentHistoryItemSummaryDecorator(_AssignmentHistoryItemContainerDecorator):
 
+    def _predicate(self, context, unused_result):
+        return True
+
     # pylint: disable=arguments-differ
     def _do_decorate_external(self, context, result_map):
         item_container = find_interface(context, IUsersCourseAssignmentHistoryItemContainer, strict=False)

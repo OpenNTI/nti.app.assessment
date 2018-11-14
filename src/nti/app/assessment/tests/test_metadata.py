@@ -27,16 +27,13 @@ from six.moves.urllib_parse import unquote
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataItem
-from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataContainer
 from nti.app.assessment.interfaces import ICourseAssignmentAttemptMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadataItem
-from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadataItemContainer
 
 from nti.app.assessment.metadata import UsersCourseAssignmentMetadata
 from nti.app.assessment.metadata import UsersCourseAssignmentMetadataItem
 from nti.app.assessment.metadata import UsersCourseAssignmentMetadataContainer
-from nti.app.assessment.metadata import CourseAssignmentAttemptMetadata
 from nti.app.assessment.metadata import UsersCourseAssignmentAttemptMetadata
 from nti.app.assessment.metadata import UsersCourseAssignmentAttemptMetadataItem
 from nti.app.assessment.metadata import UsersCourseAssignmentAttemptMetadataItemContainer
@@ -58,8 +55,6 @@ from nti.dataserver.tests import mock_dataserver
 from nti.dataserver.tests.mock_dataserver import WithMockDSTrans
 
 from nti.dataserver.users.users import User
-
-from nti.externalization.externalization import to_external_object
 
 from nti.externalization.interfaces import StandardExternalFields
 

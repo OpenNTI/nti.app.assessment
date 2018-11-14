@@ -103,9 +103,9 @@ class AssignmentSubmissionStartPostView(AbstractAuthenticatedView):
         user_intid = intids.getId(self.remoteUser)
         if len(self.context) < 1:
             # This exactly matches our legacy seed
-            result = bytes(user_intid)
+            result = user_intid
         else:
-            result = bytes(user_intid + int(time.time()))
+            result = user_intid + int(time.time())
         return result
 
     def __call__(self):

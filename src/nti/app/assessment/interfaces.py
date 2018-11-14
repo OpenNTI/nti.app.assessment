@@ -385,7 +385,7 @@ class IUsersCourseAssignmentAttemptMetadataItem(IContained,
 
     SubmitTime = Float(title=u"Assignment submission time", required=False)
 
-    Seed = ValidBytesLine(title=u"Randomization seed", required=False, readonly=True)
+    Seed = Int(title=u"Randomization seed", required=False, readonly=True)
     Seed.setTaggedValue('_ext_excluded_out', True)
 
     HistoryItem = Object(IUsersCourseAssignmentHistoryItem,

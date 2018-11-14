@@ -72,7 +72,7 @@ def get_user(obj):
 
 
 def legacy_seed(user, intids):
-    return bytes(intids.getId(user))
+    return intids.getId(user)
 
 
 def create_meta_attempt(user, item, intids):

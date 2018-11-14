@@ -200,6 +200,14 @@ class UsersCourseAssignmentHistoryItemContainer(PersistentCreatedModDateTracking
     def sublocations(self):
         return tuple(self.values())
 
+    @property
+    def creator(self):
+        return self.__parent__.creator
+
+    @creator.setter
+    def creator(self, nv):
+        pass
+
     def reset(self, event=True):
         keys = list(self)
         for k in keys:

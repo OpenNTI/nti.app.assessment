@@ -145,6 +145,7 @@ class TestMultipleSubmissions(ApplicationLayerTest):
         res = self.testapp.get(histories_rel, extra_environ=outest_environ)
         res = res.json_body
         assert_that(res[CLASS], is_('UsersCourseAssignmentHistoryItemContainer'))
+        assert_that(res.get('Creator'), is_('outest55'))
         assert_that(res[ITEMS], has_length(1))
         self.forbid_link_with_rel(res, VIEW_RESET_EVALUATION)
 

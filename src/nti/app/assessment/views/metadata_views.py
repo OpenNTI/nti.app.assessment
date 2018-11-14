@@ -106,12 +106,6 @@ class AssignmentSubmissionStartPostView(AbstractAuthenticatedView):
         lifecycleevent.created(item)
         self.request.response.status_int = 201
         item.containerId = self.context.__name__
-        result = to_external_object(item)
-        result['href'] = "/%s/Objects/%s" % (get_ds2(self.request),
-                                             to_external_ntiid_oid(item))
-        interface.alsoProvides(result, INoHrefInResponse)
-
-        return result
 
     def get_seed(self):
         intids = component.getUtility(IIntIds)
@@ -132,6 +126,9 @@ class AssignmentSubmissionStartPostView(AbstractAuthenticatedView):
         item.Seed = seed
         self.context.add_attempt(item)
         self._process(item)
+        # Set this new item as request context so returned assignment is
+        # randomized appropriately, if necessary.
+        self.request.meta_attempt_item_traversal_context = item
         item.StartTime = time.time()
         # Must return assignment here, since the new metadata item may
         # drive randomization.

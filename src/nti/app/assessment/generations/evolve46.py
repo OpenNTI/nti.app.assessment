@@ -70,7 +70,8 @@ def do_evolve(context, generation=generation):
         for doc_id in item_intids or ():
             item = intids.queryObject(doc_id)
             if IUsersCourseAssignmentAttemptMetadataItem.providedBy(item):
-                item.Seed = int(item.Seed)
+                item.__dict__['Seed'] = int(item.Seed)
+                item._p_changed = True
                 total += 1
 
     component.getGlobalSiteManager().unregisterUtility(mock_ds, IDataserver)

@@ -11,7 +11,6 @@ from __future__ import absolute_import
 import time
 
 from zope import component
-from zope import interface
 from zope import lifecycleevent
 
 from zope.cachedescriptors.property import Lazy
@@ -34,26 +33,18 @@ from nti.app.assessment.metadata import UsersCourseAssignmentAttemptMetadataItem
 
 from nti.app.assessment.utils import get_course_from_request
 
-from nti.app.assessment.views import get_ds2
-
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
 from nti.app.externalization.error import raise_json_error
-
-from nti.app.renderers.interfaces import INoHrefInResponse
 
 from nti.appserver.ugd_edit_views import UGDPutView
 from nti.appserver.ugd_edit_views import UGDDeleteView
 
 from nti.dataserver import authorization as nauth
 
-from nti.externalization.externalization import to_external_object
-
 from nti.externalization.interfaces import LocatedExternalDict
 
 from nti.ntiids.ntiids import find_object_with_ntiid
-
-from nti.ntiids.oids import to_external_ntiid_oid
 
 logger = __import__('logging').getLogger(__name__)
 

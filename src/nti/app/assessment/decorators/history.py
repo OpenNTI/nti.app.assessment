@@ -187,6 +187,14 @@ class _AssignmentHistoryItemDecorator(_AbstractTraversableLinkDecorator):
         result_map['submission_count'] = get_user_submission_count(remoteUser,
                                                                    course,
                                                                    context.assignmentId)
+        # Decorate a rel to the container itself
+        _links = result_map.setdefault(LINKS, [])
+        link = Link(context.__parent__,
+                    rel='HistoryItemContainer')
+        interface.alsoProvides(link, ILocation)
+        link.__name__ = ''
+        link.__parent__ = context
+        _links.append(link)
 
 
 @interface.implementer(IExternalMappingDecorator)

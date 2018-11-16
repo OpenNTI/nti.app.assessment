@@ -528,11 +528,8 @@ class FixBrokenHistoryItemsView(AbstractAuthenticatedView):
             logger.info('Creating meta attempt (%s) (%s) (%s)',
                         user.username, entry_ntiid, assignment_ntiid)
             item_container.add_attempt(attempt)
-        else:
-            logger.info('Not creating; already a meta item (%s) (%s) (%s)',
-                        user.username, entry_ntiid, assignment_ntiid)
 
-    def _do_call(self):
+    def __call__(self):
         result = LocatedExternalDict()
         items = result[ITEMS] = {}
         intids = component.getUtility(IIntIds)
@@ -546,7 +543,7 @@ class FixBrokenHistoryItemsView(AbstractAuthenticatedView):
             course = ICourseInstance(entry)
             entry_ntiid = entry.ntiid
             entry_results = []
-            histories = IUsersCourseAssignmentHistory(course)
+            histories = IUsersCourseAssignmentHistories(course)
             for user_history in histories.values():
                 user = self.get_user(user_history)
                 for assignment_ntiid, history_item in user_history.items():

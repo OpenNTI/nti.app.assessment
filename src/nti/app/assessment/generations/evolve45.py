@@ -24,6 +24,8 @@ from zope.intid.interfaces import IIntIds
 
 from nti.app.assessment.history import UsersCourseAssignmentHistoryItemContainer
 
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
+from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemContainer
@@ -91,8 +93,10 @@ def create_meta_attempt(user, item, intids):
         # Legacy submissions will not have durations
         attempt.Duration = duration = getattr(item.Submission, 'CreatorRecordedEffortDuration', -1)
         attempt.StartTime = float(item.createdTime - duration if duration > 0 else 0)
-        attempt.SubmitTime = float(item.createdTime)
-        attempt.HistoryItem = item
+        # Don't toggle these fields if savepoint
+        if IUsersCourseAssignmentHistoryItem.providedBy(item):
+            attempt.SubmitTime = float(item.createdTime)
+            attempt.HistoryItem = item
         item_container.add_attempt(attempt)
 
 
@@ -196,14 +200,35 @@ def do_evolve(context, generation=generation):
                 submission_container[key] = item
                 assert item.__parent__ is submission_container
 
+        MIME_TYPES = ('application/vnd.nextthought.assessment.userscourseassignmentsavepoint',)
+        item_intids = index.apply({'any_of': MIME_TYPES})
+        savepoint_count = 0
+        for doc_id in item_intids or ():
+            item = intids.queryObject(doc_id)
+            if IUsersCourseAssignmentSavepoint.providedBy(item):
+                for savepoint_item in tuple(item.values()):
+                    course = find_interface(savepoint_item, ICourseInstance, strict=False)
+                    user = IUser(savepoint_item, None)
+                    if not user or not course:
+                        continue
+                    user_history = component.queryMultiAdapter((course, user),
+                                                               IUsersCourseAssignmentHistory)
+                    submission_container = user_history.get(savepoint_item.assignmentId)
+                    if submission_container:
+                        # Great, they submitted, move on.
+                        continue
+                    savepoint_count += 1
+                    create_meta_attempt(user, savepoint_item, intids)
+
+
     component.getGlobalSiteManager().unregisterUtility(mock_ds, IDataserver)
-    logger.info('Assessment evolution %s done; %s items(s) updated',
-                generation, total)
+    logger.info('Assessment evolution %s done; %s items(s) updated; (%s) savepoints updated',
+                generation, total, savepoint_count)
 
 
 def evolve(context):
     """
-    Evolve to generation 44 to put all IUsersCourseAssignmentHistoryItem
+    Evolve to generation 45 to put all IUsersCourseAssignmentHistoryItem
     objects in IUsersCourseAssignmentHistoryItemContainer objects for
     multiple submissions. Also update our metadata structures.
     """

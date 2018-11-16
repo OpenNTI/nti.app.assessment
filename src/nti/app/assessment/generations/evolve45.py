@@ -86,11 +86,11 @@ def create_meta_attempt(user, item, intids):
     user_meta = component.queryMultiAdapter((course, user),
                                             IUsersCourseAssignmentAttemptMetadata)
     # This part cannot be idempotent
-    item_container = user_meta.get_or_create(item.assignmentId)
+    item_container = user_meta.get_or_create(item.__name__)
     if len(item_container) < 1:
         # Only do this if this is our only attempt
         attempt = UsersCourseAssignmentAttemptMetadataItem()
-        attempt.containerId = item.assignmentId
+        attempt.containerId = item.__name__
         attempt.Seed = legacy_seed(user, intids)
         # All floats (int duration)
         # Legacy submissions will not have durations
@@ -101,11 +101,11 @@ def create_meta_attempt(user, item, intids):
             attempt.SubmitTime = float(item.createdTime)
             attempt.HistoryItem = item
         logger.info('Creating meta attempt (%s) (%s) (%s)',
-                    user.username, course, item.assignmentId)
+                    user.username, course, item.__name__)
         item_container.add_attempt(attempt)
     else:
         logger.info('Not creating; already a meta item (%s) (%s) (%s)',
-                    user.username, course, item.assignmentId)
+                    user.username, course, item.__name__)
 
 
 def clean_submission_container(user, item_container):

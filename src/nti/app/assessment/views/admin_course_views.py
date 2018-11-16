@@ -546,6 +546,8 @@ class FixBrokenHistoryItemsView(AbstractAuthenticatedView):
             histories = IUsersCourseAssignmentHistories(course)
             for user_history in histories.values():
                 user = self.get_user(user_history)
+                if user is None:
+                    continue
                 for assignment_ntiid, history_item in user_history.items():
                     if IUsersCourseAssignmentHistoryItemContainer.providedBy(history_item):
                         # We have a container, assure each history_item has a meta attempt

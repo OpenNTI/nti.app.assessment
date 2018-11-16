@@ -79,7 +79,9 @@ def legacy_seed(user, intids):
 
 def create_meta_attempt(user, item, intids):
     # XXX: Do we need to migrate the old timed assignment meta?
-    course = find_interface(item, ICourseInstance)
+    course = find_interface(item, ICourseInstance, strict=False)
+    if course is None:
+        return
     user_meta = component.queryMultiAdapter((course, user),
                                             IUsersCourseAssignmentAttemptMetadata)
     # This part cannot be idempotent

@@ -27,6 +27,10 @@ import transaction
 
 from zope import component
 
+from zope.container.interfaces import INameChooser
+
+from zope.intid.interfaces import IIntIds
+
 from zope.interface.common.idatetime import IDateTime
 
 from zope.security.interfaces import IPrincipal
@@ -37,17 +41,24 @@ from nti.app.assessment._assessment import move_user_assignment_from_course_to_c
 
 from nti.app.assessment.common.containers import index_course_package_assessments
 
+from nti.app.assessment.history import UsersCourseAssignmentHistoryItemContainer
+
 from nti.app.assessment.interfaces import IQEvaluations
 from nti.app.assessment.interfaces import IUsersCourseInquiries
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
+from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataContainer
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemContainer
 
 from nti.app.assessment.evaluations.utils import delete_evaluation
 
 from nti.app.assessment.common.history import delete_all_evaluation_data
+
+from nti.app.assessment.metadata import UsersCourseAssignmentAttemptMetadataItem
 
 from nti.app.assessment.subscribers import delete_course_user_data
 
@@ -76,12 +87,16 @@ from nti.dataserver import authorization as nauth
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import IDataserverFolder
 
+from nti.dataserver.metadata.index import get_metadata_catalog
+
 from nti.dataserver.users.users import User
 
 from nti.externalization.interfaces import LocatedExternalDict
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.ntiids.ntiids import find_object_with_ntiid
+
+from nti.traversal.traversal import find_interface
 
 ITEMS = StandardExternalFields.ITEMS
 TOTAL = StandardExternalFields.TOTAL
@@ -460,3 +475,106 @@ class RemoveUserCourseEvaluationDataView(AbstractAuthenticatedView,
             logger.warning("Deleting course evaluation data for user %s", username)
             delete_course_user_data(course, username)
         return hexc.HTTPNoContent()
+
+
+@view_config(context=IDataserverFolder)
+@view_defaults(route_name='objects.generic.traversal',
+               renderer='rest',
+               permission=nauth.ACT_NTI_ADMIN,
+               name='FixBrokenHistoryItems')
+class FixBrokenHistoryItemsView(AbstractAuthenticatedView):
+
+    """
+    Loop through courses and look for history items that should be in
+    history item containers. These are items that are not in the metadata
+    catalog for some reason, so reindex them.
+
+    Also ensure we create a meta item for this history item.
+    These are items missing in evolve45.
+    """
+
+    def get_user(self, obj):
+        result = obj.creator
+        if not IUser.providedBy(result):
+            result = User.get_user(result)
+        if result is None:
+            logger.warn('History item without a creator (%s)', obj)
+        return result
+
+    def legacy_seed(self, user, intids):
+        return intids.getId(user)
+
+    def create_meta_attempt(self, user, item, intids, assignment_ntiid, entry_ntiid):
+        course = find_interface(item, ICourseInstance, strict=False)
+        if course is None:
+            logger.info('Cannot find course for item (%s)', item)
+            return
+        user_meta = component.queryMultiAdapter((course, user),
+                                                IUsersCourseAssignmentAttemptMetadata)
+        item_container = user_meta.get_or_create(assignment_ntiid)
+        if len(item_container) < 1:
+            # Only do this if this is our only attempt
+            attempt = UsersCourseAssignmentAttemptMetadataItem()
+            attempt.containerId = assignment_ntiid
+            attempt.Seed = self.legacy_seed(user, intids)
+            # All floats (int duration)
+            # Legacy submissions will not have durations
+            attempt.Duration = duration = getattr(item.Submission, 'CreatorRecordedEffortDuration', -1)
+            attempt.StartTime = float(item.createdTime - duration if duration > 0 else 0)
+            # Don't toggle these fields if savepoint
+            if IUsersCourseAssignmentHistoryItem.providedBy(item):
+                attempt.SubmitTime = float(item.createdTime)
+                attempt.HistoryItem = item
+            logger.info('Creating meta attempt (%s) (%s) (%s)',
+                        user.username, entry_ntiid, assignment_ntiid)
+            item_container.add_attempt(attempt)
+        else:
+            logger.info('Not creating; already a meta item (%s) (%s) (%s)',
+                        user.username, entry_ntiid, assignment_ntiid)
+
+    def _do_call(self):
+        result = LocatedExternalDict()
+        items = result[ITEMS] = {}
+        intids = component.getUtility(IIntIds)
+        metadata_catalog = get_metadata_catalog()
+        index = metadata_catalog['mimeType']
+        MIME_TYPES = ('application/vnd.nextthought.assessment.userscourseassignmenthistoryitem',)
+        item_intids = index.apply({'any_of': MIME_TYPES})
+
+        catalog = component.getUtility(ICourseCatalog)
+        for entry in catalog.iterCatalogEntries():
+            course = ICourseInstance(entry)
+            entry_ntiid = entry.ntiid
+            entry_results = []
+            histories = IUsersCourseAssignmentHistory(course)
+            for user_history in histories.values():
+                user = self.get_user(user_history)
+                for assignment_ntiid, history_item in user_history.items():
+                    if IUsersCourseAssignmentHistoryItemContainer.providedBy(history_item):
+                        # We have a container, assure each history_item has a meta attempt
+                        # associated with it
+                        for item in history_item.values():
+                            self.create_meta_attempt(user, item, intids, assignment_ntiid, entry_ntiid)
+                        continue
+                    # Ensure meta attempt
+                    self.create_meta_attempt(user, history_item, intids, assignment_ntiid, entry_ntiid)
+                    # Now update our history item container structure
+                    logger.info('Moving to history item container (%s) (%s) (%s)',
+                                user, entry_ntiid, assignment_ntiid)
+                    submission_container = user_history._delitemf(assignment_ntiid, event=False)
+                    if not IUsersCourseAssignmentHistoryItemContainer.providedBy(submission_container):
+                        submission_container = UsersCourseAssignmentHistoryItemContainer()
+                    user_history[assignment_ntiid] = submission_container
+                    assert submission_container.__parent__ is not None
+                    chooser = INameChooser(submission_container)
+                    key = chooser.chooseName('', history_item)
+                    submission_container[key] = history_item
+                    assert history_item.__parent__ is submission_container
+                    entry_results.append({'username': user.username,
+                                          'assignment_id': assignment_ntiid})
+
+                    # Assure item is indexed
+                    if history_item._ds_intid not in item_intids:
+                        metadata_catalog.index_doc(history_item._ds_intid, history_item)
+            items[entry_ntiid] = entry_results
+        return result

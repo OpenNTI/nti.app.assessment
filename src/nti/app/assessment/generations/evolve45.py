@@ -238,5 +238,9 @@ def evolve(context):
     Evolve to generation 45 to put all IUsersCourseAssignmentHistoryItem
     objects in IUsersCourseAssignmentHistoryItemContainer objects for
     multiple submissions. Also update our metadata structures.
+
+    POST UPDATE: this script is no longer safe to re-run (item.__name__ vs
+    item.assignmentId). Also, there were quite a few history items that
+    were not indexed (?).
     """
     do_evolve(context)

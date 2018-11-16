@@ -81,6 +81,7 @@ def create_meta_attempt(user, item, intids):
     # XXX: Do we need to migrate the old timed assignment meta?
     course = find_interface(item, ICourseInstance, strict=False)
     if course is None:
+        logger.info('Cannot find course for item (%s)', item)
         return
     user_meta = component.queryMultiAdapter((course, user),
                                             IUsersCourseAssignmentAttemptMetadata)
@@ -99,7 +100,12 @@ def create_meta_attempt(user, item, intids):
         if IUsersCourseAssignmentHistoryItem.providedBy(item):
             attempt.SubmitTime = float(item.createdTime)
             attempt.HistoryItem = item
+        logger.info('Creating meta attempt (%s) (%s) (%s)',
+                    user.username, course, item.assignmentId)
         item_container.add_attempt(attempt)
+    else:
+        logger.info('Not creating; already a meta item (%s) (%s) (%s)',
+                    user.username, course, item.assignmentId)
 
 
 def clean_submission_container(user, item_container):
@@ -221,7 +227,6 @@ def do_evolve(context, generation=generation):
                         continue
                     savepoint_count += 1
                     create_meta_attempt(user, savepoint_item, intids)
-
 
     component.getGlobalSiteManager().unregisterUtility(mock_ds, IDataserver)
     logger.info('Assessment evolution %s done; %s items(s) updated; (%s) savepoints updated',

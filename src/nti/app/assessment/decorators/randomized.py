@@ -43,7 +43,6 @@ from nti.externalization.externalization import to_external_object
 
 from nti.externalization.interfaces import IExternalObjectDecorator
 from nti.externalization.interfaces import IExternalMappingDecorator
-from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadataItem
 
 logger = __import__('logging').getLogger(__name__)
 
@@ -65,8 +64,7 @@ class _AbstractNonEditorRandomizingDecorator(AbstractAuthenticatedRequestAwareDe
         # without a meta attempt item.
         return   self._is_authenticated \
             and not is_course_instructor_or_editor(course, user) \
-            and not has_permission(ACT_CONTENT_EDIT, context, self.request) \
-            and IUsersCourseAssignmentAttemptMetadataItem(self.request, None) is not None
+            and not has_permission(ACT_CONTENT_EDIT, context, self.request)
 
 
 # pylint: disable=abstract-method

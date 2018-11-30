@@ -176,6 +176,11 @@ class TestRandomized(ApplicationLayerTest):
         assert_that(assignment_href, not_none())
         creator = 'sjohnson@nextthought.com'
 
+        res = self.testapp.post_json(evaluations_href, qset_data)
+        self_assessment = res.json_body
+        self_assessment_href = self_assessment['href']
+        assert_that(self_assessment_href, not_none())
+
         # Validate instructor is not randomized.
         self._test_external_state( assignment )
         qset = assignment['parts'][0]['question_set']
@@ -197,6 +202,46 @@ class TestRandomized(ApplicationLayerTest):
         self._validate_random_qset_and_parts(students, assignment_href,
                                              random_set=True, random_parts=True,
                                              start_attempt=True)
+
+        self._validate_self_assess_random_qset_and_parts(students, self_assessment_href,
+                                                         random_set=True, random_parts=True)
+
+    def _validate_self_assess_random_qset_and_parts(self, students, href,
+                                                    random_set=True, random_parts=True):
+        """
+        For the students and href, make sure this qset is randomized, based
+        on order of part mimetypes.
+        """
+        question_mime_order = set()
+        part_choice_order = dict()
+        for student in students:
+            student_env = self._make_extra_environ( username=student )
+            res = self.testapp.get(href, extra_environ=student_env)
+            qset = res.json_body
+            student_mimes = list()
+            for question in qset.get( 'questions' ):
+                for part in question.get( 'parts' ):
+                    part_type = part.get( 'MimeType'  )
+                    student_mimes.append( part_type )
+                    if part_type == 'application/vnd.nextthought.assessment.filepart':
+                        continue
+                    ntiid = part.get( 'NTIID' )
+                    part_order = part_choice_order.setdefault( ntiid, set() )
+                    student_choice = part.get( 'values', part.get( 'choices' ))
+                    part_order.add( tuple( student_choice ) )
+            question_mime_order.add( tuple( student_mimes ) )
+
+        if random_set:
+            assert_that( question_mime_order, has_length( greater_than( 1 )))
+        else:
+            assert_that( question_mime_order, has_length( 1 ))
+
+        if random_parts:
+            for choice_order in part_choice_order.values():
+                assert_that( choice_order, has_length( greater_than( 1 )))
+        else:
+            for choice_order in part_choice_order.values():
+                assert_that( choice_order, has_length( 1 ))
 
     def _validate_random_qset_and_parts(self, students, href,
 										random_set=True, random_parts=True, start_attempt=False):

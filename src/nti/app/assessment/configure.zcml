@@ -544,4 +544,14 @@
 	<!-- Site -->
 	<adapter factory=".adapters._evaluation_to_site" />
 
+	<!-- calendar -->
+	<subscriber factory=".calendar.AssignmentCalendarDynamicEventProvider"
+				provides="nti.app.products.courseware.calendar.interfaces.ICourseCalendarDynamicEventProvider"
+				for="nti.dataserver.interfaces.IUser
+					 nti.contenttypes.courses.interfaces.ICourseInstance" />
+
+	<adapter factory=".calendar.AssignmentCalendarEventIO"
+			 for=".calendar.IAssignmentCalendarEvent"
+			 provides="nti.externalization.interfaces.IInternalObjectExternalizer"/>
+
 </configure>

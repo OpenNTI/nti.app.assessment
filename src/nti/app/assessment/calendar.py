@@ -13,9 +13,9 @@ from nti.schema.field import Object
 from zope import component
 from zope import interface
 
-from nti.zope_catalog.interfaces import INoAutoIndexEver
-
 from nti.app.products.courseware.calendar.model import CourseCalendarEvent
+
+from nti.app.products.courseware.calendar.interfaces import ICourseCalendar
 from nti.app.products.courseware.calendar.interfaces import ICourseCalendarDynamicEvent
 from nti.app.products.courseware.calendar.interfaces import ICourseCalendarDynamicEventProvider
 
@@ -71,6 +71,7 @@ class AssignmentCalendarDynamicEventProvider(object):
 
     def iter_events(self):
         res = []
+        calendar = ICourseCalendar(self.course, None)
         for assign in self._assignments(self.user, self.course):
             # only show those have due date assignment events.
             start_time = get_available_for_submission_ending(assign, self.course)
@@ -79,6 +80,7 @@ class AssignmentCalendarDynamicEventProvider(object):
                                                 description=assign.content,
                                                 start_time=start_time,
                                                 assignment=assign)
+                event.__parent__ = calendar
                 res.append(event)
         return res
 

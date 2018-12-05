@@ -68,8 +68,6 @@ class TestExternalization(AssessmentLayerTest):
                                            'start_time': not_none(),
                                            'Class': 'AssignmentCalendarEvent',
                                            'MimeType': 'application/vnd.nextthought.assessment.assignmentcalendarevent'}))
-        assert_that(external['assignment'], has_entries({'title': u'a'}))
-
         # Should not be created externally.
         factory = internalization.find_factory_for(external)
         assert_that(factory, is_(None))
@@ -137,7 +135,7 @@ class TestCourseCalendarDynamicEventProvider(ApplicationLayerTest):
 
             event = [x for x in provider.iter_events() if x.assignment.ntiid == assignment_ntiid][0]
             assert_that(event, has_properties({'title': 'one', 'description': 'it is ok'}))
-            assert_that(event.__parent__, is_(None))
+            assert_that(event.__parent__, not_none())
             assert_that(event.__name__, is_(None))
             assert_that(event.end_time, is_(None))
             assert_that(event.start_time.strftime('%Y-%m-%d %H:%M:%S'), is_('2018-10-20 00:00:00'))

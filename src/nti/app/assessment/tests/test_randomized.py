@@ -114,52 +114,40 @@ class TestRandomized(ApplicationLayerTest):
             result.append( part.get( part_attr ) )
         return tuple( result )
 
-#     @WithSharedApplicationMockDS(testapp=True, users=True)
-#     def test_random_multiple_submissions(self):
-#         """
-#         Build a randomized question order assignment (3 questions of diff
-#         types). Turn on auto-grading/assessing and set total_point value.
-#
-#         Have a student submit multiple times and validate the order is not
-#         consistent.
-#         """
-#         students = ('student11',)
-#         self._enroll_users( students )
-#         course_oid = self._get_course_oid()
-#         qset_data = self._load_random_questionset()
-#         # pop file upload
-#         qset_data['questions'] = qset_data['questions'][:-1]
-#         assignment_data = self._load_assignment()
-#         assignment_data['parts']['auto_grade'] = True
-#         assignment_data['parts'][0]['question_set'] = qset_data
-#         evaluations_href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
-#         res = self.testapp.post_json(evaluations_href, assignment_data)
-#         assignment = res.json_body
-#         assignment_href = assignment['href']
-#         assert_that(assignment_href, not_none())
-#         creator = 'sjohnson@nextthought.com'
-#         number_of_submissions = 10
-#         self.testapp.put_json(assignment_href, {'max_submissions': number_of_submissions,
-#                                                 'submission_priority': 'HIGHEST_GRADE',
-#                                                 'auto_grade': True,
-#                                                 'total_points': 3})
-#
-#         # Validate instructor is not randomized.
-#         self._test_external_state( assignment )
-#         qset = assignment['parts'][0]['question_set']
-#         questions = qset.get( 'questions' )
-#         for question in questions:
-#             self._test_external_state( question )
-#         qset_href = qset.get( 'href' )
-#         assert_that( qset_href, not_none() )
-#         assert_that( questions, has_length( 4 ))
-#         assert_that( qset.get( 'Creator' ), is_( creator ))
-#         part_mimes = self._get_qset_part_attr( qset, 'MimeType' )
-#         assert_that( part_mimes,
-#                      contains( "application/vnd.nextthought.assessment.multiplechoicepart",
-#                                "application/vnd.nextthought.assessment.multiplechoicemultipleanswerpart",
-#                                "application/vnd.nextthought.assessment.matchingpart",
-#                                "application/vnd.nextthought.assessment.filepart" ))
+    @WithSharedApplicationMockDS(testapp=True, users=True)
+    def test_random_multiple_submissions(self):
+        """
+        Build a randomized question order assignment (3 questions of diff
+        types). Turn on auto-grading/assessing and set total_point value.
+
+        Have a student submit multiple times and validate the order is not
+        consistent.
+        """
+        students = ('student11',)
+        self._enroll_users( students )
+        course_oid = self._get_course_oid()
+        qset_data = self._load_random_questionset()
+        # pop file upload
+        qset_data['questions'] = qset_data['questions'][:-1]
+        assignment_data = self._load_assignment()
+        assignment_data['parts']['auto_grade'] = True
+        assignment_data['parts'][0]['question_set'] = qset_data
+        evaluations_href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
+        res = self.testapp.post_json(evaluations_href, assignment_data)
+        assignment = res.json_body
+        assignment_href = assignment['href']
+        assert_that(assignment_href, not_none())
+        number_of_submissions = 10
+        self.testapp.put_json(assignment_href, {'max_submissions': number_of_submissions,
+                                                'submission_priority': 'HIGHEST_GRADE',
+                                                'auto_grade': True,
+                                                'total_points': 3})
+
+        part_mimes = self._get_qset_part_attr( qset, 'MimeType' )
+        assert_that( part_mimes,
+                     contains( "application/vnd.nextthought.assessment.multiplechoicepart",
+                               "application/vnd.nextthought.assessment.multiplechoicemultipleanswerpart",
+                               "application/vnd.nextthought.assessment.matchingpart"))
 
     @WithSharedApplicationMockDS(testapp=True, users=True)
     def test_random(self):
@@ -246,7 +234,7 @@ class TestRandomized(ApplicationLayerTest):
     def _validate_random_qset_and_parts(self, students, href,
 										random_set=True, random_parts=True, start_attempt=False):
         """
-        For the students and href, make sure this qset is randomized, based
+        For the students and assignment href, make sure this qset is randomized, based
         on order of part mimetypes.
         """
         question_mime_order = set()

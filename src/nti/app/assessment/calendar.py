@@ -42,6 +42,8 @@ class IAssignmentCalendarEvent(ICourseCalendarDynamicEvent):
                         title=u"The assignment this event refers to.",
                         required=True)
 
+    assignment.setTaggedValue('_ext_excluded_out', True)
+
 
 @NoPickle
 @interface.implementer(IAssignmentCalendarEvent)

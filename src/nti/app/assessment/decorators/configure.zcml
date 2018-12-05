@@ -153,6 +153,12 @@
 	<subscriber factory=".feedback._FeedbackLibraryPathLinkDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"/>
 
+    <!-- events -->
+    <subscriber factory=".events._AssignmentEventDecorator"
+                provides="nti.externalization.interfaces.IExternalMappingDecorator"
+                for="nti.app.assessment.calendar.IAssignmentCalendarEvent
+                     pyramid.interfaces.IRequest" />
+
 	<!-- submissions -->
 	<subscriber factory=".submissions._SyntheticSubmissionDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"

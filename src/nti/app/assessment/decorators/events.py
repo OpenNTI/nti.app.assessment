@@ -23,7 +23,7 @@ from nti.app.assessment.common.history import get_user_submission_count
 
 from nti.app.assessment.common.policy import get_auto_grade_policy
 
-from nti.app.assessment.interfaces import IAssignmentCalendarEvent
+from nti.app.assessment.calendar import IAssignmentCalendarEvent
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 

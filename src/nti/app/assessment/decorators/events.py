@@ -65,8 +65,11 @@ class _AssignmentEventDecorator(AbstractAuthenticatedRequestAwareDecorator):
             result['IsTimedAssignment'] = False
 
         auto_grade_policy = get_auto_grade_policy(event.assignment, course)
-        total_points = auto_grade_policy.get('total_points')
-        result['TotalPoints'] = result['total_points'] = total_points
+        try:
+            total_points = auto_grade_policy.get('total_points')
+            result['TotalPoints'] = result['total_points'] = total_points
+        except AttributeError:
+            pass
 
         result['UserSubmissionCount'] = get_user_submission_count(self.remoteUser,
                                                                   course,

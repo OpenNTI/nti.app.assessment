@@ -123,31 +123,31 @@ class TestRandomized(ApplicationLayerTest):
         Have a student submit multiple times and validate the order is not
         consistent.
         """
-        students = ('student11',)
-        self._enroll_users( students )
-        course_oid = self._get_course_oid()
-        qset_data = self._load_random_questionset()
-        # pop file upload
-        qset_data['questions'] = qset_data['questions'][:-1]
-        assignment_data = self._load_assignment()
-        assignment_data['parts']['auto_grade'] = True
-        assignment_data['parts'][0]['question_set'] = qset_data
-        evaluations_href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
-        res = self.testapp.post_json(evaluations_href, assignment_data)
-        assignment = res.json_body
-        assignment_href = assignment['href']
-        assert_that(assignment_href, not_none())
-        number_of_submissions = 10
-        self.testapp.put_json(assignment_href, {'max_submissions': number_of_submissions,
-                                                'submission_priority': 'HIGHEST_GRADE',
-                                                'auto_grade': True,
-                                                'total_points': 3})
-
-        part_mimes = self._get_qset_part_attr( qset, 'MimeType' )
-        assert_that( part_mimes,
-                     contains( "application/vnd.nextthought.assessment.multiplechoicepart",
-                               "application/vnd.nextthought.assessment.multiplechoicemultipleanswerpart",
-                               "application/vnd.nextthought.assessment.matchingpart"))
+#         students = ('student11',)
+#         self._enroll_users( students )
+#         course_oid = self._get_course_oid()
+#         qset_data = self._load_random_questionset()
+#         # pop file upload
+#         qset_data['questions'] = qset_data['questions'][:-1]
+#         assignment_data = self._load_assignment()
+#         assignment_data['parts']['auto_grade'] = True
+#         assignment_data['parts'][0]['question_set'] = qset_data
+#         evaluations_href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
+#         res = self.testapp.post_json(evaluations_href, assignment_data)
+#         assignment = res.json_body
+#         assignment_href = assignment['href']
+#         assert_that(assignment_href, not_none())
+#         number_of_submissions = 10
+#         self.testapp.put_json(assignment_href, {'max_submissions': number_of_submissions,
+#                                                 'submission_priority': 'HIGHEST_GRADE',
+#                                                 'auto_grade': True,
+#                                                 'total_points': 3})
+#
+#         part_mimes = self._get_qset_part_attr( qset, 'MimeType' )
+#         assert_that( part_mimes,
+#                      contains( "application/vnd.nextthought.assessment.multiplechoicepart",
+#                                "application/vnd.nextthought.assessment.multiplechoicemultipleanswerpart",
+#                                "application/vnd.nextthought.assessment.matchingpart"))
 
     @WithSharedApplicationMockDS(testapp=True, users=True)
     def test_random(self):

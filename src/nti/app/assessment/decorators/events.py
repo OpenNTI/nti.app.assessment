@@ -80,6 +80,8 @@ class _AssignmentEventDecorator(AbstractAuthenticatedRequestAwareDecorator):
         if completed_item is not None:
             result['CompletedItem'] = completed_item
 
+        result['AssignmentNTIID'] = event.assignment.ntiid
+
         _links = result.setdefault(LINKS, [])
         link = Link(course,
                     rel='Assignment',

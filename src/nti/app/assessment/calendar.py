@@ -23,13 +23,15 @@ from nti.app.assessment.common.utils import get_available_for_submission_ending
 
 from nti.assessment.interfaces import IQAssignment
 
-from nti.contenttypes.completion.utils import get_completable_items_for_user
-
 from nti.contenttypes.courses.interfaces import ICourseInstance
+from nti.contenttypes.courses.interfaces import ICourseAssignmentCatalog
+from nti.contenttypes.courses.interfaces import get_course_assessment_predicate_for_user
 
 from nti.dataserver.interfaces import IUser
 
 from nti.externalization.persistence import NoPickle
+
+from nti.externalization.proxy import removeAllProxies
 
 from nti.externalization.datastructures import InterfaceObjectIO
 
@@ -87,5 +89,11 @@ class AssignmentCalendarDynamicEventProvider(object):
         return res
 
     def _assignments(self, user, course):
-        items = get_completable_items_for_user(user, course) or ()
-        return [x for x in items if IQAssignment.providedBy(x)]
+        catalog = ICourseAssignmentCatalog(course)
+        uber_filter = get_course_assessment_predicate_for_user(user,
+                                                               course)
+        # Must grab all assignments in our parent
+        # pylint: disable=too-many-function-args
+        assignments = catalog.iter_assignments(True)
+        result = [removeAllProxies(x) for x in assignments if uber_filter(x)]
+        return result

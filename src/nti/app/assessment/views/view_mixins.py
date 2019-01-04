@@ -148,7 +148,8 @@ class AssessmentPutView(UGDPutView):
 
     NON_DATE_POLICY_KEYS = ("auto_grade", 'total_points',
                             'maximum_time_allowed', 'submission_buffer',
-                            'max_submissions', 'submission_priority')
+                            'max_submissions', 'submission_priority',
+                            'completion_passing_percent')
 
     def readInput(self, value=None):
         result = UGDPutView.readInput(self, value=value)
@@ -430,6 +431,12 @@ class AssessmentPutView(UGDPutView):
                 self._raise_error('InvalidValue',
                                   _(u'Invalid submission_priority in policy'),
                                   field='submission_priority')
+        elif key == 'completion_passing_percent':
+            value = notify_value = self._get_value(float, value, key)
+            if value <= 0 or value > 1:
+                self._raise_error('InvalidValue',
+                                  _(u'completion_passing_percent must be between 0 and 1.'),
+                                  field='completion_passing_percent')
 
         factory = QAssessmentPoliciesModified
         for course in courses or ():

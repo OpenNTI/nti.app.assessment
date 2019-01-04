@@ -55,6 +55,7 @@ from nti.app.assessment.common.policy import get_auto_grade_policy
 from nti.app.assessment.common.policy import get_policy_max_submissions
 from nti.app.assessment.common.policy import get_submission_buffer_policy
 from nti.app.assessment.common.policy import get_policy_submission_priority
+from nti.app.assessment.common.policy import get_policy_completion_passing_percent
 
 from nti.app.assessment.common.submissions import has_submissions
 
@@ -271,6 +272,7 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
         # Max submissions
         result['max_submissions'] = get_policy_max_submissions(assignment, course)
+        result['completion_passing_percent'] = get_policy_completion_passing_percent(assignment, course)
         result['submission_priority'] = get_policy_submission_priority(assignment, course)
 
         # auto_grade/total_points
@@ -779,7 +781,8 @@ class AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
         context = self.get_context(context)
         _links = result.setdefault(LINKS, [])
         courses = self._get_courses(context)
-        names = ['date-edit-end', 'date-edit', 'total-points']
+        names = ['date-edit-end', 'date-edit',
+                 'total-points', 'completion-passing-perc']
         # Cannot toggle start date or time allowed if users have started.
         if not self._has_submitted_data(context, courses):
             names.append('date-edit-start')

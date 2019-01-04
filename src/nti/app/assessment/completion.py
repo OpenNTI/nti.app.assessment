@@ -43,6 +43,7 @@ from nti.dataserver.interfaces import IUser
 from nti.externalization.proxy import removeAllProxies
 
 from nti.externalization.persistence import NoPickle
+from nti.app.assessment.common.policy import get_policy_completion_passing_percent
 
 logger = __import__('logging').getLogger(__name__)
 
@@ -51,6 +52,7 @@ logger = __import__('logging').getLogger(__name__)
 class _DefaultSubmissionCompletionPolicy(AbstractCompletableItemCompletionPolicy):
     """
     A simple completion policy that only cares about submissions for completion.
+    For assignment, success is driven by the policy `completion_passing_percent`.
     """
 
     def __init__(self, obj):
@@ -62,6 +64,11 @@ class _DefaultSubmissionCompletionPolicy(AbstractCompletableItemCompletionPolicy
             result = CompletedItem(Item=progress.Item,
                                    Principal=progress.User,
                                    CompletedDate=progress.LastModified)
+            completion_passing_percent = get_policy_completion_passing_percent(self.assessment,
+                                                                               self._v_course_context)
+            if completion_passing_percent:
+                result.Success = bool(    progress.PercentageProgress \
+                                      and progress.PercentageProgress >= completion_passing_percent)
         return result
 
 
@@ -95,6 +102,7 @@ def _assessment_completion_policy(assessment, course):
     except KeyError:
         # Ok, fetch the default
         result = ICompletableItemCompletionPolicy(assessment)
+    result._v_course_context = course
     return result
 
 

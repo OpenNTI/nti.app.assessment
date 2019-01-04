@@ -87,6 +87,14 @@ def get_policy_max_submissions(assignment, course):
     return get_policy_field(assignment, course, 'max_submissions') or 1
 
 
+def get_policy_completion_passing_percent(assignment, course):
+    """
+    For a given assignment (or ntiid), return the policy `completion_passing_percent`
+    state for the given course.
+    """
+    return get_policy_field(assignment, course, 'completion_passing_percent', default=None)
+
+
 def get_auto_grade_policy(assignment, course):
     """
     For a given assignment (or ntiid), return the `auto_grade` policy for the given course.

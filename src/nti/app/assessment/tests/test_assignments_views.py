@@ -264,7 +264,9 @@ class TestAssignmentViews(ApplicationLayerTest):
 		assert_that( assignment.get( 'auto_grade'), is_( False ))
 		assert_that( assignment.get( 'total_points'), none())
 		assert_that( assignment.get( 'submission_buffer'), is_(False))
-		for rel in ('date-edit', 'auto-grade', 'total-points', 'submission-buffer'):
+		assert_that( assignment.get( 'completion_passing_percent'), none())
+		for rel in ('date-edit', 'auto-grade', 'total-points',
+					'submission-buffer', 'completion-passing-perc'):
 			self.require_link_href_with_rel(assignment, rel)
 		# Can only toggle API created assignments to timed.
 		self.forbid_link_with_rel(assignment, 'maximum-time-allowed')
@@ -417,6 +419,20 @@ class TestAssignmentViews(ApplicationLayerTest):
 		assert_that( assignment.get( 'auto_grade'), is_( False ))
 		assert_that( assignment.get( 'total_points'), is_( 100 ))
 		assert_that( assignment.get( 'submission_buffer'), is_(300))
+
+		# Passing perc
+		for bad_passing_perc in (-1, 'a', 0, '2.0', '1.0001'):
+			data = { 'completion_passing_percent': bad_passing_perc }
+			self.testapp.put_json(assignment_url,
+								  data, extra_environ=editor_environ,
+								  status=422)
+		for valid_passing_perc in (0.1, '.5', 1):
+			data = { 'completion_passing_percent': valid_passing_perc }
+			assignment = self.testapp.put_json(assignment_url,
+											   data, extra_environ=editor_environ)
+			assignment = assignment.json_body
+			assert_that(assignment.get('completion_passing_percent'),
+						is_(float(valid_passing_perc)))
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_no_context(self):

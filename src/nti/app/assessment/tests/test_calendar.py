@@ -11,8 +11,6 @@ from __future__ import absolute_import
 import datetime
 
 from hamcrest import is_
-from hamcrest import calling
-from hamcrest import raises
 from hamcrest import not_none
 from hamcrest import assert_that
 from hamcrest import has_entries

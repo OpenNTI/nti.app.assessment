@@ -372,7 +372,7 @@ class AssessmentPutView(UGDPutView):
                                   _(u'Value is invalid.'),
                                   field=field)
         elif value_type in (int, float):
-            if not value:
+            if value is None:
                 # Empty/None is acceptable.
                 return None
             try:
@@ -433,7 +433,7 @@ class AssessmentPutView(UGDPutView):
                                   field='submission_priority')
         elif key == 'completion_passing_percent':
             value = notify_value = self._get_value(float, value, key)
-            if value <= 0 or value > 1:
+            if value is not None and (value <= 0 or value > 1):
                 self._raise_error('InvalidValue',
                                   _(u'completion_passing_percent must be between 0 and 1.'),
                                   field='completion_passing_percent')

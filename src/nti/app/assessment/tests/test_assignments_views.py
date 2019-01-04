@@ -426,13 +426,17 @@ class TestAssignmentViews(ApplicationLayerTest):
 			self.testapp.put_json(assignment_url,
 								  data, extra_environ=editor_environ,
 								  status=422)
-		for valid_passing_perc in (0.1, '.5', 1):
+		for valid_passing_perc in (0.1, '.5', 1, None):
 			data = { 'completion_passing_percent': valid_passing_perc }
 			assignment = self.testapp.put_json(assignment_url,
 											   data, extra_environ=editor_environ)
 			assignment = assignment.json_body
+			try:
+				valid_passing_perc = float(valid_passing_perc)
+			except TypeError:
+				valid_passing_perc = None
 			assert_that(assignment.get('completion_passing_percent'),
-						is_(float(valid_passing_perc)))
+						is_(valid_passing_perc))
 
 	@WithSharedApplicationMockDS(testapp=True, users=True)
 	def test_no_context(self):

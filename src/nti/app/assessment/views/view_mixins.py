@@ -411,6 +411,10 @@ class AssessmentPutView(UGDPutView):
         elif key == 'total_points':
             notify_value = value = self._get_value(float, value, key)
             part = 'auto_grade'
+            if value is not None and value <= 0:
+                self._raise_error('InvalidValue',
+                                  _(u'total_points must be between 0 and 1.'),
+                                  field='total_points')
         elif key == 'maximum_time_allowed':
             value = notify_value = self._get_value(int, value, key)
             # If still a timed assignment, we must stay above 60s.

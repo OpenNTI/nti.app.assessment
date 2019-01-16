@@ -613,7 +613,7 @@ class AssignmentPutView(NewAndLegacyPutView):
                 # default value in our object itself that will get overridden
                 # by the policy.
                 if not getattr(contentObject, 'maximum_time_allowed', None):
-                    contentObject.maximum_time_allowed = 60
+                    contentObject.maximum_time_allowed = max_time_allowed
             elif    max_time_allowed is None \
                 and IQTimedAssignment.providedBy(contentObject):
                 self._transform_to_untimed(contentObject)

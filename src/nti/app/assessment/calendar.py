@@ -27,6 +27,8 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseAssignmentCatalog
 from nti.contenttypes.courses.interfaces import get_course_assessment_predicate_for_user
 
+from nti.contenttypes.courses.legacy_catalog import ILegacyCourseInstance
+
 from nti.dataserver.interfaces import IUser
 
 from nti.externalization.persistence import NoPickle
@@ -75,6 +77,8 @@ class AssignmentCalendarDynamicEventProvider(object):
 
     def iter_events(self):
         res = []
+        if ILegacyCourseInstance.providedBy(self.course):
+            return res
         calendar = ICourseCalendar(self.course, None)
         for assign in self._assignments(self.user, self.course):
             # only show those have due date assignment events.

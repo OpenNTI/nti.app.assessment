@@ -76,11 +76,10 @@ class AssignmentCalendarDynamicEventProvider(object):
         self.course = course
 
     def iter_events(self):
-        res = []
         if ILegacyCourseInstance.providedBy(self.course):
-            return res
+            yield None
         calendar = ICourseCalendar(self.course, None)
-        for assign in self._assignments(self.user, self.course):
+        for assign in self.iter_assignments(self.user, self.course):
             # only show those have due date assignment events.
             start_time = get_available_for_submission_ending(assign, self.course)
             if start_time:
@@ -89,15 +88,14 @@ class AssignmentCalendarDynamicEventProvider(object):
                                                 start_time=start_time,
                                                 assignment=assign)
                 event.__parent__ = calendar
-                res.append(event)
-        return res
+                yield event
 
-    def _assignments(self, user, course):
+    def iter_assignments(self, user, course):
         catalog = ICourseAssignmentCatalog(course)
         uber_filter = get_course_assessment_predicate_for_user(user,
                                                                course)
         # Must grab all assignments in our parent
         # pylint: disable=too-many-function-args
         assignments = catalog.iter_assignments(True)
-        result = [removeAllProxies(x) for x in assignments if uber_filter(x)]
+        result = (removeAllProxies(x) for x in assignments if uber_filter(x))
         return result

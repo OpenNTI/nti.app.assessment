@@ -101,7 +101,6 @@ class TestCourseCalendarDynamicEventProvider(ApplicationLayerTest):
 
     @WithSharedApplicationMockDS(testapp=True, users=(u'test001', u'admintest@nextthought.com'))
     def test_course_calendar_dynamic_event_provider(self):
-        admin = u'admintest@nextthought.com'
         username = u'test001'
         course_oid = self._get_course_oid()
 
@@ -128,15 +127,18 @@ class TestCourseCalendarDynamicEventProvider(ApplicationLayerTest):
             assignment = find_object_with_ntiid(assignment_ntiid)
             assignment.available_for_submission_ending = datetime.datetime.utcfromtimestamp(1539993600)
 
-            events = provider.iter_events()
+            events = tuple(provider.iter_events())
             assert_that(events, has_length(42))
 
-            event = [x for x in provider.iter_events() if x.assignment.ntiid == assignment_ntiid][0]
-            assert_that(event, has_properties({'title': 'one', 'description': 'it is ok'}))
+            event = [x for x in provider.iter_events()
+                     if x.assignment.ntiid == assignment_ntiid][0]
+            assert_that(event, has_properties({'title': 'one',
+                                               'description': 'it is ok'}))
             assert_that(event.__parent__, not_none())
             assert_that(event.__name__, is_(None))
             assert_that(event.end_time, is_(None))
-            assert_that(event.start_time.strftime('%Y-%m-%d %H:%M:%S'), is_('2018-10-20 00:00:00'))
+            assert_that(event.start_time.strftime('%Y-%m-%d %H:%M:%S'),
+                        is_('2018-10-20 00:00:00'))
             assert_that(event.assignment, same_instance(assignment))
 
             # no intid

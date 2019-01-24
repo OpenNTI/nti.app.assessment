@@ -554,4 +554,8 @@
 			 for=".calendar.IAssignmentCalendarEvent"
 			 provides="nti.externalization.interfaces.IInternalObjectExternalizer"/>
 
+	<adapter factory=".calendar.AssignmentCalendarEventUIDProvider"
+			 for=".calendar.IAssignmentCalendarEvent"
+			 provides="nti.app.contenttypes.calendar.interfaces.ICalendarEventUIDProvider"/>
+
 </configure>

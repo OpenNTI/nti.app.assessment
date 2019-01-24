@@ -116,12 +116,12 @@ class TestCourseCalendarDynamicEventProvider(ApplicationLayerTest):
             enrollment_manager.enroll(user)
 
             provider = AssignmentCalendarDynamicEventProvider(user, course)
-            events = provider.iter_events()
+            events = tuple(provider.iter_events())
             assert_that(events, has_length(41))
 
         self._publish_assignment(assignment_ntiid)
         with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
-            events = provider.iter_events()
+            events = tuple(provider.iter_events())
             assert_that(events, has_length(41))
 
             assignment = find_object_with_ntiid(assignment_ntiid)

@@ -77,7 +77,7 @@ class AssignmentCalendarDynamicEventProvider(object):
 
     def iter_events(self):
         if ILegacyCourseInstance.providedBy(self.course):
-            yield None
+            return
         calendar = ICourseCalendar(self.course, None)
         for assign in self.iter_assignments(self.user, self.course):
             # only show those have due date assignment events.

@@ -21,6 +21,8 @@ from nti.app.products.courseware.calendar.interfaces import ICourseCalendarDynam
 
 from nti.app.assessment.common.utils import get_available_for_submission_ending
 
+from nti.app.contenttypes.calendar.interfaces import ICalendarEventUIDProvider
+
 from nti.assessment.interfaces import IQAssignment
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -99,3 +101,14 @@ class AssignmentCalendarDynamicEventProvider(object):
         assignments = catalog.iter_assignments(True)
         result = (removeAllProxies(x) for x in assignments if uber_filter(x))
         return result
+
+
+@component.adapter(IAssignmentCalendarEvent)
+@interface.implementer(ICalendarEventUIDProvider)
+class AssignmentCalendarEventUIDProvider(object):
+
+    def __init__(self, context):
+        self.context = context
+
+    def __call__(self):
+        return self.context.assignment.ntiid

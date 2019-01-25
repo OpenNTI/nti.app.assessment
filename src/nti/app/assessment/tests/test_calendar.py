@@ -29,6 +29,8 @@ from nti.app.assessment.tests import AssessmentLayerTest
 from nti.app.assessment.calendar import AssignmentCalendarEvent
 from nti.app.assessment.calendar import AssignmentCalendarDynamicEventProvider
 
+from nti.app.contenttypes.calendar.interfaces import ICalendarEventUIDProvider
+
 from nti.app.products.courseware.tests import InstructedCourseApplicationTestLayer
 
 from nti.app.testing.application_webtest import ApplicationLayerTest
@@ -140,6 +142,7 @@ class TestCourseCalendarDynamicEventProvider(ApplicationLayerTest):
             assert_that(event.start_time.strftime('%Y-%m-%d %H:%M:%S'),
                         is_('2018-10-20 00:00:00'))
             assert_that(event.assignment, same_instance(assignment))
+            assert_that(ICalendarEventUIDProvider(event)(), is_(assignment.ntiid))
 
             # no intid
             intids = component.getUtility(IIntIds)

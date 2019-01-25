@@ -66,9 +66,13 @@ class _DefaultSubmissionCompletionPolicy(AbstractCompletableItemCompletionPolicy
                                    CompletedDate=progress.LastModified)
             completion_passing_percent = get_policy_completion_passing_percent(self.assessment,
                                                                                self._v_course_context)
-            if completion_passing_percent:
-                result.Success = bool(    progress.PercentageProgress \
-                                      and progress.PercentageProgress >= completion_passing_percent)
+            if completion_passing_percent is not None:
+                if progress.PercentageProgress is not None:
+                    result.Success = progress.PercentageProgress >= completion_passing_percent
+                else:
+                    # We have a required passing percentage but no data to check
+                    # against; therefore this is incomplete.
+                    result = None
         return result
 
 

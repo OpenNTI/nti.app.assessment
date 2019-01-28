@@ -266,7 +266,7 @@ class TestAssignmentViews(ApplicationLayerTest):
 		assert_that( assignment.get( 'submission_buffer'), is_(False))
 		assert_that( assignment.get( 'completion_passing_percent'), none())
 		for rel in ('date-edit', 'auto-grade', 'total-points',
-					'submission-buffer', 'completion-passing-perc'):
+					'submission-buffer', 'completion-passing-percent'):
 			self.require_link_href_with_rel(assignment, rel)
 		# Can only toggle API created assignments to timed.
 		self.forbid_link_with_rel(assignment, 'maximum-time-allowed')

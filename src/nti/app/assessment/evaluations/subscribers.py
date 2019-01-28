@@ -228,7 +228,9 @@ def _on_assessment_policies_modified_event(course, event):
     if IQAssignment.providedBy(assesment):
         # If they're enabling auto_grade or specifying a new
         # total points value, trigger a regrade.
-        if      event.key.lower() in ('total_points', 'auto_grade') \
+        if      event.key.lower() in ('total_points',
+                                      'auto_grade',
+                                      'completion_passing_percent') \
             and event.value:
             regrade_evaluation(assesment, course)
 

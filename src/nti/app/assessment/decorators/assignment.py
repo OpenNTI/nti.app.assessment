@@ -782,6 +782,7 @@ class AssessmentPolicyEditLinkDecorator(AbstractAuthenticatedRequestAwareDecorat
         _links = result.setdefault(LINKS, [])
         courses = self._get_courses(context)
         names = ['date-edit-end', 'date-edit',
+                 'max-submissions',
                  'total-points', 'completion-passing-percent']
         # Cannot toggle start date or time allowed if users have started.
         if not self._has_submitted_data(context, courses):

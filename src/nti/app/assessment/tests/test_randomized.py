@@ -163,11 +163,13 @@ class TestRandomized(ApplicationLayerTest):
         assignment_href = assignment['href']
         assert_that(assignment_href, not_none())
         creator = 'sjohnson@nextthought.com'
+        self.testapp.post_json(assignment_href + '/@@publish')
 
         res = self.testapp.post_json(evaluations_href, qset_data)
         self_assessment = res.json_body
         self_assessment_href = self_assessment['href']
         assert_that(self_assessment_href, not_none())
+        self.testapp.post_json(self_assessment_href + '/@@publish')
 
         # Validate instructor is not randomized.
         self._test_external_state( assignment )
@@ -302,6 +304,7 @@ class TestRandomized(ApplicationLayerTest):
         assignment = res.json_body
         assignment_href = assignment.get('href')
         assert_that(assignment_href, not_none())
+        self.testapp.post_json(assignment_href + '/@@publish')
         qset = assignment['parts'][0]['question_set']
         qset_href = qset.get( 'href' )
         random_parts_href = self.require_link_href_with_rel(qset, VIEW_RANDOMIZE_PARTS)

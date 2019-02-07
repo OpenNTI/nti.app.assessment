@@ -171,22 +171,6 @@ def get_question_view_link(unused_request):
     return hexc.HTTPBadRequest()
 
 
-@view_config(accept='',          # explicit empty accept, else we get a ConfigurationConflict
-             ** _question_view)  # and/or no-Accept header goes to the wrong place
-@view_config(**_question_view)
-@view_config(accept='',
-             **_question_set_view)
-@view_config(**_question_set_view)
-@view_config(accept='',
-             **_assignment_view)
-@view_config(**_assignment_view)
-@view_config(accept='',
-             **_inquiry_view)
-@view_config(**_inquiry_view)
-def get_question_view(request):
-    return request.context
-
-
 del _inquiry_view
 del _question_view
 del _assignment_view

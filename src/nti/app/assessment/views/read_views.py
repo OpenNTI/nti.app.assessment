@@ -26,7 +26,12 @@ from nti.appserver.dataserver_pyramid_views import GenericGetView
 
 from nti.appserver.pyramid_authorization import has_permission
 
+from nti.assessment.interfaces import IQInquiry
+from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQEvaluation
+from nti.assessment.interfaces import IQAssignment
+from nti.assessment.interfaces import IQuestionSet
+
 from nti.assessment.interfaces import IQEditableEvaluation
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
@@ -50,12 +55,12 @@ ITEM_COUNT = StandardExternalFields.ITEM_COUNT
                renderer='rest',
                request_method='GET',
                permission=nauth.ACT_CONTENT_EDIT)
-class EvaluationsGetView(AbstractAuthenticatedView, 
+class EvaluationsGetView(AbstractAuthenticatedView,
 						 BatchingUtilsMixin):
 
     _DEFAULT_BATCH_SIZE = 50
     _DEFAULT_BATCH_START = 0
-    
+
     def _params(self):
         return CaseInsensitiveDict(self.request.params)
 
@@ -107,11 +112,18 @@ class CatalogEntryEvaluationsView(EvaluationsGetView):
         return self._do_call(evaluations)
 
 
-@view_config(route_name='objects.generic.traversal',
-             renderer='rest',
-             context=IQEvaluation,
-             request_method='GET',
-             permission=nauth.ACT_READ)
+
+@view_config(context=IQEvaluation)
+@view_config(context=IQuestion)
+@view_config(context=IQuestionSet)
+@view_config(context=IQAssignment)
+@view_config(context=IQInquiry)
+@view_defaults(route_name='objects.generic.traversal',
+               renderer='rest',
+               context=IQEvaluation,
+               accept='application/json',
+               request_method='GET',
+               permission=nauth.ACT_READ)
 class EvaluationGetView(GenericGetView):
 
     def __call__(self):

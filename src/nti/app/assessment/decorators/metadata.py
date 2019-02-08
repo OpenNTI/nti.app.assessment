@@ -70,6 +70,7 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
                                                      IUsersCourseAssignmentAttemptMetadata)
         meta_container = user_container.get(assignment.ntiid)
         meta_count = 0
+        current_attempt = None
         if meta_container:
             # Get the currently in-progress attempt, if it exists.
             meta_count = len(meta_container)
@@ -79,8 +80,9 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
         # All assignments can commence
         max_submissions = get_policy_max_submissions(assignment, course)
-        if max_submissions and max_submissions > meta_count:
+        if max_submissions and max_submissions > meta_count and current_attempt is None:
             # Always have a Start rel if they have not exceeded threshold
+            # and there is no attempt in progress
             links.append(Link(course,
                               method='POST',
                               rel='Commence',

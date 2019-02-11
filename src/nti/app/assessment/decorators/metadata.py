@@ -11,6 +11,9 @@ from __future__ import absolute_import
 from zope import component
 from zope import interface
 
+from nti.app.assessment.common.policy import get_policy_max_submissions
+from nti.app.assessment.common.policy import is_policy_max_submissions_unlimited
+
 from nti.app.assessment.decorators import _get_course_from_evaluation
 from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
 
@@ -31,7 +34,6 @@ from nti.externalization.interfaces import IExternalMappingDecorator
 from nti.links.links import Link
 
 from nti.ntiids.ntiids import find_object_with_ntiid
-from nti.app.assessment.common.policy import get_policy_max_submissions
 
 LINKS = StandardExternalFields.LINKS
 
@@ -80,7 +82,9 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
         # All assignments can commence
         max_submissions = get_policy_max_submissions(assignment, course)
-        if max_submissions and max_submissions > meta_count and current_attempt is None:
+        if      (  max_submissions > meta_count \
+                or is_policy_max_submissions_unlimited(assignment, course)) \
+            and current_attempt is None:
             # Always have a Start rel if they have not exceeded threshold
             # and there is no attempt in progress
             links.append(Link(course,

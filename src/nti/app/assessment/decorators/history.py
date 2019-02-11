@@ -21,6 +21,7 @@ from nti.app.assessment.common.history import get_user_submission_count
 from nti.app.assessment.common.history import get_most_recent_history_item
 
 from nti.app.assessment.common.policy import get_policy_max_submissions
+from nti.app.assessment.common.policy import is_policy_max_submissions_unlimited
 
 from nti.app.assessment.decorators import _get_course_from_evaluation
 from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
@@ -156,7 +157,9 @@ class _AssignmentHistoryLinkDecorator(AbstractAuthenticatedRequestAwareDecorator
         # Check submission count
         result_map['submission_count'] = submission_count
         max_submissions = get_policy_max_submissions(context, course)
-        if not submission_count or max_submissions > submission_count:
+        if     not submission_count \
+            or max_submissions > submission_count \
+            or is_policy_max_submissions_unlimited(context, course):
             # The user can submit; note we do not check admin status here
             link = Link(course,
                         rel='Submit',

@@ -87,6 +87,15 @@ def get_policy_max_submissions(assignment, course):
     return get_policy_field(assignment, course, 'max_submissions') or 1
 
 
+def is_policy_max_submissions_unlimited(assignment, course):
+    """
+    For a given assignment (or ntiid), return whether the policy `max_submissions`
+    field is configured for unlimited submissions. Currently this is defined as
+    `max_submissions` of -1.
+    """
+    return get_policy_field(assignment, course, 'max_submissions') == -1
+
+
 def get_policy_completion_passing_percent(assignment, course):
     """
     For a given assignment (or ntiid), return the policy `completion_passing_percent`

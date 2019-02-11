@@ -91,11 +91,11 @@ class TestMultipleSubmissions(ApplicationLayerTest):
         assert_that(res['max_submissions'], is_(1))
         assert_that(res['submission_priority'], is_('highest_grade'))
 
-        for bad_value in ('-1', '0', 'a'):
+        for bad_value in ('-2', '0', 'a'):
             data =  {'max_submissions': bad_value}
             self.testapp.put_json(self.assignment_url, data, status=422)
 
-        for bad_value in ('-1', '0', 'a', ''):
+        for bad_value in ('-2', '0', 'a', ''):
             data =  {'submission_priority': bad_value}
             self.testapp.put_json(self.assignment_url, data, status=422)
 
@@ -196,3 +196,19 @@ class TestMultipleSubmissions(ApplicationLayerTest):
         assert_that(res['submission_count'], is_(0))
         submission_rel = self.require_link_href_with_rel(res, 'Submit')
         self._do_submit(submission_rel, outest_environ)
+
+        # Unlimited submissions
+        self.testapp.post(reset_url, extra_environ=instructor_environ)
+        res = self.testapp.put_json(self.assignment_url, {'max_submissions': -1,
+                                                          'submission_priority': 'HIGHEST_GRADE'})
+        res = res.json_body
+        assert_that(res['max_submissions'], is_(-1))
+        assert_that(res['unlimited_submissions'], is_(True))
+        assert_that(res['submission_priority'], is_('highest_grade'))
+
+        for submission_index in range(10):
+            self._do_submit(submission_rel, outest_environ)
+            res = self.testapp.get(self.assignment_url, extra_environ=outest_environ)
+            res = res.json_body
+            assert_that(res['max_submissions'], is_(-1))
+            assert_that(res['submission_count'], is_(submission_index + 1))

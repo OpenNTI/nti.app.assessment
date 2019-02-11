@@ -55,6 +55,7 @@ from nti.app.assessment.common.policy import get_auto_grade_policy
 from nti.app.assessment.common.policy import get_policy_max_submissions
 from nti.app.assessment.common.policy import get_submission_buffer_policy
 from nti.app.assessment.common.policy import get_policy_submission_priority
+from nti.app.assessment.common.policy import is_policy_max_submissions_unlimited
 from nti.app.assessment.common.policy import get_policy_completion_passing_percent
 
 from nti.app.assessment.common.submissions import has_submissions
@@ -272,6 +273,7 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
 
         # Max submissions
         result['max_submissions'] = get_policy_max_submissions(assignment, course)
+        result['unlimited_submissions'] = is_policy_max_submissions_unlimited(assignment, course)
         result['completion_passing_percent'] = get_policy_completion_passing_percent(assignment, course)
         result['submission_priority'] = get_policy_submission_priority(assignment, course)
 

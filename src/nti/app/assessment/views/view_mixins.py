@@ -377,8 +377,6 @@ class AssessmentPutView(UGDPutView):
                 return None
             try:
                 result = value_type(value)
-                if result < 0:
-                    raise TypeError()
             except (TypeError, ValueError):
                 self._raise_error('InvalidType',
                                   _(u'Value is invalid.'),
@@ -425,7 +423,8 @@ class AssessmentPutView(UGDPutView):
                                   field='maximum_time_allowed')
         elif key == 'max_submissions':
             value = notify_value = self._get_value(int, value, key)
-            if value < 1:
+            # -1 is unlimited
+            if value < 1 and value != -1:
                 self._raise_error('InvalidValue',
                                   _(u'Max submissions must be at least 1.'),
                                   field='max_submissions')

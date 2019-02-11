@@ -43,6 +43,9 @@ from nti.app.assessment.common.evaluations import get_evaluation_courses
 from nti.app.assessment.common.evaluations import get_course_from_evaluation
 from nti.app.assessment.common.evaluations import get_course_self_assessments
 
+from nti.app.assessment.common.policy import get_policy_max_submissions
+from nti.app.assessment.common.policy import is_policy_max_submissions_unlimited
+
 from nti.app.assessment.common.submissions import check_submission_version
 
 from nti.app.assessment.common.utils import get_available_for_submission_beginning
@@ -112,7 +115,6 @@ from nti.site.interfaces import IHostPolicyFolder
 
 from nti.traversal.traversal import find_interface
 from nti.traversal.traversal import ContainerAdapterTraversable
-from nti.app.assessment.common.policy import get_policy_max_submissions
 
 logger = __import__('logging').getLogger(__name__)
 
@@ -242,12 +244,12 @@ def _begin_assessment_for_assignment_submission(submission):
     if submission_container:
         max_submissions = get_policy_max_submissions(assignment, course)
         ex = None
-        if max_submissions is None or max_submissions < 2:
+        if max_submissions is None or max_submissions == 1:
             ex = NotUnique("Assignment already submitted")
             ex = ex.with_field_and_value(IQAssignmentSubmission['assignmentId'],
                                          submission.assignmentId)
-        else:
-            if len(submission_container) >= max_submissions:
+        elif    not is_policy_max_submissions_unlimited(assignment, course) \
+            and len(submission_container) >= max_submissions:
                 ex = TooLong(submission_container, max_submissions)
                 ex = ex.with_field_and_value(submission_container,
                                              max_submissions)

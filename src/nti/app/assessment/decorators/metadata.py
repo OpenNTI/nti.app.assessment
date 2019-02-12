@@ -11,6 +11,8 @@ from __future__ import absolute_import
 from zope import component
 from zope import interface
 
+from nti.app.assessment.common.evaluations import is_assignment_available_for_submission
+
 from nti.app.assessment.common.policy import get_policy_max_submissions
 from nti.app.assessment.common.policy import is_policy_max_submissions_unlimited
 
@@ -84,7 +86,8 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
         max_submissions = get_policy_max_submissions(assignment, course)
         if      (  max_submissions > meta_count \
                 or is_policy_max_submissions_unlimited(assignment, course)) \
-            and current_attempt is None:
+            and current_attempt is None \
+            and is_assignment_available_for_submission(assignment, course, user):
             # Always have a Start rel if they have not exceeded threshold
             # and there is no attempt in progress
             links.append(Link(course,

@@ -73,7 +73,7 @@ from nti.ntiids.oids import to_external_ntiid_oid
 
 from nti.property.property import alias
 
-from nti.schema.field import SchemaConfigured
+from nti.schema.schema import SchemaConfigured
 
 from nti.schema.fieldproperty import createDirectFieldProperties
 

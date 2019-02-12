@@ -64,7 +64,7 @@ from nti.externalization.interfaces import StandardExternalFields
 
 from nti.property.property import alias
 
-from nti.schema.field import SchemaConfigured
+from nti.schema.schema import SchemaConfigured
 from nti.schema.fieldproperty import createDirectFieldProperties
 
 from nti.traversal.traversal import ContainerAdapterTraversable
@@ -88,7 +88,7 @@ class UsersCourseInquiries(CaseInsensitiveCheckingLastModifiedBTreeContainer):
         for key, value in list(self.items()):
             value.clear()
             del self[key]
-        
+
 UsersCourseSurveys = UsersCourseInquiries  # BWC
 
 

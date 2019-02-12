@@ -13,7 +13,7 @@ from __future__ import absolute_import
 from pyramid.interfaces import IRequest
 
 from ZODB.interfaces import IConnection
-    
+
 from zope import component
 from zope import interface
 from zope import lifecycleevent
@@ -67,7 +67,7 @@ from nti.externalization.interfaces import StandardExternalFields
 
 from nti.property.property import alias
 
-from nti.schema.field import SchemaConfigured
+from nti.schema.schema import SchemaConfigured
 from nti.schema.fieldproperty import createDirectFieldProperties
 
 from nti.traversal.traversal import find_interface
@@ -146,7 +146,7 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
         if submission.assignmentId not in self:
             return
         item = self[submission.assignmentId]
-        transfer_submission_file_data(source=item.Submission, 
+        transfer_submission_file_data(source=item.Submission,
                                       target=submission)
         if event:
             del self[submission.assignmentId]

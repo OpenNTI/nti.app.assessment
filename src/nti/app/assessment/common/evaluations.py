@@ -40,6 +40,8 @@ from nti.app.assessment.index import IX_MIMETYPE as IX_ASSESS_MIMETYPE
 
 from nti.app.assessment.index import get_evaluation_catalog
 
+from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
+
 from nti.app.authentication import get_remote_user
 
 from nti.assessment.interfaces import SURVEY_MIME_TYPE
@@ -53,6 +55,7 @@ from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQDiscussionAssignment
 from nti.assessment.interfaces import IQAssessmentItemContainer
+from nti.assessment.interfaces import IPlaceholderAssignmentSubmission
 
 from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.interfaces import IContentPackage
@@ -491,21 +494,39 @@ def is_assignment_available_for_submission(assignment, course, user=None):
     For the given assignment, determines if it is available for submission
     via the assignment policy.
 
-    This includes checking to see if the user has already completed the
-    assigment.
+    This includes:
+
+    * assignment is open for submission
+    * assignment is not already completed (successfully) by user
+    * it is not past the submission buffer
+    * the instructor has not supplied a grade (placeholder submission)
     """
     if not is_assignment_available(assignment, course, user):
         return False
     result = True
     end_date = get_available_for_submission_ending(assignment, course)
     submission_buffer = get_policy_field(assignment, course, 'submission_buffer', default=None)
+    # Past submission buffer
     if end_date and submission_buffer is not None:
         submission_buffer = int(submission_buffer)
         cutoff_date = end_date + timedelta(seconds=submission_buffer)
         result = datetime.utcnow() < cutoff_date
+    # Successfully completed
     if result:
         completed_item = get_completed_item(user, course, assignment)
         result = completed_item is None or not completed_item.Success
+    # Placeholder submission
+    if result:
+        container = component.queryMultiAdapter((course, user),
+                                                IUsersCourseAssignmentHistory)
+        if container is not None:
+            submission_container = container.get(assignment.ntiid)
+            if submission_container:
+                # This *should* only be the first item, if any.
+                for history_item in submission_container.values():
+                    if IPlaceholderAssignmentSubmission.providedBy(history_item.Submission):
+                        result = False
+                        break
     return result
 
 

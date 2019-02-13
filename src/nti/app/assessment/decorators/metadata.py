@@ -88,8 +88,11 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
                 or is_policy_max_submissions_unlimited(assignment, course)) \
             and current_attempt is None \
             and is_assignment_available_for_submission(assignment, course, user):
-            # Always have a Start rel if they have not exceeded threshold
-            # and there is no attempt in progress
+            # Include a `Commence` rel if:
+            # * they have not exceeded threshold
+            # * there is no attempt in progress
+            # * the assignment is available (not past submission buffer)
+            # * the assignment is not sucessfully completed
             links.append(Link(course,
                               method='POST',
                               rel='Commence',

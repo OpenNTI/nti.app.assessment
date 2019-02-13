@@ -17,6 +17,8 @@ from hamcrest import has_length
 from hamcrest import assert_that
 does_not = is_not
 
+import fudge
+
 from nti.app.assessment import VIEW_RESET_EVALUATION
 
 from nti.app.products.courseware.tests import InstructedCourseApplicationTestLayer
@@ -85,7 +87,14 @@ class TestMultipleSubmissions(ApplicationLayerTest):
         return res
 
     @WithSharedApplicationMockDS(users=True, testapp=True)
-    def test_multiple_submissions(self):
+    @fudge.patch('nti.app.assessment.common.evaluations.get_completed_item')
+    def test_multiple_submissions(self, mock_completed_item):
+        # Completed the assignment prevents future submissions
+        success_item = fudge.Fake()
+        success_item.has_attr(Success=True)
+        fail_item = fudge.Fake()
+        fail_item.has_attr(Success=False)
+        mock_completed_item.is_callable().returns(None)
         res = self.testapp.get(self.assignment_url)
         res = res.json_body
         assert_that(res['max_submissions'], is_(1))
@@ -212,3 +221,14 @@ class TestMultipleSubmissions(ApplicationLayerTest):
             res = res.json_body
             assert_that(res['max_submissions'], is_(-1))
             assert_that(res['submission_count'], is_(submission_index + 1))
+
+        # Completion: success can no longer start, failure can
+        mock_completed_item.is_callable().returns(success_item)
+        assignment_res = self.testapp.get(self.assignment_url,
+                                          extra_environ=outest_environ)
+        self.forbid_link_with_rel(assignment_res.json_body, 'Commence')
+
+        mock_completed_item.is_callable().returns(fail_item)
+        assignment_res = self.testapp.get(self.assignment_url,
+                                          extra_environ=outest_environ)
+        self.require_link_href_with_rel(assignment_res.json_body, 'Commence')

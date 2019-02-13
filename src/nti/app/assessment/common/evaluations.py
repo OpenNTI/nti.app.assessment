@@ -60,6 +60,8 @@ from nti.contentlibrary.interfaces import IGlobalContentPackage
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 from nti.contentlibrary.interfaces import IGlobalContentPackageLibrary
 
+from nti.contenttypes.completion.utils import get_completed_item
+
 from nti.contenttypes.courses.discussions.interfaces import ICourseDiscussion
 
 from nti.contenttypes.courses.discussions.utils import get_implied_by_scopes
@@ -488,6 +490,9 @@ def is_assignment_available_for_submission(assignment, course, user=None):
     """
     For the given assignment, determines if it is available for submission
     via the assignment policy.
+
+    This includes checking to see if the user has already completed the
+    assigment.
     """
     if not is_assignment_available(assignment, course, user):
         return False
@@ -498,6 +503,10 @@ def is_assignment_available_for_submission(assignment, course, user=None):
         submission_buffer = int(submission_buffer)
         cutoff_date = end_date + timedelta(seconds=submission_buffer)
         result = datetime.utcnow() < cutoff_date
+    if result:
+        completed_item = get_completed_item(user, course, assignment)
+        if completed_item is not None:
+        result = completed_item is None or not completed_item.Success
     return result
 
 

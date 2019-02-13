@@ -166,7 +166,7 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
                              hexc.HTTPForbidden,
                              {
                                  'message': _(u"Assignment is not available for submission."),
-                                 'code': u'SubmissionPastDueDateError'
+                                 'code': u'CannotSubmitAssignmentError'
                              },
                              None)
         if      self.METADATA_ATTEMPT_VALIDATION \

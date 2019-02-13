@@ -114,7 +114,7 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
                              hexc.HTTPForbidden,
                              {
                                  'message': _(u"Assignment is not available for submission."),
-                                 'code': u'SubmissionPastDueDateError'
+                                 'code': u'CannotSubmitAssignmentError'
                              },
                              None)
 

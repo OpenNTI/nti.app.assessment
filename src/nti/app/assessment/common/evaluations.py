@@ -505,7 +505,6 @@ def is_assignment_available_for_submission(assignment, course, user=None):
         result = datetime.utcnow() < cutoff_date
     if result:
         completed_item = get_completed_item(user, course, assignment)
-        if completed_item is not None:
         result = completed_item is None or not completed_item.Success
     return result
 

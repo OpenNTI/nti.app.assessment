@@ -100,6 +100,8 @@ from nti.assessment.randomized.interfaces import IRandomizedPartsContainer
 
 from nti.contentlibrary.interfaces import IContentUnit
 
+from nti.contenttypes.completion.utils import get_completed_item
+
 from nti.contenttypes.courses import get_course_vendor_info
 
 from nti.contenttypes.courses.legacy_catalog import ILegacyCourseInstance
@@ -339,85 +341,115 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
     that has a due date, and we are before the due date, do not release
     the answers.
 
+    We also do not release solutions if the user has not successfully
+    completed the assignment when we have a multiple submission assignment.
+
     .. note:: This is currently incomplete. We are also sending these
             question set items back 'standalone'. Depending on the UI, we
             may need to strip them there too.
     """
 
-    @classmethod
-    def needs_stripped(cls, context, request, remoteUser):
-        if context is not None:
-            course = _get_course_from_evaluation(context, remoteUser,
-                                                 request=request)
-        else:
-            course = None
+    def _get_course(self, context, remoteUser, request):
+        course = _get_course_from_evaluation(context, remoteUser,
+                                             request=request)
+        return course
 
+    def is_max_submission_strip(self, context, course, user):
+        result = False
+        if      course is not None \
+            and get_policy_max_submissions(context, course) > 1:
+            # Ok, we can return solutions as long as they've successfully
+            # completed the assignment (and it's multi-submission).
+            completed_item = get_completed_item(user, course, context)
+            # Strip if no completed item or unsuccessful
+            result = completed_item is None or not completed_item.Success
+        return result
+
+    def needs_stripped(self, course, context, request, remoteUser):
         if course is None:
-            return False
-
-        if     has_permission(ACT_VIEW_SOLUTIONS, course, request) \
-            or has_permission(ACT_CONTENT_EDIT, course, request):
-            # The instructor or an editor, nothing to do
             return False
 
         due_date = get_available_for_submission_ending(context, course)
 
+        # By default always strip
+        result = True
         if not due_date or due_date <= datetime.utcnow():
             # If student check if there is a submission for the assignment
             if IQAssignment.providedBy(context):
                 history_item = get_most_recent_history_item(remoteUser, course, context)
                 # there is a submission
                 if history_item is not None:
-                    return False
+                    result = False
+        return result
 
-            # Nothing done always strip
-            return True
-
-        return True
-
-    @classmethod
-    def strip(cls, item):
+    def strip(self, item, max_submission_strip):
+        """
+        Strip solutions and explanation. Also, strip correctness (if available)
+        if we have an assessedValue val.
+        """
         for part in item.get('parts') or ():
             if isinstance(part, Mapping):
                 for key in ('solutions', 'explanation'):
                     if key in part:
                         part[key] = None
+                if max_submission_strip:
+                    part.pop('assessedValue', None)
 
-    @classmethod
-    def strip_qset(cls, item):
+    def strip_qset(self, item, max_submission_strip=False):
         for q in item.get('questions') or ():
-            cls.strip(q)
+            self.strip(q, max_submission_strip=max_submission_strip)
 
-    def _predicate(self, context, result):
-        if AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result):
-            return self.needs_stripped(context, self.request, self.remoteUser)
+    def is_instructor(self, course, request):
+        return has_permission(ACT_VIEW_SOLUTIONS, course, request) \
+            or has_permission(ACT_CONTENT_EDIT, course, request)
 
-    def _do_decorate_external(self, unused_context, result):
-        for part in result.get('parts') or ():
-            question_set = part.get('question_set')
-            if question_set:
-                self.strip_qset(question_set)
+    def _should_strip(self, course, context, request, user):
+        """
+        We want to have different behavior if this is a max
+        submission assignment. We'll strip as long has the user has not
+        successfully completed the assignment.
+        """
+        if      course is not None \
+            and get_policy_max_submissions(context, course) > 1:
+            result = self.is_max_submission_strip(context, course, user)
+        else:
+            result = self.needs_stripped(course, context, request, user)
+        return result
+
+    def _do_decorate_external(self, context, result):
+        course = self._get_course(context, self.remoteUser, self.request)
+        if self.is_instructor(course, self.request):
+            return
+        if self._should_strip(course, context, self.request, self.remoteUser):
+            for part in result.get('parts') or ():
+                question_set = part.get('question_set')
+                if question_set:
+                    self.strip_qset(question_set)
 
 
-class _AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAwareDecorator):
+class _AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper(_AssignmentBeforeDueDateSolutionStripper):
     """
     When anyone besides the instructor requests an assessed part
     within an assignment that has a due date, and we are before the
     due date, do not release the answers.
+
+    For multiple submission assignments, we also want to remove any indication
+    correctness.
 
     .. note:: This is currently incomplete. We are also sending these
             question set items back 'standalone'. Depending on the UI, we
             may need to strip them there too.
     """
 
-    def _predicate(self, context, result):
-        if AbstractAuthenticatedRequestAwareDecorator._predicate(self, context, result):
-            assg = component.queryUtility(IQAssignment, context.assignmentId)
-            return _AssignmentBeforeDueDateSolutionStripper.needs_stripped(assg, self.request, self.remoteUser)
-
-    def _do_decorate_external(self, unused_context, result):
-        for part in result.get('parts') or ():
-            _AssignmentBeforeDueDateSolutionStripper.strip_qset(part)
+    def _do_decorate_external(self, context, result):
+        assg = component.queryUtility(IQAssignment, context.assignmentId)
+        course = self._get_course(assg, self.remoteUser, self.request)
+        if self.is_instructor(course, self.request):
+            return
+        max_submission_strip = self.is_max_submission_strip(assg, course, self.remoteUser)
+        if self._should_strip(course, assg, self.request, self.remoteUser):
+            for part in result.get('parts') or ():
+                self.strip_qset(part, max_submission_strip=max_submission_strip)
 
 
 @interface.implementer(IExternalObjectDecorator)

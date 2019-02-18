@@ -357,7 +357,8 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
     def is_max_submission_strip(self, context, course, user):
         result = False
         if      course is not None \
-            and get_policy_max_submissions(context, course) > 1:
+            and (   get_policy_max_submissions(context, course) > 1 \
+                 or is_policy_max_submissions_unlimited(context, course)):
             # Ok, we can return solutions as long as they've successfully
             # completed the assignment (and it's multi-submission).
             completed_item = get_completed_item(user, course, context)
@@ -410,7 +411,8 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
         successfully completed the assignment.
         """
         if      course is not None \
-            and get_policy_max_submissions(context, course) > 1:
+            and (   get_policy_max_submissions(context, course) > 1 \
+                 or is_policy_max_submissions_unlimited(context, course)):
             result = self.is_max_submission_strip(context, course, user)
         else:
             result = self.needs_stripped(course, context, request, user)

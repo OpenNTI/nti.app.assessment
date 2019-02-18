@@ -76,7 +76,7 @@ def get_policy_submission_priority(assignment, course):
 
 def is_most_recent_submission_priority(assignment, course):
     submission_priority = get_policy_submission_priority(assignment, course)
-    return submission_priority == 'highest_grade'
+    return submission_priority == 'most_recent'
 
 
 def get_policy_max_submissions(assignment, course):

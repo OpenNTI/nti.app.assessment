@@ -314,6 +314,7 @@
 	<adapter factory=".metadata._UsersCourseMetadataAttemptTraversable" />
 	<adapter factory=".metadata._CourseMetadataAttemptContainerTraversable" />
 
+    <subscriber handler=".subscribers.history_item_context_subscriber" />
     <subscriber handler=".subscribers.meta_attempt_item_context_subscriber" />
 	<subscriber handler=".metadata._attempt_meta_on_course_added" />
     <subscriber handler=".metadata._attempt_on_assignment_history_item_added" />

@@ -477,3 +477,16 @@ def meta_attempt_item_context_subscriber(meta_attempt_item, unused_event):
     request = get_current_request()
     if request is not None:
         request.meta_attempt_item_traversal_context = meta_attempt_item
+
+
+@component.adapter(IUsersCourseAssignmentHistoryItem, IBeforeTraverseEvent)
+def history_item_context_subscriber(history_item, event):
+    """
+    Store the meta attempt item in our request during traversal; this
+    is useful when fetching history items or assignments in the context
+    of a meta attempt item, giving us access to the randomization seed
+    we need.
+    """
+    meta = IUsersCourseAssignmentAttemptMetadataItem(history_item, None)
+    if meta is not None:
+        meta_attempt_item_context_subscriber(meta, event)

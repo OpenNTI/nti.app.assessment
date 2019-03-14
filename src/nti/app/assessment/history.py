@@ -268,6 +268,10 @@ class UsersCourseAssignmentHistoryItem(PersistentCreatedModDateTrackingObject,
             except (AttributeError, TypeError):
                 return None
 
+    @Lazy
+    def ntiid(self):
+        return to_external_ntiid_oid(self)
+
     @property
     def creator(self):
         # For ACL purposes, not part of the interface

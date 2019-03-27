@@ -418,6 +418,10 @@ class UsersCourseAssignmentHistoryItemSummary(Contained):
         return self._history_item.__acl__
 
     @property
+    def ntiid(self):
+        return self._history_item.ntiid
+
+    @property
     def __parent__(self):
         return self._history_item.__parent__
 

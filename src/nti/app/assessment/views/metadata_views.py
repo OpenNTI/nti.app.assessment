@@ -25,6 +25,10 @@ from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment.common.evaluations import get_max_time_allowed
 from nti.app.assessment.common.evaluations import get_course_from_evaluation
+from nti.app.assessment.common.evaluations import is_assignment_available_for_submission
+
+from nti.app.assessment.common.policy import get_policy_max_submissions
+from nti.app.assessment.common.policy import is_policy_max_submissions_unlimited
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadataItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadataItemContainer
@@ -91,7 +95,27 @@ class AssignmentSubmissionStartPostView(AbstractAuthenticatedView):
                                   'code': u'IncompleteAssignmentAttemptError'
                                   },
                                  None)
-        return self.remoteUser, course
+
+        meta_count = len(self.context)
+        max_submissions = get_policy_max_submissions(self.assignment, course)
+        if      max_submissions <= meta_count \
+            and not is_policy_max_submissions_unlimited(self.assignment, course):
+            raise_json_error(self.request,
+                             hexc.HTTPUnprocessableEntity,
+                             {
+                              'message': _("Cannot start a new assignment because there are no more attempts available."),
+                              'code': u'OutOfAssignmentAttemptsError'
+                              },
+                             None)
+
+        if not is_assignment_available_for_submission(self.assignment, course, self.remoteUser):
+            raise_json_error(self.request,
+                             hexc.HTTPUnprocessableEntity,
+                             {
+                              'message': _("This assignment can no longer be attempted."),
+                              'code': u'UnableToCommentAssignmentError'
+                              },
+                             None)
 
     def _process(self, item):
         lifecycleevent.created(item)

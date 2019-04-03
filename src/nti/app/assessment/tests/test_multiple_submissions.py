@@ -227,6 +227,9 @@ class TestMultipleSubmissions(ApplicationLayerTest):
         assignment_res = self.testapp.get(self.assignment_url,
                                           extra_environ=outest_environ)
         self.forbid_link_with_rel(assignment_res.json_body, 'Commence')
+        commence_href = '%s/AssignmentAttemptMetadata/%s/%s/@@Commence' % (self.course_url, 'outest55', self.assignment_id)
+        # Cannot commence once completed successfully
+        self.testapp.post(commence_href, extra_environ=outest_environ, status=422)
 
         mock_completed_item.is_callable().returns(fail_item)
         assignment_res = self.testapp.get(self.assignment_url,

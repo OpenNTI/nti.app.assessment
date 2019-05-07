@@ -20,6 +20,7 @@ from zope.securitypolicy.rolepermission import AnnotationRolePermissionManager
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
 
+from nti.dataserver.authorization import ROLE_SITE_ADMIN_NAME
 from nti.dataserver.authorization import ROLE_CONTENT_ADMIN_NAME
 
 logger = __import__('logging').getLogger(__name__)
@@ -30,7 +31,7 @@ logger = __import__('logging').getLogger(__name__)
 class AssignmentHistoriesRolePermissionManager(AnnotationRolePermissionManager):
     """
     A Zope `IRolePermissionMap` that denies any access by global
-    content admins to the underlying submission structure.
+    content admins and site admins to the underlying submission structure.
     """
 
     def __bool__(self):
@@ -41,7 +42,8 @@ class AssignmentHistoriesRolePermissionManager(AnnotationRolePermissionManager):
         result = []
         super_roles = AnnotationRolePermissionManager.getRolesForPermission(self, perm)
         for role, setting in super_roles:
-            if role != ROLE_CONTENT_ADMIN_NAME:
+            if role not in (ROLE_CONTENT_ADMIN_NAME, ROLE_SITE_ADMIN_NAME):
                 result.append((role, setting))
         result.append((ROLE_CONTENT_ADMIN_NAME, Deny))
+        result.append((ROLE_SITE_ADMIN_NAME, Deny))
         return result

@@ -175,8 +175,8 @@ class AssignmentSubmissionPostView(AbstractAuthenticatedView,
             raise_json_error(self.request,
                              hexc.HTTPUnprocessableEntity,
                              {
-                                 'message': _('Must have metadata attempt currently in progress'),
-                                 'code': 'MissingMetadataAttemptInProgressError'
+                                 'message': _(u'Must have metadata attempt currently in progress'),
+                                 'code': u'MissingMetadataAttemptInProgressError'
                              },
                              None)
 

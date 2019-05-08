@@ -118,6 +118,16 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
                              },
                              None)
 
+        if not get_current_metadata_attempt_item(creator, course, self.context.ntiid):
+            # Code error
+            raise_json_error(self.request,
+                             hexc.HTTPUnprocessableEntity,
+                             {
+                                 'message': _(u'Must have metadata attempt currently in progress'),
+                                 'code': u'MissingMetadataAttemptInProgressError'
+                             },
+                             None)
+
         if not self.request.POST:
             submission = self.readCreateUpdateContentObject(creator)
             check_upload_files(submission)

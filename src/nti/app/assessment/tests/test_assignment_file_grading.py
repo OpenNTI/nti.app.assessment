@@ -29,6 +29,10 @@ from six.moves.urllib_parse import unquote
 
 from zope import component
 
+from zope.component.hooks import getSite
+
+from zope.securitypolicy.interfaces import IPrincipalRoleManager
+
 from zope.securitypolicy.principalrole import principalRoleManager
 
 import ZODB
@@ -55,6 +59,7 @@ from nti.assessment.submission import QuestionSetSubmission
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 
+from nti.dataserver.authorization import ROLE_SITE_ADMIN
 from nti.dataserver.authorization import ROLE_CONTENT_ADMIN
 
 from nti.dataserver.users.users import User
@@ -395,7 +400,7 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
         self.testapp.get(item_href, status=404)
         self.testapp.get(history_feedback_container_href, status=404)
 
-    @WithSharedApplicationMockDS(users=('content_admin',), testapp=True)
+    @WithSharedApplicationMockDS(users=('content_admin', 'site_admin'), testapp=True)
     @fudge.patch('nti.app.assessment.history.get_policy_for_assessment',
                  'nti.app.assessment.history.get_available_for_submission_ending')
     def admin_permissions(self, mock_gpa, mock_se):
@@ -430,10 +435,11 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
         feedback_href = feedback_res.json_body.get('href')
 
         # Create our admin
-        admin_environ = self._make_extra_environ(username='content_admin')
+        content_admin_environ = self._make_extra_environ(username='content_admin')
+        site_admin_environ = self._make_extra_environ(username='site_admin')
 
         res = self.testapp.get('/dataserver2/users/content_admin/Courses/AdministeredCourses',
-                               extra_environ=admin_environ)
+                               extra_environ=content_admin_environ)
         assert_that(res.json_body, has_entry('Items', has_length(0)))
 
         with mock_dataserver.mock_db_trans(self.ds):
@@ -442,8 +448,15 @@ class TestAssignmentFileGrading(ApplicationLayerTest):
             principalRoleManager.assignRoleToPrincipal(ROLE_CONTENT_ADMIN.id,
                                                        'content_admin',
                                                        check=False)
+            srm = IPrincipalRoleManager(getSite(), None)
+            srm.assignRoleToPrincipal(ROLE_SITE_ADMIN.id, 'site_admin')
 
         # Global content admin cannot fetch history item or feedback
-        self.testapp.get(item_href, extra_environ=admin_environ, status=403)
+        self.testapp.get(item_href, extra_environ=content_admin_environ, status=403)
         self.testapp.get(feedback_href,
-                         extra_environ=admin_environ, status=403)
+                         extra_environ=content_admin_environ, status=403)
+
+        # Neither can site admins
+        self.testapp.get(item_href, extra_environ=site_admin_environ, status=403)
+        self.testapp.get(feedback_href,
+                         extra_environ=site_admin_environ, status=403)

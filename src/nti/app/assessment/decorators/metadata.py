@@ -75,6 +75,7 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
         meta_container = user_container.get(assignment.ntiid)
         meta_count = 0
         current_attempt = None
+        result['CurrentMetadataAttemptItem'] = None
         if meta_container:
             # Get the currently in-progress attempt, if it exists.
             meta_count = len(meta_container)

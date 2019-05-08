@@ -1471,6 +1471,10 @@ class TestEvaluationViews(ApplicationLayerTest):
         submission = toExternalObject(submission)
         savepoint_href = '/dataserver2/Objects/%s/AssignmentSavepoints/sjohnson@nextthought.com/%s/Savepoint'
         savepoint_href = savepoint_href % (course_oid, assignment_ntiid)
+        assignment_res = self.testapp.get(assignment_href)
+        start_href = self.require_link_href_with_rel(assignment_res.json_body,
+                                                     'Commence')
+        self.testapp.post(start_href)
         savepoint = self.testapp.post_json(savepoint_href, submission)
         assignment = self.testapp.get(assignment_href)
         self.forbid_link_with_rel(assignment.json_body, VIEW_PUBLISH)
@@ -1823,10 +1827,14 @@ class TestEvaluationViews(ApplicationLayerTest):
         submission = toExternalObject(submission)
 
         # Savepoints should work without a submission-buffer
+        assignment_res = self.testapp.get(assignment_href)
+        start_href = self.require_link_href_with_rel(assignment_res.json_body,
+                                                     'Commence')
+        self.testapp.post(start_href)
         self.testapp.post_json(savepoint_href, submission)
 
         # Set the submission-buffer
-        data = { 'submission_buffer': 0 }
+        data = {'submission_buffer': 0}
         assignment = self.testapp.put_json(assignment_href,
                                     data, extra_environ=editor_environ)
 

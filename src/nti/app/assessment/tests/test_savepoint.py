@@ -188,9 +188,11 @@ class TestSavepointViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
                                  self.default_username, status=404)
 
     @WithSharedApplicationMockDS(users=('outest5',), testapp=True, default_authenticate=True)
-    @fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
-    def test_savepoint(self, fake_active):
+    @fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive',
+                 'nti.app.assessment.views.savepoint_views.get_current_metadata_attempt_item')
+    def test_savepoint(self, fake_active, mock_meta_attempt):
         fake_active.is_callable().returns(True)
+        mock_meta_attempt.is_callable().returns(True)
 
         # Sends an assignment through the application by posting to the
         # assignment

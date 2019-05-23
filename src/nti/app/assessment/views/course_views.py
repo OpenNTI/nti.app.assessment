@@ -10,6 +10,8 @@ from __future__ import absolute_import
 
 from functools import partial
 
+from pyramid import httpexceptions as hexc
+
 from pyramid.view import view_config
 from pyramid.view import view_defaults
 
@@ -18,16 +20,21 @@ from requests.structures import CaseInsensitiveDict
 from zope import component
 from zope import lifecycleevent
 
+from nti.app.assessment import MessageFactory as _
+
 from nti.app.assessment.common.evaluations import get_course_assignments
 
 from nti.app.assessment.common.inquiries import get_course_inquiries
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
+from nti.app.externalization.error import raise_json_error
+
 from nti.app.externalization.view_mixins import BatchingUtilsMixin
 
 from nti.assessment.common import get_containerId
 
+from nti.assessment.interfaces import INQUIRY_MIME_TYPES
 from nti.assessment.interfaces import IQAssignment
 
 from nti.common.string import is_true
@@ -145,6 +152,18 @@ class CourseAssignmentsView(CourseViewMixin):
                request_method='GET',
                name='Inquiries')
 class CourseInquiriesView(CourseViewMixin):
+
+    def _get_mimeTypes(self):
+        mimetypes = CourseViewMixin._get_mimeTypes(self)
+        for x in mimetypes or ():
+            if x not in INQUIRY_MIME_TYPES:
+                raise_json_error(self.request,
+                                 hexc.HTTPUnprocessableEntity,
+                                 {
+                                     'message': _(u"MimeType must be either survey or poll."),
+                                 },
+                                 None)
+        return mimetypes
 
     def _filterBy(self, item, mimeTypes=()):
         # Since we query the catalog by mimeType, we don't need to filter by mimeType again.

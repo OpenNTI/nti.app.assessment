@@ -77,14 +77,14 @@ class CourseViewMixin(AbstractAuthenticatedView, BatchingUtilsMixin):
                 or getattr(item, 'mime_type', None)
         return bool(not mimeTypes or mimeType in mimeTypes)
 
-    def _do_call(self, func):
+    def _do_call(self, func, mimeTypes=None):
         count = 0
         result = LocatedExternalDict()
         result.__name__ = self.request.view_name
         result.__parent__ = self.request.context
         self.request.acl_decoration = False
         outline = self._byOutline()
-        mimeTypes = self._get_mimeTypes()
+        mimeTypes = self._get_mimeTypes() if mimeTypes is None else mimeTypes
         items = result[ITEMS] = dict() if outline else list()
         for item in func():
             if not self._filterBy(item, mimeTypes):  # filter by
@@ -146,10 +146,15 @@ class CourseAssignmentsView(CourseViewMixin):
                name='Inquiries')
 class CourseInquiriesView(CourseViewMixin):
 
+    def _filterBy(self, item, mimeTypes=()):
+        # Since we query the catalog by mimeType, we don't need to filter by mimeType again.
+        return True
+
     def __call__(self):
         instance = ICourseInstance(self.request.context)
-        func = partial(get_course_inquiries, instance, do_filtering=False)
-        return self._do_call(func)
+        mimetypes = self._get_mimeTypes()
+        func = partial(get_course_inquiries, instance, mimetypes=mimetypes, do_filtering=False)
+        return self._do_call(func, mimeTypes=mimetypes)
 
 
 @view_config(context=ICourseInstance)

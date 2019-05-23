@@ -75,8 +75,8 @@ def get_course_from_inquiry(inquiry, user=None, exc=False):
     return result
 
 
-def get_course_inquiries(context, do_filtering=True):
-    items = get_course_evaluations(context)
+def get_course_inquiries(context, mimetypes=None, do_filtering=True):
+    items = get_course_evaluations(context, mimetypes=mimetypes)
     ntiid = ICourseCatalogEntry(context).ntiid
     if do_filtering:
         # Filter out excluded assignments so they don't show in the gradebook

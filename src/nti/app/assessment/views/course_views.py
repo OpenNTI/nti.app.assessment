@@ -10,6 +10,8 @@ from __future__ import absolute_import
 
 from functools import partial
 
+from pyramid import httpexceptions as hexc
+
 from pyramid.view import view_config
 from pyramid.view import view_defaults
 
@@ -18,16 +20,21 @@ from requests.structures import CaseInsensitiveDict
 from zope import component
 from zope import lifecycleevent
 
+from nti.app.assessment import MessageFactory as _
+
 from nti.app.assessment.common.evaluations import get_course_assignments
 
 from nti.app.assessment.common.inquiries import get_course_inquiries
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
+from nti.app.externalization.error import raise_json_error
+
 from nti.app.externalization.view_mixins import BatchingUtilsMixin
 
 from nti.assessment.common import get_containerId
 
+from nti.assessment.interfaces import INQUIRY_MIME_TYPES
 from nti.assessment.interfaces import IQAssignment
 
 from nti.common.string import is_true
@@ -77,14 +84,14 @@ class CourseViewMixin(AbstractAuthenticatedView, BatchingUtilsMixin):
                 or getattr(item, 'mime_type', None)
         return bool(not mimeTypes or mimeType in mimeTypes)
 
-    def _do_call(self, func):
+    def _do_call(self, func, mimeTypes=None):
         count = 0
         result = LocatedExternalDict()
         result.__name__ = self.request.view_name
         result.__parent__ = self.request.context
         self.request.acl_decoration = False
         outline = self._byOutline()
-        mimeTypes = self._get_mimeTypes()
+        mimeTypes = self._get_mimeTypes() if mimeTypes is None else mimeTypes
         items = result[ITEMS] = dict() if outline else list()
         for item in func():
             if not self._filterBy(item, mimeTypes):  # filter by
@@ -146,10 +153,27 @@ class CourseAssignmentsView(CourseViewMixin):
                name='Inquiries')
 class CourseInquiriesView(CourseViewMixin):
 
+    def _get_mimeTypes(self):
+        mimetypes = CourseViewMixin._get_mimeTypes(self)
+        for x in mimetypes or ():
+            if x not in INQUIRY_MIME_TYPES:
+                raise_json_error(self.request,
+                                 hexc.HTTPUnprocessableEntity,
+                                 {
+                                     'message': _(u"MimeType must be either survey or poll."),
+                                 },
+                                 None)
+        return mimetypes
+
+    def _filterBy(self, item, mimeTypes=()):
+        # Since we query the catalog by mimeType, we don't need to filter by mimeType again.
+        return True
+
     def __call__(self):
         instance = ICourseInstance(self.request.context)
-        func = partial(get_course_inquiries, instance, do_filtering=False)
-        return self._do_call(func)
+        mimetypes = self._get_mimeTypes()
+        func = partial(get_course_inquiries, instance, mimetypes=mimetypes, do_filtering=False)
+        return self._do_call(func, mimeTypes=mimetypes)
 
 
 @view_config(context=ICourseInstance)

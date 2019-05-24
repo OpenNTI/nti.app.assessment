@@ -35,6 +35,7 @@ from nti.app.assessment.interfaces import IUsersCourseInquiryItem
 
 from nti.assessment.interfaces import DISCLOSURE_NEVER
 from nti.assessment.interfaces import DISCLOSURE_ALWAYS
+from nti.assessment.interfaces import INQUIRY_MIME_TYPES
 
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAggregatedInquiry
@@ -75,8 +76,8 @@ def get_course_from_inquiry(inquiry, user=None, exc=False):
     return result
 
 
-def get_course_inquiries(context, do_filtering=True):
-    items = get_course_evaluations(context)
+def get_course_inquiries(context, mimetypes=None, do_filtering=True):
+    items = get_course_evaluations(context, mimetypes=mimetypes or INQUIRY_MIME_TYPES)
     ntiid = ICourseCatalogEntry(context).ntiid
     if do_filtering:
         # Filter out excluded assignments so they don't show in the gradebook
@@ -84,11 +85,9 @@ def get_course_inquiries(context, do_filtering=True):
         course = ICourseInstance(context)
         _filter = AssessmentPolicyExclusionFilter(course=course)
         surveys = [proxy(x, catalog_entry=ntiid) for x in items
-                   if IQInquiry.providedBy(x)
-                   and _filter.allow_assessment_for_user_in_course(x, course=course)]
+                   if _filter.allow_assessment_for_user_in_course(x, course=course)]
     else:
-        surveys = [proxy(x, catalog_entry=ntiid)
-                   for x in items if IQInquiry.providedBy(x)]
+        surveys = [proxy(x, catalog_entry=ntiid) for x in items]
     return surveys
 
 

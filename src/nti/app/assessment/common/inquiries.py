@@ -77,13 +77,7 @@ def get_course_from_inquiry(inquiry, user=None, exc=False):
 
 
 def get_course_inquiries(context, mimetypes=None, do_filtering=True):
-    # Make sure only inquiry objects are resolved.
-    if mimetypes:
-        mimetypes = set(mimetypes) & set(INQUIRY_MIME_TYPES)
-    if not mimetypes:
-        mimetypes = INQUIRY_MIME_TYPES
-
-    items = get_course_evaluations(context, mimetypes=mimetypes)
+    items = get_course_evaluations(context, mimetypes=mimetypes or INQUIRY_MIME_TYPES)
     ntiid = ICourseCatalogEntry(context).ntiid
     if do_filtering:
         # Filter out excluded assignments so they don't show in the gradebook

@@ -365,6 +365,8 @@ def _attempt_on_assignment_history_item_deleted(item, unused_event):
     On reset, clear the attempt metadata associated with the given item
     """
     user = IUser(item, None)
+    if user is None:
+        return
     course = find_interface(item, ICourseInstance, strict=False)
     user_meta = component.queryMultiAdapter((course, user),
                                             IUsersCourseAssignmentAttemptMetadata)

@@ -93,7 +93,7 @@ class _AssignmentMetadataDecorator(AbstractAuthenticatedRequestAwareDecorator):
             # * they have not exceeded threshold
             # * there is no attempt in progress
             # * the assignment is available (not past submission buffer)
-            # * the assignment is not sucessfully completed
+            # * the assignment is not successfully completed
             links.append(Link(course,
                               method='POST',
                               rel='Commence',

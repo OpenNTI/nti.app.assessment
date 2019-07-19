@@ -150,7 +150,7 @@ def needs_load_or_update(content_package):
 @component.adapter(IContentPackage, IObjectAddedEvent)
 def on_content_package_added(package, event, key=None):
     """
-    Assessment items have their NTIID as their __name__, and the NTIID of 
+    Assessment items have their NTIID as their __name__, and the NTIID of
     their primary container within this context as their __parent__
     (that should really be the hierarchy entry)
     """
@@ -163,7 +163,7 @@ def on_content_package_added(package, event, key=None):
         logger.info("Reading/Adding assessment items from new content %s %s %s",
                     package, key, event)
         sync_results = get_sync_results(package, event)
-        result = add_assessment_items_from_new_content(package, key, 
+        result = add_assessment_items_from_new_content(package, key,
                                                        sync_results)
         # mark last modified
         container = IQAssessmentItemContainer(package)
@@ -300,8 +300,9 @@ def transfer_transaction_records(removed):
 
 
 def update_assessment_items_when_modified(original, updated, event=None):
+    # Check if original or updated has assessments
     update_key = needs_load_or_update(updated)
-    if not update_key:
+    if not (update_key or needs_load_or_update(original)):
         return
 
     logger.info("Updating assessment items from modified content %s %s",
@@ -312,9 +313,10 @@ def update_assessment_items_when_modified(original, updated, event=None):
     logger.info("%s assessment item(s) have been removed from content %s",
                 len(removed_items), original)
 
-    registered = on_content_package_added(updated, event, key=update_key)
-    logger.info("%s assessment item(s) have been registered for content %s",
-                len(registered), updated)
+    if update_key:
+        registered = on_content_package_added(updated, event, key=update_key)
+        logger.info("%s assessment item(s) have been registered for content %s",
+                    len(registered), updated)
 
     # Transfer locked items (now gone from content) to the new package.
     assesment_items = get_content_packages_assessment_items(updated)

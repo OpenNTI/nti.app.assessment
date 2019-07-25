@@ -227,6 +227,11 @@
 				provides="nti.appserver.interfaces.ITrustedTopLevelContainerContextProvider"
 				for=".interfaces.IUsersCourseAssignmentHistoryItemFeedback"/>
 
+	<subscriber factory=".subscribers._CourseContentLibraryProvider"
+                provides="nti.contenttypes.courses.interfaces.ICourseContentLibraryProvider"
+                for="nti.coremetadata.interfaces.IUser
+                     nti.contenttypes.courses.interfaces.ICourseInstance" />
+
 	<!-- Views -->
 	<include package=".views" />
 

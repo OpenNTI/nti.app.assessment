@@ -21,6 +21,7 @@ import simplejson
 from zc.intid.interfaces import IAfterIdAddedEvent
 
 from zope import component
+from zope import interface
 from zope import lifecycleevent
 
 from zope.container.interfaces import IContainer
@@ -42,9 +43,12 @@ from nti.app.assessment.common.containers import index_course_package_assessment
 
 from nti.app.assessment.common.evaluations import get_unit_assessments
 from nti.app.assessment.common.evaluations import get_course_from_evaluation
+from nti.app.assessment.common.evaluations import get_course_self_assessments
 from nti.app.assessment.common.evaluations import is_discussion_assignment_non_public
 
 from nti.app.assessment.common.hostpolicy import get_resource_site_name
+
+from nti.app.assessment.common.inquiries import get_course_inquiries
 
 from nti.app.assessment.common.utils import get_available_for_submission_ending
 
@@ -68,6 +72,9 @@ from nti.app.products.courseware.interfaces import ICourseInstanceActivity
 
 from nti.assessment import ASSESSMENT_INTERFACES
 
+from nti.assessment.assignment import QAssignment
+
+from nti.assessment.interfaces import SURVEY_MIME_TYPE
 from nti.assessment.interfaces import TRX_QUESTION_MOVE_TYPE
 
 from nti.assessment.interfaces import IQPoll
@@ -79,6 +86,8 @@ from nti.assessment.interfaces import IQuestionMovedEvent
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQAssessedQuestionSet
 from nti.assessment.interfaces import IQDiscussionAssignment
+
+from nti.assessment.question import QQuestionSet
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
 from nti.contentlibrary.interfaces import IEditableContentPackage
@@ -97,6 +106,7 @@ from nti.contenttypes.completion.utils import update_completion
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseCatalogEntry
 from nti.contenttypes.courses.interfaces import ICourseBundleUpdatedEvent
+from nti.contenttypes.courses.interfaces import ICourseContentLibraryProvider
 
 from nti.coremetadata.interfaces import IContainerContext
 from nti.coremetadata.interfaces import UserProcessedContextsEvent
@@ -490,3 +500,33 @@ def history_item_context_subscriber(history_item, event):
     meta = IUsersCourseAssignmentAttemptMetadataItem(history_item, None)
     if meta is not None:
         meta_attempt_item_context_subscriber(meta, event)
+
+
+@component.adapter(IUser, ICourseInstance)
+@interface.implementer(ICourseContentLibraryProvider)
+class _CourseContentLibraryProvider(object):
+    """
+    Return the mimetypes of objects of course content that could be
+    added to this course by this user.
+
+    Self-assessments and surveys are only available via backend content
+    loading.
+    """
+
+    def __init__(self, user, course):
+        self.user = user
+        self.course = course
+
+    def get_item_mime_types(self):
+        """
+        Returns the collection of mimetypes that may be available (either
+        they exist or can exist) in this course.
+        """
+        result = [QAssignment.mime_type]
+        if get_course_self_assessments(self.course):
+            result.append(QQuestionSet.mime_type)
+        if get_course_inquiries(self.course,
+                                mimetypes=(SURVEY_MIME_TYPE,),
+                                do_filtering=False):
+            result.append(SURVEY_MIME_TYPE)
+        return result

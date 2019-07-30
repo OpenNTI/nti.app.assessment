@@ -107,7 +107,7 @@ def _iter_submissions_for_courses(context, courses=(), index_name=IX_ASSESSMENT_
     """
     courses = to_course_list(courses)
     if not courses:
-        return ()
+        return
     else:
         # We only index by assignment, so fetch all assignments/surveys for
         # our context; plus by our context ntiid.

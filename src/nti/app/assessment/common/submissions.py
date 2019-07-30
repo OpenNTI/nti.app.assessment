@@ -99,11 +99,11 @@ def get_all_submissions_courses(context, sites=(), index_name=IX_ASSESSMENT_ID):
         result.add(course)
     result.discard(None)
     return tuple(result)
-   
 
-def get_submissions(context, courses=(), index_name=IX_ASSESSMENT_ID):
+
+def _iter_submissions_for_courses(context, courses=(), index_name=IX_ASSESSMENT_ID):
     """
-    Return all submissions for the given evaluation object.
+    Return all submissions for the given evaluation object and courses
     """
     courses = to_course_list(courses)
     if not courses:
@@ -131,16 +131,21 @@ def get_submissions(context, courses=(), index_name=IX_ASSESSMENT_ID):
         if sites:
             query[IX_SITE] = {'any_of': sites}
 
-        result = []
         for doc_id in catalog.apply(query) or ():
             obj = intids.queryObject(doc_id)
             if IUsersCourseSubmissionItem.providedBy(obj):
-                result.append(obj)
-        return result
+                yield obj
+
+
+def get_submissions(context, courses=(), index_name=IX_ASSESSMENT_ID):
+    """
+    Return all submissions for the given evaluation object.
+    """
+    return tuple(_iter_submissions_for_courses(context, courses, index_name))
 
 
 def has_submissions(context, courses=()):
-    for _ in get_submissions(context, courses):
+    for _ in _iter_submissions_for_courses(context, courses):
         return True
     return False
 

@@ -217,7 +217,9 @@
 			 provides="zope.traversing.interfaces.IPathAdapter"
 			 name="AssignmentHistories" />
 
-	<adapter factory=".adapters._UsersCourseAssignmentHistoriesTraversable" />
+	<adapter factory=".adapters._UsersCourseAssignmentHistoriesTraversable"
+             provides="zope.traversing.interfaces.ITraversable"
+             for="nti.app.assessment.interfaces.IUsersCourseAssignmentHistories" />
 
 	<!-- Contentsearch -->
 	<include package=".search" file="configure.zcml" />
@@ -283,6 +285,10 @@
 	<adapter factory=".savepoint._UsersCourseAssignmentSavepointTraversable" />
 	<adapter factory=".savepoint._UsersCourseAssignmentSavepointsTraversable" />
 
+	<adapter factory=".savepoint._UsersCourseAssignmentSavepointsTraversable"
+             provides="zope.traversing.interfaces.ITraversable"
+             for="nti.app.assessment.interfaces.IUsersCourseAssignmentSavepoints" />
+
 	<subscriber handler=".savepoint._on_course_added" />
 	<subscriber handler=".savepoint._on_assignment_history_item_added" />
 	<subscriber handler=".savepoint._on_assignment_history_item_deleted" />
@@ -318,6 +324,10 @@
     <adapter factory=".metadata._assignment_history_item_to_metadata_attempt" />
 	<adapter factory=".metadata._UsersCourseMetadataAttemptTraversable" />
 	<adapter factory=".metadata._CourseMetadataAttemptContainerTraversable" />
+
+	<adapter factory=".metadata._CourseMetadataAttemptContainerTraversable"
+             provides="zope.traversing.interfaces.ITraversable"
+             for="nti.app.assessment.interfaces.ICourseAssignmentAttemptMetadata" />
 
     <subscriber handler=".subscribers.history_item_context_subscriber" />
     <subscriber handler=".subscribers.meta_attempt_item_context_subscriber" />
@@ -367,6 +377,10 @@
 	<adapter factory=".survey._DefaultCourseInquiryCatalog" />
 	<adapter factory=".survey._UsersCourseInquiryTraversable" />
 	<adapter factory=".survey._UsersCourseInquiriesTraversable" />
+
+	<adapter factory=".survey._UsersCourseInquiriesTraversable"
+             provides="zope.traversing.interfaces.ITraversable"
+             for="nti.app.assessment.interfaces.IUsersCourseInquiries" />
 
 	<subscriber handler=".survey._on_course_added" />
 

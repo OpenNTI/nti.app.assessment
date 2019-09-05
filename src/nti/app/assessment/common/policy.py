@@ -23,6 +23,9 @@ from nti.app.assessment.common.utils import get_policy_field
 from nti.app.assessment.interfaces import IQAvoidSolutionCheck
 from nti.app.assessment.interfaces import IQPartChangeAnalyzer
 
+from nti.app.assessment.utils import get_course_from_request
+from nti.app.assessment.utils import get_course_from_evaluation
+
 from nti.app.externalization.error import raise_json_error
 
 from nti.assessment.common import can_be_auto_graded
@@ -36,8 +39,6 @@ from nti.externalization.externalization import to_external_object
 from nti.externalization.interfaces import StandardExternalFields
 
 from nti.links.links import Link
-
-from nti.traversal.traversal import find_interface
 
 CLASS = StandardExternalFields.CLASS
 LINKS = StandardExternalFields.LINKS
@@ -241,7 +242,9 @@ def pre_validate_question_change(question, externalValue):
     """
     parts = externalValue.get('parts')
     check_solutions = not IQAvoidSolutionCheck.providedBy(question)
-    course = find_interface(question, ICourseInstance, strict=False)
+    course = get_course_from_request()
+    if course is None:
+        course = get_course_from_evaluation(question)
     regrade_parts = []
     if parts and has_submissions(question, course):
         for part, change in zip(question.parts, parts):

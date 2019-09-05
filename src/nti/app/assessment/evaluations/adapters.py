@@ -74,7 +74,7 @@ def evaluations_for_course_path_adapter(course, _):
 
 
 @interface.implementer(IQEvaluations)
-@component.adapter(IEditableContentPackage) 
+@component.adapter(IEditableContentPackage)
 def evaluations_for_package(package):
     return LegacyContentPackageEvaluations(package)
 

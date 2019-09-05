@@ -27,6 +27,9 @@ from nti.app.assessment.common.utils import get_courses
 from nti.app.assessment.decorators import _get_course_from_evaluation
 from nti.app.assessment.decorators import _get_package_from_evaluation
 
+from nti.app.assessment.utils import get_course_from_request
+from nti.app.assessment.utils import get_course_from_evaluation
+
 from nti.app.publishing import VIEW_PUBLISH
 from nti.app.publishing import VIEW_UNPUBLISH
 
@@ -52,8 +55,6 @@ from nti.externalization.interfaces import IExternalObjectDecorator
 from nti.externalization.interfaces import IExternalMappingDecorator
 
 from nti.links.links import Link
-
-from nti.traversal.traversal import find_interface
 
 LINKS = StandardExternalFields.LINKS
 
@@ -133,7 +134,9 @@ class _EvaluationCalendarPublishStateDecorator(LinkRemoverDecorator):
         # links.
         if not IQEditableEvaluation.providedBy(context):
             return True
-        course = find_interface(context, ICourseInstance, strict=True)
+        course = get_course_from_request()
+        if course is None:
+            course = get_course_from_evaluation(context)
         return _has_any_submissions(context, course)
 
 

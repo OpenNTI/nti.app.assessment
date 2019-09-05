@@ -213,10 +213,8 @@ def _on_survey_event(context, unused_event):
 
 @component.adapter(IQEvaluation, IRegradeEvaluationEvent)
 def _on_regrade_evaluation_event(context, unused_event):
-    course = get_course_from_request()
-    if course is None:
-        course = get_course_from_evaluation(context, user=get_remote_user())
-    if course is not None:
+    courses = get_evaluation_courses(context)
+    for course in courses or ():
         regrade_evaluation(context, course)
 
 

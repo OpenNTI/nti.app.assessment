@@ -693,8 +693,7 @@ class TestEvaluationViews(ApplicationLayerTest):
         qset_href = '/dataserver2/Objects/%s' % qset_ntiid
         unchanging_keys = ('Creator', 'CreatedTime', 'title', 'ntiid')
 
-        with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
-            self._test_transaction_history(qset_ntiid, count=0)
+        self._test_transaction_history(qset_ntiid, count=0)
 
         # Invalid draw
         data = {'draw': -1}
@@ -738,12 +737,13 @@ class TestEvaluationViews(ApplicationLayerTest):
 
             question_banks = _get_question_banks()
             assert_that(question_banks, has_item(obj_id))
-            # TODO: No create record?
-            self._test_transaction_history(qset_ntiid, count=1)
             # Validate assignment ref.
             assignment = find_object_with_ntiid(assignment_ntiid)
             assignment_qset = assignment.parts[0].question_set
             assert_that(intids.getId(assignment_qset), is_(obj_id))
+
+        # TODO: No create record?
+        self._test_transaction_history(qset_ntiid, count=1)
 
         # Convert back to question set
         data = {'draw': None}
@@ -776,12 +776,11 @@ class TestEvaluationViews(ApplicationLayerTest):
             question_banks = _get_question_banks()
             assert_that(question_banks, does_not(has_item(obj_id)))
 
-            self._test_transaction_history(qset_ntiid, count=2)
-
             # Validate assignment ref.
             assignment = find_object_with_ntiid(assignment_ntiid)
             assignment_qset = assignment.parts[0].question_set
             assert_that(intids.getId(assignment_qset), is_(obj_id))
+        self._test_transaction_history(qset_ntiid, count=2)
 
     @WithSharedApplicationMockDS(testapp=True, users=True)
     def test_part_validation(self):

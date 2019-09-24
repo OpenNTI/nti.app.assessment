@@ -224,12 +224,13 @@ def _on_assessment_policies_modified_event(course, event):
     if isinstance(assesment, six.string_types):
         assesment = find_object_with_ntiid(assesment)
     if IQAssignment.providedBy(assesment):
-        # If they're enabling auto_grade or specifying a new
-        # total points value, trigger a regrade.
-        if      event.key.lower() in ('total_points',
-                                      'auto_grade',
-                                      'completion_passing_percent') \
-            and event.value:
+        # If they're enabling auto_grade to be true
+        # or specifying a new total_points or passing_percent
+        # (event if nulling out)
+        event_key = event.key.lower()
+        if          (event_key == 'auto_grade' \
+                and event.value) \
+            or event_key in ('total_points', 'completion_passing_percent'):
             regrade_evaluation(assesment, course)
 
 

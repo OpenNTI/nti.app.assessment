@@ -57,6 +57,7 @@ setup(
         'BTrees',
         'nti.app.contentlibrary',
         'nti.app.contenttypes.completion',
+        'nti.app.contenttypes.calendar',
         'nti.assessment',
         'nti.base',
         'nti.common',

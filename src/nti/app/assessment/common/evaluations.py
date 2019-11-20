@@ -462,7 +462,8 @@ def get_containers_for_evaluation_object(context, sites=None, include_question_s
 def get_available_assignments_for_evaluation_object(context):
     """
     For the given evaluation object, fetch all currently available assignments
-    containing the object.
+    containing the object. This should return all assignments that might be
+    visible to users in a course.
     """
     results = []
     assignments = get_containers_for_evaluation_object(context)
@@ -475,7 +476,7 @@ def get_available_assignments_for_evaluation_object(context):
 def is_assignment_available(assignment, course=None, user=None):
     """
     For the given assignment, determines if it is published and
-    available via the assignment policy.
+    available via the assignment policy in a non-preview course.
     """
     result = False
     if not is_published(assignment):
@@ -486,6 +487,10 @@ def is_assignment_available(assignment, course=None, user=None):
     start_date = get_available_for_submission_beginning(assignment, course)
     if not start_date or start_date < datetime.utcnow():
         result = True
+
+    if result:
+        entry = ICourseCatalogEntry(course, None)
+        result = entry is None or not entry.Preview
     return result
 
 

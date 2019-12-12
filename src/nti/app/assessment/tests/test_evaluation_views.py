@@ -65,11 +65,10 @@ from nti.app.assessment.index import IX_MIMETYPE
 from nti.app.publishing import VIEW_PUBLISH
 from nti.app.publishing import VIEW_UNPUBLISH
 
+from nti.appserver.context_providers import get_hierarchy_context
 from nti.appserver.context_providers import get_joinable_contexts
 from nti.appserver.context_providers import get_top_level_contexts
 from nti.appserver.context_providers import get_top_level_contexts_for_user
-
-from nti.appserver.interfaces import IHierarchicalContextProvider
 
 from nti.assessment.interfaces import QUESTION_MIME_TYPE
 from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
@@ -1726,11 +1725,13 @@ class TestEvaluationViews(ApplicationLayerTest):
         with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
             # TODO: need to fudge public access or enrollment here
             user = User.get_user(enrolled_student)
+            course = find_object_with_ntiid(course_ntiid)
             assignment = find_object_with_ntiid(assignment_ntiid)
             get_joinable_contexts(assignment)
             get_top_level_contexts(assignment)
             get_top_level_contexts_for_user(assignment, user)
-            IHierarchicalContextProvider(assignment, user)
+            get_hierarchy_context(assignment, user)
+            get_hierarchy_context(assignment, user, context=course)
 
     @time_monotonically_increases
     @WithSharedApplicationMockDS(testapp=True, users=True)

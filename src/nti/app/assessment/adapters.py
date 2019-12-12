@@ -487,9 +487,9 @@ def course_for_evaluation_and_user(assesment, user):
 
 
 def _get_hierarchy_context_for_context(obj, top_level_context):
-    results = component.queryMultiAdapter((top_level_context, obj),
+    provider = component.queryMultiAdapter((top_level_context, obj),
                                           IHierarchicalContextProvider)
-    return results
+    return provider.get_context_paths()
 
 
 def _get_course_context(evaluation):
@@ -518,21 +518,31 @@ def _courses_from_obj_and_user(obj, user):
 @interface.implementer(IHierarchicalContextProvider)
 @component.adapter(IQInquiry, IUser)
 @component.adapter(IQAssessment, IUser)
-def _hierarchy_from_obj_and_user(obj, user):
-    results = []
-    # Get our top level courses for this object and user
-    for course in get_top_level_contexts_for_user(obj, user):
-        # Get assignments/question sets so that we can find in outline.
-        # XXX: We'll likely only have a single container (at least for now).
-        for container in get_outline_evaluation_containers(obj) or (obj,):
-            path = _get_hierarchy_context_for_context(container, course)
-            if not path and container != obj:
-                # If no path, return the path to our container.
-                path = ((course, container),)
-            elif not path:
-                path = ((course,),)
-            results.extend(path)
-    return results
+class UserCourseAssessmentHierarchyPathProvider(object):
+
+    def __init__(self, obj, user):
+        self.obj = obj
+        self.user = user
+
+    def get_context_paths(self, context=None):
+        results = []
+        if ICourseInstance.providedBy(context):
+            courses = (context,)
+        else:
+            courses = get_top_level_contexts_for_user(self.obj, self.user)
+        # Get our top level courses for this object and user
+        for course in courses or ():
+            # Get assignments/question sets so that we can find in outline.
+            # XXX: We'll likely only have a single container (at least for now).
+            for container in get_outline_evaluation_containers(self.obj) or (self.obj,):
+                path = _get_hierarchy_context_for_context(container, course)
+                if not path and container != self.obj:
+                    # If no path, return the path to our container.
+                    path = ((course, container),)
+                elif not path:
+                    path = ((course,),)
+                results.extend(path)
+        return results
 
 
 @interface.implementer(IJoinableContextProvider)

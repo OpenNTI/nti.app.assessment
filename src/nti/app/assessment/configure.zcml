@@ -525,12 +525,12 @@
 				provides="nti.appserver.interfaces.IJoinableContextProvider"
 				for="nti.assessment.interfaces.IQInquiry"/>
 
-	<subscriber factory=".adapters._hierarchy_from_obj_and_user"
+	<subscriber factory=".adapters.UserCourseAssessmentHierarchyPathProvider"
 				provides="nti.appserver.interfaces.IHierarchicalContextProvider"
 				for="nti.assessment.interfaces.IQAssessment
 					 nti.dataserver.interfaces.IUser"/>
 
-	<subscriber factory=".adapters._hierarchy_from_obj_and_user"
+	<subscriber factory=".adapters.UserCourseAssessmentHierarchyPathProvider"
 				provides="nti.appserver.interfaces.IHierarchicalContextProvider"
 				for="nti.assessment.interfaces.IQInquiry
 					 nti.dataserver.interfaces.IUser"/>

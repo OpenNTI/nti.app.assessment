@@ -13,6 +13,9 @@ from zope import interface
 
 from zope.cachedescriptors.property import Lazy
 
+from nti.appserver.pyramid_authorization import get_cache_acl
+from nti.appserver.pyramid_authorization import get_request_acl_cache
+
 from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQEditableEvaluation
 
@@ -38,6 +41,7 @@ from nti.dataserver.interfaces import ALL_PERMISSIONS
 from nti.dataserver.interfaces import IACLProvider
 
 from nti.traversal.traversal import find_interface
+
 
 logger = __import__('logging').getLogger(__name__)
 
@@ -77,16 +81,19 @@ class EvaluationACLProvider(object):
                 ace_allowing(ROLE_CONTENT_ADMIN, ALL_PERMISSIONS, type(self))]
         result = acl_from_aces(aces)
         # Extend with any course acls.
+        acl_cache = get_request_acl_cache()
         courses = get_evaluation_courses(self.context)
         for course in courses or ():
-            result.extend(IACLProvider(course).__acl__)
+            acl = get_cache_acl(course, acl_cache)
+            result.extend(acl)
             if IQEditableEvaluation.providedBy(self.context):
                 for editor in get_course_editors(course):
                     result.append(ace_allowing(editor, ACT_DELETE, type(self)))
         if IQEditableEvaluation.providedBy(self.context):
             package = find_interface(self.context, IEditableContentPackage, strict=False)
             if package is not None:
-                result.extend(IACLProvider(package).__acl__)
+                acl = get_cache_acl(package, acl_cache)
+                result.extend(acl)
             # Editable evaluations can only be viewed if the user has course
             # permissions.
             result.append(ACE_DENY_ALL)

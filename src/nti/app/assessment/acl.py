@@ -85,7 +85,10 @@ class EvaluationACLProvider(object):
         courses = get_evaluation_courses(self.context)
         for course in courses or ():
             acl = get_cache_acl(course, acl_cache)
-            result.extend(acl)
+            try:
+                result.extend(acl.__acl__)
+            except AttributeError:
+                pass
             if IQEditableEvaluation.providedBy(self.context):
                 for editor in get_course_editors(course):
                     result.append(ace_allowing(editor, ACT_DELETE, type(self)))
@@ -93,7 +96,10 @@ class EvaluationACLProvider(object):
             package = find_interface(self.context, IEditableContentPackage, strict=False)
             if package is not None:
                 acl = get_cache_acl(package, acl_cache)
-                result.extend(acl)
+                try:
+                    result.extend(acl.__acl__)
+                except AttributeError:
+                    pass
             # Editable evaluations can only be viewed if the user has course
             # permissions.
             result.append(ACE_DENY_ALL)

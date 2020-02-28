@@ -56,6 +56,15 @@ from nti.app.assessment.views import MessageFactory as _
 
 from nti.app.assessment.views import get_ds2
 
+from nti.app.assessment.views.utils import plain_text
+from nti.app.assessment.views.utils import _tx_string
+from nti.app.assessment.views.utils import _display_list
+from nti.app.assessment.views.utils import _handle_non_gradable_connecting_part
+from nti.app.assessment.views.utils import _handle_multiple_choice_multiple_answer
+from nti.app.assessment.views.utils import _handle_multiple_choice_part
+from nti.app.assessment.views.utils import _handle_modeled_content_part
+from nti.app.assessment.views.utils import _handle_free_response_part
+
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
 from nti.app.externalization.error import raise_json_error
@@ -520,63 +529,6 @@ class InquirySubmisionPutView(UGDPutView):
                              'message': _(u"Cannot put an inquiry submission.")
                          },
                          None)
-
-
-def plain_text(s):
-    # turn to plain text and to unicode
-    result = IPlainTextContentFragment(s) if s else u''
-    return _tx_string(result.strip())
-
-
-def _tx_string(s):
-    if s is not None and isinstance(s, six.text_type):
-        s = s.encode('utf-8')
-    return s
-
-
-def _display_list(data):
-    result = []
-    for item in data[:-1]:
-        result.append('%s, ' % item)
-    if data:
-        result.append('%s' % data[-1])
-    return u''.join(result)
-
-
-def _handle_non_gradable_connecting_part(user_sub_part, poll, part_idx):
-    # need this to be sorted by value. Since the response
-    # values come from a dictionary, they may not be in the right order
-    # otherwise. We need to make sure to assign the correct label
-    # for each response.
-    response_values = sorted(user_sub_part.items(), key=lambda x: x[1])
-    part_values = poll.parts[part_idx].values
-    part_labels = [plain_text(x) for x in part_values]
-    # We look up by key from the response values in order
-    # to get the label for this choice.
-    result = [part_labels[int(k[0])] for k in response_values]
-    return _display_list(result)
-
-
-def _handle_multiple_choice_multiple_answer(user_sub_part, poll, part_idx):
-    response_values = user_sub_part
-    part_values = poll.parts[part_idx].choices
-    result = [
-        plain_text(part_values[int(k)]) for k in response_values
-    ]
-    return _display_list(result)
-
-
-def _handle_multiple_choice_part(user_sub_part, poll, part_idx):
-    part_values = poll.parts[part_idx].choices
-    return plain_text(part_values[int(user_sub_part)])
-
-
-def _handle_modeled_content_part(user_sub_part, unused_poll, unused_part_idx):
-    return plain_text(' '.join(user_sub_part.value))
-
-
-def _handle_free_response_part(user_sub_part, unused_poll, unused_part_idx):
-    return plain_text(user_sub_part)
 
 
 @view_config(route_name="objects.generic.traversal",

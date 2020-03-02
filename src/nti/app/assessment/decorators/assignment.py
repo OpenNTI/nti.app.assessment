@@ -113,6 +113,7 @@ from nti.contenttypes.courses.utils import is_course_instructor
 from nti.contenttypes.courses.utils import is_course_instructor_or_editor
 
 from nti.dataserver.authorization import ACT_CONTENT_EDIT
+from nti.dataserver.authorization import ACT_NTI_ADMIN
 
 from nti.externalization.externalization import to_external_object
 
@@ -901,3 +902,27 @@ class _AssessmentLibraryPathLinkDecorator(Singleton):
             link.__name__ = ''
             link.__parent__ = context
             _links.append(link)
+
+
+@component.adapter(IQAssignment, IRequest)
+@interface.implementer(IExternalObjectDecorator)
+class _AssignmentReportDecorator(AbstractAuthenticatedRequestAwareDecorator):
+
+    def _do_decorate_external(self, context, result):
+        course = _get_course_from_evaluation(context,
+                                             user=self.remoteUser,
+                                             request=self.request)
+
+        if course is None \
+            or (not is_course_instructor(course, self.remoteUser) \
+                and not has_permission(ACT_NTI_ADMIN, course, self.request)):
+            return
+
+        _links = result.setdefault(LINKS, [])
+        link = Link(context,
+                    rel='AssignmentSubmissionsCSVReport',
+                    elements=('@@AssignmentSubmissionsReport.csv',))
+        interface.alsoProvides(link, ILocation)
+        link.__name__ = ''
+        link.__parent__ = context
+        _links.append(link)

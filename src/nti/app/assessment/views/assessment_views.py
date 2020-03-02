@@ -728,8 +728,7 @@ class AssignmentSubmissionsReportCSV(AbstractAuthenticatedView):
 
         column_count = len(header_row)
 
-        course = ICourseInstance(self.context)
-        metadata = ICourseAssignmentAttemptMetadata(course)
+        metadata = ICourseAssignmentAttemptMetadata(self.course)
 
         # Each row contains an assignment submission attempt
         # submitted by a user to this assignment.

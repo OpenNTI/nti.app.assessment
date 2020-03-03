@@ -48,14 +48,12 @@ from nti.app.assessment.utils import get_course_from_request
 from nti.app.assessment.interfaces import IQEvaluations
 from nti.app.assessment.interfaces import ICourseAssignmentAttemptMetadata
 
-from nti.app.assessment.views.utils import plain_text
-from nti.app.assessment.views.utils import _tx_string
-from nti.app.assessment.views.utils import _display_list
-from nti.app.assessment.views.utils import _handle_non_gradable_connecting_part
-from nti.app.assessment.views.utils import _handle_multiple_choice_multiple_answer
-from nti.app.assessment.views.utils import _handle_multiple_choice_part
-from nti.app.assessment.views.utils import _handle_modeled_content_part
-from nti.app.assessment.views.utils import _handle_free_response_part
+from nti.app.assessment.views.report_mixins import plain_text
+from nti.app.assessment.views.report_mixins import _handle_multiple_choice_multiple_answer
+from nti.app.assessment.views.report_mixins import _handle_multiple_choice_part
+from nti.app.assessment.views.report_mixins import _handle_modeled_content_part
+from nti.app.assessment.views.report_mixins import _handle_free_response_part
+from nti.app.assessment.views.report_mixins import AssessmentCSVReportMixin
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
@@ -636,7 +634,7 @@ class DiscussionAssignmentResolveTopicView(AbstractAuthenticatedView):
              renderer='rest',
              permission=nauth.ACT_READ,
              request_method='GET')
-class AssignmentSubmissionsReportCSV(AbstractAuthenticatedView):
+class AssignmentSubmissionsReportCSV(AbstractAuthenticatedView, AssessmentCSVReportMixin):
 
     @Lazy
     def timezone_util(self):
@@ -651,7 +649,17 @@ class AssignmentSubmissionsReportCSV(AbstractAuthenticatedView):
 
     @Lazy
     def course(self):
-        return ICourseInstance(self.context)
+        # Seems a course can be resolved only when
+        # this assignment is created via the course evaluations post view.
+        instance = ICourseInstance(self.context, None)
+        if instance is None:
+            raise_json_error(self.request,
+                             hexc.HTTPNotFound,
+                             {
+                                 'message': _(u"No course found for assignment.")
+                             },
+                             None)
+        return instance
 
     @Lazy
     def question_functions(self):
@@ -666,24 +674,10 @@ class AssignmentSubmissionsReportCSV(AbstractAuthenticatedView):
             (IQNonGradableFreeResponsePart, _handle_free_response_part)
         ]
 
-    def _get_function_for_question_type(self, question_part):
-        # look through mapping to find a match
-        for iface, factory in self.question_functions:
-            if iface.providedBy(question_part):
-                return factory
-        # return None if we can't find a match for this question type.
-        return None
-
-    def _check_permission(self):
-        # only instructors or admins should be able to view this.
-        if not (is_course_instructor(self.course, self.remoteUser)
-                or has_permission(nauth.ACT_NTI_ADMIN, self.course, self.request)):
-            raise_json_error(self.request,
-                             hexc.HTTPForbidden,
-                             {
-                                 'message': _(u"Cannot access to assignment submissions report.")
-                             },
-                             None)
+    def _get_filename(self):
+        # pylint: disable=no-member
+        filename = self.context.title or self.context.id
+        return filename + "_assignment_submissions_report.csv"
 
     def _get_header_row(self, question_order):
         header_row = ['user', 'submission date (%s)' % self.timezone_util.get_timezone_display_name()]
@@ -697,37 +691,11 @@ class AssignmentSubmissionsReportCSV(AbstractAuthenticatedView):
                 if IQFillInTheBlankWithWordBankQuestion.providedBy(question):
                     continue
 
-                if len(question.parts) > 1:
-                    # If the question has more than one part, we need to
-                    # create a column for each part of the question.
-                    for part in question.parts:
-                        col = plain_text(question.content) + ": " + plain_text(part.content)
-                        header_row.append("{}: {}".format(prefix, col) if prefix else col)
-                else:
-                    content = plain_text(question.content)
-                    part_content = plain_text(question.parts[0].content) if question.parts else ''
-                    if content and part_content:
-                        content = '%s: %s' % (content, part_content)
-                    elif part_content:
-                        content = part_content
-                    header_row.append("{}: {}".format(prefix, content) if prefix else content)
+                header_row.extend(self._get_question_header(question, prefix))
                 question_order[question.ntiid] = question
         return header_row
 
-    def __call__(self):
-        self._check_permission()
-
-        stream = BytesIO()
-        csv_writer = csv.writer(stream)
-
-        question_order = OrderedDict()
-        header_row = self._get_header_row(question_order)
-
-        # write header row
-        csv_writer.writerow(header_row)
-
-        column_count = len(header_row)
-
+    def _get_user_rows(self, question_order, column_count):
         metadata = ICourseAssignmentAttemptMetadata(self.course)
 
         # Each row contains an assignment submission attempt
@@ -739,7 +707,7 @@ class AssignmentSubmissionsReportCSV(AbstractAuthenticatedView):
                 continue
 
             for attempt in attempts.values():
-                submission = attempt.HistoryItem.Submission
+                submission = attempt.HistoryItem.Submission if attempt.HistoryItem is not None else None
                 if submission is None:
                     continue
 
@@ -749,30 +717,14 @@ class AssignmentSubmissionsReportCSV(AbstractAuthenticatedView):
                     user_question_to_results = {}
 
                     for question_submission in qset_submission.questions or ():
-                        question = component.queryUtility(IQuestion, name=question_submission.questionId)
+                        question = component.queryUtility(IQuestion,
+                                                          name=question_submission.questionId)
                         # we won't show bank question at this point.
                         if IQFillInTheBlankWithWordBankQuestion.providedBy(question):
                             continue
 
-                        user_question_results = []
-                        for part_idx, part in enumerate(zip(question_submission.parts, question.parts)):
-                            question_part_submission, question_part = part
-
-                            result = ''
-                            if question_part_submission is None:
-                                # user may not respond to a question part.
-                                user_question_results.append(result)
-                                continue
-
-                            question_handler = self._get_function_for_question_type(question_part)
-                            if question_handler is not None:
-                                result = question_handler(question_part_submission,
-                                                          question,
-                                                          part_idx)
-                            user_question_results.append(result)
-
+                        user_question_results = self._get_user_question_results(question, question_submission)
                         if user_question_results:
-                            assert len(user_question_results) == len(question.parts)
                             user_question_to_results[question.ntiid] = user_question_results
 
                     # Now build our user row via the question order
@@ -786,16 +738,7 @@ class AssignmentSubmissionsReportCSV(AbstractAuthenticatedView):
 
                 assert len(row) == column_count
                 user_rows.append(row)
+        return user_rows
 
-        for row in user_rows:
-            csv_writer.writerow(row)
-
-        stream.flush()
-        stream.seek(0)
-        # pylint: disable=no-member
-        filename = self.context.title or self.context.id
-        filename = filename + "_assignment_submissions_report.csv"
-        self.request.response.body_file = stream
-        self.request.response.content_type = 'text/csv; charset=UTF-8'
-        self.request.response.content_disposition = 'attachment; filename="%s"' % filename
-        return self.request.response
+    def __call__(self):
+        return self._write_response()

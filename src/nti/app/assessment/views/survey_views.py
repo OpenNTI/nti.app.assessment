@@ -56,14 +56,13 @@ from nti.app.assessment.views import MessageFactory as _
 
 from nti.app.assessment.views import get_ds2
 
-from nti.app.assessment.views.utils import plain_text
-from nti.app.assessment.views.utils import _tx_string
-from nti.app.assessment.views.utils import _display_list
-from nti.app.assessment.views.utils import _handle_non_gradable_connecting_part
-from nti.app.assessment.views.utils import _handle_multiple_choice_multiple_answer
-from nti.app.assessment.views.utils import _handle_multiple_choice_part
-from nti.app.assessment.views.utils import _handle_modeled_content_part
-from nti.app.assessment.views.utils import _handle_free_response_part
+from nti.app.assessment.views.report_mixins import plain_text
+from nti.app.assessment.views.report_mixins import _handle_non_gradable_connecting_part
+from nti.app.assessment.views.report_mixins import _handle_multiple_choice_multiple_answer
+from nti.app.assessment.views.report_mixins import _handle_multiple_choice_part
+from nti.app.assessment.views.report_mixins import _handle_modeled_content_part
+from nti.app.assessment.views.report_mixins import _handle_free_response_part
+from nti.app.assessment.views.report_mixins import AssessmentCSVReportMixin
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
@@ -537,14 +536,14 @@ class InquirySubmisionPutView(UGDPutView):
              renderer='rest',
              permission=nauth.ACT_READ,
              request_method='GET')
-class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
+class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin, AssessmentCSVReportMixin):
 
     @property
     def questions(self):
         # pylint: disable=no-member
         return self.context.questions
 
-    @property
+    @Lazy
     def question_functions(self):
         return [
             (IQNonGradableMultipleChoiceMultipleAnswerPart, _handle_multiple_choice_multiple_answer),
@@ -554,65 +553,25 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
             (IQNonGradableFreeResponsePart, _handle_free_response_part)
         ]
 
-    def _get_function_for_question_type(self, poll_part):
-        # look through mapping to find a match
-        for iface, factory in self.question_functions:
-            if iface.providedBy(poll_part):
-                return factory
-        # return None if we can't find a match for this question type.
-        return None
-
-    def _check_permission(self):
-        # only instructors or admins should be able to view this.
-        if not (is_course_instructor(self.course, self.remoteUser)
-                or has_permission(nauth.ACT_NTI_ADMIN, self.course, self.request)):
-            raise_json_error(self.request,
-                             hexc.HTTPForbidden,
-                             {
-                                 'message': _(u"Cannot get inquiry submissions report.")
-                             },
-                             None)
-
     @Lazy
     def include_usernames(self):
         params = CaseInsensitiveDict(self.request.params)
         return is_true(params.get('include_usernames'))
 
+    def _get_filename(self):
+        # pylint: disable=no-member
+        filename = self.context.title or self.context.id
+        return filename + "_inquiry_report.csv"
+
     def _get_header_row(self, question_order):
         # Construct our header row. Only include usernames if specified.
-        if self.include_usernames:
-            header_row = ['user']
-        else:
-            header_row = []
+        header_row = ['user'] if self.include_usernames else []
         for question in self.questions:
-            if len(question.parts) > 1:
-                # If the question has more than one part, we need to
-                # create a column for each part of the question.
-                for part in question.parts:
-                    header_row.append(plain_text(question.content) + ": " +
-                                      plain_text(part.content))
-            else:
-                content = plain_text(question.content)
-                part_content = ''
-                if question.parts:
-                    part_content = plain_text(question.parts[0].content)
-                if content and part_content:
-                    content = '%s: %s' % (content, part_content)
-                elif part_content:
-                    content = part_content
-                header_row.append(content)
+            header_row.extend(self._get_question_header(question))
             question_order[question.ntiid] = question
         return header_row
 
-    def __call__(self):
-        self._check_permission()
-        stream = BytesIO()
-        csv_writer = csv.writer(stream)
-        question_order = OrderedDict()
-        header_row = self._get_header_row(question_order)
-        column_count = len(header_row)
-        csv_writer.writerow(header_row)
-
+    def _get_user_rows(self, question_order, column_count):
         user_rows = []
         # For each user submission, construct a row with their responses.
         submissions = inquiry_submissions(self.context, self.course)
@@ -627,34 +586,8 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
             user_question_to_results = {}
             for sub_question in item.Submission.questions or ():
                 question = component.queryUtility(IQPoll, name=sub_question.inquiryId)
-                # A question may have multiple parts, so we need to go through
-                # each part. We look at the question parts from the user's
-                # submission to get their responses for each part, and we also
-                # look at the question parts from the poll to get labels for the
-                # user's response, if applicable.
-                user_question_results = []
-                for part_idx, part in enumerate(zip(sub_question.parts, question.parts)):
-                    user_sub_part, poll_part = part
-
-                    # If for some reason we don't recognize the question
-                    # type, or if the user did not submit an answer, we
-                    # leave the result blank for this question.
-                    result = ''
-                    if user_sub_part is None:
-                        # If the question part is None, the user did not respond
-                        # to this question
-                        user_question_results.append(result)
-                        continue
-                    # Get the correct function for this question type, then use
-                    # that to calculate the result.
-                    question_handler = self._get_function_for_question_type(poll_part)
-                    if question_handler is not None:
-                        result = question_handler(user_sub_part,
-                                                  question,
-                                                  part_idx)
-                    user_question_results.append(result)
+                user_question_results = self._get_user_question_results(question, sub_question)
                 if user_question_results:
-                    assert len(user_question_results) == len(question.parts)
                     user_question_to_results[question.ntiid] = user_question_results
 
             # Now build our user row via the question order
@@ -673,16 +606,7 @@ class SurveyReportCSV(AbstractAuthenticatedView, InquiryViewMixin):
         # Otherwise we expect these to be sorted by submission time.
         if self.include_usernames:
             user_rows = sorted(user_rows, key=lambda x: x[0])
+        return user_rows
 
-        for row in user_rows:
-            csv_writer.writerow(row)
-
-        stream.flush()
-        stream.seek(0)
-        # pylint: disable=no-member
-        filename = self.context.title or self.context.id
-        filename = filename + "_inquiry_report.csv"
-        self.request.response.body_file = stream
-        self.request.response.content_type = 'text/csv; charset=UTF-8'
-        self.request.response.content_disposition = 'attachment; filename="%s"' % filename
-        return self.request.response
+    def __call__(self):
+        return self._write_response()

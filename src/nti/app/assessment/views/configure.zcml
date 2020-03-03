@@ -12,5 +12,4 @@
 	<!-- Adapters -->
 	<adapter factory=".feedback_views._feedback_transformer" />
 	<adapter factory=".feedback_views._feedback_transformer_factory" />
-	
 </configure>

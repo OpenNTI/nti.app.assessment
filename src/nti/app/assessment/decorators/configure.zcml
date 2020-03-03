@@ -80,11 +80,6 @@
 				for="nti.assessment.interfaces.IQuestion
 					 pyramid.interfaces.IRequest" />
 
-	<subscriber factory=".assignment._AssignmentReportDecorator"
-				provides="nti.externalization.interfaces.IExternalObjectDecorator"
-				for="nti.assessment.interfaces.IQAssignment
-					 pyramid.interfaces.IRequest" />
-
 	<!-- assessed -->
 	<subscriber factory=".assessed._QAssessedPartDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"

@@ -32,6 +32,8 @@ from zope.event import notify
 
 from pyramid import httpexceptions as hexc
 
+from pyramid.config import not_
+
 from pyramid.view import view_config
 from pyramid.view import view_defaults
 
@@ -40,6 +42,7 @@ from nti.app.assessment import MessageFactory as _
 from nti.app.assessment import VIEW_RESOLVE_TOPIC
 from nti.app.assessment import VIEW_UNLOCK_POLICIES
 from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
+from nti.app.assessment import VIEW_ASSIGNMENT_SUBMISSIONS_REPORT
 
 from nti.app.assessment.common.evaluations import get_evaluation_courses
 
@@ -630,10 +633,19 @@ class DiscussionAssignmentResolveTopicView(AbstractAuthenticatedView):
 
 @view_config(route_name="objects.generic.traversal",
              context=IQAssignment,
-             name='AssignmentSubmissionsReport.csv',
+             name=VIEW_ASSIGNMENT_SUBMISSIONS_REPORT,
              renderer='rest',
              permission=nauth.ACT_READ,
-             request_method='GET')
+             request_method='GET',
+             accept='text/csv',
+             request_param=not_('format'))
+@view_config(route_name="objects.generic.traversal",
+             context=IQAssignment,
+             name=VIEW_ASSIGNMENT_SUBMISSIONS_REPORT,
+             renderer='rest',
+             permission=nauth.ACT_READ,
+             request_method='GET',
+             request_param='format=text/csv')
 class AssignmentSubmissionsReportCSV(AbstractAuthenticatedView, AssessmentCSVReportMixin):
 
     @Lazy

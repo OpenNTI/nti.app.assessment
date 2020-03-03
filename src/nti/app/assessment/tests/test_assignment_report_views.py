@@ -122,7 +122,6 @@ class TestAssignmentReportViews(ApplicationLayerTest):
         result = self.testapp.post_json(url, data, extra_environ=editor_environ).json_body
 
         assignmentId = result['NTIID']
-        link = self.require_link_href_with_rel(result, 'AssignmentSubmissionsCSVReport')
 
         questionSetId = result['parts'][0]['question_set']['NTIID']
 
@@ -132,7 +131,7 @@ class TestAssignmentReportViews(ApplicationLayerTest):
         pub_url = '/dataserver2/Objects/%s/@@publish' % assignmentId
         self.testapp.post(pub_url, extra_environ=editor_environ)
 
-        report_url = "/dataserver2/Objects/%s/@@AssignmentSubmissionsReport.csv" % assignmentId
+        report_url = "/dataserver2/Objects/%s/@@AssignmentSubmissionsReport" % assignmentId
         result = self.testapp.get(report_url, status=200, extra_environ=editor_environ).body
         assert_that(result.splitlines(), has_length(1))
         assert_that(result.split(','), has_length(10))

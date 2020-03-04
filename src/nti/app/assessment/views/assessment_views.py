@@ -94,6 +94,8 @@ from nti.assessment.interfaces import IQFillInTheBlankWithWordBankQuestion
 
 from nti.assessment.interfaces import UnlockQAssessmentPolicies
 
+from nti.assessment.randomized.interfaces import IQuestionBank
+
 from nti.contentfragments.interfaces import IPlainTextContentFragment
 
 from nti.contentlibrary.indexed_data import get_library_catalog
@@ -695,6 +697,10 @@ class AssignmentSubmissionsReportCSV(AbstractAuthenticatedView, AssessmentCSVRep
         number_of_assignment_parts = len(self.context.parts)
 
         for part in self.context.parts or ():
+            # Skip the question bank part.
+            if IQuestionBank.providedBy(part.question_set):
+                continue
+
             prefix = plain_text(part.content) if number_of_assignment_parts > 1 else None
             for question in part.question_set.questions:
                 # we won't show bank question at this point.
@@ -725,6 +731,11 @@ class AssignmentSubmissionsReportCSV(AbstractAuthenticatedView, AssessmentCSVRep
 
                 row = [username, self._adjust_timestamp(submission.createdTime)]
                 for qset_submission in submission.parts or ():
+                    # Skip the question bank part.
+                    questionSet = component.queryUtility(IQuestionSet,
+                                                         name=qset_submission.questionSetId)
+                    if IQuestionBank.providedBy(questionSet):
+                        continue
 
                     user_question_to_results = {}
 

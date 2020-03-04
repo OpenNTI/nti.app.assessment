@@ -10,6 +10,7 @@ from __future__ import absolute_import
 
 import csv
 import six
+import random
 
 from collections import OrderedDict
 
@@ -19,6 +20,9 @@ from pyramid import httpexceptions as hexc
 
 from nti.contentfragments.interfaces import IPlainTextContentFragment
 
+from nti.assessment.randomized import shuffle_list
+from nti.assessment.randomized.interfaces import IQRandomizedPart
+
 from nti.app.assessment.views import MessageFactory as _
 
 from nti.app.externalization.error import raise_json_error
@@ -26,8 +30,13 @@ from nti.app.externalization.error import raise_json_error
 from nti.appserver.pyramid_authorization import has_permission
 
 from nti.contenttypes.courses.utils import is_course_instructor
+from nti.contenttypes.courses.utils import is_course_instructor_or_editor
 
 from nti.dataserver import authorization as nauth
+
+from nti.dataserver.authorization import ACT_CONTENT_EDIT
+
+from nti.dataserver.authorization_acl import has_permission as _ds_has_permission
 
 logger = __import__('logging').getLogger(__name__)
 
@@ -53,7 +62,7 @@ def _display_list(data):
     return u''.join(result)
 
 
-def _handle_non_gradable_connecting_part(user_sub_part, poll, part_idx):
+def _handle_non_gradable_connecting_part(user_sub_part, poll, part_idx, generator=None):
     # need this to be sorted by value. Since the response
     # values come from a dictionary, they may not be in the right order
     # otherwise. We need to make sure to assign the correct label
@@ -67,25 +76,46 @@ def _handle_non_gradable_connecting_part(user_sub_part, poll, part_idx):
     return _display_list(result)
 
 
-def _handle_multiple_choice_multiple_answer(user_sub_part, poll_or_question, part_idx):
+def _handle_non_gradable_ordering_part(user_sub_part, question, part_idx, generator=None):
+    labels = [plain_text(x) for x in question.parts[part_idx].labels]
+    values = [plain_text(x) for x in question.parts[part_idx].values]
+
+    if generator is not None:
+        values = shuffle_list(generator, values)
+
+    user_sub_part = sorted(user_sub_part.items(), key=lambda x: x[0])
+    result = []
+    # convert to int dict like grader?
+    for label_idx, value_idx in user_sub_part:
+        result.append("%s=%s" % (labels[int(label_idx)], values[value_idx]))
+    return ";".join(result)
+
+
+def _handle_multiple_choice_multiple_answer(user_sub_part, poll_or_question, part_idx, generator=None):
     response_values = user_sub_part
     part_values = poll_or_question.parts[part_idx].choices
+
+    if generator is not None:
+        part_values = shuffle_list(generator, list(part_values))
+
     result = [
         plain_text(part_values[int(k)]) for k in response_values
     ]
     return _display_list(result)
 
 
-def _handle_multiple_choice_part(user_sub_part, poll_or_question, part_idx):
+def _handle_multiple_choice_part(user_sub_part, poll_or_question, part_idx, generator=None):
     part_values = poll_or_question.parts[part_idx].choices
+    if generator is not None:
+        part_values = shuffle_list(generator, list(part_values))
     return plain_text(part_values[int(user_sub_part)])
 
 
-def _handle_modeled_content_part(user_sub_part, unused_poll_or_question, unused_part_idx):
+def _handle_modeled_content_part(user_sub_part, unused_poll_or_question, unused_part_idx, unused_generator=None):
     return plain_text(' '.join(user_sub_part.value))
 
 
-def _handle_free_response_part(user_sub_part, unused_poll_or_question, unused_part_idx):
+def _handle_free_response_part(user_sub_part, unused_poll_or_question, unused_part_idx, unused_generator=None):
     return plain_text(user_sub_part)
 
 
@@ -95,6 +125,18 @@ class AssessmentCSVReportMixin(object):
 
     course = None
 
+    def _generator(self, part, attempt=None, user=None):
+        # Only shuffle parts if the user is not an instructor or an editor,
+        # See nti.app.assessment.decorators.randomized._AbstractNonEditorRandomizingDecorator
+        if not user or not attempt:
+            return None
+
+        if IQRandomizedPart.providedBy(part) \
+            and not is_course_instructor_or_editor(self.course, user) \
+            and not _ds_has_permission(ACT_CONTENT_EDIT, part, user.username):
+            return random.Random(attempt.Seed)
+        return None
+
     def _get_function_for_question_type(self, poll_or_question_part):
         # look through mapping to find a match
         for iface, factory in self.question_functions:
@@ -103,7 +145,7 @@ class AssessmentCSVReportMixin(object):
         # return None if we can't find a match for this question type.
         return None
 
-    def _get_user_question_results(self, question, question_submission):
+    def _get_user_question_results(self, question, question_submission, attempt=None, user=None):
         # A question may have multiple parts, so we need to go through
         # each part. We look at the question parts from the user's
         # submission to get their responses for each part, and we also
@@ -124,9 +166,11 @@ class AssessmentCSVReportMixin(object):
             # that to calculate the result.
             question_handler = self._get_function_for_question_type(question_part)
             if question_handler is not None:
+                generator = self._generator(question.parts[part_idx], attempt, user)
                 result = question_handler(question_part_submission,
                                           question,
-                                          part_idx)
+                                          part_idx,
+                                          generator)
             user_question_results.append(result)
 
         assert len(user_question_results) == len(question.parts)

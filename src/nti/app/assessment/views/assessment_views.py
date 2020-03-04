@@ -52,6 +52,7 @@ from nti.app.assessment.interfaces import IQEvaluations
 from nti.app.assessment.interfaces import ICourseAssignmentAttemptMetadata
 
 from nti.app.assessment.views.report_mixins import plain_text
+from nti.app.assessment.views.report_mixins import _handle_non_gradable_ordering_part
 from nti.app.assessment.views.report_mixins import _handle_multiple_choice_multiple_answer
 from nti.app.assessment.views.report_mixins import _handle_multiple_choice_part
 from nti.app.assessment.views.report_mixins import _handle_modeled_content_part
@@ -675,11 +676,8 @@ class AssignmentSubmissionsReportCSV(AbstractAuthenticatedView, AssessmentCSVRep
 
     @Lazy
     def question_functions(self):
-        # we only return response for questions below:
-        #     Single/Multiple choices,
-        #     essay: IQNonGradableModeledContentPart
-        #     short answer: IQNonGradableFreeResponsePart
         return [
+            (IQNonGradableConnectingPart, _handle_non_gradable_ordering_part),
             (IQNonGradableMultipleChoiceMultipleAnswerPart, _handle_multiple_choice_multiple_answer),
             (IQNonGradableMultipleChoicePart, _handle_multiple_choice_part),
             (IQNonGradableModeledContentPart, _handle_modeled_content_part),
@@ -723,6 +721,8 @@ class AssignmentSubmissionsReportCSV(AbstractAuthenticatedView, AssessmentCSVRep
                 if submission is None:
                     continue
 
+                user = item.owner
+
                 row = [username, self._adjust_timestamp(submission.createdTime)]
                 for qset_submission in submission.parts or ():
 
@@ -735,7 +735,10 @@ class AssignmentSubmissionsReportCSV(AbstractAuthenticatedView, AssessmentCSVRep
                         if IQFillInTheBlankWithWordBankQuestion.providedBy(question):
                             continue
 
-                        user_question_results = self._get_user_question_results(question, question_submission)
+                        user_question_results = self._get_user_question_results(question,
+                                                                                question_submission,
+                                                                                attempt,
+                                                                                user)
                         if user_question_results:
                             user_question_to_results[question.ntiid] = user_question_results
 

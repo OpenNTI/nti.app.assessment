@@ -53,6 +53,7 @@ from nti.app.assessment.interfaces import ICourseAssignmentAttemptMetadata
 
 from nti.app.assessment.views.report_mixins import plain_text
 from nti.app.assessment.views.report_mixins import _handle_non_gradable_ordering_part
+from nti.app.assessment.views.report_mixins import _handle_non_gradable_matching_part
 from nti.app.assessment.views.report_mixins import _handle_multiple_choice_multiple_answer
 from nti.app.assessment.views.report_mixins import _handle_multiple_choice_part
 from nti.app.assessment.views.report_mixins import _handle_modeled_content_part
@@ -85,7 +86,8 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssessment
 from nti.assessment.interfaces import IQDiscussionAssignment
 from nti.assessment.interfaces import IQAssessmentItemContainer
-from nti.assessment.interfaces import IQNonGradableConnectingPart
+from nti.assessment.interfaces import IQNonGradableMatchingPart
+from nti.assessment.interfaces import IQNonGradableOrderingPart
 from nti.assessment.interfaces import IQNonGradableFreeResponsePart
 from nti.assessment.interfaces import IQNonGradableMultipleChoicePart
 from nti.assessment.interfaces import IQNonGradableModeledContentPart
@@ -679,7 +681,8 @@ class AssignmentSubmissionsReportCSV(AbstractAuthenticatedView, AssessmentCSVRep
     @Lazy
     def question_functions(self):
         return [
-            (IQNonGradableConnectingPart, _handle_non_gradable_ordering_part),
+            (IQNonGradableOrderingPart, _handle_non_gradable_ordering_part),
+            (IQNonGradableMatchingPart, _handle_non_gradable_matching_part),
             (IQNonGradableMultipleChoiceMultipleAnswerPart, _handle_multiple_choice_multiple_answer),
             (IQNonGradableMultipleChoicePart, _handle_multiple_choice_part),
             (IQNonGradableModeledContentPart, _handle_modeled_content_part),

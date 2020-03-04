@@ -77,6 +77,19 @@ def _handle_non_gradable_connecting_part(user_sub_part, poll, part_idx, generato
 
 
 def _handle_non_gradable_ordering_part(user_sub_part, question, part_idx, generator=None):
+    values = [plain_text(x) for x in question.parts[part_idx].values]
+
+    if generator is not None:
+        values = shuffle_list(generator, values)
+
+    user_sub_part = sorted(user_sub_part.items(), key=lambda x: x[0])
+    result = []
+    # convert to int dict like grader?
+    result = [values[idx] for _, idx in user_sub_part]
+    return ",".join(result)
+
+
+def _handle_non_gradable_matching_part(user_sub_part, question, part_idx, generator=None):
     labels = [plain_text(x) for x in question.parts[part_idx].labels]
     values = [plain_text(x) for x in question.parts[part_idx].values]
 
@@ -88,7 +101,7 @@ def _handle_non_gradable_ordering_part(user_sub_part, question, part_idx, genera
     # convert to int dict like grader?
     for label_idx, value_idx in user_sub_part:
         result.append("%s=%s" % (labels[int(label_idx)], values[value_idx]))
-    return ";".join(result)
+    return ",".join(result)
 
 
 def _handle_multiple_choice_multiple_answer(user_sub_part, poll_or_question, part_idx, generator=None):

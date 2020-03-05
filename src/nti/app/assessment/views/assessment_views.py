@@ -707,10 +707,6 @@ class AssignmentSubmissionsReportCSV(AbstractAuthenticatedView, AssessmentCSVRep
         number_of_assignment_parts = len(self.context.parts)
 
         for part in self.context.parts or ():
-            # Skip the question bank part.
-            if IQuestionBank.providedBy(part.question_set):
-                continue
-
             prefix = plain_text(part.content) if number_of_assignment_parts > 1 else None
             for question in part.question_set.questions:
                 header_row.extend(self._get_question_header(question, prefix))
@@ -740,9 +736,6 @@ class AssignmentSubmissionsReportCSV(AbstractAuthenticatedView, AssessmentCSVRep
                     # Skip the question bank part.
                     questionSet = component.queryUtility(IQuestionSet,
                                                          name=qset_submission.questionSetId)
-                    if IQuestionBank.providedBy(questionSet):
-                        continue
-
                     user_question_to_results = {}
 
                     for question_submission in qset_submission.questions or ():
@@ -760,8 +753,11 @@ class AssignmentSubmissionsReportCSV(AbstractAuthenticatedView, AssessmentCSVRep
                     for question_ntiid, question in question_order.items():
                         user_result = user_question_to_results.get(question_ntiid)
                         if user_result is None:
+                            # I copied this from the survey report view (which use comma),
+                            # Here we use dash to indicate that user can not access to
+                            # or submit any response (including None) to that question.
                             for unused_idx in question.parts or ():
-                                row.append(',')
+                                row.append('-')
                         else:
                             row.extend(user_result)
 

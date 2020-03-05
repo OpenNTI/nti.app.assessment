@@ -18,6 +18,8 @@ from io import BytesIO
 
 from pyramid import httpexceptions as hexc
 
+from zope.location import LocationIterator
+
 from nti.contentfragments.interfaces import IPlainTextContentFragment
 
 from nti.assessment.randomized import shuffle_list
@@ -60,6 +62,17 @@ def _display_list(data):
     if data:
         result.append('%s' % data[-1])
     return u''.join(result)
+
+
+def _wordbank(part):
+    wordbank = None
+    for obj in LocationIterator(part):
+        parent_bank = getattr(obj, 'wordbank', None)
+        if not wordbank:
+            wordbank = parent_bank
+        elif parent_bank:
+            wordbank = wordbank + parent_bank
+    return wordbank
 
 
 def _handle_non_gradable_connecting_part(user_sub_part, poll, part_idx, generator=None):
@@ -122,6 +135,23 @@ def _handle_multiple_choice_part(user_sub_part, poll_or_question, part_idx, gene
     if generator is not None:
         part_values = shuffle_list(generator, list(part_values))
     return plain_text(part_values[int(user_sub_part)])
+
+
+def _handle_fill_in_the_blank_with_work_bank(user_sub_part, question, part_idx, generator=None):
+    wordbank = _wordbank(question.parts[part_idx]) or {}
+    user_sub_part = sorted(user_sub_part.items(), key=lambda x: x[0])
+    result = []
+    for name, idx in user_sub_part:
+        # Only return those filled in,
+        if idx is not None:
+            entry = wordbank.get(idx)
+            result.append("%s=%s" % (name, entry.word or entry.wid if entry else idx))
+    return ','.join(result)
+
+
+def _handle_fill_in_the_blank_short_answer(user_sub_part, question, part_idx, generator=None):
+    result = [ "%s=%s" % (name, value) for name, value in user_sub_part.items() if value is not None]
+    return ','.join(result)
 
 
 def _handle_modeled_content_part(user_sub_part, unused_poll_or_question, unused_part_idx, unused_generator=None):

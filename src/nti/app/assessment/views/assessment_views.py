@@ -45,6 +45,7 @@ from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
 from nti.app.assessment import VIEW_ASSIGNMENT_SUBMISSIONS_REPORT
 
 from nti.app.assessment.common.evaluations import get_evaluation_courses
+from nti.app.assessment.common.evaluations import get_course_from_evaluation
 
 from nti.app.assessment.utils import get_course_from_request
 
@@ -58,6 +59,8 @@ from nti.app.assessment.views.report_mixins import _handle_multiple_choice_multi
 from nti.app.assessment.views.report_mixins import _handle_multiple_choice_part
 from nti.app.assessment.views.report_mixins import _handle_modeled_content_part
 from nti.app.assessment.views.report_mixins import _handle_free_response_part
+from nti.app.assessment.views.report_mixins import _handle_fill_in_the_blank_with_work_bank
+from nti.app.assessment.views.report_mixins import _handle_fill_in_the_blank_short_answer
 from nti.app.assessment.views.report_mixins import AssessmentCSVReportMixin
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
@@ -92,6 +95,8 @@ from nti.assessment.interfaces import IQNonGradableFreeResponsePart
 from nti.assessment.interfaces import IQNonGradableMultipleChoicePart
 from nti.assessment.interfaces import IQNonGradableModeledContentPart
 from nti.assessment.interfaces import IQNonGradableMultipleChoiceMultipleAnswerPart
+from nti.assessment.interfaces import IQNonGradableFillInTheBlankWithWordBankPart
+from nti.assessment.interfaces import IQNonGradableFillInTheBlankShortAnswerPart
 from nti.assessment.interfaces import IQFillInTheBlankWithWordBankQuestion
 
 from nti.assessment.interfaces import UnlockQAssessmentPolicies
@@ -666,9 +671,9 @@ class AssignmentSubmissionsReportCSV(AbstractAuthenticatedView, AssessmentCSVRep
 
     @Lazy
     def course(self):
-        # Seems a course can be resolved only when
-        # this assignment is created via the course evaluations post view.
-        instance = ICourseInstance(self.context, None)
+        # An assignment may be created directly from the course,
+        # or created via ContentPackage.
+        instance = get_course_from_evaluation(self.context, self.remoteUser)
         if instance is None:
             raise_json_error(self.request,
                              hexc.HTTPNotFound,
@@ -686,7 +691,9 @@ class AssignmentSubmissionsReportCSV(AbstractAuthenticatedView, AssessmentCSVRep
             (IQNonGradableMultipleChoiceMultipleAnswerPart, _handle_multiple_choice_multiple_answer),
             (IQNonGradableMultipleChoicePart, _handle_multiple_choice_part),
             (IQNonGradableModeledContentPart, _handle_modeled_content_part),
-            (IQNonGradableFreeResponsePart, _handle_free_response_part)
+            (IQNonGradableFreeResponsePart, _handle_free_response_part),
+            (IQNonGradableFillInTheBlankWithWordBankPart, _handle_fill_in_the_blank_with_work_bank),
+            (IQNonGradableFillInTheBlankShortAnswerPart, _handle_fill_in_the_blank_short_answer)
         ]
 
     def _get_filename(self):
@@ -706,10 +713,6 @@ class AssignmentSubmissionsReportCSV(AbstractAuthenticatedView, AssessmentCSVRep
 
             prefix = plain_text(part.content) if number_of_assignment_parts > 1 else None
             for question in part.question_set.questions:
-                # we won't show bank question at this point.
-                if IQFillInTheBlankWithWordBankQuestion.providedBy(question):
-                    continue
-
                 header_row.extend(self._get_question_header(question, prefix))
                 question_order[question.ntiid] = question
         return header_row
@@ -745,9 +748,6 @@ class AssignmentSubmissionsReportCSV(AbstractAuthenticatedView, AssessmentCSVRep
                     for question_submission in qset_submission.questions or ():
                         question = component.queryUtility(IQuestion,
                                                           name=question_submission.questionId)
-                        # we won't show bank question at this point.
-                        if IQFillInTheBlankWithWordBankQuestion.providedBy(question):
-                            continue
 
                         user_question_results = self._get_user_question_results(question,
                                                                                 question_submission,

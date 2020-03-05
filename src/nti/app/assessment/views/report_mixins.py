@@ -168,14 +168,14 @@ class AssessmentCSVReportMixin(object):
 
     course = None
 
-    def _generator(self, part, attempt=None, user=None):
+    def _generator(self, part, attempt=None, user=None, is_instructor_or_editor=None):
         # Only shuffle parts if the user is not an instructor or an editor,
         # See nti.app.assessment.decorators.randomized._AbstractNonEditorRandomizingDecorator
         if not user or not attempt:
             return None
 
         if IQRandomizedPart.providedBy(part) \
-            and not is_course_instructor_or_editor(self.course, user) \
+            and not is_instructor_or_editor \
             and not _ds_has_permission(ACT_CONTENT_EDIT, part, user.username):
             return random.Random(attempt.Seed)
         return None
@@ -188,7 +188,7 @@ class AssessmentCSVReportMixin(object):
         # return None if we can't find a match for this question type.
         return None
 
-    def _get_user_question_results(self, question, question_submission, attempt=None, user=None):
+    def _get_user_question_results(self, question, question_submission, attempt=None, user=None, is_instructor_or_editor=None):
         # A question may have multiple parts, so we need to go through
         # each part. We look at the question parts from the user's
         # submission to get their responses for each part, and we also
@@ -209,7 +209,7 @@ class AssessmentCSVReportMixin(object):
             # that to calculate the result.
             question_handler = self._get_function_for_question_type(question_part)
             if question_handler is not None:
-                generator = self._generator(question.parts[part_idx], attempt, user)
+                generator = self._generator(question.parts[part_idx], attempt, user, is_instructor_or_editor)
                 result = question_handler(question_part_submission,
                                           question,
                                           part_idx,

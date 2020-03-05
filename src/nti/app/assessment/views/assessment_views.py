@@ -110,6 +110,7 @@ from nti.contentlibrary.indexed_data import get_library_catalog
 from nti.contenttypes.courses.common import get_course_packages
 
 from nti.contenttypes.courses.utils import is_course_instructor
+from nti.contenttypes.courses.utils import is_course_instructor_or_editor
 
 from nti.contenttypes.courses.discussions.interfaces import ICourseDiscussion
 
@@ -724,12 +725,13 @@ class AssignmentSubmissionsReportCSV(AbstractAuthenticatedView, AssessmentCSVRep
             if not attempts:
                 continue
 
+            user = item.owner
+            is_instructor_or_editor = bool(is_course_instructor_or_editor(self.course, user))
+
             for attempt in attempts.values():
                 submission = attempt.HistoryItem.Submission if attempt.HistoryItem is not None else None
                 if submission is None:
                     continue
-
-                user = item.owner
 
                 row = [username, self._adjust_timestamp(submission.createdTime)]
                 for qset_submission in submission.parts or ():
@@ -745,7 +747,8 @@ class AssignmentSubmissionsReportCSV(AbstractAuthenticatedView, AssessmentCSVRep
                         user_question_results = self._get_user_question_results(question,
                                                                                 question_submission,
                                                                                 attempt,
-                                                                                user)
+                                                                                user,
+                                                                                is_instructor_or_editor)
                         if user_question_results:
                             user_question_to_results[question.ntiid] = user_question_results
 

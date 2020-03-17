@@ -1,0 +1,183 @@
+{
+    "title": "Test Assignment Report",
+    "content": "",
+    "MimeType": "application/vnd.nextthought.assessment.assignment",
+    "max_submissions": -1,
+    "total_points": 100,
+    "completion_passing_percent": 1,
+    "parts": [
+        {
+            "MimeType": "application/vnd.nextthought.assessment.assignmentpart",
+            "content": "",
+            "question_set": {
+                "MimeType": "application/vnd.nextthought.naquestionset",
+                "questions": [
+                    {
+                        "MimeType": "application/vnd.nextthought.naquestion",
+                        "content": "<p>Where do you live?</p>",
+                        "parts": [
+                            {
+                                "Class": "MultipleChoicePart",
+                                "MimeType": "application/vnd.nextthought.assessment.multiplechoicepart",
+                                "content": "<p>City</p>",
+                                "explanation": "",
+                                "hints": [],
+                                "solutions": [
+                                    {
+                                        "MimeType": "application/vnd.nextthought.assessment.multiplechoicesolution",
+                                        "value": 0,
+                                        "weight": 1
+                                    }
+                                ],
+                                "choices": [
+                                    "<html><body><p>Norman</p></body></html>",
+                                    "<html><body><p>Dallas</p></body></html>"
+                                ],
+                                "randomized": false,
+                                "weight": 0.5
+                            },
+                            {
+                                "Class": "MultipleChoicePart",
+                                "MimeType": "application/vnd.nextthought.assessment.multiplechoicepart",
+                                "content": "<p>State</p>",
+                                "explanation": "",
+                                "hints": [],
+                                "solutions": [
+                                    {
+                                        "MimeType": "application/vnd.nextthought.assessment.multiplechoicesolution",
+                                        "value": 0,
+                                        "weight": 1
+                                    }
+                                ],
+                                "choices": [
+                                    "<html><body><p>OK</p></body></html>",
+                                    "<html><body><p>TX</p></body></html>"
+                                ],
+                                "randomized": false,
+                                "weight": 0.5
+                            }
+                        ]
+                    },
+                    {
+                        "MimeType": "application/vnd.nextthought.naquestion",
+                        "content": "<p>How is the weather?</p>",
+                        "parts": [
+                            {
+                                "MimeType": "application/vnd.nextthought.assessment.multiplechoicemultipleanswerpart",
+                                "choices": [
+                                    "<html><body><p>cloudy</p></body></html>",
+                                    "<html><body><p>sunny</p></body></html>",
+                                    "<html><body><p>windy</p></body></html>"
+                                ],
+                                "content": "<p>General</p>",
+                                "explanation": "",
+                                "hints": [],
+                                "randomized": false,
+                                "solutions": [
+                                    {
+                                        "MimeType": "application/vnd.nextthought.assessment.multiplechoicemultipleanswersolution",
+                                        "value": [
+                                            0,
+                                            1
+                                        ],
+                                        "weight": 1
+                                    }
+                                ],
+                                "weight": 0.5
+                            },
+                            {
+                                "MimeType": "application/vnd.nextthought.assessment.multiplechoicemultipleanswerpart",
+                                "choices": [
+                                    "<html><body><p>Tuesday</p></body></html>",
+                                    "<html><body><p>Wednesday</p></body></html>",
+                                    "<html><body><p>Friday</p></body></html>"
+                                ],
+                                "content": "<p>Date</p>",
+                                "explanation": "",
+                                "hints": [],
+                                "randomized": false,
+                                "solutions": [
+                                    {
+                                        "MimeType": "application/vnd.nextthought.assessment.multiplechoicemultipleanswersolution",
+                                        "value": [
+                                            2
+                                        ],
+                                        "weight": 1
+                                    }
+                                ],
+                                "weight": 0.5
+                            }
+                        ]
+                    },
+                    {
+                        "MimeType": "application/vnd.nextthought.naquestion",
+                        "content": "<p>How many students in your class?</p>",
+                        "parts": [
+                            {
+                                "MimeType": "application/vnd.nextthought.assessment.freeresponsepart",
+                                "content": "<p>Number Of Students</p>",
+                                "explanation": "",
+                                "hints": [],
+                                "randomized": false,
+                                "solutions": [
+                                    {
+                                        "MimeType": "application/vnd.nextthought.assessment.freeresponsesolution",
+                                        "value": "5",
+                                        "weight": 1
+                                    }
+                                ],
+                                "weight": 0.5
+                            },
+                            {
+                                "MimeType": "application/vnd.nextthought.assessment.freeresponsepart",
+                                "content": "<p>Class</p>",
+                                "explanation": "",
+                                "hints": [],
+                                "randomized": false,
+                                "solutions": [
+                                    {
+                                        "MimeType": "application/vnd.nextthought.assessment.freeresponsesolution",
+                                        "value": "High School",
+                                        "weight": 1
+                                    },
+                                    {
+                                        "MimeType": "application/vnd.nextthought.assessment.freeresponsesolution",
+                                        "value": "Middle School",
+                                        "weight": 1
+                                    }
+                                ],
+                                "weight": 0.5
+                            }
+                        ]
+                    },
+                    {
+                        "MimeType": "application/vnd.nextthought.naquestion",
+                        "content": "<p>What do you think about your current staying?</p>",
+                        "parts": [
+                            {
+                                "MimeType": "application/vnd.nextthought.assessment.modeledcontentpart",
+                                "content": "<p>You like</p>",
+                                "explanation": "",
+                                "hints": [],
+                                "randomized": false,
+                                "solutions": [],
+                                "weight": 0.5
+                            },
+                            {
+                                "MimeType": "application/vnd.nextthought.assessment.modeledcontentpart",
+                                "content": "<p>You don't like</p>",
+                                "explanation": "",
+                                "hints": [],
+                                "randomized": false,
+                                "solutions": [],
+                                "weight": 0.5
+                            }
+                        ]
+                    }
+                ],
+                "title": ""
+            },
+            "title": ""
+        }
+    ]
+}

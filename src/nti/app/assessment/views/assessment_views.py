@@ -11,8 +11,16 @@ __docformat__ = "restructuredtext en"
 
 logger = __import__('logging').getLogger(__name__)
 
+import csv
+import six
+
 from itertools import chain
 from collections import defaultdict
+from collections import OrderedDict
+
+from datetime import datetime
+
+from io import BytesIO
 
 from requests.structures import CaseInsensitiveDict
 
@@ -24,6 +32,8 @@ from zope.event import notify
 
 from pyramid import httpexceptions as hexc
 
+from pyramid.config import not_
+
 from pyramid.view import view_config
 from pyramid.view import view_defaults
 
@@ -32,12 +42,26 @@ from nti.app.assessment import MessageFactory as _
 from nti.app.assessment import VIEW_RESOLVE_TOPIC
 from nti.app.assessment import VIEW_UNLOCK_POLICIES
 from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
+from nti.app.assessment import VIEW_ASSIGNMENT_SUBMISSIONS_REPORT
 
 from nti.app.assessment.common.evaluations import get_evaluation_courses
+from nti.app.assessment.common.evaluations import get_course_from_evaluation
 
 from nti.app.assessment.utils import get_course_from_request
 
 from nti.app.assessment.interfaces import IQEvaluations
+from nti.app.assessment.interfaces import ICourseAssignmentAttemptMetadata
+
+from nti.app.assessment.views.report_mixins import plain_text
+from nti.app.assessment.views.report_mixins import _handle_non_gradable_ordering_part
+from nti.app.assessment.views.report_mixins import _handle_non_gradable_matching_part
+from nti.app.assessment.views.report_mixins import _handle_multiple_choice_multiple_answer
+from nti.app.assessment.views.report_mixins import _handle_multiple_choice_part
+from nti.app.assessment.views.report_mixins import _handle_modeled_content_part
+from nti.app.assessment.views.report_mixins import _handle_free_response_part
+from nti.app.assessment.views.report_mixins import _handle_fill_in_the_blank_with_work_bank
+from nti.app.assessment.views.report_mixins import _handle_fill_in_the_blank_short_answer
+from nti.app.assessment.views.report_mixins import AssessmentCSVReportMixin
 
 from nti.app.base.abstract_views import AbstractAuthenticatedView
 
@@ -49,6 +73,7 @@ from nti.app.externalization.error import raise_json_error
 
 from nti.app.products.courseware.interfaces import ICourseInstanceEnrollment
 
+from nti.appserver.interfaces import IDisplayableTimeProvider
 from nti.appserver.interfaces import INewObjectTransformer
 
 from nti.appserver.pyramid_authorization import has_permission
@@ -64,12 +89,28 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssessment
 from nti.assessment.interfaces import IQDiscussionAssignment
 from nti.assessment.interfaces import IQAssessmentItemContainer
+from nti.assessment.interfaces import IQNonGradableMatchingPart
+from nti.assessment.interfaces import IQNonGradableOrderingPart
+from nti.assessment.interfaces import IQNonGradableFreeResponsePart
+from nti.assessment.interfaces import IQNonGradableMultipleChoicePart
+from nti.assessment.interfaces import IQNonGradableModeledContentPart
+from nti.assessment.interfaces import IQNonGradableMultipleChoiceMultipleAnswerPart
+from nti.assessment.interfaces import IQNonGradableFillInTheBlankWithWordBankPart
+from nti.assessment.interfaces import IQNonGradableFillInTheBlankShortAnswerPart
+from nti.assessment.interfaces import IQFillInTheBlankWithWordBankQuestion
 
 from nti.assessment.interfaces import UnlockQAssessmentPolicies
+
+from nti.assessment.randomized.interfaces import IQuestionBank
+
+from nti.contentfragments.interfaces import IPlainTextContentFragment
 
 from nti.contentlibrary.indexed_data import get_library_catalog
 
 from nti.contenttypes.courses.common import get_course_packages
+
+from nti.contenttypes.courses.utils import is_course_instructor
+from nti.contenttypes.courses.utils import is_course_instructor_or_editor
 
 from nti.contenttypes.courses.discussions.interfaces import ICourseDiscussion
 
@@ -599,3 +640,133 @@ class DiscussionAssignmentResolveTopicView(AbstractAuthenticatedView):
                              },
                              None)
         return result
+
+
+@view_config(route_name="objects.generic.traversal",
+             context=IQAssignment,
+             name=VIEW_ASSIGNMENT_SUBMISSIONS_REPORT,
+             renderer='rest',
+             permission=nauth.ACT_READ,
+             request_method='GET',
+             accept='text/csv',
+             request_param=not_('format'))
+@view_config(route_name="objects.generic.traversal",
+             context=IQAssignment,
+             name=VIEW_ASSIGNMENT_SUBMISSIONS_REPORT,
+             renderer='rest',
+             permission=nauth.ACT_READ,
+             request_method='GET',
+             request_param='format=text/csv')
+class AssignmentSubmissionsReportCSV(AbstractAuthenticatedView, AssessmentCSVReportMixin):
+
+    @Lazy
+    def timezone_util(self):
+        return component.queryMultiAdapter((self.remoteUser, self.request),
+                                           IDisplayableTimeProvider)
+
+    def _adjust_timestamp(self, timestamp=None):
+        if timestamp is None:
+            return ''
+        date = datetime.utcfromtimestamp(timestamp)
+        return self.timezone_util.adjust_date(date)
+
+    @Lazy
+    def course(self):
+        # An assignment may be created directly from the course,
+        # or created via ContentPackage.
+        instance = get_course_from_evaluation(self.context, self.remoteUser)
+        if instance is None:
+            raise_json_error(self.request,
+                             hexc.HTTPNotFound,
+                             {
+                                 'message': _(u"No course found for assignment.")
+                             },
+                             None)
+        return instance
+
+    @Lazy
+    def question_functions(self):
+        return [
+            (IQNonGradableOrderingPart, _handle_non_gradable_ordering_part),
+            (IQNonGradableMatchingPart, _handle_non_gradable_matching_part),
+            (IQNonGradableMultipleChoiceMultipleAnswerPart, _handle_multiple_choice_multiple_answer),
+            (IQNonGradableMultipleChoicePart, _handle_multiple_choice_part),
+            (IQNonGradableModeledContentPart, _handle_modeled_content_part),
+            (IQNonGradableFreeResponsePart, _handle_free_response_part),
+            (IQNonGradableFillInTheBlankWithWordBankPart, _handle_fill_in_the_blank_with_work_bank),
+            (IQNonGradableFillInTheBlankShortAnswerPart, _handle_fill_in_the_blank_short_answer)
+        ]
+
+    def _get_filename(self):
+        # pylint: disable=no-member
+        filename = self.context.title or self.context.id
+        return filename + "_assignment_submissions_report.csv"
+
+    def _get_header_row(self, question_order):
+        header_row = ['user', 'submission date (%s)' % self.timezone_util.get_timezone_display_name()]
+
+        number_of_assignment_parts = len(self.context.parts)
+
+        for part in self.context.parts or ():
+            prefix = plain_text(part.content) if number_of_assignment_parts > 1 else None
+            for question in part.question_set.questions:
+                header_row.extend(self._get_question_header(question, prefix))
+                question_order[question.ntiid] = question
+        return header_row
+
+    def _get_user_rows(self, question_order, column_count):
+        metadata = ICourseAssignmentAttemptMetadata(self.course)
+
+        # Each row contains an assignment submission attempt
+        # submitted by a user to this assignment.
+        user_rows = []
+        for username, item in metadata.items():
+            attempts = item.get(self.context.id)
+            if not attempts:
+                continue
+
+            user = item.owner
+            is_instructor_or_editor = bool(is_course_instructor_or_editor(self.course, user))
+
+            for attempt in attempts.values():
+                submission = attempt.HistoryItem.Submission if attempt.HistoryItem is not None else None
+                if submission is None:
+                    continue
+
+                row = [username, self._adjust_timestamp(submission.createdTime)]
+                for qset_submission in submission.parts or ():
+                    # Skip the question bank part.
+                    questionSet = component.queryUtility(IQuestionSet,
+                                                         name=qset_submission.questionSetId)
+                    user_question_to_results = {}
+
+                    for question_submission in qset_submission.questions or ():
+                        question = component.queryUtility(IQuestion,
+                                                          name=question_submission.questionId)
+
+                        user_question_results = self._get_user_question_results(question,
+                                                                                question_submission,
+                                                                                attempt,
+                                                                                user,
+                                                                                is_instructor_or_editor)
+                        if user_question_results:
+                            user_question_to_results[question.ntiid] = user_question_results
+
+                    # Now build our user row via the question order
+                    for question_ntiid, question in question_order.items():
+                        user_result = user_question_to_results.get(question_ntiid)
+                        if user_result is None:
+                            # I copied this from the survey report view (which use comma),
+                            # Here we use dash to indicate that user can not access to
+                            # or submit any response (including None) to that question.
+                            for unused_idx in question.parts or ():
+                                row.append('-')
+                        else:
+                            row.extend(user_result)
+
+                assert len(row) == column_count
+                user_rows.append(row)
+        return user_rows
+
+    def __call__(self):
+        return self._write_response()

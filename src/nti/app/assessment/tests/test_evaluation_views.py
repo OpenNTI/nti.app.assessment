@@ -661,7 +661,7 @@ class TestEvaluationViews(ApplicationLayerTest):
             self.forbid_link_with_rel(res, part_rel)
 
         # Must exist
-        assignment['discussion_ntiid'] = discussion_ntiid + 'dne'
+        assignment['discussion_ntiid'] = 'tag:nextthought.com,2011-10:dne'
         self.testapp.post_json(href, assignment, status=422)
 
         # Must point to topic

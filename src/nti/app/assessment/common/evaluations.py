@@ -158,12 +158,12 @@ def get_course_evaluations(context, sites=None, intids=None, mimetypes=None,
         containers = (ntiid,)
     else:
         course = ICourseInstance(context)
-        entry = ICourseCatalogEntry(course)
         if ILegacyCourseInstance.providedBy(course):
             # Global courses cannot use index.
             return get_course_assessment_items(course)
         # We index assessment items before our courses; so
         # make sure we also check for course packages.
+        entry = ICourseCatalogEntry(course)
         ntiid = entry.ntiid
         containers = [ntiid]
         if ICourseSubInstance.providedBy(course) and parent_course:

@@ -132,11 +132,11 @@ def get_submission_intids_for_courses(context, courses=(), index_name=IX_ASSESSM
         return catalog.apply(query)
 
 
-def get_submissions(**kwargs):
+def get_submissions(*args, **kwargs):
     """
     Return all submissions for the given evaluation object.
     """
-    result = get_submission_intids_for_courses(**kwargs)
+    result = get_submission_intids_for_courses(*args, **kwargs)
     if result is not None:
         intids = component.getUtility(IIntIds)
         result = (intids.queryObject(x) for x in result)
@@ -144,8 +144,8 @@ def get_submissions(**kwargs):
     return result
 
 
-def has_submissions(context, courses=()):
-    return bool(get_submission_intids_for_courses(context, courses))
+def has_submissions(*args, **kwargs):
+    return bool(get_submission_intids_for_courses(*args, **kwargs))
 
 
 def evaluation_submissions(context, course, subinstances=True):

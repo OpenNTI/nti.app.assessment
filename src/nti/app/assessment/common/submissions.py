@@ -101,9 +101,9 @@ def get_all_submissions_courses(context, sites=(), index_name=IX_ASSESSMENT_ID):
     return tuple(result)
 
 
-def _iter_submissions_for_courses(context, courses=(), index_name=IX_ASSESSMENT_ID):
+def get_submission_intids_for_courses(context, courses=(), index_name=IX_ASSESSMENT_ID):
     """
-    Return all submissions for the given evaluation object and courses
+    Return all submissions intids for the given evaluation object and courses
     """
     courses = to_course_list(courses)
     if not courses:
@@ -115,9 +115,7 @@ def _iter_submissions_for_courses(context, courses=(), index_name=IX_ASSESSMENT_
         context_ntiids = [x.ntiid for x in assignments] if assignments else []
         context_ntiid = getattr(context, 'ntiid', context)
         context_ntiids.append(context_ntiid)
-
         catalog = get_submission_catalog()
-        intids = component.getUtility(IIntIds)
         entry_ntiids = get_entry_ntiids(courses)
 
         query = {
@@ -131,23 +129,23 @@ def _iter_submissions_for_courses(context, courses=(), index_name=IX_ASSESSMENT_
         if sites:
             query[IX_SITE] = {'any_of': sites}
 
-        for doc_id in catalog.apply(query) or ():
-            obj = intids.queryObject(doc_id)
-            if IUsersCourseSubmissionItem.providedBy(obj):
-                yield obj
+        return catalog.apply(query)
 
 
-def get_submissions(context, courses=(), index_name=IX_ASSESSMENT_ID):
+def get_submissions(**kwargs):
     """
     Return all submissions for the given evaluation object.
     """
-    return tuple(_iter_submissions_for_courses(context, courses, index_name))
+    result = get_submission_intids_for_courses(**kwargs)
+    if result is not None:
+        intids = component.getUtility(IIntIds)
+        result = (intids.queryObject(x) for x in result)
+        result = [x for x in result if IUsersCourseSubmissionItem.providedBy(x)]
+    return result
 
 
 def has_submissions(context, courses=()):
-    for _ in _iter_submissions_for_courses(context, courses):
-        return True
-    return False
+    return bool(get_submission_intids_for_courses(context, courses))
 
 
 def evaluation_submissions(context, course, subinstances=True):

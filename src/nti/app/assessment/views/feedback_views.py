@@ -65,9 +65,9 @@ def _feedback_transformer_factory(request, _):
 def _feedback_transformer(request, context):
     sources = get_content_files(context)
     if sources and request and request.POST:
-        read_multipart_sources(request, sources.values())
+        read_multipart_sources(request, sources)
     if sources:
-        validate_attachments(get_remote_user(), context, sources.values())
+        validate_attachments(get_remote_user(), context, sources)
     return context
 
 
@@ -165,7 +165,7 @@ class _FeedbackLibraryPathView(AbstractCachingLibraryPathView):
         course = course_from_context_lineage(self.context)
         if course is not None:
             history_item = find_interface(self.context,
-                                          IUsersCourseAssignmentHistoryItem, 
+                                          IUsersCourseAssignmentHistoryItem,
                                           strict=False)
             path = (course, history_item, self.context)
             results.append(path)

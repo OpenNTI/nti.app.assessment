@@ -21,6 +21,8 @@ from nti.testing.matchers import validly_provides
 
 import weakref
 
+from zope.dublincore.interfaces import IWriteZopeDublinCore
+
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepointItem
@@ -53,6 +55,8 @@ class TestSavepoint(AssessmentLayerTest):
 
     def test_provides(self):
         savepoints = UsersCourseAssignmentSavepoints()
+        assert_that(IWriteZopeDublinCore(savepoints, None),
+                    none())
         savepoint = UsersCourseAssignmentSavepoint()
         savepoint.__parent__ = savepoints
 

@@ -221,15 +221,16 @@
              provides="zope.traversing.interfaces.ITraversable"
              for="nti.app.assessment.interfaces.IUsersCourseAssignmentHistories" />
 
-    <adapter factory="nti.dublincore.interfaces.NoOpDublinCoreAdapter"
+    <!-- XXX: Added to a live database. Need to clean up unused data -->
+    <adapter factory="nti.dublincore.annotatableadapter.none_dublincore_adapter"
              provides="zope.dublincore.interfaces.IWriteZopeDublinCore"
              for="nti.app.assessment.interfaces.IUsersCourseAssignmentHistories" />
 
-    <adapter factory="nti.dublincore.interfaces.NoOpDublinCoreAdapter"
+    <adapter factory="nti.dublincore.annotatableadapter.none_dublincore_adapter"
              provides="zope.dublincore.interfaces.IWriteZopeDublinCore"
              for="nti.app.assessment.interfaces.ICourseAssignmentAttemptMetadata" />
 
-    <adapter factory="nti.dublincore.interfaces.NoOpDublinCoreAdapter"
+    <adapter factory="nti.dublincore.annotatableadapter.none_dublincore_adapter"
              provides="zope.dublincore.interfaces.IWriteZopeDublinCore"
              for="nti.app.assessment.interfaces.IUsersCourseAssignmentSavepoints" />
 

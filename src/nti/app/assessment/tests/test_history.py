@@ -8,11 +8,14 @@ __docformat__ = "restructuredtext en"
 # pylint: disable=W0212,R0904
 
 from hamcrest import is_
+from hamcrest import none
 from hamcrest import is_not
 from hamcrest import has_length
 from hamcrest import has_entries
 from hamcrest import assert_that
 from hamcrest import has_property
+
+from zope.dublincore.interfaces import IWriteZopeDublinCore
 
 from nti.testing.matchers import is_false
 from nti.testing.matchers import validly_provides
@@ -49,6 +52,8 @@ class TestHistory(AssessmentLayerTest):
 
     def test_provides(self):
         histories = UsersCourseAssignmentHistories()
+        assert_that(IWriteZopeDublinCore(histories, None),
+                    none())
         history = UsersCourseAssignmentHistory()
         history.__parent__ = histories
         # Set an owner; use a python wref instead of the default

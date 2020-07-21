@@ -25,6 +25,8 @@ import weakref
 
 from six.moves.urllib_parse import unquote
 
+from zope.dublincore.interfaces import IWriteZopeDublinCore
+
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataItem
 from nti.app.assessment.interfaces import ICourseAssignmentAttemptMetadata
@@ -66,6 +68,8 @@ class TestMetadata(AssessmentLayerTest):
     @WithMockDSTrans
     def test_provides(self):
         container = UsersCourseAssignmentMetadataContainer()
+        assert_that(IWriteZopeDublinCore(container, None),
+                    none())
         metadata = UsersCourseAssignmentMetadata()
         metadata.__parent__ = container
         # Set an owner; use a python wref instead of the default

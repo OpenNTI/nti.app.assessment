@@ -145,7 +145,15 @@ def get_submissions(*args, **kwargs):
 
 
 def has_submissions(*args, **kwargs):
-    return bool(get_submission_intids_for_courses(*args, **kwargs))
+    # Querying from submission catalog may result in stale results.
+    # Instead of reifying, we check against the intids.
+    result = get_submission_intids_for_courses(*args, **kwargs)
+    if result is not None:
+        intids = component.getUtility(IIntIds)
+        for submission_intid in result:
+            if submission_intid in intids:
+                return True
+    return False
 
 
 def evaluation_submissions(context, course, subinstances=True):

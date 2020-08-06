@@ -59,6 +59,8 @@ from nti.schema.field import Object
 from nti.schema.field import ListOrTuple
 from nti.schema.field import ValidTextLine
 
+from nti.zope_catalog.interfaces import INoAutoIndexEver
+
 ACT_VIEW_SOLUTIONS = Permission('nti.actions.assessment.view_solutions')
 ACT_DOWNLOAD_GRADES = Permission('nti.actions.assessment.download_grades')
 
@@ -151,7 +153,8 @@ class IUsersCourseAssignmentHistories(IContainer,
 class IUsersCourseAssignmentHistory(IContainer,
                                     ILastViewed,
                                     IContained,
-                                    IShouldHaveTraversablePath):
+                                    IShouldHaveTraversablePath,
+                                    INoAutoIndexEver):
     """
     A :class:`IContainer`-like object that stores the history of
     assignments for a particular user in a course. The keys of this
@@ -209,7 +212,8 @@ class IUsersCourseAssignmentHistory(IContainer,
 class IUsersCourseAssignmentHistoryItemFeedbackContainer(IContainerNamesContainer,
                                                          ICreated,
                                                          ILastModified,
-                                                         IShouldHaveTraversablePath):
+                                                         IShouldHaveTraversablePath,
+                                                         INoAutoIndexEver):
     """
     A container for feedback items.
     """
@@ -231,7 +235,8 @@ class IUsersCourseSubmissionItem(IContained, IShouldHaveTraversablePath):
 class IUsersCourseAssignmentHistoryItemContainer(ILastModified,
                                                  IContained,
                                                  IOrderedContainer,
-                                                 IShouldHaveTraversablePath):
+                                                 IShouldHaveTraversablePath,
+                                                 INoAutoIndexEver):
     """
     An ordered container for storing one or more
     :class:`IUsersCourseAssignmentHistoryItem` submissions for a user,
@@ -322,7 +327,8 @@ class ICourseAssignmentAttemptMetadata(IContainer,
 class IUsersCourseAssignmentAttemptMetadata(ILastModified,
                                             IContained,
                                             IContainer,
-                                            IShouldHaveTraversablePath):
+                                            IShouldHaveTraversablePath,
+                                            INoAutoIndexEver):
     """
     An ordered container for storing one or more
     :class:`IUsersCourseAssignmentAttemptMetadataItemContainer` attempt metadata for a user,
@@ -339,7 +345,8 @@ class IUsersCourseAssignmentAttemptMetadata(ILastModified,
 
 class IUsersCourseAssignmentAttemptMetadataItemContainer(IContained,
                                                          IOrderedContainer,
-                                                         IShouldHaveTraversablePath):
+                                                         IShouldHaveTraversablePath,
+                                                         INoAutoIndexEver):
     """
     A :class:`IContainer`-like object that stores ordered metadata items of
     a particular for a user, course, and assignment. The values are instances

@@ -28,15 +28,16 @@ from six.moves.urllib_parse import unquote
 from zope.dublincore.interfaces import IWriteZopeDublinCore
 
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadata
-from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataItem
 from nti.app.assessment.interfaces import ICourseAssignmentAttemptMetadata
+from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadataItem
 
 from nti.app.assessment.metadata import UsersCourseAssignmentMetadata
+from nti.app.assessment.metadata import CourseAssignmentAttemptMetadata
 from nti.app.assessment.metadata import UsersCourseAssignmentMetadataItem
-from nti.app.assessment.metadata import UsersCourseAssignmentMetadataContainer
 from nti.app.assessment.metadata import UsersCourseAssignmentAttemptMetadata
+from nti.app.assessment.metadata import UsersCourseAssignmentMetadataContainer
 from nti.app.assessment.metadata import UsersCourseAssignmentAttemptMetadataItem
 from nti.app.assessment.metadata import UsersCourseAssignmentAttemptMetadataItemContainer
 
@@ -67,9 +68,11 @@ class TestMetadata(AssessmentLayerTest):
 
     @WithMockDSTrans
     def test_provides(self):
-        container = UsersCourseAssignmentMetadataContainer()
+        container = CourseAssignmentAttemptMetadata()
         assert_that(IWriteZopeDublinCore(container, None),
                     none())
+
+        container = UsersCourseAssignmentMetadataContainer()
         metadata = UsersCourseAssignmentMetadata()
         metadata.__parent__ = container
         # Set an owner; use a python wref instead of the default

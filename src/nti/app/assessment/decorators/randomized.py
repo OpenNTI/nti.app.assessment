@@ -17,7 +17,6 @@ from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecora
 
 from nti.appserver.pyramid_authorization import has_permission
 
-from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQMatchingPart
 from nti.assessment.interfaces import IQOrderingPart
 from nti.assessment.interfaces import IQMultipleChoicePart
@@ -33,16 +32,12 @@ from nti.assessment.randomized import shuffle_multiple_choice_multiple_answer_pa
 from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.randomized.interfaces import IQRandomizedPart
 from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
-from nti.assessment.randomized.interfaces import IRandomizedPartsContainer
 
 from nti.contenttypes.courses.utils import is_course_instructor_or_editor
 
 from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
-from nti.externalization.externalization import to_external_object
-
 from nti.externalization.interfaces import IExternalObjectDecorator
-from nti.externalization.interfaces import IExternalMappingDecorator
 
 logger = __import__('logging').getLogger(__name__)
 
@@ -62,7 +57,7 @@ class _AbstractNonEditorRandomizingDecorator(AbstractAuthenticatedRequestAwareDe
         # We cannot randomize correctly without it; a better solution might be
         # to never return questions/parts for assignments for non-editors
         # without a meta attempt item.
-        return   self._is_authenticated \
+        return  self._is_authenticated \
             and not is_course_instructor_or_editor(course, user) \
             and not has_permission(ACT_CONTENT_EDIT, context, self.request)
 
@@ -133,38 +128,6 @@ class _QRandomizedMultipleChoiceMultipleAnswerPartDecorator(_AbstractNonEditorRa
                                                                    result['solutions'])
 
 
-@component.adapter(IQuestionSet)
-@interface.implementer(IExternalMappingDecorator)
-class _QuestionSetRandomizedPartsDecorator(_AbstractNonEditorRandomizingDecorator):
-    """
-    For question sets marked with `IRandomizedPartsContainer`, externalize all
-    question parts as `IQRandomizedPart`. We do so by temporarily marking these
-    parts as `IQRandomizedPart` during externalization.
-    """
-
-    def _predicate(self, context, result):
-        return  IRandomizedPartsContainer.providedBy(context) \
-            and context.Items \
-            and super(_QuestionSetRandomizedPartsDecorator, self)._predicate(context, result)
-
-    def _do_decorate_external(self, context, result):
-        questions = context.Items
-        result['questions'] = questions_ext = []
-        try:
-            for question in questions:
-                for part in question.parts or ():
-                    interface.alsoProvides(part, IQRandomizedPart)
-                questions_ext.append(to_external_object(question))
-        finally:
-            for question in questions:
-                for part in question.parts or ():
-                    try:
-                        interface.noLongerProvides(part, IQRandomizedPart)
-                    except ValueError:  # pragma: no cover
-                        # Concrete randomized type already.
-                        pass
-
-
 @component.adapter(IRandomizedQuestionSet)
 @interface.implementer(IExternalObjectDecorator)
 class _QRandomizedQuestionSetDecorator(_AbstractNonEditorRandomizingDecorator):
@@ -172,6 +135,8 @@ class _QRandomizedQuestionSetDecorator(_AbstractNonEditorRandomizingDecorator):
     def _do_decorate_external(self, context, result):
         generator = randomize(context=context)
         questions = result.get('questions', ())
+        # XXX: How do we get a non-empty tuple here?
+        result['questions'] = questions = list(questions)
         if generator and questions:
             shuffle_list(generator, questions)
 

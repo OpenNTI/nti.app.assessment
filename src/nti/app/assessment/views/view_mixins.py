@@ -589,7 +589,7 @@ class StructuralValidationMixin(object):
                                             check_solutions=False)
         return result
 
-    def _check_question_structure(self, context, externalValue):
+    def _check_question_structure(self, context, externalValue, require_ntiid=False):
         """
         Determines whether this question has structural changes.
         """
@@ -600,7 +600,7 @@ class StructuralValidationMixin(object):
                                                externalValue.get('ntiid', ''))
         parts = context.parts or ()
         ext_parts = externalValue.get('parts')
-        if      ext_question_ntiid \
+        if      (require_ntiid or ext_question_ntiid) \
             and context.ntiid != ext_question_ntiid:
             result = True
         elif ext_parts is not None \
@@ -635,6 +635,33 @@ class StructuralValidationMixin(object):
             for idx, question in enumerate(questions):
                 ext_question = ext_questions[idx]
                 result = self._check_question_structure(question, ext_question)
+                if result:
+                    break
+        return result
+
+    def _check_survey_structure(self, context, externalValue):
+        """
+        Determines whether this question set has structural changes.
+        """
+        result = False
+        if not isinstance(externalValue, Mapping):
+            return result
+        questions = context.questions or ()
+        ext_questions = externalValue.get('questions')
+        ext_question_set_ntiid = externalValue.get('NTIID',
+                                                   externalValue.get('ntiid', ''))
+        if      ext_questions is not None \
+            and len(questions) != len(ext_questions):
+            result = True
+        elif    ext_question_set_ntiid \
+            and context.ntiid != ext_question_set_ntiid:
+            result = True
+        elif ext_questions is not None:
+            for idx, question in enumerate(questions):
+                ext_question = ext_questions[idx]
+                result = self._check_question_structure(question,
+                                                        ext_question,
+                                                        require_ntiid=True)
                 if result:
                     break
         return result
@@ -685,6 +712,8 @@ class StructuralValidationMixin(object):
             result = self._check_question_set_structure(context, externalValue)
         elif IQuestion.providedBy(context):
             result = self._check_question_structure(context, externalValue)
+        elif IQSurvey.providedBy(context):
+            result = self._check_survey_structure(context, externalValue)
         return result
 
     def _validate_structural_edits(self, context=None):
@@ -831,12 +860,12 @@ class EvaluationMixin(StructuralValidationMixin):
         return theObject
 
     def handle_survey(self, theObject, composite, user):
+        questions = indexed_iter()
+        for idx, poll in enumerate(theObject.questions or ()):
+            poll = self.handle_poll(poll, composite, user)
+            questions.append(poll)
+        theObject.questions = questions
         if self.is_new(theObject):
-            questions = indexed_iter()
-            for poll in theObject.questions or ():
-                poll = self.handle_poll(poll, composite, user)
-                questions.append(poll)
-            theObject.questions = questions
             theObject = self.store_evaluation(theObject, composite, user)
         else:
             theObject = self.get_registered_evaluation(theObject, composite)

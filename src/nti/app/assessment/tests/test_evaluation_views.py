@@ -7,6 +7,7 @@ from __future__ import absolute_import
 
 # disable: accessing protected members, too many methods
 # pylint: disable=W0212,R0904
+import contextlib
 
 from datetime import datetime
 
@@ -30,11 +31,15 @@ import os
 import json
 import time
 import fudge
+import copy
+
 from six.moves.urllib_parse import quote
 
 from zope import component
 
 from zope.intid.interfaces import IIntIds
+
+from zope.lifecycleevent import IObjectModifiedEvent
 
 from nti.app.assessment import get_evaluation_catalog
 
@@ -70,6 +75,8 @@ from nti.appserver.context_providers import get_joinable_contexts
 from nti.appserver.context_providers import get_top_level_contexts
 from nti.appserver.context_providers import get_top_level_contexts_for_user
 
+from nti.assessment import IQPoll
+
 from nti.assessment.interfaces import QUESTION_MIME_TYPE
 from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
 from nti.assessment.interfaces import QUESTION_SET_MIME_TYPE
@@ -82,17 +89,22 @@ from nti.assessment.interfaces import IQuestionSet
 
 from nti.assessment.parts import QFilePart
 
+from nti.assessment.randomized.interfaces import IQuestionBank
+
 from nti.assessment.response import QUploadedFile
 
 from nti.assessment.submission import QuestionSubmission
 from nti.assessment.submission import AssignmentSubmission
 from nti.assessment.submission import QuestionSetSubmission
 
-from nti.assessment.randomized.interfaces import IQuestionBank
+from nti.assessment.survey import QPollSubmission
+from nti.assessment.survey import QSurveySubmission
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.dataserver.users.users import User
+
+from nti.externalization import to_external_object
 
 from nti.externalization.externalization import toExternalObject
 
@@ -114,6 +126,7 @@ from nti.dataserver.tests import mock_dataserver
 
 NTIID = StandardExternalFields.NTIID
 ITEMS = StandardExternalFields.ITEMS
+COURSE_URL = u'/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2015/CS%201323'
 
 
 class TestEvaluationViews(ApplicationLayerTest):
@@ -138,6 +151,12 @@ class TestEvaluationViews(ApplicationLayerTest):
 
     def _load_assignment_no_solutions(self):
         return self._load_json_resource("assignment_no_solutions.json")
+
+    def _load_survey(self):
+        return self._load_json_resource("survey-freeresponse.json")
+
+    def _load_poll(self):
+        return self._load_json_resource("poll1.json")
 
     def _get_course_oid(self, entry_ntiid=None):
         entry_ntiid = entry_ntiid if entry_ntiid else self.entry_ntiid
@@ -1864,3 +1883,176 @@ class TestEvaluationViews(ApplicationLayerTest):
                                        status=200)
         assert_that(res.json_body,
                     has_entry('Items', has_entry(enrolled_student, 0)))
+
+    def _submit_survey(self, item_id, ext_obj):
+        # Make sure we're enrolled
+        self.testapp.post_json('/dataserver2/users/' + self.default_username + '/Courses/EnrolledCourses',
+                               self.entry_ntiid,
+                               status=201)
+
+        course_res = self.testapp.get(COURSE_URL).json_body
+        course_inquiries_link = \
+            self.require_link_href_with_rel(course_res, 'CourseInquiries')
+
+        submission_href = '%s/%s' % (course_inquiries_link, item_id)
+
+        res = self.testapp.post_json(submission_href, ext_obj)
+        survey_item_href = res.json_body['href']
+        assert_that(survey_item_href, is_not(none()))
+
+        res = self.testapp.get(submission_href)
+        assert_that(res.json_body, has_entry('href', is_not(none())))
+        assert_that(res.json_body, has_entry('submissions', is_(1)))
+
+    @WithSharedApplicationMockDS(testapp=True, users=True)
+    @fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
+    def test_editing_surveys(self, fake_active):
+        fake_active.is_callable().returns(True)
+
+        editor_environ = self._make_extra_environ(username="sjohnson@nextthought.com")
+        course_oid = self._get_course_oid()
+        href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
+
+        # Create simple survey with freeresponse part
+        fr_survey = self._load_survey()
+        res = self.testapp.post_json(href, fr_survey, status=201)
+        res = res.json_body
+        survey_href = res.get('href')
+
+        course_inquiries_link = \
+            self.require_link_href_with_rel(res, 'publish')
+        self.testapp.post_json(course_inquiries_link)
+
+        # CAN implicitly create surveys during edits
+        multichoice_poll = self._load_json_resource("poll-multiplechoice.json")
+        res['questions'].append(multichoice_poll)
+
+        with _register_counting_handler() as sub:
+            res = self.testapp.put_json(survey_href,
+                                        {'questions': res['questions']},
+                                        extra_environ=editor_environ)
+
+            # Ensure a single modification event
+            assert_that(sub.count, is_(1))
+
+        res = res.json_body
+        assert_that(res.get('questions'), has_length(2))
+
+        # CAN specify polls by OID
+        questions = copy.copy(res['questions'])
+        obj_ids = [question['OID'] for question in questions]
+        res = self.testapp.put_json(survey_href,
+                                    {'questions': [(obj_ids[0])]},
+                                    extra_environ=editor_environ)
+        res = res.json_body
+        assert_that(res.get('questions'), has_length(1))
+        assert_that(res.get('questions')[0]['OID'], is_(obj_ids[0]))
+
+        # CANNOT make structural changes with submissions
+        survey_id = res['ntiid']
+        poll_id = res['questions'][0]['ntiid']
+        poll_sub = QPollSubmission(pollId=poll_id, parts=[0])
+        submission = QSurveySubmission(surveyId=survey_id,
+                                       questions=[poll_sub])
+
+        ext_obj = to_external_object(submission)
+        self._submit_survey(survey_id, ext_obj)
+
+        #     1. Replaced with another existing poll
+        self.testapp.put_json(survey_href,
+                              {'questions': [questions[1]]},
+                              extra_environ=editor_environ,
+                              status=422)
+
+        #     2. Replaced with a new poll with a different part
+        self.testapp.put_json(survey_href,
+                              {'questions': [multichoice_poll]},
+                              extra_environ=editor_environ,
+                              status=422)
+
+        # Currently fails b/c we don't check that the part type is different
+        # This is less of a concern if the app doesn't allow it, follow up with
+        # app folks to see if this is something that will be allowed to happen,
+        # as it's currently an open question as to how that's going to work
+        #
+        #     3. Same poll, different part
+        # modeled_content_poll = self._load_json_resource("poll-modeledcontent.json")
+        # new_poll = copy.deepcopy(questions[1])
+        # new_poll['part'] = modeled_content_poll['part']
+        #
+        # self.testapp.put_json(survey_href,
+        #                       {'questions': [new_poll]},
+        #                       extra_environ=editor_environ,
+        #                       status=422)
+
+        # CAN make non-structural changes with submissions
+        #     1. When poll is updated
+        updated_question = copy.copy(res['questions'][0])
+        updated_question['content'] = 'updated'
+        res = self.testapp.put_json(survey_href,
+                                    {'questions': [updated_question]},
+                                    extra_environ=editor_environ)
+        res = res.json_body
+        assert_that(res.get('questions'), has_length(1))
+        assert_that(res.get('questions')[0]['content'], is_("updated"))
+
+        poll_href = res.get('questions')[0]['href']
+        poll_res = self.testapp.get(poll_href, extra_environ=editor_environ)
+        poll_res = poll_res.json_body
+        assert_that(poll_res['content'], is_("updated"))
+
+        #     2. When part is updated
+        updated_question['parts'][0]['content'] = "over there"
+        res = self.testapp.put_json(survey_href,
+                                    {'questions': [{
+                                        'ntiid': updated_question['ntiid'],
+                                        'parts': [
+                                            updated_question['parts'][0]
+                                        ]
+                                    }]},
+                                    extra_environ=editor_environ)
+        res = res.json_body
+        assert_that(res.get('questions'), has_length(1))
+        assert_that(res.get('questions')[0]['parts'][0]['content'], is_("over there"))
+
+        poll_href = res.get('questions')[0]['href']
+        poll_res = self.testapp.get(poll_href, extra_environ=editor_environ)
+        poll_res = poll_res.json_body
+        assert_that(poll_res['parts'][0]['content'], is_("over there"))
+
+        # IS NOT updated with policy-only changes on poll
+        last_modified = res['questions'][0]['Last Modified']
+        res = self.testapp.put_json(survey_href,
+                                    {'questions': [{
+                                        'NTIID': res['questions'][0]['ntiid'],
+                                        'available_for_submission_beginning': 1
+                                    }]},
+                                    extra_environ=editor_environ)
+        res = res.json_body
+        assert_that(res.get('questions'), has_length(1))
+        assert_that(res.get('questions')[0]['Last Modified'], is_(last_modified))
+
+        poll_href = res.get('questions')[0]['href']
+        poll_res = self.testapp.get(poll_href, extra_environ=editor_environ)
+        poll_res = poll_res.json_body
+        assert_that(poll_res['Last Modified'], is_(last_modified))
+        assert_that(poll_res['available_for_submission_beginning'], is_not(1))
+
+
+@contextlib.contextmanager
+def _register_counting_handler():
+    gsm = component.getGlobalSiteManager()
+
+    class _CountingSubscriber(object):
+        def __init__(self):
+            self.count = 0
+
+        def __call__(self, _poll, _event):
+            self.count += 1
+
+    handler = _CountingSubscriber()
+    gsm.registerHandler(handler, (IQPoll, IObjectModifiedEvent))
+    try:
+        yield handler
+    finally:
+        gsm.unregisterHandler(handler, (IQPoll, IObjectModifiedEvent))

@@ -1,0 +1,17 @@
+{
+  "MimeType": "application/vnd.nextthought.nasurvey",
+  "questions": [
+	{
+	  "MimeType": "application/vnd.nextthought.napoll",
+	  "disclosure": "termination",
+	  "content": "I'm a freereponse part!",
+	  "parts": [
+		{
+		  "MimeType": "application/vnd.nextthought.assessment.nongradablefreeresponsepart",
+		  "content": "",
+		  "hints": []
+		}
+	  ]
+	}
+  ]
+}

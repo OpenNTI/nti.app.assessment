@@ -183,10 +183,10 @@ def _on_poll_added(poll, unused_event):
 
 
 @component.adapter(IQPoll, IObjectModifiedFromExternalEvent)
-def _on_poll_modified(poll, unused_event):
+def _on_poll_modified(poll, event):
     if IQEditableEvaluation.providedBy(poll):
         _validate_part_resource(poll)
-        _allow_poll_change(poll)
+        _allow_poll_change(poll, event.external_value)
 
 
 @component.adapter(IQuestionSet, IObjectAddedEvent)

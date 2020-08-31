@@ -1,0 +1,13 @@
+{
+  "MimeType": "application/vnd.nextthought.napoll",
+  "disclosure": "termination",
+  "content": "I'm a modeled content part, whee!",
+  "parts": [
+	{
+	  "MimeType": "application/vnd.nextthought.assessment.nongradablemodeledcontentpart",
+	  "content": "there",
+	  "choices": [""],
+	  "solutions": []
+	}
+  ]
+}

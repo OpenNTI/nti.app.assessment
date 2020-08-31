@@ -10,8 +10,12 @@ __docformat__ = "restructuredtext en"
 logger = __import__('logging').getLogger(__name__)
 
 import six
+import contextlib
 import copy
 
+from collections import Mapping
+
+from Acquisition import aq_base
 from requests.structures import CaseInsensitiveDict
 
 from zope import interface
@@ -40,6 +44,7 @@ from nti.app.assessment.evaluations.utils import delete_evaluation
 
 from nti.app.assessment.interfaces import IQEvaluations
 from nti.app.assessment.interfaces import RegradeQuestionEvent
+from nti.app.assessment.interfaces import IQAvoidSolutionCheck
 
 from nti.app.assessment.utils import get_course_from_request
 
@@ -53,6 +58,8 @@ from nti.app.assessment.views.view_mixins import ValidateAutoGradeMixin
 from nti.app.base.abstract_views import get_all_sources
 
 from nti.app.externalization.error import raise_json_error
+
+from nti.app.externalization.internalization import update_object_from_external_object
 
 from nti.app.contentfile import validate_sources
 
@@ -91,8 +98,11 @@ from nti.contenttypes.courses.utils import is_course_instructor
 from nti.dataserver import authorization as nauth
 
 from nti.externalization.interfaces import StandardExternalFields
+from nti.externalization.interfaces import StandardInternalFields
 
 from nti.externalization.internalization import notifyModified
+
+from nti.ntiids.oids import to_external_ntiid_oid
 
 from nti.recorder.record import copy_transaction_history
 
@@ -104,6 +114,7 @@ NTIID = StandardExternalFields.NTIID
 TOTAL = StandardExternalFields.TOTAL
 MIMETYPE = StandardExternalFields.MIMETYPE
 ITEM_COUNT = StandardExternalFields.ITEM_COUNT
+INTERNAL_NTIID = StandardInternalFields.NTIID
 
 
 @view_config(route_name='objects.generic.traversal',
@@ -434,7 +445,7 @@ class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):
         if not is_editor:
             self._validate_instructor_edit(externalValue)
 
-    def _check_object_constraints(self, obj, externalValue):
+    def _check_object_constraints(self, obj, externalValue, preflight=True):
         self._validate_permissions(obj, externalValue)
         editing_keys = set(externalValue.keys())
         if      not IQEditableEvaluation.providedBy(obj) \
@@ -449,7 +460,9 @@ class NewAndLegacyPutView(EvaluationMixin, AssessmentPutView):
                              },
                              None)
         super(NewAndLegacyPutView, self)._check_object_constraints(obj, externalValue)
-        self._pre_flight_validation(obj, externalValue)
+
+        if preflight:
+            self._pre_flight_validation(obj, externalValue)
 
     def readInput(self, value=None):
         result = AssessmentPutView.readInput(self, value=value)
@@ -504,11 +517,71 @@ class SurveyPutView(NewAndLegacyPutView):
     TO_UNAVAILABLE_MSG = _(u'Survey will become unavailable. Please confirm.')
     OBJ_DEF_CHANGE_MSG = _(u"Cannot change the survey definition.")
 
-    def _check_object_constraints(self, obj, externalValue):
-        super(SurveyPutView, self)._check_object_constraints(obj, externalValue)
-        parts = externalValue.get('questions')
-        if parts:
-            self._validate_structural_edits()
+    @contextlib.contextmanager
+    def _skip_solution_check(self, obj):
+        interface.alsoProvides(obj, IQAvoidSolutionCheck)
+        try:
+            yield obj
+        finally:
+            interface.noLongerProvides(obj, IQAvoidSolutionCheck)
+
+    def _update_polls(self, externalValue, notify=True):
+        """
+        Allow updating the entire survey in one shot, including updates
+        to underlying polls.
+
+        We need the original externalized content so can determine whether
+        an update is intended
+        """
+
+        ext_questions = externalValue.get('questions')
+        for i, ext_question in tuple(enumerate(ext_questions or ())):  # modifying
+
+            if not isinstance(ext_question, Mapping):
+                continue
+
+            # Ignore policy key updates
+            for key in self.policy_keys:
+                ext_question.pop(key, None)
+
+            ntiid = ext_question.get(INTERNAL_NTIID) or ext_question.get(NTIID)
+            poll = self.get_registered_evaluation(ntiid, self.composite)
+
+            # No ntiid or no object found with that ntiid
+            if poll is None:
+                continue
+
+            # Need to skip solution check during notifications
+            with self._skip_solution_check(poll) as to_update:
+                if not _ntiid_only(ext_question):
+
+                    # Don't repeat the preflight checks we'll make for the survey
+                    self._check_object_constraints(poll, externalValue, preflight=False)
+
+                    ext_update = copy.deepcopy(ext_question)
+                    poll = update_object_from_external_object(aq_base(to_update),
+                                                              ext_update,
+                                                              notify=False,
+                                                              request=self.request)
+
+                    if notify:
+                        ext_notify = copy.deepcopy(ext_question)
+                        self.notify_and_record(poll, ext_notify)
+
+                # Since polls contain only fields to be updated, they
+                # may not properly internalize later in the process, so
+                # we replace them with an OID that will resolve to the
+                # full object (b/c of __external_oids__ in the survey
+                # internalizer)
+                ext_questions[i] = to_external_ntiid_oid(poll)
+
+    def updateContentObject(self, contentObject, externalValue, set_id=False, notify=True):
+        self._update_polls(externalValue)
+        result = NewAndLegacyPutView.updateContentObject(self,
+                                                       contentObject,
+                                                       externalValue,
+                                                       set_id=set_id)
+        return result
 
     def post_update_check(self, contentObject, originalSource):
         if IQEditableEvaluation.providedBy(contentObject):

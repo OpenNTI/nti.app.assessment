@@ -9,7 +9,6 @@ from __future__ import print_function
 from __future__ import absolute_import
 
 # pylint: disable=inherit-non-class,expression-not-assigned, no-value-for-parameter
-
 from zope import interface
 
 from zope.container.constraints import contains
@@ -24,6 +23,10 @@ from zope.deprecation import deprecated
 
 from zope.interface.interfaces import ObjectEvent
 from zope.interface.interfaces import IObjectEvent
+
+from zope.proxy import ProxyBase
+
+from zope.proxy.decorator import SpecificationDecoratorBase
 
 from zope.security.permission import Permission
 
@@ -47,6 +50,8 @@ from nti.dataserver.interfaces import IModeledContentBody
 from nti.dataserver.interfaces import INeverStoredInSharedStream
 from nti.dataserver.interfaces import IShouldHaveTraversablePath
 from nti.dataserver.interfaces import ExtendedCompoundModeledContentBody
+
+from nti.externalization.persistence import NoPickle
 
 from nti.namedfile.interfaces import IFileConstrained
 
@@ -629,6 +634,22 @@ class IQAvoidSolutionCheck(interface.Interface):
     Marker interface to avoid solution checks
     """
 IQAvoidSolutionCheck.setTaggedValue('_ext_is_marker_interface', True)
+
+
+@NoPickle
+@interface.implementer(IQAvoidSolutionCheck)
+class _AvoidSolutionCheckProxy(SpecificationDecoratorBase):
+    """
+    A proxy for indicating a solution check should be avoided for the
+    proxied object, e.g. with question parts on poll modifications.
+    """
+
+    def __new__(cls, base, *unused_args, **unused_kwargs):
+        return ProxyBase.__new__(cls, base)
+
+    def __init__(self, base):
+        ProxyBase.__init__(self, base)
+        self.part = base
 
 
 class IObjectRegradeEvent(IObjectEvent):

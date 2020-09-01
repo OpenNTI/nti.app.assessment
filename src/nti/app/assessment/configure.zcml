@@ -397,6 +397,10 @@
 
 	<subscriber handler=".survey._on_course_added" />
 
+	<adapter factory=".interfaces._AvoidSolutionCheckProxy"
+             provides=".interfaces.IQAvoidSolutionCheck"
+             for=".interfaces.IQEvaluation" />
+
 	<ext:registerAutoPackageIO
 		root_interfaces=".interfaces.IUsersCourseInquiry
 						 .interfaces.IUsersCourseInquiryItem

@@ -12,7 +12,10 @@ logger = __import__('logging').getLogger(__name__)
 import six
 import copy
 
-from collections import Mapping
+try:
+    from collections.abc import Mapping
+except ImportError: # Py2
+    from collections import Mapping
 
 from Acquisition import aq_base
 from requests.structures import CaseInsensitiveDict

@@ -576,9 +576,9 @@ class StructuralValidationMixin(object):
         Determines whether this question part has structural changes.
         """
         result = False
-        ext_part_ntiid = externalValue.get('NTIID',
-                                           externalValue.get('ntiid', ''))
-        obj_ntiid = getattr(context, 'ntiid', '')
+        ext_part_ntiid = externalValue.get(NTIID,
+                                           externalValue.get(INTERNAL_NTIID, ''))
+        obj_ntiid = getattr(context, INTERNAL_NTIID, '')
         if ext_part_ntiid and obj_ntiid and obj_ntiid != ext_part_ntiid:
             result = True
         else:
@@ -596,8 +596,8 @@ class StructuralValidationMixin(object):
         result = False
         if not isinstance(externalValue, Mapping):
             return result
-        ext_question_ntiid = externalValue.get('NTIID',
-                                               externalValue.get('ntiid', ''))
+        ext_question_ntiid = externalValue.get(NTIID,
+                                               externalValue.get(INTERNAL_NTIID, ''))
         parts = context.parts or ()
         ext_parts = externalValue.get('parts')
         if      (require_ntiid or ext_question_ntiid) \
@@ -623,8 +623,8 @@ class StructuralValidationMixin(object):
             return result
         questions = context.questions or ()
         ext_questions = externalValue.get('questions')
-        ext_question_set_ntiid = externalValue.get('NTIID',
-                                                   externalValue.get('ntiid', ''))
+        ext_question_set_ntiid = externalValue.get(NTIID,
+                                                   externalValue.get(INTERNAL_NTIID, ''))
         if      ext_questions is not None \
             and len(questions) != len(ext_questions):
             result = True
@@ -648,8 +648,8 @@ class StructuralValidationMixin(object):
             return result
         questions = context.questions or ()
         ext_questions = externalValue.get('questions')
-        ext_question_set_ntiid = externalValue.get('NTIID',
-                                                   externalValue.get('ntiid', ''))
+        ext_question_set_ntiid = externalValue.get(NTIID,
+                                                   externalValue.get(INTERNAL_NTIID, ''))
         if      ext_questions is not None \
             and len(questions) != len(ext_questions):
             result = True
@@ -671,8 +671,8 @@ class StructuralValidationMixin(object):
         Determines whether this assignment part has structural changes.
         """
         result = False
-        ext_part_ntiid = externalValue.get('NTIID',
-                                           externalValue.get('ntiid', ''))
+        ext_part_ntiid = externalValue.get(NTIID,
+                                           externalValue.get(INTERNAL_NTIID, ''))
         if ext_part_ntiid \
                 and context.ntiid != ext_part_ntiid:
             result = True

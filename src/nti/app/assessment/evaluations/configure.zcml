@@ -49,9 +49,9 @@
 				for="nti.assessment.interfaces.IQuestionSet
 					 nti.externalization.interfaces.IObjectModifiedFromExternalEvent" />
 
-	<subscriber handler=".subscribers._on_survey_event"
+	<subscriber handler=".subscribers.on_survey_published"
 				for="nti.assessment.interfaces.IQSurvey
-					 zope.lifecycleevent.IObjectAddedEvent" />
+					 nti.publishing.interfaces.IObjectPublishedEvent" />
 
 	<subscriber handler=".subscribers._on_survey_event"
 				for="nti.assessment.interfaces.IQSurvey

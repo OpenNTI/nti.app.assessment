@@ -7,8 +7,6 @@
 from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
-logger = __import__('logging').getLogger(__name__)
-
 import six
 
 from zope import component
@@ -28,7 +26,6 @@ from zope.lifecycleevent.interfaces import IObjectRemovedEvent
 from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment.common.evaluations import get_evaluation_courses
-from nti.app.assessment.common.evaluations import get_course_from_evaluation
 from nti.app.assessment.common.evaluations import get_evaluation_containment
 from nti.app.assessment.common.evaluations import get_containers_for_evaluation_object
 
@@ -49,10 +46,6 @@ from nti.app.assessment.interfaces import IQEvaluations
 from nti.app.assessment.interfaces import IQAvoidSolutionCheck
 from nti.app.assessment.interfaces import IQPartChangeAnalyzer
 from nti.app.assessment.interfaces import IRegradeEvaluationEvent
-
-from nti.app.assessment.utils import get_course_from_request
-
-from nti.app.authentication import get_remote_user
 
 from nti.assessment.common import iface_of_assessment
 
@@ -81,6 +74,9 @@ from nti.externalization.interfaces import IObjectModifiedFromExternalEvent
 
 from nti.ntiids.ntiids import find_object_with_ntiid
 
+from nti.publishing.interfaces import IDefaultPublished
+from nti.publishing.interfaces import IObjectPublishedEvent
+
 from nti.recorder.interfaces import TRX_TYPE_CREATE
 
 from nti.recorder.interfaces import IRecordable
@@ -94,6 +90,8 @@ from nti.site.interfaces import IHostPolicyFolder
 from nti.site.utils import unregisterUtility
 
 from nti.traversal.traversal import find_interface
+
+logger = __import__('logging').getLogger(__name__)
 
 
 @component.adapter(ICourseInstance, IObjectAddedEvent)
@@ -200,15 +198,24 @@ def _on_questionset_event(context, unused_event):
         })
 
 
-@component.adapter(IQSurvey, IObjectAddedEvent)
-@component.adapter(IQSurvey, IObjectModifiedFromExternalEvent)
-def _on_survey_event(context, unused_event):
-    if      IQEditableEvaluation.providedBy(context) \
-        and not context.questions:
+def _require_questions(context):
+    if IQEditableEvaluation.providedBy(context) \
+            and not context.questions:
         raise_error({
             'message': _(u"Survey cannot be empty."),
             'code': 'EmptyQuestionSet',
         })
+
+
+@component.adapter(IQSurvey, IObjectModifiedFromExternalEvent)
+def _on_survey_event(context, _unused_event):
+    if IDefaultPublished.providedBy(context):
+        _require_questions(context)
+
+
+@component.adapter(IQSurvey, IObjectPublishedEvent)
+def on_survey_published(context, _unused_event=None):
+    _require_questions(context)
 
 
 @component.adapter(IQEvaluation, IRegradeEvaluationEvent)

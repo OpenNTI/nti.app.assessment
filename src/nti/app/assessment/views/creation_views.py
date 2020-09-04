@@ -7,7 +7,7 @@
 from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
-logger = __import__('logging').getLogger(__name__)
+import transaction
 
 from collections import Mapping
 
@@ -78,6 +78,8 @@ from nti.externalization.proxy import removeAllProxies
 
 from nti.mimetype.externalization import decorateMimeType
 
+logger = __import__('logging').getLogger(__name__)
+
 OID = StandardExternalFields.OID
 ITEMS = StandardExternalFields.ITEMS
 NTIID = StandardExternalFields.NTIID
@@ -129,6 +131,23 @@ class EvaluationsPostView(EvaluationMixin, UGDPostView):
                                             sources, creator)
         self.request.response.status_int = 201
         return evaluation
+
+
+@view_config(context=IQEvaluations)
+@view_defaults(route_name='objects.generic.traversal',
+               renderer='rest',
+               request_method='PUT',
+               name="preflight",
+               permission=nauth.ACT_CONTENT_EDIT)
+class CreateEvaluationPreflightView(EvaluationsPostView):
+
+    def _do_call(self):
+        try:
+            EvaluationsPostView._do_call(self)
+            return hexc.HTTPNoContent()
+        finally:
+            # preflight only, don't save
+            transaction.doom()
 
 
 @view_config(name=VIEW_COPY_EVALUATION)

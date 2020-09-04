@@ -7,7 +7,7 @@
 from __future__ import print_function, absolute_import, division
 __docformat__ = "restructuredtext en"
 
-logger = __import__('logging').getLogger(__name__)
+import transaction
 
 import six
 import copy
@@ -109,6 +109,8 @@ from nti.ntiids.oids import to_external_ntiid_oid
 from nti.recorder.record import copy_transaction_history
 
 from nti.traversal.traversal import find_interface
+
+logger = __import__('logging').getLogger(__name__)
 
 OID = StandardExternalFields.OID
 ITEMS = StandardExternalFields.ITEMS
@@ -508,6 +510,28 @@ class PollPutView(NewAndLegacyPutView):
     TO_UNAVAILABLE_MSG = _(u'Poll will become unavailable. Please confirm.')
     OBJ_DEF_CHANGE_MSG = _(u"Cannot change the poll definition.")
 
+
+@view_config(route_name='objects.generic.traversal',
+             context=IQPoll,
+             request_method='PUT',
+             name='preflight',
+             renderer='rest')
+class UpdatePollPreflightView(PollPutView):
+
+    def _check_structural_change(self, context, externalValue):
+        self._structural_change = \
+            PollPutView._check_structural_change(self, context, externalValue)
+        return self._structural_change
+
+    def __call__(self, *args, **kwargs):
+        try:
+            super(UpdatePollPreflightView, self).__call__(*args, **kwargs)
+
+            return {
+                'StructuralChanges': self._structural_change
+            }
+        finally:
+            transaction.doom()
 
 @view_config(route_name='objects.generic.traversal',
              context=IQSurvey,

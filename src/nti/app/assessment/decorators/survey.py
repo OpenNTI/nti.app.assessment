@@ -48,14 +48,17 @@ from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQPollSubmission
 from nti.assessment.interfaces import IQSurveySubmission
 from nti.assessment.interfaces import IQAssessmentDateContext
+from nti.assessment.interfaces import IQEditableEvaluation
 
 from nti.contentlibrary.interfaces import IContentUnit
 
 from nti.contenttypes.courses.interfaces import ICourseCatalog
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
+from nti.contenttypes.courses.utils import is_course_editor
 from nti.contenttypes.courses.utils import is_course_instructor
 
+from nti.dataserver.authorization import ACT_CONTENT_EDIT
 from nti.dataserver.authorization import ACT_NTI_ADMIN
 
 from nti.dataserver.interfaces import IUser
@@ -266,3 +269,21 @@ class _InquirySubmissionMetadataDecorator(_InquiryDecorator):
                               elements=('CourseInquiries', 
                                          context.ntiid, 
                                         '@@SubmissionMetadata',)))
+
+
+class _PollPreflightDecorator(_InquiryDecorator):
+
+    def _predicate(self, context, result):
+        result = super(_PollPreflightDecorator, self)._predicate(context, result)
+        return (result
+                and IQEditableEvaluation.providedBy(context)
+                and (is_course_editor(context, self.remoteUser)
+                     or has_permission(ACT_CONTENT_EDIT, context, self.request)
+                     or is_course_instructor(context, self.remoteUser)))
+
+    def _do_decorate_external(self, context, result_map):
+        links = result_map.setdefault(LINKS, [])
+        links.append(Link(context,
+                          method='PUT',
+                          rel='preflight_update',
+                          elements=('@@preflight',)))

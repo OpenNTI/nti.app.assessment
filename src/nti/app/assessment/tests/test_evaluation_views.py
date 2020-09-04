@@ -2038,6 +2038,80 @@ class TestEvaluationViews(ApplicationLayerTest):
         assert_that(poll_res['Last Modified'], is_(last_modified))
         assert_that(poll_res['available_for_submission_beginning'], is_not(1))
 
+    @WithSharedApplicationMockDS(testapp=True, users=True)
+    @fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
+    def test_poll_preflight(self, fake_active):
+        fake_active.is_callable().returns(True)
+
+        enrolled_student = 'test_student'
+        self._create_and_enroll(enrolled_student, self.entry_ntiid)
+        student_environ = self._make_extra_environ(username=enrolled_student)
+        editor_environ = self._make_extra_environ(username="sjohnson@nextthought.com")
+        instructor_environ = self._make_extra_environ(username="cs1323_instructor")
+
+        course_oid = self._get_course_oid()
+        course_href = '/dataserver2/Objects/%s' % quote(course_oid)
+        href = '%s/CourseEvaluations' % course_href
+
+        # Ensure preflight_create links are decorated or not as appropriate
+        #       1. Shouldn't have link for student
+        res = self.testapp.get(course_href, extra_environ=student_environ)
+        self.forbid_link_with_rel(res.json_body, 'preflight_evaluations')
+
+        #       2. Shouldn't have link for instructor (they can't add polls)
+        res = self.testapp.get(course_href, extra_environ=instructor_environ)
+        self.forbid_link_with_rel(res.json_body, 'preflight_evaluations')
+
+        #       3. Should have link for editor
+        res = self.testapp.get(course_href, extra_environ=editor_environ)
+        self.require_link_href_with_rel(res.json_body, 'preflight_evaluations')
+
+        # Create and publish simple poll with multichoice part
+        multichoice_poll = self._load_json_resource("poll-multiplechoice.json")
+        res = self.testapp.post_json(href, multichoice_poll, status=201)
+
+        res = res.json_body
+        publish_link = \
+            self.require_link_href_with_rel(res, 'publish')
+        self.testapp.post_json(publish_link)
+
+        # Ensure links are decorated or not as appropriate
+        #       1. On poll creation
+        preflight_href = self.require_link_href_with_rel(res, 'preflight_update')
+        poll_href = self.require_link_href_with_rel(res, 'edit')
+
+        #       2. Student shouldn't see them
+        res = self.testapp.get(poll_href, extra_environ=student_environ)
+        res = res.json_body
+        self.forbid_link_with_rel(res, 'preflight_update')
+
+        #       3. Should have link for instructor
+        res = self.testapp.get(poll_href, extra_environ=instructor_environ)
+        res = res.json_body
+        self.require_link_href_with_rel(res, 'preflight_update')
+
+        #       4. Should have link for editor
+        res = self.testapp.get(poll_href, extra_environ=editor_environ)
+        res = res.json_body
+        self.require_link_href_with_rel(res, 'preflight_update')
+
+        # Preflight valid part, without structural changes
+        res = self.testapp.put_json(preflight_href, {"content": "updated_content"})
+        res = res.json_body
+        assert_that(res['StructuralChanges'], is_(False))
+
+        # Preflight valid part, with structural changes
+        new_part = copy.deepcopy(multichoice_poll['parts'][0])
+        new_part["choices"] = ["a", "b", "c"]
+        res = self.testapp.put_json(preflight_href, {"parts": [new_part]})
+        res = res.json_body
+        assert_that(res['StructuralChanges'], is_(True))
+
+        # Preflight empty part, should 422
+        res = self.testapp.put_json(preflight_href, {"parts": []}, status=422)
+        res = res.json_body
+        assert_that(res['code'], is_('TooShort'))
+
 
 @contextlib.contextmanager
 def _register_counting_handler():

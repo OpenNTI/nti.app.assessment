@@ -51,6 +51,10 @@ class _CourseEditorLinksDecorator(_AbstractTraversableLinkDecorator):
         links.append(Link(context,
                           rel='CourseEvaluations',
                           elements=('CourseEvaluations',)))
+        links.append(Link(context,
+                          rel='preflight_evaluations',
+                          elements=('CourseEvaluations',
+                                    '@@preflight')))
 
 
 @interface.implementer(IExternalMappingDecorator)

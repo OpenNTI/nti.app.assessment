@@ -712,6 +712,8 @@ class StructuralValidationMixin(object):
             result = self._check_question_set_structure(context, externalValue)
         elif IQuestion.providedBy(context):
             result = self._check_question_structure(context, externalValue)
+        elif IQPoll.providedBy(context):
+            result = self._check_question_structure(context, externalValue)
         elif IQSurvey.providedBy(context):
             result = self._check_survey_structure(context, externalValue)
         return result

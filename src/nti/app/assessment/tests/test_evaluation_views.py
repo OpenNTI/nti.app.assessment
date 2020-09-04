@@ -2064,7 +2064,14 @@ class TestEvaluationViews(ApplicationLayerTest):
 
         #       3. Should have link for editor
         res = self.testapp.get(course_href, extra_environ=editor_environ)
-        self.require_link_href_with_rel(res.json_body, 'preflight_evaluations')
+        preflight_evaluations = self.require_link_href_with_rel(res.json_body, 'preflight_evaluations')
+
+        # Ensure we're getting appropriate validation from it
+        multichoice_poll = self._load_json_resource("poll-multiplechoice.json")
+        multichoice_poll['parts'] = []
+        res = self.testapp.put_json(preflight_evaluations, multichoice_poll, status=422)
+        res = res.json_body
+        assert_that(res['code'], is_('TooShort'))
 
         # Create and publish simple poll with multichoice part
         multichoice_poll = self._load_json_resource("poll-multiplechoice.json")

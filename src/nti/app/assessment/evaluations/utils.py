@@ -84,6 +84,12 @@ from nti.contenttypes.courses.interfaces import NTI_COURSE_FILE_SCHEME
 
 from nti.contenttypes.courses.utils import get_parent_course
 
+from nti.externalization import to_external_object
+
+from nti.externalization.interfaces import StandardExternalFields
+
+from nti.links import Link
+
 from nti.publishing.interfaces import IPublishable
 
 from nti.site.interfaces import IHostPolicyFolder
@@ -92,6 +98,10 @@ from nti.site.utils import registerUtility
 from nti.site.utils import unregisterUtility
 
 logger = __import__('logging').getLogger(__name__)
+
+CLASS = StandardExternalFields.CLASS
+LINKS = StandardExternalFields.LINKS
+MIME_TYPE = StandardExternalFields.MIMETYPE
 
 
 def indexed_iter():
@@ -260,20 +270,46 @@ def register_context(context, force=False, registry=None):
             register_context(item, registry=registry)
 
 
-def validate_submissions(theObject, course, request=None):
+def validate_submissions(theObject, course, request=None, allow_force=False):
     if IQInquiry.providedBy(theObject):
         result = has_inquiry_submissions(theObject, course)
     else:
         result = has_submissions(theObject, course)
     if result:
         request = request or get_current_request()
-        raise_json_error(request,
-                         hexc.HTTPUnprocessableEntity,
-                         {
-                             'message': _(u"Evaluation has submissions."),
-                             'code': 'ObjectHasSubmissions',
-                         },
-                         None)
+
+        message = _(u"Evaluation has submissions.")
+        code = 'ObjectHasSubmissions'
+        if allow_force:
+            raise_destructive_challenge(code, message, request)
+        else:
+            raise_json_error(request,
+                             hexc.HTTPUnprocessableEntity,
+                             {
+                                 'message': message,
+                                 'code': code,
+                             },
+                             None)
+
+
+def raise_destructive_challenge(code, message, request=None, force_flag_name="force"):
+    request = request or get_current_request()
+    params = dict(request.params)
+    params[force_flag_name] = True
+    links = (
+        Link(request.path, rel='confirm',
+             params=params, method='PUT'),
+    )
+    raise_json_error(request,
+                     hexc.HTTPConflict,
+                     {
+                         CLASS: 'DestructiveChallenge',
+                         'message': message,
+                         'code': code,
+                         LINKS: to_external_object(links),
+                         MIME_TYPE: 'application/vnd.nextthought.destructivechallenge'
+                     },
+                     None)
 
 
 def validate_savepoints(theObject, course, request=None):
@@ -300,7 +336,7 @@ def validate_published(theObject, unused_course=None, request=None):
                          None)
 
 
-def validate_structural_edits(theObject, course, request=None):
+def validate_structural_edits(theObject, course, request=None, allow_force=False):
     """
     Validate that we can structurally edit the given evaluation object.
     We can as long as there are no savepoints or submissions.
@@ -308,7 +344,7 @@ def validate_structural_edits(theObject, course, request=None):
     assignments = get_containers_for_evaluation_object(theObject)
     for assignment in assignments:
         validate_savepoints(assignment, course, request)
-    validate_submissions(theObject, course, request)
+    validate_submissions(theObject, course, request, allow_force=allow_force)
 
 
 def delete_evaluation(evaluation):

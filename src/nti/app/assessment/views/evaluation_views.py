@@ -39,6 +39,8 @@ from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 from nti.app.assessment.common.evaluations import get_max_time_allowed
 from nti.app.assessment.common.evaluations import get_containers_for_evaluation_object
 
+from nti.app.assessment.common.history import delete_inquiry_submissions
+
 from nti.app.assessment.common.policy import pre_validate_question_change
 
 from nti.app.assessment.evaluations.utils import indexed_iter
@@ -533,6 +535,7 @@ class UpdatePollPreflightView(PollPutView):
         finally:
             self.request.environ['nti.commit_veto'] = 'abort'
 
+
 @view_config(route_name='objects.generic.traversal',
              context=IQSurvey,
              request_method='PUT',
@@ -543,8 +546,24 @@ class SurveyPutView(NewAndLegacyPutView):
     TO_UNAVAILABLE_MSG = _(u'Survey will become unavailable. Please confirm.')
     OBJ_DEF_CHANGE_MSG = _(u"Cannot change the survey definition.")
 
+    CAN_FORCE_STRUCTURAL_EDITS = True
+
     def _skip_solution_check_proxy(self, obj):
         return IQAvoidSolutionCheck(obj)
+
+    def _clear_submissions(self):
+        delete_inquiry_submissions(self.context, self.course)
+
+    @property
+    def _reset_submissions(self):
+        params = CaseInsensitiveDict(self.request.params)
+        return is_true(params.get('force'))
+
+    def _validate_structural_edits(self, context=None):
+        if self._reset_submissions:
+            self._clear_submissions()
+
+        super(SurveyPutView, self)._validate_structural_edits(context)
 
     def _update_polls(self, externalValue, notify=True):
         """

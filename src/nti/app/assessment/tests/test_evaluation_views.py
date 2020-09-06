@@ -1962,13 +1962,13 @@ class TestEvaluationViews(ApplicationLayerTest):
         self.testapp.put_json(survey_href,
                               {'questions': [questions[1]]},
                               extra_environ=editor_environ,
-                              status=422)
+                              status=409)
 
         #     2. Replaced with a new poll with a different part
         self.testapp.put_json(survey_href,
                               {'questions': [multichoice_poll]},
                               extra_environ=editor_environ,
-                              status=422)
+                              status=409)
 
         # Currently fails b/c we don't check that the part type is different
         # This is less of a concern if the app doesn't allow it, follow up with
@@ -1983,7 +1983,7 @@ class TestEvaluationViews(ApplicationLayerTest):
         # self.testapp.put_json(survey_href,
         #                       {'questions': [new_poll]},
         #                       extra_environ=editor_environ,
-        #                       status=422)
+        #                       status=409)
 
         # CAN make non-structural changes with submissions
         #     1. When poll is updated
@@ -2132,6 +2132,60 @@ class TestEvaluationViews(ApplicationLayerTest):
         res = self.testapp.put_json(preflight_href, {"parts": []}, status=422)
         res = res.json_body
         assert_that(res['code'], is_('TooShort'))
+
+
+    @WithSharedApplicationMockDS(testapp=True, users=True)
+    @fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
+    def test_edit_survey_with_submissions(self, fake_active):
+        fake_active.is_callable().returns(True)
+
+        editor_environ = self._make_extra_environ(username="sjohnson@nextthought.com")
+        course_oid = self._get_course_oid()
+        href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
+
+        # Create simple survey with freeresponse part
+        fr_survey = self._load_survey()
+        res = self.testapp.post_json(href, fr_survey, status=201)
+        res = res.json_body
+        survey_href = res.get('href')
+
+        publish_link = \
+            self.require_link_href_with_rel(res, 'publish')
+        self.testapp.post_json(publish_link)
+
+        survey_id = res['ntiid']
+        poll_id = res['questions'][0]['ntiid']
+        self.submit_survey(survey_id, poll_id)
+
+        # MUST CONFIRM structural changes with submissions
+        multichoice_poll = self._load_json_resource("poll-multiplechoice.json")
+        res['questions'].append(multichoice_poll)
+        update = {
+            'questions': res['questions']
+        }
+
+        res = self.testapp.put_json(survey_href,
+                                    update,
+                                    extra_environ=editor_environ,
+                                    status=409)
+        res = res.json_body
+        force_href = self.require_link_href_with_rel(res, 'confirm')
+
+        self.testapp.put_json(force_href,
+                              update,
+                              extra_environ=editor_environ)
+
+    def submit_survey(self, survey_id, poll_id):
+        submission = self._create_submission(survey_id,
+                                             poll_id)
+        ext_obj = to_external_object(submission)
+        self._submit_survey(survey_id, ext_obj)
+
+    def _create_submission(self, survey_id, poll_id):
+        poll_sub = QPollSubmission(pollId=poll_id, parts=[0])
+        submission = QSurveySubmission(surveyId=survey_id,
+                                       questions=[poll_sub])
+        return submission
 
 
 @contextlib.contextmanager

@@ -51,6 +51,8 @@ from nti.app.assessment.evaluations.utils import register_context
 from nti.app.assessment.evaluations.utils import import_evaluation_content
 from nti.app.assessment.evaluations.utils import validate_structural_edits
 from nti.app.assessment.evaluations.utils import re_register_assessment_object
+from nti.app.assessment.evaluations.utils import raise_destructive_challenge
+
 
 from nti.app.assessment.interfaces import IQEvaluations
 from nti.app.assessment.interfaces import IQAvoidSolutionCheck
@@ -162,22 +164,10 @@ class AssessmentPutView(UGDPutView):
                     code,
                     ntiid,
                     entry.ntiid)
-        params = dict(self.request.params)
-        params[force_flag_name] = True
-        links = (
-            Link(self.request.path, rel='confirm',
-                 params=params, method='PUT'),
-        )
-        raise_json_error(self.request,
-                         hexc.HTTPConflict,
-                         {
-                             CLASS: 'DestructiveChallenge',
-                             'message': message,
-                             'code': code,
-                             LINKS: to_external_object(links),
-                             MIME_TYPE: 'application/vnd.nextthought.destructivechallenge'
-                         },
-                         None)
+        raise_destructive_challenge(code,
+                                    message,
+                                    request=self.request,
+                                    force_flag_name=force_flag_name)
 
     @classmethod
     def _is_date_in_range(cls, start_date, end_date, now):
@@ -552,6 +542,8 @@ class StructuralValidationMixin(object):
     A mixin to validate the structural state of an IQEditableEvaluation object.
     """
 
+    CAN_FORCE_STRUCTURAL_EDITS = False
+
     @Lazy
     def composite(self):
         result = find_interface(self.context, ICourseInstance, strict=False)
@@ -727,7 +719,8 @@ class StructuralValidationMixin(object):
         # Validate for all possible courses.
         courses = get_courses(self.course)
         for course in courses or ():
-            validate_structural_edits(context, course)
+            allow_force = self.CAN_FORCE_STRUCTURAL_EDITS
+            validate_structural_edits(context, course, allow_force=allow_force)
 
     def _pre_flight_validation(self, context, externalValue=None, structural_change=False):
         """

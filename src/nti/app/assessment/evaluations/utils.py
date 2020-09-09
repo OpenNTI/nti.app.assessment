@@ -17,6 +17,7 @@ from html5lib import treebuilders
 from ordered_set import OrderedSet
 
 from zope import component
+from zope import interface
 from zope import lifecycleevent
 
 from zope.component.hooks import getSite
@@ -32,11 +33,15 @@ from nti.app.assessment import MessageFactory as _
 from nti.app.assessment.common.history import has_savepoints
 
 from nti.app.assessment.common.evaluations import get_containers_for_evaluation_object
+from nti.app.assessment.common.evaluations import get_evaluation_containment
 
 from nti.app.assessment.common.hostpolicy import get_resource_site_registry
 
 from nti.app.assessment.common.submissions import has_submissions
 from nti.app.assessment.common.submissions import has_inquiry_submissions
+
+from nti.app.assessment.evaluations.interfaces import IQCreationContext
+from nti.app.assessment.evaluations.interfaces import IQConstituentCleaner
 
 from nti.app.assessment.interfaces import IQEvaluations
 
@@ -69,6 +74,7 @@ from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignmentPart
 from nti.assessment.interfaces import IQEvaluationItemContainer
 from nti.assessment.interfaces import IQNonGradableFillInTheBlankWithWordBankPart
+from nti.assessment.interfaces import IQEditableEvaluation
 
 from nti.contentfile.interfaces import IContentBaseFile
 
@@ -83,6 +89,8 @@ from nti.contenttypes.courses.discussions.utils import get_topic_key
 from nti.contenttypes.courses.interfaces import NTI_COURSE_FILE_SCHEME
 
 from nti.contenttypes.courses.utils import get_parent_course
+
+from nti.coremetadata.interfaces import IDeletedObjectPlaceholder
 
 from nti.externalization import to_external_object
 
@@ -357,6 +365,13 @@ def delete_evaluation(evaluation):
             if part.question_set is not None:
                 delete_evaluation(part.question_set)
 
+    # Clean up any constituents created in the same context
+    cleaner = IQConstituentCleaner(evaluation, None)
+    if cleaner is not None:
+        candidate_parts = getattr(evaluation, "parts", None)
+        if candidate_parts:
+            cleaner.clean_constituents(candidate_parts)
+
     # delete from evaluations .. see adapters/model
     context = None
     try:
@@ -420,3 +435,46 @@ def re_register_assessment_object(context, old_iface, new_iface):
     unregisterUtility(registry, provided=old_iface, name=ntiid)
     # Make sure we re-index.
     lifecycleevent.modified(context)
+
+
+@interface.implementer(IQConstituentCleaner)
+class QConstituentCleaner(object):
+
+    def __init__(self, context):
+        self.context = context
+
+    def clean_consitutents(self, candidates):
+        for candidate in candidates:
+            if self._should_delete(candidate):
+                delete_evaluation(candidate)
+
+    def _should_delete(self, poll):
+        result = poll is not None \
+                 and self._creation_context_matches(poll) \
+                 and not self._is_deleted(poll) \
+                 and self._is_editable(poll)
+
+        if result:
+            refs = get_evaluation_containment(poll.ntiid)
+            if refs:
+                logger.info("Skipping removal of %s, still referenced by: %s",
+                            poll.ntiid,
+                            refs)
+                return False
+
+        return result
+
+    def _creation_context_matches(self, theObject):
+        eval_creation_context = IQCreationContext(theObject, None)
+        context_ntiid = getattr(eval_creation_context, "NTIID", None)
+
+        if context_ntiid is not None:
+            return self.context.ntiid == context_ntiid
+
+        return False
+
+    def _is_deleted(self, o):
+        return IDeletedObjectPlaceholder.providedBy(o)
+
+    def _is_editable(self, o):
+        return IQEditableEvaluation.providedBy(o)

@@ -2073,6 +2073,14 @@ class TestEvaluationViews(ApplicationLayerTest):
         res = res.json_body
         assert_that(res['code'], is_('TooShort'))
 
+        # Ensure valid preflight doesn't create
+        multichoice_poll = self._load_json_resource("poll-multiplechoice.json")
+        self.testapp.put_json(preflight_evaluations, multichoice_poll, status=204)
+
+        evaluations_res = self.testapp.get(href)
+        evaluations_res = evaluations_res.json_body
+        assert_that(evaluations_res['Items'], has_length(0))
+
         # Create and publish simple poll with multichoice part
         multichoice_poll = self._load_json_resource("poll-multiplechoice.json")
         res = self.testapp.post_json(href, multichoice_poll, status=201)
@@ -2086,6 +2094,7 @@ class TestEvaluationViews(ApplicationLayerTest):
         #       1. On poll creation
         preflight_href = self.require_link_href_with_rel(res, 'preflight_update')
         poll_href = self.require_link_href_with_rel(res, 'edit')
+        original_content = res['content']
 
         #       2. Student shouldn't see them
         res = self.testapp.get(poll_href, extra_environ=student_environ)
@@ -2103,9 +2112,14 @@ class TestEvaluationViews(ApplicationLayerTest):
         self.require_link_href_with_rel(res, 'preflight_update')
 
         # Preflight valid part, without structural changes
+        assert_that(original_content, is_not("updated_content"))
         res = self.testapp.put_json(preflight_href, {"content": "updated_content"})
         res = res.json_body
         assert_that(res['StructuralChanges'], is_(False))
+
+        res = self.testapp.get(poll_href)
+        res = res.json_body
+        assert_that(res['content'], is_(original_content))
 
         # Preflight valid part, with structural changes
         new_part = copy.deepcopy(multichoice_poll['parts'][0])

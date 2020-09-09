@@ -43,6 +43,8 @@ from nti.app.assessment.common.history import delete_inquiry_submissions
 
 from nti.app.assessment.common.policy import pre_validate_question_change
 
+from nti.app.assessment.evaluations.interfaces import IQConstituentCleaner
+
 from nti.app.assessment.evaluations.utils import indexed_iter
 from nti.app.assessment.evaluations.utils import delete_evaluation
 
@@ -617,11 +619,27 @@ class SurveyPutView(NewAndLegacyPutView):
 
     def updateContentObject(self, contentObject, externalValue, set_id=False, notify=True):
         self._update_polls(externalValue)
+
+        # Fetch existing polls prior to update
+        existing_polls = list(contentObject.questions or ())
+
         result = NewAndLegacyPutView.updateContentObject(self,
                                                        contentObject,
                                                        externalValue,
                                                        set_id=set_id)
+
+        self._delete_unused_polls(existing_polls, contentObject.questions)
+
         return result
+
+    def _delete_unused_polls(self, existing_polls, new_polls):
+        new_poll_ids = set(poll.ntiid for poll in new_polls or ())
+
+        candidates = [poll for poll in existing_polls
+                      if poll.ntiid not in new_poll_ids]
+
+        IQConstituentCleaner(self.context).clean_consitutents(candidates)
+
 
     def post_update_check(self, contentObject, originalSource):
         if IQEditableEvaluation.providedBy(contentObject):

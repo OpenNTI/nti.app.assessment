@@ -30,6 +30,8 @@ from nti.app.assessment import VIEW_ASSESSMENT_MOVE
 from nti.app.assessment import VIEW_COPY_EVALUATION
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 
+from nti.app.assessment.evaluations.interfaces import IQCreationContext
+
 from nti.app.assessment.interfaces import IQEvaluations
 
 from nti.app.assessment.utils import get_course_from_request
@@ -102,6 +104,12 @@ class EvaluationsPostView(EvaluationMixin, UGDPostView):
         [result.pop(x, None) for x in (VERSION, VERSION.lower())]
         return result
 
+    def _handle_creation_context(self, context):
+        params = CaseInsensitiveDict(self.request.params)
+        if 'creation_context' in params:
+            creation_context = params['creation_context']
+            IQCreationContext(context).NTIID = creation_context
+
     def postCreateObject(self, context, externalValue):
         if IQuestionSet.providedBy(context) and not context.questions:
             self.auto_complete_questionset(context, externalValue)
@@ -110,6 +118,8 @@ class EvaluationsPostView(EvaluationMixin, UGDPostView):
         elif    IQAssignment.providedBy(context) \
             and (not context.parts or any(p.question_set is None for p in context.parts)):
             self.auto_complete_assignment(context, externalValue)
+
+        self._handle_creation_context(context)
 
     def readCreateUpdateContentObject(self, creator, search_owner=False, externalValue=None):
         result = self.performReadCreateUpdateContentObject(creator, search_owner,

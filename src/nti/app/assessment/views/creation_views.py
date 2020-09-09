@@ -147,7 +147,7 @@ class CreateEvaluationPreflightView(EvaluationsPostView):
             return hexc.HTTPNoContent()
         finally:
             # preflight only, don't save
-            transaction.doom()
+            self.request.environ['nti.commit_veto'] = 'abort'
 
 
 @view_config(name=VIEW_COPY_EVALUATION)

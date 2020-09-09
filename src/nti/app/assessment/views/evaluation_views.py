@@ -531,7 +531,7 @@ class UpdatePollPreflightView(PollPutView):
                 'StructuralChanges': self._structural_change
             }
         finally:
-            transaction.doom()
+            self.request.environ['nti.commit_veto'] = 'abort'
 
 @view_config(route_name='objects.generic.traversal',
              context=IQSurvey,

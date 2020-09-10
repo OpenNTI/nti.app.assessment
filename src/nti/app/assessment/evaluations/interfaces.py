@@ -25,26 +25,23 @@ class ICourseEvaluationsSectionImporter(ICourseSectionImporter):
     pass
 
 
-class IQCreationContext(interface.Interface):
+class IImplicitlyDeletable(interface.Interface):
     """
-    Provides a way to reference an object in which the associated
-    object was created.  E.g. this could be annotated on a poll to
-    reference the survey it was created for.
-    """
-
-    NTIID = ValidNTIID(title=u"The NTIID of the object (context) in which "
-                             u"the associated object was created",
-                       required=False)
-
-
-class IQConstituentCleaner(interface.Interface):
-    """
-    Provides a way to clean up consituents that are part of the same
-    creation context when the primary object is removed.
+    Marker interface indicating we can safely remove the object
+    when there are no more references to it, e.g. a poll created
+    in the context of a survey.
     """
 
-    def clean_consitutents(candidates):
+
+class IEvaluationCleaner(interface.Interface):
+    """
+    Provides a way to clean up IImplicitlyDeletable objects that are
+    no longer reference by other objects, e.g. when polls created in the
+    context of a survey are removed from the survey.
+    """
+
+    def remove_unreferenced_evaluations(candidates):
         """
-        Provided a set of candidates, remove any created in the
-        associated context.
+        Provided a set of candidates, remove any that are implicitly
+        deletable and no longer referenced.
         """

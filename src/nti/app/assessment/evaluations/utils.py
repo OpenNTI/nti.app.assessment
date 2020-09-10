@@ -40,8 +40,8 @@ from nti.app.assessment.common.hostpolicy import get_resource_site_registry
 from nti.app.assessment.common.submissions import has_submissions
 from nti.app.assessment.common.submissions import has_inquiry_submissions
 
-from nti.app.assessment.evaluations.interfaces import IQCreationContext
-from nti.app.assessment.evaluations.interfaces import IQConstituentCleaner
+from nti.app.assessment.evaluations.interfaces import IImplicitlyDeletable
+from nti.app.assessment.evaluations.interfaces import IEvaluationCleaner
 
 from nti.app.assessment.interfaces import IQEvaluations
 
@@ -365,13 +365,6 @@ def delete_evaluation(evaluation):
             if part.question_set is not None:
                 delete_evaluation(part.question_set)
 
-    # Clean up any constituents created in the same context
-    cleaner = IQConstituentCleaner(evaluation, None)
-    if cleaner is not None:
-        candidate_parts = getattr(evaluation, "parts", None)
-        if candidate_parts:
-            cleaner.clean_constituents(candidate_parts)
-
     # delete from evaluations .. see adapters/model
     context = None
     try:
@@ -382,6 +375,13 @@ def delete_evaluation(evaluation):
     except AttributeError:
         pass
     evaluation.__home__ = None
+
+    # Clean up any constituents created in the same context
+    cleaner = IEvaluationCleaner(evaluation, None)
+    if cleaner is not None:
+        candidate_parts = getattr(evaluation, "parts", None)
+        if candidate_parts:
+            cleaner.remove_unreferenced_evaluations(candidate_parts)
 
     # remove from registry
     provided = interface_of_assessment(evaluation)
@@ -437,20 +437,20 @@ def re_register_assessment_object(context, old_iface, new_iface):
     lifecycleevent.modified(context)
 
 
-@interface.implementer(IQConstituentCleaner)
-class QConstituentCleaner(object):
+@interface.implementer(IEvaluationCleaner)
+class EvaluationCleaner(object):
 
     def __init__(self, context):
         self.context = context
 
-    def clean_consitutents(self, candidates):
+    def remove_unreferenced_evaluations(self, candidates):
         for candidate in candidates:
             if self._should_delete(candidate):
                 delete_evaluation(candidate)
 
     def _should_delete(self, poll):
         result = poll is not None \
-                 and self._creation_context_matches(poll) \
+                 and self._is_implicitly_deletable(poll) \
                  and not self._is_deleted(poll) \
                  and self._is_editable(poll)
 
@@ -464,17 +464,14 @@ class QConstituentCleaner(object):
 
         return result
 
-    def _creation_context_matches(self, theObject):
-        eval_creation_context = IQCreationContext(theObject, None)
-        context_ntiid = getattr(eval_creation_context, "NTIID", None)
+    @staticmethod
+    def _is_implicitly_deletable(theObject):
+        return IImplicitlyDeletable.providedBy(theObject)
 
-        if context_ntiid is not None:
-            return self.context.ntiid == context_ntiid
-
-        return False
-
-    def _is_deleted(self, o):
+    @staticmethod
+    def _is_deleted(o):
         return IDeletedObjectPlaceholder.providedBy(o)
 
-    def _is_editable(self, o):
+    @staticmethod
+    def _is_editable(o):
         return IQEditableEvaluation.providedBy(o)

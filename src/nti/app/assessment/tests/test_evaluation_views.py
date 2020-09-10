@@ -2238,6 +2238,7 @@ class TestEvaluationViews(ApplicationLayerTest):
 
         res = self.testapp.post_json(eval_href, new_survey, status=201)
         res = res.json_body
+        survey_two_href = res['href']
         assert_that(res["questions"], has_length(1))
         assert_that(res["questions"][0]["NTIID"], is_(multichoice_ntiid))
 
@@ -2256,6 +2257,12 @@ class TestEvaluationViews(ApplicationLayerTest):
 
         # Dereferenced poll should no longer be accessible
         self.testapp.get(modeledcontent_href, status=404)
+
+        # Remove second survey
+        self.testapp.delete(survey_two_href, fr_survey)
+
+        # Dereferenced poll should no longer be accessible
+        self.testapp.get(multichoice_href, status=404)
 
 
 @contextlib.contextmanager

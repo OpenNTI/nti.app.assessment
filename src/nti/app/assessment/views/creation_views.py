@@ -30,7 +30,7 @@ from nti.app.assessment import VIEW_ASSESSMENT_MOVE
 from nti.app.assessment import VIEW_COPY_EVALUATION
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 
-from nti.app.assessment.evaluations.interfaces import IQCreationContext
+from nti.app.assessment.evaluations.interfaces import IImplicitlyDeletable
 
 from nti.app.assessment.interfaces import IQEvaluations
 
@@ -66,6 +66,8 @@ from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import QuestionInsertedInContainerEvent
 
 from nti.assessment.interfaces import QuestionMovedEvent
+
+from nti.common.string import is_true
 
 from nti.dataserver import authorization as nauth
 
@@ -106,9 +108,10 @@ class EvaluationsPostView(EvaluationMixin, UGDPostView):
 
     def _handle_creation_context(self, context):
         params = CaseInsensitiveDict(self.request.params)
-        if 'creation_context' in params:
-            creation_context = params['creation_context']
-            IQCreationContext(context).NTIID = creation_context
+        if 'implicitly_deletable' in params:
+            implicitly_deletable = is_true(params['implicitly_deletable'])
+            if implicitly_deletable:
+                interface.alsoProvides(context, IImplicitlyDeletable)
 
     def postCreateObject(self, context, externalValue):
         if IQuestionSet.providedBy(context) and not context.questions:

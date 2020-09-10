@@ -10,8 +10,6 @@ __docformat__ = "restructuredtext en"
 from zope import component
 from zope import interface
 
-from zope.annotation import factory as an_factory
-
 from zope.annotation.interfaces import IAnnotations
 
 from ZODB.interfaces import IConnection
@@ -31,17 +29,8 @@ from nti.contentlibrary.interfaces import IEditableContentPackage
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
-from nti.schema.fieldproperty import createDirectFieldProperties
-
 from nti.traversal.traversal import find_interface
 from nti.traversal.traversal import ContainerAdapterTraversable
-
-from nti.app.assessment.evaluations.interfaces import IQCreationContext
-from nti.assessment.interfaces import IQEvaluation
-
-#: The key used to store creation context for evaluation objects
-#: such as polls created in the context of a survey
-CREATION_CONTEXT_ANNOTATION_KEY = 'EVALUATION_CREATION_CONTEXT'
 
 logger = __import__('logging').getLogger(__name__)
 
@@ -112,14 +101,3 @@ class EvaluationsTraversable(ContainerAdapterTraversable):
 
     def traverse(self, key, remaining_path):
         return super(EvaluationsTraversable, self).traverse(key, remaining_path)
-
-
-@component.adapter(IQEvaluation)
-@interface.implementer(IQCreationContext)
-class QCreationContext(object):
-
-    createDirectFieldProperties(IQCreationContext)
-
-
-_QCreationContext = an_factory(QCreationContext,
-                               CREATION_CONTEXT_ANNOTATION_KEY)

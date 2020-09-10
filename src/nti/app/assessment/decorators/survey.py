@@ -306,5 +306,5 @@ class _CreatePollDecorator(_InquiryDecorator):
                           method='POST',
                           rel='create_poll',
                           params={
-                              "creation_context": context.ntiid
+                              "implicitly_deletable": "true"
                           }))

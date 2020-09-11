@@ -1,0 +1,85 @@
+{
+  "ItemCount": 2,
+  "Items": [
+	{
+	  "MimeType": "application/vnd.nextthought.napoll",
+	  "disclosure": "termination",
+	  "publishLastModified": null,
+	  "version": null,
+	  "Creator": "sjohnson@nextthought.com",
+	  "Last Modified": 1599770736.508551,
+	  "available_for_submission_beginning": null,
+	  "ntiid": "tag:nextthought.com,2011-10:OU-NAQ-poll_system_4744496732793012824_1679835696",
+	  "available_for_submission_ending": null,
+	  "isPublished": false,
+	  "content": "I\\'m a freereponse part!",
+	  "NTIID": "tag:nextthought.com,2011-10:OU-NAQ-poll_system_4744496732793012824_1679835696",
+	  "isLocked": false,
+	  "parts": [
+		{
+		  "MimeType": "application/vnd.nextthought.assessment.nongradablefreeresponsepart",
+		  "content": "",
+		  "Class": "FreeResponsePart",
+		  "hints": []
+		}
+	  ],
+	  "CreatedTime": 1599770736.508551,
+	  "is_non_public": false,
+	  "publishEnding": null,
+	  "Class": "Poll",
+	  "publishBeginning": null,
+	  "tags": []
+	}, {
+	  "MimeType": "application/vnd.nextthought.nasurvey",
+	  "disclosure": "termination",
+	  "version": null,
+	  "Creator": "sjohnson@nextthought.com",
+	  "Last Modified": 1599770736.506888,
+	  "available_for_submission_beginning": null,
+	  "publishLastModified": null,
+	  "available_for_submission_ending": null,
+	  "isPublished": false,
+	  "ntiid": "tag:nextthought.com,2011-10:OU-NAQ-survey_system_4744496732793162703_1679835696",
+	  "NTIID": "tag:nextthought.com,2011-10:OU-NAQ-survey_system_4744496732793162703_1679835696",
+	  "isLocked": false,
+	  "tags": [],
+	  "publishBeginning": null,
+	  "questions": [
+		{
+		  "MimeType": "application/vnd.nextthought.napoll",
+		  "disclosure": "termination",
+		  "publishLastModified": null,
+		  "version": null,
+		  "Creator": "sjohnson@nextthought.com",
+		  "Last Modified": 1599770736.508551,
+		  "available_for_submission_beginning": null,
+		  "ntiid": "tag:nextthought.com,2011-10:OU-NAQ-poll_system_4744496732793012824_1679835696",
+		  "available_for_submission_ending": null,
+		  "publishEnding": null,
+		  "content": "I\\'m a freereponse part!",
+		  "NTIID": "tag:nextthought.com,2011-10:OU-NAQ-poll_system_4744496732793012824_1679835696",
+		  "parts": [
+			{
+			  "MimeType": "application/vnd.nextthought.assessment.nongradablefreeresponsepart",
+			  "content": "",
+			  "Class": "FreeResponsePart",
+			  "hints": []
+			}
+		  ],
+		  "CreatedTime": 1599770736.508551,
+		  "is_non_public": false,
+		  "tags": [],
+		  "Class": "Poll",
+		  "publishBeginning": null
+		}
+	  ],
+	  "CreatedTime": 1599770736.506888,
+	  "title": "",
+	  "is_non_public": false,
+	  "publishEnding": null,
+	  "Class": "Survey",
+	  "contents": ""
+	}
+  ],
+  "Total": 2
+}

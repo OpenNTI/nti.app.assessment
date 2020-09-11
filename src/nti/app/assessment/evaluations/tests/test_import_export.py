@@ -55,7 +55,78 @@ from nti.app.testing.decorators import WithSharedApplicationMockDS
 from nti.dataserver.tests import mock_dataserver
 
 
-class TestImportExport(ApplicationLayerTest):
+class ImportExportTestMixin(object):
+
+    entry_ntiid = None
+
+    IMPORTED_NTIIDS = ()
+    NTIIDS_TO_REMOVE = ()
+    REMOVED_NTIIDS = ()
+
+    def load_resource(self, resource):
+        path = os.path.join(os.path.dirname(__file__), resource)
+        with open(path, "r") as fp:
+            return fp.read()
+
+    def _post_process_import(self):
+        pass
+
+    def _test_import_export(self, resource):
+        source = self.load_resource(resource)
+        with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+            entry = find_object_with_ntiid(self.entry_ntiid)
+            course = ICourseInstance(entry)
+            importer = EvaluationsImporter()
+            importer.process_source(course, source, None)
+
+            self._post_process_import()
+
+        with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+            entry = find_object_with_ntiid(self.entry_ntiid)
+            course = ICourseInstance(entry)
+            evals = IQEvaluations(course)
+            assert_that(evals, has_length(len(self.IMPORTED_NTIIDS)))
+            for key in self.IMPORTED_NTIIDS:
+                registered = component.queryUtility(IQEvaluation, name=key)
+                assert_that(registered, is_not(none()))
+                assert_that(evals, has_key(key))
+                assert_that(evals[key], is_(same_instance(registered)))
+                assert_that(registered,
+                            has_property('__home__'), is_(course))
+
+            exporter = EvaluationsExporter()
+            result = exporter.export_evaluations(course)
+            assert_that(result,
+                        has_entries('Items', has_length(len(self.IMPORTED_NTIIDS)),
+                                    'Total', is_(len(self.IMPORTED_NTIIDS))))
+
+        with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+            entry = find_object_with_ntiid(self.entry_ntiid)
+            course = ICourseInstance(entry)
+            evals = IQEvaluations(course)
+            for to_remove in self.NTIIDS_TO_REMOVE:
+                registered = component.queryUtility(IQEvaluation,
+                                                    name=to_remove)
+                delete_evaluation(registered)
+            for key in self.REMOVED_NTIIDS:
+                registered = component.queryUtility(IQEvaluation, name=key)
+                assert_that(registered, is_(none()))
+                assert_that(evals, does_not(has_key(key)))
+            num_evals_after_removal = len(self.IMPORTED_NTIIDS) - len(self.REMOVED_NTIIDS)
+            assert_that(evals, has_length(num_evals_after_removal))
+
+        with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+            entry = find_object_with_ntiid(self.entry_ntiid)
+            course = ICourseInstance(entry)
+            exporter = EvaluationsExporter()
+            result = exporter.export_evaluations(course, False,
+                                                 str(time.time()))
+            assert_that(result,
+                        has_entries('Items', has_length(num_evals_after_removal),
+                                    'Total', is_(num_evals_after_removal)))
+
+
+class TestImportExport(ImportExportTestMixin, ApplicationLayerTest):
 
     layer = InstructedCourseApplicationTestLayer
 
@@ -67,10 +138,9 @@ class TestImportExport(ApplicationLayerTest):
     S_NTIID = u'tag:nextthought.com,2011-10:NTI-NAQ-0083'
     A_NTIID = u'tag:nextthought.com,2011-10:NTI-NAQ-0084'
 
-    def load_resource(self, resource):
-        path = os.path.join(os.path.dirname(__file__), resource)
-        with open(path, "r") as fp:
-            return fp.read()
+    IMPORTED_NTIIDS = (Q_NTIID, S_NTIID, A_NTIID)
+    NTIIDS_TO_REMOVE = (A_NTIID,)
+    REMOVED_NTIIDS = (S_NTIID, A_NTIID)
 
     def prepare_json_text(self, data):
         if isinstance(data, bytes):
@@ -79,60 +149,14 @@ class TestImportExport(ApplicationLayerTest):
 
     @WithSharedApplicationMockDS(testapp=False, users=False)
     def test_import_export(self):
-        source = self.load_resource("evaluation_index.json")
-        with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
-            entry = find_object_with_ntiid(self.entry_ntiid)
-            course = ICourseInstance(entry)
-            importer = EvaluationsImporter()
-            importer.process_source(course, source, None)
+        self._test_import_export("evaluation_index.json")
 
-            # Timed assignment is marker interface
-            timed_assignment = component.queryUtility(IQEvaluation,
-                                                      name=self.A_NTIID)
-            interface.noLongerProvides(timed_assignment, IQTimedAssignment)
-            interface.alsoProvides(timed_assignment, IQTimedAssignment)
-
-        with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
-            entry = find_object_with_ntiid(self.entry_ntiid)
-            course = ICourseInstance(entry)
-            evals = IQEvaluations(course)
-            assert_that(evals, has_length(3))
-            for key in (self.Q_NTIID, self.S_NTIID, self.A_NTIID):
-                registered = component.queryUtility(IQEvaluation, name=key)
-                assert_that(registered, is_not(none()))
-                assert_that(evals, has_key(key))
-                assert_that(evals[key], is_(same_instance(registered)))
-                assert_that(registered,
-                            has_property('__home__'), is_(course))
-
-                exporter = EvaluationsExporter()
-                result = exporter.export_evaluations(course)
-                assert_that(result,
-                            has_entries('Items', has_length(3),
-                                        'Total', is_(3)))
-
-        with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
-            entry = find_object_with_ntiid(self.entry_ntiid)
-            course = ICourseInstance(entry)
-            evals = IQEvaluations(course)
-            registered = component.queryUtility(IQEvaluation,
-                                                name=self.A_NTIID)
-            delete_evaluation(registered)
-            for key in (self.S_NTIID, self.A_NTIID):
-                registered = component.queryUtility(IQEvaluation, name=key)
-                assert_that(registered, is_(none()))
-                assert_that(evals, does_not(has_key(key)))
-            assert_that(evals, has_length(1))
-
-        with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
-            entry = find_object_with_ntiid(self.entry_ntiid)
-            course = ICourseInstance(entry)
-            exporter = EvaluationsExporter()
-            result = exporter.export_evaluations(course, False,
-                                                 str(time.time()))
-            assert_that(result,
-                        has_entries('Items', has_length(1),
-                                    'Total', is_(1)))
+    def _post_process_import(self):
+        # Timed assignment is marker interface
+        timed_assignment = component.queryUtility(IQEvaluation,
+                                                  name=self.A_NTIID)
+        interface.noLongerProvides(timed_assignment, IQTimedAssignment)
+        interface.alsoProvides(timed_assignment, IQTimedAssignment)
 
     @WithSharedApplicationMockDS(testapp=False, users=False)
     def test_import_updater(self):
@@ -160,3 +184,23 @@ class TestImportExport(ApplicationLayerTest):
             assert_that(ext_obj,
                         has_entry('Evaluations',
                                   has_entry('Items', has_length(1))))
+
+
+class TestSurveyImportExport(ImportExportTestMixin, ApplicationLayerTest):
+
+    layer = InstructedCourseApplicationTestLayer
+
+    default_origin = 'http://janux.ou.edu'
+
+    entry_ntiid = u'tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2015_CS_1323'
+
+    SURVEY_NTIID = u'tag:nextthought.com,2011-10:OU-NAQ-survey_system_4744496732793162703_1679835696'
+    POLL_NTIID = u'tag:nextthought.com,2011-10:OU-NAQ-poll_system_4744496732793012824_1679835696'
+
+    IMPORTED_NTIIDS = (POLL_NTIID, SURVEY_NTIID)
+    NTIIDS_TO_REMOVE = (SURVEY_NTIID,)
+    REMOVED_NTIIDS = (SURVEY_NTIID,)
+
+    @WithSharedApplicationMockDS(testapp=False, users=False)
+    def test_import_export_survey(self):
+        self._test_import_export("evaluation_index_survey.json")

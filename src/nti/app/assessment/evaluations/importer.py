@@ -184,7 +184,7 @@ class EvaluationsImporterMixin(object):
     def canonicalize_survey(self, the_object, context):
         questions = indexed_iter()  # replace polls
         for poll in the_object.questions or ():
-            poll = self.handle_poll(poll, context, False)
+            poll = self.handle_poll(poll, context)
             questions.append(poll)
         the_object.questions = questions
 

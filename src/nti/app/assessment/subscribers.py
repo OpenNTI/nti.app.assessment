@@ -525,8 +525,5 @@ class _CourseContentLibraryProvider(object):
         result = [QAssignment.mime_type]
         if get_course_self_assessments(self.course):
             result.append(QQuestionSet.mime_type)
-        if get_course_inquiries(self.course,
-                                mimetypes=(SURVEY_MIME_TYPE,),
-                                do_filtering=False):
-            result.append(SURVEY_MIME_TYPE)
+        result.append(SURVEY_MIME_TYPE)
         return result

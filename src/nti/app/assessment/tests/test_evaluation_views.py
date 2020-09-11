@@ -2200,18 +2200,17 @@ class TestEvaluationViews(ApplicationLayerTest):
         res = self.testapp.post_json(eval_href, fr_survey, status=201)
         survey_res = res.json_body
         survey_href = survey_res.get('href')
-        create_poll_href = self.require_link_href_with_rel(survey_res, 'create_poll')
 
         # Create polls to use in the survey
         multichoice_poll = self._load_json_resource("poll-multiplechoice.json")
-        res = self.testapp.post_json(create_poll_href, multichoice_poll, status=201)
+        res = self.testapp.post_json(eval_href, multichoice_poll, status=201)
         multichoice_href = res.json_body["href"]
         multichoice_ntiid = res.json_body["NTIID"]
         multichoice_oid = res.json_body["OID"]
         self.testapp.get(multichoice_href, status=200)
 
         modeledcontent_poll = self._load_json_resource("poll-modeledcontent.json")
-        res = self.testapp.post_json(create_poll_href, modeledcontent_poll, status=201)
+        res = self.testapp.post_json(eval_href, modeledcontent_poll, status=201)
         modeledcontent_href = res.json_body["href"]
         modeledcontent_ntiid = res.json_body["NTIID"]
         self.testapp.get(modeledcontent_href, status=200)

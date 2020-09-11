@@ -33,6 +33,9 @@ class IImplicitlyDeletable(interface.Interface):
     """
 
 
+IImplicitlyDeletable.setTaggedValue('_ext_is_marker_interface', True)
+
+
 class IEvaluationCleaner(interface.Interface):
     """
     Provides a way to clean up IImplicitlyDeletable objects that are

@@ -288,23 +288,3 @@ class _PollPreflightDecorator(_InquiryDecorator):
                           method='PUT',
                           rel='preflight_update',
                           elements=('@@preflight',)))
-
-
-class _CreatePollDecorator(_InquiryDecorator):
-
-    def _predicate(self, context, result):
-        result = super(_CreatePollDecorator, self)._predicate(context, result)
-        return (result
-                and IQEditableEvaluation.providedBy(context)
-                and (is_course_editor(context, self.remoteUser)
-                     or has_permission(ACT_CONTENT_EDIT, context, self.request)
-                     or is_course_instructor(context, self.remoteUser)))
-
-    def _do_decorate_external(self, context, result_map):
-        links = result_map.setdefault(LINKS, [])
-        links.append(Link(find_interface(context, IQEvaluations),
-                          method='POST',
-                          rel='create_poll',
-                          params={
-                              "implicitly_deletable": "true"
-                          }))

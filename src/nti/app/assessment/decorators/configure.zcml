@@ -258,11 +258,6 @@
                 for="nti.assessment.interfaces.IQPoll
                      pyramid.interfaces.IRequest" />
 
-	<subscriber factory=".survey._CreatePollDecorator"
-                provides="nti.externalization.interfaces.IExternalObjectDecorator"
-                for="nti.assessment.interfaces.IQSurvey
-                     pyramid.interfaces.IRequest" />
-
 	<subscriber factory=".survey._SubmissionDecorator"
 				provides="nti.externalization.interfaces.IExternalMappingDecorator"
 				for="nti.assessment.interfaces.IQPollSubmission

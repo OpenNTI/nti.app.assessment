@@ -128,7 +128,6 @@ def get_submission_intids_for_courses(context, courses=(), index_name=IX_ASSESSM
         sites.discard(None)  # tests
         if sites:
             query[IX_SITE] = {'any_of': sites}
-
         return catalog.apply(query)
 
 
@@ -145,6 +144,10 @@ def get_submissions(*args, **kwargs):
 
 
 def has_submissions(*args, **kwargs):
+    """
+    Returns whether the given evaluation has any submissions in the given
+    `courses` sequence.
+    """
     # Querying from submission catalog may result in stale results.
     # Instead of reifying, we check against the intids.
     result = get_submission_intids_for_courses(*args, **kwargs)
@@ -154,6 +157,16 @@ def has_submissions(*args, **kwargs):
             if submission_intid in intids.refs:
                 return True
     return False
+
+
+def has_inquiry_submissions(context, course, subinstances=True):
+    """
+    Returns whether the given evaluation has any submissions in the given
+    `courses` sequence.
+    """
+    course = ICourseInstance(course, None)
+    courses = get_courses(course, subinstances=subinstances)
+    return has_submissions(context, courses=courses)
 
 
 def evaluation_submissions(context, course, subinstances=True):
@@ -170,12 +183,6 @@ def inquiry_submissions(context, course, subinstances=True):
                              index_name=IX_ASSESSMENT_ID,
                              courses=get_courses(course, subinstances=subinstances))
     return result
-
-
-def has_inquiry_submissions(context, course, subinstances=True):
-    for _ in inquiry_submissions(context, course, subinstances):
-        return True
-    return False
 
 
 def has_submitted_inquiry(context, user, assigment):

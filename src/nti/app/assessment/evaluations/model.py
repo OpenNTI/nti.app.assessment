@@ -126,7 +126,10 @@ class Evaluations(CaseInsensitiveCheckingLastModifiedBTreeContainer):
         if len(self) == 0:
             return
         for obj in sorted(self.values(), key=sort_evaluation_key, reverse=True):
-            del self[obj.__name__]
+            try:
+                del self[obj.__name__]
+            except KeyError:
+                pass
 
 
 @interface.implementer(ICourseEvaluations)
@@ -178,7 +181,7 @@ class LegacyContentPackageEvaluations(object):
             return self.container.createdTime
         except AttributeError:
             return 0
-        
+
     @property
     def lastModified(self):
         try:
@@ -253,7 +256,7 @@ class LegacyContentPackageEvaluations(object):
 
     def __delitem__(self, key):
         return self._eject(key)
-    
+
     # IQEvaluations
 
     def clear(self):
@@ -270,7 +273,7 @@ class LegacyContentPackageEvaluations(object):
             removeIntId(old)
         self.save(ntiid, new, event)
         return new
-    
+
     @property
     def __acl__(self):
         aces = [ace_allowing(ROLE_ADMIN, ALL_PERMISSIONS, self),

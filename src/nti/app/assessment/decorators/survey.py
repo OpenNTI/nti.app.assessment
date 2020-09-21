@@ -11,6 +11,7 @@ from __future__ import absolute_import
 # pylint: disable=arguments-differ
 
 from datetime import datetime
+from pyramid.threadlocal import get_current_request
 
 from zope import component
 from zope import interface
@@ -18,6 +19,19 @@ from zope import interface
 from zope.cachedescriptors.property import Lazy
 
 from zope.intid.interfaces import IIntIds
+
+from zope.location import ILocation
+
+from nti.app.assessment import VIEW_DELETE
+from nti.app.assessment import VIEW_INSERT_PART
+from nti.app.assessment import VIEW_INSERT_PART_OPTION
+from nti.app.assessment import VIEW_INSERT_POLL
+from nti.app.assessment import VIEW_MOVE_PART
+from nti.app.assessment import VIEW_MOVE_PART_OPTION
+from nti.app.assessment import VIEW_MOVE_POLL
+from nti.app.assessment import VIEW_REMOVE_PART
+from nti.app.assessment import VIEW_REMOVE_PART_OPTION
+from nti.app.assessment import VIEW_REMOVE_POLL
 
 from nti.app.assessment.common.inquiries import can_disclose_inquiry
 
@@ -34,15 +48,18 @@ from nti.app.assessment.decorators import _get_course_from_evaluation
 from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
 from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
 
-from nti.app.assessment.interfaces import IQEvaluations
 from nti.app.assessment.interfaces import IUsersCourseInquiry
 from nti.app.assessment.interfaces import IUsersCourseInquiryItem
 
 from nti.app.assessment.utils import get_course_from_request
 
+from nti.app.authentication import get_remote_user
+
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
 from nti.appserver.pyramid_authorization import has_permission
+
+from nti.assessment import IQPoll
 
 from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQInquiry
@@ -173,6 +190,23 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
                                                      request=self.request)
         return course
 
+    def _get_poll_rels(self):
+        """
+        Gather any links needed for a non-in-progress editable polls.
+        """
+        return (VIEW_MOVE_PART,
+                VIEW_INSERT_PART,
+                VIEW_REMOVE_PART,
+                VIEW_MOVE_PART_OPTION,
+                VIEW_INSERT_PART_OPTION,
+                VIEW_REMOVE_PART_OPTION)
+
+    def _get_survey_rels(self):
+        """
+        Gather any links needed for a non-in-progress editable surveys.
+        """
+        return (VIEW_MOVE_POLL, VIEW_INSERT_POLL, VIEW_REMOVE_POLL, VIEW_DELETE)
+
     def _do_decorate_external(self, context, result_map):
         source = context
         user = self.remoteUser
@@ -254,6 +288,30 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
                                   method='POST',
                                   elements=elements + ('@@open',)))
 
+        # editors
+        if not context.is_published() and _is_editable(context, self.request):
+            rels = []
+            # Do not provide structural links if evaluation has submissions.
+            if IQSurvey.providedBy(context):
+                rels.extend(self._get_survey_rels())
+            elif IQPoll.providedBy(context):
+                rels.extend(self._get_poll_rels())
+
+            # chose link context according to the presence of a course
+            start_elements = ()
+            link_context = context if course is None else course
+            if course is not None:
+                start_elements = ('Assessments', context.ntiid)
+
+            # loop through rels and create links
+            for rel in rels:
+                elements = None if not start_elements else start_elements
+                link = Link(link_context, rel=rel, elements=elements)
+                interface.alsoProvides(link, ILocation)
+                link.__name__ = ''
+                link.__parent__ = link_context
+                links.append(link)
+
 
 class _InquirySubmissionMetadataDecorator(_InquiryDecorator):
 
@@ -271,16 +329,19 @@ class _InquirySubmissionMetadataDecorator(_InquiryDecorator):
                                          context.ntiid, 
                                         '@@SubmissionMetadata',)))
 
+def _is_editable(context, request=None):
+    request = request or get_current_request()
+    user = get_remote_user(request)
+    return (IQEditableEvaluation.providedBy(context)
+            and (is_course_editor(context, user)
+                 or has_permission(ACT_CONTENT_EDIT, context, request)
+                 or is_course_instructor(context, user)))
 
 class _PollPreflightDecorator(_InquiryDecorator):
 
     def _predicate(self, context, result):
         result = super(_PollPreflightDecorator, self)._predicate(context, result)
-        return (result
-                and IQEditableEvaluation.providedBy(context)
-                and (is_course_editor(context, self.remoteUser)
-                     or has_permission(ACT_CONTENT_EDIT, context, self.request)
-                     or is_course_instructor(context, self.remoteUser)))
+        return (result and _is_editable(context, self.request))
 
     def _do_decorate_external(self, context, result_map):
         links = result_map.setdefault(LINKS, [])

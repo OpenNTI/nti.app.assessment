@@ -14,6 +14,7 @@ from datetime import datetime
 from hamcrest import is_
 from hamcrest import none
 from hamcrest import is_not
+from hamcrest import is_not as does_not
 from hamcrest import has_item
 from hamcrest import contains
 from hamcrest import not_none
@@ -23,7 +24,6 @@ from hamcrest import assert_that
 from hamcrest import greater_than
 from hamcrest import has_property
 from hamcrest import contains_inanyorder
-does_not = is_not
 
 from nti.testing.time import time_monotonically_increases
 
@@ -58,6 +58,9 @@ from nti.app.assessment import VIEW_INSERT_PART_OPTION
 from nti.app.assessment import VIEW_REMOVE_PART_OPTION
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
+from nti.app.assessment import VIEW_INSERT_POLL
+from nti.app.assessment import VIEW_MOVE_POLL
+from nti.app.assessment import VIEW_REMOVE_POLL
 
 from nti.app.assessment.common.evaluations import is_discussion_assignment_non_public
 from nti.app.assessment.common.evaluations import get_containers_for_evaluation_object
@@ -127,7 +130,16 @@ from nti.dataserver.tests import mock_dataserver
 NTIID = StandardExternalFields.NTIID
 ITEMS = StandardExternalFields.ITEMS
 COURSE_URL = u'/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2015/CS%201323'
-
+POLL_STRUCTURAL_EDIT_LINKS = (VIEW_INSERT_PART,
+                              VIEW_INSERT_PART_OPTION,
+                              VIEW_MOVE_PART,
+                              VIEW_MOVE_PART_OPTION,
+                              VIEW_REMOVE_PART,
+                              VIEW_REMOVE_PART_OPTION)
+SURVEY_STRUCTURAL_EDIT_LINKS = (VIEW_MOVE_POLL,
+                                VIEW_INSERT_POLL,
+                                VIEW_REMOVE_POLL,
+                                VIEW_DELETE)
 
 class TestEvaluationViews(ApplicationLayerTest):
 
@@ -1904,10 +1916,32 @@ class TestEvaluationViews(ApplicationLayerTest):
         assert_that(res.json_body, has_entry('href', is_not(none())))
         assert_that(res.json_body, has_entry('submissions', is_(1)))
 
+    def _require_links(self, ext_obj, *links):
+        for rel in links:
+            self.require_link_href_with_rel(ext_obj, rel)
+
+    def _forbid_links(self, ext_obj, *links):
+        for rel in links:
+            self.forbid_link_with_rel(ext_obj, rel)
+
+    def _forbid_structural_edit_links(self, ext_survey):
+        self._forbid_links(ext_survey, *SURVEY_STRUCTURAL_EDIT_LINKS)
+        for ext_poll in ext_survey.get('questions'):
+            self._forbid_links(ext_poll, *POLL_STRUCTURAL_EDIT_LINKS)
+
+    def _require_structural_edit_links(self, ext_survey):
+        self._require_links(ext_survey, *SURVEY_STRUCTURAL_EDIT_LINKS)
+        for ext_poll in ext_survey.get('questions'):
+            self._require_links(ext_poll, *POLL_STRUCTURAL_EDIT_LINKS)
+
     @WithSharedApplicationMockDS(testapp=True, users=True)
     @fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
     def test_editing_surveys(self, fake_active):
         fake_active.is_callable().returns(True)
+
+        enrolled_student = 'test_student'
+        self._create_and_enroll(enrolled_student, self.entry_ntiid)
+        student_environ = self._make_extra_environ(username=enrolled_student)
 
         editor_environ = self._make_extra_environ(username="sjohnson@nextthought.com")
         course_oid = self._get_course_oid()
@@ -1919,9 +1953,24 @@ class TestEvaluationViews(ApplicationLayerTest):
         res = res.json_body
         survey_href = res.get('href')
 
-        course_inquiries_link = \
+        self._require_structural_edit_links(res)
+
+        self.testapp.get(survey_href,
+                         extra_environ=student_environ,
+                         status=403)
+
+        publish_link = \
             self.require_link_href_with_rel(res, 'publish')
-        self.testapp.post_json(course_inquiries_link)
+
+        self.testapp.post_json(publish_link)
+
+        res = self.testapp.get(survey_href, extra_environ=student_environ)
+        res = res.json_body
+        self._forbid_structural_edit_links(res)
+
+        res = self.testapp.get(survey_href, extra_environ=editor_environ)
+        res = res.json_body
+        self._forbid_structural_edit_links(res)
 
         # CAN implicitly create surveys during edits
         multichoice_poll = self._load_json_resource("poll-multiplechoice.json")

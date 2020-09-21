@@ -59,6 +59,15 @@ VIEW_MOVE_PART_OPTION = 'MovePartOption'
 #: A marker rel to signify that this assignment can change is-non-public state.
 VIEW_IS_NON_PUBLIC = 'IsNonPublic'
 
+#: A marker rel to signify that this survey object allows poll insertion.
+VIEW_INSERT_POLL = 'InsertPoll'
+
+#: A marker rel to signify that this survey object allows poll removal.
+VIEW_REMOVE_POLL = 'RemovePoll'
+
+#: A marker rel to signify that this survey object allows poll moves.
+VIEW_MOVE_POLL = 'MovePoll'
+
 #: A view to copy an evaluation
 VIEW_COPY_EVALUATION = 'Copy'
 

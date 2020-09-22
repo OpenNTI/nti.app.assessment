@@ -1953,24 +1953,10 @@ class TestEvaluationViews(ApplicationLayerTest):
         res = res.json_body
         survey_href = res.get('href')
 
-        self._require_structural_edit_links(res)
-
-        self.testapp.get(survey_href,
-                         extra_environ=student_environ,
-                         status=403)
-
+        # Publish
         publish_link = \
             self.require_link_href_with_rel(res, 'publish')
-
         self.testapp.post_json(publish_link)
-
-        res = self.testapp.get(survey_href, extra_environ=student_environ)
-        res = res.json_body
-        self._forbid_structural_edit_links(res)
-
-        res = self.testapp.get(survey_href, extra_environ=editor_environ)
-        res = res.json_body
-        self._forbid_structural_edit_links(res)
 
         # CAN implicitly create surveys during edits
         multichoice_poll = self._load_json_resource("poll-multiplechoice.json")
@@ -2086,6 +2072,98 @@ class TestEvaluationViews(ApplicationLayerTest):
         poll_res = poll_res.json_body
         assert_that(poll_res['Last Modified'], is_(last_modified))
         assert_that(poll_res['available_for_submission_beginning'], is_not(1))
+
+    @WithSharedApplicationMockDS(testapp=True, users=True)
+    @fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
+    def test_structural_survey_edits(self, fake_active):
+        fake_active.is_callable().returns(True)
+
+        enrolled_student = 'test_student'
+        self._create_and_enroll(enrolled_student, self.entry_ntiid)
+        student_environ = self._make_extra_environ(username=enrolled_student)
+
+        editor_environ = self._make_extra_environ(username="sjohnson@nextthought.com")
+        course_oid = self._get_course_oid()
+        eval_href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
+
+        # Create simple survey with freeresponse part
+        fr_survey = self._load_survey()
+        res = self.testapp.post_json(eval_href, fr_survey, status=201)
+        res = res.json_body
+        survey_href = res.get('href')
+        freeresponse_oid = res['questions'][0]['OID']
+
+        # Structural edit links available to editors prior to publish
+        self._require_structural_edit_links(res)
+
+        self.testapp.get(survey_href,
+                         extra_environ=student_environ,
+                         status=403)
+
+        # Post publish, structural edit links are no longer avialable
+        publish_link = \
+            self.require_link_href_with_rel(res, 'publish')
+        self.testapp.post_json(publish_link)
+
+        res = self.testapp.get(survey_href, extra_environ=student_environ)
+        res = res.json_body
+        self._forbid_structural_edit_links(res)
+
+        res = self.testapp.get(survey_href, extra_environ=editor_environ)
+        res = res.json_body
+        self._forbid_structural_edit_links(res)
+
+        # Unable to unpublish with submissions
+        publish_link = \
+            self.require_link_href_with_rel(res, 'publish')
+        self.testapp.post_json(publish_link)
+
+        survey_id = res['ntiid']
+        poll_id = res['questions'][0]['ntiid']
+        poll_sub = QPollSubmission(pollId=poll_id, parts=[0])
+        submission = QSurveySubmission(surveyId=survey_id,
+                                       questions=[poll_sub])
+
+        ext_obj = to_external_object(submission)
+        submission_href = self._submit_survey(survey_id, ext_obj)
+
+        unpublish_link = \
+            self.require_link_href_with_rel(res, 'unpublish')
+        self.testapp.post_json(unpublish_link, status=422)
+
+        self.testapp.post("%s/@@Reset" % survey_href)
+
+        # Polls referenced by other surveys do not get unpublished
+        new_survey = {
+            "MimeType": "application/vnd.nextthought.nasurvey",
+            "questions": [
+                freeresponse_oid,
+            ]
+        }
+
+        second_survey = self.testapp.post_json(eval_href, new_survey, status=201)
+        second_survey = second_survey.json_body
+        # Unable to unpublish with submissions
+        publish_link = \
+            self.require_link_href_with_rel(second_survey, 'publish')
+        self.testapp.post_json(publish_link)
+
+        # Unpublishing should allow edits again, except on polls referenced elsewhere
+        res = self.testapp.post_json(unpublish_link)
+        res = res.json_body
+        self._require_links(res, *SURVEY_STRUCTURAL_EDIT_LINKS)
+        self._forbid_links(res['questions'][0], *POLL_STRUCTURAL_EDIT_LINKS)
+
+        self.testapp.get(survey_href,
+                         extra_environ=student_environ,
+                         status=403)
+
+        # Unpublishing remaining reference for poll should allow edits there
+        unpublish_link = \
+            self.require_link_href_with_rel(second_survey, 'unpublish')
+        res = self.testapp.post_json(unpublish_link)
+
+        self._require_structural_edit_links(res.json_body)
 
     @WithSharedApplicationMockDS(testapp=True, users=True)
     @fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')

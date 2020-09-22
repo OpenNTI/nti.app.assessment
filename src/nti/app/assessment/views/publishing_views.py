@@ -13,6 +13,8 @@ from pyramid.view import view_defaults
 
 from nti.app.assessment.common.utils import get_courses
 
+from nti.app.assessment.common.evaluations import get_evaluation_containment
+
 from nti.app.assessment.evaluations.utils import register_context
 from nti.app.assessment.evaluations.utils import validate_structural_edits
 
@@ -26,6 +28,8 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQEvaluationItemContainer
+from nti.assessment.interfaces import IQSurvey
+from nti.publishing.interfaces import IPublishable
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 
@@ -70,6 +74,26 @@ class EvaluationPublishView(CalendarPublishView):
             publish_context(context, start, end)
 
 
+def unpublish_context(context):
+    context.unpublish()
+
+    # process 'children'
+    if IQSurvey.providedBy(context):
+        for poll in context.Items or ():
+            refs = get_evaluation_containment(poll.ntiid)
+            published_refs = [ref for ref in refs
+                              if IPublishable.providedBy(ref) and ref.is_published()]
+
+            # unpublish if there are no published surveys left referencing it
+            if len(published_refs) > 0:
+                logger.warn("Not unpublishing %s due to published references %s",
+                            poll,
+                            published_refs)
+                continue
+
+            unpublish_context(poll)
+
+
 @view_config(context=IQEvaluation)
 @view_defaults(route_name='objects.generic.traversal',
                renderer='rest',
@@ -85,4 +109,4 @@ class EvaluationUnpublishView(CalendarUnpublishView):
                 # Not allowed to unpublish if we have submissions/savepoints.
                 validate_structural_edits(context, course)
             # unpublish
-            super(EvaluationUnpublishView, self)._do_provide(context)
+            unpublish_context(context)

@@ -113,7 +113,7 @@ class _MultipleChoicePartChangeAnalyzer(_BasicPartChangeAnalyzer):
         return to_int(value)
 
     def validate_solutions(self, part):
-        solutions = part.solutions
+        solutions = getattr(part, 'solutions', ())
         if not solutions and is_gradable(part):
             raise_error({'message': _(u"Must specify a solution."),
                          'field': 'solutions',
@@ -201,7 +201,7 @@ class _MultipleChoiceMultipleAnswerPartChangeAnalyzer(_MultipleChoicePartChangeA
         return tuple(to_int(x) for x in value)
 
     def validate_solutions(self, part):
-        solutions = part.solutions
+        solutions = getattr(part, 'solutions')
         if not solutions and is_gradable(part):
             raise_error({'message': _(u"Must specify a solution set."),
                          'field': 'solutions',
@@ -235,7 +235,7 @@ class _FreeResponsePartChangeAnalyzer(_BasicPartChangeAnalyzer):
         return u'' if not value else value.lower()
 
     def validate_solutions(self, part):
-        solutions = part.solutions
+        solutions = getattr(part, 'solutions')
         for solution in solutions or ():
             if not solution or not solution.value:
                 raise_error({'message': _(u"Solution cannot be empty."),
@@ -272,7 +272,7 @@ class _ConnectingPartChangeAnalyzer(_BasicPartChangeAnalyzer):
         return {to_int(x): to_int(y) for x, y in value.items()}
 
     def validate_solutions(self, part, labels, values):
-        solutions = part.solutions
+        solutions = getattr(part, 'solutions')
         if not solutions and is_gradable(part):
             raise_error({'message': _(u"Must specify a solution."),
                          'field': 'solutions',

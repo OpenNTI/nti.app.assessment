@@ -61,6 +61,7 @@ from nti.assessment.interfaces import IQEvaluationItemContainer
 from nti.assessment.interfaces import IQAssessmentPoliciesModified
 from nti.assessment.interfaces import IQuestionInsertedInContainerEvent
 from nti.assessment.interfaces import IQuestionRemovedFromContainerEvent
+from nti.assessment.interfaces import IQNoSolutions
 
 from nti.assessment.interfaces import UnlockQAssessmentPolicies
 
@@ -123,7 +124,8 @@ def _on_editable_eval_created(context, event):
 
 
 def _validate_part_resource(resource):
-    check_solutions = not IQAvoidSolutionCheck.providedBy(resource)
+    check_solutions = not (IQNoSolutions.providedBy(resource)
+                           or IQAvoidSolutionCheck.providedBy(resource))
     for part in resource.parts or ():
         analyzer = IQPartChangeAnalyzer(part, None)
         if analyzer is not None:

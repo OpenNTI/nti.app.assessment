@@ -6,8 +6,7 @@
 	{
 	  "MimeType": "application/vnd.nextthought.assessment.multiplechoicepart",
 	  "content": "there",
-	  "choices": [""],
-	  "solutions": [{"MimeType": "application/vnd.nextthought.assessment.multiplechoicesolution", "value": 0}]
+	  "choices": [""]
 	}
   ]
 }

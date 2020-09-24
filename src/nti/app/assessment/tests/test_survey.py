@@ -19,6 +19,7 @@ from hamcrest import has_length
 from hamcrest import assert_that
 from hamcrest import has_property
 from hamcrest import contains_string
+does_not = is_not
 
 from nti.testing.matchers import validly_provides
 
@@ -38,11 +39,19 @@ from nti.assessment.interfaces import IQSurveySubmission
 from nti.assessment.survey import QPollSubmission
 from nti.assessment.survey import QSurveySubmission
 
+from nti.contenttypes.completion.interfaces import ICompletedItemContainer
+
+from nti.contenttypes.courses.interfaces import ICourseInstance
+
 from nti.dataserver.interfaces import IUser
+
+from nti.dataserver.tests import mock_dataserver
 
 from nti.dataserver.users.users import User
 
 from nti.app.assessment.tests import AssessmentLayerTest
+
+from nti.ntiids.ntiids import find_object_with_ntiid
 
 
 class TestSurvey(AssessmentLayerTest):
@@ -225,11 +234,11 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
         self.testapp.get(submission_href + '/Submission', status=404)
 
-        res = self.testapp.post_json(submission_href, ext_obj)
-        survey_item_href = res.json_body['href']
+        post_res = self.testapp.post_json(submission_href, ext_obj)
+        post_res_json = post_res.json_body
+        survey_item_href = post_res_json['href']
         assert_that(survey_item_href, is_not(none()))
-
-        self._check_submission(res, enrollment_inquiries_link, item_id)
+        self._check_submission(post_res, enrollment_inquiries_link, item_id)
 
         res = self.testapp.get(survey_item_href)
         assert_that(res.json_body, has_entry('href', is_not(none())))
@@ -251,11 +260,12 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         res = self.testapp.get(href)
         assert_that(res.json_body, has_entry('href', is_not(none())))
 
-        # we cannnot delete
+        # we cannot delete
         self.testapp.delete(survey_item_href, status=403)
         self.testapp.get(survey_item_href, status=200)
+        return post_res_json
 
-    @WithSharedApplicationMockDS(users=('outest5',), testapp=True, default_authenticate=True)
+    @WithSharedApplicationMockDS(users=('outest5', 'sjohnson@nextthought.com'), testapp=True, default_authenticate=True)
     @fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
     def test_survey(self, fake_active):
         fake_active.is_callable().returns(True)
@@ -270,6 +280,28 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
                     has_entry('MimeType', 'application/vnd.nextthought.assessment.surveysubmission'))
 
         self._test_submission(self.survey_id, ext_obj)
+
+        # Validate completion
+        with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+            course = find_object_with_ntiid(COURSE_NTIID)
+            course = ICourseInstance(course)
+            container = ICompletedItemContainer(course)
+            user_container = container.get(self.default_username)
+            assert_that(user_container, has_item(self.survey_id))
+
+        course_res = self.testapp.get(COURSE_URL).json_body
+        course_inquiries_link = self.require_link_href_with_rel(course_res,
+                                                                'CourseInquiries')
+        reset_href = '%s/%s/@@Reset' % (course_inquiries_link, self.survey_id)
+        admin_env = self._make_extra_environ(user='sjohnson@nextthought.com')
+        self.testapp.post(reset_href, extra_environ=admin_env)
+
+        with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+            course = find_object_with_ntiid(COURSE_NTIID)
+            course = ICourseInstance(course)
+            container = ICompletedItemContainer(course)
+            user_container = container.get(self.default_username)
+            assert_that(user_container, does_not(has_item(self.survey_id)))
 
     @WithSharedApplicationMockDS(users=('outest5',), testapp=True, default_authenticate=True)
     @fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')

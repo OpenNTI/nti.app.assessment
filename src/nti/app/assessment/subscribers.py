@@ -429,6 +429,20 @@ def _survey_progress(submission, unused_event):
                           context)
 
 
+@component.adapter(IQSurveySubmission, IObjectRemovedEvent)
+def _on_survey_submission_deleted(submission, unused_event):
+    """
+    On a survey submission deletion, remove completion.
+    """
+    survey = find_object_with_ntiid(submission.surveyId)
+    provider = ICompletionContextProvider(survey, None)
+    context = provider() if provider else None
+    if context is not None:
+        notify(UserProgressRemovedEvent(survey,
+                                        submission.creator,
+                                        context))
+
+
 @component.adapter(IQAssessedQuestionSet, IObjectRemovedEvent)
 def _self_assessment_submission_deleted(submission, unused_event):
     history_item = find_interface(submission,

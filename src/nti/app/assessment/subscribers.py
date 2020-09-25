@@ -57,7 +57,7 @@ from nti.app.assessment.index import IX_COURSE
 from nti.app.assessment.index import IX_CREATOR
 from nti.app.assessment.index import get_submission_catalog
 
-from nti.app.assessment.interfaces import IQEvaluations
+from nti.app.assessment.interfaces import IQEvaluations, IUsersCourseInquiryItem
 from nti.app.assessment.interfaces import IUsersCourseInquiries
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
@@ -429,17 +429,17 @@ def _survey_progress(submission, unused_event):
                           context)
 
 
-@component.adapter(IQSurveySubmission, IObjectRemovedEvent)
-def _on_survey_submission_deleted(submission, unused_event):
+@component.adapter(IUsersCourseInquiryItem, IObjectRemovedEvent)
+def _on_survey_submission_deleted(item, unused_event):
     """
     On a survey submission deletion, remove completion.
     """
-    survey = find_object_with_ntiid(submission.surveyId)
+    survey = find_object_with_ntiid(item.Submission.surveyId)
     provider = ICompletionContextProvider(survey, None)
     context = provider() if provider else None
     if context is not None:
         notify(UserProgressRemovedEvent(survey,
-                                        submission.creator,
+                                        item.Submission.creator,
                                         context))
 
 

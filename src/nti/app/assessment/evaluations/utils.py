@@ -40,9 +40,6 @@ from nti.app.assessment.common.hostpolicy import get_resource_site_registry
 from nti.app.assessment.common.submissions import has_submissions
 from nti.app.assessment.common.submissions import has_inquiry_submissions
 
-from nti.app.assessment.evaluations.interfaces import IImplicitlyDeletable
-from nti.app.assessment.evaluations.interfaces import IEvaluationCleaner
-
 from nti.app.assessment.interfaces import IQEvaluations
 
 from nti.app.base.abstract_views import get_source_filer
@@ -376,13 +373,6 @@ def delete_evaluation(evaluation):
         pass
     evaluation.__home__ = None
 
-    # Clean up any constituents created in the same context
-    cleaner = IEvaluationCleaner(evaluation, None)
-    if cleaner is not None:
-        candidate_parts = getattr(evaluation, "parts", None)
-        if candidate_parts:
-            cleaner.remove_unreferenced_evaluations(candidate_parts)
-
     # remove from registry
     provided = interface_of_assessment(evaluation)
     registered = component.queryUtility(provided,
@@ -435,43 +425,3 @@ def re_register_assessment_object(context, old_iface, new_iface):
     unregisterUtility(registry, provided=old_iface, name=ntiid)
     # Make sure we re-index.
     lifecycleevent.modified(context)
-
-
-@interface.implementer(IEvaluationCleaner)
-class EvaluationCleaner(object):
-
-    def __init__(self, context):
-        self.context = context
-
-    def remove_unreferenced_evaluations(self, candidates):
-        for candidate in candidates:
-            if self._should_delete(candidate):
-                delete_evaluation(candidate)
-
-    def _should_delete(self, poll):
-        result = poll is not None \
-                 and self._is_implicitly_deletable(poll) \
-                 and not self._is_deleted(poll) \
-                 and self._is_editable(poll)
-
-        if result:
-            refs = get_evaluation_containment(poll.ntiid)
-            if refs:
-                logger.info("Skipping removal of %s, still referenced by: %s",
-                            poll.ntiid,
-                            refs)
-                return False
-
-        return result
-
-    @staticmethod
-    def _is_implicitly_deletable(theObject):
-        return IImplicitlyDeletable.providedBy(theObject)
-
-    @staticmethod
-    def _is_deleted(o):
-        return IDeletedObjectPlaceholder.providedBy(o)
-
-    @staticmethod
-    def _is_editable(o):
-        return IQEditableEvaluation.providedBy(o)

@@ -23,28 +23,3 @@ class ICourseEvaluationsSectionExporter(ICourseSectionExporter):
 
 class ICourseEvaluationsSectionImporter(ICourseSectionImporter):
     pass
-
-
-class IImplicitlyDeletable(interface.Interface):
-    """
-    Marker interface indicating we can safely remove the object
-    when there are no more references to it, e.g. a poll created
-    in the context of a survey.
-    """
-
-
-IImplicitlyDeletable.setTaggedValue('_ext_is_marker_interface', True)
-
-
-class IEvaluationCleaner(interface.Interface):
-    """
-    Provides a way to clean up IImplicitlyDeletable objects that are
-    no longer reference by other objects, e.g. when polls created in the
-    context of a survey are removed from the survey.
-    """
-
-    def remove_unreferenced_evaluations(candidates):
-        """
-        Provided a set of candidates, remove any that are implicitly
-        deletable and no longer referenced.
-        """

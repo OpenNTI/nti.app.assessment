@@ -28,9 +28,6 @@
 	<adapter factory=".adapters.evaluations_for_package" />
 	<adapter factory=".adapters.package_from_item_lineage" />
 	<adapter factory=".adapters.editable_evaluation_to_package" />
-	<adapter factory=".utils.EvaluationCleaner"
-			 for="nti.assessment.interfaces.IQSurvey"
-			 provides=".interfaces.IEvaluationCleaner" />
 
 	<!-- Subscribers -->
 	<subscriber handler=".subscribers._on_course_added" />

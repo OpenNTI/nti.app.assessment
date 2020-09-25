@@ -23,3 +23,14 @@ class ICourseEvaluationsSectionExporter(ICourseSectionExporter):
 
 class ICourseEvaluationsSectionImporter(ICourseSectionImporter):
     pass
+
+
+class IImplicitlyDeletable(interface.Interface):
+    """
+    Marker interface indicating we can safely remove the object
+    when there are no more references to it, e.g. a poll created
+    in the context of a survey.
+    """
+
+
+IImplicitlyDeletable.setTaggedValue('_ext_is_marker_interface', True)

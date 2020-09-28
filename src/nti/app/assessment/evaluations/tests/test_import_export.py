@@ -17,6 +17,7 @@ from hamcrest import assert_that
 from hamcrest import has_entries
 from hamcrest import has_property
 from hamcrest import same_instance
+from hamcrest import is_in
 does_not = is_not
 
 import os
@@ -37,6 +38,8 @@ from nti.app.assessment.evaluations.utils import delete_evaluation
 from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQTimedAssignment
 
+from nti.assessment.survey import QPoll
+
 from nti.contentlibrary.mixins import ContentPackageImporterMixin
 
 from nti.contentlibrary.utils import export_content_package
@@ -45,6 +48,7 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 
 from nti.ntiids.ntiids import is_ntiid_of_type
 from nti.ntiids.ntiids import find_object_with_ntiid
+from nti.ntiids.ntiids import hash_ntiid
 
 from nti.app.products.courseware.tests import InstructedCourseApplicationTestLayer
 
@@ -204,3 +208,38 @@ class TestSurveyImportExport(ImportExportTestMixin, ApplicationLayerTest):
     @WithSharedApplicationMockDS(testapp=False, users=False)
     def test_import_export_survey(self):
         self._test_import_export("evaluation_index_survey.json")
+
+    @WithSharedApplicationMockDS(testapp=False, users=False)
+    def test_content_refs(self):
+        source = self.load_resource("evaluation_index_survey.json")
+        with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+            entry = find_object_with_ntiid(self.entry_ntiid)
+            course = ICourseInstance(entry)
+            importer = EvaluationsImporter()
+            importer.process_source(course, source, None)
+
+        with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+            entry = find_object_with_ntiid(self.entry_ntiid)
+            course = ICourseInstance(entry)
+            exporter = EvaluationsExporter()
+            result = exporter.export_evaluations(course, backup=False)
+
+            expected_poll_ntiid = hash_ntiid(self.POLL_NTIID)
+            ext_polls = [eval for eval in result['Items']
+                         if eval['MimeType'] == QPoll.mime_type]
+            assert_that(ext_polls, has_length(1))
+            assert_that(ext_polls[0], has_entries({
+                'NTIID': expected_poll_ntiid
+            }))
+
+            new_source = simplejson.dumps(result)
+            importer = EvaluationsImporter()
+            importer.process_source(course, new_source, None)
+
+            course_evals = IQEvaluations(course)
+
+            expected_survey_ntiid = hash_ntiid(self.SURVEY_NTIID)
+            assert_that(expected_poll_ntiid, is_in(course_evals))
+            assert_that(expected_survey_ntiid, is_in(course_evals))
+            assert_that(course_evals[expected_survey_ntiid].contents,
+                        is_(".. napollref:: %s" % expected_poll_ntiid))

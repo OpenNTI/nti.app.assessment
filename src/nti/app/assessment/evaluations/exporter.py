@@ -8,6 +8,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
+import re
+
 from collections import Mapping
 
 from zope import component
@@ -37,6 +39,7 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQDiscussionAssignment
+from nti.assessment.interfaces import IQSurvey
 
 from nti.contentlibrary.interfaces import IEditableContentPackage
 from nti.contentlibrary.interfaces import IContentPackageExporterDecorator
@@ -82,7 +85,27 @@ ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 
 INTERNAL_NTIID = StandardInternalFields.NTIID
 
+#: Pattern to search for poll refs, e.g. ".. napollref:: <ntiid>"
+POLL_REF_PATTERN = "..\s*napollref::\s*(.*)$"
+
 logger = __import__('logging').getLogger(__name__)
+
+
+def handle_survey(ext_obj, salt=None):
+    """
+    Ensure the ntiids referenced in the contents are updated
+    to match the ntiids that will be used for the underlying
+    polls when exported
+    """
+
+    contents = ext_obj.get('contents')
+    pat = re.compile(POLL_REF_PATTERN, re.MULTILINE)
+    if contents:
+        for match in re.finditer(pat, contents):
+            old_ntiid = match.group(1)
+            if old_ntiid:
+                contents = contents.replace(old_ntiid, hash_ntiid(old_ntiid, salt))
+        ext_obj['contents'] = contents
 
 
 class EvaluationsExporterMixin(object):
@@ -138,6 +161,9 @@ class EvaluationsExporterMixin(object):
                         qs_ext = ext_part_obj['question_set']
                         qs_ext['Randomized'] = is_randomized_question_set(qs)
                         qs_ext['RandomizedPartsType'] = is_randomized_parts_container(qs)
+
+            if IQSurvey.providedBy(evaluation):
+                handle_survey(ext_obj, salt)
 
             if not backup:
                 self.change_evaluation_ntiid(ext_obj, salt)

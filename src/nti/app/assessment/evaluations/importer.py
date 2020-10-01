@@ -11,11 +11,20 @@ logger = __import__('logging').getLogger(__name__)
 
 import os
 import copy
+import mimetypes
+import re
 import uuid
+
+
+from docutils import statemachine
+
+from six.moves.urllib_parse import urlparse
 
 from zope import component
 from zope import interface
 from zope import lifecycleevent
+
+from zope.intid.interfaces import IIntIds
 
 from zope.cachedescriptors.property import Lazy
 
@@ -41,6 +50,7 @@ from nti.assessment.common import iface_of_assessment
 
 from nti.assessment.interfaces import ASSIGNMENT_MIME_TYPE
 from nti.assessment.interfaces import TIMED_ASSIGNMENT_MIME_TYPE
+from nti.assessment.interfaces import IEvaluationImporterUpdater
 
 from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQSurvey
@@ -56,6 +66,10 @@ from nti.assessment.randomized.interfaces import IRandomizedPartsContainer
 
 from nti.cabinet.filer import transfer_to_native_file
 
+from nti.contentfile.interfaces import IContentBaseFile
+
+from nti.contentfragments.interfaces import IRstContentFragment
+
 from nti.coremetadata.utils import current_principal
 
 from nti.contentlibrary.interfaces import IFilesystemBucket
@@ -66,6 +80,7 @@ from nti.contenttypes.courses.discussions.utils import is_nti_course_bundle
 
 from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.interfaces import ICourseEvaluationImporter
+from nti.contenttypes.courses.interfaces import NTI_COURSE_FILE_SCHEME
 
 from nti.contenttypes.courses.importer import BaseSectionImporter
 
@@ -75,6 +90,8 @@ from nti.dataserver.contenttypes.forums.interfaces import ITopic
 from nti.dataserver.contenttypes.forums.interfaces import IHeadlinePost
 
 from nti.externalization.interfaces import StandardExternalFields
+
+from nti.externalization._compat import text_
 
 from nti.externalization.internalization import find_factory_for
 from nti.externalization.internalization import update_from_external_object
@@ -275,11 +292,20 @@ class EvaluationsImporterMixin(object):
             result.__home__ = context
             remoteUser = get_remote_user()
             target_filer = get_source_filer(context, remoteUser)
-            # parse content fields and load sources
+            # parse html-based content fields and load sources
             import_evaluation_content(result,
                                       context=context,
                                       source_filer=filer,
                                       target_filer=target_filer)
+
+            # update from subscribers
+            for updater in component.subscribers((result,),
+                                                 IEvaluationImporterUpdater):
+                updater.updateFromExternalObject(result,
+                                                 source,
+                                                 source_filer=filer,
+                                                 target_filer=target_filer)
+
             # always register
             register_context(result, force=True)
 
@@ -369,3 +395,90 @@ class _EditableContentPackageImporterUpdater(EvaluationsImporterMixin):
         if evaluations:
             items = evaluations[ITEMS]
             self.handle_evaluation_items(items, package, kwargs.get('filer'))
+
+
+def associate(obj, filer, key, bucket=None):
+    intids = component.getUtility(IIntIds)
+    if intids.queryId(obj) is None:
+        return
+    source = filer.get(key=key, bucket=bucket)
+    if IContentBaseFile.providedBy(source):
+        source.add_association(obj)
+        lifecycleevent.modified(source)
+        return filer.get_external_link(source)
+    return None
+
+
+def transfer_resource_from_filer(reference, context, source_filer, target_filer):
+    path = urlparse(reference).path
+    bucket, name = os.path.split(path)
+    bucket = None if not bucket else bucket
+
+    # don't save if already in target filer.
+    if target_filer.contains(key=name, bucket=bucket):
+        href = associate(context, target_filer, name, bucket)
+        return (href, False)
+
+    source = source_filer.get(path)
+    if source is not None:
+        contentType = getattr(source, 'contentType', None)
+        contentType = contentType or mimetypes.guess_type(name)
+        href = target_filer.save(name, source,
+                                 bucket=bucket,
+                                 overwrite=True,
+                                 context=context,
+                                 contentType=contentType)
+        logger.info("%s was saved as %s", reference, href)
+        return (href, True)
+
+    return (None, False)
+
+
+@component.adapter(IQSurvey)
+@interface.implementer(IEvaluationImporterUpdater)
+class _SurveyImporterUpdater(object):
+
+    def __init__(self, *args):
+        pass
+
+    @Lazy
+    def _figure_pattern(self):
+        pattern = r'\.\.[ ]+%s\s?::\s?(.+)' % 'course-figure'
+        pattern = re.compile(pattern, re.VERBOSE | re.UNICODE)
+        return pattern
+
+    def _process(self, survey, line, result, source_filer, target_filer):
+        modified = False
+        # pylint: disable=no-member
+        m = self._figure_pattern.match(line)
+        if m is not None:
+            reference = m.groups()[0]
+            if reference.startswith(NTI_COURSE_FILE_SCHEME):
+                # pylint: disable=unused-variable
+                href, unused = transfer_resource_from_filer(reference, survey,
+                                                            source_filer, target_filer)
+                if href:
+                    line = re.sub(reference, href, line)
+                    modified = True
+        result.append(line)
+        return modified
+
+    def process_content(self, survey, source_filer, target_filer):
+        result = []
+        modified = False
+        content = text_(survey.contents or b'')
+        lines = statemachine.string2lines(content)
+        lines = statemachine.StringList(lines, '<string>')
+        for idx in range(len(lines)):
+            modified = self._process(survey, lines[idx], result,
+                                     source_filer, target_filer) or modified
+        if modified:
+            content = u'\n'.join(result)
+            survey.contents = IRstContentFragment(content)
+
+    def updateFromExternalObject(self, survey, *unused_args, **kwargs):
+        source_filer = kwargs.get('source_filer')
+        target_filer = kwargs.get('target_filer')
+
+        if source_filer is not None and target_filer is not None:
+            self.process_content(survey, source_filer, target_filer)

@@ -8,8 +8,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
-import re
-
 from collections import Mapping
 
 from zope import component
@@ -18,6 +16,7 @@ from zope import interface
 from nti.app.assessment.common.evaluations import get_course_evaluations
 
 from nti.app.assessment.evaluations.interfaces import ICourseEvaluationsSectionExporter
+from nti.app.assessment.evaluations.interfaces import ICourseEvaluationExporter
 
 from nti.app.assessment.evaluations.utils import course_discussions
 from nti.app.assessment.evaluations.utils import sort_evaluation_key
@@ -43,6 +42,8 @@ from nti.assessment.interfaces import IQSurvey
 
 from nti.contentlibrary.interfaces import IEditableContentPackage
 from nti.contentlibrary.interfaces import IContentPackageExporterDecorator
+
+from nti.contentlibrary.utils import operate_encode_content
 
 from nti.contenttypes.courses.discussions.interfaces import ICourseDiscussion
 from nti.contenttypes.courses.discussions.interfaces import ICourseDiscussionTopic
@@ -85,27 +86,7 @@ ITEM_COUNT = StandardExternalFields.ITEM_COUNT
 
 INTERNAL_NTIID = StandardInternalFields.NTIID
 
-#: Pattern to search for poll refs, e.g. ".. napollref:: <ntiid>"
-POLL_REF_PATTERN = "..\s*napollref::\s*(.*)$"
-
 logger = __import__('logging').getLogger(__name__)
-
-
-def handle_survey(ext_obj, salt=None):
-    """
-    Ensure the ntiids referenced in the contents are updated
-    to match the ntiids that will be used for the underlying
-    polls when exported
-    """
-
-    contents = ext_obj.get('contents')
-    pat = re.compile(POLL_REF_PATTERN, re.MULTILINE)
-    if contents:
-        for match in re.finditer(pat, contents):
-            old_ntiid = match.group(1)
-            if old_ntiid:
-                contents = contents.replace(old_ntiid, hash_ntiid(old_ntiid, salt))
-        ext_obj['contents'] = contents
 
 
 class EvaluationsExporterMixin(object):
@@ -137,9 +118,18 @@ class EvaluationsExporterMixin(object):
 
         def _ext(item):
             evaluation = removeAllProxies(item)
-            ext_obj = to_external_object(evaluation,
-                                         name="exporter",
-                                         decorate=False)
+
+            exporter = component.queryAdapter(evaluation,
+                                              ICourseEvaluationExporter)
+            if exporter is not None:
+                ext_obj = exporter.export(evaluation,
+                                          salt=salt,
+                                          backup=backup,
+                                          filer=filer)
+            else:
+                ext_obj = to_external_object(evaluation,
+                                             name="exporter",
+                                             decorate=False)
 
             if IQuestionSet.providedBy(evaluation):
                 ext_obj['Randomized'] = is_randomized_question_set(evaluation)
@@ -161,9 +151,6 @@ class EvaluationsExporterMixin(object):
                         qs_ext = ext_part_obj['question_set']
                         qs_ext['Randomized'] = is_randomized_question_set(qs)
                         qs_ext['RandomizedPartsType'] = is_randomized_parts_container(qs)
-
-            if IQSurvey.providedBy(evaluation):
-                handle_survey(ext_obj, salt)
 
             if not backup:
                 self.change_evaluation_ntiid(ext_obj, salt)
@@ -202,6 +189,33 @@ class EvaluationsExporter(EvaluationsExporterMixin, BaseSectionExporter):
                 source = self.dump(result)
                 filer.save("evaluation_index.json", source, bucket=bucket,
                            contentType="application/json", overwrite=True)
+        return result
+
+
+@component.adapter(IQSurvey)
+@interface.implementer(ICourseEvaluationExporter)
+class _SurveyExporter(object):
+
+    def __init__(self, unused_context):
+        pass
+
+    def export(self, evaluation, filer, backup=True, salt=None):
+        exporter = component.queryAdapter(evaluation,
+                                          IInternalObjectExternalizer,
+                                          name="exporter")
+        result = exporter.toExternalObject(decorate=False)
+
+        contents = evaluation.contents
+
+        if contents is not None:
+            data = operate_encode_content(contents,
+                                          evaluation,
+                                          salt=salt,
+                                          backup=backup,
+                                          filer=filer)
+            result['contents'] = data
+            result['encoded'] = True
+
         return result
 
 

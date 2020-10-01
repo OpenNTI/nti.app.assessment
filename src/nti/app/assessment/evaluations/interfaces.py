@@ -25,6 +25,24 @@ class ICourseEvaluationsSectionImporter(ICourseSectionImporter):
     pass
 
 
+class ICourseEvaluationExporter(interface.Interface):
+    """
+    Export an evaluation object; an alternative to a general named
+    externalizer that allows for passing export params such as the
+    filer
+    """
+
+    def export(evaluation, filer, backup=True, salt=None):
+        """
+        Export the specified evaluation
+
+        :param evaluation: Evaluation to export
+        :param filer: External source filer
+        :param backup: backup flag
+        :param salt: ntiid salt
+        """
+
+
 class IImplicitlyDeletable(interface.Interface):
     """
     Marker interface indicating we can safely remove the object

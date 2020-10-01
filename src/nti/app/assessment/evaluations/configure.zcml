@@ -85,6 +85,18 @@
 				provides="nti.contentlibrary.interfaces.IContentPackageExporterDecorator"
 				for="nti.contentlibrary.interfaces.IEditableContentPackage" />
 
+	<adapter	factory=".exporter._SurveyExporter"
+				for="nti.assessment.interfaces.IQSurvey"
+				provides=".interfaces.ICourseEvaluationExporter" />
+
+	<subscriber	factory=".docutils.operators.SurveyContentsMediaRefOperator"
+				for="nti.assessment.interfaces.IQSurvey"
+				provides="nti.contentlibrary.interfaces.IContentOperator" />
+
+	<subscriber	factory=".docutils.operators.SurveyContentsCourseFigureOperator"
+				for="nti.assessment.interfaces.IQSurvey"
+				provides="nti.contentlibrary.interfaces.IContentOperator" />
+
     <!-- Disable for now JZ 3.2018
 	<subscriber handler=".exporter._on_course_section_exported_event" />
 	-->
@@ -100,5 +112,10 @@
 	<subscriber factory=".importer._EditableContentPackageImporterUpdater"
 				provides="nti.contentlibrary.interfaces.IContentPackageImporterUpdater"
 				for="nti.contentlibrary.interfaces.IEditableContentPackage" />
+
+		<subscriber	factory=".importer._SurveyImporterUpdater"
+				for="nti.assessment.interfaces.IQSurvey"
+				provides="nti.assessment.interfaces.IEvaluationImporterUpdater" />
+
 
 </configure>

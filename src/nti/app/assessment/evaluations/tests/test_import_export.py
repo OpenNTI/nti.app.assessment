@@ -7,6 +7,9 @@ __docformat__ = "restructuredtext en"
 # disable: accessing protected members, too many methods
 # pylint: disable=W0212,R0904
 
+
+import base64
+
 from hamcrest import is_
 from hamcrest import none
 from hamcrest import is_not
@@ -28,6 +31,8 @@ import simplejson
 from zope import component
 from zope import interface
 
+import zlib
+
 from nti.app.assessment.interfaces import IQEvaluations
 
 from nti.app.assessment.evaluations.exporter import EvaluationsExporter
@@ -39,6 +44,9 @@ from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQTimedAssignment
 
 from nti.assessment.survey import QPoll
+from nti.assessment.survey import QSurvey
+
+from nti.contenttypes.courses.interfaces import ICourseExportFiler
 
 from nti.contentlibrary.mixins import ContentPackageImporterMixin
 
@@ -190,6 +198,9 @@ class TestImportExport(ImportExportTestMixin, ApplicationLayerTest):
                                   has_entry('Items', has_length(1))))
 
 
+def encode(content):
+    return base64.b64encode(zlib.compress(content))
+
 class TestSurveyImportExport(ImportExportTestMixin, ApplicationLayerTest):
 
     layer = InstructedCourseApplicationTestLayer
@@ -200,6 +211,7 @@ class TestSurveyImportExport(ImportExportTestMixin, ApplicationLayerTest):
 
     SURVEY_NTIID = u'tag:nextthought.com,2011-10:OU-NAQ-survey_system_4744496732793162703_1679835696'
     POLL_NTIID = u'tag:nextthought.com,2011-10:OU-NAQ-poll_system_4744496732793012824_1679835696'
+    VIDEO_NTIID = u'tag:nextthought.com,2011-10:OU-NTIVideo-CS1323_F_2015_Intro_to_Computer_Programming.ntivideo.video_janux_videos'
 
     IMPORTED_NTIIDS = (POLL_NTIID, SURVEY_NTIID)
     NTIIDS_TO_REMOVE = (SURVEY_NTIID,)
@@ -222,14 +234,31 @@ class TestSurveyImportExport(ImportExportTestMixin, ApplicationLayerTest):
             entry = find_object_with_ntiid(self.entry_ntiid)
             course = ICourseInstance(entry)
             exporter = EvaluationsExporter()
-            result = exporter.export_evaluations(course, backup=False)
+            salt = b'test'
+            filer = ICourseExportFiler(course)
+            result = exporter.export_evaluations(course,
+                                                 backup=False,
+                                                 salt=salt,
+                                                 filer=filer)
 
-            expected_poll_ntiid = hash_ntiid(self.POLL_NTIID)
+            expected_poll_ntiid = hash_ntiid(self.POLL_NTIID, salt=salt)
             ext_polls = [eval for eval in result['Items']
                          if eval['MimeType'] == QPoll.mime_type]
             assert_that(ext_polls, has_length(1))
             assert_that(ext_polls[0], has_entries({
                 'NTIID': expected_poll_ntiid
+            }))
+
+            expected_survey_ntiid = hash_ntiid(self.SURVEY_NTIID, salt=salt)
+            expected_vid_ntiid = self.VIDEO_NTIID
+            expected_contents = ".. napollref:: %s\n.. ntivideoref:: %s" \
+                                % (expected_poll_ntiid, expected_vid_ntiid)
+            ext_surveys = [eval for eval in result['Items']
+                           if eval['MimeType'] == QSurvey.mime_type]
+            assert_that(ext_surveys, has_length(1))
+            assert_that(ext_surveys[0], has_entries({
+                'NTIID': expected_survey_ntiid,
+                'contents': encode(expected_contents)
             }))
 
             new_source = simplejson.dumps(result)
@@ -238,8 +267,7 @@ class TestSurveyImportExport(ImportExportTestMixin, ApplicationLayerTest):
 
             course_evals = IQEvaluations(course)
 
-            expected_survey_ntiid = hash_ntiid(self.SURVEY_NTIID)
             assert_that(expected_poll_ntiid, is_in(course_evals))
             assert_that(expected_survey_ntiid, is_in(course_evals))
             assert_that(course_evals[expected_survey_ntiid].contents,
-                        is_(".. napollref:: %s" % expected_poll_ntiid))
+                        is_(expected_contents))

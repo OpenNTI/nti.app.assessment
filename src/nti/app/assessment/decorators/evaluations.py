@@ -47,7 +47,6 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.contenttypes.courses.utils import is_course_instructor
 
 from nti.dataserver.authorization import ACT_CONTENT_EDIT
-from nti.dataserver.authorization import ACT_NTI_ADMIN
 
 from nti.dataserver.interfaces import ILinkExternalHrefOnly
 
@@ -84,10 +83,6 @@ class _EvaluationLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
                                                  request=self.request)
         return result
 
-    def _can_delete_contained_data(self, composite):
-        return is_course_instructor(composite, self.remoteUser) \
-            or has_permission(ACT_NTI_ADMIN, composite, self.request)
-
     def _do_decorate_external(self, context, result):
         _links = result.setdefault(LINKS, [])
 
@@ -112,7 +107,7 @@ class _EvaluationLinkDecorator(AbstractAuthenticatedRequestAwareDecorator):
             _links.append(link)
 
         if      ICourseInstance.providedBy(composite) \
-            and self._can_delete_contained_data(composite) \
+            and is_course_instructor(composite, self.remoteUser) \
             and _has_any_submissions(context, composite):
             link = Link(link_context,
                         rel=VIEW_RESET_EVALUATION,

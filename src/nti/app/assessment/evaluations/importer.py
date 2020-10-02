@@ -32,6 +32,8 @@ from zope.security.interfaces import IPrincipal
 
 from nti.app.assessment.common.utils import make_evaluation_ntiid
 
+from nti.app.assessment.evaluations import reference_directive_pattern
+
 from nti.app.assessment.evaluations.interfaces import ICourseEvaluationsSectionImporter
 
 from nti.app.assessment.evaluations.utils import indexed_iter
@@ -443,9 +445,7 @@ class _SurveyImporterUpdater(object):
 
     @Lazy
     def _figure_pattern(self):
-        pattern = r'\.\.[ ]+%s\s?::\s?(.+)' % 'course-figure'
-        pattern = re.compile(pattern, re.VERBOSE | re.UNICODE)
-        return pattern
+        return reference_directive_pattern('course-figure')
 
     def _process(self, survey, line, result, source_filer, target_filer):
         modified = False

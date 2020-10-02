@@ -17,6 +17,8 @@ from zope import interface
 
 from zope.cachedescriptors.property import Lazy
 
+from nti.app.assessment.evaluations import reference_directive_pattern
+
 from nti.app.contentfolder.resources import is_internal_file_link
 
 from nti.app.products.courseware.utils.exporter import save_resource_to_filer
@@ -45,9 +47,7 @@ class OperatorMixin(object):
 
     @Lazy
     def _figure_pattern(self):
-        pattern = r'\.\.[ ]+%s\s?::\s?(.+)' % 'course-figure'
-        pattern = re.compile(pattern, re.VERBOSE | re.UNICODE)
-        return pattern
+        return reference_directive_pattern('course-figure')
 
 
 @interface.implementer(IContentOperator)
@@ -108,9 +108,7 @@ class SurveyContentsMediaRefOperator(object):
     def _node_ref_patterns(self):
         result = []
         for prefix in ('ntivideoref', 'napollref' ):
-            pattern = r'\.\.[ ]+%s\s?::\s?(.+)' % prefix
-            pattern = re.compile(pattern, re.VERBOSE | re.UNICODE)
-            result.append(pattern)
+            result.append(reference_directive_pattern(prefix))
         return result
 
     def _should_replace_ntiid(self, ntiid):

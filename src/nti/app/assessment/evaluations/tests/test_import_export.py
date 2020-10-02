@@ -198,8 +198,8 @@ class TestImportExport(ImportExportTestMixin, ApplicationLayerTest):
                                   has_entry('Items', has_length(1))))
 
 
-def encode(content):
-    return base64.b64encode(zlib.compress(content))
+def decode(content):
+    return zlib.decompress(base64.b64decode(content))
 
 class TestSurveyImportExport(ImportExportTestMixin, ApplicationLayerTest):
 
@@ -258,8 +258,9 @@ class TestSurveyImportExport(ImportExportTestMixin, ApplicationLayerTest):
             assert_that(ext_surveys, has_length(1))
             assert_that(ext_surveys[0], has_entries({
                 'NTIID': expected_survey_ntiid,
-                'contents': encode(expected_contents)
             }))
+            assert_that(decode(ext_surveys[0]['contents']),
+                        is_(expected_contents))
 
             new_source = simplejson.dumps(result)
             importer = EvaluationsImporter()

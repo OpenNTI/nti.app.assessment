@@ -55,6 +55,8 @@ from nti.app.assessment.utils import get_course_from_request
 
 from nti.app.authentication import get_remote_user
 
+from nti.app.contentlibrary import LIBRARY_PATH_GET_VIEW
+
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
 from nti.appserver.pyramid_authorization import has_permission
@@ -87,7 +89,11 @@ from nti.externalization.externalization import to_external_object
 from nti.externalization.interfaces import StandardExternalFields
 from nti.externalization.interfaces import IExternalMappingDecorator
 
+from nti.externalization.singleton import Singleton
+
 from nti.links.links import Link
+
+from nti.ntiids.oids import to_external_ntiid_oid
 
 from nti.traversal.traversal import find_interface
 
@@ -325,8 +331,8 @@ class _InquirySubmissionMetadataDecorator(_InquiryDecorator):
             links.append(Link(course,
                               method='GET',
                               rel='submission_metadata',
-                              elements=('CourseInquiries', 
-                                         context.ntiid, 
+                              elements=('CourseInquiries',
+                                         context.ntiid,
                                         '@@SubmissionMetadata',)))
 
 def _is_editable(context, request=None):
@@ -349,3 +355,23 @@ class _PollPreflightDecorator(_InquiryDecorator):
                           method='PUT',
                           rel='preflight_update',
                           elements=('@@preflight',)))
+
+
+@component.adapter(IQSurvey)
+@interface.implementer(IExternalMappingDecorator)
+class _SurveyLibraryPathLinkDecorator(Singleton):
+    """
+    Create a `LibraryPath` link to our container id.
+    """
+
+    def decorateExternalMapping(self, context, result):
+        external_ntiid = to_external_ntiid_oid(context)
+        if external_ntiid is not None:
+            path = '/dataserver2/%s' % LIBRARY_PATH_GET_VIEW
+            link = Link(path, rel=LIBRARY_PATH_GET_VIEW, method='GET',
+                        params={'objectId': external_ntiid})
+            _links = result.setdefault(LINKS, [])
+            interface.alsoProvides(link, ILocation)
+            link.__name__ = ''
+            link.__parent__ = context
+            _links.append(link)

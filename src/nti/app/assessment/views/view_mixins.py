@@ -81,6 +81,7 @@ from nti.assessment.interfaces import IQDiscussionAssignment
 from nti.assessment.interfaces import IQAssessmentDateContext
 from nti.assessment.interfaces import QAssessmentPoliciesModified
 from nti.assessment.interfaces import QAssessmentDateContextModified
+from nti.assessment.interfaces import DISCLOSURE_STATES
 
 from nti.common.string import is_true
 from nti.common.string import is_false
@@ -429,6 +430,12 @@ class AssessmentPutView(UGDPutView):
             if value is not None and (value <= 0 or value > 1):
                 self._raise_error('InvalidValue',
                                   _(u'completion_passing_percent must be between 0 and 1.'),
+                                  field='completion_passing_percent')
+        elif key == 'disclosure':
+            notify_value = value
+            if value is not None and value not in DISCLOSURE_STATES:
+                self._raise_error('InvalidValue',
+                                  _(u'disclosure must be one of: %s' % (list(DISCLOSURE_STATES))),
                                   field='completion_passing_percent')
 
         factory = QAssessmentPoliciesModified

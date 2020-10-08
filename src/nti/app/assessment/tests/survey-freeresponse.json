@@ -1,5 +1,6 @@
 {
   "MimeType": "application/vnd.nextthought.nasurvey",
+	"title": "My Test Survey",
   "questions": [
 	{
 	  "MimeType": "application/vnd.nextthought.napoll",

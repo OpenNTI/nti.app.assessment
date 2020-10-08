@@ -116,6 +116,7 @@ ASSM_ITEMS = {
         {'Class': 'Survey',
          'MimeType': 'application/vnd.nextthought.nasurvey',
          'NTIID': 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.set.testsurvey',
+         'title': 'Test Survey',
          'questions': [{'Class': 'Poll',
                         'MimeType': 'application/vnd.nextthought.napoll',
                         'NTIID': 'tag:nextthought.com,2011-10:testing-NAQ-temp.naq.testpoll',

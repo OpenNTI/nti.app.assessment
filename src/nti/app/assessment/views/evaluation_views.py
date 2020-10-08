@@ -548,6 +548,8 @@ class SurveyPutView(NewAndLegacyPutView):
 
     CAN_FORCE_STRUCTURAL_EDITS = True
 
+    NON_DATE_POLICY_KEYS = ('disclosure',)
+
     def _skip_solution_check_proxy(self, obj):
         return IQAvoidSolutionCheck(obj)
 

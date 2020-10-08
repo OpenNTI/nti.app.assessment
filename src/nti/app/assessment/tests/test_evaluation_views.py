@@ -24,6 +24,7 @@ from hamcrest import assert_that
 from hamcrest import greater_than
 from hamcrest import has_property
 from hamcrest import contains_inanyorder
+from hamcrest import starts_with
 
 from nti.testing.time import time_monotonically_increases
 
@@ -89,6 +90,8 @@ from nti.assessment.interfaces import DISCUSSION_ASSIGNMENT_MIME_TYPE
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQEvaluation
 from nti.assessment.interfaces import IQuestionSet
+from nti.assessment.interfaces import IQAssessmentPolicies
+from nti.assessment.interfaces import IQAssessmentDateContext
 
 from nti.assessment.parts import QFilePart
 
@@ -108,6 +111,8 @@ from nti.contenttypes.courses.interfaces import ICourseInstance
 from nti.dataserver.users.users import User
 
 from nti.externalization import to_external_object
+
+from nti.externalization.datetime import datetime_from_string
 
 from nti.externalization.externalization import toExternalObject
 
@@ -2136,6 +2141,7 @@ class TestEvaluationViews(ApplicationLayerTest):
         # Polls referenced by other surveys do not get unpublished
         new_survey = {
             "MimeType": "application/vnd.nextthought.nasurvey",
+            "title": "Test Survey",
             "questions": [
                 freeresponse_oid,
             ]
@@ -2260,7 +2266,6 @@ class TestEvaluationViews(ApplicationLayerTest):
         res = res.json_body
         assert_that(res['code'], is_('TooShort'))
 
-
     @WithSharedApplicationMockDS(testapp=True, users=True)
     @fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
     def test_edit_survey_with_submissions(self, fake_active):
@@ -2301,6 +2306,68 @@ class TestEvaluationViews(ApplicationLayerTest):
         self.testapp.put_json(force_href,
                               update,
                               extra_environ=editor_environ)
+
+    @WithSharedApplicationMockDS(testapp=True, users=True)
+    @fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
+    def test_edit_survey_policy(self, fake_active):
+        fake_active.is_callable().returns(True)
+
+        editor_environ = self._make_extra_environ(username="sjohnson@nextthought.com")
+        course_oid = self._get_course_oid()
+        href = '/dataserver2/Objects/%s/CourseEvaluations' % quote(course_oid)
+
+        # Create simple survey with freeresponse part
+        fr_survey = self._load_survey()
+        res = self.testapp.post_json(href, fr_survey, status=201)
+        res = res.json_body
+        survey_href = res.get('href')
+        assert_that(res, has_entry('disclosure', 'termination'))
+
+        update = {
+            'disclosure': 'invalid_disclosure_value'
+        }
+
+        res = self.testapp.put_json(survey_href,
+                                    update,
+                                    extra_environ=editor_environ,
+                                    status=422)
+        res = res.json_body
+        assert_that(res, has_entry('message',
+                                   starts_with('disclosure must be one of')))
+
+        update = {
+            'disclosure': 'always',
+            'available_for_submission_beginning': '2020-10-12T05:00:00Z',
+            'available_for_submission_ending': '2024-07-16T04:59:00Z'
+        }
+
+        res = self.testapp.put_json(survey_href,
+                                    update,
+                                    extra_environ=editor_environ)
+        res = res.json_body
+        assert_that(res, has_entry('disclosure', 'always'))
+        assert_that(res, has_entry('available_for_submission_beginning', '2020-10-12T05:00:00Z'))
+        assert_that(res, has_entry('available_for_submission_ending', '2024-07-16T04:59:00Z'))
+
+        # Ensure it was set on the policy and not the object itself
+        survey_ntiid = res.get('NTIID')
+        with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+            int_survey = find_object_with_ntiid(survey_ntiid)
+            assert_that(int_survey.disclosure, is_('termination'))
+            assert_that(int_survey.available_for_submission_beginning, none())
+            assert_that(int_survey.available_for_submission_ending, none())
+
+            entry = find_object_with_ntiid(self.entry_ntiid)
+            course = ICourseInstance(entry)
+            policies = IQAssessmentPolicies(course)
+            survey_policy = policies.getPolicyForAssessment(survey_ntiid)
+            assert_that(survey_policy, has_entry('disclosure', 'always'))
+
+            date_policy = IQAssessmentDateContext(course).of(int_survey)
+            beginning = datetime_from_string('2020-10-12T05:00:00Z')
+            ending = datetime_from_string('2024-07-16T04:59:00Z')
+            assert_that(date_policy.available_for_submission_beginning, is_(beginning))
+            assert_that(date_policy.available_for_submission_ending, is_(ending))
 
     def submit_survey(self, survey_id, poll_id):
         submission = self._create_submission(survey_id,

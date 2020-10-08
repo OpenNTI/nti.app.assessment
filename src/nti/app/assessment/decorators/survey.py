@@ -252,7 +252,7 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
             elif available[1] is not None and now > available[1]:
                 isClosed = result_map['isClosed'] = True
 
-            policy = get_policy_for_assessment(context, course)
+            policy = get_policy_for_assessment(context.ntiid, course)
             if policy and 'disclosure' in policy:
                 result_map['disclosure'] = policy['disclosure']
 

@@ -436,7 +436,7 @@ class AssessmentPutView(UGDPutView):
             if value is not None and value not in DISCLOSURE_STATES:
                 self._raise_error('InvalidValue',
                                   _(u'disclosure must be one of: %s' % (list(DISCLOSURE_STATES))),
-                                  field='completion_passing_percent')
+                                  field='disclosure')
 
         factory = QAssessmentPoliciesModified
         for course in courses or ():

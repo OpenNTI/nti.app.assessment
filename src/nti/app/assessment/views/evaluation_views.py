@@ -594,14 +594,13 @@ class SurveyPutView(NewAndLegacyPutView):
                 continue
 
             # Need to skip solution check during notifications
-            to_update = self._skip_solution_check_proxy(poll)
             if not _ntiid_only(ext_question):
 
                 # Don't repeat the preflight checks we'll make for the survey
                 self._check_object_constraints(poll, externalValue, preflight=False)
 
                 ext_update = copy.deepcopy(ext_question)
-                poll = update_object_from_external_object(aq_base(to_update),
+                poll = update_object_from_external_object(poll,
                                                           ext_update,
                                                           notify=False,
                                                           request=self.request)

@@ -9,9 +9,6 @@ from __future__ import print_function
 from __future__ import absolute_import
 
 import csv
-import six
-
-from collections import OrderedDict
 
 from datetime import datetime
 
@@ -94,11 +91,11 @@ from nti.assessment.interfaces import IQNonGradableMultipleChoiceMultipleAnswerP
 
 from nti.common.string import is_true
 
-from nti.contentfragments.interfaces import IPlainTextContentFragment
-
 from nti.contenttypes.courses.utils import is_course_instructor
 
 from nti.dataserver import authorization as nauth
+
+from nti.dataserver.authorization import is_admin_or_site_admin
 
 from nti.dataserver.users.interfaces import IFriendlyNamed
 
@@ -118,10 +115,9 @@ logger = __import__('logging').getLogger(__name__)
 
 
 def allow_to_disclose_inquiry(context, course, user):
-    if not is_course_instructor(course, user):
-        if not can_disclose_inquiry(context, course):
-            return False
-    return True
+    return is_course_instructor(course, user) \
+        or is_admin_or_site_admin(user) \
+        or can_disclose_inquiry(context, course)
 
 
 class InquiryViewMixin(object):

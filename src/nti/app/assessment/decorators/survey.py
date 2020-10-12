@@ -81,6 +81,8 @@ from nti.contenttypes.courses.utils import is_course_instructor
 from nti.dataserver.authorization import ACT_CONTENT_EDIT
 from nti.dataserver.authorization import ACT_NTI_ADMIN
 
+from nti.dataserver.authorization import is_admin_or_site_admin
+
 from nti.dataserver.interfaces import IUser
 from nti.dataserver.interfaces import ILinkExternalHrefOnly
 
@@ -272,7 +274,8 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
         # aggregated
         if      course is not None \
             and submission_count \
-            and (   is_course_instructor(course, user)
+            and (   is_course_instructor(course, user) \
+                 or is_admin_or_site_admin(user) \
                  or can_disclose_inquiry(context, course)):
             links.append(Link(course,
                               rel='Aggregated',

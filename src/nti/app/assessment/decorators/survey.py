@@ -360,9 +360,9 @@ class _PollPreflightDecorator(_InquiryDecorator):
                           elements=('@@preflight',)))
 
 
-@component.adapter(IQSurvey)
+@component.adapter(IQInquiry)
 @interface.implementer(IExternalMappingDecorator)
-class _SurveyLibraryPathLinkDecorator(Singleton):
+class _InquiryLibraryPathLinkDecorator(Singleton):
     """
     Create a `LibraryPath` link to our container id.
     """

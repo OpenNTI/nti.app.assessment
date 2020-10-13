@@ -2323,6 +2323,25 @@ class TestEvaluationViews(ApplicationLayerTest):
         survey_href = res.get('href')
         assert_that(res, has_entry('disclosure', 'termination'))
 
+        # Update dates directly on survey
+        survey_ntiid = res.get('NTIID')
+        with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
+            int_survey = find_object_with_ntiid(survey_ntiid)
+            int_survey.available_for_submission_beginning = 1602510566
+            int_survey.available_for_submission_ending = 1602520566
+            obj_beginning = int_survey.available_for_submission_beginning
+            obj_ending = int_survey.available_for_submission_ending
+
+        res = self.testapp.get(survey_href,
+                               extra_environ=editor_environ)
+        res = res.json_body
+        assert_that(res['available_for_submission_beginning'],
+                    is_(to_external_object(obj_beginning)))
+        assert_that(res['available_for_submission_ending'],
+                    is_(to_external_object(obj_ending)))
+        assert_that(res['isClosed'],
+                    is_(True))
+
         update = {
             'disclosure': 'invalid_disclosure_value'
         }
@@ -2335,10 +2354,14 @@ class TestEvaluationViews(ApplicationLayerTest):
         assert_that(res, has_entry('message',
                                    starts_with('disclosure must be one of')))
 
+        from datetime import timedelta
+        now = datetime.utcnow()
+        policy_ending = now + timedelta(days=1)
+        policy_ending_ext = to_external_object(policy_ending)
         update = {
             'disclosure': 'always',
             'available_for_submission_beginning': '2020-10-12T05:00:00Z',
-            'available_for_submission_ending': '2024-07-16T04:59:00Z'
+            'available_for_submission_ending': policy_ending_ext
         }
 
         res = self.testapp.put_json(survey_href,
@@ -2347,15 +2370,17 @@ class TestEvaluationViews(ApplicationLayerTest):
         res = res.json_body
         assert_that(res, has_entry('disclosure', 'always'))
         assert_that(res, has_entry('available_for_submission_beginning', '2020-10-12T05:00:00Z'))
-        assert_that(res, has_entry('available_for_submission_ending', '2024-07-16T04:59:00Z'))
+        assert_that(res, has_entry('available_for_submission_ending', policy_ending_ext))
+        assert_that(res, has_entry('isClosed', False))
 
         # Ensure it was set on the policy and not the object itself
-        survey_ntiid = res.get('NTIID')
         with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
             int_survey = find_object_with_ntiid(survey_ntiid)
             assert_that(int_survey.disclosure, is_('termination'))
-            assert_that(int_survey.available_for_submission_beginning, none())
-            assert_that(int_survey.available_for_submission_ending, none())
+            assert_that(int_survey.available_for_submission_beginning,
+                        is_(obj_beginning))
+            assert_that(int_survey.available_for_submission_ending,
+                        is_(obj_ending))
 
             entry = find_object_with_ntiid(self.entry_ntiid)
             course = ICourseInstance(entry)
@@ -2364,10 +2389,10 @@ class TestEvaluationViews(ApplicationLayerTest):
             assert_that(survey_policy, has_entry('disclosure', 'always'))
 
             date_policy = IQAssessmentDateContext(course).of(int_survey)
-            beginning = datetime_from_string('2020-10-12T05:00:00Z')
-            ending = datetime_from_string('2024-07-16T04:59:00Z')
-            assert_that(date_policy.available_for_submission_beginning, is_(beginning))
-            assert_that(date_policy.available_for_submission_ending, is_(ending))
+            obj_beginning = datetime_from_string('2020-10-12T05:00:00Z')
+            obj_ending = datetime_from_string(policy_ending_ext)
+            assert_that(date_policy.available_for_submission_beginning, is_(obj_beginning))
+            assert_that(date_policy.available_for_submission_ending, is_(obj_ending))
 
     def submit_survey(self, survey_id, poll_id):
         submission = self._create_submission(survey_id,

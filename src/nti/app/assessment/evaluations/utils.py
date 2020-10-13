@@ -8,6 +8,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
+from datetime import datetime
+
 import os
 from six.moves.urllib_parse import urlparse
 
@@ -425,3 +427,16 @@ def re_register_assessment_object(context, old_iface, new_iface):
     unregisterUtility(registry, provided=old_iface, name=ntiid)
     # Make sure we re-index.
     lifecycleevent.modified(context)
+
+
+def is_inquiry_closed(evaluation, begin_date, end_date):
+    now = datetime.utcnow()
+
+    if begin_date is not None and now < begin_date:
+        is_closed = True
+    elif end_date is not None and now > end_date:
+        is_closed = True
+    else:
+        is_closed = evaluation.isClosed
+
+    return is_closed

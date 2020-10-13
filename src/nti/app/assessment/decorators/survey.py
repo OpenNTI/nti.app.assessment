@@ -48,6 +48,8 @@ from nti.app.assessment.decorators import _get_course_from_evaluation
 from nti.app.assessment.decorators import _AbstractTraversableLinkDecorator
 from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
 
+from nti.app.assessment.evaluations.utils import is_inquiry_closed
+
 from nti.app.assessment.interfaces import IUsersCourseInquiry
 from nti.app.assessment.interfaces import IUsersCourseInquiryItem
 
@@ -249,10 +251,9 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
                 else:
                     available.append(asg_date)
 
-            if available[0] is not None and now < available[0]:
-                isClosed = result_map['isClosed'] = True
-            elif available[1] is not None and now > available[1]:
-                isClosed = result_map['isClosed'] = True
+            result_map['isClosed'] = is_inquiry_closed(context,
+                                                       begin_date=available[0],
+                                                       end_date=available[1])
 
             policy = get_policy_for_assessment(context.ntiid, course)
             if policy and 'disclosure' in policy:

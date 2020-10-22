@@ -32,12 +32,13 @@ from nti.app.assessment.common.utils import get_evaluation_catalog_entry
 from nti.app.assessment.common.utils import get_available_for_submission_ending
 
 from nti.app.assessment.interfaces import IUsersCourseInquiryItem
+from nti.app.assessment.interfaces import IUsersCourseInquiry
 
 from nti.assessment.interfaces import DISCLOSURE_NEVER
 from nti.assessment.interfaces import DISCLOSURE_ALWAYS
+from nti.assessment.interfaces import DISCLOSURE_SUBMISSION
 from nti.assessment.interfaces import INQUIRY_MIME_TYPES
 
-from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAggregatedInquiry
 from nti.assessment.interfaces import IQInquirySubmission
 
@@ -91,7 +92,7 @@ def get_course_inquiries(context, mimetypes=None, do_filtering=True):
     return surveys
 
 
-def can_disclose_inquiry(inquiry, context=None):
+def can_disclose_inquiry(inquiry, user, context=None):
     course = ICourseInstance(context, None)
     if course is not None:
         policy = get_policy_for_assessment(inquiry.ntiid, course)
@@ -108,8 +109,17 @@ def can_disclose_inquiry(inquiry, context=None):
     # eval
     result = disclosure == DISCLOSURE_ALWAYS
     if not result and disclosure != DISCLOSURE_NEVER:
-        result = not_after and datetime.utcnow() >= not_after
+        if disclosure == DISCLOSURE_SUBMISSION:
+            result = _has_inquiry_submission(course, user, inquiry)
+        else:
+            result = not_after and datetime.utcnow() >= not_after
     return result
+
+
+def _has_inquiry_submission(course, user, inquiry):
+    course_inquiry = component.getMultiAdapter((course, user),
+                                               IUsersCourseInquiry)
+    return inquiry.ntiid in course_inquiry
 
 
 def aggregate_course_inquiry(inquiry, course, *items):

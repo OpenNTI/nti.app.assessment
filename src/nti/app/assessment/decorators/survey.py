@@ -277,7 +277,7 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
             and submission_count \
             and (   is_course_instructor(course, user) \
                  or is_admin_or_site_admin(user) \
-                 or can_disclose_inquiry(context, course)):
+                 or can_disclose_inquiry(context, user, course)):
             links.append(Link(course,
                               rel='Aggregated',
                               elements=elements + ('@@Aggregated',)))

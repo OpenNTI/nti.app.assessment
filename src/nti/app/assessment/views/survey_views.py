@@ -117,7 +117,7 @@ logger = __import__('logging').getLogger(__name__)
 def allow_to_disclose_inquiry(context, course, user):
     return is_course_instructor(course, user) \
         or is_admin_or_site_admin(user) \
-        or can_disclose_inquiry(context, course)
+        or can_disclose_inquiry(context, user, course)
 
 
 class InquiryViewMixin(object):
@@ -203,6 +203,15 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
 
         # Check that the submission has something for all polls
         if IQSurveySubmission.providedBy(submission):
+            if submission.inquiryId != self.context.id:
+                raise_json_error(self.request,
+                                 hexc.HTTPUnprocessableEntity,
+                                 {
+                                     'message': _(u"Submission does not match survey."),
+                                     'code': _(u"SurveyMismatch")
+                                 },
+                                 None)
+
             survey = component.getUtility(IQSurvey, name=submission.inquiryId)
             survey_poll_ids = [poll.ntiid for poll in survey.questions]
             submission_poll_ids = [
@@ -495,13 +504,17 @@ class InquiryAggregatedGetView(AbstractAuthenticatedView, InquiryViewMixin):
              renderer='rest',
              permission=nauth.ACT_READ,
              request_method='POST')
-class InquirySubmisionPostView(UGDPostView):
+class InquirySubmisionPostView(UGDPostView, InquiryViewMixin):
 
     def __call__(self):
         result = super(InquirySubmisionPostView, self).__call__()
         # pylint: disable=no-member
         inquiry = component.getUtility(IQInquiry, name=self.context.inquiryId)
-        if can_disclose_inquiry(inquiry):
+        logger.info('Post to %s with mimeType %s and containerId %s',
+                     self.context.inquiryId,
+                     self.context.mimeType,
+                     self.context.containerId)
+        if can_disclose_inquiry(inquiry, self.remoteUser, self.course):
             mimeType = self.context.mimeType
             containerId = self.context.containerId
             result = aggregate_page_inquiry(containerId,

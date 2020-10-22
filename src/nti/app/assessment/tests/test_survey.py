@@ -8,9 +8,17 @@ from __future__ import absolute_import
 # disable: accessing protected members, too many methods
 # pylint: disable=W0212,R0904
 
+import os
+import json
+
+from csv import DictReader
+
+import fudge
+
 from hamcrest import is_
 from hamcrest import none
 from hamcrest import is_not
+from hamcrest import is_not as does_not
 from hamcrest import has_key
 from hamcrest import has_item
 from hamcrest import has_entry
@@ -19,13 +27,14 @@ from hamcrest import has_length
 from hamcrest import assert_that
 from hamcrest import has_property
 from hamcrest import contains_string
-does_not = is_not
 
 from nti.testing.matchers import validly_provides
 
-import weakref
 from six import StringIO
-from csv import DictReader
+
+from six.moves.urllib_parse import unquote
+
+import weakref
 
 from nti.app.assessment.interfaces import IUsersCourseInquiry
 from nti.app.assessment.interfaces import IUsersCourseInquiryItem
@@ -34,7 +43,16 @@ from nti.app.assessment.survey import UsersCourseInquiry
 from nti.app.assessment.survey import UsersCourseInquiries
 from nti.app.assessment.survey import UsersCourseInquiryItem
 
+from nti.app.assessment.tests import AssessmentLayerTest
+from nti.app.assessment.tests import RegisterAssignmentLayerMixin
+from nti.app.assessment.tests import RegisterAssignmentsForEveryoneLayer
+
+from nti.app.testing.decorators import WithSharedApplicationMockDS
+
+from nti.app.testing.application_webtest import ApplicationLayerTest
+
 from nti.assessment.interfaces import IQSurveySubmission
+from nti.assessment.interfaces import DISCLOSURE_SUBMISSION
 
 from nti.assessment.survey import QPollSubmission
 from nti.assessment.survey import QSurveySubmission
@@ -49,7 +67,9 @@ from nti.dataserver.tests import mock_dataserver
 
 from nti.dataserver.users.users import User
 
-from nti.app.assessment.tests import AssessmentLayerTest
+from nti.externalization.externalization import to_external_object
+
+from nti.externalization.interfaces import StandardExternalFields
 
 from nti.ntiids.ntiids import find_object_with_ntiid
 
@@ -85,19 +105,6 @@ class TestSurvey(AssessmentLayerTest):
         course_survey.removeSubmission(submission)
         assert_that(course_survey, has_length(0))
 
-
-import fudge
-
-from six.moves.urllib_parse import unquote
-
-from nti.externalization.interfaces import StandardExternalFields
-from nti.externalization.externalization import to_external_object
-
-from nti.app.assessment.tests import RegisterAssignmentLayerMixin
-from nti.app.assessment.tests import RegisterAssignmentsForEveryoneLayer
-
-from nti.app.testing.decorators import WithSharedApplicationMockDS
-from nti.app.testing.application_webtest import ApplicationLayerTest
 
 COURSE_NTIID = u'tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice'
 COURSE_URL = u'/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice'
@@ -195,11 +202,11 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
             self._fetch_user_url('/Courses/EnrolledCourses/CLC3403/Inquiries/' +
                                  self.default_username, status=404)
 
-    def _test_submission(self, item_id, ext_obj):
+    def _test_submission(self, item_id, ext_obj, enroll=True):
         # Make sure we're enrolled
         res = self.testapp.post_json('/dataserver2/users/' + self.default_username + '/Courses/EnrolledCourses',
                                      COURSE_NTIID,
-                                     status=201)
+                                     status=201 if enroll else 200)
 
         course_res = self.testapp.get(COURSE_URL).json_body
         enrollment_inquiries_link = \
@@ -289,12 +296,7 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
             user_container = container.get(self.default_username)
             assert_that(user_container, has_item(self.survey_id))
 
-        course_res = self.testapp.get(COURSE_URL).json_body
-        course_inquiries_link = self.require_link_href_with_rel(course_res,
-                                                                'CourseInquiries')
-        reset_href = '%s/%s/@@Reset' % (course_inquiries_link, self.survey_id)
-        admin_env = self._make_extra_environ(user='sjohnson@nextthought.com')
-        self.testapp.post(reset_href, extra_environ=admin_env)
+        self._reset_survey(self.survey_id)
 
         with mock_dataserver.mock_db_trans(self.ds, 'janux.ou.edu'):
             course = find_object_with_ntiid(COURSE_NTIID)
@@ -302,6 +304,131 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
             container = ICompletedItemContainer(course)
             user_container = container.get(self.default_username)
             assert_that(user_container, does_not(has_item(self.survey_id)))
+
+    def _reset_survey(self, inquiry_id):
+        course_res = self.testapp.get(COURSE_URL).json_body
+        course_inquiries_link = self.require_link_href_with_rel(course_res,
+                                                                'CourseInquiries')
+        reset_href = '%s/%s/@@Reset' % (course_inquiries_link, inquiry_id)
+        admin_env = self._make_extra_environ(user='sjohnson@nextthought.com')
+        self.testapp.post(reset_href, extra_environ=admin_env)
+
+    def _load_json_resource(self, resource):
+        path = os.path.join(os.path.dirname(__file__), resource)
+        with open(path, "r") as fp:
+            result = json.load(fp)
+            return result
+
+    def _load_survey(self):
+        return self._load_json_resource("survey-freeresponse.json")
+
+    def _create_survey(self, disclosure=None):
+        admin_environ = self._make_extra_environ(
+            username='sjohnson@nextthought.com')
+
+        course_res = self.testapp.get(COURSE_URL,
+                                      extra_environ=admin_environ).json_body
+        evals_href = self.require_link_href_with_rel(course_res, 'CourseEvaluations')
+
+        fr_survey = self._load_survey()
+
+        if disclosure:
+            fr_survey['disclosure'] = disclosure
+
+        res = self.testapp.post_json(evals_href, fr_survey, status=201,
+                                     extra_environ=admin_environ)
+        res = res.json_body
+
+        # Publish
+        publish_link = \
+            self.require_link_href_with_rel(res, 'publish')
+        publish_res = self.testapp.post_json(publish_link, extra_environ=admin_environ)
+
+        return publish_res.json_body
+
+    def _enroll(self, username, course_ntiid=None, origin=None):
+        test_student_environ = self._make_extra_environ(
+            username=username)
+
+        if origin:
+            test_student_environ.update({'HTTP_ORIGIN': origin})
+
+        self.testapp.post_json('/dataserver2/users/' + username + '/Courses/EnrolledCourses',
+                               course_ntiid or COURSE_NTIID,
+                               status=201,
+                               extra_environ=test_student_environ)
+
+    def _submit_survey(self, ext_survey, enroll=True):
+        poll_subs = [QPollSubmission(pollId=poll['NTIID'], parts=['answer'])
+                     for poll in ext_survey['questions']]
+
+        survey_id = ext_survey['NTIID']
+        submission = QSurveySubmission(surveyId=survey_id,
+                                       questions=poll_subs)
+
+        ext_obj = to_external_object(submission)
+        del ext_obj['Class']
+        assert_that(ext_obj,
+                    has_entry('MimeType', 'application/vnd.nextthought.assessment.surveysubmission'))
+
+        return self._test_submission(survey_id, ext_obj, enroll=enroll)
+
+    @WithSharedApplicationMockDS(users=('test_user', 'sjohnson@nextthought.com',),
+                                 testapp=True,
+                                 default_authenticate=True)
+    @fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
+    def test_survey_results_disclosure_submission(self, fake_active):
+        """
+        Ensure a disclosure of `submission` works as expected
+        """
+        fake_active.is_callable().returns(True)
+
+        # Enroll everyone for test
+        for username in self.users:
+            self._enroll(username)
+
+        survey_res = self._create_survey(disclosure=DISCLOSURE_SUBMISSION)
+        survey_href = survey_res['href']
+
+        # No results to aggregate yet, even for admin
+        self.forbid_link_with_rel(survey_res, 'Aggregated')
+
+        # Shouldn't be able to see results until after submission
+        student_survey_res = self.testapp.get(survey_href)
+        student_survey_res = student_survey_res.json_body
+        self.forbid_link_with_rel(student_survey_res, 'Aggregated')
+
+        # Submit with default user (outest75)
+        submission_res = self._submit_survey(survey_res, enroll=False)
+        assert_that(submission_res, has_key('Aggregated'))
+
+        # Now both default user and admin should have a link for results
+        student_survey_res = self.testapp.get(survey_href)
+        student_survey_res = student_survey_res.json_body
+        results_link = self.require_link_href_with_rel(student_survey_res, 'Aggregated')
+
+        # Ensure we can actually fetch them
+        results_res = self.testapp.get(results_link).json_body
+        assert_that(results_res['questions'][0]['parts'][0]['Total'], is_(1))
+        assert_that(results_res['questions'][0]['parts'][0]['Results'],
+                    has_entries({
+                        "answer": 1
+                    }))
+
+        admin_environ = self._make_extra_environ(username='sjohnson@nextthought.com')
+        admin_survey_res = self.testapp.get(survey_href,
+                                              extra_environ=admin_environ)
+        admin_survey_res = admin_survey_res.json_body
+        self.require_link_href_with_rel(admin_survey_res, 'Aggregated')
+
+        # Different user still has no Aggregated link
+        alt_student_env = self._make_extra_environ(username='test_user')
+        alt_survey_res = self.testapp.get(survey_href, extra_environ=alt_student_env)
+        alt_survey_res = alt_survey_res.json_body
+        self.forbid_link_with_rel(alt_survey_res, 'Aggregated')
+
+        # User w/ no submission shouldn't be able to fetch results
+        self.testapp.get(results_link, extra_environ=alt_student_env, status=403)
 
     @WithSharedApplicationMockDS(users=('outest5',), testapp=True, default_authenticate=True)
     @fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
@@ -341,7 +468,7 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
         submission_href = \
             '/dataserver2/++etc++hostsites/platform.ou.edu/++etc++site/Courses/Fall2013/CLC3403_LawAndJustice' + \
-            '/CourseInquiries/tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.pollid.aristotle.1'
+            '/CourseInquiries/%s' % self.survey_id
 
         survey_inquiry_link = \
             '/dataserver2/++etc++hostsites/platform.ou.edu/++etc++site/Courses/Fall2013/CLC3403_LawAndJustice/' + \
@@ -419,7 +546,7 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         survey_href = '/dataserver2/Objects/' + survey_ntiid
         submission_href = \
             '/dataserver2/++etc++hostsites/platform.ou.edu/++etc++site/Courses/Fall2013/CLC3403_LawAndJustice' + \
-            '/CourseInquiries/tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.pollid.aristotle.1'
+            '/CourseInquiries/%s' % self.survey_id
 
         # If we check this when no students have submitted, we should
         # just get back the header row.

@@ -383,9 +383,10 @@ class _DefaultCourseAssignmentCatalog(object):
     def __init__(self, context):
         self.context = context
 
-    def iter_assignments(self, course_lineage=False):
+    def iter_assignments(self, course_lineage=False, require_published=False):
         result = get_course_assignments(self.context,
                                         sort=False,
+                                        require_published=require_published,
                                         parent_course=course_lineage)
         return result
 

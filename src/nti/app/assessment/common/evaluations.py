@@ -358,11 +358,13 @@ def get_all_course_assignments(context):
 
 
 def get_course_assignments(context, sort=True, reverse=False, do_filtering=True,
-                           parent_course=False):
+                           parent_course=False, require_published=False):
     items = get_course_evaluations(context,
                                    mimetypes=ALL_ASSIGNMENT_MIME_TYPES,
                                    parent_course=parent_course)
     ntiid = getattr(ICourseCatalogEntry(context, None), 'ntiid', None)
+    if require_published:
+        items = (x for x in items if x.is_published())
     if do_filtering:
         # Filter out excluded assignments so they don't show in the gradebook
         # either

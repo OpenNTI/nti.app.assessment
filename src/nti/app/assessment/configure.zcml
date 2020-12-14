@@ -127,6 +127,9 @@
 						 .interfaces.IUsersCourseAssignmentHistoryItemFeedbackContainer"
 		modules=".history .feedback" />
 
+    <adapter factory=".feedback._FeedbackLiveNotableExternalizer"
+             name="live_notable" />
+
 	<!-- Decorators -->
 	<include package=".decorators" file="configure.zcml" />
 

@@ -46,6 +46,8 @@ from nti.dataserver.sharing import AbstractReadableSharedMixin
 
 from nti.dublincore.datastructures import PersistentCreatedModDateTrackingObject
 
+from nti.externalization.interfaces import IExternalObject
+
 from nti.namedfile.constraints import FileConstraints
 
 from nti.namedfile.interfaces import IFileConstraints
@@ -55,6 +57,7 @@ from nti.schema.fieldproperty import AdaptingFieldProperty
 from nti.schema.schema import SchemaConfigured
 
 from nti.wref.interfaces import IWeakRef
+from nti.externalization.externalization import to_standard_external_dictionary
 
 logger = __import__('logging').getLogger(__name__)
 
@@ -232,3 +235,25 @@ def when_feedback_modified_modify_history_item(feedback, event):
 @component.adapter(IUsersCourseAssignmentHistoryItemFeedback)
 class _AssignmentHistoryItemFeedbackFileConstraints(FileConstraints):
     max_file_size = 52428800  # 50 MB
+
+
+@interface.implementer(IExternalObject)
+@component.adapter(IUsersCourseAssignmentHistoryItemFeedback)
+class _FeedbackLiveNotableExternalizer(object):
+
+    def __init__(self, feedback):
+        self.feedback = feedback
+
+    def toExternalObject(self, **kwargs):
+        extDict = to_standard_external_dictionary(self.feedback, **kwargs)
+        try:
+            feedback = self.feedback.__parent__
+            history_item = feedback.__parent__
+            submission = history_item.Submission
+            creator = submission.creator
+            creator = getattr(creator, 'username', creator)
+            extDict['AssignmentId'] = submission.assignmentId
+            extDict['SubmissionCreator'] = creator
+        except AttributeError:
+            pass
+        return extDict

@@ -429,6 +429,17 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
                     self.strip_qset(question_set)
 
 
+class _NonInstructorAssignmentSolutionStripper(_AssignmentBeforeDueDateSolutionStripper):
+    """
+    Will always strip assignment solutions for non-instructors (due to parent
+    class checks).
+    """
+
+    def _should_strip(self, unused_course, unused_context,
+                      unused_request, unused_user):
+        return True
+
+
 class _AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper(_AssignmentBeforeDueDateSolutionStripper):
     """
     When anyone besides the instructor requests an assessed part
@@ -452,6 +463,22 @@ class _AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper(_Assig
         if self._should_strip(course, assg, self.request, self.remoteUser):
             for part in result.get('parts') or ():
                 self.strip_qset(part, max_submission_strip=max_submission_strip)
+
+
+class _NonInstructorAssignmentSubmissionPendingAssessmentStripper(_AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper):
+    """
+    Will always strip assignment solutions for non-instructors (due to parent
+    class checks).
+    """
+
+    def _should_strip(self, unused_course, unused_context,
+                      unused_request, unused_user):
+        # Removes solutions
+        return True
+
+    def is_max_submission_strip(self, unused_context, unused_course, unused_user):
+        # Removes assessedValue above
+        return True
 
 
 @interface.implementer(IExternalObjectDecorator)

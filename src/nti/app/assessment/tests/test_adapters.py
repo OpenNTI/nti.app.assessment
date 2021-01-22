@@ -8,6 +8,7 @@ from __future__ import absolute_import
 # pylint: disable=protected-access,too-many-public-methods
 
 from hamcrest import is_
+from hamcrest import none
 from hamcrest import is_not
 from hamcrest import raises
 from hamcrest import has_key
@@ -30,6 +31,9 @@ from nti.testing.matchers import validly_provides
 
 import fudge
 import datetime
+
+from pyramid.interfaces import IRequest
+
 from six.moves import urllib_parse
 from six.moves.urllib_parse import quote
 from six.moves.urllib_parse import unquote
@@ -42,6 +46,9 @@ from zope.schema.interfaces import ConstraintNotSatisfied
 from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
 
 from nti.app.assessment.adapters import _begin_assessment_for_assignment_submission
+
+from nti.app.assessment.decorators.assignment import _NonInstructorAssignmentSolutionStripper
+from nti.app.assessment.decorators.assignment import _NonInstructorAssignmentSubmissionPendingAssessmentStripper
 
 from nti.app.assessment.feedback import UsersCourseAssignmentHistoryItemFeedback
 
@@ -76,6 +83,7 @@ from nti.dataserver.users.users import User
 from nti.externalization.externalization import to_external_object
 
 from nti.externalization.interfaces import StandardExternalFields
+from nti.externalization.interfaces import IExternalObjectDecorator
 
 from nti.mimetype.mimetype import nti_mimetype_with_class
 
@@ -577,7 +585,6 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
     @WithSharedApplicationMockDS(users=True, testapp=True)
     def test_assignment_items_view(self):
-
         # Make sure we're enrolled
         res = self.testapp.post_json('/dataserver2/users/' + self.default_username + '/Courses/EnrolledCourses',
                                      COURSE_NTIID,
@@ -634,13 +641,17 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
                                                      'Commence')
         self.testapp.post(start_href)
         res = self.testapp.post_json(assg_href, ext_obj)
+        sub_href = res.json_body['href']
 
-        def _check_pending(pending):
+        def _check_pending(pending, has_solutions=False):
+            to_check = not_none() if has_solutions else none()
             for assessed_qset in pending['parts']:
                 for question in assessed_qset['questions']:
                     for qpart in question['parts']:
-                        assert_that(qpart, has_entries('solutions', None,
-                                                       'explanation', None))
+                        assert_that(qpart, has_entries('solutions', to_check,
+                                                       'explanation', to_check))
+                        if 'assessedValue' in pending:
+                            assert_that(qpart, has_entry('assessedValue', to_check))
 
         _check_pending(res.json_body)
         # ... and get history
@@ -653,6 +664,58 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         pending = history_item['pendingAssessment']
         _check_pending(pending)
 
+        # If date is current, user can see solutions
+        with mock_dataserver.mock_db_trans(self.ds, site_name='platform.ou.edu'):
+            assignment = component.getUtility(IQAssignment, self.assignment_id)
+            assignment.available_for_submission_ending = (
+                datetime.datetime.utcnow() + datetime.timedelta(days=-2)
+            )
+        try:
+            submission = self.testapp.get(sub_href).json_body
+            _check_pending(submission, has_solutions=True)
+            history_res = self._check_submission(res, enrollment_history_link)
+            history_item = next(iter(history_res.json_body['Items'].values()))
+            history_item = next(iter(history_item['Items']))
+            pending = history_item['pendingAssessment']
+            _check_pending(pending, has_solutions=True)
+
+            with mock_dataserver.mock_db_trans(self.ds):
+                component.getGlobalSiteManager().registerSubscriptionAdapter(_NonInstructorAssignmentSolutionStripper,
+                                                                             (IQAssignment, IRequest),
+                                                                             IExternalObjectDecorator)
+                component.getGlobalSiteManager().registerSubscriptionAdapter(_NonInstructorAssignmentSubmissionPendingAssessmentStripper,
+                                                                             (IQAssignmentSubmissionPendingAssessment,IRequest),
+                                                                             IExternalObjectDecorator)
+
+            submission = self.testapp.get(sub_href).json_body
+            _check_pending(submission, has_solutions=False)
+            history_res = self._check_submission(res, enrollment_history_link)
+            history_item = next(iter(history_res.json_body['Items'].values()))
+            history_item = next(iter(history_item['Items']))
+            pending = history_item['pendingAssessment']
+            _check_pending(pending, has_solutions=False)
+
+            # Instructors still see solutions
+            res = self.testapp.get(enrollment_assignments, extra_environ=instructor_environ)
+            assg = res.json_body['Items'][self.lesson_page_id][0]
+            for part in assg['parts']:
+                question_set = part['question_set']
+                for question in question_set['questions']:
+                    for qpart in question['parts']:
+                        assert_that(qpart, has_entries('solutions', not_none(),
+                                                       'explanation', not_none()))
+        finally:
+            with mock_dataserver.mock_db_trans(self.ds, site_name='platform.ou.edu'):
+                assignment = component.getUtility(IQAssignment, self.assignment_id)
+                assignment.available_for_submission_ending = None
+
+            with mock_dataserver.mock_db_trans(self.ds):
+                component.getGlobalSiteManager().unregisterSubscriptionAdapter(_NonInstructorAssignmentSolutionStripper,
+                                                                               (IQAssignment, IRequest),
+                                                                               IExternalObjectDecorator)
+                component.getGlobalSiteManager().unregisterSubscriptionAdapter(_NonInstructorAssignmentSubmissionPendingAssessmentStripper,
+                                                                               (IQAssignmentSubmissionPendingAssessment,IRequest),
+                                                                               IExternalObjectDecorator)
         with mock_dataserver.mock_db_trans(self.ds, site_name='janux.ou.edu'):
             course = ICourseInstance(find_object_with_ntiid(COURSE_NTIID))
             histories = IUsersCourseAssignmentHistories(course)

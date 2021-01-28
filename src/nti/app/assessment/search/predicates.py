@@ -17,7 +17,11 @@ from zope import interface
 
 from zope.cachedescriptors.property import Lazy
 
+from nti.app.assessment.common.evaluations import is_assignment_available
 from nti.app.assessment.common.evaluations import get_container_evaluations
+from nti.app.assessment.common.evaluations import get_containers_for_evaluation_object
+
+from nti.app.assessment.common.submissions import has_submitted_assigment
 
 from nti.app.assessment.common.utils import get_available_for_submission_beginning
 
@@ -28,8 +32,10 @@ from nti.appserver.pyramid_authorization import has_permission
 from nti.assessment.interfaces import SURVEY_MIME_TYPE
 from nti.assessment.interfaces import ALL_ASSIGNMENT_MIME_TYPES
 
+from nti.assessment.interfaces import IQSurvey
 from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQEvaluation
+from nti.assessment.interfaces import IQTimedAssignment
 
 from nti.contentlibrary.interfaces import IContentUnit
 from nti.contentlibrary.interfaces import IContentPackage
@@ -102,18 +108,36 @@ class _EvaluationSearchHitPredicate(DefaultSearchHitPredicate):
                 return get_courses_for_packages(packages=package.ntiid)
         return ()
 
+    def check_visible(self, user, course, item):
+        # Get containing assignments/surveys
+        for container in get_containers_for_evaluation_object(item):
+            if IQTimedAssignment.providedBy(container):
+                if has_submitted_assigment(course, user, container):
+                    return True
+            elif IQAssignment.providedBy(container):
+                # XXX: Use this in assingment predicate below?
+                if is_assignment_available(container, course, user):
+                    return True
+            elif IQSurvey.providedBy(container):
+                # TODO: Improve this branch
+                return True
+
     def allow(self, item, unused_score, unused_query=None):  # pylint: disable=arguments-differ
         if self.principal is None:
             return True
         else:
             if not self.is_published(item):
+                # XXX: Just creator acl?
                 return has_permission(ACT_READ, item, self.request)
             courses = self.get_courses(item)
             if not courses:
                 return has_permission(ACT_READ, item, self.request)
+            pid = self.principal.id
+            user = User.get_user(pid)
             for course in courses:
-                if     is_instructed_by_name(course, self.principal.id) \
-                    or is_enrolled(course, self.principal):
+                if     (   is_instructed_by_name(course, self.principal.id) \
+                        or is_enrolled(course, self.principal)) \
+                    and self.check_visible(user, course, item):
                     return True
         return False
 
@@ -144,13 +168,18 @@ class _AssignmentSearchHitPredicate(_EvaluationSearchHitPredicate):
                 record = get_enrollment_record(course, user)
                 if record is None:
                     continue
-                beginning = get_available_for_submission_beginning(item, course)
-                if not beginning or now >= beginning:
-                    if item.is_non_public:
-                        if record.Scope != ES_PUBLIC:
-                            return True
-                    else:
+                # Enrollment
+                if IQTimedAssignment.providedBy(item):
+                    if has_submitted_assigment(course, user, item):
                         return True
+                else:
+                    beginning = get_available_for_submission_beginning(item, course)
+                    if not beginning or now >= beginning:
+                        if item.is_non_public:
+                            if record.Scope != ES_PUBLIC:
+                                return True
+                        else:
+                            return True
         return False
 
 

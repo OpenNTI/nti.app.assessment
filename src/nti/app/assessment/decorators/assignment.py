@@ -429,6 +429,24 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
                     self.strip_qset(question_set)
 
 
+class _NonInstructorStripAssignmentPartsAfterSubmission(_AssignmentBeforeDueDateSolutionStripper):
+    """
+    For enrolled users with *any* submissions, always strip the assignment parts.
+    This is not on by default.
+    """
+
+    def _should_strip(self, course, context, request, remoteUser):
+        history_item = get_most_recent_history_item(remoteUser, course, context)
+        return history_item is not None
+
+    def _do_decorate_external(self, context, result):
+        course = self._get_course(context, self.remoteUser, self.request)
+        if self.is_instructor(course, self.request):
+            return
+        if self._should_strip(course, context, self.request, self.remoteUser):
+            result.pop('parts', None)
+
+
 class _NonInstructorAssignmentSolutionStripper(_AssignmentBeforeDueDateSolutionStripper):
     """
     Will always strip assignment solutions for non-instructors (due to parent

@@ -445,6 +445,7 @@ class _NonInstructorStripAssignmentPartsAfterSubmission(_AssignmentBeforeDueDate
             return
         if self._should_strip(course, context, self.request, self.remoteUser):
             result.pop('parts', None)
+        result['HideAfterSubmission'] = True
 
 
 class _NonInstructorAssignmentSolutionStripper(_AssignmentBeforeDueDateSolutionStripper):

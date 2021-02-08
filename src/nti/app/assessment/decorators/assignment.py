@@ -67,6 +67,9 @@ from nti.app.assessment.common.utils import get_available_for_submission_beginni
 from nti.app.assessment.decorators import _root_url
 from nti.app.assessment.decorators import _get_course_from_evaluation
 from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
+from nti.app.assessment.decorators import AbstractSolutionStrippingDecorator
+
+from nti.app.assessment.decorators.question import QuestionPartStripperMixin
 
 from nti.app.assessment.interfaces import ACT_VIEW_SOLUTIONS
 
@@ -335,7 +338,8 @@ class _AssignmentQuestionContentRootURLAdder(AbstractAuthenticatedRequestAwareDe
             result['ContentRoot'] = bucket_root
 
 
-class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAwareDecorator):
+class _AssignmentBeforeDueDateSolutionStripper(AbstractSolutionStrippingDecorator,
+                                               QuestionPartStripperMixin):
     """
     When anyone besides the instructor or an editor requests an assignment
     that has a due date, and we are before the due date, do not release
@@ -348,11 +352,6 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
             question set items back 'standalone'. Depending on the UI, we
             may need to strip them there too.
     """
-
-    def _get_course(self, context, remoteUser, request):
-        course = _get_course_from_evaluation(context, remoteUser,
-                                             request=request)
-        return course
 
     def is_max_submission_strip(self, context, course, user):
         result = False
@@ -367,9 +366,6 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
         return result
 
     def needs_stripped(self, course, context, request, remoteUser):
-        if course is None:
-            return False
-
         due_date = get_available_for_submission_ending(context, course)
 
         # By default always strip
@@ -389,20 +385,11 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
         if we have an assessedValue val.
         """
         for part in item.get('parts') or ():
-            if isinstance(part, Mapping):
-                for key in ('solutions', 'explanation'):
-                    if key in part:
-                        part[key] = None
-                if max_submission_strip:
-                    part.pop('assessedValue', None)
+            self.strip_question_part(part, max_submission_strip)
 
     def strip_qset(self, item, max_submission_strip=False):
         for q in item.get('questions') or ():
             self.strip(q, max_submission_strip=max_submission_strip)
-
-    def is_instructor(self, course, request):
-        return has_permission(ACT_VIEW_SOLUTIONS, course, request) \
-            or has_permission(ACT_CONTENT_EDIT, course, request)
 
     def _should_strip(self, course, context, request, user):
         """
@@ -410,6 +397,9 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
         submission assignment. We'll strip as long has the user has not
         successfully completed the assignment.
         """
+        if course is None:
+            return True
+
         if      course is not None \
             and (   get_policy_max_submissions(context, course) > 1 \
                  or is_policy_max_submissions_unlimited(context, course)):
@@ -420,8 +410,6 @@ class _AssignmentBeforeDueDateSolutionStripper(AbstractAuthenticatedRequestAware
 
     def _do_decorate_external(self, context, result):
         course = self._get_course(context, self.remoteUser, self.request)
-        if self.is_instructor(course, self.request):
-            return
         if self._should_strip(course, context, self.request, self.remoteUser):
             for part in result.get('parts') or ():
                 question_set = part.get('question_set')
@@ -476,8 +464,6 @@ class _AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper(_Assig
     def _do_decorate_external(self, context, result):
         assg = component.queryUtility(IQAssignment, context.assignmentId)
         course = self._get_course(assg, self.remoteUser, self.request)
-        if self.is_instructor(course, self.request):
-            return
         max_submission_strip = self.is_max_submission_strip(assg, course, self.remoteUser)
         if self._should_strip(course, assg, self.request, self.remoteUser):
             for part in result.get('parts') or ():

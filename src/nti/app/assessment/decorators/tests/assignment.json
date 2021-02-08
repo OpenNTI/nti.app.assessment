@@ -1,0 +1,54 @@
+{
+	"Class": "Assignment",
+	"CategoryName": "homework",
+	"MimeType": "application/vnd.nextthought.assessment.assignment",
+	"NoSubmit": false,
+	"available_for_submission_beginning": "2015-05-12T05:00:00Z",
+	"available_for_submission_ending": "2024-07-16T04:59:00Z",
+	"category_name": "homework",
+	"content": "",
+	"is_non_public": false,
+	"no_submit": false,
+	"parts": [
+		{
+			"Class": "AssignmentPart",
+			"MimeType": "application/vnd.nextthought.assessment.assignmentpart",
+			"auto_grade": false,
+			"content": "",
+			"question_set": {
+				"Class": "QuestionSet",
+				"MimeType": "application/vnd.nextthought.naquestionset",
+				"questions": [
+					{
+						"Class": "Question",
+						"MimeType": "application/vnd.nextthought.naquestion",
+						"content": "Upload your .docx or .pdf file. Maximum file size is 10MB.",
+						"parts": [
+							{
+								"Class": "FilePart",
+								"MimeType": "application/vnd.nextthought.assessment.filepart",
+								"allowed_extensions": [
+									".docx",
+									".pdf"
+								],
+								"allowed_mime_types": [
+									"*/*"
+								],
+								"content": "",
+								"explanation": "",
+								"hints": [],
+								"max_file_size": 10485760,
+								"solutions": []
+							}
+						]
+					}
+				],
+				"title": "File Upload"
+			},
+			"title": "Submission"
+		}
+	],
+	"publishBeginning": null,
+	"publishEnding": null,
+	"title": "File Upload"
+}

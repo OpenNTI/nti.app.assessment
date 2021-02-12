@@ -17,7 +17,7 @@ from nti.app.products.courseware.calendar.model import CourseCalendarEvent
 
 from nti.app.products.courseware.calendar.interfaces import ICourseCalendar
 from nti.app.products.courseware.calendar.interfaces import ICourseCalendarDynamicEvent
-from nti.app.products.courseware.calendar.interfaces import ICourseCalendarDynamicEventProvider
+from nti.app.products.courseware.calendar.interfaces import IEnrolledCourseCalendarDynamicEventProvider
 
 from nti.app.assessment.common.utils import get_available_for_submission_ending
 
@@ -70,7 +70,7 @@ class AssignmentCalendarEventIO(InterfaceObjectIO):
 
 
 @component.adapter(IUser, ICourseInstance)
-@interface.implementer(ICourseCalendarDynamicEventProvider)
+@interface.implementer(IEnrolledCourseCalendarDynamicEventProvider)
 class AssignmentCalendarDynamicEventProvider(object):
 
     def __init__(self, user, course):

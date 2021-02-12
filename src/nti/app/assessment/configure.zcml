@@ -587,7 +587,7 @@
 
 	<!-- calendar -->
 	<subscriber factory=".calendar.AssignmentCalendarDynamicEventProvider"
-				provides="nti.app.products.courseware.calendar.interfaces.ICourseCalendarDynamicEventProvider"
+				provides="nti.app.products.courseware.calendar.interfaces.IEnrolledCourseCalendarDynamicEventProvider"
 				for="nti.dataserver.interfaces.IUser
 					 nti.contenttypes.courses.interfaces.ICourseInstance" />
 

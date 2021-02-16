@@ -29,7 +29,6 @@ from nti.assessment.interfaces import IQAssessedPart
 from nti.assessment.interfaces import IQAssessedQuestion
 from nti.assessment.interfaces import IQuestionSubmission
 from nti.assessment.interfaces import IQAssessedQuestionSet
-from nti.assessment.interfaces import IQPartSolutionsExternalizer
 
 from nti.assessment.randomized.interfaces import IQRandomizedPart
 from nti.assessment.randomized.interfaces import IRandomizedPartsContainer
@@ -215,25 +214,16 @@ class _QuestionSubmissionDecorator(AbstractAuthenticatedRequestAwareDecorator):
 @component.adapter(IQAssessedQuestion)
 class _QAssessedQuestionExplanationSolutionAdder(Singleton):
     """
-    Because we don't generally want to provide solutions and explanations
-    until after a student has submitted, we place them on the assessed object.
+    Handles decoration of solutions and explanations for instructors.
+    Decoration for students is handled in
+    `_AssignmentSubmissionPendingAssessmentAfterDueDateSolutionDecorator`
+    in `nti.app.assessment.decorators.assignment`, since it's conditional
+    on assignment data like due date.
 
     .. note:: In the future this may be registered/unregistered on a site
             by site basis (where a Course is a site) so that instructor preferences
             on whether or not to provide solutions can be respected.
     """
-
-    def _get_externalizer(self, question_part, is_randomized_qset):
-        externalizer = None
-        if is_randomized_qset or IQRandomizedPart.providedBy(question_part):
-            # Look for named random adapter first, if necessary.
-            externalizer = component.queryAdapter(question_part,
-                                                  IQPartSolutionsExternalizer,
-                                                  name="random")
-        if externalizer is None:
-            # For non-random parts, and actual random part types.
-            externalizer = IQPartSolutionsExternalizer(question_part)
-        return externalizer
 
     def decorateExternalObject(self, context, mapping):
         question_id = context.questionId or ''
@@ -246,18 +236,16 @@ class _QAssessedQuestionExplanationSolutionAdder(Singleton):
         if course is None:
             course = find_interface(question, ICourseInstance, strict=False)
         is_instructor = _is_instructor_or_editor(question, course, remoteUser)
-        is_randomized_qset = _is_randomized_question_set(context)
         for question_part, external_part in zip(question.parts, mapping['parts']):
             if not is_instructor:
-                externalizer = self._get_externalizer(question_part,
-                                                      is_randomized_qset)
-                external_part['solutions'] = externalizer.to_external_object()
+                external_part['explanation'] = None
+                external_part['solutions'] = None
             else:
                 # Instructors/editors get non-randomized solutions.
                 sols = question_part.solutions
                 external_part['solutions'] = to_external_object(sols)
-            expl = question_part.explanation
-            external_part['explanation'] = to_external_object(expl)
+                expl = question_part.explanation
+                external_part['explanation'] = to_external_object(expl)
 
 
 class _QAssignmentSubmissionPendingAssessmentDecorator(AbstractAuthenticatedRequestAwareDecorator):

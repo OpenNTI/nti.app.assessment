@@ -129,6 +129,11 @@ class EvaluationsPostView(EvaluationMixin, UGDPostView):
         evaluation = self.handle_evaluation(evaluation, self.composite,
                                             sources, creator)
         self.request.response.status_int = 201
+
+        # For users with edit access, use an externalizer that emits solutions
+        # for the underlying parts
+        self.request._v_nti_render_externalizable_name = "solutions"
+
         return evaluation
 
 
@@ -184,8 +189,9 @@ class EvaluationCopyView(AbstractAuthenticatedView, EvaluationMixin):
     def __call__(self):
         creator = self.remoteUser
         source = removeAllProxies(self.context)
-        # export to external, make sure we add the MimeType
-        ext_obj = to_external_object(source, decorate=False)
+        # export to external, make sure we add the MimeType, and ensure
+        # we use one that externalizes the solutions
+        ext_obj = to_external_object(source, decorate=False, name="solutions")
         decorateMimeType(source, ext_obj)
         ext_obj = self._prunner(ext_obj)
         # create and update

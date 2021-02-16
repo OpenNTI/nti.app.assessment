@@ -39,7 +39,7 @@
 				for="nti.contenttypes.courses.interfaces.ICourseInstance
 					 pyramid.interfaces.IRequest" />
 
-	<subscriber factory=".assignment._AssignmentBeforeDueDateSolutionStripper"
+	<subscriber factory=".assignment._AssignmentAfterDueDateSolutionDecorator"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.assessment.interfaces.IQAssignment
 					 pyramid.interfaces.IRequest" />
@@ -49,7 +49,7 @@
 				for="nti.assessment.interfaces.IQAssignment
 					 pyramid.interfaces.IRequest" />
 
-	<subscriber factory=".assignment._AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper"
+	<subscriber factory=".assignment._AssignmentSubmissionPendingAssessmentAfterDueDateSolutionDecorator"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.assessment.interfaces.IQAssignmentSubmissionPendingAssessment
 					 pyramid.interfaces.IRequest" />

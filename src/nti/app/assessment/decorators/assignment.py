@@ -8,9 +8,9 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
-from datetime import datetime
-from collections import Mapping
+from collections import MutableMapping
 from collections import namedtuple
+from datetime import datetime
 
 from zope import component
 from zope import interface
@@ -20,6 +20,10 @@ from zope.cachedescriptors.property import Lazy
 from zope.location.interfaces import ILocation
 
 from pyramid.interfaces import IRequest
+
+from nti.assessment.interfaces import IQPartSolutionsExternalizer
+
+from nti.assessment.randomized.interfaces import IQRandomizedPart
 
 from nti.app.assessment import VIEW_DELETE
 from nti.app.assessment import VIEW_MOVE_PART
@@ -67,12 +71,9 @@ from nti.app.assessment.common.utils import get_available_for_submission_beginni
 from nti.app.assessment.decorators import _root_url
 from nti.app.assessment.decorators import _get_course_from_evaluation
 from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
-from nti.app.assessment.decorators import AbstractSolutionStrippingDecorator
+from nti.app.assessment.decorators import InstructedCourseDecoratorMixin
 
-from nti.app.assessment.decorators.question import QuestionPartStripperMixin
-
-from nti.app.assessment.interfaces import ACT_VIEW_SOLUTIONS
-
+from nti.app.assessment.interfaces import ISolutionDecorationConfig
 from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadataItem
 
 from nti.app.assessment.utils import get_course_from_request
@@ -125,9 +126,11 @@ from nti.externalization.interfaces import IExternalMappingDecorator
 
 from nti.externalization.singleton import Singleton
 
-from nti.ntiids.oids import to_external_ntiid_oid
-
 from nti.links.links import Link
+
+from nti.ntiids.ntiids import find_object_with_ntiid
+
+from nti.ntiids.oids import to_external_ntiid_oid
 
 from nti.traversal.traversal import find_interface
 
@@ -338,86 +341,156 @@ class _AssignmentQuestionContentRootURLAdder(AbstractAuthenticatedRequestAwareDe
             result['ContentRoot'] = bucket_root
 
 
-class _AssignmentBeforeDueDateSolutionStripper(AbstractSolutionStrippingDecorator,
-                                               QuestionPartStripperMixin):
+class _AssignmentAfterDueDateSolutionDecorator(AbstractAuthenticatedRequestAwareDecorator,
+                                               InstructedCourseDecoratorMixin):
     """
-    When anyone besides the instructor or an editor requests an assignment
-    that has a due date, and we are before the due date, do not release
-    the answers.
+    We prevent exposing solutions and explanations during externalization,
+    but will need to decorate them here for instructors and, if applicable,
+    students.  For any assignment with a due date, this would be only after
+    that date when a student has a submission.
 
-    We also do not release solutions if the user has not successfully
-    completed the assignment when we have a multiple submission assignment.
+    When we have a multiple submission assignment, we release solutions if
+    the student has successfully completed the assignment.
 
-    .. note:: This is currently incomplete. We are also sending these
-            question set items back 'standalone'. Depending on the UI, we
-            may need to strip them there too.
+    Instructors can also pick up solutions via externalizer selection
+    in the view (e.g. when editing underlying parts directly, an
+    externalizer is selected that exposes the solutions)
     """
 
-    def is_max_submission_strip(self, context, course, user):
-        result = False
+    def should_decorate_assessment(self, context, course, user):
+        result = True
         if      course is not None \
             and (   get_policy_max_submissions(context, course) > 1 \
                  or is_policy_max_submissions_unlimited(context, course)):
             # Ok, we can return solutions as long as they've successfully
             # completed the assignment (and it's multi-submission).
             completed_item = get_completed_item(user, course, context)
-            # Strip if no completed item or unsuccessful
-            result = completed_item is None or not completed_item.Success
+            result = completed_item is not None and completed_item.Success
         return result
 
-    def needs_stripped(self, course, context, request, remoteUser):
+    def needs_decorated(self, course, context, request, remoteUser):
         due_date = get_available_for_submission_ending(context, course)
 
-        # By default always strip
-        result = True
+        # By default, don't decorate
+        result = False
         if not due_date or due_date <= datetime.utcnow():
             # If student check if there is a submission for the assignment
             if IQAssignment.providedBy(context):
                 history_item = get_most_recent_history_item(remoteUser, course, context)
                 # there is a submission
                 if history_item is not None:
-                    result = False
+                    result = True
         return result
 
-    def strip(self, item, max_submission_strip):
+    def _get_externalizer(self, question_part, is_randomized_qset):
         """
-        Strip solutions and explanation. Also, strip correctness (if available)
-        if we have an assessedValue val.
+        Fetches an appropriate externalizer for the solutions, handling
+        randomization for the student, if necessary.
         """
-        for part in item.get('parts') or ():
-            self.strip_question_part(part, max_submission_strip)
+        externalizer = None
+        if is_randomized_qset or IQRandomizedPart.providedBy(question_part):
+            # Look for named random adapter first, if necessary.
+            externalizer = component.queryAdapter(question_part,
+                                                  IQPartSolutionsExternalizer,
+                                                  name="random")
+        if externalizer is None:
+            # For non-random parts, and actual random part types.
+            externalizer = IQPartSolutionsExternalizer(question_part)
+        return externalizer
 
-    def strip_qset(self, item, max_submission_strip=False):
-        for q in item.get('questions') or ():
-            self.strip(q, max_submission_strip=max_submission_strip)
+    def decorate(self,
+                 question,
+                 ext_question,
+                 decorate_assessment=False,
+                 is_randomized=False,
+                 is_instructor=False):
+        """
+        Decorate solutions and explanation.
+        """
+        for qpart, ext_qpart in zip(getattr(question, 'parts', None) or (),
+                                    ext_question.get('parts') or ()):
+            if isinstance(ext_qpart, MutableMapping):
+                for key in ('solutions', 'explanation'):
+                    if ext_qpart.get(key) is None and hasattr(qpart, key):
+                        if key == 'solutions' and not is_instructor:
+                            externalizer = self._get_externalizer(qpart,
+                                                                  is_randomized)
+                            ext_qpart[key] = externalizer.to_external_object()
+                        else:
+                            ext_value = to_external_object(getattr(qpart, key))
+                            ext_qpart[key] = ext_value
 
-    def _should_strip(self, course, context, request, user):
+    def _is_randomized_qset(self, assessed_qset):
+        return False
+
+    def decorate_qset(self,
+                      item,
+                      ext_item,
+                      decorate_assessment=True,
+                      is_instructor=False):
+        is_randomized_qset = self._is_randomized_qset(item)
+        for q, ext_q in zip(getattr(item, 'questions', None) or (),
+                            ext_item.get('questions') or ()):
+            self.decorate(q,
+                          ext_q,
+                          decorate_assessment=decorate_assessment,
+                          is_randomized=is_randomized_qset,
+                          is_instructor=is_instructor)
+
+    @property
+    def _is_enabled_for_site(self):
+        """
+        Should solutions be decorated at all?  Some sites (e.g. SkillsUSA)
+        don't want any solutions or indication of correctness presented to
+        students (instructors would still need access)
+        """
+        config = component.queryUtility(ISolutionDecorationConfig)
+        return config is None or config.ShouldExposeSolutions
+
+    def _should_decorate(self, course, context, request, user):
         """
         We want to have different behavior if this is a max
-        submission assignment. We'll strip as long has the user has not
+        submission assignment. We'll decorate when they've
         successfully completed the assignment.
         """
+        if not self._is_enabled_for_site:
+            return False
+
         if course is None:
-            return True
+            return False
 
         if      course is not None \
             and (   get_policy_max_submissions(context, course) > 1 \
                  or is_policy_max_submissions_unlimited(context, course)):
-            result = self.is_max_submission_strip(context, course, user)
+            result = self.should_decorate_assessment(context, course, user)
         else:
-            result = self.needs_stripped(course, context, request, user)
+            result = self.needs_decorated(course, context, request, user)
         return result
 
+    def _assignment(self, context):
+        return context
+
+    def _predicate(self, context, _unused_result):
+        assignment = self._assignment(context)
+        auth_userid = self.authenticated_userid
+        course = self._get_course(assignment, auth_userid, self.request)
+        return (bool(auth_userid)
+                and course is not None
+                and (self.is_instructor(course, self.request)
+                     or self._should_decorate(course,
+                                              assignment,
+                                              self.request,
+                                              self.remoteUser)))
+
     def _do_decorate_external(self, context, result):
-        course = self._get_course(context, self.remoteUser, self.request)
-        if self._should_strip(course, context, self.request, self.remoteUser):
-            for part in result.get('parts') or ():
-                question_set = part.get('question_set')
-                if question_set:
-                    self.strip_qset(question_set)
+        for part, ext_part in zip(getattr(context, 'parts', None) or (),
+                                  result.get('parts') or ()):
+            question_set = ext_part.get('question_set')
+            if question_set:
+                self.decorate_qset(part.question_set, question_set)
 
 
-class _NonInstructorStripAssignmentPartsAfterSubmission(_AssignmentBeforeDueDateSolutionStripper):
+class _NonInstructorStripAssignmentPartsAfterSubmission(InstructedCourseDecoratorMixin):
     """
     For enrolled users with *any* submissions, always strip the assignment parts.
     This is not on by default.
@@ -436,54 +509,66 @@ class _NonInstructorStripAssignmentPartsAfterSubmission(_AssignmentBeforeDueDate
         result['HideAfterSubmission'] = True
 
 
-class _NonInstructorAssignmentSolutionStripper(_AssignmentBeforeDueDateSolutionStripper):
+class _AssignmentSubmissionPendingAssessmentAfterDueDateSolutionDecorator(_AssignmentAfterDueDateSolutionDecorator):
     """
-    Will always strip assignment solutions for non-instructors (due to parent
-    class checks).
+    We prevent exposing assessedValue during externalization,
+    but will need to decorate it here for instructors or, if applicable,
+    students.  For any assignment with a due date, this would be only after
+    that date when a student has a submission.  Also decorates solutions
+    and explanations, when applicable and handles any necessary
+    randomization of those solution for students.
+
+    When we have a multiple submission assignment, we release solutions if
+    the student has successfully completed the assignment.
     """
 
-    def _should_strip(self, unused_course, unused_context,
-                      unused_request, unused_user):
-        return True
+    def _assignment(self, context):
+        return component.queryUtility(IQAssignment, context.assignmentId)
 
+    def _is_randomized_qset(self, assessed_qset):
+        # Should be False for instructors
+        qset = find_object_with_ntiid(assessed_qset.questionSetId)
+        return IRandomizedPartsContainer.providedBy(qset)
 
-class _AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper(_AssignmentBeforeDueDateSolutionStripper):
-    """
-    When anyone besides the instructor requests an assessed part
-    within an assignment that has a due date, and we are before the
-    due date, do not release the answers.
+    def _assn_question(self, context):
+        question_id = context.questionId or ''
+        return component.queryUtility(IQuestion, name=question_id)
 
-    For multiple submission assignments, we also want to remove any indication
-    correctness.
-
-    .. note:: This is currently incomplete. We are also sending these
-            question set items back 'standalone'. Depending on the UI, we
-            may need to strip them there too.
-    """
+    def decorate(self,
+                 question,
+                 ext_question,
+                 decorate_assessment=False,
+                 is_randomized=False,
+                 is_instructor=False):
+        """
+        Decorate solutions and explanation. Also, decorates correctness
+        (if available)
+        """
+        assn_question = self._assn_question(question)
+        _AssignmentAfterDueDateSolutionDecorator.decorate(
+            self,
+            assn_question,
+            ext_question,
+            decorate_assessment=decorate_assessment,
+            is_randomized=is_randomized,
+            is_instructor=is_instructor)
+        for qpart, ext_qpart in zip(getattr(question, 'parts', None) or (),
+                                    ext_question.get('parts') or ()):
+                if decorate_assessment:
+                    if ext_qpart.get('assessedValue') is None and hasattr(qpart, 'assessedValue'):
+                        ext_qpart['assessedValue'] = getattr(qpart, 'assessedValue')
 
     def _do_decorate_external(self, context, result):
-        assg = component.queryUtility(IQAssignment, context.assignmentId)
+        assg = self._assignment(context)
         course = self._get_course(assg, self.remoteUser, self.request)
-        max_submission_strip = self.is_max_submission_strip(assg, course, self.remoteUser)
-        if self._should_strip(course, assg, self.request, self.remoteUser):
-            for part in result.get('parts') or ():
-                self.strip_qset(part, max_submission_strip=max_submission_strip)
-
-
-class _NonInstructorAssignmentSubmissionPendingAssessmentStripper(_AssignmentSubmissionPendingAssessmentBeforeDueDateSolutionStripper):
-    """
-    Will always strip assignment solutions for non-instructors (due to parent
-    class checks).
-    """
-
-    def _should_strip(self, unused_course, unused_context,
-                      unused_request, unused_user):
-        # Removes solutions
-        return True
-
-    def is_max_submission_strip(self, unused_context, unused_course, unused_user):
-        # Removes assessedValue above
-        return True
+        decorate_assessment = self.should_decorate_assessment(assg, course, self.remoteUser)
+        is_instructor = self.is_instructor(course, self.request)
+        for part, ext_part in zip(getattr(context, 'parts', None) or (),
+                                  result.get('parts') or ()):
+            self.decorate_qset(part,
+                               ext_part,
+                               decorate_assessment=decorate_assessment,
+                               is_instructor=is_instructor)
 
 
 @interface.implementer(IExternalObjectDecorator)

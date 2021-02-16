@@ -492,6 +492,7 @@
 	<utility factory=".utils.PrincipalSeedSelector" />
 	<utility factory=".utils.EvaluationContainerIdGetter" />
 	<utility factory=".utils.RandomizedPartGraderUnshuffleValidator"/>
+	<utility factory=".utils.DefaultSolutionDecorationConfig"/>
 
 	<configure zcml:condition="have testmode">
 		<!-- Exporter -->

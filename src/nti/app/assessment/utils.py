@@ -33,6 +33,7 @@ from nti.app.assessment.common.utils import get_user
 
 from nti.app.assessment.interfaces import ACT_DOWNLOAD_GRADES
 
+from nti.app.assessment.interfaces import ISolutionDecorationConfig
 from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadataItem
 
@@ -397,3 +398,15 @@ class RandomizedPartGraderUnshuffleValidator(object):
                 result = not is_editor
         return result
     needsUnshuffled = needs_unshuffled
+
+
+@interface.implementer(ISolutionDecorationConfig)
+class DefaultSolutionDecorationConfig(object):
+
+    ShouldExposeSolutions = True
+
+
+@interface.implementer(ISolutionDecorationConfig)
+class DisabledSolutionDecorationConfig(object):
+
+    ShouldExposeSolutions = False

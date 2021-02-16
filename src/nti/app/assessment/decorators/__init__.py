@@ -13,16 +13,12 @@ from zope import component
 
 from zope.location.interfaces import ILocationInfo
 
-from pyramid.threadlocal import get_current_request
-
 from nti.app.assessment.common.evaluations import get_course_from_evaluation
 
 from nti.app.assessment.interfaces import ACT_VIEW_SOLUTIONS
 
 from nti.app.assessment.utils import get_course_from_request
 from nti.app.assessment.utils import get_package_from_request
-
-from nti.app.authentication import get_remote_user
 
 from nti.app.products.courseware.utils import PreviewCourseAccessPredicateDecorator
 
@@ -38,8 +34,6 @@ from nti.contentlibrary.interfaces import IEditableContentPackage
 from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
 from nti.dataserver.users import User
-
-from nti.externalization.singleton import Singleton
 
 from nti.traversal.traversal import find_interface
 
@@ -105,7 +99,7 @@ def _root_url(ntiid):
     return None
 
 
-class AbstractSolutionStrippingDecorator(AbstractAuthenticatedRequestAwareDecorator):
+class InstructedCourseDecoratorMixin(object):
 
     def _get_course(self, context, user_id, request):
         remote_user = User.get_user(user_id)
@@ -131,10 +125,3 @@ class AbstractSolutionStrippingDecorator(AbstractAuthenticatedRequestAwareDecora
         self._is_instructor_cache[course.ntiid] = result
 
         return result
-
-    def _predicate(self, context, _unused_result):
-        auth_userid = self.authenticated_userid
-        course = self._get_course(context, auth_userid, self.request)
-        return (not bool(auth_userid)
-                or course is None
-                or not self.is_instructor(course, self.request))

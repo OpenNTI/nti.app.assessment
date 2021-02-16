@@ -1121,6 +1121,12 @@ class TestEvaluationViews(ApplicationLayerTest):
                                       version, old_version)
 
         # Edit questions (parts)
+        # TODO: Fails b/c we don't decorate the solutions when fetched
+        #  directly. While we could, it would be more overhead and we only
+        #  have enough context to decorate for instructors, and then only
+        #  if the course is in the request.  The other option is to alter
+        #  the assessment views to contextually switch to using the
+        #  externalizer allowing solutions.
         qset = self.testapp.get(qset_href)
         qset = qset.json_body
         questions = qset.get('questions')
@@ -2405,6 +2411,7 @@ class TestEvaluationViews(ApplicationLayerTest):
         submission = QSurveySubmission(surveyId=survey_id,
                                        questions=[poll_sub])
         return submission
+
 
 @contextlib.contextmanager
 def _register_counting_handler():

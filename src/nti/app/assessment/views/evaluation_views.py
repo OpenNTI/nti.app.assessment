@@ -250,6 +250,14 @@ class QuestionPutView(EvaluationPutView, ValidateAutoGradeMixin):
         self._validate_auto_grade(CaseInsensitiveDict(self.request.params))
         return result
 
+    def __call__(self):
+        result = super(QuestionPutView, self).__call__()
+
+        # For users with edit access, use an externalizer that emits solutions
+        self.request._v_nti_render_externalizable_name = "solutions"
+
+        return result
+
 
 def _ntiid_only(ext_obj):
     """

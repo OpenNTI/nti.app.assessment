@@ -55,6 +55,7 @@ from nti.externalization.persistence import NoPickle
 
 from nti.namedfile.interfaces import IFileConstrained
 
+from nti.schema.field import Bool
 from nti.schema.field import Int
 from nti.schema.field import Dict
 from nti.schema.field import List
@@ -673,3 +674,13 @@ class RegradeEvaluationEvent(ObjectRegradeEvent):
         super(RegradeEvaluationEvent, self).__init__(obj)
         self.parts = parts or ()
 RegradeQuestionEvent = RegradeEvaluationEvent
+
+
+class ISolutionDecorationConfig(interface.Interface):
+    """
+    Should solutions be decorated at all?  Some sites (e.g. SkillsUSA)
+    don't want any solutions or indication of correctness presented to
+    students (instructors would still need access)
+    """
+
+    ShouldExposeSolutions = Bool(title=u"ShouldExposeSolutions")

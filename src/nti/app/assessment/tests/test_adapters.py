@@ -32,8 +32,6 @@ from nti.testing.matchers import validly_provides
 import fudge
 import datetime
 
-from pyramid.interfaces import IRequest
-
 from six.moves import urllib_parse
 from six.moves.urllib_parse import quote
 from six.moves.urllib_parse import unquote
@@ -47,16 +45,16 @@ from nti.app.assessment import ASSESSMENT_PRACTICE_SUBMISSION
 
 from nti.app.assessment.adapters import _begin_assessment_for_assignment_submission
 
-from nti.app.assessment.decorators.assignment import _NonInstructorAssignmentSolutionStripper
-from nti.app.assessment.decorators.assignment import _NonInstructorAssignmentSubmissionPendingAssessmentStripper
-
 from nti.app.assessment.feedback import UsersCourseAssignmentHistoryItemFeedback
 
+from nti.app.assessment.interfaces import ISolutionDecorationConfig
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
 
 from nti.app.assessment.tests import RegisterAssignmentLayer
 from nti.app.assessment.tests import RegisterAssignmentLayerMixin
 from nti.app.assessment.tests import RegisterAssignmentsForEveryoneLayer
+
+from nti.app.assessment.utils import DisabledSolutionDecorationConfig
 
 from nti.app.contentlibrary import LIBRARY_PATH_GET_VIEW
 
@@ -680,12 +678,8 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
             _check_pending(pending, has_solutions=True)
 
             with mock_dataserver.mock_db_trans(self.ds):
-                component.getGlobalSiteManager().registerSubscriptionAdapter(_NonInstructorAssignmentSolutionStripper,
-                                                                             (IQAssignment, IRequest),
-                                                                             IExternalObjectDecorator)
-                component.getGlobalSiteManager().registerSubscriptionAdapter(_NonInstructorAssignmentSubmissionPendingAssessmentStripper,
-                                                                             (IQAssignmentSubmissionPendingAssessment,IRequest),
-                                                                             IExternalObjectDecorator)
+                component.getGlobalSiteManager().registerUtility(DisabledSolutionDecorationConfig,
+                                                                 provided=ISolutionDecorationConfig)
 
             submission = self.testapp.get(sub_href).json_body
             _check_pending(submission, has_solutions=False)
@@ -710,12 +704,9 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
                 assignment.available_for_submission_ending = None
 
             with mock_dataserver.mock_db_trans(self.ds):
-                component.getGlobalSiteManager().unregisterSubscriptionAdapter(_NonInstructorAssignmentSolutionStripper,
-                                                                               (IQAssignment, IRequest),
-                                                                               IExternalObjectDecorator)
-                component.getGlobalSiteManager().unregisterSubscriptionAdapter(_NonInstructorAssignmentSubmissionPendingAssessmentStripper,
-                                                                               (IQAssignmentSubmissionPendingAssessment,IRequest),
-                                                                               IExternalObjectDecorator)
+                component.getGlobalSiteManager().unregisterUtility(DisabledSolutionDecorationConfig,
+                                                                   provided=ISolutionDecorationConfig)
+
         with mock_dataserver.mock_db_trans(self.ds, site_name='janux.ou.edu'):
             course = ICourseInstance(find_object_with_ntiid(COURSE_NTIID))
             histories = IUsersCourseAssignmentHistories(course)

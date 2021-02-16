@@ -8,9 +8,6 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
-from collections import Mapping
-
-from pyramid.interfaces import IRequest
 from zope import component
 from zope import interface
 
@@ -22,13 +19,11 @@ from nti.app.assessment.common.containers import get_outline_evaluation_containe
 
 from nti.app.assessment.decorators import _get_course_from_evaluation
 from nti.app.assessment.decorators import _get_package_from_evaluation
-from nti.app.assessment.decorators import AbstractSolutionStrippingDecorator
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
 
 from nti.appserver.pyramid_authorization import has_permission
 
-from nti.assessment.interfaces import IQPart
 from nti.assessment.interfaces import IQuestion
 
 from nti.dataserver.authorization import ACT_CONTENT_EDIT
@@ -78,27 +73,3 @@ class QuestionContainerDecorator(AbstractAuthenticatedRequestAwareDecorator):
         link.__name__ = ''
         link.__parent__ = link_context
         _links.append(link)
-
-
-class QuestionPartStripperMixin(object):
-
-    def strip_question_part(self, part, max_submission_strip):
-        """
-        Strip solutions and explanation. Also, strip correctness (if available)
-        if we have an assessedValue val.
-        """
-        if isinstance(part, Mapping):
-            for key in ('solutions', 'explanation'):
-                if key in part:
-                    part[key] = None
-            if max_submission_strip:
-                part.pop('assessedValue', None)
-
-
-@component.adapter(IQPart, IRequest)
-@interface.implementer(IExternalObjectDecorator)
-class QuestionPartStripper(AbstractSolutionStrippingDecorator,
-                           QuestionPartStripperMixin):
-
-    def _do_decorate_external(self, context, result):
-        self.strip_question_part(result, True)

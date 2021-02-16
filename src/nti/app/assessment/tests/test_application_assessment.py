@@ -121,6 +121,11 @@ class TestApplicationAssessment(ApplicationLayerTest):
 			assert_that(res.json_body, has_entry('Last Modified', greater_than(0)))
 
 			# And the solutions do not come with it...
+			# TODO: Is there a way to obtain more context here, so that
+			#  we could verify they should have access to solutions?  The
+			#  solutions won't currently come back b/c they're not fetched
+			#  as a part of a specific assignment (where we could verify
+			#  solutions should be visible)
 			items = res.json_body['AssessmentItems']
 			for i in items:
 				assert_that(i, has_key('parts'))
@@ -167,6 +172,9 @@ class TestApplicationAssessment(ApplicationLayerTest):
 
 			res = self.testapp.post_json('/dataserver2/users/' + self.default_username, ext_obj)
 			self._check_submission(res)
+			# TODO: Currently fails b/c we're not externalizing an
+			#  assignment this is a part of and, hence don't have enough
+			#  context to know whether it should be decorated.
 			assert_that(res.json_body, has_entry('parts', has_item(has_entries('assessedValue', 1.0, 'submittedResponse', submittedResponse))))
 
 		# The correct answer is at index 3, and has the value '1000 BC". We should be able to submit all

@@ -1593,7 +1593,15 @@ class TestEvaluationViews(ApplicationLayerTest):
         # Move last question to first.
         moved_ntiid = qset_question_ntiids[-1]
         move_json = self._get_move_json(moved_ntiid, qset_ntiid, 0)
-        self.testapp.post_json(move_href, move_json)
+        res = self.testapp.post_json(move_href, move_json)
+        assert_that(res.json_body, has_entry('questions',
+                                             has_length(greater_than(1))))
+        assert_that(res.json_body['questions'][1],
+                    has_entry('parts',
+                              has_length(greater_than(0))))
+        assert_that(res.json_body['questions'][1]['parts'][0],
+                    has_entry('solutions',
+                              has_length(greater_than(0))))
         new_question_ntiids = self._get_question_ntiids(qset_ntiid)
         assert_that(new_question_ntiids,
                     is_(qset_question_ntiids[-1:] + qset_question_ntiids[:-1]))
@@ -1645,7 +1653,12 @@ class TestEvaluationViews(ApplicationLayerTest):
         question_ntiid2 = new_question.json_body.get('NTIID')
 
         # Append just ntiid
-        self.testapp.post_json(contents_href, {'ntiid': question_ntiid1})
+        res = self.testapp.post_json(contents_href, {'ntiid': question_ntiid1})
+        assert_that(res.json_body, has_entry('parts',
+                                             has_length(greater_than(0))))
+        first_part = res.json_body['parts'][0]
+        assert_that(first_part, has_entry('solutions',
+                                          has_length(greater_than(0))))
         original_question_ntiids.append(question_ntiid1)
         question_ntiids = self._get_question_ntiids(qset_ntiid)
         assert_that(question_ntiids, is_(original_question_ntiids))

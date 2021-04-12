@@ -8,6 +8,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
+from collections import Mapping
 from collections import MutableMapping
 from collections import namedtuple
 from datetime import datetime
@@ -552,11 +553,13 @@ class _AssignmentSubmissionPendingAssessmentAfterDueDateSolutionDecorator(_Assig
             decorate_assessment=decorate_assessment,
             is_randomized=is_randomized,
             is_instructor=is_instructor)
-        for qpart, ext_qpart in zip(getattr(question, 'parts', None) or (),
-                                    ext_question.get('parts') or ()):
-                if decorate_assessment:
-                    if ext_qpart.get('assessedValue') is None and hasattr(qpart, 'assessedValue'):
-                        ext_qpart['assessedValue'] = getattr(qpart, 'assessedValue')
+        if decorate_assessment:
+            for qpart, ext_qpart in zip(getattr(question, 'parts', None) or (),
+                                        ext_question.get('parts') or ()):
+                if isinstance(ext_qpart, Mapping) \
+                        and ext_qpart.get('assessedValue') is None \
+                        and hasattr(qpart, 'assessedValue'):
+                    ext_qpart['assessedValue'] = getattr(qpart, 'assessedValue')
 
     def _do_decorate_external(self, context, result):
         assg = self._assignment(context)

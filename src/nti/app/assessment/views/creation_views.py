@@ -268,6 +268,11 @@ class QuestionSetInsertView(AbstractAuthenticatedView,
         self._validate(params)
         self.post_update_check(self.context, {})
         self.request.response.status_int = 201
+
+        # For users with edit access, use an externalizer that emits solutions
+        # for the underlying parts
+        self.request._v_nti_render_externalizable_name = "solutions"
+
         return question
 
 
@@ -301,3 +306,12 @@ class QuestionSetMoveView(AbstractChildMoveView,
                                  'code': 'CannotMoveEvaluations',
                              },
                              None)
+
+    def __call__(self, *args, **kwargs):
+        result = super(QuestionSetMoveView, self).__call__(*args, **kwargs)
+
+        # For users with edit access, use an externalizer that emits solutions
+        # for the underlying parts
+        self.request._v_nti_render_externalizable_name = "solutions"
+
+        return result

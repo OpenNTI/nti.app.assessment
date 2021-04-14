@@ -19,7 +19,7 @@ from nti.app.assessment.interfaces import IUsersCourseInquiries
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistory
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
-from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataContainer
+from nti.app.assessment.interfaces import ICourseAssignmentAttemptMetadata
 
 from nti.assessment.interfaces import IQInquiry
 from nti.assessment.interfaces import IQAssessmentPolicies
@@ -109,7 +109,7 @@ def delete_evaluation_savepoints(context, course, subinstances=True):
 
 
 def delete_evaluation_metadata(context, course, subinstances=True):
-    result = delete_context_contained_data(IUsersCourseAssignmentMetadataContainer,
+    result = delete_context_contained_data(ICourseAssignmentAttemptMetadata,
                                            context,
                                            course,
                                            subinstances)

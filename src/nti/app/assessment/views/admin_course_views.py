@@ -51,7 +51,7 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadata
-from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataContainer
+from nti.app.assessment.interfaces import ICourseAssignmentAttemptMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItemContainer
 
 from nti.app.assessment.evaluations.utils import delete_evaluation
@@ -368,7 +368,7 @@ class RemoveGhostSubmissionsView(AbstractAuthenticatedView):
     interfaces = (IUsersCourseInquiries,
                   IUsersCourseAssignmentHistories,
                   IUsersCourseAssignmentSavepoints,
-                  IUsersCourseAssignmentMetadataContainer)
+                  ICourseAssignmentAttemptMetadata)
 
     def __call__(self):
         result = LocatedExternalDict()

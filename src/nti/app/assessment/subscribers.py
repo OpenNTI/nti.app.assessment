@@ -48,8 +48,6 @@ from nti.app.assessment.common.evaluations import is_discussion_assignment_non_p
 
 from nti.app.assessment.common.hostpolicy import get_resource_site_name
 
-from nti.app.assessment.common.inquiries import get_course_inquiries
-
 from nti.app.assessment.common.utils import get_available_for_submission_ending
 
 from nti.app.assessment.index import IX_SITE
@@ -57,10 +55,12 @@ from nti.app.assessment.index import IX_COURSE
 from nti.app.assessment.index import IX_CREATOR
 from nti.app.assessment.index import get_submission_catalog
 
-from nti.app.assessment.interfaces import IQEvaluations, IUsersCourseInquiryItem
+from nti.app.assessment.interfaces import IQEvaluations
 from nti.app.assessment.interfaces import IUsersCourseInquiries
+from nti.app.assessment.interfaces import IUsersCourseInquiryItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistories
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
+from nti.app.assessment.interfaces import ICourseAssignmentAttemptMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepointItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataContainer
@@ -244,7 +244,7 @@ def prevent_note_on_assignment_part(note, unused_event):
 CONTAINER_INTERFACES = (IUsersCourseInquiries,
                         IUsersCourseAssignmentHistories,
                         IUsersCourseAssignmentSavepoints,
-                        IUsersCourseAssignmentMetadataContainer)
+                        ICourseAssignmentAttemptMetadata)
 
 
 def delete_course_user_data(course, username):

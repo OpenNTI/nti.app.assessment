@@ -63,7 +63,6 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
 from nti.app.assessment.interfaces import ICourseAssignmentAttemptMetadata
 from nti.app.assessment.interfaces import IUsersCourseAssignmentHistoryItem
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepointItem
-from nti.app.assessment.interfaces import IUsersCourseAssignmentMetadataContainer
 from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadataItem
 
 from nti.app.externalization.error import raise_json_error
@@ -77,7 +76,6 @@ from nti.assessment.assignment import QAssignment
 from nti.assessment.interfaces import SURVEY_MIME_TYPE
 from nti.assessment.interfaces import TRX_QUESTION_MOVE_TYPE
 
-from nti.assessment.interfaces import IQPoll
 from nti.assessment.interfaces import IQuestion
 from nti.assessment.interfaces import IQuestionSet
 from nti.assessment.interfaces import IQAssignment
@@ -117,6 +115,10 @@ from nti.dataserver.users.interfaces import IWillDeleteEntityEvent
 
 from nti.externalization.externalization import to_external_object
 
+from nti.metadata import METADATA_QUEUE_NAME
+
+from nti.metadata.processing import put_metadata_job
+
 from nti.ntiids.ntiids import find_object_with_ntiid
 
 from nti.ntiids.oids import to_external_ntiid_oid
@@ -135,18 +137,35 @@ logger = __import__('logging').getLogger(__name__)
 # activity / submission
 
 
-def add_object_to_course_activity(submission, unused_event):
-    """
-    This can be registered for anything we want to submit to course activity
-    as a subscriber to :class:`zope.intid.interfaces.IIntIdAddedEvent`
-    """
-    if IUsersCourseAssignmentSavepointItem.providedBy(submission.__parent__):
+def _do_add_object_to_course_activity(doc_id):
+    intids = component.getUtility(IIntIds)
+    submission = intids.queryObject(doc_id)
+    if      submission is None \
+        or IUsersCourseAssignmentSavepointItem.providedBy(submission.__parent__):
         return
 
     course = find_interface(submission, ICourseInstance)
     activity = ICourseInstanceActivity(course)
     # pylint: disable=too-many-function-args
     activity.append(submission)
+
+
+def add_object_to_course_activity(obj, unused_event):
+    """
+    This can be registered for anything we want to submit to course activity
+    as a subscriber to :class:`zope.intid.interfaces.IIntIdAddedEvent`
+
+    This defers the job to a background process to avoid conflicts.
+    """
+    intids = component.getUtility(IIntIds)
+    doc_id = intids.queryId(obj)
+    if doc_id is None:
+        return
+    job_id = "%s_course_activity" % doc_id
+    return put_metadata_job(METADATA_QUEUE_NAME,
+                            _do_add_object_to_course_activity,
+                            job_id=job_id,
+                            doc_id=doc_id)
 
 
 def remove_object_from_course_activity(submission, unused_event):

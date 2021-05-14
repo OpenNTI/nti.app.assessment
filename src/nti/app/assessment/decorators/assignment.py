@@ -491,7 +491,8 @@ class _AssignmentAfterDueDateSolutionDecorator(AbstractAuthenticatedRequestAware
                 self.decorate_qset(part.question_set, question_set)
 
 
-class _NonInstructorStripAssignmentPartsAfterSubmission(InstructedCourseDecoratorMixin):
+class _NonInstructorStripAssignmentPartsAfterSubmission(AbstractAuthenticatedRequestAwareDecorator,
+                                                        InstructedCourseDecoratorMixin):
     """
     For enrolled users with *any* submissions, always strip the assignment parts.
     This is not on by default.

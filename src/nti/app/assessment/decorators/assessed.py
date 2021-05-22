@@ -158,7 +158,7 @@ class _QuestionSubmissionDecorator(AbstractAuthenticatedRequestAwareDecorator):
     # pylint: disable=arguments-differ
     def _do_decorate_external(self, context, result_map):
         course = find_interface(context, ICourseInstance, strict=False)
-        if course is None or not is_course_instructor(course, self.remoteUser):
+        if course is None or not is_course_instructor(course, self.authenticated_userid):
             return
 
         # extra check

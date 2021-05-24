@@ -13,6 +13,8 @@ import sys
 from zope import component
 from zope import interface
 
+from zope.cachedescriptors.property import Lazy
+
 from ZODB.POSException import POSError
 
 from pyramid import httpexceptions as hexc
@@ -143,6 +145,17 @@ def set_inquiry_submission_lineage(submission):
         set_survey_submission_lineage(submission)
     return submission
 
+class _LazyQuestionsIndex(object):
+
+    @Lazy
+    def qset_index(self):
+        return { q.questionId: q for q in self.question_set.questions }
+
+    def __init__(self, question_set):
+        self.question_set = question_set
+
+    def __getitem__(self, key):
+        return self.qset_index[key]
 
 def transfer_submission_file_data(source, target,  force=False):
     """
@@ -175,29 +188,52 @@ def transfer_submission_file_data(source, target,  force=False):
             old_question_set = source.get(question_set.questionSetId)
             if old_question_set is None:
                 continue
+
+            # Looking up a question by questionId in the old questions
+            # (QuestionSetSubmission.get) requires iterating the
+            # question set. Taking a pass to create an index here is
+            # much faster than getting the question by id inside the
+            # loop (n^2).
+            old_questions = _LazyQuestionsIndex(old_question_set)
+            
             for question in question_set.questions:
-                # make sure we have a question
-                old_question = old_question_set.get(question.questionId)
-                if old_question is None:
-                    continue
-                for idx, part in enumerate(question.parts):
-                    part_value = get_part_value(part)
-                    # check there is a part
+                # For each question we have, iterate the question
+                # parts, if we have a part that is an internal file
+                # (_is_internal(part) == True) then look for the same
+                # part in the old submission and move it to us if found
+
+                # Parts of a question are ordered
+                for idx, new_part in enumerate(question.parts or ()):
+
+                    # Can we do an interface check here first that would
+                    # allow us to shortcircuit this iteration?
+                    new_part_value = get_part_value(new_part)
+                    if not _is_internal(new_part_value):
+                        continue
+
+                    # Ok, does our old submission have a matching part value
+                    # that provides file
                     try:
-                        old_part = old_question[idx]
+                        # TODO Are questions on the set/setsubmission meant to
+                        # be an array such that we can just line
+                        # indexes up like we do for question parts?
+                        old_question = old_questions[question.questionId]
+                        old_part = old_question(idx)
                         old_part_value = get_part_value(old_part)
+                    except KeyError:
+                        # No question by that id in the old_questions
+                        continue
                     except IndexError:
-                        break
-                    # check if the uploaded file has been internalized empty
-                    # this is tightly coupled w/ the way IQUploadedFile are
-                    # updated.
-                    if IFile.providedBy(old_part_value) and _is_internal(part_value):
-                        part_value.data = old_part_value.data
-                        part_value.filename = old_part_value.filename
-                        part_value.contentType = old_part_value.contentType
+                        # No part in the question that lines up
+                        continue
+
+                    if IFile.providedBy(old_part_value):
+                        new_part_value.data = old_part_value.data
+                        new_part_value.filename = old_part_value.filename
+                        new_part_value.contentType = old_part_value.contentType
                         name = getattr(old_part_value, 'name', None) 
-                        part_value.name = name or part_value.filename
-                        interface.noLongerProvides(part_value,
+                        new_part_value.name = name or part_value.filename
+                        interface.noLongerProvides(new_part_value,
                                                    IInternalUploadedFileRef)
         except (POSError, TypeError):
             logger.exception("Failed to transfer data from savepoints")

@@ -92,6 +92,29 @@ class TestSavepoint(AssessmentLayerTest):
             savepoint.removeSubmission(submission, event=event)
             assert_that(savepoint, has_length(0))
 
+    @WithMockDSTrans
+    def test_record_item(self):
+        connection = mock_dataserver.current_transaction
+        for event in (True, False):
+            savepoint = UsersCourseAssignmentSavepoint()
+            connection.add(savepoint)
+            submission = AssignmentSubmission(assignmentId=u'b')
+
+            item = UsersCourseAssignmentSavepointItem()
+            item.__dict__['Submission'] = submission
+            submission.__parent__ = item
+
+            item = savepoint.recordSavepointItem(item, event=event)
+            
+            assert_that(item, has_property('Submission', is_(submission)))
+            assert_that(item,
+                        has_property('__name__', is_(submission.assignmentId)))
+            assert_that(item.__parent__, is_(savepoint))
+            assert_that(savepoint, has_length(1))
+
+            savepoint.removeSubmission(submission, event=event)
+            assert_that(savepoint, has_length(0))
+
 
 import fudge
 from six.moves.urllib_parse import unquote

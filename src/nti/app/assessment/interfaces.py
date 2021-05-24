@@ -125,6 +125,28 @@ class IUsersCourseAssignmentSavepoint(IContainer,
                          the record of this submission.
         """
 
+    def recordSavepointItem(item, event=False):
+        """
+        When a user submits an assignment for a save point this method
+        can be used to record that fact. It is like
+        ``recordSubmission`` but can be used when you already have an
+        :class:`.IUsersCourseAssignmentSavepointItem` wrapped around
+        the submission.
+
+        :param item: The :class:`.IUsersCourseAssignmentSavepointItem`
+            provided. This should wrap the original ``Submission``
+            provided by the user. We will take ownership of this item
+            and all its children objects (they will be set to the
+            correct __parent__ relationship within the part/question
+            structure).
+
+        :param event: Flag to avoid sending an add/modified event
+
+        :return: The updated
+                 :class:`.IUsersCourseAssignmentSavepointItem` that
+                 was stored.
+        """
+
     def removeSubmission(submission, event=False):
         """
         remove a submission

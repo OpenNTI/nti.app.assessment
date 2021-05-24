@@ -175,10 +175,24 @@ def transfer_submission_file_data(source, target,  force=False):
             old_question_set = source.get(question_set.questionSetId)
             if old_question_set is None:
                 continue
+
+            # Looking up a question by questionId in the old questions
+            # (QuestionSetSubmission.get) requires iterating the
+            # question set. Taking a pass to create an index here is
+            # much faster than getting the question by id inside the
+            # loop (n^2).
+            old_questions = { q.questionId: q for q in old_question_set.questions }
             for question in question_set.questions:
-                # make sure we have a question
-                old_question = old_question_set.get(question.questionId)
-                if old_question is None:
+
+                # TODO I don't see the need to gather questions or
+                # parts out of the old submission until we verify the
+                # new submission has parts for which _is_internal
+                # returns true. That potentially cuts down having to
+                # lookup any question by id from the old_question set
+                # for the case where there are no file leaf parts.
+                try:
+                    old_question = old_questions[question.questionId]
+                except KeyError:
                     continue
                 for idx, part in enumerate(question.parts):
                     part_value = get_part_value(part)

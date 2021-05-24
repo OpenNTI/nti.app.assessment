@@ -130,6 +130,12 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
 
         item = UsersCourseAssignmentSavepointItem(Submission=submission)
         submission.__parent__ = item
+        return self.recordSavepointItem(item, event)
+    append = recordSubmission
+
+    def recordSavepointItem(self, item, event=False):
+        submission = item.Submission
+        assert submission.__parent__ == item
         set_assessed_lineage(submission)
 
         # check for removal
@@ -140,7 +146,6 @@ class UsersCourseAssignmentSavepoint(CheckingLastModifiedBTreeContainer):
             IConnection(self).add(item)
         self._append(submission.assignmentId, item, event)
         return item
-    append = recordSubmission
 
     def removeSubmission(self, submission, event=False):
         if submission.assignmentId not in self:

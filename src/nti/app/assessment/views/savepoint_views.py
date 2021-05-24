@@ -32,6 +32,8 @@ from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoint
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepoints
 from nti.app.assessment.interfaces import IUsersCourseAssignmentSavepointItem
 
+from nti.app.assessment.savepoint import UsersCourseAssignmentSavepointItem
+
 from nti.app.assessment.utils import get_course_from_request
 from nti.app.assessment.utils import get_current_metadata_attempt_item
 
@@ -178,7 +180,23 @@ class AssignmentSubmissionSavepointPostView(AbstractAuthenticatedView,
 
         # Now record the submission.
         self.request.response.status_int = 201
-        result = recorded = savepoint.recordSubmission(submission)
+
+
+        # In the past we would record the submission directly here but
+        # that led to two validation passes of the sometimes large and
+        # deeply nested submission object when it is set through the
+        # UsersCourseAssignmentSavepointItem.Submission field. Instead
+        # create the UsersCourseAssignmentSavepointItem here and
+        # ramrod the submission into the __dict__ to bypass the Field
+        # validation.  We haven't done anything to our submission here
+        # that would have made made it invalid if it past validation
+        # as part of readCreateUpdateContentObject.
+
+        item = UsersCourseAssignmentSavepointItem()
+        item.__dict__['Submission'] = submission
+        submission.__parent__ = item
+        result = recorded = savepoint.recordSavepointItem(item)
+        
         result = to_external_object(result)
         result['href'] = "/%s/Objects/%s" % (get_ds2(self.request),
                                              to_external_ntiid_oid(recorded))

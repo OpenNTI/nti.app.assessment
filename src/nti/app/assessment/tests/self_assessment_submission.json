@@ -1,0 +1,99 @@
+{
+  "MimeType": "application/vnd.nextthought.assessment.questionsetsubmission",
+  "tags": [],
+  "questionSetId": "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.set.qset:QUIZ1_aristotle",
+  "questions": [
+    {
+      "MimeType": "application/vnd.nextthought.assessment.questionsubmission",
+      "NTIID": "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.1",
+      "tags": [],
+      "questionId": "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.1",
+      "parts": [0],
+      "CreatorRecordedEffortDuration": null,
+      "ContainerId": "tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:QUIZ_01.01"
+    },
+    {
+      "MimeType": "application/vnd.nextthought.assessment.questionsubmission",
+      "NTIID": "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.2",
+      "tags": [],
+      "questionId": "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.2",
+      "parts": [0],
+      "CreatorRecordedEffortDuration": null,
+      "ContainerId": "tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:QUIZ_01.01"
+    },
+    {
+      "MimeType": "application/vnd.nextthought.assessment.questionsubmission",
+      "NTIID": "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.3",
+      "tags": [],
+      "questionId": "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.3",
+      "parts": [2],
+      "CreatorRecordedEffortDuration": null,
+      "ContainerId": "tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:QUIZ_01.01"
+    },
+    {
+      "MimeType": "application/vnd.nextthought.assessment.questionsubmission",
+      "NTIID": "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.4",
+      "tags": [],
+      "questionId": "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.4",
+      "parts": [1],
+      "CreatorRecordedEffortDuration": null,
+      "ContainerId": "tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:QUIZ_01.01"
+    },
+    {
+      "MimeType": "application/vnd.nextthought.assessment.questionsubmission",
+      "NTIID": "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.5",
+      "tags": [],
+      "questionId": "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.5",
+      "parts": [2],
+      "CreatorRecordedEffortDuration": null,
+      "ContainerId": "tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:QUIZ_01.01"
+    },
+    {
+      "MimeType": "application/vnd.nextthought.assessment.questionsubmission",
+      "NTIID": "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.6",
+      "tags": [],
+      "questionId": "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.6",
+      "parts": [1],
+      "CreatorRecordedEffortDuration": null,
+      "ContainerId": "tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:QUIZ_01.01"
+    },
+    {
+      "MimeType": "application/vnd.nextthought.assessment.questionsubmission",
+      "NTIID": "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.7",
+      "tags": [],
+      "questionId": "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.7",
+      "parts": [0],
+      "CreatorRecordedEffortDuration": null,
+      "ContainerId": "tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:QUIZ_01.01"
+    },
+    {
+      "MimeType": "application/vnd.nextthought.assessment.questionsubmission",
+      "NTIID": "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.8",
+      "tags": [],
+      "questionId": "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.8",
+      "parts": [0],
+      "CreatorRecordedEffortDuration": null,
+      "ContainerId": "tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:QUIZ_01.01"
+    },
+    {
+      "MimeType": "application/vnd.nextthought.assessment.questionsubmission",
+      "NTIID": "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.9",
+      "tags": [],
+      "questionId": "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.9",
+      "parts": [1],
+      "CreatorRecordedEffortDuration": null,
+      "ContainerId": "tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:QUIZ_01.01"
+    },
+    {
+      "MimeType": "application/vnd.nextthought.assessment.questionsubmission",
+      "NTIID": "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.10",
+      "tags": [],
+      "questionId": "tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.10",
+      "parts": [2],
+      "CreatorRecordedEffortDuration": null,
+      "ContainerId": "tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:QUIZ_01.01"
+    }
+  ],
+  "CreatorRecordedEffortDuration": 26,
+  "ContainerId": "tag:nextthought.com,2011-10:OU-HTML-CLC3403_LawAndJustice.sec:QUIZ_01.01"
+}

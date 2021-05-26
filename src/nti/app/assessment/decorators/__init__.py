@@ -9,6 +9,8 @@ from __future__ import print_function
 from __future__ import absolute_import
 
 # pylint: disable=abstract-method
+from collections import MutableMapping
+
 from zope import component
 
 from zope.location.interfaces import ILocationInfo
@@ -26,6 +28,10 @@ from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecora
 
 from nti.appserver.pyramid_authorization import has_permission
 
+from nti.assessment.interfaces import IQPartSolutionsExternalizer
+
+from nti.assessment.randomized.interfaces import IQRandomizedPart
+
 from nti.contentlibrary.externalization import root_url_of_unit
 
 from nti.contentlibrary.interfaces import IContentPackageLibrary
@@ -34,6 +40,8 @@ from nti.contentlibrary.interfaces import IEditableContentPackage
 from nti.dataserver.authorization import ACT_CONTENT_EDIT
 
 from nti.dataserver.users import User
+
+from nti.externalization import to_external_object
 
 from nti.traversal.traversal import find_interface
 
@@ -125,3 +133,53 @@ class InstructedCourseDecoratorMixin(object):
         self._is_instructor_cache[course.ntiid] = result
 
         return result
+
+
+def _get_externalizer(question_part, is_randomized_qset):
+    """
+    Fetches an appropriate externalizer for the solutions, handling
+    randomization for the student, if necessary.
+    """
+    externalizer = None
+    if is_randomized_qset or IQRandomizedPart.providedBy(question_part):
+        # Look for named random adapter first, if necessary.
+        externalizer = component.queryAdapter(question_part,
+                                              IQPartSolutionsExternalizer,
+                                              name="random")
+    if externalizer is None:
+        # For non-random parts, and actual random part types.
+        externalizer = IQPartSolutionsExternalizer(question_part)
+    return externalizer
+
+
+def decorate_question_solutions(question,
+                                ext_question,
+                                is_randomized=False,
+                                is_instructor=False):
+    """
+    Decorate solutions and explanation.
+    """
+    for qpart, ext_qpart in zip(getattr(question, 'parts', None) or (),
+                                ext_question.get('parts') or ()):
+        if isinstance(ext_qpart, MutableMapping):
+            for key in ('solutions', 'explanation'):
+                if ext_qpart.get(key) is None and hasattr(qpart, key):
+                    if key == 'solutions' and not is_instructor:
+                        externalizer = _get_externalizer(qpart,
+                                                         is_randomized)
+                        ext_qpart[key] = externalizer.to_external_object()
+                    else:
+                        ext_value = to_external_object(getattr(qpart, key))
+                        ext_qpart[key] = ext_value
+
+
+def decorate_qset_solutions(qset,
+                            ext_qset,
+                            is_randomized=False,
+                            is_instructor=False):
+    for q, ext_q in zip(getattr(qset, 'questions', None) or (),
+                        ext_qset.get('questions') or ()):
+        decorate_question_solutions(q,
+                                    ext_q,
+                                    is_randomized=is_randomized,
+                                    is_instructor=is_instructor)

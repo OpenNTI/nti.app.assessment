@@ -9,7 +9,6 @@ from __future__ import print_function
 from __future__ import absolute_import
 
 from collections import Mapping
-from collections import MutableMapping
 from collections import namedtuple
 from datetime import datetime
 
@@ -21,10 +20,6 @@ from zope.cachedescriptors.property import Lazy
 from zope.location.interfaces import ILocation
 
 from pyramid.interfaces import IRequest
-
-from nti.assessment.interfaces import IQPartSolutionsExternalizer
-
-from nti.assessment.randomized.interfaces import IQRandomizedPart
 
 from nti.app.assessment import VIEW_DELETE
 from nti.app.assessment import VIEW_MOVE_PART
@@ -73,6 +68,7 @@ from nti.app.assessment.decorators import _root_url
 from nti.app.assessment.decorators import _get_course_from_evaluation
 from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
 from nti.app.assessment.decorators import InstructedCourseDecoratorMixin
+from nti.app.assessment.decorators import decorate_question_solutions
 
 from nti.app.assessment.interfaces import ISolutionDecorationConfig
 from nti.app.assessment.interfaces import IUsersCourseAssignmentAttemptMetadataItem
@@ -383,22 +379,6 @@ class _AssignmentAfterDueDateSolutionDecorator(AbstractAuthenticatedRequestAware
                     result = True
         return result
 
-    def _get_externalizer(self, question_part, is_randomized_qset):
-        """
-        Fetches an appropriate externalizer for the solutions, handling
-        randomization for the student, if necessary.
-        """
-        externalizer = None
-        if is_randomized_qset or IQRandomizedPart.providedBy(question_part):
-            # Look for named random adapter first, if necessary.
-            externalizer = component.queryAdapter(question_part,
-                                                  IQPartSolutionsExternalizer,
-                                                  name="random")
-        if externalizer is None:
-            # For non-random parts, and actual random part types.
-            externalizer = IQPartSolutionsExternalizer(question_part)
-        return externalizer
-
     def decorate(self,
                  question,
                  ext_question,
@@ -408,18 +388,10 @@ class _AssignmentAfterDueDateSolutionDecorator(AbstractAuthenticatedRequestAware
         """
         Decorate solutions and explanation.
         """
-        for qpart, ext_qpart in zip(getattr(question, 'parts', None) or (),
-                                    ext_question.get('parts') or ()):
-            if isinstance(ext_qpart, MutableMapping):
-                for key in ('solutions', 'explanation'):
-                    if ext_qpart.get(key) is None and hasattr(qpart, key):
-                        if key == 'solutions' and not is_instructor:
-                            externalizer = self._get_externalizer(qpart,
-                                                                  is_randomized)
-                            ext_qpart[key] = externalizer.to_external_object()
-                        else:
-                            ext_value = to_external_object(getattr(qpart, key))
-                            ext_qpart[key] = ext_value
+        decorate_question_solutions(question,
+                                    ext_question,
+                                    is_randomized=is_randomized,
+                                    is_instructor=is_instructor)
 
     def _is_randomized_qset(self, assessed_qset):
         return False

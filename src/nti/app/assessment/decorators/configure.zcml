@@ -185,6 +185,16 @@
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"
 				for="nti.assessment.interfaces.IQuestionSet" />
 
+    <subscriber factory=".question_set._QQuestionSetObjectDecorator"
+                provides="nti.externalization.interfaces.IExternalObjectDecorator"
+                for="nti.assessment.interfaces.IQuestionSet
+                     pyramid.interfaces.IRequest" />
+
+    <subscriber factory=".question_set._QAssessedQuestionSetObjectDecorator"
+                provides="nti.externalization.interfaces.IExternalObjectDecorator"
+                for="nti.assessment.interfaces.IQAssessedQuestionSet
+                     pyramid.interfaces.IRequest" />
+
 	<!-- savepoint -->
 	<subscriber factory=".savepoint._AssignmentSavepointDecorator"
 				provides="nti.externalization.interfaces.IExternalObjectDecorator"

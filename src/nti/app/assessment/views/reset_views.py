@@ -148,7 +148,7 @@ class EvaluationResetView(AbstractAuthenticatedView,
                                  'code': 'CannotResetEvaluation',
                              },
                              None)
-        elif self.course is not None and self._has_submissions(self.context):
+        elif self.course is not None:
             self._delete_contained_data(self.context)
         # pylint: disable=no-member
         self.context.update_version()

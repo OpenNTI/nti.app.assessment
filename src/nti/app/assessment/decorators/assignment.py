@@ -446,7 +446,7 @@ class _AssignmentAfterDueDateSolutionDecorator(AbstractAuthenticatedRequestAware
     def _predicate(self, context, _unused_result):
         assignment = self._assignment(context)
         auth_userid = self.authenticated_userid
-        course = self._get_course(assignment, auth_userid, self.request)
+        course = self.get_course(assignment, auth_userid, self.request)
         return (bool(auth_userid)
                 and course is not None
                 and (self.is_instructor(course, self.request)
@@ -475,7 +475,7 @@ class _NonInstructorStripAssignmentPartsAfterSubmission(AbstractAuthenticatedReq
         return history_item is not None
 
     def _do_decorate_external(self, context, result):
-        course = self._get_course(context, self.remoteUser, self.request)
+        course = self.get_course(context, self.remoteUser, self.request)
         if self.is_instructor(course, self.request):
             return
         if self._should_strip(course, context, self.request, self.remoteUser):
@@ -536,7 +536,7 @@ class _AssignmentSubmissionPendingAssessmentAfterDueDateSolutionDecorator(_Assig
 
     def _do_decorate_external(self, context, result):
         assg = self._assignment(context)
-        course = self._get_course(assg, self.remoteUser, self.request)
+        course = self.get_course(assg, self.remoteUser, self.request)
         decorate_assessment = self.should_decorate_assessment(assg, course, self.remoteUser)
         is_instructor = self.is_instructor(course, self.request)
         for part, ext_part in zip(getattr(context, 'parts', None) or (),

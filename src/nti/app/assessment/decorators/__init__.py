@@ -109,7 +109,7 @@ def _root_url(ntiid):
 
 class InstructedCourseDecoratorMixin(object):
 
-    def _get_course(self, context, user_id, request):
+    def get_course(self, context, user_id, request):
         remote_user = User.get_user(user_id)
         course = _get_course_from_evaluation(context, remote_user,
                                              request=request)
@@ -135,7 +135,7 @@ class InstructedCourseDecoratorMixin(object):
         return result
 
 
-def _get_externalizer(question_part, is_randomized_qset):
+def _get_solutions_externalizer(question_part, is_randomized_qset):
     """
     Fetches an appropriate externalizer for the solutions, handling
     randomization for the student, if necessary.
@@ -165,8 +165,8 @@ def decorate_question_solutions(question,
             for key in ('solutions', 'explanation'):
                 if ext_qpart.get(key) is None and hasattr(qpart, key):
                     if key == 'solutions' and not is_instructor:
-                        externalizer = _get_externalizer(qpart,
-                                                         is_randomized)
+                        externalizer = _get_solutions_externalizer(qpart,
+                                                                   is_randomized)
                         ext_qpart[key] = externalizer.to_external_object()
                     else:
                         ext_value = to_external_object(getattr(qpart, key))

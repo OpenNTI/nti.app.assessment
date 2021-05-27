@@ -68,6 +68,7 @@ from nti.app.assessment.decorators import _root_url
 from nti.app.assessment.decorators import _get_course_from_evaluation
 from nti.app.assessment.decorators import AbstractAssessmentDecoratorPredicate
 from nti.app.assessment.decorators import InstructedCourseDecoratorMixin
+from nti.app.assessment.decorators import decorate_assessed_values
 from nti.app.assessment.decorators import decorate_question_solutions
 
 from nti.app.assessment.interfaces import ISolutionDecorationConfig
@@ -527,12 +528,7 @@ class _AssignmentSubmissionPendingAssessmentAfterDueDateSolutionDecorator(_Assig
             is_randomized=is_randomized,
             is_instructor=is_instructor)
         if decorate_assessment:
-            for qpart, ext_qpart in zip(getattr(question, 'parts', None) or (),
-                                        ext_question.get('parts') or ()):
-                if isinstance(ext_qpart, Mapping) \
-                        and ext_qpart.get('assessedValue') is None \
-                        and hasattr(qpart, 'assessedValue'):
-                    ext_qpart['assessedValue'] = getattr(qpart, 'assessedValue')
+            decorate_assessed_values(question, ext_question)
 
     def _do_decorate_external(self, context, result):
         assg = self._assignment(context)

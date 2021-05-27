@@ -9,6 +9,7 @@ from __future__ import print_function
 from __future__ import absolute_import
 
 # pylint: disable=abstract-method
+from collections import Mapping
 from collections import MutableMapping
 
 from zope import component
@@ -183,3 +184,12 @@ def decorate_qset_solutions(qset,
                                     ext_q,
                                     is_randomized=is_randomized,
                                     is_instructor=is_instructor)
+
+
+def decorate_assessed_values(assessed_question, ext_question):
+    for qpart, ext_qpart in zip(getattr(assessed_question, 'parts', None) or (),
+                                ext_question.get('parts') or ()):
+        if isinstance(ext_qpart, Mapping) \
+                and ext_qpart.get('assessedValue') is None \
+                and hasattr(qpart, 'assessedValue'):
+            ext_qpart['assessedValue'] = getattr(qpart, 'assessedValue')

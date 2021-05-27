@@ -12,6 +12,7 @@ from zope import component
 from zope import interface
 
 from nti.app.assessment.decorators import InstructedCourseDecoratorMixin
+from nti.app.assessment.decorators import decorate_assessed_values
 from nti.app.assessment.decorators import decorate_qset_solutions
 
 from nti.app.renderers.decorators import AbstractAuthenticatedRequestAwareDecorator
@@ -115,3 +116,7 @@ class _QAssessedQuestionSetObjectDecorator(AbstractQuestionSetSolutionDecorator)
                                 mapping,
                                 is_randomized=is_randomized,
                                 is_instructor=is_instructor)
+
+        for q, ext_q in zip(getattr(context, 'questions', None) or (),
+                            mapping.get('questions') or ()):
+            decorate_assessed_values(q, ext_q)

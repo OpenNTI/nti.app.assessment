@@ -9,6 +9,7 @@ __docformat__ = "restructuredtext en"
 import json
 import os
 
+from hamcrest import has_entries
 from hamcrest import is_
 from hamcrest import none
 from hamcrest import is_not
@@ -265,13 +266,18 @@ class TestQuestionSetSolutionDecoration(ApplicationLayerTest):
         submit_res = self.testapp.post_json(self_assessment_submission_url,
                                             submission,
                                             extra_environ=student_environ).json_body
-        assert_that(submit_res['questions'][0]['parts'][0],
-                    has_entry('solutions', not_none()))
+        assert_that(submit_res['questions'][0]['parts'][0], has_entries({
+            'solutions': not_none(),
+            'explanation': not_none(),
+            'assessedValue': not_none(),
+        }))
 
         post_self_assessment_res = self.testapp.get(self_assessment_url,
                                                     extra_environ=student_environ).json_body
-        assert_that(post_self_assessment_res['questions'][0]['parts'][0],
-                    has_entry('solutions', not_none()))
+        assert_that(post_self_assessment_res['questions'][0]['parts'][0], has_entries({
+            'solutions': not_none(),
+            'explanation': not_none(),
+        }))
 
         # Ensure solutions returned when fetching submission via UGD for page
         accept_type = 'application/vnd.nextthought.pageinfo+json'
@@ -288,4 +294,9 @@ class TestQuestionSetSolutionDecoration(ApplicationLayerTest):
         page_ugd_res = self.testapp.get(page_ugd_url,
                                         extra_environ=student_environ).json_body
         assert_that(page_ugd_res['Items'][0]['questions'][0]['parts'][0],
-                    has_entry('solutions', not_none()))
+                    has_entries({
+                        'solutions': not_none(),
+                        'explanation': not_none(),
+                        'assessedValue': not_none(),
+                    }))
+

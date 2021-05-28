@@ -104,10 +104,22 @@ class _QAssessedQuestionSetObjectDecorator(AbstractQuestionSetSolutionDecorator)
 
     def _do_decorate_external(self, context, mapping):
         qset = self._question_set(context)
+        is_instructor = None
         if qset is None or not self._has_self_assessment_submission(context):
-            return
+            is_instructor = self._is_instructor(self._get_course(qset))
+            if not is_instructor:
+                return
 
-        is_instructor = self._is_instructor(self._get_course(qset))
+        for q, ext_q in zip(getattr(context, 'questions', None) or (),
+                            mapping.get('questions') or ()):
+            decorate_assessed_values(q, ext_q)
+
+        # Solutions for instructors handled by
+        # `_QAssessedQuestionExplanationSolutionAdder` in
+        # `nti.app.assessment.decorators.assessed`
+        if is_instructor is None:
+            is_instructor = self._is_instructor(self._get_course(qset))
+
         if is_instructor:
             return
 
@@ -116,7 +128,3 @@ class _QAssessedQuestionSetObjectDecorator(AbstractQuestionSetSolutionDecorator)
                                 mapping,
                                 is_randomized=is_randomized,
                                 is_instructor=is_instructor)
-
-        for q, ext_q in zip(getattr(context, 'questions', None) or (),
-                            mapping.get('questions') or ()):
-            decorate_assessed_values(q, ext_q)

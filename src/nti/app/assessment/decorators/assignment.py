@@ -95,6 +95,7 @@ from nti.assessment.interfaces import IQAssessment
 from nti.assessment.interfaces import IQTimedAssignment
 from nti.assessment.interfaces import IQEditableEvaluation
 from nti.assessment.interfaces import IQDiscussionAssignment
+from nti.assessment.interfaces import IQuestionSetSubmission
 
 from nti.assessment.randomized.interfaces import IQuestionBank
 from nti.assessment.randomized.interfaces import IRandomizedQuestionSet
@@ -537,10 +538,11 @@ class _AssignmentSubmissionPendingAssessmentAfterDueDateSolutionDecorator(_Assig
         is_instructor = self.is_instructor(course, self.request)
         for part, ext_part in zip(getattr(context, 'parts', None) or (),
                                   result.get('parts') or ()):
-            self.decorate_qset(part,
-                               ext_part,
-                               decorate_assessment=decorate_assessment,
-                               is_instructor=is_instructor)
+            if not IQuestionSetSubmission.providedBy(part):
+                self.decorate_qset(part,
+                                   ext_part,
+                                   decorate_assessment=decorate_assessment,
+                                   is_instructor=is_instructor)
 
 
 @interface.implementer(IExternalObjectDecorator)

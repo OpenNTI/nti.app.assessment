@@ -527,7 +527,7 @@ class _AssignmentSubmissionPendingAssessmentAfterDueDateSolutionDecorator(_Assig
             decorate_assessment=decorate_assessment,
             is_randomized=is_randomized,
             is_instructor=is_instructor)
-        if decorate_assessment:
+        if decorate_assessment or is_instructor:
             decorate_assessed_values(question, ext_question)
 
     def _do_decorate_external(self, context, result):

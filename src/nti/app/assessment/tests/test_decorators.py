@@ -31,12 +31,20 @@ from nti.externalization.internalization import find_factory_for
 from nti.externalization.internalization import update_from_external_object
 
 from nti.app.assessment.tests import AssessmentLayerTest
+from nti.app.assessment.tests import RegisterAssignmentLayerMixin
+from nti.app.assessment.tests import RegisterAssignmentsForEveryoneLayer
 
 from nti.app.products.courseware.tests import PersistentInstructedCourseApplicationTestLayer
 
 from nti.app.testing.application_webtest import ApplicationLayerTest
 
 from nti.app.testing.decorators import WithSharedApplicationMockDS
+
+from nti.assessment.submission import AssignmentSubmission
+from nti.assessment.submission import QuestionSetSubmission
+from nti.assessment.submission import QuestionSubmission
+
+from nti.externalization import to_external_object
 
 from nti.externalization.tests import externalizes
 
@@ -228,7 +236,7 @@ class TestQuestionSetSolutionDecoration(ApplicationLayerTest):
         admin_environ = self._make_extra_environ(
             username=self.default_username)
         enroll_url = '/dataserver2/CourseAdmin/UserCourseEnroll'
-        self.testapp.post_json(enroll_url,
+        res = self.testapp.post_json(enroll_url,
                                {'ntiid': entry_ntiid,
                                 'username': username},
                                extra_environ=admin_environ)
@@ -300,3 +308,138 @@ class TestQuestionSetSolutionDecoration(ApplicationLayerTest):
                         'assessedValue': not_none(),
                     }))
 
+class TestAssignmentSolutionDecoration(RegisterAssignmentLayerMixin, ApplicationLayerTest):
+
+    layer = RegisterAssignmentsForEveryoneLayer
+    features = ('assignments_for_everyone',)
+
+    default_origin = 'http://janux.ou.edu'
+    default_username = 'outest75'
+
+    course_href = u'/dataserver2/%2B%2Betc%2B%2Bhostsites/platform.ou.edu/%2B%2Betc%2B%2Bsite/Courses/Fall2013/CLC3403_LawAndJustice'
+    course_ntiid = u'tag:nextthought.com,2011-10:NTI-CourseInfo-Fall2013_CLC3403_LawAndJustice'
+
+    self_assessment_ntiid = u'tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.set.qset:QUIZ1_aristotle'
+
+    def _verify_solutions(self,
+                          assignment_submit_rel,
+                          ext_submission,
+                          enrollment_history_link,
+                          instructor_environ,
+                          has_student_solutions=False):
+        submission_res = self.testapp.post_json(assignment_submit_rel, ext_submission).json_body
+        assessed_part = submission_res['parts'][0]['questions'][0]['parts'][0]
+        check = is_ if has_student_solutions else not_
+        assert_that(assessed_part, check(has_key('assessedValue')))
+        assert_that(assessed_part, has_entries({
+            'solutions': check(not_none()),
+            'explanation': check(not_none()),
+        }))
+
+        res = self.testapp.get(enrollment_history_link).json_body
+        assessed_part = res['Items'].values()[0]['Items'][0]['pendingAssessment']['parts'][0]['questions'][0]['parts'][0]
+        assert_that(assessed_part, check(has_key('assessedValue')))
+        assert_that(assessed_part, has_entries({
+            'solutions': check(not_none()),
+            'explanation': check(not_none()),
+        }))
+
+        # Ensure instructor gets all solutions
+        res = self.testapp.get(enrollment_history_link, extra_environ=instructor_environ).json_body
+        assessed_part = res['Items'].values()[0]['Items'][0]['pendingAssessment']['parts'][0]['questions'][0]['parts'][0]
+        assert_that(assessed_part, has_entries({
+            'solutions': not_none(),
+            'explanation': not_none(),
+            'assessedValue': not_none(),
+        }))
+
+    @WithSharedApplicationMockDS(users=('outest5',), testapp=True, default_authenticate=True)
+    @fudge.patch('nti.app.assessment.common.evaluations.get_completed_item',
+                 'nti.app.assessment.decorators.assignment.get_completed_item')
+    def test_multisubmission_solutions(self,
+                                       mock_completed_item_common,
+                                       mock_completed_item_decorators,
+                                       ):
+        # Student shouldn't get solutions if it hasn't been completed
+        mock_completed_item_common.is_callable().returns(None)
+        mock_completed_item_decorators.is_callable().returns(None)
+
+        success_item = fudge.Fake()
+        success_item.has_attr(Success=True)
+        fail_item = fudge.Fake()
+        fail_item.has_attr(Success=False)
+
+        # Sends an assignment through the application by posting to the
+        # assignment
+        question_ntiid = u'tag:nextthought.com,2011-10:OU-NAQ-CLC3403_LawAndJustice.naq.qid.aristotle.1'
+        q_sub = QuestionSubmission(questionId=question_ntiid,
+                                   parts=(0,))
+        qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id,
+                                              questions=(q_sub,))
+        submission = AssignmentSubmission(assignmentId=self.assignment_id,
+                                          parts=(qs_submission,))
+
+        ext_obj = to_external_object(submission)
+
+        # Make sure we're enrolled
+        res = self.testapp.post_json('/dataserver2/users/' + self.default_username + '/Courses/EnrolledCourses',
+                                     self.course_ntiid,
+                                     status=201)
+
+        enrollment_history_link = self.require_link_href_with_rel(res.json_body,
+                                                                  'AssignmentHistory')
+        course_res = self.testapp.get(self.course_href).json_body
+        course_instance_link = course_res['href']
+        assignment_submit_rel = '%s/%s/%s' % (course_instance_link,
+                                              'Assessments',
+                                              self.assignment_id)
+
+        instructor_environ = self._make_extra_environ(username='harp4162')
+        assignment_url = '%s/Assessments/%s' % (course_instance_link,
+                                                self.assignment_id)
+        self.testapp.put_json(assignment_url,
+                              {
+                                  'max_submissions': 3,
+                                  'submission_priority': 'HIGHEST_GRADE'
+                              },
+                              extra_environ=instructor_environ)
+
+        # Need to start
+        assignment_res = self.testapp.get(assignment_submit_rel)
+        start_href = self.require_link_href_with_rel(assignment_res.json_body,
+                                                     'Commence')
+        self.testapp.post(start_href)
+        self._verify_solutions(assignment_submit_rel,
+                               ext_obj,
+                               enrollment_history_link,
+                               instructor_environ,
+                               has_student_solutions=False)
+
+        # Provide student with failed completion
+        assignment_res = self.testapp.get(assignment_submit_rel)
+        start_href = self.require_link_href_with_rel(assignment_res.json_body,
+                                                     'Commence')
+        self.testapp.post(start_href)
+        mock_completed_item_common.is_callable().returns(fail_item)
+        mock_completed_item_decorators.is_callable().returns(fail_item)
+
+        self._verify_solutions(assignment_submit_rel,
+                               ext_obj,
+                               enrollment_history_link,
+                               instructor_environ,
+                               has_student_solutions=False)
+
+        # Provide student with successful completion
+        assignment_res = self.testapp.get(assignment_submit_rel)
+        start_href = self.require_link_href_with_rel(assignment_res.json_body,
+                                                     'Commence')
+        self.testapp.post(start_href)
+
+        mock_completed_item_common.is_callable().returns(None)
+        mock_completed_item_decorators.is_callable().returns(success_item)
+
+        self._verify_solutions(assignment_submit_rel,
+                               ext_obj,
+                               enrollment_history_link,
+                               instructor_environ,
+                               has_student_solutions=True)

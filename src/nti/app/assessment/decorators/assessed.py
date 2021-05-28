@@ -218,7 +218,10 @@ class _QAssessedQuestionExplanationSolutionAdder(Singleton):
     Decoration for students is handled in
     `_AssignmentSubmissionPendingAssessmentAfterDueDateSolutionDecorator`
     in `nti.app.assessment.decorators.assignment`, since it's conditional
-    on assignment data like due date.
+    on assignment data like due date.  See
+    `_QAssessedQuestionSetObjectDecorator` in
+    `nti.app.assessment.decorators.question_set` for the corresponding
+    self-assessment decoration.
 
     .. note:: In the future this may be registered/unregistered on a site
             by site basis (where a Course is a site) so that instructor preferences

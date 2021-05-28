@@ -257,11 +257,13 @@ class TestQuestionSetSolutionDecoration(ApplicationLayerTest):
         course_url = '/dataserver2/Objects/%s' % course_ntiid
         self_assessment_url = '/dataserver2/Objects/%s' % (self.self_assessment_ntiid,)
 
+        # Student shouldn't have solutions prior to submission
         self_assessment_res = self.testapp.get(self_assessment_url,
                                                extra_environ=student_environ).json_body
         assert_that(self_assessment_res['questions'][0]['parts'][0],
                     not_(has_entry('solutions', not_none())))
 
+        # Instructors should always see solutions
         self_assessment_res = self.testapp.get(self_assessment_url,
                                                extra_environ=instructor_environ).json_body
         assert_that(self_assessment_res['questions'][0]['parts'][0],
@@ -307,6 +309,24 @@ class TestQuestionSetSolutionDecoration(ApplicationLayerTest):
                         'explanation': not_none(),
                         'assessedValue': not_none(),
                     }))
+
+        # Also check PracticeSubmission for instructors have assessed values
+        instructor_assessment_res = self.testapp.get(self_assessment_url,
+                                                     extra_environ=instructor_environ).json_body
+        practice_sub_url = self.require_link_href_with_rel(instructor_assessment_res,
+                                                           'PracticeSubmission')
+        submit_res = self.testapp.post_json(practice_sub_url,
+                                            submission,
+                                            extra_environ=instructor_environ).json_body
+        assert_that(submit_res['questions'][0]['parts'][0],
+                    has_entries({
+                        'solutions': not_none(),
+                        'explanation': not_none(),
+                        'assessedValue': not_none(),
+                    }))
+
+
+
 
 class TestAssignmentSolutionDecoration(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 

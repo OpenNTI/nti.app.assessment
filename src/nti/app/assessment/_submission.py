@@ -218,7 +218,7 @@ def transfer_submission_file_data(source, target,  force=False):
                         # be an array such that we can just line
                         # indexes up like we do for question parts?
                         old_question = old_questions[question.questionId]
-                        old_part = old_question(idx)
+                        old_part = old_question[idx]
                         old_part_value = get_part_value(old_part)
                     except KeyError:
                         # No question by that id in the old_questions

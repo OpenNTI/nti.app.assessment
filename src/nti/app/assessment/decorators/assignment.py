@@ -449,14 +449,16 @@ class _AssignmentAfterDueDateSolutionDecorator(AbstractAuthenticatedRequestAware
         assignment = self._assignment(context)
         auth_userid = self.authenticated_userid
         course = self.get_course(assignment, auth_userid, self.request)
+
+        if not bool(auth_userid) or course is None:
+            return False
+
         self._is_instructor = self.is_instructor(course, self.request)
-        return (bool(auth_userid)
-                and course is not None
-                and (self._is_instructor
-                     or self._should_decorate(course,
-                                              assignment,
-                                              self.request,
-                                              self.remoteUser)))
+        return (self._is_instructor
+                or self._should_decorate(course,
+                                         assignment,
+                                         self.request,
+                                         self.remoteUser))
 
     def _do_decorate_external(self, context, result):
         for part, ext_part in zip(getattr(context, 'parts', None) or (),

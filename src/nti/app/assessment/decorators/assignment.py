@@ -449,9 +449,10 @@ class _AssignmentAfterDueDateSolutionDecorator(AbstractAuthenticatedRequestAware
         assignment = self._assignment(context)
         auth_userid = self.authenticated_userid
         course = self.get_course(assignment, auth_userid, self.request)
+        self._is_instructor = self.is_instructor(course, self.request)
         return (bool(auth_userid)
                 and course is not None
-                and (self.is_instructor(course, self.request)
+                and (self._is_instructor
                      or self._should_decorate(course,
                                               assignment,
                                               self.request,
@@ -462,7 +463,8 @@ class _AssignmentAfterDueDateSolutionDecorator(AbstractAuthenticatedRequestAware
                                   result.get('parts') or ()):
             question_set = ext_part.get('question_set')
             if question_set:
-                self.decorate_qset(part.question_set, question_set)
+                self.decorate_qset(part.question_set, question_set,
+                                   is_instructor=self._is_instructor)
 
 
 class _NonInstructorStripAssignmentPartsAfterSubmission(AbstractAuthenticatedRequestAwareDecorator,

@@ -188,6 +188,28 @@ class TestRandomized(ApplicationLayerTest):
                                "application/vnd.nextthought.assessment.matchingpart",
                                "application/vnd.nextthought.assessment.filepart" ))
 
+        assignment = self.testapp.get(assignment_href).json_body
+        self._test_external_state( assignment )
+        qset = assignment['parts'][0]['question_set']
+        questions = qset.get( 'questions' )
+        expected_solns = [
+            0,
+            [0, 1, 2],
+            {
+                "0": 3,
+                "1": 6,
+                "2": 2,
+                "3": 0,
+                "4": 5,
+                "5": 1,
+                "6": 4
+            }
+        ]
+        for question, expected_soln in zip(questions, expected_solns):
+            self._test_external_state( question )
+            assert_that(question['parts'][0]['solutions'][0]['value'],
+                        is_(expected_soln))
+
         # QuestionSet is random for students, as well as the concrete parts.
         self._validate_random_qset_and_parts(students, assignment_href,
                                              random_set=True, random_parts=True,

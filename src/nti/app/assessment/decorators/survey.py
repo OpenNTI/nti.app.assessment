@@ -36,6 +36,7 @@ from nti.app.assessment import VIEW_REMOVE_POLL
 from nti.app.assessment.common.inquiries import can_disclose_inquiry
 
 from nti.app.assessment.common.policy import get_policy_for_assessment
+from nti.app.assessment.common.policy import get_policy_full_submission
 
 from nti.app.assessment.common.submissions import inquiry_submissions
 
@@ -260,6 +261,7 @@ class _InquiryDecorator(_AbstractTraversableLinkDecorator):
                 result_map['disclosure'] = policy['disclosure']
 
             result_map['submissions'] = submission_count
+            result_map['full_submission'] = get_policy_full_submission(context, course)
 
         # pylint: disable=no-member
         elements = ('Inquiries', user.username, context.ntiid)

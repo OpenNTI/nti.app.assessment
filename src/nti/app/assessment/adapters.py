@@ -46,6 +46,7 @@ from nti.app.assessment.common.evaluations import get_course_self_assessments
 from nti.app.assessment.common.policy import get_policy_max_submissions
 from nti.app.assessment.common.policy import is_policy_max_submissions_unlimited
 
+from nti.app.assessment.common.submissions import check_full_submission
 from nti.app.assessment.common.submissions import check_submission_version
 
 from nti.app.assessment.common.utils import get_available_for_submission_beginning
@@ -197,6 +198,7 @@ def _check_submission_before(submission, course, assignment):
 def _validate_submission(submission, course, assignment):
     _check_submission_before(submission, course, assignment)
     check_submission_version(submission, assignment)
+    check_full_submission(submission, assignment, course)
 
 
 @component.adapter(IQAssignmentSubmission)

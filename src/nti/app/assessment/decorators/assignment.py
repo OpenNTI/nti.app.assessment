@@ -8,8 +8,8 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import absolute_import
 
-from collections import Mapping
 from collections import namedtuple
+
 from datetime import datetime
 
 from zope import component
@@ -52,6 +52,7 @@ from nti.app.assessment.common.history import get_most_recent_history_item
 from nti.app.assessment.common.policy import get_policy_locked
 from nti.app.assessment.common.policy import get_policy_excluded
 from nti.app.assessment.common.policy import get_auto_grade_policy
+from nti.app.assessment.common.policy import get_policy_full_submission
 from nti.app.assessment.common.policy import get_policy_max_submissions
 from nti.app.assessment.common.policy import get_submission_buffer_policy
 from nti.app.assessment.common.policy import get_policy_submission_priority
@@ -282,6 +283,7 @@ class _AssignmentOverridesDecorator(AbstractAuthenticatedRequestAwareDecorator):
         result['max_submissions'] = get_policy_max_submissions(assignment, course)
         result['unlimited_submissions'] = is_policy_max_submissions_unlimited(assignment, course)
         result['completion_passing_percent'] = get_policy_completion_passing_percent(assignment, course)
+        result['full_submission'] = get_policy_full_submission(assignment, course)
         result['submission_priority'] = get_policy_submission_priority(assignment, course)
 
         # auto_grade/total_points

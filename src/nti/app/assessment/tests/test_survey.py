@@ -319,10 +319,10 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
             result = json.load(fp)
             return result
 
-    def _load_survey(self):
-        return self._load_json_resource("survey-freeresponse.json")
+    def _load_survey(self, filename):
+        return self._load_json_resource(filename)
 
-    def _create_survey(self, disclosure=None):
+    def _create_survey(self, disclosure=None, filename="survey-freeresponse.json"):
         admin_environ = self._make_extra_environ(
             username='sjohnson@nextthought.com')
 
@@ -330,7 +330,7 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
                                       extra_environ=admin_environ).json_body
         evals_href = self.require_link_href_with_rel(course_res, 'CourseEvaluations')
 
-        fr_survey = self._load_survey()
+        fr_survey = self._load_survey(filename)
 
         if disclosure:
             fr_survey['disclosure'] = disclosure
@@ -429,6 +429,66 @@ class TestSurveyViews(RegisterAssignmentLayerMixin, ApplicationLayerTest):
 
         # User w/ no submission shouldn't be able to fetch results
         self.testapp.get(results_link, extra_environ=alt_student_env, status=403)
+
+    @WithSharedApplicationMockDS(users=('test_full_submission_user', 'sjohnson@nextthought.com',),
+                                 testapp=True,
+                                 default_authenticate=True)
+    @fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
+    def test_survey_full_submission(self, fake_active):
+        """
+        Ensure `full_submission` surveys only accept all questions answered.
+        """
+        fake_active.is_callable().returns(True)
+
+        # Enroll everyone for test
+        for username in self.users:
+            self._enroll(username)
+
+        survey_res = self._create_survey(filename='survey.json')
+        assert_that(survey_res, has_entry('full_submission', False))
+        survey_href = survey_res['href']
+        survey_ntiid = survey_res['NTIID']
+
+        admin_environ = self._make_extra_environ(username='sjohnson@nextthought.com')
+        user_env = self._make_extra_environ(username='test_full_submission_user')
+        
+        poll_subs = [QPollSubmission(pollId=poll['NTIID'], parts=['answer'])
+                     for poll in survey_res['questions']]
+        survey_id = survey_res['NTIID']
+        submission = QSurveySubmission(surveyId=survey_id,
+                                       questions=poll_subs)
+        ext_obj = to_external_object(submission)
+        del ext_obj['Class']
+        
+        # Set full_submission
+        survey_res = self.testapp.put_json(survey_href, {'full_submission': True}, 
+                                           extra_environ=admin_environ)
+        assert_that(survey_res.json_body, has_entry('full_submission', True))
+        
+        # Cannot submit with missing answers
+        course_res = self.testapp.get(COURSE_URL).json_body
+        course_inquiries_link = \
+            self.require_link_href_with_rel(course_res, 'CourseInquiries')
+        submission_href = '%s/%s' % (course_inquiries_link, survey_ntiid)
+        for poll_ext in ext_obj['questions']:
+            # Mimics what the client does
+            old_answer = poll_ext['parts']
+            poll_ext['parts'] = [None]
+            res = self.testapp.post_json(submission_href, ext_obj, 
+                                         extra_environ=user_env,
+                                         status=422)
+            assert_that(res.json_body, has_entry('message', 
+                                                 u'Must answer all questions.'))
+            poll_ext['parts'] = old_answer
+            
+        # Can now submit with empty answers
+        survey_res = self.testapp.put_json(survey_href, {'full_submission': "false"}, 
+                                           extra_environ=admin_environ)
+        assert_that(survey_res.json_body, has_entry('full_submission', False))
+        for poll_ext in ext_obj['questions']:
+            poll_ext['parts'] = [None]
+        self.testapp.post_json(submission_href, ext_obj, 
+                               extra_environ=user_env)
 
     @WithSharedApplicationMockDS(users=('outest5',), testapp=True, default_authenticate=True)
     @fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')

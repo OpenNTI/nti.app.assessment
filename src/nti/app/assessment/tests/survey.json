@@ -1,0 +1,44 @@
+{
+  "MimeType": "application/vnd.nextthought.nasurvey",
+	"title": "My Test Survey",
+  "questions": [
+	{
+	  "MimeType": "application/vnd.nextthought.napoll",
+	  "content": "I'm a freereponse part1!",
+	  "parts": [
+		{
+		  "MimeType": "application/vnd.nextthought.assessment.nongradablefreeresponsepart",
+		  "content": "",
+		  "hints": []
+		}
+	  ]
+	},
+	{
+      "MimeType": "application/vnd.nextthought.napoll",
+      "content": "I'm a freereponse part2!",
+      "parts": [
+        {
+          "MimeType": "application/vnd.nextthought.assessment.nongradablefreeresponsepart",
+          "content": "",
+          "hints": []
+        }
+      ]
+    },
+    {
+      "MimeType": "application/vnd.nextthought.napoll",
+      "content": "I'm a multiple choice part3!",
+      "parts": [
+        {
+          "MimeType": "application/vnd.nextthought.assessment.nongradablemultiplechoicepart",
+          "content": "",
+          "choices":[
+                    "<html><body><p>Hate it</p></body></html>",
+                    "<html><body><p>OK</p></body></html>",
+                    "<html><body><p>Liked it</p></body></html>",
+                    "<html><body><p>Loved it</p></body></html>"],
+          "hints": []
+        }
+      ]
+    }
+  ]
+}

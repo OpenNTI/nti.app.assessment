@@ -36,12 +36,12 @@ from nti.app.assessment import MessageFactory as _
 
 from nti.app.assessment import VIEW_QUESTION_SET_CONTENTS
 
+from nti.app.assessment.common.editting import pre_validate_question_change
+
 from nti.app.assessment.common.evaluations import get_max_time_allowed
 from nti.app.assessment.common.evaluations import get_containers_for_evaluation_object
 
 from nti.app.assessment.common.history import delete_inquiry_submissions
-
-from nti.app.assessment.common.policy import pre_validate_question_change
 
 from nti.app.assessment.evaluations.utils import indexed_iter
 from nti.app.assessment.evaluations.utils import delete_evaluation
@@ -556,7 +556,8 @@ class SurveyPutView(NewAndLegacyPutView):
 
     CAN_FORCE_STRUCTURAL_EDITS = True
 
-    NON_DATE_POLICY_KEYS = ('disclosure',)
+    # XXX: Should we extend the parent set here?
+    NON_DATE_POLICY_KEYS = ('disclosure', 'full_submission')
 
     def _skip_solution_check_proxy(self, obj):
         return IQAvoidSolutionCheck(obj)

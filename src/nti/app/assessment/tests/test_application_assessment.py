@@ -2,7 +2,6 @@
 # -*- coding: utf-8 -*-
 
 from __future__ import print_function, unicode_literals, absolute_import, division
-__docformat__ = "restructuredtext en"
 
 # disable: accessing protected members, too many methods
 # pylint: disable=W0212,R0904
@@ -18,6 +17,8 @@ from hamcrest import assert_that
 from hamcrest import has_entries
 from hamcrest import greater_than
 does_not = is_not
+
+import fudge
 
 from nti.assessment import submission as asm_submission
 
@@ -130,7 +131,8 @@ class TestApplicationAssessment(ApplicationLayerTest):
 			for i in items:
 				assert_that(i, has_key('parts'))
 				for part in i["parts"]:
-					assert_that(part, has_entry('solutions', not_none()))
+					from hamcrest import none
+					assert_that(part, has_entry('solutions', none()))
 					assert_that(part, has_entry('explanation', not_none()))
 
 	def _check_submission(self, res):
@@ -162,7 +164,9 @@ class TestApplicationAssessment(ApplicationLayerTest):
 		self._check_submission(res)
 
 	@WithSharedApplicationMockDS(users=True, testapp=True)
-	def test_posting_multiple_choice(self):
+	@fudge.patch('nti.app.assessment.decorators.assessed._is_instructor_or_editor')
+	def test_posting_multiple_choice(self, mock_instructor):
+		mock_instructor.is_callable().returns(True)
 		# The correct answer is at index 1, and has the value 'Steam distillation". We should be able to submit all
 		# three forms
 		for submittedResponse in (1, "1", "Steam distillation",):

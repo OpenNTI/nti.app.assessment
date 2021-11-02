@@ -152,7 +152,7 @@ class AssessmentPutView(UGDPutView):
     NON_DATE_POLICY_KEYS = ("auto_grade", 'total_points',
                             'maximum_time_allowed', 'submission_buffer',
                             'max_submissions', 'submission_priority',
-                            'completion_passing_percent')
+                            'completion_passing_percent', 'full_submission')
 
     def readInput(self, value=None):
         result = UGDPutView.readInput(self, value=value)
@@ -397,6 +397,8 @@ class AssessmentPutView(UGDPutView):
             part = 'auto_grade'
             value = not value
             key = 'disable'
+        elif key == 'full_submission':
+            notify_value = value = self._get_value(bool, value, key)
         elif key == 'total_points':
             notify_value = value = self._get_value(float, value, key)
             part = 'auto_grade'

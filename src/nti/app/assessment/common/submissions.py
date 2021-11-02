@@ -24,6 +24,8 @@ from nti.app.assessment.common.evaluations import get_containers_for_evaluation_
 
 from nti.app.assessment.common.hostpolicy import get_resource_site_name
 
+from nti.app.assessment.common.policy import get_policy_full_submission
+
 from nti.app.assessment.common.utils import get_user
 from nti.app.assessment.common.utils import get_courses
 from nti.app.assessment.common.utils import to_course_list
@@ -209,3 +211,27 @@ def check_submission_version(submission, evaluation):
                              'message': _(u'Evaluation version has changed.'),
                          },
                          None)
+
+def check_full_submission(submission, evaluation, course):
+    """
+    For the given submission, validate if the user has responses for all
+    questions/parts in the evaluation, if required. We raise a 422 if not.
+    
+    We handle both assignment and survey submissions here.
+    """
+    if get_policy_full_submission(evaluation, course):
+        for submission_part in submission.parts:
+            try:
+                # Assignment
+                submitted_questions = submission_part.questions
+            except AttributeError:
+                # Inquiry
+                submitted_questions = (submission_part,)
+            for question in submitted_questions:
+                if not question.parts or None in question.parts:
+                    raise_json_error(get_current_request(),
+                                     hexc.HTTPUnprocessableEntity,
+                                     {
+                                         'message': _(u'Must answer all questions.'),
+                                     },
+                                     None)

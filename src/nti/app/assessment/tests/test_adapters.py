@@ -66,7 +66,8 @@ from nti.assessment.interfaces import IQAssignment
 from nti.assessment.interfaces import IQAssignmentPolicies
 from nti.assessment.interfaces import IQAssignmentSubmissionPendingAssessment
 
-from nti.assessment.submission import AssignmentSubmission
+from nti.assessment.submission import QuestionSubmission
+from nti.assessment.submission import AssignmentSubmission 
 from nti.assessment.submission import QuestionSetSubmission
 
 from nti.contentfragments.interfaces import IPlainTextContentFragment
@@ -81,7 +82,6 @@ from nti.dataserver.users.users import User
 from nti.externalization.externalization import to_external_object
 
 from nti.externalization.interfaces import StandardExternalFields
-from nti.externalization.interfaces import IExternalObjectDecorator
 
 from nti.mimetype.mimetype import nti_mimetype_with_class
 
@@ -517,6 +517,76 @@ class TestAssignmentGrading(RegisterAssignmentLayerMixin, ApplicationLayerTest):
         res = self.testapp.get(activity_link, extra_environ=instructor_environ)
         assert_that(res.json_body, has_entry('TotalItemCount', 0))
         assert_that(res.json_body, has_entry('Items', is_empty()))
+
+    @WithSharedApplicationMockDS(users=('full_sub_user',), testapp=True, default_authenticate=True)
+    @fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')
+    def test_full_submission(self, fake_active):
+        """
+        Test that a user must answer all question in an assignment.
+        """
+        # make it look like the course is in session so notables work
+        fake_active.is_callable().returns(True)
+        
+        # Make sure we're enrolled
+        instructor_environ = self._make_extra_environ(username='harp4162')
+        user_env = self._make_extra_environ(username='full_sub_user')
+        self.testapp.post_json('/dataserver2/users/full_sub_user/Courses/EnrolledCourses',
+                                COURSE_NTIID,
+                                extra_environ=user_env,
+                                status=201)
+
+        course_res = self.testapp.get(COURSE_URL).json_body
+        course_instance_link = course_res['href']
+
+        assignment_submit_rel = '%s/%s/%s' % (course_instance_link,
+                                              'Assessments',
+                                              self.assignment_id)
+        # Need to start
+        assignment_res = self.testapp.get(assignment_submit_rel,
+                                          extra_environ=user_env)
+        start_href = self.require_link_href_with_rel(assignment_res.json_body,
+                                                     'Commence')
+        self.testapp.post(start_href, extra_environ=user_env)
+        
+        # Toggle full submission
+        assignment_res = self.testapp.get(assignment_submit_rel, 
+                                          extra_environ=instructor_environ)
+        assert_that(assignment_res.json_body, has_entry('full_submission', False))
+        
+        assignment_res = self.testapp.put_json(assignment_submit_rel, 
+                                               {'full_submission': True}, 
+                                               extra_environ=instructor_environ)
+        assignment_res = assignment_res.json_body
+        assert_that(assignment_res, has_entry('full_submission', True))
+        
+        # Build out submission
+        question_subs = [QuestionSubmission(questionId=question['NTIID'], parts=[0])
+                         for question in assignment_res['parts'][0]['question_set']['questions']]
+        qs_submission = QuestionSetSubmission(questionSetId=self.question_set_id,
+                                              questions=question_subs)
+        submission = AssignmentSubmission(assignmentId=self.assignment_id,
+                                          parts=(qs_submission,))
+        ext_obj = to_external_object(submission)
+        del ext_obj['Class']
+        
+        for question_ext in ext_obj['parts'][0]['questions']:
+            # Mimics what the client does
+            old_answer = question_ext['parts']
+            question_ext['parts'] = [None]
+            res = self.testapp.post_json(assignment_submit_rel, ext_obj, 
+                                         extra_environ=user_env, 
+                                         status=422)
+            assert_that(res.json_body, has_entry('message', 
+                                                 u'Must answer all questions.'))
+            question_ext['parts'] = old_answer
+        # Success if full submission
+        self.testapp.post_json(assignment_submit_rel, ext_obj, 
+                               extra_environ=user_env)
+        assignment_res = self.testapp.put_json(assignment_submit_rel, 
+                                               {'full_submission': "false"}, 
+                                               extra_environ=instructor_environ)
+        assert_that(assignment_res.json_body, has_entry('full_submission', False))
+        
 
     @WithSharedApplicationMockDS(users=('outest5',), testapp=True, default_authenticate=True)
     @fudge.patch('nti.contenttypes.courses.catalog.CourseCatalogEntry.isCourseCurrentlyActive')

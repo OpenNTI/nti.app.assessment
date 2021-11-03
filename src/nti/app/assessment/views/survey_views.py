@@ -35,6 +35,7 @@ from nti.app.assessment.common.inquiries import get_course_from_inquiry
 from nti.app.assessment.common.inquiries import aggregate_course_inquiry
 
 from nti.app.assessment.common.submissions import inquiry_submissions
+from nti.app.assessment.common.submissions import check_full_submission
 from nti.app.assessment.common.submissions import check_submission_version
 
 from nti.app.assessment.common.utils import get_available_for_submission_ending
@@ -53,7 +54,6 @@ from nti.app.assessment.views import MessageFactory as _
 
 from nti.app.assessment.views import get_ds2
 
-from nti.app.assessment.views.report_mixins import plain_text
 from nti.app.assessment.views.report_mixins import _handle_non_gradable_connecting_part
 from nti.app.assessment.views.report_mixins import _handle_multiple_choice_multiple_answer
 from nti.app.assessment.views.report_mixins import _handle_multiple_choice_part
@@ -224,6 +224,7 @@ class InquirySubmissionPostView(AbstractAuthenticatedView,
                 raise ex
             for question_sub in submission.questions:
                 self._check_poll_submission(question_sub)
+            check_full_submission(submission, self.context, course)
         elif IQPollSubmission.providedBy(submission):
             self._check_poll_submission(submission)
 
